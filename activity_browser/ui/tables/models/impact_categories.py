@@ -7,7 +7,7 @@ import pandas as pd
 from PySide2.QtCore import QModelIndex, Qt, Slot
 
 from activity_browser import signals
-from activity_browser.brightway import bd
+from activity_browser.mod import bw2data as bd
 
 from .base import EditablePandasModel, DragPandasModel, TreeItem, BaseTreeModel
 

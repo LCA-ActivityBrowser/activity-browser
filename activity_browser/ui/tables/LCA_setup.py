@@ -2,7 +2,7 @@ from PySide2.QtCore import Slot, Qt
 from PySide2 import QtWidgets
 
 from activity_browser import log, signals
-from activity_browser.brightway.bw2data import calculation_setups
+from activity_browser.mod.bw2data import calculation_setups
 
 from .delegates import FloatDelegate
 from .impact_categories import MethodsTable, MethodsTree

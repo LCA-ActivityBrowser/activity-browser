@@ -18,7 +18,7 @@ from bw2io.strategies import (
     convert_activity_parameters_to_list
 )
 
-from activity_browser.brightway import bd
+from activity_browser.mod import bw2data as bd
 
 from .errors import LinkingFailed
 from .strategies import (

@@ -6,7 +6,7 @@ from bw2io.importers import Ecospold2BiosphereImporter
 from bw2io.importers.ecospold2_biosphere import EMISSIONS_CATEGORIES
 
 from activity_browser import log
-from activity_browser.brightway import bd
+from activity_browser.mod import bw2data as bd
 from ...info import __ei_versions__
 from ...utils import sort_semantic_versions
 

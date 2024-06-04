@@ -9,7 +9,7 @@ from PySide2 import QtWidgets
 from PySide2.QtCore import Slot
 
 from activity_browser import log, signals
-from activity_browser.brightway.bw2data import get_activity, Database
+from activity_browser.mod.bw2data import get_activity, Database
 
 from .base import BaseGraph, BaseNavigatorWidget
 from ...bwutils.commontasks import identify_activity_type

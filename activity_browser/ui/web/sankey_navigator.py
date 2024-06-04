@@ -10,8 +10,8 @@ from PySide2.QtCore import Slot
 from PySide2.QtWidgets import QComboBox
 
 from activity_browser import log, signals
-from activity_browser.brightway import bd
-from activity_browser.brightway.bw2data.backends import ActivityDataset
+from activity_browser.mod import bw2data as bd
+from activity_browser.mod.bw2data.backends import ActivityDataset
 
 from .base import BaseGraph, BaseNavigatorWidget
 from ...bwutils.commontasks import identify_activity_type

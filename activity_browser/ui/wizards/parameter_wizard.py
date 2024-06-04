@@ -2,7 +2,7 @@
 from PySide2 import QtCore, QtGui, QtWidgets
 from PySide2.QtCore import Signal
 
-from activity_browser.brightway.bw2data import databases
+from activity_browser.mod.bw2data import databases
 from ...bwutils import commontasks as bc
 
 

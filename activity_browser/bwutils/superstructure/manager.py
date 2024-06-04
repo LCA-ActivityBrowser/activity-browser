@@ -9,7 +9,7 @@ from PySide2.QtWidgets import QApplication, QPushButton
 from PySide2.QtCore import Qt
 
 from activity_browser import log
-from activity_browser.brightway import bd
+from activity_browser.mod import bw2data as bd
 
 from .activities import fill_df_keys_with_fields, get_activities_from_keys
 from .dataframe import scenario_columns

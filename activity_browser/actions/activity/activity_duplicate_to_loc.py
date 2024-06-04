@@ -4,7 +4,7 @@ import pandas as pd
 from PySide2 import QtCore
 
 from activity_browser import signals, application
-from activity_browser.brightway import bd
+from activity_browser.mod import bw2data as bd
 from activity_browser.bwutils import AB_metadata, commontasks
 from activity_browser.ui.icons import qicons
 from activity_browser.actions.base import ABAction, exception_dialogs

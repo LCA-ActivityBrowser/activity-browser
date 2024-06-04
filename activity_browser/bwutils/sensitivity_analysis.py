@@ -15,7 +15,7 @@ import bw2calc as bc
 from SALib.analyze import delta
 
 from activity_browser import log
-from activity_browser.brightway import bd
+from activity_browser.mod import bw2data as bd
 
 from .montecarlo import MonteCarloLCA, perform_MonteCarlo_LCA
 from ..settings import ab_settings

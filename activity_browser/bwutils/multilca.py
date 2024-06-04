@@ -8,8 +8,8 @@ import bw2analyzer as ba
 from PySide2.QtWidgets import QMessageBox, QApplication
 
 from activity_browser import log
-from activity_browser.brightway import bd
-from activity_browser.brightway.bw2data.backends import ActivityDataset
+from activity_browser.mod import bw2data as bd
+from activity_browser.mod.bw2data.backends import ActivityDataset
 from .commontasks import wrap_text
 from .metadata import AB_metadata
 from .errors import ReferenceFlowValueError

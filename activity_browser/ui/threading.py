@@ -1,5 +1,5 @@
 from PySide2.QtCore import QThread, QEventLoop
-from activity_browser.brightway import bd
+from activity_browser.mod import bw2data as bd
 
 
 class ABThread(QThread):

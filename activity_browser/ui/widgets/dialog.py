@@ -6,7 +6,7 @@ from PySide2 import QtGui, QtWidgets
 from PySide2.QtCore import Qt, Signal, Slot
 
 from activity_browser import project_settings, signals
-from activity_browser.brightway import bd
+from activity_browser.mod import bw2data as bd
 from activity_browser.bwutils.superstructure import get_sheet_names
 
 from ..threading import ABThread

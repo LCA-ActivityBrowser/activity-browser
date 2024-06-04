@@ -7,8 +7,8 @@ from bw2io.strategies.generic import format_nonunique_key_error, link_iterable_b
 from bw2io.utils import DEFAULT_FIELDS, activity_hash
 
 from activity_browser import log
-from activity_browser.brightway import bd
-from activity_browser.brightway.bw2data.backends import ActivityDataset, sqlite3_lci_db
+from activity_browser.mod import bw2data as bd
+from activity_browser.mod.bw2data.backends import ActivityDataset, sqlite3_lci_db
 from .commontasks import clean_activity_name
 from ..bwutils.errors import ExchangeErrorValues
 

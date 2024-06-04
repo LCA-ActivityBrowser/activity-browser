@@ -2,7 +2,7 @@ import pandas as pd
 from PySide2.QtCore import Slot, QModelIndex
 
 from activity_browser import signals
-from activity_browser.brightway.bw2data import projects, get_activity
+from activity_browser.mod.bw2data import projects, get_activity
 from activity_browser.bwutils import commontasks as bc
 from .base import PandasModel
 

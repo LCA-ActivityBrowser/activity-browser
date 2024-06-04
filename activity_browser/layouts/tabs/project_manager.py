@@ -1,7 +1,7 @@
 from PySide2 import QtCore, QtWidgets
 
 from activity_browser import actions, signals
-from activity_browser.brightway import bd
+from activity_browser.mod import bw2data as bd
 from ..panels import ABTab
 from ...ui.style import header
 from ...ui.icons import qicons

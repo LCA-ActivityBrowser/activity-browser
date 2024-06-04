@@ -5,8 +5,8 @@ import numpy as np
 from PySide2.QtCore import QModelIndex, Slot, Qt
 
 from activity_browser import log, signals
-from activity_browser.brightway import bd
-from activity_browser.brightway.bw2data.backends import ActivityDataset
+from activity_browser.mod import bw2data as bd
+from activity_browser.mod.bw2data.backends import ActivityDataset
 from activity_browser.bwutils import commontasks as bc
 
 from .base import EditablePandasModel, PandasModel

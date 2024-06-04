@@ -4,9 +4,9 @@ from typing import Iterable, List, NamedTuple, Optional
 
 import numpy as np
 
-from activity_browser.brightway import bd
-from activity_browser.brightway.bw2data.parameters import ProjectParameter, DatabaseParameter, ActivityParameter, ParameterizedExchange
-from activity_browser.brightway.bw2data.backends import ActivityDataset, ExchangeDataset
+from activity_browser.mod import bw2data as bd
+from activity_browser.mod.bw2data.parameters import ProjectParameter, DatabaseParameter, ActivityParameter, ParameterizedExchange
+from activity_browser.mod.bw2data.backends import ActivityDataset, ExchangeDataset
 
 
 

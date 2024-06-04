@@ -5,7 +5,7 @@ from PySide2.QtWidgets import QPushButton
 import numpy as np
 import pandas as pd
 
-from activity_browser.brightway import bd
+from activity_browser.mod import bw2data as bd
 
 from ..commontasks import format_activity_label
 from ..multilca import MLCA, Contributions

@@ -3,7 +3,7 @@ import brightway2 as bw
 from PySide2 import QtWidgets
 
 from activity_browser import actions
-from activity_browser.brightway.bw2data import Database
+from activity_browser.mod.bw2data import Database
 from activity_browser.ui.widgets.dialog import LocationLinkingDialog, ActivityLinkingDialog
 
 

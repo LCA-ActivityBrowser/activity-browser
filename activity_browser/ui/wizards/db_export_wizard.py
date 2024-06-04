@@ -4,7 +4,7 @@ import os
 from PySide2 import QtWidgets
 from PySide2.QtCore import Slot
 
-from activity_browser.brightway import bd
+from activity_browser.mod import bw2data as bd
 from activity_browser.bwutils import exporters as exp
 
 

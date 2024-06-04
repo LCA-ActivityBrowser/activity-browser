@@ -5,7 +5,7 @@ from PySide2 import QtWidgets
 from PySide2.QtCore import QModelIndex, Slot
 
 from activity_browser import actions
-from activity_browser.brightway.bw2data import methods
+from activity_browser.mod.bw2data import methods
 
 from ...signals import signals
 from ..icons import qicons

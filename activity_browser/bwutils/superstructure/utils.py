@@ -4,7 +4,7 @@ import time
 import pandas as pd
 
 from activity_browser import log
-from activity_browser.brightway import bd
+from activity_browser.mod import bw2data as bd
 
 
 # Different kinds of indexes, to allow for quick selection of data from

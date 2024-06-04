@@ -5,7 +5,7 @@ from pkgutil import iter_modules
 from PySide2.QtCore import QObject
 
 from activity_browser import log, signals, project_settings, ab_settings, application
-from activity_browser.brightway import bd
+from activity_browser.mod import bw2data as bd
 
 
 class PluginController(QObject):

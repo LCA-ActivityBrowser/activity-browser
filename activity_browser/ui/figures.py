@@ -10,7 +10,7 @@ from matplotlib.figure import Figure
 from PySide2 import QtWidgets
 
 from activity_browser import log
-from activity_browser.brightway.bw2data import methods
+from activity_browser.mod.bw2data import methods
 from activity_browser.utils import savefilepath
 from ..bwutils.commontasks import wrap_text
 

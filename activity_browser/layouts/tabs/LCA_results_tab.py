@@ -6,7 +6,7 @@ from PySide2.QtCore import Qt, Slot
 from PySide2.QtWidgets import QMessageBox, QVBoxLayout, QApplication
 
 from activity_browser import log, signals
-from activity_browser.brightway import bd
+from activity_browser.mod import bw2data as bd
 from .LCA_results_tabs import LCAResultsSubTab
 from ..panels import ABTab
 from ...bwutils.errors import ABError

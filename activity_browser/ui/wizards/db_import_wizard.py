@@ -13,7 +13,7 @@ from PySide2 import QtWidgets, QtCore
 from PySide2.QtCore import Signal, Slot
 
 from activity_browser import log
-from activity_browser.brightway import bd
+from activity_browser.mod import bw2data as bd
 from activity_browser.bwutils import errors
 
 from ..threading import ABThread

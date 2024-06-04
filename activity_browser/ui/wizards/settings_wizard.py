@@ -5,7 +5,7 @@ from PySide2 import QtWidgets, QtCore
 from peewee import SqliteDatabase
 
 from activity_browser import log, ab_settings
-from activity_browser.brightway.bw2data import projects
+from activity_browser.mod.bw2data import projects
 
 
 class SettingsWizard(QtWidgets.QWizard):

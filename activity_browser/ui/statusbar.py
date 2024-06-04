@@ -2,7 +2,7 @@ from PySide2.QtCore import Slot
 from PySide2.QtWidgets import QLabel, QStatusBar
 
 from activity_browser import log, signals
-from activity_browser.brightway import bd
+from activity_browser.mod import bw2data as bd
 
 
 class Statusbar(QStatusBar):

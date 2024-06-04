@@ -5,8 +5,8 @@ import numpy as np
 
 import activity_browser.bwutils.commontasks as bc
 from activity_browser import log
-from activity_browser.brightway import bd
-from activity_browser.brightway.bw2data.backends import ActivityDataset
+from activity_browser.mod import bw2data as bd
+from activity_browser.mod.bw2data.backends import ActivityDataset
 
 
 # todo: extend store over several projects

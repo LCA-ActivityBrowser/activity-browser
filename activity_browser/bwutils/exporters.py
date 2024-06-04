@@ -7,7 +7,7 @@ from bw2io.export.excel import CSVFormatter, create_valid_worksheet_name
 from bw2io.export.csv import reformat
 import xlsxwriter
 
-from activity_browser.brightway import bd
+from activity_browser.mod import bw2data as bd
 
 from .importers import ABPackage
 from .pedigree import PedigreeMatrix

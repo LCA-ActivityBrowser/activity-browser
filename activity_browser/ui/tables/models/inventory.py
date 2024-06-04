@@ -8,7 +8,7 @@ from PySide2.QtCore import Qt, QModelIndex, Slot
 from PySide2.QtWidgets import QApplication
 
 from activity_browser import log, project_settings
-from activity_browser.brightway.bw2data import projects, databases, utils
+from activity_browser.mod.bw2data import projects, databases, utils
 from activity_browser.bwutils import AB_metadata, commontasks as bc
 
 from .base import PandasModel, DragPandasModel

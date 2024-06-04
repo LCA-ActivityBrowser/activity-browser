@@ -4,7 +4,7 @@ import textwrap
 import arrow
 
 from activity_browser import log
-from activity_browser.brightway import bd
+from activity_browser.mod import bw2data as bd
 from .metadata import AB_metadata
 
 

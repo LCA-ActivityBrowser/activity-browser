@@ -4,7 +4,7 @@ from PySide2 import QtCore, QtWidgets
 from PySide2.QtCore import Slot
 
 from activity_browser import signals, project_settings
-from activity_browser.brightway import bd
+from activity_browser.mod import bw2data as bd
 from activity_browser.bwutils import commontasks as bc
 
 from ...ui.icons import qicons

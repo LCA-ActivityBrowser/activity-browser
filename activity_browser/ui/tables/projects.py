@@ -3,7 +3,7 @@ from PySide2.QtWidgets import QComboBox, QSizePolicy
 from PySide2.QtCore import Qt
 
 from activity_browser import actions
-from activity_browser.brightway import bd
+from activity_browser.mod import bw2data as bd
 
 
 class ProjectListWidget(QComboBox):

@@ -3,7 +3,7 @@ from typing import List
 from PySide2 import QtWidgets, QtCore
 
 from activity_browser import application
-from activity_browser.brightway import bd
+from activity_browser.mod import bw2data as bd
 from activity_browser.bwutils.strategies import relink_activity_exchanges
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.ui.widgets import ActivityLinkingDialog, ActivityLinkingResultsDialog

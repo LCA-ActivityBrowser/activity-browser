@@ -4,7 +4,7 @@ from PySide2 import QtWidgets
 from PySide2.QtCore import Slot, Qt
 
 from activity_browser import log, signals, actions
-from activity_browser.brightway import bd
+from activity_browser.mod import bw2data as bd
 from .base import BaseRightTab
 from ...ui.icons import qicons
 from ...ui.style import horizontal_line, header, style_group_box

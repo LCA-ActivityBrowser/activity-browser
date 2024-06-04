@@ -9,8 +9,8 @@ from PySide2.QtCore import Slot, QModelIndex
 from PySide2 import QtWidgets
 
 from activity_browser import log, application, actions
-from activity_browser.brightway import bd
-from activity_browser.brightway.bw2data.parameters import ProjectParameter, DatabaseParameter, ActivityParameter, Group
+from activity_browser.mod import bw2data as bd
+from activity_browser.mod.bw2data.parameters import ProjectParameter, DatabaseParameter, ActivityParameter, Group
 from activity_browser.ui.wizards import UncertaintyWizard
 from .base import BaseTreeModel, EditablePandasModel, TreeItem
 

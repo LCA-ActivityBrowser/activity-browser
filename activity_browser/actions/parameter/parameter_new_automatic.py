@@ -4,8 +4,8 @@ from PySide2 import QtWidgets
 
 from activity_browser import application
 
-from activity_browser.brightway import bd
-from activity_browser.brightway.bw2data.parameters import ActivityParameter
+from activity_browser.mod import bw2data as bd
+from activity_browser.mod.bw2data.parameters import ActivityParameter
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.ui.icons import qicons
 

@@ -8,7 +8,7 @@ from PySide2 import QtWebEngineWidgets, QtWebChannel, QtWidgets
 from PySide2.QtCore import Signal, Slot, QObject, Qt, QUrl
 
 from activity_browser import log, ab_settings, signals
-from activity_browser.brightway import bd
+from activity_browser.mod import bw2data as bd
 from . import webutils
 from ... import utils
 from ...ui.icons import qicons

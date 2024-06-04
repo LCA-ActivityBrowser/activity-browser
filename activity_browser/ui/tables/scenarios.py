@@ -2,7 +2,7 @@ from typing import Iterable, Tuple
 
 from PySide2.QtCore import Slot
 
-from activity_browser.brightway import bd
+from activity_browser.mod import bw2data as bd
 from .models import ScenarioModel
 from .views import ABDataFrameView
 

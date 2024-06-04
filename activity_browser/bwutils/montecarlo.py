@@ -8,7 +8,7 @@ import pandas as pd
 from stats_arrays import MCRandomNumberGenerator
 
 from activity_browser import log
-from activity_browser.brightway import bd
+from activity_browser.mod import bw2data as bd
 from .manager import MonteCarloParameterManager
 
 

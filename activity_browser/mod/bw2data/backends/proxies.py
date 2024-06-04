@@ -5,7 +5,7 @@ except ModuleNotFoundError:
     from bw2data.backends.proxies import *
 
 from activity_browser.signals import qdatabase_list, qactivity_list, qexchange_list
-from activity_browser.brightway.patching import patch_superclass, patched
+from activity_browser.mod.patching import patch_superclass, patched
 from bw2data import Database
 
 

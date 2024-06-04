@@ -7,7 +7,7 @@ except ModuleNotFoundError:
 from .proxies import Activity, ActivityDataset, Exchange, ExchangeDataset
 
 from activity_browser.signals import qdatabase_list, qactivity_list, qexchange_list
-from activity_browser.brightway.patching import patch_superclass, patched
+from activity_browser.mod.patching import patch_superclass, patched
 
 
 @patch_superclass

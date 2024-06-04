@@ -4,7 +4,7 @@ from pathlib import Path
 import os
 from PySide2 import QtWidgets
 
-from activity_browser.brightway import bd
+from activity_browser.mod import bw2data as bd
 from .settings import ab_settings
 
 

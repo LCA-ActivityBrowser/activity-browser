@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 from PySide2.QtCore import Slot
 
-from activity_browser.brightway.bw2data import projects, parameters
+from activity_browser.mod.bw2data import projects, parameters
 from activity_browser.bwutils.utils import Parameters
 from .base import PandasModel
 

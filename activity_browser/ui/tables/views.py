@@ -8,7 +8,7 @@ from PySide2.QtWidgets import QFileDialog, QTableView, QTreeView, QApplication, 
 from PySide2.QtGui import QKeyEvent, QDoubleValidator
 
 from activity_browser import log, ab_settings
-from activity_browser.brightway import bd
+from activity_browser.mod import bw2data as bd
 
 from .delegates import ViewOnlyDelegate
 from .models import PandasModel

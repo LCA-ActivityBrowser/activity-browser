@@ -9,7 +9,7 @@ import appdirs
 from PySide2.QtWidgets import QMessageBox
 
 from activity_browser import log, signals
-from activity_browser.brightway import bd
+from activity_browser.mod import bw2data as bd
 
 
 class BaseSettings(object):

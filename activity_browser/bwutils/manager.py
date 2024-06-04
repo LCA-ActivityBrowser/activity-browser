@@ -6,8 +6,8 @@ from bw2calc import LCA
 import numpy as np
 from stats_arrays import MCRandomNumberGenerator, UncertaintyBase
 
-from activity_browser.brightway.bw2data.parameters import *
-from activity_browser.brightway.bw2data.backends import ExchangeDataset
+from activity_browser.mod.bw2data.parameters import *
+from activity_browser.mod.bw2data.backends import ExchangeDataset
 
 from .utils import Index, Parameters, Indices, StaticParameters
 

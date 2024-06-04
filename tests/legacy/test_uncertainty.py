@@ -7,7 +7,7 @@ import brightway2 as bw
 import pytest
 from stats_arrays.distributions import UndefinedUncertainty, UniformUncertainty
 
-from activity_browser.brightway.bw2data import methods, Method
+from activity_browser.mod.bw2data import methods, Method
 from activity_browser.bwutils.uncertainty import (
     ExchangeUncertaintyInterface, CFUncertaintyInterface, get_uncertainty_interface
 )

@@ -18,7 +18,7 @@ from PySide2.QtWidgets import (
 from stats_arrays.errors import InvalidParamsError
 
 from activity_browser import log, signals
-from activity_browser.brightway.bw2data import calculation_setups
+from activity_browser.mod.bw2data import calculation_setups
 
 from .base import BaseRightTab
 from ...bwutils import (

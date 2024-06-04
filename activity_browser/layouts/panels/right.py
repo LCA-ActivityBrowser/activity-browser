@@ -3,7 +3,7 @@ from pathlib import Path
 from PySide2.QtWidgets import QVBoxLayout
 
 from activity_browser import log, signals
-from activity_browser.brightway import bd
+from activity_browser.mod import bw2data as bd
 from .panel import ABTab
 from ...ui.web import GraphNavigatorWidget, RestrictedWebViewWidget
 from ..tabs import (

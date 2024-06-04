@@ -2,7 +2,7 @@ from typing import Union, Callable
 
 from PySide2 import QtCore
 
-from activity_browser.brightway.bw2data import get_activity
+from activity_browser.mod.bw2data import get_activity
 from activity_browser.ui.icons import qicons
 from activity_browser.actions.base import ABAction, exception_dialogs
 

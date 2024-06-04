@@ -2,7 +2,7 @@ from PySide2 import QtWidgets, QtGui
 from PySide2.QtCore import QSize, QUrl, Slot
 
 from activity_browser import actions, signals
-from activity_browser.brightway import bd
+from activity_browser.mod import bw2data as bd
 
 from ..info import __version__ as ab_version
 from .icons import qicons
