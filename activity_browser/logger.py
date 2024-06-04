@@ -358,12 +358,12 @@ def advanced_setup():
     console_handler = ABConsoleHandler(low_level_stdout)
     console_handler.addFilter(log_filter)
     console_handler.setLevel(LOG_LEVEL)
-    root.addHandler(console_handler)
+    logging.root.addHandler(console_handler)
 
     # setting up the file handler
     file_handler = ABFileHandler()
     file_handler.addFilter(log_filter)
-    root.addHandler(file_handler)
+    logging.root.addHandler(file_handler)
 
 
 log = LoggingProxy()

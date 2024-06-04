@@ -1,5 +1,8 @@
-from PySide2.QtCore import QThread, QEventLoop
+import sys
+
+from PySide2.QtCore import QThread
 from activity_browser.mod import bw2data as bd
+from activity_browser.logger import exception_hook
 
 
 class ABThread(QThread):
@@ -13,6 +16,8 @@ class ABThread(QThread):
         # also close the connections if any exception occurs
         except Exception as e:
             self.close_connections()
+            # pass exception to our excepthook
+            exception_hook(*sys.exc_info())
             raise e
         self.eventDispatcher().wakeUp()
 
