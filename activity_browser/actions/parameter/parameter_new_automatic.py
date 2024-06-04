@@ -1,6 +1,7 @@
 from typing import List, Tuple
 
 from PySide2 import QtWidgets
+from peewee import IntegrityError
 
 from activity_browser import application
 
@@ -46,6 +47,7 @@ class ParameterNewAutomatic(ABAction):
                 "database": key[0],
                 "code": key[1],
             }
-            # Save the new parameter
+
             bd.parameters.new_activity_parameters([row], group)
+
 

@@ -2,9 +2,10 @@ from typing import Tuple
 
 from PySide2 import QtCore, QtWidgets, QtGui
 
-from activity_browser import application
+from activity_browser import application, actions
 from activity_browser.bwutils import commontasks as bc
 from activity_browser.mod import bw2data as bd
+from activity_browser.mod.bw2data.parameters import ActivityParameter
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.ui.icons import qicons
 
@@ -85,10 +86,18 @@ class ParameterWizard(QtWidgets.QWizard):
             field: self.field(field) for field in PARAMETER_FIELDS[self.selected]
         }
         if self.selected == 2:
-            data["group"] = bc.build_activity_group_name(self.key)
+            data["group"] = self._get_group()
             data["database"] = self.key[0]
             data["code"] = self.key[1]
         return data
+
+    def _get_group(self):
+        query = ((ActivityParameter.database == self.key[0]) & (ActivityParameter.code == self.key[1]))
+
+        if not ActivityParameter.select().where(query).count():
+            actions.ParameterNewAutomatic.run([self.key])
+
+        return ActivityParameter.get(query).group
 
 
 class SelectParameterTypePage(QtWidgets.QWizardPage):

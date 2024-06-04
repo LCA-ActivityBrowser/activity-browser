@@ -33,10 +33,12 @@ class ExchangeModify(ABAction):
         If no `ActivityParameter` exists for the key, generate one immediately
         """
         act = bd.get_activity(key)
-        group = act._document.id
-        if not ActivityParameter.select().where(ActivityParameter.group == group).count():
+        query = ((ActivityParameter.database == key[0]) & (ActivityParameter.code == key[1]))
+
+        if not ActivityParameter.select().where(query).count():
             ParameterNewAutomatic.run([key])
 
+        group = ActivityParameter.get(query).group
 
         with bd.parameters.db.atomic():
             bd.parameters.remove_exchanges_from_group(group, act)
