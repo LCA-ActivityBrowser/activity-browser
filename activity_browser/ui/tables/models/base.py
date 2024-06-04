@@ -426,18 +426,15 @@ class ABSortProxyModel(QSortFilterProxyModel):
         If `left` and `right` are not the same type, we check if numerical and empty string are compared, if that is the
         case, we assume empty string == 0.
         Added this case for: https://github.com/LCA-ActivityBrowser/activity-browser/issues/1215"""
-        left_data = self.sourceModel().data(left)
-        right_data = self.sourceModel().data(right)
+        left_data = self.sourceModel().data(left, "sorting")
+        right_data = self.sourceModel().data(right, "sorting")
         if not left_data and not right_data:
             return False
-
-        if type(left_data) is type(right_data):
+        elif type(left_data) is type(right_data):
             return left_data < right_data
-
-        if type(left_data) in (int, float) and not right_data:
+        elif type(left_data) in (int, float) and not right_data:
             return left_data < 0
-
-        if type(right_data) in (int, float) and not left_data:
+        elif type(right_data) in (int, float) and not left_data:
             return 0 < right_data
 
         raise ValueError(f"Cannot compare {left_data} and {right_data}, incompatible types.")
