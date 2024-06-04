@@ -27,7 +27,11 @@ requirements:
     - python >=3.8,<3.12
     - arrow
     - brightway2 =2.4.4
+    - matrix_utils
+    - bw_processing
+    - platformdirs
     - eidl >=2.0.1
+    - ecoinvent_interface
     - libxml2 <=2.10.4
     - networkx
     - numpy >=1.23.5,<2
