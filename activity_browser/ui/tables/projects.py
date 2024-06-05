@@ -27,12 +27,12 @@ class ProjectListWidget(QComboBox):
             bw_25 = (
                 False if not isinstance(proj.data, dict) else proj.data.get("25", False)
             )
-            name = proj.name if not bw_25 else "[BW25] " + proj.name
+            name = proj.name if bw_25 else "[BW2] " + proj.name
 
             self.addItem(name)
             self.project_names.append(name)
             self.setItemData(i, name, Qt.ToolTipRole)
-            self.model().item(i).setEnabled(not bw_25)
+            self.model().item(i).setEnabled(bw_25)
 
         index = self.project_names.index(bd.projects.current)
         self.setCurrentIndex(index)
