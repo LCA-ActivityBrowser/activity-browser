@@ -1,17 +1,15 @@
 # -*- coding: utf-8 -*-
 import sys
 
-from activity_browser.mod import bw2data
-
+from .logger import log, exception_hook, log_file_location
+from .mod import bw2data
 from .application import application
+from .signals import signals
+from .settings import ab_settings, project_settings
 from .controllers import *
 from .info import __version__ as version
 from .layouts.main import MainWindow
-from .logger import exception_hook, log, log_file_location
 from .plugin import Plugin
-from .settings import ab_settings, project_settings
-from .signals import signals
-
 
 def load_settings() -> None:
     if ab_settings.settings:
