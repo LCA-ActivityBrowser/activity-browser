@@ -128,8 +128,6 @@ class CSActivityModel(CSGenericModel):
     def build_row(self, key: tuple, amount: float = 1.0) -> dict:
         try:
             act = bd.get_activity(key)
-            if act.get("type", "process") != "process":
-                raise TypeError("Activity is not of type 'process'")
             row = {
                 key: act.get(bc.AB_names_to_bw_keys[key], "")
                 for key in self.HEADERS[:-1]
