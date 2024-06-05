@@ -22,7 +22,7 @@ from .montecarlo import MonteCarloLCA, perform_MonteCarlo_LCA
 
 try:
     # attempt bw25 import
-    from bw2calc.graph_traversal import AssumedDiagonalGraphTraversal as GraphTraversal
+    from bw_graph_tools import NewNodeEachVisitGraphTraversal
 except ImportError:
     # standard import on failure
     from bw2calc import GraphTraversal

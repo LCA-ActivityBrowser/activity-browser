@@ -30,8 +30,8 @@ requirements:
     - matrix_utils
     - bw_processing
     - platformdirs
-    - eidl >=2.0.1
     - ecoinvent_interface
+    - bw_graph_tools
     - libxml2 <=2.10.4
     - networkx
     - numpy >=1.23.5,<2

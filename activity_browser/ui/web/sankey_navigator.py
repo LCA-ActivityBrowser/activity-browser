@@ -21,7 +21,7 @@ from .base import BaseGraph, BaseNavigatorWidget
 
 try:
     # test whether we're running bw25
-    from bw2calc.graph_traversal import AssumedDiagonalGraphTraversal as GraphTraversal
+    from bw_graph_tools import NewNodeEachVisitGraphTraversal
 except:
     # fall back on regular bw
     from bw2calc import GraphTraversal
