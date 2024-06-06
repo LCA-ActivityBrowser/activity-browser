@@ -30,7 +30,9 @@ class ProjectListWidget(QComboBox):
         self.clear()
         self.project_names.clear()
 
-        for i, proj in enumerate(bd.projects):
+        sorted_projects = sorted(list(bd.projects))
+
+        for i, proj in enumerate(sorted_projects):
             bw_25 = False if not isinstance(proj.data, dict) else proj.data.get("25", False)
             name = proj.name if not bw_25 or AB_BW25 else "[BW25] " + proj.name
 
