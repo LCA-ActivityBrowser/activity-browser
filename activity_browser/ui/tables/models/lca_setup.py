@@ -1,19 +1,19 @@
 from typing import Iterable
 
-import pandas as pd
 import numpy as np
-from PySide2.QtCore import QModelIndex, Slot, Qt
+import pandas as pd
+from PySide2.QtCore import QModelIndex, Qt, Slot
 
 from activity_browser import log, signals
+from activity_browser.bwutils import commontasks as bc
 from activity_browser.mod import bw2data as bd
 from activity_browser.mod.bw2data.backends import ActivityDataset
-from activity_browser.bwutils import commontasks as bc
 
 from .base import EditablePandasModel, PandasModel
 
 
 class CSGenericModel(EditablePandasModel):
-    """ Intermediate class to enable internal move functionality for the
+    """Intermediate class to enable internal move functionality for the
     reference flows and impact categories tables. The below flags and relocate functions
     are required to enable internal move.
 
@@ -22,8 +22,7 @@ class CSGenericModel(EditablePandasModel):
     """
 
     def flags(self, index):
-        """ Returns flags
-        """
+        """Returns flags"""
         if not index.isValid():
             return super().flags(index) | Qt.ItemIsDropEnabled
         if index.row() < len(self._dataframe):
@@ -31,7 +30,7 @@ class CSGenericModel(EditablePandasModel):
         return super().flags(index)
 
     def relocateRow(self, row_source, row_target) -> None:
-        """ Relocate a row.
+        """Relocate a row.
         Move a row in the table to another position and store the new dataframe
         """
         row_a, row_b = max(row_source, row_target), min(row_source, row_target)
@@ -41,23 +40,29 @@ class CSGenericModel(EditablePandasModel):
         if row_source > row_target:  # the row needs to be moved up
             pass
             # delete old row
-            self._dataframe = self._dataframe.drop(row_source, axis=0).reset_index(drop=True)
+            self._dataframe = self._dataframe.drop(row_source, axis=0).reset_index(
+                drop=True
+            )
             # insert data
-            self._dataframe = pd.DataFrame(np.insert(self._dataframe.values,
-                                                     row_target,
-                                                     values=data_source,
-                                                     axis=0),
-                                           columns=self.HEADERS)
+            self._dataframe = pd.DataFrame(
+                np.insert(
+                    self._dataframe.values, row_target, values=data_source, axis=0
+                ),
+                columns=self.HEADERS,
+            )
         elif row_source < row_target:  # the row needs to be moved down
             pass
             # insert data
-            self._dataframe = pd.DataFrame(np.insert(self._dataframe.values,
-                                                     row_target,
-                                                     values=data_source,
-                                                     axis=0),
-                                           columns=self.HEADERS)
+            self._dataframe = pd.DataFrame(
+                np.insert(
+                    self._dataframe.values, row_target, values=data_source, axis=0
+                ),
+                columns=self.HEADERS,
+            )
             # delete old row
-            self._dataframe = self._dataframe.drop(row_source, axis=0).reset_index(drop=True)
+            self._dataframe = self._dataframe.drop(row_source, axis=0).reset_index(
+                drop=True
+            )
 
         self.updated.emit()
         signals.calculation_setup_changed.emit()
@@ -65,9 +70,7 @@ class CSGenericModel(EditablePandasModel):
 
 
 class CSActivityModel(CSGenericModel):
-    HEADERS = [
-        "Amount", "Unit", "Product", "Activity", "Location", "Database"
-    ]
+    HEADERS = ["Amount", "Unit", "Product", "Activity", "Location", "Database"]
 
     def __init__(self, parent=None):
         super().__init__(parent=parent)
@@ -84,7 +87,8 @@ class CSActivityModel(CSGenericModel):
     @property
     def activities(self) -> list:
         # if no dataframe is present return empty list
-        if not isinstance(self._dataframe, pd.DataFrame): return []
+        if not isinstance(self._dataframe, pd.DataFrame):
+            return []
         # else return the selected activities
         selection = self._dataframe.loc[:, ["Amount", "key"]].to_dict(orient="records")
         return [{x["key"]: x["Amount"]} for x in selection]
@@ -101,17 +105,22 @@ class CSActivityModel(CSGenericModel):
 
         self.current_cs = cs_name
 
-        if not cs_name: return
+        if not cs_name:
+            return
 
         self.sync()
 
     def sync(self):
         assert self.current_cs, "CS Model not yet loaded"
-        fus = bd.calculation_setups.get(self.current_cs, {}).get('inv', [])
-        df = pd.DataFrame([
-            self.build_row(key, amount) for func_unit in fus
-            for key, amount in func_unit.items()
-        ], columns=self.HEADERS)
+        fus = bd.calculation_setups.get(self.current_cs, {}).get("inv", [])
+        df = pd.DataFrame(
+            [
+                self.build_row(key, amount)
+                for func_unit in fus
+                for key, amount in func_unit.items()
+            ],
+            columns=self.HEADERS,
+        )
         # Drop rows where the fu key was invalid in some way.
         self._dataframe = df.dropna().reset_index(drop=True)
         self.key_col = self._dataframe.columns.get_loc("key")
@@ -133,7 +142,9 @@ class CSActivityModel(CSGenericModel):
 
             return row
         except (TypeError, ActivityDataset.DoesNotExist):
-            log.error(f"Could not load key '{key}' in Calculation Setup '{self.current_cs}'")
+            log.error(
+                f"Could not load key '{key}' in Calculation Setup '{self.current_cs}'"
+            )
             return {}
 
     @Slot(name="deleteRows")
@@ -159,7 +170,9 @@ class CSActivityModel(CSGenericModel):
             k, v = zip(*fu.items())
             data.append(self.build_row(k[0], v[0]))
         if data:
-            self._dataframe = pd.concat([self._dataframe, pd.DataFrame(data)], ignore_index=True)
+            self._dataframe = pd.concat(
+                [self._dataframe, pd.DataFrame(data)], ignore_index=True
+            )
             self.updated.emit()
             signals.calculation_setup_changed.emit()
 
@@ -176,7 +189,11 @@ class CSMethodsModel(CSGenericModel):
 
     @property
     def methods(self) -> list:
-        return [] if self._dataframe is None else self._dataframe.loc[:, "method"].to_list()
+        return (
+            []
+            if self._dataframe is None
+            else self._dataframe.loc[:, "method"].to_list()
+        )
 
     def load(self, cs_name: str = None) -> None:
         """
@@ -190,7 +207,8 @@ class CSMethodsModel(CSGenericModel):
         # set the provided cs as current and synchronize our data
         self.current_cs = cs_name
 
-        if not cs_name: return
+        if not cs_name:
+            return
 
         self.sync()
 
@@ -202,10 +220,16 @@ class CSMethodsModel(CSGenericModel):
         assert self.current_cs, "CS Model not yet loaded"
 
         # collect all method tuples from calculation setup that are also actually available
-        method_tuples = [mthd for mthd in bd.calculation_setups[self.current_cs].get("ia", []) if mthd in bd.methods]
+        method_tuples = [
+            mthd
+            for mthd in bd.calculation_setups[self.current_cs].get("ia", [])
+            if mthd in bd.methods
+        ]
 
         # build rows for all the collected methods and store in our dataframe
-        self._dataframe = pd.DataFrame([self.build_row(mthd) for mthd in method_tuples], columns=self.HEADERS)
+        self._dataframe = pd.DataFrame(
+            [self.build_row(mthd) for mthd in method_tuples], columns=self.HEADERS
+        )
 
         self.updated.emit()
 
@@ -219,9 +243,9 @@ class CSMethodsModel(CSGenericModel):
 
         # construct a row dictionary
         row = {
-            "Name": ', '.join(method_tuple),
-            "Unit": method_metadata.get('unit', "Unknown"),
-            "# CFs": method_metadata.get('num_cfs', 0),
+            "Name": ", ".join(method_tuple),
+            "Unit": method_metadata.get("unit", "Unknown"),
+            "# CFs": method_metadata.get("num_cfs", 0),
             "method": method_tuple,
         }
 
@@ -251,7 +275,9 @@ class CSMethodsModel(CSGenericModel):
         old_methods = set(self.methods)
         data = [self.build_row(m) for m in new_methods if m not in old_methods]
         if data:
-            self._dataframe = pd.concat([self._dataframe, pd.DataFrame(data)], ignore_index=True)
+            self._dataframe = pd.concat(
+                [self._dataframe, pd.DataFrame(data)], ignore_index=True
+            )
             self.updated.emit()
             signals.calculation_setup_changed.emit()
 

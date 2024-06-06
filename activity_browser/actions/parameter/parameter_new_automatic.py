@@ -1,13 +1,12 @@
 from typing import List, Tuple
 
-from PySide2 import QtWidgets
 from peewee import IntegrityError
+from PySide2 import QtWidgets
 
 from activity_browser import application
-
+from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.mod import bw2data as bd
 from activity_browser.mod.bw2data.parameters import ActivityParameter
-from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.ui.icons import qicons
 
 
@@ -18,6 +17,7 @@ class ParameterNewAutomatic(ABAction):
     TODO: Remove this action as it is automatic and not user interaction, should be done through e.g. a signal but
     TODO: will actually need to be reworked together with the parameters.
     """
+
     icon = qicons.add
     text = "New parameter..."
 
@@ -33,12 +33,16 @@ class ParameterNewAutomatic(ABAction):
                     "Not allowed",
                     issue,
                     QtWidgets.QMessageBox.Ok,
-                    QtWidgets.QMessageBox.Ok
+                    QtWidgets.QMessageBox.Ok,
                 )
                 return
 
             group = act._document.id
-            count = ActivityParameter.select().where(ActivityParameter.group == group).count()
+            count = (
+                ActivityParameter.select()
+                .where(ActivityParameter.group == group)
+                .count()
+            )
 
             row = {
                 "name": "dummy_parameter",
@@ -49,5 +53,3 @@ class ParameterNewAutomatic(ABAction):
             }
 
             bd.parameters.new_activity_parameters([row], group)
-
-

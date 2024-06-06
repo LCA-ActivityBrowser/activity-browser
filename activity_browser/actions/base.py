@@ -1,4 +1,5 @@
-from PySide2 import QtWidgets, QtGui, QtCore
+from PySide2 import QtCore, QtGui, QtWidgets
+
 from activity_browser import application
 
 
@@ -44,11 +45,12 @@ def exception_dialogs(func):
         try:
             func(*args, **kwargs)
         except Exception as e:
-            QtWidgets.QMessageBox.critical(application.main_window,
-                                           f"An error occurred: {type(e).__name__}",
-                                           f"An error occurred, check the logs for more information \n\n {str(e)}",
-                                           QtWidgets.QMessageBox.Ok
-                                           )
+            QtWidgets.QMessageBox.critical(
+                application.main_window,
+                f"An error occurred: {type(e).__name__}",
+                f"An error occurred, check the logs for more information \n\n {str(e)}",
+                QtWidgets.QMessageBox.Ok,
+            )
             raise e
-    return wrapper
 
+    return wrapper

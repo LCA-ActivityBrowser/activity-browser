@@ -1,4 +1,4 @@
-from typing import List, Any
+from typing import Any, List
 
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.ui.icons import qicons
@@ -8,6 +8,7 @@ class ExchangeDelete(ABAction):
     """
     ABAction to delete one or more exchanges from an activity.
     """
+
     icon = qicons.delete
     text = "Delete exchange(s)"
 

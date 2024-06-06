@@ -1,9 +1,9 @@
+import os
+
 from bw2data.backends import *
 
 from .base import SQLiteBackend
-from .proxies import Activity, Exchange, ActivityDataset, ExchangeDataset
-
-import os
+from .proxies import Activity, ActivityDataset, Exchange, ExchangeDataset
 
 try:
     from bw2data.backends.peewee import sqlite3_lci_db

@@ -1,15 +1,15 @@
 import os
-from lxml import objectify
 from zipfile import ZipFile
 
 from bw2io.importers import Ecospold2BiosphereImporter
 from bw2io.importers.ecospold2_biosphere import EMISSIONS_CATEGORIES
+from lxml import objectify
 
 from activity_browser import log
 from activity_browser.mod import bw2data as bd
+
 from ...info import __ei_versions__
 from ...utils import sort_semantic_versions
-
 
 
 def create_default_biosphere3(version) -> None:
@@ -18,11 +18,11 @@ def create_default_biosphere3(version) -> None:
     version = version[:3]
 
     if version == sort_semantic_versions(__ei_versions__)[0][:3]:
-        log.debug(f'Installing biosphere version >{version}<')
+        log.debug(f"Installing biosphere version >{version}<")
         # most recent version
         eb = Ecospold2BiosphereImporter()
     else:
-        log.debug(f'Installing legacy biosphere version >{version}<')
+        log.debug(f"Installing legacy biosphere version >{version}<")
         # not most recent version, import legacy biosphere from AB
         eb = ABEcospold2BiosphereImporter(version=version)
     eb.apply_strategies()
@@ -51,22 +51,28 @@ class ABEcospold2BiosphereImporter(Ecospold2BiosphereImporter):
             )
             return ds
 
-        lci_dirpath = os.path.join(os.path.dirname(__file__), 'legacy_biosphere')
+        lci_dirpath = os.path.join(os.path.dirname(__file__), "legacy_biosphere")
 
         # find the most recent legacy biosphere that is equal to or older than chosen version
         for ei_version in sort_semantic_versions(__ei_versions__):
             use_version = ei_version
-            fp = os.path.join(lci_dirpath, f'ecoinvent elementary flows {use_version}.xml.zip')
-            if sort_semantic_versions([version, ei_version])[0] == version and os.path.isfile(fp):
+            fp = os.path.join(
+                lci_dirpath, f"ecoinvent elementary flows {use_version}.xml.zip"
+            )
+            if sort_semantic_versions([version, ei_version])[
+                0
+            ] == version and os.path.isfile(fp):
                 # this version is equal/lower and available
                 break
 
         # extract the xml from the zip
         with ZipFile(fp) as zipped_file:
-            with zipped_file.open(f'ecoinvent elementary flows {use_version}.xml') as file:
+            with zipped_file.open(
+                f"ecoinvent elementary flows {use_version}.xml"
+            ) as file:
                 root = objectify.parse(file).getroot()
 
-        log.debug(f'Installing biosphere {use_version} for chosen version {version}')
+        log.debug(f"Installing biosphere {use_version} for chosen version {version}")
         flow_data = bd.utils.recursive_str_to_unicode(
             [extract_flow_data(ds) for ds in root.iterchildren()]
         )

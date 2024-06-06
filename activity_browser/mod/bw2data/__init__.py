@@ -1,10 +1,9 @@
+import bw2data.errors as errors
 from bw2data import *
 
-from .project import projects
-from .meta import databases, calculation_setups, methods
+from .backends import Edge, Node
+from .meta import calculation_setups, databases, methods
 from .method import Method
-from .utils import get_activity
 from .parameters import parameters
-from .backends import Node, Edge
-
-import bw2data.errors as errors
+from .project import projects
+from .utils import get_activity

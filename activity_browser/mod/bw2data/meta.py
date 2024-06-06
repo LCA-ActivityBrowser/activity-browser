@@ -1,6 +1,7 @@
 from bw2data.meta import *
 
-from activity_browser.signals import qdatabases, qcalculation_setups, qmethods
+from activity_browser.signals import qcalculation_setups, qdatabases, qmethods
+
 from ..patching import patch_superclass, patched
 
 

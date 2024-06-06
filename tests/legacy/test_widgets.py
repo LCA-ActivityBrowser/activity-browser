@@ -2,10 +2,10 @@
 from PySide2.QtCore import Qt
 from PySide2.QtWidgets import QDialogButtonBox, QMessageBox, QWidget
 
-from activity_browser.ui.widgets import (
-    BiosphereUpdater, SwitchComboBox, CutoffMenu, ForceInputDialog,
-    parameter_save_errorbox, simple_warning_box
-)
+from activity_browser.ui.widgets import (BiosphereUpdater, CutoffMenu,
+                                         ForceInputDialog, SwitchComboBox,
+                                         parameter_save_errorbox,
+                                         simple_warning_box)
 
 # NOTE: No way of testing the BiosphereUpdater class without causing the
 #  ab_app fixture to flip its lid and fail to clean itself up.
@@ -53,8 +53,7 @@ def test_cutoff_slider_toggle(qtbot):
 
 
 def test_input_dialog(qtbot):
-    """ Test the various thing about the dialog widget.
-    """
+    """Test the various thing about the dialog widget."""
     parent = QWidget()
     qtbot.addWidget(parent)
     dialog = ForceInputDialog.get_text(
@@ -75,8 +74,7 @@ def test_input_dialog(qtbot):
 
 
 def test_parameter_errorbox(qtbot, monkeypatch):
-    """ Not truly used anymore in favour of not saving invalid values.
-    """
+    """Not truly used anymore in favour of not saving invalid values."""
     parent = QWidget()
     qtbot.addWidget(parent)
 

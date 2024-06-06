@@ -1,14 +1,12 @@
 # -*- coding: utf-8 -*-
-from typing import Optional
-
 import datetime
+from typing import Optional
 
 import arrow
 import numpy as np
 import pandas as pd
-from PySide2.QtCore import (
-    QAbstractItemModel, QAbstractTableModel, QModelIndex, Qt, Signal, QSortFilterProxyModel
-)
+from PySide2.QtCore import (QAbstractItemModel, QAbstractTableModel,
+                            QModelIndex, QSortFilterProxyModel, Qt, Signal)
 from PySide2.QtGui import QBrush
 
 from activity_browser import log
@@ -17,13 +15,14 @@ from activity_browser.ui.style import style_item
 
 
 class PandasModel(QAbstractTableModel):
-    """ Abstract pandas table model adapted from
+    """Abstract pandas table model adapted from
     https://stackoverflow.com/a/42955764.
 
     TODO: Further improve the model by implementing insertRows and removeRows
      methods, this will allow us to stop recreating the proxy model on every
      add/delete call. See https://doc.qt.io/qt-5/qabstracttablemodel.html
     """
+
     HEADERS = []
     updated = Signal()
 
@@ -42,16 +41,16 @@ class PandasModel(QAbstractTableModel):
     def data(self, index, role=Qt.DisplayRole):
         """
         Return value for table index based on a certain DisplayRole enum.
-        
+
         More on DisplayRole enums: https://doc.qt.io/qt-5/qt.html#ItemDataRole-enum
         """
         if not index.isValid():
             return None
 
-        # instantiate value only in case of DisplayRole or ToolTipRole       
+        # instantiate value only in case of DisplayRole or ToolTipRole
         value = None
         tt_date_flag = False  # flag to indicate if value is datetime object and role is ToolTipRole
-        if role == Qt.DisplayRole or role == Qt.ToolTipRole or role == 'sorting':
+        if role == Qt.DisplayRole or role == Qt.ToolTipRole or role == "sorting":
             value = self._dataframe.iat[index.row(), index.column()]
             if isinstance(value, np.float64):
                 value = float(value)
@@ -61,17 +60,23 @@ class PandasModel(QAbstractTableModel):
                 value = value.item()
             elif isinstance(value, tuple):
                 value = str(value)
-            elif isinstance(value, datetime.datetime) and (Qt.DisplayRole or Qt.ToolTipRole):
+            elif isinstance(value, datetime.datetime) and (
+                Qt.DisplayRole or Qt.ToolTipRole
+            ):
                 tz = datetime.datetime.now(datetime.timezone.utc).astimezone()
-                time_shift = - tz.utcoffset().total_seconds()
+                time_shift = -tz.utcoffset().total_seconds()
                 if role == Qt.ToolTipRole:
-                    value = arrow.get(value).shift(seconds=time_shift).format('YYYY-MM-DD HH:mm:ss')
+                    value = (
+                        arrow.get(value)
+                        .shift(seconds=time_shift)
+                        .format("YYYY-MM-DD HH:mm:ss")
+                    )
                     tt_date_flag = True
                 elif role == Qt.DisplayRole:
                     value = arrow.get(value).shift(seconds=time_shift).humanize()
 
         # immediately return value in case of DisplayRole or sorting
-        if role == Qt.DisplayRole or role == 'sorting':
+        if role == Qt.DisplayRole or role == "sorting":
             return value
 
         # in case of ToolTipRole and date, always show the full date
@@ -96,7 +101,9 @@ class PandasModel(QAbstractTableModel):
             col_name = self._dataframe.columns[index.column()]
             if col_name not in style_item.brushes:
                 col_name = bc.AB_names_to_bw_keys.get(col_name, "")
-            return QBrush(style_item.brushes.get(col_name, style_item.brushes.get("default")))
+            return QBrush(
+                style_item.brushes.get(col_name, style_item.brushes.get("default"))
+            )
 
         return None
 
@@ -115,8 +122,7 @@ class PandasModel(QAbstractTableModel):
         return self._dataframe.iloc[index, :].tolist()
 
     def to_clipboard(self, rows, columns, include_header: bool = False):
-        """ Copy the given rows and columns of the dataframe to clipboard
-        """
+        """Copy the given rows and columns of the dataframe to clipboard"""
         self._dataframe.iloc[rows, columns].to_clipboard(
             index=False, header=include_header
         )
@@ -141,35 +147,38 @@ class PandasModel(QAbstractTableModel):
             return proxy  # Proxy is actually the PandasModel
         return model.mapToSource(proxy)
 
-    def test_query_on_column(self, test_type: str, col_data: pd.Series, query) -> pd.Series:
+    def test_query_on_column(
+        self, test_type: str, col_data: pd.Series, query
+    ) -> pd.Series:
         """Compare query and col_data on test_type, return array with boolean test results."""
-        if test_type == 'equals':
+        if test_type == "equals":
             return col_data == query
-        elif test_type == 'does not equal':
+        elif test_type == "does not equal":
             return col_data != query
-        elif test_type == 'contains':
+        elif test_type == "contains":
             return col_data.str.contains(query, regex=False)
-        elif test_type == 'does not contain':
+        elif test_type == "does not contain":
             return ~col_data.str.contains(query, regex=False)
-        elif test_type == 'starts with':
+        elif test_type == "starts with":
             return col_data.str.startswith(query)
-        elif test_type == 'does not start with':
+        elif test_type == "does not start with":
             return ~col_data.str.startswith(query)
-        elif test_type == 'ends with':
+        elif test_type == "ends with":
             return col_data.str.endswith(query)
-        elif test_type == 'does not end with':
+        elif test_type == "does not end with":
             return ~col_data.str.endswith(query)
-        elif test_type == '=':
+        elif test_type == "=":
             return col_data.astype(float) == float(query)
-        elif test_type == '!=':
+        elif test_type == "!=":
             return col_data.astype(float) != float(query)
-        elif test_type == '>=':
+        elif test_type == ">=":
             return col_data.astype(float) >= float(query)
-        elif test_type == '<=':
+        elif test_type == "<=":
             return col_data.astype(float) <= float(query)
-        elif test_type == '<= x <=':
-            return (float(query[0]) <= col_data.astype(float)) \
-                   & (col_data.astype(float) <= float(query[1]))
+        elif test_type == "<= x <=":
+            return (float(query[0]) <= col_data.astype(float)) & (
+                col_data.astype(float) <= float(query[1])
+            )
         else:
             log.warning("unknown filter type >{}<, assuming 'EQUALS'".format(test_type))
             return col_data == query
@@ -182,18 +191,18 @@ class PandasModel(QAbstractTableModel):
         # get the column name from index
         fc_rev = {v: k for k, v in self.filterable_columns.items()}
 
-        all_mode = filters['mode']
+        all_mode = filters["mode"]
         all_mask = None
         # iterate over columns
         for col_idx, col_filters in filters.items():
-            if col_idx == 'mode':
+            if col_idx == "mode":
                 continue
             col_name = fc_rev[col_idx]
             col_data = self._dataframe[col_name]
-            col_mode = col_filters.get('mode', False)
+            col_mode = col_filters.get("mode", False)
             col_mask = None
             # iterate over filters within column
-            for col_filt in col_filters['filters']:
+            for col_filt in col_filters["filters"]:
                 if self.different_column_types.get(col_name, False):
                     # this is a 'num' column
                     filt_type, query = col_filt
@@ -211,20 +220,24 @@ class PandasModel(QAbstractTableModel):
                 new_mask = self.test_query_on_column(filt_type, col_data_, query)
                 if not any(new_mask):
                     # no matches for this mask, let user know:
-                    log.info("There were no matches for filter: {}: '{}'".format(col_filt[0], col_filt[1]))
+                    log.info(
+                        "There were no matches for filter: {}: '{}'".format(
+                            col_filt[0], col_filt[1]
+                        )
+                    )
 
                 # create or combine new mask within column
-                if isinstance(col_mask, pd.Series) and col_mode == 'AND':
+                if isinstance(col_mask, pd.Series) and col_mode == "AND":
                     col_mask = col_mask & new_mask
-                elif isinstance(col_mask, pd.Series) and col_mode == 'OR':
+                elif isinstance(col_mask, pd.Series) and col_mode == "OR":
                     col_mask = col_mask + new_mask
                 else:
                     col_mask = new_mask
 
             # create or combine new mask on columns
-            if isinstance(all_mask, pd.Series) and all_mode == 'AND':
+            if isinstance(all_mask, pd.Series) and all_mode == "AND":
                 all_mask = all_mask & col_mask
-            elif isinstance(all_mask, pd.Series) and all_mode == 'OR':
+            elif isinstance(all_mask, pd.Series) and all_mode == "OR":
                 all_mask = all_mask + col_mask
             else:
                 all_mask = col_mask
@@ -232,16 +245,14 @@ class PandasModel(QAbstractTableModel):
 
 
 class EditablePandasModel(PandasModel):
-    """ Allows underlying dataframe to be edited through Delegate classes.
-    """
+    """Allows underlying dataframe to be edited through Delegate classes."""
+
     def flags(self, index):
-        """ Returns ItemIsEditable flag
-        """
+        """Returns ItemIsEditable flag"""
         return super().flags(index) | Qt.ItemIsEditable
 
     def setData(self, index, value, role=Qt.EditRole):
-        """ Inserts the given validated data into the given index
-        """
+        """Inserts the given validated data into the given index"""
         if index.isValid() and role == Qt.EditRole:
             self._dataframe.iat[index.row(), index.column()] = value
             self.dataChanged.emit(index, index, [role])
@@ -252,6 +263,7 @@ class EditablePandasModel(PandasModel):
 # Take the classes defined above and add the ItemIsDragEnabled flag
 class DragPandasModel(PandasModel):
     """Same as PandasModel, but enabling dragging."""
+
     def flags(self, index):
         return super().flags(index) | Qt.ItemIsDragEnabled
 
@@ -270,7 +282,7 @@ class TreeItem(object):
         self._children = []
 
     @classmethod
-    def build_root(cls, cols: list) -> 'TreeItem':
+    def build_root(cls, cols: list) -> "TreeItem":
         return cls(cols)
 
     def clear(self) -> None:
@@ -287,7 +299,7 @@ class TreeItem(object):
     def appendChild(self, item) -> None:
         self._children.append(item)
 
-    def child(self, row: int) -> 'TreeItem':
+    def child(self, row: int) -> "TreeItem":
         return self._children[row]
 
     @property
@@ -300,7 +312,7 @@ class TreeItem(object):
     def data(self, column: int):
         return self._data[column]
 
-    def parent(self) -> Optional['TreeItem']:
+    def parent(self) -> Optional["TreeItem"]:
         return self._parent
 
     def row(self) -> int:
@@ -311,8 +323,8 @@ class TreeItem(object):
 
 
 class BaseTreeModel(QAbstractItemModel):
-    """ Base Model used to present data for QTreeView.
-    """
+    """Base Model used to present data for QTreeView."""
+
     HEADERS = []
     updated = Signal()
 
@@ -334,9 +346,9 @@ class BaseTreeModel(QAbstractItemModel):
 
         if role == Qt.ForegroundRole:
             col_name = self.HEADERS[index.column()]
-            return QBrush(style_item.brushes.get(
-                col_name, style_item.brushes.get("default")
-            ))
+            return QBrush(
+                style_item.brushes.get(col_name, style_item.brushes.get("default"))
+            )
 
     def headerData(self, column, orientation, role: int = Qt.DisplayRole):
         if orientation == Qt.Horizontal and role == Qt.DisplayRole:
@@ -370,13 +382,13 @@ class BaseTreeModel(QAbstractItemModel):
             return item.child(0)  # return the first child
         if item == self.root:
             return
-        if item.parent().childCount() > item.row()+1:  # if there's still a sibling
-            return item.parent().child(item.row()+1)
+        if item.parent().childCount() > item.row() + 1:  # if there's still a sibling
+            return item.parent().child(item.row() + 1)
         else:  # look for siblings from previous "generations"
             parent = item.parent()
             while parent != self.root:
                 if parent.parent().childCount() > parent.row() + 1:
-                    return parent.parent().child(parent.row()+1)
+                    return parent.parent().child(parent.row() + 1)
                 parent = parent.parent()
             # if there are no siblings left return None
         return None
@@ -405,8 +417,7 @@ class BaseTreeModel(QAbstractItemModel):
         return Qt.ItemIsEnabled | Qt.ItemIsSelectable
 
     def setup_model_data(self) -> None:
-        """ Method used to construct the tree of items for the model.
-        """
+        """Method used to construct the tree of items for the model."""
         raise NotImplementedError
 
     def sync(self, *args, **kwargs) -> None:
@@ -418,18 +429,30 @@ class ABSortProxyModel(QSortFilterProxyModel):
 
     See this for context: https://github.com/LCA-ActivityBrowser/activity-browser/pull/1151
     """
+
     def lessThan(self, left, right) -> bool:
         """Override to sort actual data, expects `left` and `right` are comparable.
 
         If `left` and `right` are not the same type, we check if numerical and empty string are compared, if that is the
         case, we assume empty string == 0.
-        Added this case for: https://github.com/LCA-ActivityBrowser/activity-browser/issues/1215"""
-        left_data = self.sourceModel().data(left, 'sorting')
-        right_data = self.sourceModel().data(right, 'sorting')
+        Added this case for: https://github.com/LCA-ActivityBrowser/activity-browser/issues/1215
+        """
+        left_data = self.sourceModel().data(left, "sorting")
+        right_data = self.sourceModel().data(right, "sorting")
         if type(left_data) is type(right_data):
             return left_data < right_data
-        elif type(left_data) in (int, float) and type(right_data) is str and right_data == "":
+        elif (
+            type(left_data) in (int, float)
+            and type(right_data) is str
+            and right_data == ""
+        ):
             return left_data < 0
-        elif type(right_data) in (int, float) and type(left_data) is str and left_data == "":
+        elif (
+            type(right_data) in (int, float)
+            and type(left_data) is str
+            and left_data == ""
+        ):
             return 0 < right_data
-        raise ValueError(f"Cannot compare {left_data} and {right_data}, incompatible types.")
+        raise ValueError(
+            f"Cannot compare {left_data} and {right_data}, incompatible types."
+        )
