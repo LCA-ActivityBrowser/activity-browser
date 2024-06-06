@@ -403,7 +403,6 @@ class ActivitiesBiosphereTree(ABDictTreeView):
 
     @Slot(name="updateMenuContext")
     def set_context_menu_policy(self) -> None:
-        # self.setContextMenuPolicy(QtCore.Qt.DefaultContextMenu)
         self.db_read_only = project_settings.db_is_readonly(self.database_name)
         self.update_activity_table_read_only(self.database_name, self.db_read_only)
 
@@ -593,8 +592,9 @@ class ActivitiesBiosphereTree(ABDictTreeView):
         leaf:   the descending list of branch levels, list()
         root:   the name of the root, str()
         branch: the descending list of branch levels, list()
-            leaf/branch example: ('CML 2001', 'climate change')"""
-        #TODO update docstring
+            leaf/branch example: ('0111:Growing of cereals (except rice), leguminous crops and oil seeds',
+                                  'sweet corn')
+        """
         indexes = self.selectedIndexes()
         if indexes[1].data() != '' or indexes[2].data() != '':
             return 'leaf', self.find_levels()

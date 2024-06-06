@@ -410,8 +410,6 @@ class ActivitiesBiosphereTreeModel(BaseTreeModel):
 
     @staticmethod
     def nest_data(df: pd.DataFrame, method: tuple = None) -> dict:
-        # TODO update description to match activity format instead of impact methods
-        # e.g. use this as example: ['A:Agriculture, forestry and fishing', '01:Crop and animal production, hunting and related service activities', '011:Growing of non-perennial crops', '0111:Growing of cereals (except rice), leguminous crops and oil seeds', 'sweet corn', ('sweet corn', 'sweet corn production', 'US', 'kilogram', '0111:Growing of cereals (except rice), leguminous crops and oil seeds', ('cutoff38', '4e26f787e6b76f2bbcb72e2ec1318f8a'), ('A:Agriculture, forestry and fishing', '01:Crop and animal production, hunting and related service activities', '011:Growing of non-perennial crops', '0111:Growing of cereals (except rice), leguminous crops and oil seeds', 'sweet corn'))]
         """Convert impact category dataframe into nested dict format.
         Tree can have arbitrary amount (0 or more) levels of branch depth.
 
@@ -424,13 +422,14 @@ class ActivitiesBiosphereTreeModel(BaseTreeModel):
                                     (data)},
                           (data)}}
         Where:
-        root#  : top level category (str) e.g.: CML 2001
-        branch#: sub level category (str) e.g.: climate change
+        root#  : top level category (str) e.g.: A:Agriculture, forestry and fishing
+        branch#: sub level category (str) e.g.: 01:Crop and animal production, hunting and related service activities
                  can be arbitrary amount of branches
-        data   : data (leaf node) of category (tuple) e.g.: ("GWP 100a",
-                                                             "kg CO2-Eq",
-                                                             160,
-                                                             "('CML 2001', 'climate change', 'GWP 100a')")
+        data   : data (leaf node) of category (tuple) e.g.: ("A:Agriculture, forestry and fishing",
+                                                             "01:Crop and animal production, hunting and related service activities",
+                                                             [...],
+                                                             "0111:Growing of cereals (except rice), leguminous crops and oil seeds"
+                                                             <activity data as tuple>)
                  Here each index of the tuple refers to the data in the self.HEADERS list of this class
         """
         data = np.empty(df.shape[0], dtype=object)  # create 1D np.array with same len as input df
@@ -445,25 +444,21 @@ class ActivitiesBiosphereTreeModel(BaseTreeModel):
         #  option in the same answer
         simple_dict = {}
         for row in data:
-            # row is e.g.: ['CML 2001',
-            #               'climate change',
-            #               'GWP 100a',
-            #               ('CML 2001, climate change, GWP 100a',
-            #                'kg CO2-Eq',
-            #                160,
-            #                ('CML 2001',
-            #                 'climate change',
-            #                 'GWP 100a'))]
-            # so: [str, str, str, tuple(str, str, str, tuple(str, str, str))]
-            temp_row = list(row[-1])  # temp_row = tuple(str, str, str, tuple(str, str, str))
+            # e.g. use this as example: ['A:Agriculture, forestry and fishing', '01:Crop and animal production, hunting and related service activities', '011:Growing of non-perennial crops', '0111:Growing of cereals (except rice), leguminous crops and oil seeds', 'sweet corn', ('sweet corn', 'sweet corn production', 'US', 'kilogram', '0111:Growing of cereals (except rice), leguminous crops and oil seeds', ('cutoff38', '4e26f787e6b76f2bbcb72e2ec1318f8a'), ('A:Agriculture, forestry and fishing', '01:Crop and animal production, hunting and related service activities', '011:Growing of non-perennial crops', '0111:Growing of cereals (except rice), leguminous crops and oil seeds', 'sweet corn'))]
+            # row is e.g.: ['A:Agriculture, forestry and fishing',
+            #               [...],
+            #               '0111:Growing of cereals (except rice), leguminous crops and oil seeds',
+            #               'sweet corn',
+            #               ('sweet corn',
+            #                'sweet corn production',
+            #                'US',
+            #                'kilogram',
+            #                '0111:Growing of cereals (except rice), leguminous crops and oil seeds',
+            #                ('cutoff38', '4e26f787e6b76f2bbcb72e2ec1318f8a'),
+            #                <repeat of entire path as tuple>)]
+            # so: [str, [...], str, tuple(str, str, str, str, str, tuple(str, str), tuple(str, [...], str))]
+            new_row = tuple(row[-1])  # activity data
 
-            new_row = tuple(temp_row)
-            # new_row format: ('GWP 100a',
-            #                  'kg CO2-Eq',
-            #                  160,
-            #                  ('CML 2001',
-            #                   'climate change',
-            #                   'GWP 100a'))
             # new_row is the leaf node, the format is based on self.HEADERS
             here = simple_dict
             for elem in row[:-2]:  # iterate over the full treepath
