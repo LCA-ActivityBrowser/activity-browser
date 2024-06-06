@@ -251,26 +251,3 @@ class EcoinventInstallThread(ABThread):
     def run_safely(self):
         ab_import_ecoinvent_release(self.parent().field("version"), self.parent().field("model"))
 
-
-if __name__ == "__main__":
-    import sys, logging
-    from activity_browser import application
-    from activity_browser.layouts.main import MainWindow
-
-    try:
-        bd.projects.delete_project("testing_ei", True)
-    except:
-        pass
-
-    logging.root.setLevel("INFO")
-
-    bd.projects.set_current("testing_ei")
-
-    application.main_window = MainWindow(application)
-
-    wizard = ProjectSetupWizard(application.main_window)
-
-    application.show()
-    wizard.show()
-
-    sys.exit(application.exec_())
