@@ -31,7 +31,7 @@ requirements:
     - libxml2 <=2.10.4
     - networkx
     - numpy >=1.23.5
-    - pandas <=2.1.4
+    - pandas >=2.2.1
     - pint <=0.21
     - pyperclip
     - pyside2 >=5.15.5
