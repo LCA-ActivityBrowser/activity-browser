@@ -2,23 +2,16 @@
 import datetime
 import functools
 
-import brightway2 as bw
-from bw2data.utils import natural_sort
 import numpy as np
 import pandas as pd
 from PySide2.QtCore import Qt, QModelIndex, Slot
 from PySide2.QtWidgets import QApplication
 
+from activity_browser import log, project_settings
+from activity_browser.mod.bw2data import projects, databases, utils
 from activity_browser.bwutils import AB_metadata, commontasks as bc
-from activity_browser.settings import project_settings
-from activity_browser.signals import signals
+
 from .base import PandasModel, DragPandasModel
-
-import logging
-from activity_browser.logger import ABHandler
-
-logger = logging.getLogger('ab_logs')
-log = ABHandler.setup_with_logger(logger, __name__)
 
 
 class DatabasesModel(PandasModel):
@@ -26,8 +19,8 @@ class DatabasesModel(PandasModel):
 
     def __init__(self, parent=None):
         super().__init__(parent=parent)
-        signals.project_selected.connect(self.sync)
-        signals.databases_changed.connect(self.sync)
+        projects.current_changed.connect(self.sync)
+        databases.metadata_changed.connect(self.sync)
 
     def get_db_name(self, proxy: QModelIndex) -> str:
         idx = self.proxy_to_source(proxy)
@@ -35,16 +28,16 @@ class DatabasesModel(PandasModel):
 
     def sync(self):
         data = []
-        for name in natural_sort(bw.databases):
+        for name in utils.natural_sort(databases):
             # get the modified time, in case it doesn't exist, just write 'now' in the correct format
-            dt = bw.databases[name].get("modified", datetime.datetime.now().isoformat())
+            dt = databases[name].get("modified", datetime.datetime.now().isoformat())
             dt = datetime.datetime.strptime(dt, '%Y-%m-%dT%H:%M:%S.%f')
 
             # final column includes interactive checkbox which shows read-only state of db
             database_read_only = project_settings.db_is_readonly(name)
             data.append({
                 "Name": name,
-                "Depends": ", ".join(bw.databases[name].get("depends", [])),
+                "Depends": ", ".join(databases[name].get("depends", [])),
                 "Modified": dt,
                 "Records": bc.count_database_records(name),
                 "Read-only": database_read_only,
@@ -106,8 +99,8 @@ class ActivitiesBiosphereModel(DragPandasModel):
             self.updated.emit()
             return
 
-        if db_name not in bw.databases:
-            raise KeyError("This database does not exist!", db_name)
+        if db_name not in databases:
+            return
         self.database_name = db_name
         self.technosphere = bc.is_technosphere_db(db_name)
 
@@ -167,38 +160,13 @@ class ActivitiesBiosphereModel(DragPandasModel):
         )
         return mask
 
-    def delete_activities(self, proxies: list) -> None:
-        if len(proxies) > 1:
-            keys = [self.get_key(p) for p in proxies]
-            signals.delete_activities.emit(keys)
-        else:
-            signals.delete_activity.emit(self.get_key(proxies[0]))
-
-    def duplicate_activities(self, proxies: list) -> None:
-        if len(proxies) > 1:
-            keys = [self.get_key(p) for p in proxies]
-            signals.duplicate_activities.emit(keys)
-        else:
-            signals.duplicate_activity.emit(self.get_key(proxies[0]))
-
-    def duplicate_activity_to_new_loc(self, proxies: list) -> None:
-        signals.duplicate_activity_new_loc.emit(self.get_key(proxies[0]))
-
-    def duplicate_activities_to_db(self, proxies: list) -> None:
-        if len(proxies) > 1:
-            keys = [self.get_key(p) for p in proxies]
-            signals.duplicate_to_db_interface_multiple.emit(keys, self.database_name)
-        else:
-            key = self.get_key(proxies[0])
-            signals.duplicate_to_db_interface.emit(key, self.database_name)
-
     def copy_exchanges_for_SDF(self, proxies: list) -> None:
         if len(proxies) > 1:
-            keys = [self.get_key(p) for p in proxies]
+            keys = {self.get_key(p) for p in proxies}
         else:
-            keys = [self.get_key(proxies[0])]
+            keys = {self.get_key(proxies[0])}
         QApplication.setOverrideCursor(Qt.WaitCursor)
-        exchanges = bc.get_exchanges_from_a_list_of_activities(activities=keys,
+        exchanges = bc.get_exchanges_from_a_list_of_activities(activities=list(keys),
                                                                as_keys=True)
         data = bc.get_exchanges_in_scenario_difference_file_notation(exchanges)
         df = pd.DataFrame(data)

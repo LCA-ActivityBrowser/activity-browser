@@ -127,6 +127,7 @@ Then simply run `activity-browser` and the application will open.
 ## Additional Resources
 
 - [Youtube tutorials](https://www.youtube.com/channel/UCsyySKrzEMsRFsWW1Oz-6aA/)
+- [Introduction video by ETH Zurich](https://www.youtube.com/watch?v=j3uLptvsxeA)
 - [AB Discussions page](https://github.com/LCA-ActivityBrowser/activity-browser/discussions)
 - [AB Wiki](https://github.com/LCA-ActivityBrowser/activity-browser/wiki)
 - [AB scientific article](https://doi.org/10.1016/j.simpa.2019.100012)
@@ -209,6 +210,7 @@ If you experience problems or are suffering from a specific bug, please [raise a
 ### Current main developers
 
 - Bernhard Steubing (b.steubing@cml.leidenuniv.nl) (creator)
+- Marin Visscher (m.r.visscher@cml.leidenuniv.nl) (main developer)
 - Marc van der Meide (m.t.van.der.meide@cml.leidenuniv.nl) (maintainer)
 
 ### Important contributers

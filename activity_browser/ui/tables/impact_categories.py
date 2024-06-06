@@ -4,6 +4,9 @@ from typing import Iterable
 from PySide2 import QtWidgets
 from PySide2.QtCore import QModelIndex, Slot
 
+from activity_browser import actions
+from activity_browser.mod.bw2data import methods
+
 from ...signals import signals
 from ..icons import qicons
 from .views import ABDictTreeView, ABFilterableDataFrameView, ABDataFrameView
@@ -23,13 +26,15 @@ class MethodsTable(ABFilterableDataFrameView):
         if isinstance(self.model.filterable_columns, dict):
             self.header.column_indices = list(self.model.filterable_columns.values())
 
-        self.doubleClicked.connect(
-            lambda p: signals.method_selected.emit(self.model.get_method(p))
-        )
+        self.duplicate_method_action = actions.MethodDuplicate.get_QAction(self.selected_methods, None)
+        self.delete_method_action = actions.MethodDelete.get_QAction(self.selected_methods, None)
+
+        self.connect_signals()
+
+    def connect_signals(self):
+        self.doubleClicked.connect(lambda p: signals.method_selected.emit(self.model.get_method(p)))
         self.model.updated.connect(self.update_proxy_model)
-        self.model.updated.connect(self.custom_view_sizing)
-        signals.new_method.connect(self.sync)
-        signals.method_deleted.connect(self.sync)
+        methods.metadata_changed.connect(self.sync)
 
     def selected_methods(self) -> Iterable:
         """Returns a generator which yields the 'method' for each row."""
@@ -39,29 +44,17 @@ class MethodsTable(ABFilterableDataFrameView):
     def sync(self, query=None) -> None:
         self.model.sync(query)
 
-    @Slot(name="resizeView")
-    def custom_view_sizing(self) -> None:
-        self.setColumnHidden(self.model.method_col, True)
-        self.setSizePolicy(QtWidgets.QSizePolicy(
-            QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Maximum
-        ))
-
     def contextMenuEvent(self, event) -> None:
         if self.indexAt(event.pos()).row() == -1:
             return
+
         menu = QtWidgets.QMenu(self)
-        menu.addAction(
-            qicons.copy, "Duplicate Impact Category",
-            lambda: self.model.copy_method(self.currentIndex())
-        )
-        menu.addAction(
-            qicons.delete, "Delete Impact Category",
-            lambda: self.model.delete_method(self.currentIndex())
-        )
         menu.addAction(
             qicons.edit, "Inspect Impact Category",
             lambda: signals.method_selected.emit(self.model.get_method(self.currentIndex()))
         )
+        menu.addAction(self.duplicate_method_action)
+        menu.addAction(self.delete_method_action)
         menu.exec_(event.globalPos())
 
 
@@ -96,19 +89,25 @@ class MethodsTree(ABDictTreeView):
         # set drag ability
         self.setDragEnabled(True)
         self.setDragDropMode(ABDictTreeView.DragOnly)
+
         # set model
         self.model = MethodsTreeModel(self)
         self.setModel(self.model)
-        self.model.updated.connect(self.custom_view_sizing)
         self.model.updated.connect(self.optional_expand)
         self.model.sync()
         self.setColumnHidden(self.model.method_col, True)
 
+        # set first column's size
+        self.setColumnWidth(0, 200)
+
+        self.duplicate_method_action = actions.MethodDuplicate.get_QAction(self.selected_methods, self.tree_level)
+        self.delete_method_action = actions.MethodDelete.get_QAction(self.selected_methods, self.tree_level)
+
+        self._connect_signals()
+
     def _connect_signals(self):
-        super()._connect_signals()
         self.doubleClicked.connect(self.method_selected)
-        signals.new_method.connect(self.open_method)
-        signals.method_deleted.connect(self.open_method)
+        methods.metadata_changed.connect(self.open_method)
 
     @Slot(name="syncTree")
     def sync(self, query=None) -> None:
@@ -135,12 +134,12 @@ class MethodsTree(ABDictTreeView):
         expands = self.expanded_list()
         self.model.setup_model_data()
         self.model.sync()
-        iter = self.model.iterator(None)
-        while iter != None:
-            item = self.build_path(iter)
+        iterator = self.model.iterator(None)
+        while iterator != None:
+            item = self.build_path(iterator)
             if item in expands:
-                self.setExpanded(self.model.createIndex(iter.row(), 0, iter), True)
-            iter = self.model.iterator(iter)
+                self.setExpanded(self.model.createIndex(iterator.row(), 0, iterator), True)
+            iterator = self.model.iterator(iterator)
 
     @Slot(QModelIndex, name="methodSelection")
     def method_selected(self):
@@ -163,12 +162,8 @@ class MethodsTree(ABDictTreeView):
         
         menu.addSeparator()
 
-        menu.addAction(qicons.copy, "Duplicate Impact Category",
-                       lambda: self.copy_method()
-                       )
-        menu.addAction(qicons.delete, "Delete Impact Category",
-                       lambda: self.delete_method()
-                       )
+        menu.addAction(self.duplicate_method_action)
+        menu.addAction(self.delete_method_action)
 
         menu.exec_(event.globalPos())
 
@@ -216,16 +211,6 @@ class MethodsTree(ABDictTreeView):
             parent = parent.parent()
         return levels[::-1]
 
-    @Slot(name="copyMethod")
-    def copy_method(self) -> None:
-        """Call copy on the (first) selected method and present rename dialog."""
-        self.model.copy_method(self.tree_level())
-
-    @Slot(name="deleteMethod")
-    def delete_method(self) -> None:
-        """Call copy on the (first) selected method and present rename dialog."""
-        self.model.delete_method(self.tree_level())
-
     def expanded_list(self):
         it = self.model.iterator(None)
         expanded_items = []
@@ -259,31 +244,37 @@ class MethodCharacterizationFactorsTable(ABFilterableDataFrameView):
         self.setItemDelegateForColumn(8, FloatDelegate(self))
         self.setItemDelegateForColumn(9, FloatDelegate(self))
         self.setItemDelegateForColumn(10, FloatDelegate(self))
+
         self.model.updated.connect(self.update_proxy_model)
-        self.model.updated.connect(self.custom_view_sizing)
         self.model.updated.connect(self.set_filter_data)
+        self.model.updated.connect(lambda: self.setColumnHidden(5, True))
+
         self.read_only = True
         self.setAcceptDrops(not self.read_only)
 
-        signals.set_uncertainty.connect(self.modify_uncertainty)
-        signals.cf_changed.connect(self.cell_edited)
+        self.remove_cf_action = actions.CFRemove.get_QAction(self.method_name, self.selected_cfs)
+        self.modify_uncertainty_action = actions.CFUncertaintyModify.get_QAction(self.method_name, self.selected_cfs)
+        self.remove_uncertainty_action = actions.CFUncertaintyRemove.get_QAction(self.method_name, self.selected_cfs)
+
+        self.model.dataChanged.connect(self.cell_edited)
+
+    def method_name(self):
+        return self.model.method.name
+
+    def selected_cfs(self):
+        return [self.model.get_cf(i) for i in self.selectedIndexes()]
 
     def cell_edited(self) -> None:
         """Store the edit made to the table in the underlying data."""
-        if len(self.selectedIndexes()) == 0:
-            return
-        col = self.model.proxy_to_source(self.selectedIndexes()[0]).column()
-        if col in [2]:
-            # if the column changed is 2 (Amount) --> This is a list in case of future editable columns
-            self.model.modify_cf(self.selectedIndexes()[0])
+        if len(self.selectedIndexes()) == 0: return
 
-    @Slot(name="resizeView")
-    def custom_view_sizing(self) -> None:
-        self.setColumnHidden(self.model.cf_column, True)
-        self.hide_uncertain()
-        self.setSizePolicy(QtWidgets.QSizePolicy(
-            QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Maximum
-        ))
+        cell = self.selectedIndexes()[0]
+        column = cell.column()
+
+        if column in [2]:
+            # if the column changed is 2 (Amount) --> This is a list in case of future editable columns
+            new_amount = self.model.get_value(cell)
+            actions.CFAmountModify.run(self.method_name, self.selected_cfs, new_amount)
 
     @Slot(bool, name="toggleUncertainColumns")
     def hide_uncertain(self, hide: bool = True) -> None:
@@ -300,27 +291,14 @@ class MethodCharacterizationFactorsTable(ABFilterableDataFrameView):
         if self.indexAt(event.pos()).row() == -1:
             return
         menu = QtWidgets.QMenu(self)
-        edit = menu.addAction(qicons.edit, "Modify uncertainty", self.modify_uncertainty)
-        edit.setEnabled(not self.read_only)
+        menu.addAction(self.modify_uncertainty_action)
+        self.modify_uncertainty_action.setEnabled(not self.read_only)
         menu.addSeparator()
-        remove = menu.addAction(qicons.clear, "Remove uncertainty", self.remove_uncertainty)
-        remove.setEnabled(not self.read_only)
-        delete = menu.addAction(qicons.delete, "Delete", self.delete_cf)
-        delete.setEnabled(not self.read_only)
+        menu.addAction(self.remove_uncertainty_action)
+        self.remove_uncertainty_action.setEnabled(not self.read_only)
+        menu.addAction(self.remove_cf_action)
+        self.remove_cf_action.setEnabled(not self.read_only)
         menu.exec_(event.globalPos())
-
-    @Slot(name="modifyCFUncertainty")
-    def modify_uncertainty(self, index) -> None:
-        if index.internalId() == self.currentIndex().internalId():
-            self.model.modify_uncertainty(self.currentIndex())
-
-    @Slot(name="removeCFUncertainty")
-    def remove_uncertainty(self) -> None:
-        self.model.remove_uncertainty(self.selectedIndexes())
-
-    @Slot(name="deleteCF")
-    def delete_cf(self) -> None:
-        self.model.delete_cf(self.selectedIndexes())
 
     def dragMoveEvent(self, event) -> None:
         """ Check if drops are allowed when dragging something over.
@@ -337,5 +315,5 @@ class MethodCharacterizationFactorsTable(ABFilterableDataFrameView):
         if not isinstance(source_table, ActivitiesBiosphereTable):
             return
         event.accept()
-        signals.add_cf_method.emit(keys[0], self.model.method.name)
+        actions.CFNew.run(self.method_name(), keys)
         # TODO: Resize the view if the table did not already take up the full height.

@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
+from typing import List
+
 from PySide2 import QtWidgets
 from PySide2.QtCore import Slot
 
+from activity_browser import actions
 from .delegates import *
 from .models import (
     BaseExchangeModel, ProductExchangeModel, TechnosphereExchangeModel,
@@ -9,7 +12,6 @@ from .models import (
 )
 from .views import ABDataFrameView
 from ..icons import qicons
-from ...signals import signals
 
 
 class BaseExchangeTable(ABDataFrameView):
@@ -19,28 +21,16 @@ class BaseExchangeTable(ABDataFrameView):
         super().__init__(parent)
         self.setDragEnabled(True)
         self.setAcceptDrops(False)
-        self.setSizePolicy(QtWidgets.QSizePolicy(
-            QtWidgets.QSizePolicy.Preferred,
-            QtWidgets.QSizePolicy.Maximum)
-        )
 
-        self.delete_exchange_action = QtWidgets.QAction(
-            qicons.delete, "Delete exchange(s)", None
-        )
-        self.remove_formula_action = QtWidgets.QAction(
-            qicons.delete, "Clear formula(s)", None
-        )
-        self.modify_uncertainty_action = QtWidgets.QAction(
-            qicons.edit, "Modify uncertainty", None
-        )
-        self.remove_uncertainty_action = QtWidgets.QAction(
-            qicons.delete, "Remove uncertainty/-ies", None
-        )
-        self.copy_exchanges_for_SDF_action = QtWidgets.QAction(
-            qicons.superstructure, "Exchanges for scenario difference file", None
-        )
+        self.delete_exchange_action = actions.ExchangeDelete.get_QAction(self.selected_exchanges)
+        self.remove_formula_action = actions.ExchangeFormulaRemove.get_QAction(self.selected_exchanges)
+        self.modify_uncertainty_action = actions.ExchangeUncertaintyModify.get_QAction(self.selected_exchanges)
+        self.remove_uncertainty_action = actions.ExchangeUncertaintyRemove.get_QAction(self.selected_exchanges)
+        self.copy_exchanges_for_SDF_action = actions.ExchangeCopySDF.get_QAction(self.selected_exchanges)
+
         self.key = getattr(parent, "key", None)
         self.model = self.MODEL(self.key, self)
+
         self.downstream = False
         self.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers |
                              QtWidgets.QAbstractItemView.DoubleClicked)
@@ -50,33 +40,11 @@ class BaseExchangeTable(ABDataFrameView):
         self.doubleClicked.connect(
             lambda: self.model.edit_cell(self.currentIndex())
         )
-        self.delete_exchange_action.triggered.connect(
-            lambda: self.model.delete_exchanges(self.selectedIndexes())
-        )
-        self.remove_formula_action.triggered.connect(
-            lambda: self.model.remove_formula(self.selectedIndexes())
-        )
-        self.modify_uncertainty_action.triggered.connect(
-            lambda: self.model.modify_uncertainty(self.currentIndex())
-        )
-        self.remove_uncertainty_action.triggered.connect(
-            lambda: self.model.remove_uncertainty(self.selectedIndexes())
-        )
-        self.copy_exchanges_for_SDF_action.triggered.connect(
-            lambda: self.model.copy_exchanges_for_SDF(self.selectedIndexes())
-        )
         self.model.updated.connect(self.update_proxy_model)
-        self.model.updated.connect(self.custom_view_sizing)
+        self.model.updated.connect(self.hide_exchange_columns)
 
-
-    @Slot(name="resizeView")
-    def custom_view_sizing(self) -> None:
-        """ Ensure the `exchange` column is hidden whenever the table is shown.
-        """
-        super().custom_view_sizing()
-        self.resizeColumnsToContents()
-        self.resizeRowsToContents()
-        self.setColumnHidden(self.model.exchange_column, True)
+    def hide_exchange_columns(self):
+        self.hideColumn(self.model.exchange_column)
 
     @Slot(name="openActivities")
     def open_activities(self) -> None:
@@ -98,15 +66,18 @@ class BaseExchangeTable(ABDataFrameView):
 
     def dropEvent(self, event):
         source_table = event.source()
-        keys = [source_table.get_key(i) for i in source_table.selectedIndexes()]
+        keys = source_table.selected_keys()
         event.accept()
-        signals.exchanges_add.emit(keys, self.key)
+        actions.ExchangeNew.run(keys, self.key)
 
     def get_usable_parameters(self):
         return self.model.get_usable_parameters()
 
     def get_interpreter(self):
         return self.model.get_interpreter()
+
+    def selected_exchanges(self) -> List[any]:
+        return [self.model.get_exchange(index) for index in self.selectedIndexes()]
 
 
 class ProductExchangeTable(BaseExchangeTable):
@@ -118,6 +89,7 @@ class ProductExchangeTable(BaseExchangeTable):
         self.setItemDelegateForColumn(1, StringDelegate(self))
         self.setItemDelegateForColumn(2, StringDelegate(self))
         self.setItemDelegateForColumn(3, FormulaDelegate(self))
+
         self.setDragDropMode(QtWidgets.QTableView.DragDrop)
         self.table_name = "product"
 
@@ -157,13 +129,6 @@ class TechnosphereExchangeTable(BaseExchangeTable):
         self.setDragDropMode(QtWidgets.QTableView.DragDrop)
         self.table_name = "technosphere"
 
-    @Slot(name="resizeView")
-    def custom_view_sizing(self) -> None:
-        """ Ensure the `exchange` column is hidden whenever the table is shown.
-        """
-        super().custom_view_sizing()
-        self.show_uncertainty()
-
     def show_uncertainty(self, show: bool = False) -> None:
         """Show or hide the uncertainty columns, 'Uncertainty Type' is always shown.
         """
@@ -178,7 +143,6 @@ class TechnosphereExchangeTable(BaseExchangeTable):
         """
         cols = self.model.columns
         self.setColumnHidden(cols.index("Comment"), not show)
-        super().custom_view_sizing()
 
     def contextMenuEvent(self, event) -> None:
         if self.indexAt(event.pos()).row() == -1:
@@ -221,11 +185,6 @@ class BiosphereExchangeTable(BaseExchangeTable):
         self.setDragDropMode(QtWidgets.QTableView.DropOnly)
         self.table_name = "biosphere"
 
-    @Slot(name="resizeView")
-    def custom_view_sizing(self) -> None:
-        super().custom_view_sizing()
-        self.show_uncertainty()
-
     def show_uncertainty(self, show: bool = False) -> None:
         """Show or hide the uncertainty columns, 'Uncertainty Type' is always shown.
         """
@@ -240,7 +199,6 @@ class BiosphereExchangeTable(BaseExchangeTable):
         """
         cols = self.model.columns
         self.setColumnHidden(cols.index("Comment"), not show)
-        super().custom_view_sizing()
 
     def contextMenuEvent(self, event) -> None:
         if self.indexAt(event.pos()).row() == -1:

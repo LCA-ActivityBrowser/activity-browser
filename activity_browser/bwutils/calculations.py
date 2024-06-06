@@ -1,22 +1,13 @@
 # -*- coding: utf-8 -*-
-from PySide2.QtWidgets import QMessageBox, QApplication
+from PySide2.QtWidgets import QApplication
+from bw2calc.errors import BW2CalcError
 
+from activity_browser import log
 from ..bwutils import (
     Contributions, MonteCarloLCA, MLCA,
     SuperstructureContributions, SuperstructureMLCA,
 )
-from bw2calc.errors import BW2CalcError
-from .errors import ScenarioExchangeNotFoundError
-
-from .errors import CriticalCalculationError
-
-
-import logging
-from activity_browser.logger import ABHandler
-
-logger = logging.getLogger('ab_logs')
-log = ABHandler.setup_with_logger(logger, __name__)
-
+from .errors import ScenarioExchangeNotFoundError, CriticalCalculationError
 
 def do_LCA_calculations(data: dict):
     """Perform the MLCA calculation."""

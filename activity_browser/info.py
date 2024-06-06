@@ -3,10 +3,7 @@ import os.path
 from importlib.metadata import version, PackageNotFoundError
 from .utils import safe_link_fetch, sort_semantic_versions
 
-import logging
-from .logger import ABHandler
-logger = logging.getLogger('ab_logs')
-log = ABHandler.setup_with_logger(logger, __name__)
+from .logger import log
 
 # get AB version
 try:

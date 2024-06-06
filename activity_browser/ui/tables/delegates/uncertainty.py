@@ -29,7 +29,7 @@ class UncertaintyDelegate(QtWidgets.QStyledItemDelegate):
     def createEditor(self, parent, option, index):
         """Simply use the wizard for updating uncertainties. Send a signal.
         """
-        signals.set_uncertainty.emit(index)
+        self.parent().modify_uncertainty_action.trigger()
 
     def setEditorData(self, editor: QtWidgets.QComboBox, index: QtCore.QModelIndex):
         """Simply use the wizard for updating uncertainties.

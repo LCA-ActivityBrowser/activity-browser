@@ -1,23 +1,16 @@
-# -*- coding: utf-8 -*-
-import brightway2 as bw
-from bw2data.errors import ValidityError
-from PySide2 import QtCore, QtWidgets
-from PySide2.QtCore import Signal, Slot
 import bw2io.data as data
-from ...signals import signals
+from PySide2 import QtWidgets
+from PySide2.QtCore import Signal, Slot
 
-import logging
-from activity_browser.logger import ABHandler
+from activity_browser import log
+from activity_browser.mod import bw2data as bd
 from ..threading import ABThread
-
-logger = logging.getLogger('ab_logs')
-log = ABHandler.setup_with_logger(logger, __name__)
 
 
 class BiosphereUpdater(QtWidgets.QProgressDialog):
     def __init__(self, ei_versions, parent=None):
         super().__init__(parent=parent)
-        self.setWindowTitle("Updating '{}' database".format(bw.config.biosphere))
+        self.setWindowTitle("Updating '{}' database".format(bd.config.biosphere))
         self.setLabelText("Adding new flows to biosphere database")
         self.setRange(0, 0)
         self.show()
@@ -25,16 +18,15 @@ class BiosphereUpdater(QtWidgets.QProgressDialog):
         self.thread = UpdateBiosphereThread(ei_versions, self)
         self.setMaximum(self.thread.total_patches)
         self.thread.progress.connect(self.update_progress)
-        self.thread.finished.connect(self.finished)
+        self.thread.finished.connect(self.thread_finished)
         self.thread.start()
 
-    def finished(self, result: int = None) -> None:
-        outcome = result or 0
-        self.thread.exit(outcome)
+    def thread_finished(self, result: int = None) -> None:
+        # outcome = result or 0
+        # self.thread.exit(outcome)
         self.setMaximum(1)
         self.setValue(1)
-        signals.database_changed.emit(bw.config.biosphere)
-        signals.databases_changed.emit()
+        self.done(result or 0)
 
     @Slot(int)
     def update_progress(self, current: int):
@@ -59,6 +51,6 @@ class UpdateBiosphereThread(ABThread):
                 log.debug(f'Applying biosphere patch: {patch}')
                 update_bio = getattr(data, patch)
                 update_bio()
-        except ValidityError as e:
+        except bd.errors.ValidityError as e:
             log.error(f'Could not patch biosphere: {str(e)}')
             self.exit(1)

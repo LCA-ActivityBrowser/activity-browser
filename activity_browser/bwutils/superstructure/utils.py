@@ -1,13 +1,11 @@
 # -*- coding: utf-8 -*-
-import brightway2 as bw
-import pandas as pd
 import time
 
-import logging
-from activity_browser.logger import ABHandler
+import pandas as pd
 
-logger = logging.getLogger('ab_logs')
-log = ABHandler.setup_with_logger(logger, __name__)
+from activity_browser import log
+from activity_browser.mod import bw2data as bd
+
 
 # Different kinds of indexes, to allow for quick selection of data from
 # the Superstructure DataFrame.
@@ -54,7 +52,7 @@ def edit_superstructure_for_string(superstructure=SUPERSTRUCTURE, sep="<br>", fh
 def guess_flow_type(row: pd.Series) -> str:
     """Given a series of input- and output keys, make a guess on the flow type.
     """
-    if row.iat[0][0] == bw.config.biosphere:
+    if row.iat[0][0] == bd.config.biosphere:
         return "biosphere"
     elif row.iat[0] == row.iat[1]:
         return "production"
@@ -62,6 +60,7 @@ def guess_flow_type(row: pd.Series) -> str:
         return "technosphere"
 
 def _time_it_(func):
+    #TODO rename to non_protected name
     """
     For use as a wrapper to time the execution of functions using the python time library
     """

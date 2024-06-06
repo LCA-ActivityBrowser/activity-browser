@@ -5,8 +5,7 @@ from asteval import Interpreter
 from PySide2 import QtCore, QtGui, QtWidgets
 from PySide2.QtCore import Signal, Slot
 
-from activity_browser.signals import signals
-from activity_browser.ui.icons import qicons
+from activity_browser import signals, actions
 
 
 class CalculatorButtons(QtWidgets.QWidget):
@@ -90,12 +89,8 @@ class FormulaDialog(QtWidgets.QDialog):
         completer.setCaseSensitivity(QtCore.Qt.CaseInsensitive)
         self.text_field.setCompleter(completer)
         self.parameters.doubleClicked.connect(self.append_parameter_name)
-        self.new_parameter = QtWidgets.QPushButton(
-            qicons.add, "New parameter", self
-        )
-        self.new_parameter.clicked.connect(
-            lambda: signals.add_parameter.emit(self.key)
-        )
+
+        self.new_parameter_button = actions.ParameterNew.get_QButton(self.get_key)
 
         self.calculator = CalculatorButtons(self)
         self.calculator.button_press.connect(self.text_field.insert)
@@ -105,7 +100,7 @@ class FormulaDialog(QtWidgets.QDialog):
         grid.addWidget(self.buttons, 5, 0, 1, 1)
         grid.addWidget(self.calculator, 0, 1, 5, 1)
         grid.addWidget(self.parameters, 0, 2, 5, 1)
-        grid.addWidget(self.new_parameter, 5, 2, 1, 1)
+        grid.addWidget(self.new_parameter_button, 5, 2, 1, 1)
 
         self.buttons.accepted.connect(self.accept)
         self.buttons.rejected.connect(self.reject)
@@ -148,6 +143,9 @@ class FormulaDialog(QtWidgets.QDialog):
         """ The key consists of two strings, no more, no less.
         """
         self.key = key
+
+    def get_key(self) -> tuple:
+        return self.key
 
     @property
     def formula(self) -> str:
@@ -212,7 +210,7 @@ class FormulaDelegate(QtWidgets.QStyledItemDelegate):
         editor = QtWidgets.QWidget(parent)
         dialog = FormulaDialog(editor, QtCore.Qt.Window)
         dialog.accepted.connect(lambda: self.commitData.emit(editor))
-        dialog.rejected.connect(signals.parameters_changed.emit)
+        # dialog.rejected.connect(signals.parameters_changed.emit)
         return editor
 
     def setEditorData(self, editor: QtWidgets.QWidget, index: QtCore.QModelIndex):
