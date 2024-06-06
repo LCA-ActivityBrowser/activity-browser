@@ -11,6 +11,7 @@ from pathlib import Path
 import bw2data.errors
 import ecoinvent_interface
 import requests
+from bw2data.subclass_mapping import DATABASE_BACKEND_MAPPING
 from bw2io import BW2Package, SingleOutputEcospold2Importer
 from bw2io.extractors import Ecospold2DataExtractor
 from PySide2 import QtCore, QtWidgets
@@ -27,6 +28,7 @@ from ...utils import sort_semantic_versions
 from ..style import style_group_box
 from ..threading import ABThread
 from ..widgets import DatabaseLinkingDialog
+
 
 # TODO: Rework the entire import wizard, the amount of different classes
 #  and interwoven connections makes the entire thing nearly incomprehensible.
@@ -881,7 +883,8 @@ class MainWorkerThread(ABThread):
                 signal=import_signals.strategy_progress,
             )
             importer.apply_strategies()
-            importer.write_database(backend="sqlite")
+            # backend is a custom implementation that wraps sqlite database
+            importer.write_database(backend="activitybrowser")
             if not import_signals.cancel_sentinel:
                 import_signals.finished.emit()
             else:
@@ -1318,22 +1321,28 @@ class ActivityBrowserExtractor(Ecospold2DataExtractor):
 class ActivityBrowserBackend(bd.backends.SQLiteBackend):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self._ab_current_index = 0
+        self._ab_total = 0
 
     def _efficient_write_many_data(self, *args, **kwargs):
         data = args[0]
-        self.total = len(data)
+        self._ab_total = len(data)
         super()._efficient_write_many_data(*args, **kwargs)
 
     def _efficient_write_dataset(self, *args, **kwargs):
-        index = args[0]
         if import_signals.cancel_sentinel:
-            log.info(f"\nWriting canceled at position {index}!")
+            log.info(f"\nWriting canceled at position {self._ab_current_index}!")
             raise errors.ImportCanceledError
-        import_signals.db_progress.emit(index + 1, self.total)
+        self._ab_current_index += 1
+        import_signals.db_progress.emit(self._ab_current_index, self._ab_total)
         return super()._efficient_write_dataset(*args, **kwargs)
 
 
 bd.config.backends["activitybrowser"] = ActivityBrowserBackend
+# config is no longer enough to provide an additional backend
+# database chooser, specifically looks at DATABASE_BACKEND_MAPPING
+# to get the class implementation
+DATABASE_BACKEND_MAPPING.update({"activitybrowser": ActivityBrowserBackend})
 
 
 class ImportSignals(QtCore.QObject):
