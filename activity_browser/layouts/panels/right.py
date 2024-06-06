@@ -1,25 +1,26 @@
 # -*- coding: utf-8 -*-
 from pathlib import Path
+import logging
 
-import brightway2 as bw
 from PySide2.QtWidgets import QVBoxLayout
 
-from .panel import ABTab
-from ...ui.web import GraphNavigatorWidget, RestrictedWebViewWidget
-from ..tabs import (
+from bw2data.utils import get_activity
+
+from activity_browser.layouts.panels.panel import ABTab
+from activity_browser.ui.web import GraphNavigatorWidget, RestrictedWebViewWidget
+from activity_browser.layouts.tabs import (
     LCASetupTab,
     LCAResultsTab,
     CharacterizationFactorsTab,
     ActivitiesTab,
-    ParametersTab
+    ParametersTab,
 )
-from ...bwutils.commontasks import get_activity_name
-from ...signals import signals
+from activity_browser.bwutils.commontasks import get_activity_name
+from activity_browser.signals import signals
 
-import logging
 from activity_browser.logger import ABHandler
 
-logger = logging.getLogger('ab_logs')
+logger = logging.getLogger("ab_logs")
 log = ABHandler.setup_with_logger(logger, __name__)
 
 
@@ -27,7 +28,7 @@ class RightPanel(ABTab):
     side = "right"
 
     def __init__(self, *args):
-        super(RightPanel, self).__init__(*args)
+        super().__init__(*args)
         package_dir = Path(__file__).resolve().parents[2]
         html_file = str(package_dir.joinpath("static", "startscreen", "welcome.html"))
         self.tabs = {
@@ -63,16 +64,11 @@ class RightPanel(ABTab):
 
 class GraphExplorerTab(ABTab):
     def __init__(self, parent):
-        super(GraphExplorerTab, self).__init__(parent)
-
+        super().__init__(parent)
         self.setMovable(True)
         self.setTabsClosable(True)
-        # self.setTabShape(1)  # Triangular-shaped Tabs
-
-        # Generate layout
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
-
         self.connect_signals()
 
     def connect_signals(self):
@@ -86,7 +82,7 @@ class GraphExplorerTab(ABTab):
             log.info("adding graph tab")
             new_tab = GraphNavigatorWidget(self, key=key)
             self.tabs[key] = new_tab
-            self.addTab(new_tab, get_activity_name(bw.get_activity(key), str_length=30))
+            self.addTab(new_tab, get_activity_name(get_activity(key), str_length=30))
         else:
             tab = self.tabs[key]
             tab.new_graph(key)

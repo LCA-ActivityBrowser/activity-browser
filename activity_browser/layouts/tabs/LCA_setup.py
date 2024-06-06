@@ -1,35 +1,33 @@
 # -*- coding: utf-8 -*-
-from typing import Optional, Union
+import logging
 
 from PySide2 import QtWidgets
 from PySide2.QtCore import Slot, Qt
-from brightway2 import calculation_setups
-import pandas as pd
-import re
+from bw2data.meta import calculation_setups
 
-import brightway2 as bw
-from bw2data.filesystem import safe_filename
-from ...bwutils.superstructure import (
+import pandas as pd
+
+from bw2data.meta import databases
+
+from activity_browser.bwutils.superstructure import (
     SuperstructureManager, import_from_excel, scenario_names_from_df,
     SUPERSTRUCTURE, _time_it_, ABCSVImporter, ABFeatherImporter,
-    ABFileImporter, scenario_replace_databases
+    scenario_replace_databases
 )
-from ...settings import ab_settings
-from ...bwutils.errors import (CriticalScenarioExtensionError, ScenarioExchangeNotFoundError,
+from activity_browser.bwutils.errors import (CriticalScenarioExtensionError, ScenarioExchangeNotFoundError,
                                ScenarioDatabaseNotFoundError, ImportCanceledError, ScenarioExchangeDataNotFoundError,
-                               UnalignableScenarioColumnsWarning, ScenarioExchangeDataNonNumericError,)
-from ...signals import signals
-from ...ui.icons import qicons
-from ...ui.style import horizontal_line, header, style_group_box
-from ...ui.tables import (
+                               UnalignableScenarioColumnsWarning,)
+from activity_browser.signals import signals
+from activity_browser.ui.icons import qicons
+from activity_browser.ui.style import horizontal_line, header, style_group_box
+from activity_browser.ui.tables import (
     CSActivityTable, CSList, CSMethodsTable, ScenarioImportTable
 )
-from ...ui.widgets import ExcelReadDialog, ScenarioDatabaseDialog
-from .base import BaseRightTab
+from activity_browser.ui.widgets import ExcelReadDialog, ScenarioDatabaseDialog
+from activity_browser.layouts.tabs.base import BaseRightTab
 from activity_browser.bwutils.superstructure import ABPopup, edit_superstructure_for_string
-
-import logging
 from activity_browser.logger import ABHandler
+
 
 logger = logging.getLogger('ab_logs')
 log = ABHandler.setup_with_logger(logger, __name__)
@@ -374,7 +372,6 @@ class ScenarioImportPanel(BaseRightTab):
 
         self._connect_signals()
         
-
     def _connect_signals(self) -> None:
         self.table_btn.clicked.connect(self.add_table)
         self.table_btn.clicked.connect(self.can_add_table)
@@ -684,8 +681,8 @@ class ScenarioImportWidget(QtWidgets.QWidget):
     @_time_it_
     def scenario_db_check(self, df: pd.DataFrame) -> pd.DataFrame:
         dbs = set(df.loc[:, 'from database']).union(set(df.loc[:, 'to database']))
-        unlinkable = dbs.difference(bw.databases)
-        db_lst = list(bw.databases)
+        unlinkable = dbs.difference(databases)
+        db_lst = list(databases)
         relink = []
         for db in unlinkable:
             relink.append((db, db_lst))

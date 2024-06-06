@@ -1,14 +1,18 @@
 # -*- coding: utf-8 -*-
-import brightway2 as bw
+import logging
+
+from bw2data.database import DatabaseChooser
+from bw2data.utils import get_activity
 from bw2data.errors import UnknownObject
 from bw2data.backends.peewee import ActivityDataset
+from bw2data.meta import databases
+
 import pandas as pd
 import numpy as np
 
-from .commontasks import count_database_records
-
-import logging
+from activity_browser.bwutils.commontasks import count_database_records
 from activity_browser.logger import ABHandler
+
 
 logger = logging.getLogger('ab_logs')
 log = ABHandler.setup_with_logger(logger, __name__)
@@ -27,7 +31,7 @@ class MetaDataStore(object):
 
     .. code-block:: python
         meta_data = list()  # or whatever container
-        for ds in bw.Database(name):
+        for ds in DatabaseChooser(name):
             meta_data.append([ds[field] for field in fields])
 
     Instead, this data store features a dataframe that contains all metadata
@@ -68,14 +72,14 @@ class MetaDataStore(object):
         dfs.append(self.dataframe)
         log.info('Current shape and databases in the MetaDataStore:', self.dataframe.shape, self.databases)
         for db_name in new:
-            if db_name not in bw.databases:
+            if db_name not in databases:
                 raise ValueError('This database does not exist:', db_name)
 
             log.info('Adding:', db_name)
             self.databases.add(db_name)
 
             # make a temporary DataFrame and index it by ('database', 'code') (like all brightway activities)
-            df = pd.DataFrame(bw.Database(db_name))
+            df = pd.DataFrame(DatabaseChooser(db_name))
             df["key"] = df.loc[:, ["database", "code"]].apply(tuple, axis=1)
             df.index = pd.MultiIndex.from_tuples(df["key"])
 
@@ -99,7 +103,6 @@ class MetaDataStore(object):
         # add this metadata to already existing metadata
         self.dataframe = pd.concat(dfs, sort=False)
         self.dataframe.replace(np.nan, '', regex=True, inplace=True)  # replace 'nan' values with emtpy string
-        # print('Dimensions of the Metadata:', self.dataframe.shape)
 
     def update_metadata(self, key: tuple) -> None:
         """Update metadata when an activity has changed.
@@ -115,7 +118,7 @@ class MetaDataStore(object):
             The specific activity to update in the MetaDataStore
         """
         try:
-            act = bw.get_activity(key)  # if this does not work, it has been deleted (see except:).
+            act = get_activity(key)  # if this does not work, it has been deleted (see except:).
         except (UnknownObject, ActivityDataset.DoesNotExist):
             # Situation 1: activity has been deleted (metadata needs to be deleted)
             log.warning('Deleting activity from metadata:', key)

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import itertools
+import logging
 from typing import List
 import numpy as np
 import pandas as pd
@@ -8,22 +9,26 @@ from PySide2.QtWidgets import QApplication, QPushButton
 from PySide2.QtCore import Qt
 from typing import Union, Optional
 
-import brightway2 as bw
+from bw2data.utils import get_activity
 
-from .activities import fill_df_keys_with_fields, get_activities_from_keys
-from .dataframe import scenario_columns
-from .utils import guess_flow_type, SUPERSTRUCTURE, _time_it_
+from activity_browser.bwutils.superstructure.activities import fill_df_keys_with_fields, get_activities_from_keys
+from activity_browser.bwutils.superstructure.dataframe import scenario_columns
+from activity_browser.bwutils.superstructure.utils import guess_flow_type, SUPERSTRUCTURE, _time_it_
 
-from .file_dialogs import ABPopup
-from ..errors import (CriticalScenarioExtensionError, ScenarioExchangeNotFoundError,
-                      ImportCanceledError, ScenarioExchangeDataNotFoundError,
-                        UnalignableScenarioColumnsWarning, ScenarioExchangeDataNonNumericError
-                      )
+from activity_browser.bwutils.superstructure.file_dialogs import ABPopup
+from activity_browser.bwutils.errors import (
+    CriticalScenarioExtensionError,
+    ScenarioExchangeNotFoundError,
+    ImportCanceledError,
+    ScenarioExchangeDataNotFoundError,
+    UnalignableScenarioColumnsWarning,
+    ScenarioExchangeDataNonNumericError,
+)
 
-import logging
 from activity_browser.logger import ABHandler
 
-logger = logging.getLogger('ab_logs')
+
+logger = logging.getLogger("ab_logs")
 log = ABHandler.setup_with_logger(logger, __name__)
 
 
@@ -151,7 +156,12 @@ class SuperstructureManager(object):
         return idx
 
     @staticmethod
-    def product_combine_frames(data: List[pd.DataFrame], index: pd.MultiIndex, cols: pd.MultiIndex, skip_checks: bool = False) -> pd.DataFrame:
+    def product_combine_frames(
+        data: List[pd.DataFrame],
+        index: pd.MultiIndex,
+        cols: pd.MultiIndex,
+        skip_checks: bool = False,
+    ) -> pd.DataFrame:
         """Iterate through the dataframes, filling data into the combined
         dataframe with duplicate indexes being resolved using a 'last one wins'
         logic.
@@ -193,7 +203,6 @@ class SuperstructureManager(object):
         scenarios_data.columns = cols.to_flat_index()
         df = pd.concat([base_scenario_data, scenarios_data], axis=1)
         df = SuperstructureManager.merge_flows_to_self(df)
-#        df.replace(np.nan, 0, inplace=True)
         return df
 
     @staticmethod
@@ -213,7 +222,6 @@ class SuperstructureManager(object):
         -------
         A pandas dataframe constructed from the combined inputs to the class self.frames variable
         """
-#        columns = data.columns if isinstance(data, pd.DataFrame) else data[0].columns
         columns = SUPERSTRUCTURE.append(cols)
         df = pd.DataFrame([], index=index, columns=columns)
         if not skip_checks:
@@ -226,7 +234,6 @@ class SuperstructureManager(object):
                 f = SuperstructureManager.remove_duplicates(f)
                 df.loc[f.index, columns] = f.loc[:, columns]
         df = SuperstructureManager.merge_flows_to_self(df)
-#        df.replace(np.nan, 0, inplace=True)
         return df.loc[:, cols]
 
     @staticmethod
@@ -236,10 +243,6 @@ class SuperstructureManager(object):
         """
         if not isinstance(df.index, pd.MultiIndex):
             df.index = SuperstructureManager.build_index(df)
-        # all import checks should take place before merge_flows_to_self
-#        df = SuperstructureManager.check_duplicates(df)
-#        df = SuperstructureManager.merge_flows_to_self(df)
-
         return df
 
     @staticmethod
@@ -283,7 +286,7 @@ class SuperstructureManager(object):
             # 1 reference flow (because we just take index 0 from list of production exchanges)
             # Once AB has support for multiple reference flows, we need to adjust this code to match the
             # right flow -something with looping over the flows and getting the right product or something-.
-            prod_amt = list(bw.get_activity(idx[0]).production())[0].get('amount', 1)
+            prod_amt = list(get_activity(idx[0]).production())[0].get('amount', 1)
             # make a new df to edit the production, add the correct values/indices where needed
             # and concat to the main df
             self_referential_production_flows.loc[idx, 'flow type'] = 'production'
@@ -415,7 +418,7 @@ class SuperstructureManager(object):
     @staticmethod
     @_time_it_
     def check_scenario_exchange_values(df: pd.DataFrame, cols: pd.Index):
-        """"
+        """ "
         Checks the scenario exchange amounts from the dataframes for valid values, if none are found an error
         is raised, if some exchange amounts are absent a warning is raised and default values are used.
 
@@ -563,4 +566,3 @@ class SuperstructureManager(object):
                 raise ImportCanceledError
             data.drop_duplicates(index, keep='last', inplace=True)
         return data
-

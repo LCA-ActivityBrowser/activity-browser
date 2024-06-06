@@ -1,30 +1,32 @@
 # -*- coding: utf-8 -*-
-import brightway2 as bw
-from bw2data.backends.peewee import sqlite3_lci_db
-from bw2data.parameters import Group
+import logging
+
 from PySide2 import QtWidgets
 from PySide2.QtCore import QObject, Slot, Qt
 
-from ..bwutils import commontasks as bc
-from ..bwutils.strategies import relink_exchanges_existing_db
-from ..ui.widgets import (
+from bw2data.backends.peewee import sqlite3_lci_db
+from bw2data.parameters import Group
+from bw2data.meta import databases
+from bw2data.database import DatabaseChooser
+from bw2data.project import projects
+
+from activity_browser.bwutils import commontasks as bc
+from activity_browser.bwutils.strategies import relink_exchanges_existing_db
+from activity_browser.ui.widgets import (
     CopyDatabaseDialog, DatabaseLinkingDialog, DefaultBiosphereDialog,
     BiosphereUpdater, DatabaseLinkingResultsDialog, EcoinventVersionDialog
 )
-from ..ui.wizards.db_export_wizard import DatabaseExportWizard
-from ..ui.wizards.db_import_wizard import DatabaseImportWizard
-from ..settings import project_settings
-from ..signals import signals
-from .project import ProjectController
-from ..info import __ei_versions__
-from ..utils import sort_semantic_versions
-
-import logging
+from activity_browser.ui.wizards.db_export_wizard import DatabaseExportWizard
+from activity_browser.ui.wizards.db_import_wizard import DatabaseImportWizard
+from activity_browser.settings import project_settings
+from activity_browser.signals import signals
+from activity_browser.controllers.project import ProjectController
+from activity_browser.info import __ei_versions__
+from activity_browser.utils import sort_semantic_versions
 from activity_browser.logger import ABHandler
 
 logger = logging.getLogger('ab_logs')
 log = ABHandler.setup_with_logger(logger, __name__)
-
 
 
 class DatabaseController(QObject):
@@ -62,9 +64,9 @@ class DatabaseController(QObject):
         - also see bw2data issue: https://bitbucket.org/cmutel/brightway2-data/issues/60/massive-sqlite-query-performance-decrease
         @LegacyCode?
         """
-        if bw.databases and not sqlite3_lci_db._database.get_indexes('activitydataset'):
+        if databases and not sqlite3_lci_db._database.get_indexes('activitydataset'):
             log.info("creating missing sqlite indices")
-            bw.Database(list(bw.databases)[-1])._add_indices()
+            DatabaseChooser(list(databases)[-1])._add_indices()
 
     @Slot(name="bw2Setup")
     def install_default_data(self) -> None:
@@ -115,9 +117,9 @@ class DatabaseController(QObject):
         )
 
         if ok and name:
-            if name not in bw.databases:
-                bw.Database(name).register()
-                bw.Database(name).write({})  # write nothing to the database so we set a modified time
+            if name not in databases:
+                DatabaseChooser(name).register()
+                DatabaseChooser(name).write({})  # write nothing to the database so we set a modified time
                 project_settings.add_db(name, False)
                 signals.databases_changed.emit()
                 signals.database_selected.emit(name)
@@ -153,24 +155,24 @@ class DatabaseController(QObject):
         )
         if ok == QtWidgets.QMessageBox.Yes:
             project_settings.remove_db(name)
-            del bw.databases[name]
+            del databases[name]
             Group.delete().where(Group.name == name).execute()
-            ProjectController.change_project(bw.projects.current, reload=True)
+            ProjectController.change_project(projects.current, reload=True)
             signals.delete_database_confirmed.emit(name)
 
     @Slot(str, name="relinkDatabase")
     def relink_database(self, db_name: str) -> None:
         """Relink technosphere exchanges within the given database."""
-        db = bw.Database(db_name)
+        db = DatabaseChooser(db_name)
         depends = db.find_dependents()
-        options = [(depend, bw.databases.list) for depend in depends]
+        options = [(depend, databases.list) for depend in depends]
         dialog = DatabaseLinkingDialog.relink_sqlite(db_name, options, self.window)
         relinking_results = dict()
         if dialog.exec_() == DatabaseLinkingDialog.Accepted:
             # Now, start relinking.
             QtWidgets.QApplication.setOverrideCursor(Qt.WaitCursor)
             for old, new in dialog.relink.items():
-                other = bw.Database(new)
+                other = DatabaseChooser(new)
                 failed, succeeded, examples = relink_exchanges_existing_db(db, old, other)
                 relinking_results[f"{old} --> {other.name}"] = (failed, succeeded)
             QtWidgets.QApplication.restoreOverrideCursor()

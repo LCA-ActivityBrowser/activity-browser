@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
 from typing import Iterable
+import logging
 
-import brightway2 as bw
+from bw2data.meta import methods, calculation_setups
+from bw2data.utils import get_activity
+
 from bw2data.backends.peewee import ActivityDataset
 import pandas as pd
 import numpy as np
@@ -11,7 +14,6 @@ from activity_browser.bwutils import commontasks as bc
 from activity_browser.signals import signals
 from .base import EditablePandasModel, PandasModel
 
-import logging
 from activity_browser.logger import ABHandler
 
 logger = logging.getLogger('ab_logs')
@@ -105,17 +107,17 @@ class CSActivityModel(CSGenericModel):
 
     @Slot(str, name="syncModel")
     def sync(self, name: str = None):
-        if len(bw.calculation_setups) == 0:
+        if len(calculation_setups) == 0:
             self._dataframe = pd.DataFrame(columns=self.HEADERS)
             self.updated.emit()
             return
         if self.current_cs is None and name is None:
             raise ValueError("'name' cannot be None if no name is set")
         if name:
-            assert name in bw.calculation_setups, "Given calculation setup does not exist."
+            assert name in calculation_setups, "Given calculation setup does not exist."
             self.current_cs = name
 
-        fus = bw.calculation_setups.get(self.current_cs, {}).get('inv', [])
+        fus = calculation_setups.get(self.current_cs, {}).get('inv', [])
         df = pd.DataFrame([
             self.build_row(key, amount) for func_unit in fus
             for key, amount in func_unit.items()
@@ -127,7 +129,7 @@ class CSActivityModel(CSGenericModel):
 
     def build_row(self, key: tuple, amount: float = 1.0) -> dict:
         try:
-            act = bw.get_activity(key)
+            act = get_activity(key)
             if act.get("type", "process") != "process":
                 raise TypeError("Activity is not of type 'process'")
             row = {
@@ -176,13 +178,13 @@ class CSMethodsModel(CSGenericModel):
 
     @Slot(name="UpdateBWCalculationSetup")
     def update_cs(self, name: str = None) -> None:
-        """Updates and syncs the bw.calculation_setups for the Impact categories. Removes any
+        """Updates and syncs the calculation_setups for the Impact categories. Removes any
         Impact category from a calculation setup if it is not present in the current environment"""
         def filter_methods(cs):
-            """Filters any methods out from the calculation setup if they aren't in bw.methods"""
+            """Filters any methods out from the calculation setup if they aren't in methods"""
             i = 0
             while i < len(cs):
-                if cs[i] not in bw.methods:
+                if cs[i] not in methods:
                     cs.pop(i)
                 else:
                     i += 1
@@ -190,27 +192,27 @@ class CSMethodsModel(CSGenericModel):
 
         if self.current_cs is not None or name is not None:
             self.current_cs = name
-            filter_methods(bw.calculation_setups[self.current_cs].get('ia', []))
+            filter_methods(calculation_setups[self.current_cs].get('ia', []))
             self.sync(self.current_cs)
         else:
-            for name, cs in bw.calculation_setups.items():
+            for name, cs in calculation_setups.items():
                 filter_methods(cs['ia'])
             self.sync()
 
     @Slot(str, name="syncModel")
     def sync(self, name: str = None) -> None:
         if name:
-            assert name in bw.calculation_setups, "Given calculation setup does not exist."
+            assert name in calculation_setups, "Given calculation setup does not exist."
             self.current_cs = name
             self._dataframe = pd.DataFrame([
                 self.build_row(method)
-                for method in bw.calculation_setups[self.current_cs].get("ia", [])
+                for method in calculation_setups[self.current_cs].get("ia", [])
             ], columns=self.HEADERS)
         self.updated.emit()
 
     @staticmethod
     def build_row(method: tuple) -> dict:
-        method_metadata = bw.methods[method]
+        method_metadata = methods[method]
         return {
             "Name": ', '.join(method),
             "Unit": method_metadata.get('unit', "Unknown"),

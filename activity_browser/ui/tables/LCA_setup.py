@@ -1,20 +1,22 @@
 # -*- coding: utf-8 -*-
-import brightway2 as bw
+import logging
+
+from bw2data.meta import calculation_setups
+
 from PySide2.QtCore import Slot, Qt
 from PySide2 import QtWidgets
 
 from activity_browser.signals import signals
-from ..icons import qicons
-from .delegates import FloatDelegate
-from .impact_categories import MethodsTable, MethodsTree
-from .models import CSMethodsModel, CSActivityModel, ScenarioImportModel
-from .views import ABDataFrameView
-
-import logging
+from activity_browser.ui.icons import qicons
+from activity_browser.ui.tables.delegates import FloatDelegate
+from activity_browser.ui.tables.impact_categories import MethodsTable, MethodsTree
+from activity_browser.ui.tables.models import CSMethodsModel, CSActivityModel, ScenarioImportModel
+from activity_browser.ui.tables.views import ABDataFrameView
 from activity_browser.logger import ABHandler
 
 logger = logging.getLogger('ab_logs')
 log = ABHandler.setup_with_logger(logger, __name__)
+
 
 class CSList(QtWidgets.QComboBox):
     def __init__(self, parent=None):
@@ -26,7 +28,7 @@ class CSList(QtWidgets.QComboBox):
     def sync(self, name):
         self.blockSignals(True)
         self.clear()
-        keys = sorted(bw.calculation_setups)
+        keys = sorted(calculation_setups)
         self.insertItems(0, keys)
         self.blockSignals(False)
         self.setCurrentIndex(keys.index(name))
@@ -70,7 +72,7 @@ class CSGenericTable(ABDataFrameView):
                 self.setDragDropMode(QtWidgets.QTableView.InternalMove)
         ABDataFrameView.mousePressEvent(self, event)
 
-    def dragMoveEvent(self, event) -> None:
+    def dragMoveEvent(self, _) -> None:
         pass
 
 
@@ -195,7 +197,6 @@ class CSMethodsTable(CSGenericTable):
 
     def dropEvent(self, event):
         event.accept()
-        source = event.source()
         if isinstance(event.source(), (MethodsTable, MethodsTree)):
             self.model.include_methods(event.source().selected_methods())
         elif event.source() is self:

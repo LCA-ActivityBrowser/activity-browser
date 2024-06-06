@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
 from typing import List, Optional, Union
 
-import brightway2 as bw
+from bw2data.parameters import parameters
+from bw2data.meta import databases
+from bw2data.utils import get_activity
+
 from bw2data.parameters import ActivityParameter, Group, ParameterBase
 from PySide2.QtCore import QObject, Slot
 from PySide2.QtWidgets import QInputDialog, QMessageBox, QErrorMessage
@@ -44,14 +47,14 @@ class ParameterController(QObject):
             amount = str(data.get("amount"))
             p_type = "project"
             if selection == 0:
-                bw.parameters.new_project_parameters([data])
+                parameters.new_project_parameters([data])
             elif selection == 1:
                 db = data.pop("database")
-                bw.parameters.new_database_parameters([data], db)
+                parameters.new_database_parameters([data], db)
                 p_type = "database ({})".format(db)
             elif selection == 2:
                 group = data.pop("group")
-                bw.parameters.new_activity_parameters([data], group)
+                parameters.new_activity_parameters([data], group)
                 p_type = "activity ({})".format(group)
             signals.added_parameter.emit(name, amount, p_type)
 
@@ -61,7 +64,7 @@ class ParameterController(QObject):
         """ Given the activity key, generate a new row with data from
         the activity and immediately call `new_activity_parameters`.
         """
-        act = bw.get_activity(key)
+        act = get_activity(key)
         prep_name = bc.clean_activity_name(act.get("name"))
         group = bc.build_activity_group_name(key, prep_name)
         count = (ActivityParameter.select()
@@ -74,7 +77,7 @@ class ParameterController(QObject):
             "code": key[1],
         }
         # Save the new parameter immediately.
-        bw.parameters.new_activity_parameters([row], group)
+        parameters.new_activity_parameters([row], group)
         signals.parameters_changed.emit()
 
     @Slot(list, name="addMultipleActivityParams")
@@ -85,7 +88,7 @@ class ParameterController(QObject):
         warning = "Activity must be 'process' type, '{}' is type '{}'."
         signals.blockSignals(True)
         for key in keys:
-            act = bw.get_activity(key)
+            act = get_activity(key)
             if act.get("type", "process") != "process":
                 issue = warning.format(act.get("name"), act.get("type"))
                 QMessageBox.warning(
@@ -101,7 +104,7 @@ class ParameterController(QObject):
         """ Remove the given parameter from the project.
 
         If there are multiple `ActivityParameters` for a single activity, only
-        delete the selected instance, otherwise use `bw.parameters.remove_from_group`
+        delete the selected instance, otherwise use `parameters.remove_from_group`
         to clear out the `ParameterizedExchanges` as well.
         """
         if isinstance(parameter, ActivityParameter):
@@ -113,23 +116,23 @@ class ParameterController(QObject):
                       .count())
 
             if amount > 1:
-                with bw.parameters.db.atomic():
+                with parameters.db.atomic():
                     parameter.delete_instance()
             else:
                 group = parameter.group
-                act = bw.get_activity((db, code))
-                bw.parameters.remove_from_group(group, act)
+                act = get_activity((db, code))
+                parameters.remove_from_group(group, act)
                 # Also clear the group if there are no more parameters in it
                 exists = (ActivityParameter.select()
                           .where(ActivityParameter.group == group).exists())
                 if not exists:
-                    with bw.parameters.db.atomic():
+                    with parameters.db.atomic():
                         Group.delete().where(Group.name == group).execute()
         else:
-            with bw.parameters.db.atomic():
+            with parameters.db.atomic():
                 parameter.delete_instance()
         # After deleting things, recalculate and signal changes
-        bw.parameters.recalculate()
+        parameters.recalculate()
         signals.parameters_changed.emit()
 
     @staticmethod
@@ -146,19 +149,19 @@ class ParameterController(QObject):
             return
         groups = set(p[0] for p in query)
         for group in groups:
-            bw.parameters.remove_from_group(group, key)
+            parameters.remove_from_group(group, key)
             exists = (ActivityParameter.select()
                       .where(ActivityParameter.group == group)
                       .exists())
             if not exists:
                 Group.delete().where(Group.name == group).execute()
-        bw.parameters.recalculate()
+        parameters.recalculate()
         signals.parameters_changed.emit()
 
     @Slot(object, str, object, name="modifyParameter")
     def modify_parameter(self, param: ParameterBase, field: str,
                          value: Union[str, float, list]) -> None:
-        with bw.parameters.db.atomic() as transaction:
+        with parameters.db.atomic() as transaction:
             try:
                 if hasattr(param, field):
                     setattr(param, field, value)
@@ -172,7 +175,7 @@ class ParameterController(QObject):
                 else:
                     param.data[field] = value
                 param.save()
-                bw.parameters.recalculate()
+                parameters.recalculate()
             except Exception as e:
                 # Anything wrong? Roll the transaction back and throw up a
                 # warning message.
@@ -201,11 +204,11 @@ class ParameterController(QObject):
         try:
             old_name = param.name
             if group == "project":
-                bw.parameters.rename_project_parameter(param, new_name, True)
-            elif group in bw.databases:
-                bw.parameters.rename_database_parameter(param, new_name, True)
+                parameters.rename_project_parameter(param, new_name, True)
+            elif group in databases:
+                parameters.rename_database_parameter(param, new_name, True)
             else:
-                bw.parameters.rename_activity_parameter(param, new_name, True)
+                parameters.rename_activity_parameter(param, new_name, True)
             signals.parameters_changed.emit()
             signals.parameter_renamed.emit(old_name, group, new_name)
         except Exception as e:
@@ -239,8 +242,8 @@ class ParameterController(QObject):
         """Take the given information and attempt to remove all of the
         downstream parameter information.
         """
-        with bw.parameters.db.atomic() as txn:
-            bw.parameters.remove_exchanges_from_group(group, None, False)
+        with parameters.db.atomic() as txn:
+            parameters.remove_exchanges_from_group(group, None, False)
             ActivityParameter.delete().where(
                 ActivityParameter.database == database,
                 ActivityParameter.code == code

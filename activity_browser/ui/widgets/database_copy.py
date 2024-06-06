@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
-import brightway2 as bw
 from PySide2 import QtCore, QtWidgets
 
-from ...signals import signals
-from ..threading import ABThread
+from bw2data.database import DatabaseChooser
+from bw2data.meta import databases
+
+from activity_browser.signals import signals
+from activity_browser.ui.threading import ABThread
 
 
 class CopyDatabaseDialog(QtWidgets.QProgressDialog):
@@ -19,9 +21,9 @@ class CopyDatabaseDialog(QtWidgets.QProgressDialog):
     def begin_copy(self, copy_from: str, copy_to: str) -> None:
         if not all([copy_from, copy_to]):
             raise ValueError("Copy information not configured")
-        if copy_from not in bw.databases:
+        if copy_from not in databases:
             raise ValueError("Database <strong>{}</strong> does not exist!".format(copy_from))
-        if copy_to in bw.databases:
+        if copy_to in databases:
             raise ValueError("Database <strong>{}</strong> already exists!".format(copy_to))
         self.setLabelText(
             'Copying existing database <b>{}</b> to new database <b>{}</b>:'.format(
@@ -48,4 +50,4 @@ class CopyDatabaseThread(ABThread):
         self.copy_to = copy_to
 
     def run_safely(self):
-        bw.Database(self.copy_from).copy(self.copy_to)
+        DatabaseChooser(self.copy_from).copy(self.copy_to)

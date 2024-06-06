@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-import brightway2 as bw
+from bw2data.project import projects
+
 from PySide2 import QtCore, QtWidgets
 
 from activity_browser.signals import signals
@@ -11,7 +12,7 @@ from activity_browser.ui.wizards.db_export_wizard import DatabaseExportWizard
 
 def test_trigger_export_wizard(qtbot, ab_app, monkeypatch):
     """Test the triggers for the export wizard."""
-    assert bw.projects.current == 'pytest_project'
+    assert projects.current == 'pytest_project'
     qtbot.waitForWindowShown(ab_app.main_window)
 
     menu_bar = ab_app.main_window.menu_bar

@@ -2,9 +2,12 @@
 from typing import Iterator, Optional, Union
 import uuid
 
-import brightway2 as bw
-import pandas as pd
 from bw2data.backends.peewee.proxies import Activity, ExchangeProxyBase
+from bw2data.meta import databases
+from bw2data.database import DatabaseChooser
+from bw2data.utils import get_activity
+
+import pandas as pd
 from PySide2.QtCore import QObject, Slot, Qt
 from PySide2 import QtWidgets
 
@@ -13,8 +16,8 @@ from activity_browser.bwutils.strategies import relink_activity_exchanges
 from activity_browser.settings import project_settings
 from activity_browser.signals import signals
 from activity_browser.ui.wizards import UncertaintyWizard
-from ..ui.widgets import ActivityLinkingDialog, ActivityLinkingResultsDialog, LocationLinkingDialog
-from .parameter import ParameterController
+from activity_browser.ui.widgets import ActivityLinkingDialog, ActivityLinkingResultsDialog, LocationLinkingDialog
+from activity_browser.controllers.parameter import ParameterController
 
 
 class ActivityController(QObject):
@@ -46,7 +49,7 @@ class ActivityController(QObject):
                 "name": name, "reference product": name, "unit": "unit",
                 "type": "process"
             }
-            new_act = bw.Database(database_name).new_activity(
+            new_act = DatabaseChooser(database_name).new_activity(
                 code=uuid.uuid4().hex,
                 **data
             )
@@ -55,7 +58,7 @@ class ActivityController(QObject):
                 input=new_act, amount=1, type="production"
             )
             production_exchange.save()
-            bw.databases.set_modified(database_name)
+            databases.set_modified(database_name)
             AB_metadata.update_metadata(new_act.key)
             signals.database_changed.emit(database_name)
             signals.databases_changed.emit()
@@ -93,7 +96,7 @@ class ActivityController(QObject):
 
         # After deletion, signal that the database has changed
         db = next(iter(activities)).get("database")
-        bw.databases.set_modified(db)
+        databases.set_modified(db)
         signals.database_changed.emit(db)
         signals.databases_changed.emit()
         signals.calculation_setup_changed.emit()
@@ -137,7 +140,7 @@ class ActivityController(QObject):
             signals.safe_open_activity_tab.emit(new_act.key)
 
         db = next(iter(activities)).get("database")
-        bw.databases.set_modified(db)
+        databases.set_modified(db)
         signals.database_changed.emit(db)
         signals.databases_changed.emit()
 
@@ -304,7 +307,7 @@ class ActivityController(QObject):
         signals.safe_open_activity_tab.emit(new_act.key)
 
         # send signals to relevant locations
-        bw.databases.set_modified(db_name)
+        databases.set_modified(db_name)
         signals.database_changed.emit(db_name)
         signals.databases_changed.emit()
 
@@ -332,8 +335,8 @@ class ActivityController(QObject):
         if target_db and ok:
             new_keys = [self._copy_activity(target_db, act) for act in activities]
             if bc.count_database_records(target_db) < 50:
-                bw.databases.clean()
-            bw.databases.set_modified(target_db)
+                databases.clean()
+            databases.set_modified(target_db)
             signals.database_changed.emit(target_db)
             signals.databases_changed.emit()
             for key in new_keys:
@@ -344,8 +347,8 @@ class ActivityController(QObject):
         new_key = self._copy_activity(target_db, activity)
         # only process database immediately if small
         if bc.count_database_records(target_db) < 50:
-            bw.databases.clean()
-        bw.databases.set_modified(target_db)
+            databases.clean()
+        databases.set_modified(target_db)
         signals.database_changed.emit(target_db)
         signals.databases_changed.emit()
         signals.safe_open_activity_tab.emit(new_key)
@@ -361,10 +364,10 @@ class ActivityController(QObject):
     @staticmethod
     @Slot(tuple, str, object, name="modifyActivity")
     def modify_activity(key: tuple, field: str, value: object) -> None:
-        activity = bw.get_activity(key)
+        activity = get_activity(key)
         activity[field] = value
         activity.save()
-        bw.databases.set_modified(key[0])
+        databases.set_modified(key[0])
         AB_metadata.update_metadata(key)
         signals.database_changed.emit(key[0])
 
@@ -373,22 +376,22 @@ class ActivityController(QObject):
         """Given either a key-tuple or a list of key-tuples, return a list
         of activities.
         """
-        return [bw.get_activity(data)] if isinstance(data, tuple) else [
-            bw.get_activity(k) for k in data
+        return [get_activity(data)] if isinstance(data, tuple) else [
+            get_activity(k) for k in data
         ]
 
     @Slot(tuple, name="relinkActivityExchanges")
     def relink_activity_exchange(self, key: tuple) -> None:
-        db = bw.Database(key[0])
+        db = DatabaseChooser(key[0])
         actvty = db.get(key[1])
         depends = db.find_dependents()
-        options = [(depend, bw.databases.list) for depend in depends]
+        options = [(depend, databases.list) for depend in depends]
         dialog = ActivityLinkingDialog.relink_sqlite(actvty['name'], options, self.window)
         relinking_results = {}
         if dialog.exec_() == ActivityLinkingDialog.Accepted:
             QtWidgets.QApplication.setOverrideCursor(Qt.WaitCursor)
             for old, new in dialog.relink.items():
-                other = bw.Database(new)
+                other = DatabaseChooser(new)
                 failed, succeeded, examples = relink_activity_exchanges(actvty, old, other)
                 relinking_results[f"{old} --> {other.name}"] = (failed, succeeded)
             QtWidgets.QApplication.restoreOverrideCursor()
@@ -430,7 +433,7 @@ class ExchangeController(QObject):
         -------
 
         """
-        activity = bw.get_activity(to_key)
+        activity = get_activity(to_key)
         for key in from_keys:
             technosphere_db = bc.is_technosphere_db(key[0])
             exc = activity.new_exchange(input=key, amount=1)
@@ -446,7 +449,7 @@ class ExchangeController(QObject):
                     if value:
                         exc[field_name] = value
             exc.save()
-        bw.databases.set_modified(to_key[0])
+        databases.set_modified(to_key[0])
         AB_metadata.update_metadata(to_key)
         signals.database_changed.emit(to_key[0])
 
@@ -457,7 +460,7 @@ class ExchangeController(QObject):
             db_changed.add(exc["output"][0])
             exc.delete()
         for db in db_changed:
-            bw.databases.set_modified(db)
+            databases.set_modified(db)
             signals.database_changed.emit(db)
 
     @staticmethod
@@ -480,7 +483,7 @@ class ExchangeController(QObject):
         else:
             exchange[field] = value
         exchange.save()
-        bw.databases.set_modified(exchange["output"][0])
+        databases.set_modified(exchange["output"][0])
         if field == "formula":
             # If a formula was set, removed or changed, recalculate exchanges
             signals.exchange_formula_changed.emit(exchange["output"])
@@ -502,7 +505,7 @@ class ExchangeController(QObject):
                 v = float("nan") if not v else float(v)
             exc[k] = v
         exc.save()
-        bw.databases.set_modified(exc["output"][0])
+        databases.set_modified(exc["output"][0])
         signals.database_changed.emit(exc["output"][0])
 
     @staticmethod
@@ -510,5 +513,5 @@ class ExchangeController(QObject):
     def modify_exchange_pedigree(exc: ExchangeProxyBase, pedigree: dict) -> None:
         exc["pedigree"] = pedigree
         exc.save()
-        bw.databases.set_modified(exc["output"][0])
+        databases.set_modified(exc["output"][0])
         signals.database_changed.emit(exc["output"][0])

@@ -1,21 +1,24 @@
 # -*- coding: utf-8 -*-
 from copy import deepcopy
+import logging
 import itertools
 import json
 import os
 from typing import Optional
 
-import brightway2 as bw
+from bw2data.utils import get_activity
+from bw2data.database import DatabaseChooser
+
 import networkx as nx
 from PySide2 import QtWidgets
 from PySide2.QtCore import Slot
 
-from .base import BaseGraph, BaseNavigatorWidget
-from ...signals import signals
-from ...bwutils.commontasks import identify_activity_type
+from activity_browser.ui.web.base import BaseGraph, BaseNavigatorWidget
+from activity_browser.signals import signals
+from activity_browser.bwutils.commontasks import identify_activity_type
 
-import logging
 from activity_browser.logger import ABHandler
+
 
 logger = logging.getLogger('ab_logs')
 log = ABHandler.setup_with_logger(logger, __name__)
@@ -214,7 +217,7 @@ class GraphNavigatorWidget(BaseNavigatorWidget):
     def random_graph(self) -> None:
         """ Show graph for a random activity in the currently loaded database."""
         if self.selected_db:
-            self.new_graph(bw.Database(self.selected_db).random().key)
+            self.new_graph(DatabaseChooser(self.selected_db).random().key)
         else:
             QtWidgets.QMessageBox.information(None, "Not possible.", "Please load a database first.")
 
@@ -253,7 +256,7 @@ class Graph(BaseGraph):
     @staticmethod
     def upstream_and_downstream_nodes(key: tuple) -> (list, list):
         """Returns the upstream and downstream activity objects for a key. """
-        activity = bw.get_activity(key)
+        activity = get_activity(key)
         upstream_nodes = [ex.input for ex in activity.technosphere()]
         downstream_nodes = [ex.output for ex in activity.upstream()]
         return upstream_nodes, downstream_nodes
@@ -264,7 +267,7 @@ class Graph(BaseGraph):
 
         act.upstream refers to downstream exchanges; brightway is confused here)
         """
-        activity = bw.get_activity(key)
+        activity = get_activity(key)
         return [ex for ex in activity.technosphere()], [ex for ex in activity.upstream()]
 
     @staticmethod
@@ -291,7 +294,7 @@ class Graph(BaseGraph):
         Returns:
                 JSON data as a string
         """
-        self.central_activity = bw.get_activity(key)
+        self.central_activity = get_activity(key)
 
         # add nodes
         up_nodes, down_nodes = Graph.upstream_and_downstream_nodes(key)
@@ -340,7 +343,7 @@ class Graph(BaseGraph):
         if key == self.central_activity.key:
             log.warning("Cannot remove central activity.")
             return
-        act = bw.get_activity(key)
+        act = get_activity(key)
         self.nodes.remove(act)
         if self.direct_only:
             self.remove_outside_exchanges()
@@ -381,7 +384,7 @@ class Graph(BaseGraph):
 
         count = 1
         for count, key in enumerate(orphaned_node_ids, 1):
-            act = bw.get_activity(key)
+            act = get_activity(key)
             log.info(act["name"], act["location"])
             self.nodes.remove(act)
         log.info("\nRemoved ORPHANED nodes:", count)

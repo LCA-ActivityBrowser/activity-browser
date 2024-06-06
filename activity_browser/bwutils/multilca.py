@@ -1,23 +1,32 @@
 # -*- coding: utf-8 -*-
-from typing import Iterable, Optional, Union
+import logging
+from collections import OrderedDict
+from typing import Optional, Union, Iterable
+
 from PySide2.QtWidgets import QMessageBox, QApplication
 import numpy as np
 import pandas as pd
-import brightway2 as bw
-from bw2analyzer import ContributionAnalysis
 
+from bw2calc.lca import LCA
+
+from bw2analyzer import ContributionAnalysis
 ca = ContributionAnalysis()
 
-from collections import OrderedDict
+from bw2data.meta import calculation_setups
+from bw2data.utils import get_activity
+from bw2data.meta import databases
+from bw2data.configuration import config
+from bw2data.method import Method
 
-from .commontasks import wrap_text
-from .metadata import AB_metadata
-from .errors import ReferenceFlowValueError
-
-import logging
 from activity_browser.logger import ABHandler
 
-logger = logging.getLogger('ab_logs')
+
+from activity_browser.bwutils.commontasks import wrap_text
+from activity_browser.bwutils.metadata import AB_metadata
+from activity_browser.bwutils.errors import ReferenceFlowValueError
+
+
+logger = logging.getLogger("ab_logs")
 log = ABHandler.setup_with_logger(logger, __name__)
 
 
@@ -110,9 +119,10 @@ class MLCA(object):
         If the given `cs_name` cannot be found in brightway calculation_setups
 
     """
+
     def __init__(self, cs_name: str):
         try:
-            cs = bw.calculation_setups[cs_name]
+            cs = calculation_setups[cs_name]
         except KeyError:
             raise ValueError(
                 f"{cs_name} is not a known `calculation_setup`."
@@ -180,16 +190,16 @@ class MLCA(object):
         for fu in self.func_units:
             key = next(iter(fu))
             amt = fu[key]
-            act = bw.get_activity(key)
+            act = get_activity(key)
             self.func_unit_translation_dict[f'{act[name]} | {act[ref_prod]} | {act[db]} | {amt}'] = fu
         self.func_key_dict = {m: i for i, m in enumerate(self.func_unit_translation_dict.keys())}
         self.func_key_list = list(self.func_unit_translation_dict.keys())
 
     def _construct_lca(self):
-        return bw.LCA(demand=self.func_units_dict, method=self.methods[0])
+        return LCA(demand=self.func_units_dict, method=self.methods[0])
 
     def _perform_calculations(self):
-        """ Isolates the code which performs calculations to allow subclasses
+        """Isolates the code which performs calculations to allow subclasses
         to either alter the code or redo calculations after matrix substitution.
         """
         for row, func_unit in enumerate(self.func_units):
@@ -235,35 +245,32 @@ class MLCA(object):
 
     @property
     def all_databases(self) -> set:
-        """ Get all databases linked to the reference flows.
-        """
+        """Get all databases linked to the reference flows."""
+
         def get_dependents(dbs: set, dependents: list) -> set:
-            for dep in (bw.databases[db].get('depends', []) for db in dependents):
+            for dep in (databases[db].get("depends", []) for db in dependents):
                 if not dbs.issuperset(dep):
                     dbs = get_dependents(dbs.union(dep), dep)
             return dbs
 
-        databases = set(f[0] for f in self.fu_activity_keys)
-        databases = get_dependents(databases, list(databases))
+        dbs = set(f[0] for f in self.fu_activity_keys)
+        dbs = get_dependents(dbs, list(databases))
         # In rare cases, the default biosphere is not found as a dependency, see:
         # https://github.com/LCA-ActivityBrowser/activity-browser/issues/298
         # Always include it.
-        databases.add(bw.config.biosphere)
-        return databases
+        dbs.add(config.biosphere)
+        return dbs
 
     def get_results_for_method(self, index: int = 0) -> pd.DataFrame:
-        data = self.lca_scores[:, index]
-        return pd.DataFrame(data, index=self.fu_activity_keys)
+        return pd.DataFrame(self.lca_scores[:, index], index=self.fu_activity_keys)
 
     @property
     def lca_scores_normalized(self) -> np.ndarray:
-        """Normalize LCA scores by impact assessment method.
-        """
+        """Normalize LCA scores by impact assessment method."""
         return self.lca_scores / self.lca_scores.max(axis=0)
 
     def get_normalized_scores_df(self) -> pd.DataFrame:
-        """ To be used for the currently inactive CorrelationPlot.
-        """
+        """To be used for the currently inactive CorrelationPlot."""
         labels = [str(x + 1) for x in range(len(self.func_units))]
         return pd.DataFrame(data=self.lca_scores_normalized.T, columns=labels)
 
@@ -315,6 +322,7 @@ class Contributions(object):
         If the given `mlca` object is not an instance of `MLCA`
 
     """
+
     ACT = "process"
     EF = "elementary_flow"
     TECH = "technosphere"
@@ -328,7 +336,7 @@ class Contributions(object):
 
     def __init__(self, mlca):
         if not isinstance(mlca, MLCA):
-            raise ValueError('Must pass an MLCA object. Passed:', type(mlca))
+            raise ValueError("Must pass an MLCA object. Passed:", type(mlca))
         self.mlca = mlca
         # Ensure MetaDataStore is updated.
         self.mlca.get_all_metadata()
@@ -429,7 +437,7 @@ class Contributions(object):
             elif k in AB_metadata.index:
                 translated_keys.append(separator.join([str(l) for l in list(AB_metadata.get_metadata(k, fields))]))
             else:
-                translated_keys.append(separator.join([i for i in k if i != '']))
+                translated_keys.append(separator.join([i for i in k if i != ""]))
         if max_length:
             translated_keys = [wrap_text(k, max_length=max_length) for k in translated_keys]
         return translated_keys
@@ -533,7 +541,7 @@ class Contributions(object):
         if "unit" not in df.columns:
             return df
         keys = df.index[~df["index"].isin({"Total", "Rest"})]
-        unit = bw.Method(method).metadata.get("unit") if method else "unit"
+        unit = Method(method).metadata.get("unit") if method else "unit"
         df.loc[keys, "unit"] = unit
         return df
 
@@ -645,7 +653,7 @@ class Contributions(object):
         joined.reset_index(inplace=True, drop=True)
         grouped = joined.groupby(parameters)
         aggregated = grouped[columns].sum()
-        mask_index = {i: m for i, m in enumerate(aggregated.index)}
+        mask_index = dict(enumerate(aggregated.index))
 
         return aggregated.T.values, mask_index, mask_index.values()
 
@@ -655,7 +663,7 @@ class Contributions(object):
         return aggregator if isinstance(aggregator, list) else [aggregator]
 
     def _correct_method_index(self, mthd_indx: list) -> dict:
-        """ A method for amending the tuples for impact method labels so
+        """A method for amending the tuples for impact method labels so
         that all tuples are fully printed.
 
         NOTE THE AMENDED TUPLES ARE COPIED, THIS SHOULD NOT BE USED TO
@@ -663,18 +671,18 @@ class Contributions(object):
 
         mthd_indx: a list of tuples for the impact method names
         """
-        method_tuple_length = max([len(k) for k in mthd_indx])
-        conv_dict = dict()
+        method_tuple_length = max(len(k) for k in mthd_indx)
+        conv_dict = {}
         for v, mthd in enumerate(mthd_indx):
             if len(mthd) < method_tuple_length:
                 _l = list(mthd)
-                for i in range(len(mthd), method_tuple_length):
-                    _l.append('')
+                for _ in range(len(mthd), method_tuple_length):
+                    _l.append("")
                 mthd = tuple(_l)
             conv_dict[mthd] = v
         return conv_dict
 
-    def _contribution_index_cols(self, **kwargs) -> (dict, Optional[Iterable]):
+    def _contribution_index_cols(self, **kwargs) -> tuple[dict, Optional[Iterable]]:
         if kwargs.get("method") is not None:
             return self.mlca.fu_index, self.act_fields
         return self._correct_method_index(self.mlca.methods), None
@@ -764,4 +772,3 @@ class Contributions(object):
         )
         self.adjust_table_unit(labelled_df, method)
         return labelled_df
-

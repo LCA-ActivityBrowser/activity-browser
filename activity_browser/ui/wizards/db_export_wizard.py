@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 import os
 
-import brightway2 as bw
+from bw2data.meta import databases
+from bw2data.project import projects
+
 from PySide2 import QtWidgets
 from PySide2.QtCore import Slot
 
@@ -95,9 +97,9 @@ class ExportDatabasePage(QtWidgets.QWizardPage):
             [QtWidgets.QWizard.Stretch, QtWidgets.QWizard.FinishButton, QtWidgets.QWizard.CancelButton]
         )
         self.database.clear()
-        choices = ["-----"] + bw.databases.list
+        choices = ["-----"] + databases.list
         self.database.addItems(choices)
-        self.output_dir.setText(bw.projects.output_dir)
+        self.output_dir.setText(projects.output_dir)
 
     def changed(self):
         self.complete = False if self.database.currentText() == "-----" else True

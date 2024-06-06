@@ -1,16 +1,16 @@
 # -*- coding: utf-8 -*-
-import brightway2 as bw
+import logging
+import os
+
+from bw2data.project import projects
+
 from PySide2 import QtWidgets, QtCore
 from peewee import SqliteDatabase
-import os
-import re
 
-from activity_browser.bwutils import commontasks as bc
-from ...settings import ab_settings
-from ...signals import signals
-
-import logging
+from activity_browser.settings import ab_settings
+from activity_browser.signals import signals
 from activity_browser.logger import ABHandler
+
 
 logger = logging.getLogger('ab_logs')
 log = ABHandler.setup_with_logger(logger)
@@ -19,8 +19,8 @@ log = ABHandler.setup_with_logger(logger)
 class SettingsWizard(QtWidgets.QWizard):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.last_project = bw.projects.current
-        self.last_bwdir = bw.projects._base_data_dir
+        self.last_project = projects.current
+        self.last_bwdir = projects._base_data_dir
 
         self.setWindowTitle('Activity Browser Settings')
         self.settings_page = SettingsPage(self)
@@ -52,7 +52,7 @@ class SettingsWizard(QtWidgets.QWizard):
 
     def cancel(self):
         log.info("Going back to before settings were changed.")
-        if bw.projects._base_data_dir != self.last_bwdir:
+        if projects._base_data_dir != self.last_bwdir:
             signals.switch_bw2_dir_path.emit(self.last_bwdir)
             signals.change_project.emit(self.last_project)  # project changes only if directory is changed
 
@@ -150,7 +150,7 @@ class SettingsPage(QtWidgets.QWizardPage):
         """
         Executes on emission of a signal from changes to the QComboBox holding bw2 environments
         Scope: Limited to
-            SettingsPage class - can create new environments and bw.projects (exceptions are permitted), will update
+            SettingsPage class - can create new environments and `projects` (exceptions are permitted), will update
                 contents of the Project QComboBox
             settings::ABSettings - uses but doesn't set bw2 variables, sets variables in the settings file
         """

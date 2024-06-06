@@ -1,5 +1,9 @@
 # -*- coding: utf-8 -*-
-import brightway2 as bw
+from bw2data.project import projects
+from bw2data.meta import databases
+from bw2data.utils import get_activity
+from bw2data.database import DatabaseChooser
+
 from PySide2 import QtCore, QtWidgets
 
 from activity_browser.signals import signals
@@ -8,7 +12,7 @@ from activity_browser.ui.widgets.dialog import EcoinventVersionDialog
 
 def test_add_default_data(qtbot, ab_app, monkeypatch):
     """Switch to 'pytest_project' and add default data."""
-    assert bw.projects.current == 'default'
+    assert projects.current == 'default'
     qtbot.waitExposed(ab_app.main_window)
 
     # fake the project name text input when called
@@ -21,7 +25,7 @@ def test_add_default_data(qtbot, ab_app, monkeypatch):
         project_tab.projects_widget.new_project_button,
         QtCore.Qt.LeftButton
     )
-    assert bw.projects.current == 'pytest_project'
+    assert projects.current == 'pytest_project'
 
     # The biosphere3 import finishes with a 'change_project' signal.
     with qtbot.waitSignal(signals.change_project, timeout=10*60*1000):  # allow 10 mins for biosphere install
@@ -40,7 +44,7 @@ def test_add_default_data(qtbot, ab_app, monkeypatch):
         pass
 
     # biosphere was installed
-    assert 'biosphere3' in bw.databases
+    assert 'biosphere3' in databases
 
 
 def test_select_biosphere(qtbot, ab_app):
@@ -68,7 +72,7 @@ def test_select_biosphere(qtbot, ab_app):
 
 
 def test_search_biosphere(qtbot, ab_app):
-    assert bw.projects.current == 'pytest_project'
+    assert projects.current == 'pytest_project'
     project_tab = ab_app.main_window.left_panel.tabs['Project']
 
     act_bio_tabs = project_tab.activity_biosphere_tabs
@@ -93,18 +97,18 @@ def test_search_biosphere(qtbot, ab_app):
 
 def test_fail_open_biosphere(ab_app):
     """Specifically fail to open an activity tab for a biosphere flow."""
-    assert bw.projects.current == 'pytest_project'
+    assert projects.current == 'pytest_project'
     activities_tab = ab_app.main_window.right_panel.tabs['Activity Details']
     # Select any biosphere activity and emit signal to trigger opening the tab
-    biosphere_flow = bw.Database('biosphere3').random()
+    biosphere_flow = DatabaseChooser('biosphere3').random()
     signals.safe_open_activity_tab.emit(biosphere_flow.key)
     assert len(activities_tab.tabs) == 0
 
 
 def test_succceed_open_activity(ab_app):
     """Create a tiny test database with a production activity."""
-    assert bw.projects.current == 'pytest_project'
-    db = bw.Database('testdb')
+    assert projects.current == 'pytest_project'
+    db = DatabaseChooser('testdb')
     act_key = ('testdb', 'act1')
     db.write({
         act_key: {
@@ -117,7 +121,7 @@ def test_succceed_open_activity(ab_app):
     })
     activities_tab = ab_app.main_window.right_panel.tabs['Activity Details']
     # Select the activity and emit signal to trigger opening the tab
-    act = bw.get_activity(act_key)
+    act = get_activity(act_key)
     signals.safe_open_activity_tab.emit(act_key)
     assert len(activities_tab.tabs) == 1
     assert act_key in activities_tab.tabs
@@ -129,7 +133,7 @@ def test_succceed_open_activity(ab_app):
 def test_close_open_activity_tab(ab_app):
     """Closing the activity tab will also hide the Activity Details tab."""
     act_key = ('testdb', 'act1')
-    act = bw.get_activity(act_key)
+    act = get_activity(act_key)
     act_name = act.get('name')
     activities_tab = ab_app.main_window.right_panel.tabs['Activity Details']
 

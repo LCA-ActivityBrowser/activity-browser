@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import brightway2 as bw
+from bw2data.project import projects
 from PySide2 import QtCore, QtWidgets
 
 from activity_browser.signals import signals
@@ -9,7 +9,7 @@ from activity_browser.ui.wizards.db_import_wizard import DatabaseImportWizard
 
 def test_open_db_wizard_button(qtbot, ab_app, monkeypatch):
     """Show that the signals and slots works for importing."""
-    assert bw.projects.current == 'pytest_project'
+    assert projects.current == 'pytest_project'
     qtbot.waitForWindowShown(ab_app.main_window)
     project_tab = ab_app.main_window.left_panel.tabs['Project']
 

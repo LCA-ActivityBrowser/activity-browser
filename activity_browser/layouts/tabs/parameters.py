@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from pathlib import Path
 
-import brightway2 as bw
+from bw2data.meta import databases
 import pandas as pd
 from PySide2.QtCore import Slot, QSize, Qt
 from PySide2.QtWidgets import (
@@ -10,15 +10,15 @@ from PySide2.QtWidgets import (
 )
 from xlsxwriter.exceptions import FileCreateError
 
-from ...bwutils.manager import ParameterManager
-from ...signals import signals
-from ...ui.icons import qicons
-from ...ui.style import header, horizontal_line
-from ...ui.tables import (
+from activity_browser.bwutils.manager import ParameterManager
+from activity_browser.signals import signals
+from activity_browser.ui.icons import qicons
+from activity_browser.ui.style import header, horizontal_line
+from activity_browser.ui.tables import (
     ActivityParameterTable, DataBaseParameterTable, ExchangesTable,
     ProjectParameterTable, ScenarioTable, BaseParameterTable
 )
-from .base import BaseRightTab
+from activity_browser.layouts.tabs.base import BaseRightTab
 
 
 class ParametersTab(QTabWidget):
@@ -115,7 +115,7 @@ class ABDatabaseParameter(ABParameterTable):
         )
 
     def set_enabled(self, trigger):
-        if not bw.databases:
+        if not databases:
             self.newParameter.setEnabled(False)
         else:
             self.newParameter.setEnabled(True)
@@ -298,7 +298,7 @@ can be used within the formula!</p>
         self.hide_uncertainty_columns()
         self.activity_order_column()
         # Cannot create database parameters without databases
-        if not bw.databases:
+        if not databases:
             self.database_table.set_enabled(False)
         else:
             self.database_table.set_enabled(True)

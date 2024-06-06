@@ -1,18 +1,24 @@
 # -*- coding: utf-8 -*-
+import logging
+from collections import defaultdict
 from time import time
 from typing import Optional, Union
 
-import brightway2 as bw
-from bw2calc.utils import get_seed
 import numpy as np
 import pandas as pd
+
+from bw2data.meta import calculation_setups
+from bw2data.utils import get_activity
+from bw2data.project import projects
+
+from bw2calc.lca import LCA
+from bw2calc.utils import get_seed
+
 from stats_arrays import MCRandomNumberGenerator
-from collections import defaultdict
 
-from .manager import MonteCarloParameterManager
-
-import logging
 from activity_browser.logger import ABHandler
+from activity_browser.bwutils.manager import MonteCarloParameterManager
+
 
 logger = logging.getLogger('ab_logs')
 log = ABHandler.setup_with_logger(logger, __name__)
@@ -21,13 +27,13 @@ log = ABHandler.setup_with_logger(logger, __name__)
 class MonteCarloLCA(object):
     """A Monte Carlo LCA for multiple reference flows and methods loaded from a calculation setup."""
     def __init__(self, cs_name):
-        if cs_name not in bw.calculation_setups:
+        if cs_name not in calculation_setups:
             raise ValueError(
                 "{} is not a known `calculation_setup`.".format(cs_name)
             )
 
         self.cs_name = cs_name
-        self.cs = bw.calculation_setups[cs_name]
+        self.cs = calculation_setups[cs_name]
         self.seed = None
         self.cf_rngs = {}
         self.CF_rng_vectors = {}
@@ -66,11 +72,11 @@ class MonteCarloLCA(object):
 
         self.results = list()
 
-        self.lca = bw.LCA(demand=self.func_units_dict, method=self.methods[0])
+        self.lca = LCA(demand=self.func_units_dict, method=self.methods[0])
 
     def unify_param_exchanges(self, data: np.ndarray) -> np.ndarray:
         """Convert an array of parameterized exchanges from input/output keys
-        into row/col values using dicts generated in bw.LCA object.
+        into row/col values using dicts generated in LCA object.
 
         If any given exchange does not exist in the current LCA matrix,
         it will be dropped from the returned array.
@@ -241,7 +247,6 @@ class MonteCarloLCA(object):
 
         if not self.results.any():
             raise ValueError('You need to perform a Monte Carlo Simulation first.')
-            return None
 
         if act_key:
             act_index = self.activity_index.get(act_key)
@@ -271,7 +276,6 @@ class MonteCarloLCA(object):
 
         if not self.results.any():
             raise ValueError('You need to perform a Monte Carlo Simulation first.')
-            return None
 
         if act_key and method or not act_key and not method:
             raise ValueError('Must provide activity key or method, but not both.')
@@ -295,7 +299,7 @@ class MonteCarloLCA(object):
                    max_length: int = None) -> list:
         fields = fields or ['name', 'reference product', 'location', 'database']
         # need to do this as the keys come from a pd.Multiindex
-        acts = (bw.get_activity(key).as_dict() for key in (k for k in key_list))
+        acts = (get_activity(key).as_dict() for key in (k for k in key_list))
         translated_keys = [
             separator.join([act.get(field, '') for field in fields])
             for act in acts
@@ -309,7 +313,7 @@ def perform_MonteCarlo_LCA(project='default', cs_name=None, iterations=10):
     """Performs Monte Carlo LCA based on a calculation setup and returns the
     Monte Carlo LCA object."""
     log.info('-- Monte Carlo LCA --\n Project:', project, 'CS:', cs_name)
-    bw.projects.set_current(project)
+    projects.set_current(project)
 
     # perform Monte Carlo simulation
     mc = MonteCarloLCA(cs_name)

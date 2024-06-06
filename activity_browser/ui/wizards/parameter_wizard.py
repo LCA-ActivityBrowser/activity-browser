@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
-import brightway2 as bw
+from bw2data.meta import databases
+
 from PySide2 import QtCore, QtGui, QtWidgets
 from PySide2.QtCore import Signal
 
-from ...bwutils import commontasks as bc
+from activity_browser.bwutils import commontasks as bc
 
 
 PARAMETER_STRINGS = (
@@ -140,7 +141,7 @@ class CompleteParameterPage(QtWidgets.QWizardPage):
         elif self.parent.selected == 1:
             self.name.clear()
             self.database.clear()
-            dbs = bw.databases.list
+            dbs = databases.list
             self.database.insertItems(0, dbs)
             if self.key[0] in dbs:
                 self.database.setCurrentIndex(

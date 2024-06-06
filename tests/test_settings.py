@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
 
-import brightway2 as bw
+from bw2data.project import projects
 import pytest
 
 from activity_browser.settings import (ABSettings, BaseSettings,
@@ -54,7 +54,7 @@ def test_ab_edit_settings(ab_settings):
     assert ab_settings.custom_bw_dir != ABSettings.get_default_directory()
 
 
-@pytest.mark.skipif("pytest_project" not in bw.projects, reason="test project not created")
+@pytest.mark.skipif("pytest_project" not in projects, reason="test project not created")
 def test_ab_existing_startup(ab_settings):
     """ Alter the startup project and assert that it is correctly changed.
 

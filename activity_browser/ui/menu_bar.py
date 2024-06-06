@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
-import brightway2 as bw
+from bw2data.configuration import config
+from bw2data.meta import databases
+
 from PySide2 import QtWidgets, QtGui
 from PySide2.QtCore import QSize, QUrl, Slot
 
-from ..info import __version__ as ab_version
-from .icons import qicons
-from ..signals import signals
+from activity_browser.info import __version__ as ab_version
+from activity_browser.ui.icons import qicons
+from activity_browser.signals import signals
 
 
 class MenuBar(QtWidgets.QMenuBar):
@@ -125,6 +127,6 @@ For license information please see the copyright on <a href="https://github.com/
     def biosphere_exists(self) -> None:
         """ Test if the default biosphere exists as a database in the project
         """
-        exists = True if bw.config.biosphere in bw.databases else False
+        exists = config.biosphere in databases
         self.update_biosphere_action.setEnabled(exists)
         self.import_db_action.setEnabled(exists)

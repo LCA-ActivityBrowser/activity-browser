@@ -4,10 +4,15 @@ import os
 import textwrap
 
 import arrow
-import brightway2 as bw
+
 from bw2data import databases
 from bw2data.proxies import ActivityProxyBase
 from bw2data.project import ProjectDataset, SubstitutableDatabase
+from bw2data.utils import get_activity
+from bw2data.project import projects
+from bw2data.database import DatabaseChooser
+from bw2data.meta import methods
+
 
 import logging
 from activity_browser.logger import ABHandler
@@ -37,7 +42,7 @@ def wrap_text(string: str, max_length: int = 80) -> str:
 
 def format_activity_label(key, style='pnl', max_length=40):
     try:
-        act = bw.get_activity(key)
+        act = get_activity(key)
 
         if style == 'pnl':
             label = '\n'.join([act.get('reference product', ''), act.get('name', ''),
@@ -69,23 +74,23 @@ def format_activity_label(key, style='pnl', max_length=40):
 
 # Switch brightway directory
 def switch_brightway2_dir(dirpath):
-    bw_base = bw.projects._base_data_dir
+    bw_base = projects._base_data_dir
     if dirpath == bw_base:
         log.info('dirpath already loaded')
         return False
     try:
         assert os.path.isdir(dirpath)
-        bw.projects._base_data_dir = dirpath
-        bw.projects._base_logs_dir = os.path.join(dirpath, "logs")
+        projects._base_data_dir = dirpath
+        projects._base_logs_dir = os.path.join(dirpath, "logs")
         # create folder if it does not yet exist
-        if not os.path.isdir(bw.projects._base_logs_dir):
-            os.mkdir(bw.projects._base_logs_dir)
+        if not os.path.isdir(projects._base_logs_dir):
+            os.mkdir(projects._base_logs_dir)
         # load new brightway directory
-        bw.projects.db = SubstitutableDatabase(
-            os.path.join(bw.projects._base_data_dir, "projects.db"),
+        projects.db = SubstitutableDatabase(
+            os.path.join(projects._base_data_dir, "projects.db"),
             [ProjectDataset]
         )
-        log.info('Loaded brightway2 data directory: {}'.format(bw.projects._base_data_dir))
+        log.info('Loaded brightway2 data directory: {}'.format(projects._base_data_dir))
         return True
     except AssertionError:
         log.error('Could not access BW_DIR as specified in settings.py')
@@ -97,7 +102,7 @@ def cleanup_deleted_bw_projects() -> None:
 
     NOTE: This cannot be done from within the AB.
     """
-    n_dir = bw.projects.purge_deleted_directories()
+    n_dir = projects.purge_deleted_directories()
     log.info('Deleted {} unused project directories!'.format(n_dir))
 
 
@@ -116,13 +121,10 @@ def get_database_metadata(name):
 
 def is_technosphere_db(db_name: str) -> bool:
     """Returns True if database describes the technosphere, False if it describes a biosphere."""
-    if not db_name in bw.databases:
+    if not db_name in databases:
         raise KeyError("Not an existing database:", db_name)
-    act = bw.Database(db_name).random()
-    if act is None or act.get("type", "process") == "process":
-        return True
-    else:
-        return False
+    act = DatabaseChooser(db_name).random()
+    return act is None or act.get("type", "process") == "process"
 
 
 def is_technosphere_activity(activity: ActivityProxyBase) -> bool:
@@ -138,7 +140,7 @@ def count_database_records(name: str) -> int:
     """To account for possible brightway database types that do not implement
     the __len__ method.
     """
-    db = bw.Database(name)
+    db = DatabaseChooser(name)
     try:
         return len(db)
     except TypeError as e:
@@ -205,7 +207,7 @@ def build_activity_group_name(key: tuple, name: str = None) -> str:
     simple_hash = hashlib.md5(":".join(key).encode()).hexdigest()
     if name:
         return "{}_{}".format(name, simple_hash)
-    act = bw.get_activity(key)
+    act = get_activity(key)
     clean = clean_activity_name(act.get("name"))
     return "{}_{}".format(clean, simple_hash)
 
@@ -233,8 +235,8 @@ def get_exchanges_in_scenario_difference_file_notation(exchanges):
     data = []
     for exc in exchanges:
         try:
-            from_act = bw.get_activity(exc.get('input'))
-            to_act = bw.get_activity(exc.get('output'))
+            from_act = get_activity(exc.get('input'))
+            to_act = get_activity(exc.get('output'))
 
             row = {
                 'from activity name': from_act.get('name', ''),
@@ -263,7 +265,7 @@ def get_exchanges_in_scenario_difference_file_notation(exchanges):
 def get_exchanges_from_a_list_of_activities(activities: list, as_keys: bool = False) -> list:
     """Get all exchanges in a list of activities."""
     if as_keys:
-        activities = [bw.get_activity(key) for key in activities]
+        activities = [get_activity(key) for key in activities]
     exchanges = []
     for act in activities:
         for exc in act.exchanges():
@@ -274,8 +276,8 @@ def get_exchanges_from_a_list_of_activities(activities: list, as_keys: bool = Fa
 # LCIA
 def unit_of_method(method: tuple) -> str:
     """Attempt to return the unit of the given method."""
-    assert method in bw.methods
-    return bw.methods[method].get("unit", "unit")
+    assert method in methods
+    return methods[method].get("unit", "unit")
 
 
 def get_LCIA_method_name_dict(keys: list) -> dict:
@@ -287,4 +289,3 @@ def get_LCIA_method_name_dict(keys: list) -> dict:
         values: brightway2 method tuples
     """
     return {', '.join(key): key for key in keys}
-

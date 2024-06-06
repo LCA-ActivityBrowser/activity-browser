@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 import shutil
 
-import brightway2 as bw
+from bw2data.project import projects
+from bw2data.configuration import config
+
 import pytest
 
 from activity_browser import Application
@@ -17,14 +19,14 @@ def ab_application():
     # Explicitly close the window
     app.close()
     # Explicitly close the connection to all the databases for the pytest_project
-    if bw.projects.current == "pytest_project":
-        for _, db in bw.config.sqlite3_databases:
+    if projects.current == "pytest_project":
+        for _, db in config.sqlite3_databases:
             if not db._database.is_closed():
                 db._database.close()
-    if 'pytest_project' in bw.projects:
-        bw.projects.delete_project('pytest_project', delete_dir=True)
+    if 'pytest_project' in projects:
+        projects.delete_project('pytest_project', delete_dir=True)
     # finally, perform a cleanup of any remnants, mostly for local testing
-    bw.projects.purge_deleted_directories()
+    projects.purge_deleted_directories()
 
 
 @pytest.fixture()
@@ -44,13 +46,13 @@ def bw2test():
     Allows tests to be performed in a perfectly clean project instead
     of the test project.
     """
-    bw.config.dont_warn = True
-    bw.config.is_test = True
-    bw.config.cache = {}
-    tempdir = bw.projects._use_temp_directory()
+    config.dont_warn = True
+    config.is_test = True
+    config.cache = {}
+    tempdir = projects._use_temp_directory()
     yield tempdir
-    bw.projects._restore_orig_directory()
+    projects._restore_orig_directory()
     # Make the jump back to the pytest_project if it exists
-    if "pytest_project" in bw.projects:
-        bw.projects.set_current("pytest_project", update=False)
+    if "pytest_project" in projects:
+        projects.set_current("pytest_project", update=False)
     shutil.rmtree(tempdir)

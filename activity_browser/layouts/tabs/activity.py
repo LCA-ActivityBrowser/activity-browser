@@ -1,27 +1,38 @@
 # -*- coding: utf-8 -*-
-import brightway2 as bw
-from peewee import DoesNotExist
 from PySide2 import QtCore, QtWidgets
 from PySide2.QtCore import Slot
 
-from ...ui.icons import qicons
-from ...ui.style import style_activity_tab
-from ...ui.tables import (BiosphereExchangeTable, DownstreamExchangeTable,
-                      ProductExchangeTable, TechnosphereExchangeTable)
-from ...ui.widgets import ActivityDataGrid, DetailsGroupBox, SignalledPlainTextEdit
-from ..panels import ABTab
-from ...bwutils import commontasks as bc
-from ...settings import project_settings
-from ...signals import signals
+from bw2data.meta import databases
+from bw2data.utils import get_activity
+
+from peewee import DoesNotExist
+
+from activity_browser.ui.icons import qicons
+from activity_browser.ui.style import style_activity_tab
+from activity_browser.ui.tables import (
+    BiosphereExchangeTable,
+    DownstreamExchangeTable,
+    ProductExchangeTable,
+    TechnosphereExchangeTable,
+)
+from activity_browser.ui.widgets import (
+    ActivityDataGrid,
+    DetailsGroupBox,
+    SignalledPlainTextEdit,
+)
+from activity_browser.layouts.panels import ABTab
+from activity_browser.bwutils import commontasks as bc
+from activity_browser.settings import project_settings
+from activity_browser.signals import signals
 
 
 class ActivitiesTab(ABTab):
     """Tab that contains sub-tabs describing activity information."""
+
     def __init__(self, parent=None):
-        super(ActivitiesTab, self).__init__(parent)
+        super().__init__(parent)
         self.setTabsClosable(True)
         self.connect_signals()
-
 
     def connect_signals(self):
         signals.unsafe_open_activity_tab.connect(self.unsafe_open_activity_tab)
@@ -35,7 +46,7 @@ class ActivitiesTab(ABTab):
     def open_activity_tab(self, key: tuple, read_only: bool = True) -> None:
         """Opens new tab or focuses on already open one."""
         if key not in self.tabs:
-            act = bw.get_activity(key)
+            act = get_activity(key)
             if not bc.is_technosphere_activity(act):
                 return
             new_tab = ActivityTab(key, read_only=read_only)
@@ -49,13 +60,10 @@ class ActivitiesTab(ABTab):
             self.tabs[key] = new_tab
             self.addTab(new_tab, bc.get_activity_name(act, str_length=30))
 
-            # hovering on the tab shows the full name, in case it's truncated in the tabbar at the top
-            # new_tab.setToolTip(bw.get_activity(key).as_dict()['name'])
-
         self.select_tab(self.tabs[key])
         signals.show_tab.emit("Activity Details")
 
-    @Slot(tuple,name="unsafeOpenActivityTab")
+    @Slot(tuple, name="unsafeOpenActivityTab")
     def unsafe_open_activity_tab(self, key: tuple) -> None:
         self.open_activity_tab(key, False)
 
@@ -90,12 +98,12 @@ class ActivityTab(QtWidgets.QWidget):
     """
 
     def __init__(self, key: tuple, parent=None, read_only=True):
-        super(ActivityTab, self).__init__(parent)
+        super().__init__(parent)
         self.read_only = read_only
         self.db_read_only = project_settings.db_is_readonly(db_name=key[0])
         self.key = key
         self.db_name = key[0]
-        self.activity = bw.get_activity(key)
+        self.activity = get_activity(key)
 
         # Edit Activity checkbox
         self.checkbox_edit_act = QtWidgets.QCheckBox('Edit Activity')
@@ -174,7 +182,6 @@ class ActivityTab(QtWidgets.QWidget):
         layout.addWidget(grouped_tables)
         self.exchange_tables_read_only_changed()
 
-#        layout.addStretch() # Commented out so that the grouped_tables splitter can utilize the entire window
         layout.setAlignment(QtCore.Qt.AlignTop)
         self.setLayout(layout)
 
@@ -193,7 +200,6 @@ class ActivityTab(QtWidgets.QWidget):
         signals.database_read_only_changed.connect(self.db_read_only_changed)
         signals.database_changed.connect(self.populate)
         signals.parameters_changed.connect(self.populate)
-        # signals.activity_modified.connect(self.update_activity_values)
 
     @Slot(name="openGraph")
     def open_graph(self) -> None:
@@ -202,10 +208,10 @@ class ActivityTab(QtWidgets.QWidget):
     @Slot(name="populatePage")
     def populate(self) -> None:
         """Populate the various tables and boxes within the Activity Detail tab"""
-        if self.db_name in bw.databases:
+        if self.db_name in databases:
             # Avoid a weird signal interaction in the tests
             try:
-                self.activity = bw.get_activity(self.key)  # Refresh activity.
+                self.activity = get_activity(self.key)  # Refresh activity.
             except DoesNotExist:
                 signals.close_activity_tab.emit(self.key)
                 return
@@ -225,13 +231,6 @@ class ActivityTab(QtWidgets.QWidget):
         """Populate the activity description."""
         self.activity_description.refresh_text(self.activity.get('comment', ''))
         self.activity_description.setReadOnly(self.read_only)
-
-        # the <font> html-tag has no effect besides making the tooltip rich text
-        # this is required for line breaks of long comments
-        # self.checkbox_activity_description.setToolTip(
-        #     '<font>{}</font>'.format(self.activity_description.toPlainText())
-        # )
-        # self.activity_description.adjust_size()
 
     @Slot(name="toggleDescription")
     def toggle_activity_description_visibility(self) -> None:
@@ -322,9 +321,3 @@ class ActivityTab(QtWidgets.QWidget):
             self.setStyleSheet(style_activity_tab.style_sheet_read_only)
         else:
             self.setStyleSheet(style_activity_tab.style_sheet_editable)
-
-    # def update_activity_values(self, key, field, value):
-    #     """Update activity values."""
-    #     if key == self.key:
-    #         self.activity[field] = value
-

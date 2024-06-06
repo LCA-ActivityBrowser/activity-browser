@@ -2,7 +2,8 @@
 import hashlib
 from typing import Collection
 
-import brightway2 as bw
+from bw2data.database import DatabaseChooser
+from bw2data.utils import get_activity
 from bw2data.backends.peewee import ActivityDataset, sqlite3_lci_db
 from bw2data.errors import ValidityError
 from bw2io.errors import StrategyError
@@ -15,7 +16,7 @@ from ..bwutils.errors import ExchangeErrorValues
 import logging
 from activity_browser.logger import ABHandler
 
-logger = logging.getLogger('ab_logs')
+logger = logging.getLogger("ab_logs")
 log = ABHandler.setup_with_logger(logger, __name__)
 
 TECHNOSPHERE_TYPES = {"technosphere", "substitution", "production"}
@@ -33,7 +34,7 @@ def relink_exchanges_dbs(data: Collection, relink: dict) -> Collection:
                 new_key = (relink[input_key[0]], input_key[1])
                 try:
                     # try and find the new key
-                    _ = bw.get_activity(new_key)
+                    _ = get_activity(new_key)
                     exc["input"] = new_key
                 except ActivityDataset.DoesNotExist as e:
                     raise ValueError("Cannot relink exchange '{}', key '{}' not found.".format(exc, new_key)
@@ -58,7 +59,7 @@ def link_exchanges_without_db(data: list, db: str) -> list:
 
 
 def _relink_exchanges(data: list, other: str) -> list:
-    other = bw.Database(other)
+    other = DatabaseChooser(other)
     if len(other) == 0:
         raise StrategyError("Cannot link to empty database")
     act = other.random()
@@ -69,14 +70,14 @@ def _relink_exchanges(data: list, other: str) -> list:
 
 def relink_exchanges_bw2package(data: dict, relink: dict) -> dict:
     """Use this to relink exchanges during an BW2Package import."""
-    for key, value in data.items():
+    for _, value in data.items():
         for exc in value.get("exchanges", []):
             input_key = exc.get("input", ("", ""))
             if input_key[0] in relink:
                 new_key = (relink[input_key[0]], input_key[1])
                 try:
                     # try and find the new key
-                    _ = bw.get_activity(new_key)
+                    _ = get_activity(new_key)
                     exc["input"] = new_key
                 except ActivityDataset.DoesNotExist as e:
                     raise ValueError("Cannot relink exchange '{}', key '{}' not found.".format(exc, new_key)
@@ -132,7 +133,7 @@ def relink_exchanges(exchanges: list, candidates: dict, duplicates: dict) -> tup
     return (remainder, altered, unlinked_exchanges)
 
 
-def relink_exchanges_existing_db(db: bw.Database, old: str, other: bw.Database) -> tuple:
+def relink_exchanges_existing_db(db: DatabaseChooser, old: str, other: DatabaseChooser) -> tuple:
     """Relink exchanges after the database has been created/written.
 
     This means possibly doing a lot of sqlite update calls.
@@ -164,14 +165,14 @@ def relink_exchanges_existing_db(db: bw.Database, old: str, other: bw.Database) 
             db.name, altered, old, other.name
         )
     )
-    return (remainder,altered, unlinked_exchanges)
+    return (remainder, altered, unlinked_exchanges)
 
 
-def relink_activity_exchanges(act, old: str, other: bw.Database) -> tuple:
+def relink_activity_exchanges(act, old: str, other: DatabaseChooser) -> tuple:
     if old == other.name:
         log.info("No point relinking to same database.")
         return
-    db = bw.Database(act.key[0])
+    db = DatabaseChooser(act.key[0])
     assert db.backend == "sqlite", "Relinking only allowed for SQLITE backends"
     assert other.backend == "sqlite", "Relinking only allowed for SQLITE backends"
 

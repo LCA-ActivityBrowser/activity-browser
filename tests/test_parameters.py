@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
-import brightway2 as bw
+from bw2data.project import projects
+from bw2data.parameters import parameters
+
 from bw2data.parameters import (ActivityParameter, DatabaseParameter, Group,
                                 ProjectParameter)
 from PySide2 import QtCore, QtWidgets
@@ -19,7 +21,7 @@ def test_create_project_param(qtbot):
 
     Does not user the overarching application due to mouseClick failing
     """
-    assert bw.projects.current == "pytest_project"
+    assert projects.current == "pytest_project"
     assert ProjectParameter.select().count() == 0
 
     project_db_tab = ParameterDefinitionTab()
@@ -27,7 +29,7 @@ def test_create_project_param(qtbot):
     project_db_tab.build_tables()
     table = project_db_tab.project_table.get_table()
 
-    bw.parameters.new_project_parameters([
+    parameters.new_project_parameters([
         {"name": "param_1", "amount": 1.0},
         {"name": "param_2", "amount": 1.0},
         {"name": "param_3", "amount": 1.0},
@@ -108,7 +110,7 @@ def test_create_database_params(qtbot):
     project_db_tab.show_database_params.toggle()
 
     # Generate a few database parameters
-    bw.parameters.new_database_parameters([
+    parameters.new_database_parameters([
         {"name": "param_2", "amount": 1.0},
         {"name": "param_3", "amount": 1.0},
         {"name": "param_4", "amount": 1.0},

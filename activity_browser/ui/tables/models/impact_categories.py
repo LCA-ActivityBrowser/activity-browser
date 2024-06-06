@@ -1,20 +1,22 @@
 # -*- coding: utf-8 -*-
 from copy import deepcopy
+import logging
 import numbers
 from typing import Iterator, Optional
 
+from bw2data.meta import methods
+from bw2data.utils import get_activity
+from bw2data.method import Method
 
-import brightway2 as bw
 import numpy as np
 import pandas as pd
 from PySide2.QtCore import QModelIndex, Qt, Slot
 from PySide2.QtWidgets import QMessageBox
 
 from activity_browser.signals import signals
-from ...wizards import UncertaintyWizard
-from .base import EditablePandasModel, DragPandasModel, TreeItem, BaseTreeModel
+from activity_browser.ui.wizards import UncertaintyWizard
+from activity_browser.ui.tables.models.base import EditablePandasModel, DragPandasModel, TreeItem, BaseTreeModel
 
-import logging
 from activity_browser.logger import ABHandler
 
 logger = logging.getLogger('ab_logs')
@@ -53,7 +55,7 @@ class MethodsListModel(DragPandasModel):
 
     @Slot(name="syncTable")
     def sync(self, query=None) -> None:
-        sorted_names = sorted([(", ".join(method), method) for method in bw.methods])
+        sorted_names = sorted([(", ".join(method), method) for method in methods])
         if query:
             sorted_names = (
                 m for m in sorted_names if query.lower() in m[0].lower()
@@ -67,7 +69,7 @@ class MethodsListModel(DragPandasModel):
 
     @staticmethod
     def build_row(method_obj) -> dict:
-        method = bw.methods[method_obj[1]]
+        method = methods[method_obj[1]]
         return {
             "Name": method_obj[0],
             "Unit": method.get("unit", "Unknown"),
@@ -160,7 +162,7 @@ class MethodsTreeModel(BaseTreeModel):
 
         Trigger this at init and when a method is added/deleted.
         """
-        sorted_names = sorted([(", ".join(method), method) for method in bw.methods])
+        sorted_names = sorted([(", ".join(method), method) for method in methods])
         self._dataframe = pd.DataFrame([
             MethodsListModel.build_row(method_obj) for method_obj in sorted_names
         ], columns=self.HEADERS)
@@ -315,7 +317,7 @@ class MethodCharacterizationFactorsModel(EditablePandasModel):
     def __init__(self, parent=None):
         super().__init__(parent=parent)
         self.cf_column = 0
-        self.method: Optional[bw.Method] = None
+        self.method: Optional[Method] = None
         self.different_column_types = {k: 'num' for k in self.UNCERTAINTY + ['Amount']}
         self.filterable_columns = {col: i for i, col in enumerate(self.HEADERS[:-1])}
         signals.method_modified.connect(self.sync)
@@ -331,7 +333,7 @@ class MethodCharacterizationFactorsModel(EditablePandasModel):
         if self.method and self.method.name != method:
             return
         if method:
-            self.method = bw.Method(method)
+            self.method = Method(method)
         assert self.method is not None, "A method must be set."
         self._dataframe = pd.DataFrame([
             self.build_row(obj) for obj in self.method.load()
@@ -342,7 +344,7 @@ class MethodCharacterizationFactorsModel(EditablePandasModel):
     @classmethod
     def build_row(cls, method_cf: tuple) -> dict:
         key, amount = method_cf[:2]
-        flow = bw.get_activity(key)
+        flow = get_activity(key)
         row = {
             cls.HEADERS[i]: flow.get(c) for i, c in enumerate(cls.COLUMNS)
         }

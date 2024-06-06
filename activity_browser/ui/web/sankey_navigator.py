@@ -1,21 +1,27 @@
 # -*- coding: utf-8 -*-
 import json
+import logging
 import os
 import time
 from typing import List
 
-import brightway2 as bw
+from bw2data.utils import get_activity
+from bw2data.meta import calculation_setups
+from bw2calc.graph_traversal import GraphTraversal
+from bw2data.method import methods, Method
+from bw2data.database import DatabaseChooser
+
 from PySide2 import QtWidgets
 from PySide2.QtCore import Slot
 from PySide2.QtWidgets import QComboBox
 
-from .base import BaseGraph, BaseNavigatorWidget
-from ...bwutils.commontasks import identify_activity_type
-from ...bwutils.superstructure.graph_traversal_with_scenario import GraphTraversalWithScenario
-from ...signals import signals
+from activity_browser.ui.web.base import BaseGraph, BaseNavigatorWidget
+from activity_browser.bwutils.commontasks import identify_activity_type
+from activity_browser.bwutils.superstructure.graph_traversal_with_scenario import GraphTraversalWithScenario
+from activity_browser.signals import signals
 
-import logging
 from activity_browser.logger import ABHandler
+
 
 logger = logging.getLogger('ab_logs')
 log = ABHandler.setup_with_logger(logger, __name__)
@@ -176,10 +182,10 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
 
         self.cs = cs_name or self.cs
         self.func_units = [
-            {bw.get_activity(k): v for k, v in fu.items()}
-            for fu in bw.calculation_setups[self.cs]['inv']
+            {get_activity(k): v for k, v in fu.items()}
+            for fu in calculation_setups[self.cs]['inv']
         ]
-        self.methods = bw.calculation_setups[self.cs]['ia']
+        self.methods = calculation_setups[self.cs]['ia']
         self.func_unit_cb.clear()
         fu_acts = [list(fu.keys())[0] for fu in self.func_units]
         self.func_unit_cb.addItems([f"{repr(a)} | {a._data.get('database')}" for a in fu_acts])
@@ -234,12 +240,12 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
                 data = GraphTraversalWithScenario(self.parent.mlca).calculate(demand, method,
                                                                               cutoff=cut_off, max_calc=max_calc)
             else:
-                data = bw.GraphTraversal().calculate(demand, method,
+                data = GraphTraversal().calculate(demand, method,
                                                      cutoff=cut_off, max_calc=max_calc)
             # store the metadata from this calculation
             data['metadata'] = {'demand': list(data["lca"].demand.items())[0],
                                 'score': data["lca"].score,
-                                'unit': bw.Method(method).metadata["unit"],
+                                'unit': Method(method).metadata["unit"],
                                 'act_dict': data["lca"].activity_dict.items()}
             # drop LCA object as it's useless from now on
             del data["lca"]
@@ -263,8 +269,8 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
     def random_graph(self) -> None:
         """ Show graph for a random activity in the currently loaded database."""
         if self.selected_db:
-            method = bw.methods.random()
-            act = bw.Database(self.selected_db).random()
+            method = methods.random()
+            act = DatabaseChooser(self.selected_db).random()
             demand = {act: 1.0}
             self.update_sankey(demand, method)
         else:
@@ -284,7 +290,7 @@ class Graph(BaseGraph):
 
     @staticmethod
     def get_json_data(data) -> str:
-        """Transform bw.Graphtraversal() output to JSON data."""
+        """Transform Graphtraversal() output to JSON data."""
         meta = data["metadata"]
         lca_score = meta['score']
         lcia_unit = meta['unit']
@@ -295,7 +301,7 @@ class Graph(BaseGraph):
         build_json_edge = Graph.compose_edge_builder(reverse_activity_dict, lca_score, lcia_unit)
 
         valid_nodes = (
-            (bw.get_activity(reverse_activity_dict[idx]), v)
+            (get_activity(reverse_activity_dict[idx]), v)
             for idx, v in data["nodes"].items() if idx != -1
         )
         valid_edges = (
@@ -315,7 +321,7 @@ class Graph(BaseGraph):
     def build_title(demand: tuple, lca_score: float, lcia_unit: str) -> str:
         act, amount = demand[0], demand[1]
         if type(act) is tuple:
-            act = bw.get_activity(act)
+            act = get_activity(act)
         format_str = ("Reference flow: {:.2g} {} {} | {} | {} <br>"
                       "Total impact: {:.2g} {}")
         return format_str.format(
@@ -359,7 +365,7 @@ class Graph(BaseGraph):
         """
 
         def build_json_edge(edge: dict) -> dict:
-            p = bw.get_activity(reverse_dict[edge["from"]])
+            p = get_activity(reverse_dict[edge["from"]])
             from_key = reverse_dict[edge["from"]]
             to_key = reverse_dict[edge["to"]]
             return {

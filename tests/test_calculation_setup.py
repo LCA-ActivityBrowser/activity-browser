@@ -1,8 +1,11 @@
-import brightway2 as bw
+from bw2data.meta import calculation_setups
+from bw2data.project import projects
+
 from PySide2 import QtCore, QtWidgets
 
+
 def test_new_calculation_setup(qtbot, ab_app, monkeypatch):
-    assert bw.projects.current == 'pytest_project'
+    assert projects.current == 'pytest_project'
 
     monkeypatch.setattr(
         QtWidgets.QInputDialog, 'getText',
@@ -15,12 +18,12 @@ def test_new_calculation_setup(qtbot, ab_app, monkeypatch):
         QtCore.Qt.LeftButton
     )
 
-    assert len(bw.calculation_setups) == 1
-    assert "pytest_cs" in bw.calculation_setups
+    assert len(calculation_setups) == 1
+    assert "pytest_cs" in calculation_setups
 
 def test_delete_calculation_setup(qtbot, ab_app, monkeypatch):
-    assert bw.projects.current == 'pytest_project'
-    assert len(bw.calculation_setups) == 1
+    assert projects.current == 'pytest_project'
+    assert len(calculation_setups) == 1
 
     monkeypatch.setattr(
         QtWidgets.QMessageBox, 'warning',
@@ -41,5 +44,5 @@ def test_delete_calculation_setup(qtbot, ab_app, monkeypatch):
     )
 
 
-    assert len(bw.calculation_setups) == 0
-    assert "pytest_cs" not in bw.calculation_setups
+    assert len(calculation_setups) == 0
+    assert "pytest_cs" not in calculation_setups

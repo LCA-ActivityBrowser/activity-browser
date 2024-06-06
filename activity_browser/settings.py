@@ -7,7 +7,8 @@ from typing import Optional
 from PySide2.QtWidgets import QMessageBox
 
 import appdirs
-import brightway2 as bw
+from bw2data.project import projects
+from bw2data.meta import databases
 
 from .signals import signals
 import logging
@@ -150,7 +151,7 @@ class ABSettings(BaseSettings):
         project = self.settings.get(
             "startup_project", self.get_default_project_name()
         )
-        if project and project not in bw.projects:
+        if project and project not in projects:
             project = self.get_default_project_name()
         return project
 
@@ -167,15 +168,15 @@ class ABSettings(BaseSettings):
         try:
             return os.environ['BRIGHTWAY2_DIR']
         except KeyError:
-            return bw.projects._get_base_directories()[0]
+            return projects._get_base_directories()[0]
     @staticmethod
     def get_default_project_name() -> Optional[str]:
         """ Returns the default project name.
         """
-        if "default" in bw.projects:
+        if "default" in projects:
             return "default"
-        elif len(bw.projects):
-            return next(iter(bw.projects)).name
+        elif len(projects):
+            return next(iter(projects)).name
         else:
             return None
 
@@ -202,7 +203,7 @@ class ProjectSettings(BaseSettings):
         # it can be a custom location, based on ABsettings. So check that, and if not, use default?
         # once found, load the settings or just an empty dict.
         self.connect_signals()
-        super().__init__(bw.projects.dir, filename)
+        super().__init__(projects.dir, filename)
 
         # https://github.com/LCA-ActivityBrowser/activity-browser/issues/235
         # Fix empty settings file and populate with currently active databases
@@ -234,15 +235,15 @@ class ProjectSettings(BaseSettings):
         NOTE: This ignores the existing database read-only settings.
         """
         return {
-            "read-only-databases": {name: True for name in bw.databases.list}
+            "read-only-databases": {name: True for name in databases.list}
         }
 
     def reset_for_project_selection(self) -> None:
         """ On switching project, attempt to read the settings for the new
         project.
         """
-        log.info("Reset project settings directory to:", bw.projects.dir)
-        self.settings_file = os.path.join(bw.projects.dir, self.filename)
+        log.info("Reset project settings directory to:", projects.dir)
+        self.settings_file = os.path.join(projects.dir, self.filename)
         self.initialize_settings()
         # create a plugins_list entry for old projects
         if "plugins_list" not in self.settings:

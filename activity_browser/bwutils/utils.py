@@ -1,19 +1,4 @@
 # -*- coding: utf-8 -*-
-from collections import UserList
-from itertools import chain
-from typing import Iterable, List, NamedTuple, Optional
-
-import brightway2 as bw
-from bw2data import config
-from bw2data.backends.peewee import ActivityDataset, ExchangeDataset
-from bw2data.parameters import (
-    ProjectParameter, DatabaseParameter, ActivityParameter,
-    ParameterizedExchange,
-)
-from bw2data.utils import TYPE_DICTIONARY
-import numpy as np
-
-
 """
 This script is a collection of simple NamedTuple classes as well as Iterators
 or UserLists specifically built to hold these objects.
@@ -22,6 +7,20 @@ While not strictly required to run all of the brightway code, these classes do a
 for a significant amount of repeated logic or heavy IO calls to be avoided by either
 holding values in memory or allowing simple shortcuts to retrieve them. 
 """
+from __future__ import annotations
+from collections import UserList
+from itertools import chain
+from typing import Iterable, List, NamedTuple, Optional
+
+from bw2data.meta import databases
+from bw2data import config
+from bw2data.backends.peewee import ActivityDataset, ExchangeDataset
+from bw2data.parameters import (
+    ProjectParameter, DatabaseParameter, ActivityParameter,
+    ParameterizedExchange,
+)
+from bw2data.utils import TYPE_DICTIONARY
+import numpy as np
 
 
 class Parameter(NamedTuple):
@@ -37,7 +36,7 @@ class Parameter(NamedTuple):
         - Associated activity [or None]
         - Value
         """
-        if self.group == "project" or self.group in bw.databases:
+        if self.group == "project" or self.group in databases:
             scope = "global"
             associated = None
         else:
@@ -70,7 +69,7 @@ class Index(NamedTuple):
         )
 
     @classmethod
-    def build_from_tuple(cls, data: tuple) -> 'Index':
+    def build_from_tuple(cls, data: tuple) -> Index:
         obj = cls(
             input=Key(data[0][0], data[0][1]),
             output=Key(data[1][0], data[1][1]),
@@ -83,7 +82,7 @@ class Index(NamedTuple):
         return obj._replace(flow_type=exc_type)
 
     @classmethod
-    def build_from_dict(cls, data: dict) -> 'Index':
+    def build_from_dict(cls, data: dict) -> Index:
         in_key = data.get("input", ("", ""))
         out_key = data.get("output", ("", ""))
         return cls(
@@ -118,7 +117,7 @@ class Index(NamedTuple):
         return TYPE_DICTIONARY.get(exc_type, -1)
 
     @property
-    def ids_exc_type(self) -> (int, int, int):
+    def ids_exc_type(self) -> tuple[int, int, int]:
         return self.input_document_id, self.output_document_id, self.exchange_type
 
 
@@ -126,7 +125,7 @@ class Parameters(UserList):
     data: List[Parameter]
 
     @classmethod
-    def from_bw_parameters(cls) -> 'Parameters':
+    def from_bw_parameters(cls) -> Parameters:
         """Construct a Parameters list from brightway2 parameters."""
         return cls(chain(
             (Parameter(p.name, "project", p.amount, "project")

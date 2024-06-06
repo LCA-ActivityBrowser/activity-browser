@@ -1,14 +1,18 @@
 # -*- coding: utf-8 -*-
-import brightway2 as bw
-from bw2data.errors import ValidityError
-from PySide2 import QtCore, QtWidgets
-from PySide2.QtCore import Signal, Slot
-import bw2io.data as data
-from ...signals import signals
-
 import logging
+
+from PySide2 import QtWidgets
+from PySide2.QtCore import Signal, Slot
+
+import bw2io.data as data
+
+from bw2data.errors import ValidityError
+from bw2data.configuration import config
+
+from activity_browser.signals import signals
 from activity_browser.logger import ABHandler
-from ..threading import ABThread
+from activity_browser.ui.threading import ABThread
+
 
 logger = logging.getLogger('ab_logs')
 log = ABHandler.setup_with_logger(logger, __name__)
@@ -17,7 +21,7 @@ log = ABHandler.setup_with_logger(logger, __name__)
 class BiosphereUpdater(QtWidgets.QProgressDialog):
     def __init__(self, ei_versions, parent=None):
         super().__init__(parent=parent)
-        self.setWindowTitle("Updating '{}' database".format(bw.config.biosphere))
+        self.setWindowTitle("Updating '{}' database".format(config.biosphere))
         self.setLabelText("Adding new flows to biosphere database")
         self.setRange(0, 0)
         self.show()
@@ -33,7 +37,7 @@ class BiosphereUpdater(QtWidgets.QProgressDialog):
         self.thread.exit(outcome)
         self.setMaximum(1)
         self.setValue(1)
-        signals.database_changed.emit(bw.config.biosphere)
+        signals.database_changed.emit(config.biosphere)
         signals.databases_changed.emit()
 
     @Slot(int)

@@ -1,9 +1,13 @@
 # -*- coding: utf-8 -*-
 import itertools
 from typing import Iterable
+import logging
 
 from asteval import Interpreter
-import brightway2 as bw
+
+from bw2data.parameters import parameters
+from bw2data.utils import get_activity
+
 import pandas as pd
 from bw2data.parameters import (ActivityParameter, DatabaseParameter, Group,
                                 ProjectParameter)
@@ -13,10 +17,10 @@ from PySide2.QtCore import Slot, QModelIndex
 from activity_browser.bwutils import commontasks as bc, uncertainty as uc
 from activity_browser.signals import signals
 from activity_browser.ui.wizards import UncertaintyWizard
-from .base import BaseTreeModel, EditablePandasModel, TreeItem
+from activity_browser.ui.tables.models.base import BaseTreeModel, EditablePandasModel, TreeItem
 
-import logging
 from activity_browser.logger import ABHandler
+
 
 logger = logging.getLogger('ab_logs')
 log = ABHandler.setup_with_logger(logger, __name__)
@@ -235,7 +239,7 @@ class ActivityParameterModel(BaseParameterModel):
         # Combine the 'database' and 'code' fields of the parameter into a 'key'
         row["key"] = (parameter.database, parameter.code)
         try:
-            act = bw.get_activity(row["key"])
+            act = get_activity(row["key"])
         except:
             # Can occur if an activity parameter exists for a removed activity.
             log.info("Activity {} no longer exists, removing parameter.".format(row["key"]))
@@ -346,11 +350,11 @@ class ParameterItem(TreeItem):
         """ Take the given activity parameter, retrieve the matching activity
         and construct tree-items for each exchange with a `formula` field.
         """
-        act = bw.get_activity((act_param.database, act_param.code))
+        act = get_activity((act_param.database, act_param.code))
 
         for exc in [exc for exc in act.exchanges() if "formula" in exc]:
             try:
-                act_input = bw.get_activity(exc.input)
+                act_input = get_activity(exc.input)
                 item = cls([
                     act_input.get("name"),
                     parent.data(1),
@@ -399,7 +403,7 @@ class ParameterTreeModel(BaseTreeModel):
             ParameterItem.build_item(param, self.root)
         for param in self._data.get("activity", []):
             try:
-                _ = bw.get_activity((param.database, param.code))
+                _ = get_activity((param.database, param.code))
             except:
                 continue
             ParameterItem.build_item(param, self.root)
@@ -427,9 +431,9 @@ class ParameterTreeModel(BaseTreeModel):
                 .where(ActivityParameter.group == group).count()):
             signals.add_activity_parameter.emit(key)
 
-        act = bw.get_activity(key)
-        with bw.parameters.db.atomic():
-            bw.parameters.remove_exchanges_from_group(group, act)
-            bw.parameters.add_exchanges_to_group(group, act)
+        act = get_activity(key)
+        with parameters.db.atomic():
+            parameters.remove_exchanges_from_group(group, act)
+            parameters.add_exchanges_to_group(group, act)
             ActivityParameter.recalculate_exchanges(group)
         signals.parameters_changed.emit()

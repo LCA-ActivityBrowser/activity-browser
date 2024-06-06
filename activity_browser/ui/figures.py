@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 import math
+import logging
 
-import brightway2 as bw
+from bw2data.meta import methods
+
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
@@ -11,9 +13,7 @@ from PySide2 import QtWidgets
 import seaborn as sns
 
 from activity_browser.utils import savefilepath
-from ..bwutils.commontasks import wrap_text
-
-import logging
+from activity_browser.bwutils.commontasks import wrap_text
 from activity_browser.logger import ABHandler
 
 logger = logging.getLogger('ab_logs')
@@ -53,7 +53,6 @@ class Plot(QtWidgets.QWidget):
         self.ax = self.figure.add_subplot(111)
 
     def get_canvas_size_in_inches(self):
-        # print("Canvas size:", self.canvas.get_width_height())
         return tuple(x / self.figure.dpi for x in self.canvas.get_width_height())
 
     def to_png(self):
@@ -92,9 +91,8 @@ class LCAResultsBarChart(Plot):
 
         # labels
         self.ax.set_yticks(np.arange(len(labels)))
-        self.ax.set_xlabel(bw.methods[method].get('unit'))
+        self.ax.set_xlabel(methods[method].get('unit'))
         self.ax.set_title(', '.join([m for m in method]))
-        # self.ax.set_yticklabels(labels, minor=False)
 
         # grid
         self.ax.grid(which="major", axis="x", color="grey", linestyle='dashed')
@@ -207,10 +205,6 @@ class ContributionPlot(Plot):
         self.ax.grid(which="major", axis="x", color="grey", linestyle='dashed')
         self.ax.set_axisbelow(True)  # puts gridlines behind bars
 
-        # refresh canvas
-        # size_inches = (2 + dfp.shape[0] * 0.5, 4 + dfp.shape[1] * 0.55)
-        # self.figure.set_size_inches(self.get_canvas_size_in_inches()[0], size_inches[1])
-
         size_pixels = self.figure.get_size_inches() * self.figure.dpi
         self.setMinimumHeight(size_pixels[1])
         self.canvas.draw()
@@ -226,8 +220,6 @@ class CorrelationPlot(Plot):
         # need to clear the figure and add axis again
         # because of the colorbar which does not get removed by the ax.clear()
         self.reset_plot()
-        canvas_size = self.canvas.get_width_height()
-        # print("Canvas size:", canvas_size)
         size = (4 + df.shape[1] * 0.3, 4 + df.shape[1] * 0.3)
         self.figure.set_size_inches(size[0], size[1])
 
@@ -273,15 +265,11 @@ class MonteCarloPlot(Plot):
         for col in df.columns:
             color = self.ax._get_lines.get_next_color()
             df[col].hist(ax=self.ax, figure=self.figure, label=col, density=True, color=color, alpha=0.5)  # , histtype="step")
-            # self.ax.axvline(df[col].median(), color=color)
             self.ax.axvline(df[col].mean(), color=color)
 
-        self.ax.set_xlabel(bw.methods[method]["unit"])
+        self.ax.set_xlabel(methods[method]["unit"])
         self.ax.set_ylabel('Probability')
         self.ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.07), ) #ncol=2
-
-        # lconfi, upconfi =mc['statistics']['interval'][0], mc['statistics']['interval'][1]
-
         self.canvas.draw()
 
 

@@ -4,7 +4,10 @@ import numbers
 from pathlib import Path
 from typing import Union
 
-import brightway2 as bw
+from bw2data.database import DatabaseChooser
+from bw2data.meta import databases
+from bw2data.project import projects
+
 from bw2data.utils import safe_filename
 from bw2io.export.excel import CSVFormatter, create_valid_worksheet_name
 from bw2io.export.csv import reformat
@@ -114,11 +117,11 @@ def store_database_as_package(db_name: str, directory: str = None) -> bool:
     isolated package that can be shared with others.
     Returns a boolean signifying success or failure.
     """
-    if db_name not in bw.databases:
+    if db_name not in databases:
         return False
-    metadata = bw.databases[db_name]
-    db = bw.Database(db_name)
-    directory = directory or bw.projects.output_dir
+    metadata = databases[db_name]
+    db = DatabaseChooser(db_name)
+    directory = directory or projects.output_dir
     output_dir = Path(directory)
     if output_dir.suffix == ".bw2package":
         out_file = output_dir

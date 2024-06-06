@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import io
+import logging
 from pathlib import Path
 import subprocess
 import tempfile
@@ -7,25 +8,29 @@ import zipfile
 
 import eidl
 import requests
-import brightway2 as bw
+from bw2data.project import projects
+from bw2data.meta import databases
+from bw2data.database import DatabaseChooser
+from bw2data.configuration import config
+from bw2data.backends import SQLiteBackend
+
 from bw2data.errors import InvalidExchange, UnknownObject
 from bw2io import SingleOutputEcospold2Importer
+from bw2io.package import BW2Package
 from bw2io.errors import InvalidPackage, StrategyError
 from bw2io.extractors import Ecospold2DataExtractor
-from bw2data.backends import SQLiteBackend
+
 from PySide2 import QtWidgets, QtCore
 from PySide2.QtCore import Signal, Slot
 
-from ..threading import ABThread
-from ...bwutils.errors import ImportCanceledError, LinkingFailed
-from ...bwutils.importers import ABExcelImporter, ABPackage
-from ...signals import signals
-from ..style import style_group_box
-from ..widgets import DatabaseLinkingDialog
-from ...info import __ei_versions__
-from ...utils import sort_semantic_versions
-
-import logging
+from activity_browser.ui.threading import ABThread
+from activity_browser.bwutils.errors import ImportCanceledError, LinkingFailed
+from activity_browser.bwutils.importers import ABExcelImporter, ABPackage
+from activity_browser.signals import signals
+from activity_browser.ui.style import style_group_box
+from activity_browser.ui.widgets import DatabaseLinkingDialog
+from activity_browser.info import __ei_versions__
+from activity_browser.utils import sort_semantic_versions
 from activity_browser.logger import ABHandler
 
 logger = logging.getLogger('ab_logs')
@@ -409,9 +414,9 @@ class DBNamePage(QtWidgets.QWizardPage):
 
     def validatePage(self):
         db_name = self.name_edit.text()
-        if db_name in bw.databases:
+        if db_name in databases:
             warning = 'Database <b>{}</b> already exists in project <b>{}</b>!'.format(
-                db_name, bw.projects.current)
+                db_name, projects.current)
             QtWidgets.QMessageBox.warning(self, 'Database exists!', warning)
             return False
         else:
@@ -444,7 +449,7 @@ class ConfirmationPage(QtWidgets.QWizardPage):
 
     def initializePage(self):
         self.current_project_label.setText(
-            'Current Project: <b>{}</b>'.format(bw.projects.current))
+            'Current Project: <b>{}</b>'.format(projects.current))
         self.db_name_label.setText(
             'Name of the new database: <b>{}</b>'.format(self.field('db_name')))
         if self.wizard.import_type == 'directory':
@@ -650,7 +655,7 @@ class ImportPage(QtWidgets.QWizardPage):
         """
         self.main_worker_thread.exit(1)
 
-        options = [(db, bw.databases.list) for db in missing]
+        options = [(db, databases.list) for db in missing]
         linker = DatabaseLinkingDialog.relink_bw2package(options, self)
         if linker.exec_() == DatabaseLinkingDialog.Accepted:
             self.relink_data = linker.links
@@ -674,7 +679,7 @@ class ImportPage(QtWidgets.QWizardPage):
         self.main_worker_thread.exit(1)
 
         # Iterate through the missing databases, asking user input.
-        options = [(db, bw.databases.list) for db in missing]
+        options = [(db, databases.list) for db in missing]
         linker = DatabaseLinkingDialog.relink_excel(options, self)
         if linker.exec_() == DatabaseLinkingDialog.Accepted:
             self.relink_data = linker.links
@@ -774,9 +779,9 @@ class MainWorkerThread(ABThread):
                 import_signals.extraction_progress.emit(0, 0)
                 import_signals.strategy_progress.emit(0, 0)
                 import_signals.db_progress.emit(0, 0)
-                bw.BW2Package.import_file(str(temp_dir.joinpath("forwast.bw2package")))
+                BW2Package.import_file(str(temp_dir.joinpath("forwast.bw2package")))
             if self.db_name.lower() != 'forwast':
-                bw.Database('forwast').rename(self.db_name)
+                DatabaseChooser('forwast').rename(self.db_name)
             if not import_signals.cancel_sentinel:
                 import_signals.extraction_progress.emit(1, 1)
                 import_signals.strategy_progress.emit(1, 1)
@@ -909,8 +914,8 @@ class MainWorkerThread(ABThread):
             import_signals.import_failure.emit(("Relinking failed", e.args[0]))
 
     def delete_canceled_db(self):
-        if self.db_name in bw.databases:
-            del bw.databases[self.db_name]
+        if self.db_name in databases:
+            del databases[self.db_name]
             log.info(f'Database {self.db_name} deleted!')
 
 
@@ -1219,7 +1224,7 @@ class ActivityBrowserBackend(SQLiteBackend):
         return super()._efficient_write_dataset(*args, **kwargs)
 
 
-bw.config.backends['activitybrowser'] = ActivityBrowserBackend
+config.backends['activitybrowser'] = ActivityBrowserBackend
 
 
 class ImportSignals(QtCore.QObject):

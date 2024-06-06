@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import brightway2 as bw
+from bw2data.project import projects
 from PySide2.QtCore import Qt
 from PySide2.QtWidgets import QMessageBox, QWizard
 
@@ -15,7 +15,7 @@ def test_settings_wizard_simple(qtbot, bw2test):
     # Check that the default fields are default
     assert wizard.field("startup_project") == "default"
     assert wizard.field("current_bw_dir") == ab_settings.current_bw_dir
-    assert wizard.last_bwdir == bw.projects._base_data_dir
+    assert wizard.last_bwdir == projects._base_data_dir
 
     # We can't click 'Save' from the start.
     assert not wizard.button(QWizard.FinishButton).isEnabled()

@@ -2,20 +2,26 @@
 from pathlib import Path
 from typing import List, Tuple
 
-import brightway2 as bw
+from bw2io.migrations import migrations, create_core_migrations
+from bw2io import create_default_lcia_methods
+from bw2data.meta import methods
+from bw2data.meta import databases
+from bw2data.project import projects
+
 from PySide2 import QtGui, QtWidgets
 from PySide2.QtCore import Qt, Signal, Slot
 
 from activity_browser.bwutils.superstructure import get_sheet_names
 from activity_browser.settings import project_settings
 from activity_browser.signals import signals
-from ..threading import ABThread
-from ..style import style_group_box, vertical_line
-from ...ui.icons import qicons
-from ...ui.widgets import BiosphereUpdater
-from ...info import __ei_versions__
-from ...bwutils.ecoinvent_biosphere_versions.ecospold2biosphereimporter import create_default_biosphere3
-from ...utils import sort_semantic_versions
+from activity_browser.ui.threading import ABThread
+from activity_browser.ui.style import style_group_box, vertical_line
+from activity_browser.ui.icons import qicons
+from activity_browser.ui.widgets import BiosphereUpdater
+from activity_browser.info import __ei_versions__
+from activity_browser.bwutils.ecoinvent_biosphere_versions.ecospold2biosphereimporter import create_default_biosphere3
+from activity_browser.utils import sort_semantic_versions
+
 
 class ForceInputDialog(QtWidgets.QDialog):
     """ Due to QInputDialog not allowing 'ok' button to be disabled when
@@ -536,7 +542,7 @@ class DefaultBiosphereDialog(QtWidgets.QProgressDialog):
         self.biosphere_thread.exit(result or 0)
         self.setValue(3)
         self.check_patches()
-        signals.change_project.emit(bw.projects.current)
+        signals.change_project.emit(projects.current)
         signals.project_selected.emit()
 
     def check_patches(self):
@@ -558,17 +564,17 @@ class DefaultBiosphereThread(ABThread):
         self.version = version
 
     def run_safely(self):
-        project = "<b>{}</b>".format(bw.projects.current)
-        if "biosphere3" not in bw.databases:
+        project = "<b>{}</b>".format(projects.current)
+        if "biosphere3" not in databases:
             self.update.emit(0, "Creating default biosphere for {}".format(project))
             create_default_biosphere3(self.version)
             project_settings.add_db("biosphere3")
-        if not len(bw.methods):
+        if not len(methods):
             self.update.emit(1, "Creating default LCIA methods for {}".format(project))
-            bw.create_default_lcia_methods()
-        if not len(bw.migrations):
+            create_default_lcia_methods()
+        if not len(migrations):
             self.update.emit(2, "Creating core data migrations for {}".format(project))
-            bw.create_core_migrations()
+            create_core_migrations()
 
 
 class FilterManagerDialog(QtWidgets.QDialog):

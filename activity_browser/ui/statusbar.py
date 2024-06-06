@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
+import logging
 from PySide2.QtCore import Slot
 from PySide2.QtWidgets import QLabel, QStatusBar
 
-import brightway2 as bw
+from bw2data.project import projects
 
-from ..signals import signals
+from activity_browser.signals import signals
 
-import logging
 from activity_browser.logger import ABHandler
 
 logger = logging.getLogger('ab_logs')
@@ -46,7 +46,7 @@ class Statusbar(QStatusBar):
 
     @Slot(name="updateProjectStatus")
     def update_project(self):
-        name = bw.projects.current
+        name = projects.current
         self.center("Project: {}".format(name))
         self.right("Database: None")
 

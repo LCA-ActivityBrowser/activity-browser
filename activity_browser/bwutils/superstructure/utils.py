@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
-import brightway2 as bw
-import pandas as pd
 import time
-
 import logging
+
+import pandas as pd
+
+from bw2data.configuration import config
 from activity_browser.logger import ABHandler
 
 logger = logging.getLogger('ab_logs')
@@ -54,7 +55,7 @@ def edit_superstructure_for_string(superstructure=SUPERSTRUCTURE, sep="<br>", fh
 def guess_flow_type(row: pd.Series) -> str:
     """Given a series of input- and output keys, make a guess on the flow type.
     """
-    if row.iat[0][0] == bw.config.biosphere:
+    if row.iat[0][0] == config.biosphere:
         return "biosphere"
     elif row.iat[0] == row.iat[1]:
         return "production"
