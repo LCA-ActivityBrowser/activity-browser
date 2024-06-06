@@ -1,12 +1,13 @@
-import ecoinvent_interface as ei
 from bw2io.ecoinvent import *
 
+import pyprind
+
+from activity_browser import log
 from activity_browser.mod.ecoinvent_interface.release import ABEcoinventRelease
-from activity_browser.mod.bw2io.extractors.ecospold2 import ABEcospold2DataExtractor
 from activity_browser.mod.bw2io.importers.ecospold2_biosphere import ABEcospold2BiosphereImporter
 
 
-def ab_import_ecoinvent_release(version, system_model, progress_slot=lambda progress, message: None):
+def ab_import_ecoinvent_release(version, system_model):
     """Activity Browser version of bw2io.ecoinvent.import_ecoinvent_release that employs a progress slot"""
     from bw2io import migrations
     from .migrations import ab_create_core_migrations
@@ -15,7 +16,7 @@ def ab_import_ecoinvent_release(version, system_model, progress_slot=lambda prog
     #     ab_create_core_migrations()
 
     # downloading a release through a AB version of ecoinvent_interface that implements a progress_slot
-    release = ABEcoinventRelease(ei.Settings(), progress_slot)
+    release = ABEcoinventRelease(ei.Settings())
 
     lci_path = release.get_release(
         version=version,
@@ -24,34 +25,31 @@ def ab_import_ecoinvent_release(version, system_model, progress_slot=lambda prog
     )
 
     # importing biosphere through a biosphere importer that implements a progress_slot
-    progress_slot(0, f"Importing biosphere")
     bio_import = ABEcospold2BiosphereImporter(
         name="biosphere3",
         filepath=lci_path / "MasterData" / "ElementaryExchanges.xml",
-        progress_slot=progress_slot
     )
-    progress_slot(None, "Applying strategies to biosphere data")
+    log.info("Applying strategies")
     bio_import.apply_strategies()
-    progress_slot(None, "Writing biosphere data to database")
+    log.info("Writing biosphere database")
     bio_import.write_database()
     bd.preferences["biosphere_database"] = "biosphere3"
 
     # importing ecoinvent through a ecospold2 importer that implements a progress_slot
-    progress_slot(0, f"Importing ecoinvent")
+    log.info("Importing ecoinvent")
     db_name = f"ecoinvent-{version}-{system_model}"
     ei_import = SingleOutputEcospold2Importer(
         dirpath=str(lci_path / "datasets"),
         db_name=db_name,
         biosphere_database_name="biosphere3",
-        extractor=ABEcospold2DataExtractor(progress_slot)
     )
-    progress_slot(None, "Applying strategies to ecoinvent data")
+    log.info("Applying strategies")
     ei_import.apply_strategies()
-    progress_slot(None, "Writing ecoinvent data to database")
+    log.info("Writing ecoinvent database")
     ei_import.write_database()
 
     # importing all LCIA methods
-    progress_slot(None, f"Gathering LCIA methods")
+    log.info("Gathering LCIA methods")
     lcia_file = ei.get_excel_lcia_file_for_version(release=release, version=version)
     sheet_names = get_excel_sheet_names(lcia_file)
 
@@ -68,10 +66,11 @@ def ab_import_ecoinvent_release(version, system_model, progress_slot=lambda prog
         raise ValueError(
             f"Can't find worksheet for characterization factors; expected `CFs`, found {sheet_names}"
         )
-
+    log.info("Extracting LCIA methods")
     data = dict(ExcelExtractor.extract(lcia_file))
     units = header_dict(data[units_sheetname])
 
+    log.info("Mapping LCIA methods")
     cfs = header_dict(data["CFs"])
 
     CF_COLUMN_LABELS = {
@@ -156,8 +155,7 @@ def ab_import_ecoinvent_release(version, system_model, progress_slot=lambda prog
                     )
                     unmatched.add(row["name"])
 
-    for i, key in enumerate(lcia_data_as_dict):
-        progress_slot(int(i / len(lcia_data_as_dict) * 100), f"Writing LCIA method: {key}")
+    for key in pyprind.prog_bar(lcia_data_as_dict, title="Writing LCIA methods"):
         method = bd.Method(key)
         method.register(
             unit=units_mapping.get(key, "Unknown"),
@@ -166,5 +164,3 @@ def ab_import_ecoinvent_release(version, system_model, progress_slot=lambda prog
             database="biosphere3",
         )
         method.write(lcia_data_as_dict[key])
-
-    progress_slot(100, f"Done")

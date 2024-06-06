@@ -1,17 +1,10 @@
 from ecoinvent_interface.release import *
 from ecoinvent_interface.core import *
 
-from pyprind import ProgBar
+import pyprind
+
 
 class ABEcoinventRelease(EcoinventRelease):
-
-    def __init__(self,
-                 settings: Settings,
-                 download_update_slot=lambda progress, message: None,
-                 urls: Optional[dict] = None,
-                 custom_headers: Optional[dict] = None):
-        super().__init__(settings, urls, custom_headers)
-        self.download_update_slot = download_update_slot
 
     def _streaming_download(
             self,
@@ -22,6 +15,9 @@ class ABEcoinventRelease(EcoinventRelease):
             headers: Optional[dict] = {},
             zipped: Optional[bool] = False,
     ) -> None:
+        """
+        Reimplemented _streaming_download with Pyprind.progbar as download bar
+        """
         out_filepath = directory / (filename + ".gz" if zipped else filename)
         with requests.get(
                 url, stream=True, headers=headers, params=params, timeout=60
@@ -34,7 +30,7 @@ class ABEcoinventRelease(EcoinventRelease):
             chunk = 128 * 1024
 
             size = int(response.headers["Content-Length"])
-            dl_bar = ProgBar(size, title="Downloading from ecoinvent")
+            dl_bar = pyprind.ProgBar(size, title="Downloading from ecoinvent")
 
             while True:
                 segment = download.read(chunk)
@@ -69,8 +65,6 @@ class ABEcoinventRelease(EcoinventRelease):
                 message = """"Can't automatically delete {out_filepath}
     Please delete manually"""
                 warnings.warn(message)
-
-        self.download_update_slot(100, "Downloading from ecoinvent: finished")
 
     def get_release(
         self,
@@ -132,11 +126,8 @@ class ABEcoinventRelease(EcoinventRelease):
             if (result_path / "datasets").is_dir():
                 logger.info("Fixing versions in unit process datasets")
 
-                total = len([x for x in (result_path / "datasets").iterdir()])
-
-                for i, filepath in enumerate((result_path / "datasets").iterdir()):
-                    self.download_update_slot(int(30 + i / total * 45),
-                                              f"Fixing versions in unit process datasets {i}/{total}")
+                for filepath in pyprind.prog_bar(list((result_path / "datasets").iterdir()),
+                                                 title="Fixing versions in unit process data"):
                     if not filepath.suffix.lower() == ".spold":
                         continue
                     fix_version_upr(
@@ -144,17 +135,12 @@ class ABEcoinventRelease(EcoinventRelease):
                     )
             if (result_path / "MasterData").is_dir():
                 logger.info("Fixing versions in master data")
-
-                total = len([x for x in (result_path / "MasterData").iterdir()])
-
-                for i, filepath in enumerate((result_path / "MasterData").iterdir()):
-                    self.download_update_slot(int(75 + i / total * 25),
-                                              f"Fixing versions in master data {i}/{total}")
+                for filepath in pyprind.prog_bar(list((result_path / "MasterData").iterdir()),
+                                                 title="Fixing versions in master data"):
                     if not filepath.suffix.lower() == ".xml":
                         continue
                     fix_version_meta(
                         filepath=filepath, major_version=major, minor_version=minor
                     )
 
-        self.download_update_slot(100, f"Ecoinvent download: finished")
         return result_path

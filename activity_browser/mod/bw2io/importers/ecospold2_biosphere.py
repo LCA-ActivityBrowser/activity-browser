@@ -1,17 +1,9 @@
 from bw2io.importers.ecospold2_biosphere import *
+import pyprind
+import logging
 
 
 class ABEcospold2BiosphereImporter(Ecospold2BiosphereImporter):
-
-    def __init__(
-        self,
-        name: str = "biosphere3",
-        version: str = "3.9",
-        filepath: Path | None = None,
-        progress_slot=lambda progress, message: None
-    ):
-        self.progress_slot = progress_slot
-        super().__init__(name, version, filepath)
 
     def extract(self, version: str | None, filepath: Path | None):
         """
@@ -65,11 +57,29 @@ class ABEcospold2BiosphereImporter(Ecospold2BiosphereImporter):
             )
 
         root = objectify.parse(open(filepath, encoding="utf-8")).getroot()
-        no_children = len(root.getchildren())
         flow_data = []
 
-        for i, ds in enumerate(root.iterchildren()):
-            self.progress_slot(int(i / no_children * 100), "Extracting biosphere data")
+        # AB implementation: added prog_bar here
+        for ds in pyprind.prog_bar(list(root.iterchildren()), title="Extracting biosphere data"):
             flow_data.append(extract_flow_data(ds))
-        self.progress_slot(100, "Extracting biosphere data finished")
         return flow_data
+
+    def apply_strategies(self, strategies=None, verbose=True):
+        """Apply a list of strategies.
+
+        Uses the default list ``self.strategies`` if ``strategies`` is ``None``.
+
+        Args:
+            *strategies* (list, optional): List of strategies to apply. Defaults to ``self.strategies``.
+
+        Returns:
+            Nothings, but modifies ``self.data``, and adds each strategy to ``self.applied_strategies``.
+
+        """
+        func_list = self.strategies if strategies is None else strategies
+        for func in pyprind.prog_bar(func_list, title="Applying strategies"):
+            self.apply_strategy(func, verbose)
+
+    def write_database(self, *args, **kwargs):
+        logging.getLogger(__name__).info("Writing Biosphere database")
+        super().write_database(*args, **kwargs)
