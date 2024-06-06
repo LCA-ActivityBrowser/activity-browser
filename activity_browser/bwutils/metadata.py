@@ -233,7 +233,7 @@ class MetaDataStore(object):
             Always returns a list 'x' where len(x) == len(classifications).
 
             Testing showed that converting to list and doing the checks on a list is ~5x faster than keeping
-            data in DF and using a df.apply() function, we we do this now (difference was ~0.4s vs ~2s).
+            data in DF and using a df.apply() function, we do this now (difference was ~0.4s vs ~2s).
             """
             x = []
             for c in classifications:

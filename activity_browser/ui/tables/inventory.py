@@ -328,8 +328,8 @@ class ActivitiesBiosphereTree(ABDictTreeView):
 
     def __init__(self, parent=None, database_name=None):
         super().__init__(parent)
-        self.db_read_only = True
         self.database_name = database_name
+        self.db_read_only = project_settings.db_is_readonly(self.database_name)
         self.HEADERS = AB_metadata.get_existing_fields(self.HEADERS)
 
         # set drag ability
@@ -410,24 +410,36 @@ class ActivitiesBiosphereTree(ABDictTreeView):
 
     def contextMenuEvent(self, event) -> None:
         """Right clicked menu, action depends on item level."""
-        #TODO there is a bug with the readonly state not being properly read in the treeview, but that may be related to signals not yet properly implemented
         if self.indexAt(event.pos()).row() == -1:
             return
 
-        # determine whether 1 or multiple activities are selected
+        # determine enabling of actions based on amount of selected activities
+        print(len(self.selected_keys()), self.db_read_only, self.tree_level())
         if len(self.selected_keys()) > 1:
             act = 'activities'
             self.duplicate_activity_new_loc_action.setEnabled(False)
             self.relink_activity_exch_action.setEnabled(False)
-        elif len(self.selected_keys()) == 1 and self.db_read_only:
+            if len(self.selected_keys()) > 15:
+                # many activities are selected, block opening activities
+                allow_open = False
+            else:
+                allow_open = True
+            self.open_activity_action.setEnabled(allow_open)
+            self.open_activity_graph_action.setEnabled(allow_open)
+        else:  # only one activity is selected
             act = 'activity'
-            self.duplicate_activity_new_loc_action.setEnabled(False)
-            self.relink_activity_exch_action.setEnabled(False)
-        else:
-            act = 'activity'
-            self.duplicate_activity_new_loc_action.setEnabled(True)
-            self.relink_activity_exch_action.setEnabled(True)
+            self.open_activity_action.setEnabled(True)
+            self.open_activity_graph_action.setEnabled(True)
+            self.duplicate_activity_new_loc_action.setEnabled(not self.db_read_only)
+            self.relink_activity_exch_action.setEnabled(not self.db_read_only)
 
+        # enabling of actions based on read-only state
+        self.new_activity_action.setEnabled(not self.db_read_only)
+        self.delete_activity_action.setEnabled(not self.db_read_only)
+        self.duplicate_activity_action.setEnabled(not self.db_read_only)
+        self.relink_activity_exch_action.setEnabled(not self.db_read_only)
+
+        # set plural or singular for activity
         self.open_activity_action.setText(f'Open {act}')
         self.open_activity_graph_action.setText(f'Open {act} in Graph Explorer')
         self.duplicate_activity_action.setText(f'Duplicate {act}')
@@ -579,6 +591,7 @@ class ActivitiesBiosphereTree(ABDictTreeView):
         root:   the name of the root, str()
         branch: the descending list of branch levels, list()
             leaf/branch example: ('CML 2001', 'climate change')"""
+        #TODO update docstring
         indexes = self.selectedIndexes()
         if indexes[1].data() != '' or indexes[2].data() != '':
             return 'leaf', self.find_levels()
@@ -641,7 +654,3 @@ class ActivitiesBiosphereTree(ABDictTreeView):
         """
         if self.database_name == db_name:
             self.db_read_only = db_read_only
-            self.new_activity_action.setEnabled(not self.db_read_only)
-            self.duplicate_activity_action.setEnabled(not self.db_read_only)
-            self.duplicate_activity_new_loc_action.setEnabled(not self.db_read_only)
-            self.delete_activity_action.setEnabled(not self.db_read_only)

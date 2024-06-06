@@ -276,7 +276,7 @@ class ActivitiesBiosphereTreeModel(BaseTreeModel):
             tree_numeric_order: keys are classification number, values are the row number in file
         """
         path = os.path.join(os.getcwd(), "activity_browser", "static", "database_classifications",
-                            "ISIC_Rev_4_english_structure.Txt")
+                            "ISIC_Rev_4_english_structure.txt")
         df = pd.read_csv(path)
 
         tree_data = {}
@@ -343,7 +343,7 @@ class ActivitiesBiosphereTreeModel(BaseTreeModel):
         """Construct a dataframe of activities and a complete nested
         dict of the dataframe.
 
-        Trigger this at init and when an activity is added/edited/deleted.
+        Run this at init and when an activity is added/edited/deleted.
         """
         # Get dataframe from metadata and update column-names
         df = self.df_from_metadata(self.database_name)
