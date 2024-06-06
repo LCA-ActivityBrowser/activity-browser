@@ -266,6 +266,7 @@ class ActivityBiosphereWidget(QtWidgets.QWidget):
     def reset_widget(self):
         self.hide()
         self.table.model.clear()
+        self.tree = None
 
     def setup_search(self):
         # 1st search box
@@ -335,7 +336,7 @@ class ActivityBiosphereWidget(QtWidgets.QWidget):
             # a treeview does not need to be shown
 
             # delete the tree if it exists
-            if isinstance(self.tree, ActivitiesBiosphereTree):
+            if self.tree:
                 self.tree.hide()
                 self.tree = None
             # set the view to list and hide radio buttons

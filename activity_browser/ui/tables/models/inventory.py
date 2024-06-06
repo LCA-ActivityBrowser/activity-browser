@@ -245,15 +245,12 @@ class ActivitiesBiosphereTreeModel(BaseTreeModel):
 
         # all of the various variables.
         self._dataframe: Optional[pd.DataFrame] = None
-        self.all_col = 0
         self.tree_data = None
         self.matches = None
         self.query = None
 
         self.ISIC_tree, self.ISIC_tree_codes, self.ISIC_order = self.get_isic_tree()
         self.setup_model_data()
-
-        signals.project_selected.connect(self.setup_and_sync)
 
     def flags(self, index):
         res = super().flags(index) | Qt.ItemIsDragEnabled
