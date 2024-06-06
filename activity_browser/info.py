@@ -22,7 +22,7 @@ def get_compatible_versions() -> list:
     """
     try:
         # read versions
-        versions_URL = 'https://raw.githubusercontent.com/LCA-ActivityBrowser/activity-browser/master/activity_browser/bwutils/ecoinvent_biosphere_versions/compatible_ei_versions.txt'
+        versions_URL = 'https://raw.githubusercontent.com/LCA-ActivityBrowser/activity-browser/main/activity_browser/bwutils/ecoinvent_biosphere_versions/compatible_ei_versions.txt'
         page, error = safe_link_fetch(versions_URL)
         if not error:
             file = page.text
