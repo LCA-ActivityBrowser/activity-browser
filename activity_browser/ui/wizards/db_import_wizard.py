@@ -100,7 +100,7 @@ class DatabaseImportWizard(QtWidgets.QWizard):
 
     @property
     def release_type(self):
-        return self.ecoinvent_version_page.release_type_combobox.currentText()
+        return ecoinvent_interface.ReleaseType.ecospold
 
     def update_downloader(self):
         self.downloader.version = self.version
@@ -1115,10 +1115,6 @@ class EcoinventVersionPage(QtWidgets.QWizardPage):
             self.update_system_model_combobox
         )
         self.system_model_combobox = QtWidgets.QComboBox()
-        self.release_type_combobox = QtWidgets.QComboBox()
-        self.release_type_combobox.addItems(
-            [x.name for x in list(ecoinvent_interface.ReleaseType)]
-        )
 
         layout = QtWidgets.QGridLayout()
         layout.addWidget(self.description_label, 0, 0, 1, 3)
@@ -1126,8 +1122,6 @@ class EcoinventVersionPage(QtWidgets.QWizardPage):
         layout.addWidget(self.version_combobox, 1, 1, 1, 2)
         layout.addWidget(QtWidgets.QLabel("System model: "), 2, 0)
         layout.addWidget(self.system_model_combobox, 2, 1, 1, 2)
-        layout.addWidget(QtWidgets.QLabel("Release Type: "), 3, 0)
-        layout.addWidget(self.release_type_combobox, 3, 1, 1, 2)
         self.setLayout(layout)
 
     def initializePage(self):
