@@ -8,6 +8,7 @@ import tempfile
 import zipfile
 from pathlib import Path
 
+import bw2data.errors
 import ecoinvent_interface
 import requests
 from bw2io import BW2Package, SingleOutputEcospold2Importer
@@ -880,14 +881,14 @@ class MainWorkerThread(ABThread):
                 signal=import_signals.strategy_progress,
             )
             importer.apply_strategies()
-            importer.write_database(backend="activitybrowser")
+            importer.write_database(backend="sqlite")
             if not import_signals.cancel_sentinel:
                 import_signals.finished.emit()
             else:
                 self.delete_canceled_db()
         except errors.ImportCanceledError:
             self.delete_canceled_db()
-        except errors.InvalidExchange:
+        except bw2data.errors.InvalidExchange:
             # Likely caused by new version of ecoinvent not finding required
             # biosphere flows.
             self.delete_canceled_db()
