@@ -18,7 +18,7 @@ pull-request is published.
       `bug`, `feature`, `ui`, `change`, `documentation`, `breaking`, `ci`
       as they show up in the changelog.
 - [ ] Link this PR to related issues by using [closing keywords](https://docs.github.com/en/issues/tracking-your-work-with-issues/linking-a-pull-request-to-an-issue).
-- [ ] Add a milestone to the PR for the intended release.
+- [ ] Add a milestone to the PR (and related issues, if any) for the intended release.
 - [ ] Request a review from another developer.
 
 <!--
