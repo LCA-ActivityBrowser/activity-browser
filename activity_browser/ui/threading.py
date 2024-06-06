@@ -62,7 +62,10 @@ class LoggingProgressHandler(logging.Handler):
         return True
 
     def emit(self, record: logging.LogRecord):
-        thread_local.progress_slot(None, record.message)
+        try:
+            thread_local.progress_slot(None, record.message)
+        except AttributeError:
+            pass
 
 
 thread_local = threading.local()

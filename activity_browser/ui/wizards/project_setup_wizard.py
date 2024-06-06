@@ -36,8 +36,6 @@ class ProjectSetupWizard(QtWidgets.QWizard):
         self.setPage(self.ecoinvent_version, EcoInventVersionPage(self))
         self.setPage(self.install_page, InstallPage(self))
 
-        # self.setStartId(self.choose_setup)
-
         self.type = None  # set on the first page
 
 
@@ -192,7 +190,7 @@ class InstallPage(QtWidgets.QWizardPage):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        self.thread = None  # will be ei or default install thread
+        self.install_thread = None  # will be ei or default install thread
 
         self.setTitle("Setting up")
         self.setSubTitle("Setting up your project")
@@ -219,17 +217,17 @@ class InstallPage(QtWidgets.QWizardPage):
         self.wizard().button(QtWidgets.QWizard.BackButton).hide()
 
         if self.wizard().type == "ecoinvent":
-            self.thread = EcoinventInstallThread(self)
+            self.install_thread = EcoinventInstallThread(self)
         else:
-            self.thread = DefaultInstallThread(self)
+            self.install_thread = DefaultInstallThread(self)
 
-        self.thread.status.connect(self.status_update)
-        self.thread.finished.connect(self.completeChanged.emit)
-        self.thread.finished.connect(lambda: self.status_update(100, "Done"))
-        self.thread.start()
+        self.install_thread.status.connect(self.status_update)
+        self.install_thread.finished.connect(self.completeChanged.emit)
+        self.install_thread.finished.connect(lambda: self.status_update(100, "Done"))
+        self.install_thread.start()
 
     def isComplete(self):
-        return self.thread.isFinished()
+        return self.install_thread.isFinished()
 
     def status_update(self, progress: int | None, message: str):
         if isinstance(progress, int):
