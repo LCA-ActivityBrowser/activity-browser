@@ -1,4 +1,6 @@
-import brightway2 as bw
+from bw2data.project import projects
+from bw2data.utils import get_activity
+
 import pytest
 from PySide2 import QtWidgets
 
@@ -19,28 +21,28 @@ def test_activity_delete(ab_app, monkeypatch):
         staticmethod(lambda *args, **kwargs: QtWidgets.QMessageBox.Yes),
     )
 
-    assert bw.projects.current == "default"
-    assert bw.get_activity(key)
+    assert projects.current == "default"
+    assert get_activity(key)
 
     actions.ActivityDelete.run([key])
 
     with pytest.raises(Exception):
-        bw.get_activity(key)
+        get_activity(key)
 
 
 def test_activity_duplicate(ab_app):
     key = ("activity_tests", "dd4e2393573c49248e7299fbe03a169c")
     dup_key = ("activity_tests", "dd4e2393573c49248e7299fbe03a169c_copy1")
 
-    assert bw.projects.current == "default"
-    assert bw.get_activity(key)
+    assert projects.current == "default"
+    assert get_activity(key)
     with pytest.raises(Exception):
-        bw.get_activity(dup_key)
+        get_activity(dup_key)
 
     actions.ActivityDuplicate.run([key])
 
-    assert bw.get_activity(key)
-    assert bw.get_activity(dup_key)
+    assert get_activity(key)
+    assert get_activity(dup_key)
 
 
 def test_activity_duplicate_to_db(ab_app, monkeypatch):
@@ -53,15 +55,15 @@ def test_activity_duplicate_to_db(ab_app, monkeypatch):
         staticmethod(lambda *args, **kwargs: ("db_to_duplicate_to", True)),
     )
 
-    assert bw.projects.current == "default"
-    assert bw.get_activity(key)
+    assert projects.current == "default"
+    assert get_activity(key)
     with pytest.raises(Exception):
-        bw.get_activity(dup_key)
+        get_activity(dup_key)
 
     actions.ActivityDuplicateToDB.run([key])
 
-    assert bw.get_activity(key)
-    assert bw.get_activity(dup_key)
+    assert get_activity(key)
+    assert get_activity(dup_key)
 
 
 def test_activity_duplicate_to_loc(ab_app, monkeypatch):
@@ -74,23 +76,23 @@ def test_activity_duplicate_to_loc(ab_app, monkeypatch):
 
     monkeypatch.setattr(LocationLinkingDialog, "relink", {"MOON": "GLO"})
 
-    assert bw.projects.current == "default"
-    assert bw.get_activity(key).as_dict()["location"] == "MOON"
+    assert projects.current == "default"
+    assert get_activity(key).as_dict()["location"] == "MOON"
     with pytest.raises(Exception):
-        bw.get_activity(dup_key)
+        get_activity(dup_key)
 
     actions.ActivityDuplicateToLoc.run(key)
 
-    assert bw.get_activity(key).as_dict()["location"] == "MOON"
-    assert bw.get_activity(dup_key).as_dict()["location"] == "GLO"
+    assert get_activity(key).as_dict()["location"] == "MOON"
+    assert get_activity(dup_key).as_dict()["location"] == "GLO"
 
 
 def test_activity_graph(ab_app):
     key = ("activity_tests", "3fcde3e3bf424e97b32cf29347ac7f33")
     panel = ab_app.main_window.right_panel.tabs["Graph Explorer"]
 
-    assert bw.projects.current == "default"
-    assert bw.get_activity(key)
+    assert projects.current == "default"
+    assert get_activity(key)
     assert key not in panel.tabs
 
     actions.ActivityGraph.run([key])
@@ -117,8 +119,8 @@ def test_activity_open(ab_app):
     key = ("activity_tests", "3fcde3e3bf424e97b32cf29347ac7f33")
     panel = ab_app.main_window.right_panel.tabs["Activity Details"]
 
-    assert bw.projects.current == "default"
-    assert bw.get_activity(key)
+    assert projects.current == "default"
+    assert get_activity(key)
     assert key not in panel.tabs
 
     actions.ActivityOpen.run([key])
@@ -140,9 +142,9 @@ def test_activity_relink(ab_app, monkeypatch, qtbot):
         ActivityLinkingDialog, "relink", {"db_to_relink_from": "db_to_relink_to"}
     )
 
-    assert bw.projects.current == "default"
-    assert list(bw.get_activity(key).exchanges())[1].input.key == from_key
+    assert projects.current == "default"
+    assert list(get_activity(key).exchanges())[1].input.key == from_key
 
     actions.ActivityRelink.run([key])
 
-    assert list(bw.get_activity(key).exchanges())[1].input.key == to_key
+    assert list(get_activity(key).exchanges())[1].input.key == to_key

@@ -1,6 +1,8 @@
 import os
 
-import brightway2 as bw
+from bw2data.meta import databases, methods
+from bw2data.project import projects
+
 import pytest
 from PySide2 import QtWidgets
 
@@ -21,7 +23,7 @@ from activity_browser.ui.wizards.settings_wizard import SettingsWizard
 )
 def test_default_install(ab_app, monkeypatch, qtbot):
     project_name = "biosphere_project"
-    bw.projects.set_current(project_name)
+    projects.set_current(project_name)
 
     monkeypatch.setattr(
         EcoinventVersionDialog,
@@ -32,8 +34,8 @@ def test_default_install(ab_app, monkeypatch, qtbot):
         QtWidgets.QComboBox, "currentText", staticmethod(lambda *args, **kwargs: "3.7")
     )
 
-    assert bw.projects.current == project_name
-    assert "biosphere3" not in bw.databases
+    assert projects.current == project_name
+    assert "biosphere3" not in databases
     assert not application.main_window.findChild(DefaultBiosphereDialog)
 
     actions.DefaultInstall.run()
@@ -43,9 +45,9 @@ def test_default_install(ab_app, monkeypatch, qtbot):
         pass
     qtbot.waitUntil(lambda: len(AB_metadata.dataframe) == 4324)
 
-    assert "biosphere3" in bw.databases
+    assert "biosphere3" in databases
     assert len(Database("biosphere3")) == 4324
-    assert len(bw.methods) == 762
+    assert len(methods) == 762
 
 
 @pytest.mark.skipif(
@@ -53,7 +55,7 @@ def test_default_install(ab_app, monkeypatch, qtbot):
 )
 def test_biosphere_update(ab_app, monkeypatch, qtbot):
     project_name = "biosphere_project"
-    bw.projects.set_current(project_name)
+    projects.set_current(project_name)
 
     monkeypatch.setattr(
         QtWidgets.QMessageBox,
@@ -71,8 +73,8 @@ def test_biosphere_update(ab_app, monkeypatch, qtbot):
         staticmethod(lambda *args, **kwargs: "3.9.1"),
     )
 
-    assert bw.projects.current == project_name
-    assert "biosphere3" in bw.databases
+    assert projects.current == project_name
+    assert "biosphere3" in databases
     assert len(Database("biosphere3")) == 4324
 
     actions.BiosphereUpdate.run()
