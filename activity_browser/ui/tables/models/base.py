@@ -368,6 +368,8 @@ class BaseTreeModel(QAbstractItemModel):
             return self.root
         if item.childCount() > 0:  # if its not a leaf
             return item.child(0)  # return the first child
+        if item == self.root:
+            return
         if item.parent().childCount() > item.row()+1:  # if there's still a sibling
             return item.parent().child(item.row()+1)
         else:  # look for siblings from previous "generations"

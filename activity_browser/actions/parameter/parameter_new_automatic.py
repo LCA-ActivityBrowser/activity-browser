@@ -1,11 +1,15 @@
-from typing import Union, Callable, List, Tuple
+from typing import List, Tuple
 
-import brightway2 as bw
-from PySide2 import QtCore, QtWidgets, QtGui
+from PySide2 import QtWidgets
+from peewee import IntegrityError
 
-from activity_browser import application, parameter_controller
-from activity_browser.actions.base import ABAction
+from activity_browser import application
+
+from activity_browser.mod import bw2data as bd
+from activity_browser.mod.bw2data.parameters import ActivityParameter
+from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.ui.icons import qicons
+
 
 class ParameterNewAutomatic(ABAction):
     """
@@ -15,15 +19,13 @@ class ParameterNewAutomatic(ABAction):
     TODO: will actually need to be reworked together with the parameters.
     """
     icon = qicons.add
-    title = "New parameter..."
-    activity_keys: List[Tuple]
+    text = "New parameter..."
 
-    def __init__(self, activity_keys: Union[List[Tuple], Callable], parent: QtCore.QObject):
-        super().__init__(parent, activity_keys=activity_keys)
-
-    def onTrigger(self, toggled):
-        for key in self.activity_keys:
-            act = bw.get_activity(key)
+    @staticmethod
+    @exception_dialogs
+    def run(activity_keys: List[Tuple]):
+        for key in activity_keys:
+            act = bd.get_activity(key)
             if act.get("type", "process") != "process":
                 issue = f"Activity must be 'process' type, '{act.get('name')}' is type '{act.get('type')}'."
                 QtWidgets.QMessageBox.warning(
@@ -33,6 +35,19 @@ class ParameterNewAutomatic(ABAction):
                     QtWidgets.QMessageBox.Ok,
                     QtWidgets.QMessageBox.Ok
                 )
-                continue
-            parameter_controller.auto_add_parameter(key)
+                return
+
+            group = act._document.id
+            count = ActivityParameter.select().where(ActivityParameter.group == group).count()
+
+            row = {
+                "name": "dummy_parameter",
+                "amount": act.get("amount", 1.0),
+                "formula": act.get("formula", ""),
+                "database": key[0],
+                "code": key[1],
+            }
+
+            bd.parameters.new_activity_parameters([row], group)
+
 

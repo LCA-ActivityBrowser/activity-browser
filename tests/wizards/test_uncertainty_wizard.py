@@ -2,7 +2,6 @@
 import logging
 import sys
 
-import brightway2 as bw
 from bw2data.parameters import ProjectParameter
 import numpy as np
 from PySide2.QtWidgets import QMessageBox, QWizard
@@ -13,18 +12,12 @@ from stats_arrays.distributions import (
 )
 
 from activity_browser.ui.wizards import UncertaintyWizard
-from activity_browser.signals import signals
-from activity_browser.logger import ABHandler
+from activity_browser.signals import qparameters
 
 """
 Mess around with the uncertainty wizard.
 """
 
-logger = logging.getLogger('ab_logs')
-log = ABHandler.setup_with_logger(logger, "uncertainty_wizard_test")
-
-log.setLevel(logging.INFO, True)
-log.propagate = True
 
 @pytest.mark.skipif(sys.platform=='darwin', reason="tests segfaults on osx")
 def test_wizard_fail(ab_app, qtbot):
@@ -111,7 +104,7 @@ def test_update_uncertainty(ab_app, qtbot):
     assert wizard.type.complete
 
     # Now trigger a 'finish' action
-    with qtbot.waitSignal(signals.parameters_changed, timeout=100):
+    with qtbot.waitSignal(qparameters.parameters_changed, timeout=100):
         wizard.button(QWizard.FinishButton).click()
 
     # Reload param
@@ -136,7 +129,7 @@ def test_update_alter_mean(qtbot, monkeypatch, ab_app):
     # Now, monkeypatch Qt to ensure a 'yes' is selected for updating.
     monkeypatch.setattr(QMessageBox, "question", staticmethod(lambda *args: QMessageBox.Yes))
     # Now trigger a 'finish' action
-    with qtbot.waitSignal(signals.parameters_changed, timeout=100):
+    with qtbot.waitSignal(qparameters.parameters_changed, timeout=100):
         wizard.button(QWizard.FinishButton).click()
 
     # Reload param and check that the amount is changed.

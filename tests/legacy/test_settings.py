@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
 
-import brightway2 as bw
 import pytest
 
 from activity_browser.settings import (ABSettings, BaseSettings,

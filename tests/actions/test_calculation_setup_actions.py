@@ -1,4 +1,4 @@
-import brightway2 as bw
+import bw2data as bd
 from activity_browser import actions
 from PySide2 import QtWidgets
 
@@ -16,12 +16,12 @@ def test_cs_delete(ab_app, monkeypatch):
         staticmethod(lambda *args, **kwargs: True)
     )
 
-    assert bw.projects.current == "default"
-    assert cs in bw.calculation_setups
+    assert bd.projects.current == "default"
+    assert cs in bd.calculation_setups
 
-    actions.CSDelete(cs, None).trigger()
+    actions.CSDelete.run(cs)
 
-    assert cs not in bw.calculation_setups
+    assert cs not in bd.calculation_setups
 
 
 def test_cs_duplicate(ab_app, monkeypatch):
@@ -33,14 +33,14 @@ def test_cs_duplicate(ab_app, monkeypatch):
         staticmethod(lambda *args, **kwargs: ('cs_that_is_duplicated', True))
     )
 
-    assert bw.projects.current == "default"
-    assert cs in bw.calculation_setups
-    assert dup_cs not in bw.calculation_setups
+    assert bd.projects.current == "default"
+    assert cs in bd.calculation_setups
+    assert dup_cs not in bd.calculation_setups
 
-    actions.CSDuplicate(cs, None).trigger()
+    actions.CSDuplicate.run(cs)
 
-    assert cs in bw.calculation_setups
-    assert dup_cs in bw.calculation_setups
+    assert cs in bd.calculation_setups
+    assert dup_cs in bd.calculation_setups
 
 
 def test_cs_new(ab_app, monkeypatch):
@@ -51,12 +51,12 @@ def test_cs_new(ab_app, monkeypatch):
         staticmethod(lambda *args, **kwargs: ('cs_that_is_new', True))
     )
 
-    assert bw.projects.current == "default"
-    assert new_cs not in bw.calculation_setups
+    assert bd.projects.current == "default"
+    assert new_cs not in bd.calculation_setups
 
-    actions.CSNew(None).trigger()
+    actions.CSNew.run()
 
-    assert new_cs in bw.calculation_setups
+    assert new_cs in bd.calculation_setups
 
     return
 
@@ -70,11 +70,11 @@ def test_cs_rename(ab_app, monkeypatch):
         staticmethod(lambda *args, **kwargs: ('cs_that_is_renamed', True))
     )
 
-    assert bw.projects.current == "default"
-    assert cs in bw.calculation_setups
-    assert renamed_cs not in bw.calculation_setups
+    assert bd.projects.current == "default"
+    assert cs in bd.calculation_setups
+    assert renamed_cs not in bd.calculation_setups
 
-    actions.CSRename(cs, None).trigger()
+    actions.CSRename.run(cs)
 
-    assert cs not in bw.calculation_setups
-    assert renamed_cs in bw.calculation_setups
+    assert cs not in bd.calculation_setups
+    assert renamed_cs in bd.calculation_setups

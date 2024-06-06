@@ -1,10 +1,9 @@
-from typing import Union, Callable, List, Optional
+from typing import List
 
-from PySide2 import QtCore
-
-from ..base import ABAction
-from ...ui.icons import qicons
-from ...controllers import exchange_controller
+from activity_browser.bwutils import commontasks
+from activity_browser.mod import bw2data as bd
+from activity_browser.actions.base import ABAction, exception_dialogs
+from activity_browser.ui.icons import qicons
 
 
 class ExchangeNew(ABAction):
@@ -12,16 +11,21 @@ class ExchangeNew(ABAction):
     ABAction to create a new exchange for an activity.
     """
     icon = qicons.add
-    title = "Add exchanges"
-    from_keys: List[tuple]
-    to_key: tuple
+    text = "Add exchanges"
 
-    def __init__(self,
-                 from_keys: Union[List[tuple], Callable],
-                 to_key: Union[tuple, Callable],
-                 parent: QtCore.QObject
-                 ):
-        super().__init__(parent, from_keys=from_keys, to_key=to_key)
+    @staticmethod
+    @exception_dialogs
+    def run(from_keys: List[tuple], to_key: tuple):
+        to_activity = bd.get_activity(to_key)
+        for from_key in from_keys:
+            exchange = to_activity.new_exchange(input=from_key, amount=1)
 
-    def onTrigger(self, toggled):
-        exchange_controller.add_exchanges(self.from_keys, self.to_key, None)
+            technosphere_db = commontasks.is_technosphere_db(from_key[0])
+            if technosphere_db is True:
+                exchange['type'] = 'technosphere'
+            elif technosphere_db is False:
+                exchange['type'] = 'biosphere'
+            else:
+                exchange['type'] = 'unknown'
+
+            exchange.save()

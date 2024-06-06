@@ -1,12 +1,9 @@
-from typing import Union, Callable, Any
-
-import brightway2 as bw
 from PySide2 import QtWidgets
 
-from activity_browser import application
-from activity_browser.actions.base import ABAction
+from activity_browser import application, project_settings, signals
+from activity_browser.mod import bw2data as bd
+from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.ui.icons import qicons
-from activity_browser.controllers import database_controller
 
 
 class DatabaseNew(ABAction):
@@ -16,10 +13,12 @@ class DatabaseNew(ABAction):
     new database with the chosen name.
     """
     icon = qicons.add
-    title = "New database..."
+    text = "New database..."
     tool_tip = "Make a new database"
 
-    def onTrigger(self, toggled):
+    @staticmethod
+    @exception_dialogs
+    def run():
         name, ok = QtWidgets.QInputDialog.getText(
             application.main_window,
             "Create new database",
@@ -28,7 +27,7 @@ class DatabaseNew(ABAction):
 
         if not ok or not name: return
 
-        if name in bw.databases:
+        if name in bd.databases:
             QtWidgets.QMessageBox.information(
                 application.main_window,
                 "Not possible",
@@ -36,4 +35,8 @@ class DatabaseNew(ABAction):
             )
             return
 
-        database_controller.new_database(name)
+        db = bd.Database(name)
+        db.register()
+        project_settings.add_db(name, False)
+
+        signals.database_selected.emit(name)

@@ -10,7 +10,7 @@ from bw2data.proxies import ExchangeProxyBase
 from peewee import DoesNotExist
 from PySide2.QtCore import QModelIndex, Qt, Slot
 
-from activity_browser import log, signals, actions, exchange_controller
+from activity_browser import log, signals, actions
 from activity_browser.bwutils import (
     PedigreeMatrix, commontasks as bc
 )
@@ -31,15 +31,15 @@ class BaseExchangeModel(EditablePandasModel):
         self.exchanges = []
         self.exchange_column = 0
 
-    def sync(self, exchanges: Optional[Iterable]):
+    def load(self, exchanges: Iterable):
+        self.exchanges = exchanges
+        self.sync()
+
+    def sync(self):
         """ Build the table using either new or stored exchanges iterable.
         """
-        if exchanges is not None:
-            self.exchanges = exchanges
         data = (self.create_row(exc) for exc in self.exchanges)
-        self._dataframe = pd.DataFrame([
-            row for row in data if row
-        ], columns=self.columns)
+        self._dataframe = pd.DataFrame([row for row in data if row], columns=self.columns)
         self.exchange_column = self._dataframe.columns.get_loc("exchange")
         self.updated.emit()
 
@@ -56,11 +56,16 @@ class BaseExchangeModel(EditablePandasModel):
                 "Unit": exchange.input.get("unit", "Unknown"),
                 "exchange": exchange,
             }
+
+            # sync when the exchange input or output changes
+            exchange.input.changed.connect(self.sync, Qt.UniqueConnection)
+            exchange.output.changed.connect(self.sync, Qt.UniqueConnection)
+
             return row
         except DoesNotExist as e:
             # The input activity does not exist. remove the exchange.
-            log.info("Broken exchange: {}, removing.".format(e))
-            exchange_controller.delete_exchanges([exchange])
+            log.warning(f"Broken exchange: {e}, removing.")
+            actions.ExchangeDelete.run([exchange])
 
     def get_exchange(self, proxy: QModelIndex) -> ExchangeProxyBase:
         idx = self.proxy_to_source(proxy)
@@ -75,7 +80,7 @@ class BaseExchangeModel(EditablePandasModel):
         col = proxy.column()
         if self._dataframe.columns[col] in {'Uncertainty', 'pedigree', 'loc', 'scale',
                                             'shape', 'minimum', 'maximum'}:
-            actions.ExchangeUncertaintyModify([self.get_exchange(proxy)], self).trigger()
+            actions.ExchangeUncertaintyModify.run([self.get_exchange(proxy)])
 
     @Slot(list, name="openActivities")
     def open_activities(self, proxies: list) -> None:
@@ -94,10 +99,10 @@ class BaseExchangeModel(EditablePandasModel):
         field = bc.AB_names_to_bw_keys.get(header, header)
         exchange = self._dataframe.iat[index.row(), self.exchange_column]
         if field in self.VALID_FIELDS:
-            actions.ExchangeModify(exchange, {field: value}, self).trigger()
+            actions.ExchangeModify.run(exchange, {field: value})
         else:
             act_key = exchange.output.key
-            signals.activity_modified.emit(act_key, field, value)
+            actions.ActivityModify.run(act_key, field, value)
         return super().setData(index, value, role)
 
     def get_usable_parameters(self):
@@ -165,7 +170,8 @@ class ProductExchangeModel(BaseExchangeModel):
 
     def create_row(self, exchange) -> dict:
         row = super().create_row(exchange)
-        product = exchange.input.get("reference product") or exchange.input.get("name")
+        act = exchange.input
+        product = act.get("reference product", act.get("name"))
         row.update({"Product": product, "Formula": exchange.get("formula")})
         return row
 
@@ -191,7 +197,7 @@ class TechnosphereExchangeModel(BaseExchangeModel):
         try:
             act = exchange.input
             row.update({
-                "Product": act.get("reference product") or act.get("name"),
+                "Product": act.get("reference product", act.get("name")),
                 "Activity": act.get("name"),
                 "Location": act.get("location", "Unknown"),
                 "Database": act.get("database"),
@@ -267,7 +273,7 @@ class DownstreamExchangeModel(BaseExchangeModel):
         row = super().create_row(exchange)
         act = exchange.output
         row.update({
-            "Product": act.get("reference product") or act.get("name"),
+            "Product": act.get("reference product", act.get("name")),
             "Activity": act.get("name"),
             "Location": act.get("location", "Unknown"),
             "Database": act.get("database"),

@@ -1,11 +1,10 @@
-# -*- coding: utf-8 -*-
 import numpy as np
 from PySide2 import QtCore, QtGui, QtWidgets
 from PySide2.QtCore import Signal, Slot
 from stats_arrays import uncertainty_choices as uncertainty
 from stats_arrays.distributions import *
 
-from activity_browser import log, signals, application, parameter_controller, exchange_controller
+from activity_browser import log, application, actions
 from ..figures import SimpleDistributionPlot
 from ..style import style_group_box
 from ...bwutils import PedigreeMatrix, get_uncertainty_interface
@@ -75,13 +74,13 @@ class UncertaintyWizard(QtWidgets.QWizard):
         """
         self.amount_mean_test()
         if self.obj.data_type == "exchange":
-            exchange_controller.edit_exchange(self.obj.data, self.uncertainty_info)
+            actions.ExchangeModify.run(self.obj.data, self.uncertainty_info)
             if self.using_pedigree:
-                exchange_controller.edit_exchange(self.obj.data, {"pedigree": self.pedigree.matrix.factors})
+                actions.ExchangeModify.run(self.obj.data, {"pedigree": self.pedigree.matrix.factors})
         elif self.obj.data_type == "parameter":
-            parameter_controller.modify_parameter_uncertainty(self.obj.data, self.uncertainty_info)
+            actions.ParameterModify.run(self.obj.data, "data", self.uncertainty_info)
             if self.using_pedigree:
-                parameter_controller.modify_parameter_pedigree(self.obj.data, self.pedigree.matrix.factors)
+                actions.ParameterModify.run(self.obj.data, "data", self.pedigree.matrix.factors)
         elif self.obj.data_type == "cf":
             self.complete.emit(self.obj.data, self.uncertainty_info)
 
@@ -141,12 +140,11 @@ class UncertaintyWizard(QtWidgets.QWizard):
             )
             if choice == QtWidgets.QMessageBox.Yes:
                 if self.obj.data_type == "exchange":
-                    exchange_controller.edit_exchange(self.obj.data, {"amount": mean})
+                    actions.ExchangeModify.run(self.obj.data, {"amount": mean})
 
                 elif self.obj.data_type == "parameter":
-                    signals.parameter_modified.emit(self.obj.data, "amount", mean)
                     try:
-                        parameter_controller.modify_parameter(self.obj.data, "amount", mean)
+                        actions.ParameterModify.run(self.obj.data, "amount", mean)
                     except Exception as e:
                         QtWidgets.QMessageBox.warning(
                             application.main_window, "Could not save changes", str(e),

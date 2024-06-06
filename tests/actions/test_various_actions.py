@@ -1,15 +1,20 @@
 import pytest
 import os
-import brightway2 as bw
+import bw2data as bd
 from PySide2 import QtWidgets
-from activity_browser import actions, project_controller, database_controller, signals
-from activity_browser.ui.widgets import EcoinventVersionDialog
+from activity_browser import actions, application
+from activity_browser.mod.bw2data import Database
+from activity_browser.bwutils import AB_metadata
+from activity_browser.ui.widgets import EcoinventVersionDialog, DefaultBiosphereDialog, BiosphereUpdater
+from activity_browser.ui.wizards.settings_wizard import SettingsWizard
+from activity_browser.ui.wizards.plugins_manager_wizard import PluginsManagerWizard
+
 
 
 @pytest.mark.skipif(os.environ.get("TEST_FAST", False), reason="Skipped for faster testing")
 def test_default_install(ab_app, monkeypatch, qtbot):
     project_name = "biosphere_project"
-    project_controller.new_project(project_name)
+    bd.projects.set_current(project_name)
 
     monkeypatch.setattr(
         EcoinventVersionDialog, 'exec_',
@@ -20,23 +25,25 @@ def test_default_install(ab_app, monkeypatch, qtbot):
         staticmethod(lambda *args, **kwargs: '3.7')
     )
 
-    assert bw.projects.current == project_name
-    assert "biosphere3" not in bw.databases
+    assert bd.projects.current == project_name
+    assert "biosphere3" not in bd.databases
+    assert not application.main_window.findChild(DefaultBiosphereDialog)
 
-    action = actions.DefaultInstall(None)
-    action.trigger()
+    actions.DefaultInstall.run()
 
-    with qtbot.waitSignal(signals.databases_changed, timeout=5 * 60 * 1000): pass
+    dialog = application.main_window.findChild(DefaultBiosphereDialog)
+    with qtbot.waitSignal(dialog.finished, timeout=5 * 60 * 1000): pass
+    qtbot.waitUntil(lambda: len(AB_metadata.dataframe) == 4324)
 
-    assert "biosphere3" in bw.databases
-    assert database_controller.record_count("biosphere3") == 4324
-    assert len(bw.methods) == 762
+    assert "biosphere3" in bd.databases
+    assert len(Database("biosphere3")) == 4324
+    assert len(bd.methods) == 762
 
 
 @pytest.mark.skipif(os.environ.get("TEST_FAST", False), reason="Skipped for faster testing")
 def test_biosphere_update(ab_app, monkeypatch, qtbot):
     project_name = "biosphere_project"
-    project_controller.change_project(project_name, reload=True)
+    bd.projects.set_current(project_name)
 
     monkeypatch.setattr(
         QtWidgets.QMessageBox, 'question',
@@ -51,35 +58,33 @@ def test_biosphere_update(ab_app, monkeypatch, qtbot):
         staticmethod(lambda *args, **kwargs: '3.9.1')
     )
 
-    assert bw.projects.current == project_name
-    assert "biosphere3" in bw.databases
-    assert database_controller.record_count("biosphere3") == 4324
+    assert bd.projects.current == project_name
+    assert "biosphere3" in bd.databases
+    assert len(Database("biosphere3")) == 4324
 
-    action = actions.BiosphereUpdate(None)
-    action.trigger()
+    actions.BiosphereUpdate.run()
 
-    with qtbot.waitSignal(action.updater.finished, timeout=5*60*1000): pass
+    dialog = application.main_window.findChild(BiosphereUpdater)
+    with qtbot.waitSignal(dialog.finished, timeout=5*60*1000): pass
 
-    assert database_controller.record_count("biosphere3") == 4743
+    assert len(Database("biosphere3")) == 4743
 
 
 def test_plugin_wizard_open(ab_app):
-    action = actions.PluginWizardOpen(None)
+    assert not application.main_window.findChild(PluginsManagerWizard)
 
-    with pytest.raises(AttributeError): assert not action.wizard.isVisible()
+    actions.PluginWizardOpen.run()
 
-    action.trigger()
+    assert application.main_window.findChild(PluginsManagerWizard).isVisible()
 
-    assert action.wizard.isVisible()
+    application.main_window.findChild(PluginsManagerWizard).destroy()
 
 
 def test_settings_wizard_open(ab_app):
-    action = actions.SettingsWizardOpen(None)
+    assert not application.main_window.findChild(SettingsWizard)
 
-    with pytest.raises(AttributeError): assert not action.wizard.isVisible()
+    actions.SettingsWizardOpen.run()
 
-    action.trigger()
+    assert application.main_window.findChild(SettingsWizard).isVisible()
 
-    assert action.wizard.isVisible()
-
-    action.wizard.destroy()
+    application.main_window.findChild(SettingsWizard).destroy()

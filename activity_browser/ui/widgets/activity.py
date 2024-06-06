@@ -1,11 +1,9 @@
 # -*- coding: utf-8 -*-
 from PySide2 import QtCore, QtWidgets
-from PySide2.QtWidgets import QMessageBox
 
+from activity_browser import actions, signals, project_settings
 from .line_edit import SignalledLineEdit, SignalledComboEdit
 from ..icons import qicons
-from ...settings import project_settings
-from ...signals import signals
 from ...bwutils import AB_metadata
 
 
@@ -31,6 +29,11 @@ class DetailsGroupBox(QtWidgets.QGroupBox):
     @QtCore.Slot(name="showHideTable")
     def showhide(self):
         self.widget.setVisible(self.isChecked())
+        if not self.isChecked():
+            minimum_height = self.minimumSizeHint().height()
+            self.setMaximumHeight(minimum_height)
+        else:
+            self.setMaximumHeight(16777215)  # apparently this is the Qt default
 
     @QtCore.Slot(name="toggleEmptyTable")
     def toggle_empty_table(self) -> None:
@@ -157,18 +160,7 @@ class ActivityDataGrid(QtWidgets.QWidget):
         self.database_combo.blockSignals(False)
 
     def duplicate_confirm_dialog(self, target_db):
-        """ Get user confirmation for duplication action """
-        title = "Duplicate activity to new database"
-        text = "Copy {} to {} and open as new tab?".format(
-            self.parent.activity.get('name', 'Error: Name of activity not found'), target_db)
-
-        user_choice = QMessageBox.question(self, title, text, QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
-        if user_choice == QMessageBox.Yes:
-            signals.duplicate_activity_to_db.emit(target_db, self.parent.activity)
-        # todo: give user more options in the dialog:
-        #   * retain / delete version in current db
-        #   * open / don't open new tab
-
+        actions.ActivityDuplicateToDB.run([self.parent.activity], target_db)
         # change selected database item back to original (index=0), to avoid confusing user
         # block and unblock signals to prevent unwanted extra emits from the automated change
         self.database_combo.blockSignals(True)

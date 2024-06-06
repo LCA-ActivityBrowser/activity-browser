@@ -1,15 +1,15 @@
 from activity_browser import application
-from .base import ABAction
-from ..ui.icons import qicons
-from ..ui.wizards.settings_wizard import SettingsWizard
+from activity_browser.actions.base import ABAction, exception_dialogs
+from activity_browser.ui.icons import qicons
+from activity_browser.ui.wizards.settings_wizard import SettingsWizard
 
 
 class SettingsWizardOpen(ABAction):
     """ABAction to open the SettingsWizard"""
     icon = qicons.settings
-    title = "Settings..."
-    wizard: SettingsWizard
+    text = "Settings..."
 
-    def onTrigger(self, toggled):
-        self.wizard = SettingsWizard(application.main_window)
-        self.wizard.show()
+    @staticmethod
+    @exception_dialogs
+    def run():
+        SettingsWizard(application.main_window).show()

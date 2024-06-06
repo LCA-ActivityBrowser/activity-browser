@@ -1,10 +1,14 @@
-from typing import Union, Callable, List
+from typing import List
 
-from PySide2 import QtWidgets, QtCore
+from PySide2 import QtWidgets
 
-from activity_browser import application, project_settings, activity_controller
+from activity_browser import application, project_settings
+from activity_browser.mod import bw2data as bd
 from activity_browser.ui.icons import qicons
-from activity_browser.actions.base import ABAction
+from activity_browser.actions.base import ABAction, exception_dialogs
+from activity_browser.bwutils import commontasks
+
+from .activity_open import ActivityOpen
 
 
 class ActivityDuplicateToDB(ABAction):
@@ -14,16 +18,32 @@ class ActivityDuplicateToDB(ABAction):
     duplicate the activities to the chosen database.
     """
     icon = qicons.duplicate_to_other_database
-    title = 'Duplicate to other database'
-    activity_keys: List[tuple]
+    text = 'Duplicate to other database'
 
-    def __init__(self, activity_keys: Union[List[tuple], Callable], parent: QtCore.QObject):
-        super().__init__(parent, activity_keys=activity_keys)
-
-    def onTrigger(self, toggled):
+    @classmethod
+    @exception_dialogs
+    def run(cls, activity_keys: List[tuple], to_db: str = None):
         # get bw activity objects from keys
-        activities = activity_controller.get_activities(self.activity_keys)
+        activities = [bd.get_activity(key) for key in activity_keys]
 
+        if to_db and not cls.confirm_db(to_db): return
+
+        target_db = to_db or cls.request_db(activities)
+
+        if not target_db: return
+
+        new_activity_keys = []
+
+        # otherwise move all supplied activities to the db using the controller
+        for activity in activities:
+            new_code = commontasks.generate_copy_code((target_db, activity["code"]))
+            new_activity = activity.copy(code=new_code, database=target_db)
+            new_activity_keys.append(new_activity.key)
+
+        ActivityOpen.run(new_activity_keys)
+
+    @staticmethod
+    def request_db(activities):
         # get valid databases (not the original database, or locked databases)
         origin_db = next(iter(activities)).get("database")
         target_dbs = [db for db in project_settings.get_editable_databases() if db != origin_db]
@@ -48,9 +68,15 @@ class ActivityDuplicateToDB(ABAction):
         )
 
         # return if the user didn't choose, or canceled
-        if not target_db or not ok: return
+        if not ok: return
 
-        # otherwise move all supplied activities to the db using the controller
-        for activity in activities:
-            activity_controller.duplicate_activity_to_db(target_db, activity)
+        return target_db
 
+    @staticmethod
+    def confirm_db(to_db: str):
+        user_choice = QtWidgets.QMessageBox.question(
+            application.main_window,
+            "Duplicate to new database",
+            f"Copy to {to_db} and open as new tab?",
+        )
+        return user_choice == user_choice.Yes

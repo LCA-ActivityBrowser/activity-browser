@@ -5,8 +5,8 @@ import numpy as np
 import pandas as pd
 from PySide2.QtCore import Slot
 
+from activity_browser.mod.bw2data import projects, parameters
 from activity_browser.bwutils.utils import Parameters
-from activity_browser.signals import signals
 from .base import PandasModel
 
 
@@ -16,9 +16,8 @@ class ScenarioModel(PandasModel):
 
     def __init__(self, parent=None):
         super().__init__(parent=parent)
-        signals.project_selected.connect(self.sync)
-        signals.parameters_changed.connect(self.rebuild_table)
-        signals.parameter_renamed.connect(self.update_param_name)
+        projects.current_changed.connect(self.sync)
+        parameters.parameters_changed.connect(self.rebuild_table)
 
     @Slot(name="doCleanSync")
     def sync(self, df: pd.DataFrame = None, include_default: bool = True) -> None:

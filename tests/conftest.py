@@ -2,11 +2,11 @@
 import shutil
 import os
 
-import brightway2 as bw
+import bw2data as bd
 import bw2io as bi
 import pytest
 
-from activity_browser import application, MainWindow, project_controller
+from activity_browser import application, MainWindow
 
 
 @pytest.fixture(scope='session')
@@ -14,12 +14,12 @@ def ab_app():
     """ Initialize the application and yield it. Cleanup the 'test' project
     after session is complete.
     """
-    bw.projects._use_temp_directory()
+    bd.projects._use_temp_directory()
     bi.restore_project_directory(os.path.join(os.path.dirname(os.path.abspath(__file__)), "pytest_base.gz"), "default", overwrite_existing=True)
 
     application.main_window = MainWindow(application)
     application.show()
-    project_controller.change_project("default", True)
+    bd.projects.set_current("default")
     yield application
     application.close()
 
@@ -32,13 +32,13 @@ def bw2test():
     Allows tests to be performed in a perfectly clean project instead
     of the test project.
     """
-    bw.config.dont_warn = True
-    bw.config.is_test = True
-    bw.config.cache = {}
-    tempdir = bw.projects._use_temp_directory()
+    bd.config.dont_warn = True
+    bd.config.is_test = True
+    bd.config.cache = {}
+    tempdir = bd.projects._use_temp_directory()
     yield tempdir
-    bw.projects._restore_orig_directory()
+    bd.projects._restore_orig_directory()
     # Make the jump back to the pytest_project if it exists
-    if "pytest_project" in bw.projects:
-        bw.projects.set_current("pytest_project", update=False)
+    if "pytest_project" in bd.projects:
+        bd.projects.set_current("pytest_project", update=False)
     shutil.rmtree(tempdir)

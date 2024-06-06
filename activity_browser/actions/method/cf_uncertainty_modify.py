@@ -1,11 +1,11 @@
-from typing import Union, Callable, List
+from typing import List
+from functools import partial
 
-from PySide2 import QtCore
-
-from activity_browser import application, impact_category_controller
-from ..base import ABAction
-from ...ui.icons import qicons
-from ...ui.wizards import UncertaintyWizard
+from activity_browser import application
+from activity_browser.mod import bw2data as bd
+from activity_browser.actions.base import ABAction, exception_dialogs
+from activity_browser.ui.icons import qicons
+from activity_browser.ui.wizards import UncertaintyWizard
 
 
 class CFUncertaintyModify(ABAction):
@@ -14,33 +14,29 @@ class CFUncertaintyModify(ABAction):
     uncertainty data using the ImpactCategoryController to the Characterization Factor in question.
     """
     icon = qicons.edit
-    title = "Modify uncertainty"
-    method_name: tuple
-    char_factors: List[tuple]
-    wizard: UncertaintyWizard
+    text = "Modify uncertainty"
 
-    def __init__(self,
-                 method_name: Union[tuple, Callable],
-                 char_factors: Union[List[tuple], Callable],
-                 parent: QtCore.QObject
-                 ):
-        super().__init__(parent, method_name=method_name, char_factors=char_factors)
+    @classmethod
+    @exception_dialogs
+    def run(cls, method_name: tuple, char_factors: List[tuple]):
+        wizard = UncertaintyWizard(char_factors[0], application.main_window)
+        wizard.complete.connect(partial(cls.wizard_done, method_name))
+        wizard.show()
 
-    def onTrigger(self, toggled):
-        self.wizard = UncertaintyWizard(self.char_factors[0], application.main_window)
-        self.wizard.complete.connect(self.wizardDone)
-        self.wizard.show()
-
-    def wizardDone(self, cf: tuple, uncertainty: dict):
+    @staticmethod
+    def wizard_done(method_name: tuple, cf: tuple, uncertainty: dict):
         """Update the CF with new uncertainty information, possibly converting
         the second item in the tuple to a dictionary without losing information.
         """
-        data = [*cf]
-        if isinstance(data[1], dict):
-            data[1].update(uncertainty)
-        else:
-            uncertainty["amount"] = data[1]
-            data[1] = uncertainty
+        method = bd.Method(method_name)
+        method_dict = method.load_dict()
 
-        impact_category_controller.write_char_factors(self.method_name, [tuple(data)])
+        if isinstance(cf[1], dict):
+            cf[1].update(uncertainty)
+            method_dict[cf[0]] = cf[1]
+        else:
+            uncertainty["amount"] = cf[1]
+            method_dict[cf[0]] = uncertainty
+
+        method.write_dict(method_dict)
 

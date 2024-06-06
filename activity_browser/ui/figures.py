@@ -3,7 +3,6 @@ import math
 
 import numpy as np
 import pandas as pd
-import brightway2 as bw
 import seaborn as sns
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
@@ -11,6 +10,7 @@ from matplotlib.figure import Figure
 from PySide2 import QtWidgets
 
 from activity_browser import log
+from activity_browser.mod.bw2data import methods
 from activity_browser.utils import savefilepath
 from ..bwutils.commontasks import wrap_text
 
@@ -30,6 +30,7 @@ class Plot(QtWidgets.QWidget):
         # self.figure = Figure(tight_layout=True)
         self.figure = Figure(constrained_layout=True)
         self.canvas = FigureCanvasQTAgg(self.figure)
+        self.canvas.setMinimumHeight(0)
         self.ax = self.figure.add_subplot(111)  # create an axis
         self.plot_name = 'Figure'
 
@@ -87,7 +88,7 @@ class LCAResultsBarChart(Plot):
 
         # labels
         self.ax.set_yticks(np.arange(len(labels)))
-        self.ax.set_xlabel(bw.methods[method].get('unit'))
+        self.ax.set_xlabel(methods[method].get('unit'))
         self.ax.set_title(', '.join([m for m in method]))
         # self.ax.set_yticklabels(labels, minor=False)
 
@@ -273,7 +274,7 @@ class MonteCarloPlot(Plot):
             # self.ax.axvline(df[col].median(), color=color)
             self.ax.axvline(df[col].mean(), color=color)
 
-        self.ax.set_xlabel(bw.methods[method]["unit"])
+        self.ax.set_xlabel(methods[method]["unit"])
         self.ax.set_ylabel('Probability')
         self.ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.07), ) #ncol=2
 

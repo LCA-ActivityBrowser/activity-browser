@@ -1,10 +1,11 @@
-from typing import Union, Callable, List
+from typing import List
 
-from PySide2 import QtCore, QtWidgets
+from PySide2 import QtWidgets
 
-from activity_browser import application, impact_category_controller
-from ..base import ABAction
-from ...ui.icons import qicons
+from activity_browser import application
+from activity_browser.mod import bw2data as bd
+from activity_browser.actions.base import ABAction, exception_dialogs
+from activity_browser.ui.icons import qicons
 
 
 class CFRemove(ABAction):
@@ -13,22 +14,15 @@ class CFRemove(ABAction):
     user cancels. Otherwise instruct the ImpactCategoryController to remove the selected Characterization Factors.
     """
     icon = qicons.delete
-    title = "Remove CF('s)"
-    method_name: tuple
-    char_factors: List[tuple]
+    text = "Remove CF('s)"
 
-    def __init__(self,
-                 method_name: Union[tuple, Callable],
-                 char_factors: Union[List[tuple], Callable],
-                 parent: QtCore.QObject
-                 ):
-        super().__init__(parent, method_name=method_name, char_factors=char_factors)
-
-    def onTrigger(self, toggled):
+    @staticmethod
+    @exception_dialogs
+    def run(method_name: tuple, char_factors: List[tuple]):
         # ask the user whether they are sure to delete the calculation setup
         warning = QtWidgets.QMessageBox.warning(application.main_window,
                                                 "Deleting Characterization Factors",
-                                                f"Are you sure you want to delete {len(self.char_factors)} CF('s)?",
+                                                f"Are you sure you want to delete {len(char_factors)} CF('s)?",
                                                 QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
                                                 QtWidgets.QMessageBox.No
                                                 )
@@ -36,7 +30,10 @@ class CFRemove(ABAction):
         # return if the users cancels
         if warning == QtWidgets.QMessageBox.No: return
 
-        # else remove the char_factors
-        impact_category_controller.delete_char_factors(self.method_name, self.char_factors)
+        method = bd.Method(method_name)
+        method_dict = method.load_dict()
 
+        for cf in char_factors:
+            method_dict.pop(cf[0])
 
+        method.write_dict(method_dict)

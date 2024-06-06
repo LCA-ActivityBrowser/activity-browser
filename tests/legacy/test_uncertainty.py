@@ -3,22 +3,20 @@
 Use the existing parameters to look at the uncertainty and edit it in
 multiple ways
 """
-import brightway2 as bw
-from PySide2 import QtCore, QtWidgets
+import bw2data as bd
 import pytest
 from stats_arrays.distributions import UndefinedUncertainty, UniformUncertainty
 
-from activity_browser import project_controller
+from activity_browser.mod.bw2data import methods, Method
 from activity_browser.bwutils.uncertainty import (
     ExchangeUncertaintyInterface, CFUncertaintyInterface, get_uncertainty_interface
 )
-from activity_browser.ui.tables.delegates import UncertaintyDelegate
-from activity_browser.ui.tables.parameters import ProjectParameterTable
+
 
 def test_exchange_interface(qtbot, ab_app):
-    project_controller.change_project("default")
-    flow = bw.Database(bw.config.biosphere).random()
-    db = bw.Database("testdb")
+    bd.projects.set_current("default")
+    flow = bd.Database(bd.config.biosphere).random()
+    db = bd.Database("testdb")
     act_key = ("testdb", "act_unc")
     db.write({
         act_key: {
@@ -31,7 +29,7 @@ def test_exchange_interface(qtbot, ab_app):
         }
     })
 
-    act = bw.get_activity(act_key)
+    act = bd.get_activity(act_key)
     exc = next(e for e in act.biosphere())
     interface = get_uncertainty_interface(exc)
     assert isinstance(interface, ExchangeUncertaintyInterface)
@@ -42,8 +40,8 @@ def test_exchange_interface(qtbot, ab_app):
 
 @pytest.mark.xfail(reason="Selected CF was already uncertain")
 def test_cf_interface(qtbot, ab_app):
-    key = bw.methods.random()
-    method = bw.Method(key).load()
+    key = methods.random()
+    method = Method(key).load()
     cf = next(f for f in method)
 
     assert isinstance(cf, tuple)

@@ -4,8 +4,7 @@ from pathlib import Path
 import os
 from PySide2 import QtWidgets
 
-from bw2data.filesystem import safe_filename
-
+from activity_browser.mod import bw2data as bd
 from .settings import ab_settings
 
 
@@ -26,7 +25,7 @@ def read_file_text(file_dir: str) -> str:
 
 def savefilepath(default_file_name: str = "AB_file", file_filter: str = "All Files (*.*)"):
     """A central function to get a safe file path."""
-    safe_name = safe_filename(default_file_name, add_hash=False)
+    safe_name = bd.utils.safe_filename(default_file_name, add_hash=False)
     filepath, _ = QtWidgets.QFileDialog.getSaveFileName(
         parent=None,
         caption='Choose location for saving',

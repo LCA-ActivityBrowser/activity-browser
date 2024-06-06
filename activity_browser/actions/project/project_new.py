@@ -1,10 +1,9 @@
-import brightway2 as bw
 from PySide2 import QtWidgets
 
 from activity_browser import application
-from activity_browser.actions.base import ABAction
+from activity_browser.mod import bw2data as bd
+from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.ui.icons import qicons
-from activity_browser.controllers import project_controller
 
 
 class ProjectNew(ABAction):
@@ -14,10 +13,12 @@ class ProjectNew(ABAction):
     project with the given name, and switch to it.
     """
     icon = qicons.add
-    title = "New"
+    text = "New"
     tool_tip = "Make a new project"
 
-    def onTrigger(self, toggled):
+    @staticmethod
+    @exception_dialogs
+    def run():
         name, ok = QtWidgets.QInputDialog.getText(
             application.main_window,
             "Create new project",
@@ -26,7 +27,7 @@ class ProjectNew(ABAction):
 
         if not ok or not name: return
 
-        if name in bw.projects:
+        if name in bd.projects:
             QtWidgets.QMessageBox.information(
                 application.main_window,
                 "Not possible.",
@@ -34,4 +35,5 @@ class ProjectNew(ABAction):
             )
             return
 
-        project_controller.new_project(name)
+        bd.projects.create_project(name)
+        bd.projects.set_current(name)

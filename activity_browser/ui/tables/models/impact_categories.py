@@ -1,17 +1,15 @@
-# -*- coding: utf-8 -*-
 import numbers
 from copy import deepcopy
 from typing import Iterator, Optional
 
-import brightway2 as bw
 import numpy as np
 import pandas as pd
 from PySide2.QtCore import QModelIndex, Qt, Slot
-from PySide2.QtWidgets import QMessageBox
 
-from activity_browser import log, signals
+from activity_browser import signals
+from activity_browser.mod import bw2data as bd
+
 from .base import EditablePandasModel, DragPandasModel, TreeItem, BaseTreeModel
-from ...wizards import UncertaintyWizard
 
 
 class MethodsListModel(DragPandasModel):
@@ -21,7 +19,7 @@ class MethodsListModel(DragPandasModel):
         super().__init__(parent=parent)
         self.method_col = 0
         self.different_column_types = {'# CFs': 'num'}
-        signals.project_selected.connect(self.sync)
+        bd.projects.current_changed.connect(self.sync)
 
         # needed to trigger creation of self.filterable_columns, which relies on method_col existing
         self.sync()
@@ -37,7 +35,7 @@ class MethodsListModel(DragPandasModel):
 
     @Slot(name="syncTable")
     def sync(self, query=None) -> None:
-        sorted_names = sorted([(", ".join(method), method) for method in bw.methods])
+        sorted_names = sorted([(", ".join(method), method) for method in bd.methods])
         if query:
             sorted_names = (
                 m for m in sorted_names if query.lower() in m[0].lower()
@@ -51,7 +49,7 @@ class MethodsListModel(DragPandasModel):
 
     @staticmethod
     def build_row(method_obj) -> dict:
-        method = bw.methods[method_obj[1]]
+        method = bd.methods[method_obj[1]]
         return {
             "Name": method_obj[0],
             "Unit": method.get("unit", "Unknown"),
@@ -99,8 +97,7 @@ class MethodsTreeModel(BaseTreeModel):
 
         self.setup_model_data()
 
-        signals.project_selected.connect(self.setup_and_sync)
-        # signals.new_method.connect(self.filter_on_method) # TODO: Reload interface
+        bd.projects.current_changed.connect(self.setup_and_sync)
 
     def flags(self, index):
         res = super().flags(index) | Qt.ItemIsDragEnabled
@@ -144,7 +141,7 @@ class MethodsTreeModel(BaseTreeModel):
 
         Trigger this at init and when a method is added/deleted.
         """
-        sorted_names = sorted([(", ".join(method), method) for method in bw.methods])
+        sorted_names = sorted([(", ".join(method), method) for method in bd.methods])
         self._dataframe = pd.DataFrame([
             MethodsListModel.build_row(method_obj) for method_obj in sorted_names
         ], columns=self.HEADERS)
@@ -294,23 +291,24 @@ class MethodCharacterizationFactorsModel(EditablePandasModel):
     def __init__(self, parent=None):
         super().__init__(parent=parent)
         self.cf_column = 0
-        self.method: Optional[bw.Method] = None
+        self.method = None
         self.different_column_types = {k: 'num' for k in self.UNCERTAINTY + ['Amount']}
         self.filterable_columns = {col: i for i, col in enumerate(self.HEADERS[:-1])}
-        signals.method_modified.connect(self.sync)
 
     @property
     def uncertain_cols(self) -> list:
         return [self._dataframe.columns.get_loc(c) for c in self.UNCERTAINTY]
 
-    @Slot(name="syncExistingModel")
-    @Slot(tuple, name="syncNewModel")
-    def sync(self, method: Optional[tuple] = None) -> None:
-        if self.method and self.method.name != method:
-            return
-        if method:
-            self.method = bw.Method(method)
-        assert self.method is not None, "A method must be set."
+    def load(self, method):
+        assert self.method is None, "CF Model already loaded"
+        self.method = method
+        self.method.changed.connect(self.sync)
+
+        self.sync()
+
+    def sync(self) -> None:
+        assert self.method is not None, "A method must first be set using load()."
+        if not self.method.registered: return  # the method was deleted, this table will soon be closed
         self._dataframe = pd.DataFrame([
             self.build_row(obj) for obj in self.method.load()
         ], columns=self.HEADERS + self.UNCERTAINTY)
@@ -320,7 +318,7 @@ class MethodCharacterizationFactorsModel(EditablePandasModel):
     @classmethod
     def build_row(cls, method_cf: tuple) -> dict:
         key, amount = method_cf[:2]
-        flow = bw.get_activity(key)
+        flow = bd.get_activity(tuple(key))
         row = {
             cls.HEADERS[i]: flow.get(c) for i, c in enumerate(cls.COLUMNS)
         }

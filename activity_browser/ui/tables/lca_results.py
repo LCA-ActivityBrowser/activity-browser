@@ -8,15 +8,15 @@ class LCAResultsTable(ABDataFrameView):
         super().__init__(parent)
         self.model = LCAResultsModel(parent=self)
         self.model.updated.connect(self.update_proxy_model)
-        self.model.updated.connect(self.custom_view_sizing)
 
 
 class InventoryTable(ABFilterableDataFrameView):
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.horizontalHeader().setStretchLastSection(True)
+
         self.model = InventoryModel(parent=self)
         self.model.updated.connect(self.update_proxy_model)
-        self.model.updated.connect(self.custom_view_sizing)
         self.model.updated.connect(self.update_filter_data)
         # below variables are required for switching between technosphere and biosphere tables
         self.showing = None
@@ -48,4 +48,3 @@ class ContributionTable(ABDataFrameView):
         super().__init__(parent)
         self.model = ContributionModel(parent=self)
         self.model.updated.connect(self.update_proxy_model)
-        self.model.updated.connect(self.custom_view_sizing)

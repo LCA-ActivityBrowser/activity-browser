@@ -1,10 +1,8 @@
-from typing import Union, Callable, List
+from typing import List
 
-from PySide2 import QtCore
-
-from activity_browser import  impact_category_controller
-from ..base import ABAction
-from ...ui.icons import qicons
+from activity_browser.mod import bw2data as bd
+from activity_browser.actions.base import ABAction, exception_dialogs
+from activity_browser.ui.icons import qicons
 
 
 class CFAmountModify(ABAction):
@@ -13,27 +11,20 @@ class CFAmountModify(ABAction):
     directly if there's no uncertainty dict. Otherwise, changes the "amount" from the uncertainty dict.
     """
     icon = qicons.edit
-    title = "Modify amount"
-    method_name: tuple
-    char_factors: List[tuple]
-    amount: float
+    text = "Modify amount"
 
-    def __init__(self,
-                 method_name: Union[tuple, Callable],
-                 char_factors: Union[List[tuple], Callable],
-                 amount: Union[float, Callable],
-                 parent: QtCore.QObject
-                 ):
-        super().__init__(parent, method_name=method_name, char_factors=char_factors, amount=amount)
+    @staticmethod
+    @exception_dialogs
+    def run(method_name: tuple, char_factors: List[tuple], amount: float):
+        method = bd.Method(method_name)
+        method_dict = method.load_dict()
+        cf = char_factors[0]
 
-    def onTrigger(self, toggled):
-        char_factor = list(self.char_factors[0])
-        if isinstance(char_factor[1], dict):
-            char_factor[1]['amount'] = self.amount
+        if isinstance(cf[1], dict):
+            method_dict[cf[0]]['amount'] = amount
         else:
-            char_factor[1] = self.amount
-        char_factor = tuple(char_factor)
+            method_dict[cf[0]] = amount
 
-        impact_category_controller.write_char_factors(self.method_name, [char_factor])
+        method.write_dict(method_dict)
 
 

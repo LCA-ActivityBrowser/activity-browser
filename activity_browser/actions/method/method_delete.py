@@ -1,11 +1,11 @@
-from typing import Union, Callable, List, Optional
+from typing import List
 
-import brightway2 as bw
-from PySide2 import QtCore, QtWidgets
+from PySide2 import QtWidgets
 
-from activity_browser import application, impact_category_controller
-from ..base import ABAction
-from ...ui.icons import qicons
+from activity_browser import application, log
+from activity_browser.mod import bw2data as bd
+from activity_browser.actions.base import ABAction, exception_dialogs
+from activity_browser.ui.icons import qicons
 
 
 class MethodDelete(ABAction):
@@ -15,32 +15,25 @@ class MethodDelete(ABAction):
     methods.
     """
     icon = qicons.delete
-    title = "Delete Impact Category"
-    methods: List[tuple]
-    level: tuple
+    text = "Delete Impact Category"
 
-    def __init__(self,
-                 methods: Union[List[tuple], Callable],
-                 level: Optional[Union[tuple, Callable]],
-                 parent: QtCore.QObject
-                 ):
-        super().__init__(parent, methods=methods, level=level)
-
-    def onTrigger(self, toggled):
+    @staticmethod
+    @exception_dialogs
+    def run(methods: List[tuple], level: str):
         # this action can handle only one selected method for now
-        selected_method = self.methods[0]
+        selected_method = methods[0]
 
         # check whether we're dealing with a leaf or node. If it's a node, select all underlying methods for deletion
-        if self.level is not None and self.level != 'leaf':
-            methods = [bw.Method(method) for method in bw.methods if set(selected_method).issubset(method)]
+        if level is not None and level != 'leaf':
+            all_methods = [bd.Method(method) for method in bd.methods if set(selected_method).issubset(method)]
         else:
-            methods = [bw.Method(selected_method)]
+            all_methods = [bd.Method(selected_method)]
 
         # warn the user about the pending deletion
         warning = QtWidgets.QMessageBox.warning(application.main_window,
-                                                f"Deleting Method: {selected_method}",
-                                                "Are you sure you want to delete this method and possible underlying "
-                                                "methods?",
+                                                "Deleting Method",
+                                                f"Are you sure you want to delete this method and possible underlying "
+                                                f"methods?\n\n{selected_method}",
                                                 QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
                                                 QtWidgets.QMessageBox.No
                                                 )
@@ -48,4 +41,6 @@ class MethodDelete(ABAction):
         if warning == QtWidgets.QMessageBox.No: return
 
         # instruct the controller to delete the selected methods
-        impact_category_controller.delete_methods(methods)
+        for method in all_methods:
+            method.deregister()
+            log.info(f"Deleted method {method.name}")

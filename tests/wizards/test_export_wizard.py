@@ -1,9 +1,5 @@
-# -*- coding: utf-8 -*-
-import brightway2 as bw
 from PySide2 import QtCore, QtWidgets
 
-from activity_browser.signals import signals
-from activity_browser.controllers.database import DatabaseController
 from activity_browser.ui.wizards.db_export_wizard import DatabaseExportWizard
 
 # TODO: Add fixture with small database to export.

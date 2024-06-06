@@ -1,21 +1,13 @@
-# -*- coding: utf-8 -*-
 from abc import abstractmethod
-from collections import defaultdict
 from collections.abc import Iterator
-import itertools
 from typing import Iterable, List, Optional, Tuple
 
-from asteval import Interpreter
 from bw2calc import LCA
-from bw2data.backends.peewee import ExchangeDataset
-from bw2data.parameters import (
-    ProjectParameter, DatabaseParameter, ActivityParameter,
-    ParameterizedExchange, get_new_symbols
-)
-from bw2parameters import ParameterSet
-from bw2parameters.errors import MissingName
 import numpy as np
 from stats_arrays import MCRandomNumberGenerator, UncertaintyBase
+
+from activity_browser.mod.bw2data.parameters import *
+from activity_browser.mod.bw2data.backends import ExchangeDataset
 
 from .utils import Index, Parameters, Indices, StaticParameters
 
@@ -183,7 +175,7 @@ class ParameterManager(object):
         https://presamples.readthedocs.io/en/latest/index.html"""
         result = np.zeros(len(self.indices), dtype=object)
         for i, idx in enumerate(self.indices):
-            result[i] = (idx.input, idx.output, idx.input.database_type)
+            result[i] = (idx.input, idx.output, idx.flow_type)
         return result
 
     def arrays_from_scenarios(self, scenarios) -> (np.ndarray, np.ndarray):

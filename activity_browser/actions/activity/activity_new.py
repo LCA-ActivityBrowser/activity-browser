@@ -1,10 +1,13 @@
-from typing import Union, Callable
+from uuid import uuid4
 
-from PySide2 import QtWidgets, QtCore
+from PySide2 import QtWidgets
 
-from activity_browser import application, activity_controller
+from activity_browser import application
+from activity_browser.mod.bw2data import Database
 from activity_browser.ui.icons import qicons
-from activity_browser.actions.base import ABAction
+from activity_browser.actions.base import ABAction, exception_dialogs
+
+from .activity_open import ActivityOpen
 
 
 class ActivityNew(ABAction):
@@ -13,13 +16,11 @@ class ActivityNew(ABAction):
     cancels. Otherwise, instructs the ActivityController to create a new activity.
     """
     icon = qicons.add
-    title = "New activity"
-    database_name: str
+    text = "New activity"
 
-    def __init__(self, database_name: Union[str, Callable], parent: QtCore.QObject):
-        super().__init__(parent, database_name=database_name)
-
-    def onTrigger(self, toggled):
+    @staticmethod
+    @exception_dialogs
+    def run(database_name: str):
         # ask the user to provide a name for the new activity
         name, ok = QtWidgets.QInputDialog.getText(
             application.main_window,
@@ -31,5 +32,19 @@ class ActivityNew(ABAction):
         # if no name is provided, or the user cancels, return
         if not ok or not name: return
 
-        # else, instruct the ActivityController to create a new activity
-        activity_controller.new_activity(self.database_name, name)
+        # create activity
+        data = {
+            "name": name,
+            "reference product": name,
+            "unit": "unit",
+            "type": "process"
+        }
+        database = Database(database_name)
+        new_act = database.new_activity(code=uuid4().hex, **data)
+        new_act.save()
+
+        # create the production exchange
+        production_exchange = new_act.new_exchange(input=new_act, amount=1, type="production")
+        production_exchange.save()
+
+        ActivityOpen.run([new_act.key])

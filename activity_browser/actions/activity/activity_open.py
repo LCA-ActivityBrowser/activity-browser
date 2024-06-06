@@ -1,10 +1,8 @@
-from typing import Union, Callable, List
-
-from PySide2 import QtCore
+from typing import List
 
 from activity_browser import signals
 from activity_browser.ui.icons import qicons
-from activity_browser.actions.base import ABAction
+from activity_browser.actions.base import ABAction, exception_dialogs
 
 
 class ActivityOpen(ABAction):
@@ -14,13 +12,11 @@ class ActivityOpen(ABAction):
     TODO: move away from using signals like this. Probably add a method to the MainWindow to add a panel instead.
     """
     icon = qicons.right
-    title = 'Open ***'
-    activity_keys: List[tuple]
+    text = 'Open ***'
 
-    def __init__(self, activity_keys: Union[List[tuple], Callable], parent: QtCore.QObject):
-        super().__init__(parent, activity_keys=activity_keys)
-
-    def onTrigger(self, toggled):
-        for key in self.activity_keys:
+    @staticmethod
+    @exception_dialogs
+    def run(activity_keys: List[tuple]):
+        for key in activity_keys:
             signals.safe_open_activity_tab.emit(key)
             signals.add_activity_to_history.emit(key)

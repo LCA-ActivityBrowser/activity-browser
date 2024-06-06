@@ -2,9 +2,10 @@ from typing import Union, Callable, List
 
 from PySide2 import QtCore
 
-from activity_browser import activity_controller
+from activity_browser.mod.bw2data import get_activity
+from activity_browser.bwutils import commontasks
 from activity_browser.ui.icons import qicons
-from activity_browser.actions.base import ABAction
+from activity_browser.actions.base import ABAction, exception_dialogs
 
 
 class ActivityDuplicate(ABAction):
@@ -12,13 +13,13 @@ class ActivityDuplicate(ABAction):
     Duplicate one or multiple activities using their keys. Proxy action to call the controller.
     """
     icon = qicons.copy
-    title = 'Duplicate ***'
-    activity_keys: List[tuple]
+    text = 'Duplicate ***'
 
-    def __init__(self, activity_keys: Union[List[tuple], Callable], parent: QtCore.QObject):
-        super().__init__(parent, activity_keys=activity_keys)
+    @staticmethod
+    @exception_dialogs
+    def run(activity_keys: List[tuple]):
+        activities = [get_activity(key) for key in activity_keys]
 
-    def onTrigger(self, toggled):
-        activity_controller.duplicate_activities(self.activity_keys)
-
-
+        for activity in activities:
+            new_code = commontasks.generate_copy_code(activity.key)
+            activity.copy(new_code)

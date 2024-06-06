@@ -90,7 +90,7 @@ class FormulaDialog(QtWidgets.QDialog):
         self.text_field.setCompleter(completer)
         self.parameters.doubleClicked.connect(self.append_parameter_name)
 
-        self.new_parameter_button = actions.ParameterNew(self.get_key, self).get_button()
+        self.new_parameter_button = actions.ParameterNew.get_QButton(self.get_key)
 
         self.calculator = CalculatorButtons(self)
         self.calculator.button_press.connect(self.text_field.insert)
@@ -210,7 +210,7 @@ class FormulaDelegate(QtWidgets.QStyledItemDelegate):
         editor = QtWidgets.QWidget(parent)
         dialog = FormulaDialog(editor, QtCore.Qt.Window)
         dialog.accepted.connect(lambda: self.commitData.emit(editor))
-        dialog.rejected.connect(signals.parameters_changed.emit)
+        # dialog.rejected.connect(signals.parameters_changed.emit)
         return editor
 
     def setEditorData(self, editor: QtWidgets.QWidget, index: QtCore.QModelIndex):

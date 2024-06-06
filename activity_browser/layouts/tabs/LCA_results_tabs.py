@@ -18,6 +18,8 @@ from PySide2.QtWidgets import (
 from stats_arrays.errors import InvalidParamsError
 
 from activity_browser import log, signals
+from activity_browser.mod.bw2data import calculation_setups
+
 from .base import BaseRightTab
 from ...bwutils import (
     Contributions, MonteCarloLCA, MLCA,
@@ -89,6 +91,7 @@ class LCAResultsSubTab(QTabWidget):
         super().__init__(parent)
         self.data = data
         self.cs_name = self.data.get('cs_name')
+        self.cs = calculation_setups[self.cs_name]
         self.has_scenarios = False if data.get('calculation_type') == 'simple' else True
         self.mlca: Optional[Union[MLCA, SuperstructureMLCA]] = None
         self.contributions: Optional[Contributions] = None
@@ -129,6 +132,8 @@ class LCAResultsSubTab(QTabWidget):
         self.setCurrentWidget(self.tabs.results)
         self.currentChanged.connect(self.generate_content_on_click)
         QApplication.restoreOverrideCursor()
+
+        calculation_setups.metadata_changed.connect(self.check_cs)
 
     def setup_tabs(self):
         """Have all of the tabs pull in their required data and add them."""
@@ -177,6 +182,10 @@ class LCAResultsSubTab(QTabWidget):
             if not filepath.endswith(".xlsx"):
                 filepath += ".xlsx"
             df.to_excel(filepath)
+
+    def check_cs(self):
+        if self.cs != calculation_setups.get(self.cs_name, None):
+            self.deleteLater()
 
 
 class NewAnalysisTab(BaseRightTab):
@@ -435,8 +444,6 @@ class InventoryTab(NewAnalysisTab):
         self.table = InventoryTable(self.parent)
         self.table.table_name = 'Inventory_' + self.parent.cs_name
         self.layout.addWidget(self.table)
-
-        self.layout.addStretch(1)
 
         self.layout.addLayout(self.build_export(has_plot=False, has_table=True))
         self.connect_signals()
@@ -865,24 +872,37 @@ class ContributionTab(NewAnalysisTab):
         combobox objects to be read out (which comparison, drop-down indexes,
         etc.) and fed into update calls.
         """
-        if self.combobox_menu.agg.currentText() != 'none':
-            compare_fields = {"aggregator": self.combobox_menu.agg.currentText()}
-        else:
-            compare_fields = {"aggregator": None}
+        # gather the combobox values
+        method = self.parent.method_dict[self.combobox_menu.method.currentText()]
+        functional_unit = self.combobox_menu.func.currentText()
+        scenario = self.combobox_menu.scenario.currentIndex()
+        aggregator = self.combobox_menu.agg.currentText()
+
+        # catch uninitiated scenario combobox
+        if scenario < 0:
+            scenario = 0
+        # set aggregator to None if unwanted
+        if aggregator == 'none':
+            aggregator = None
+
+        # initiate dict with the field we want to compare
+        compare_fields = {"aggregator": aggregator}
 
         # Determine which comparison is active and update the comparison.
         if self.switches.currentIndex() == self.switches.indexes.func:
             compare_fields.update({
-                "method": self.parent.method_dict[self.combobox_menu.method.currentText()],
+                "method": method,
+                "scenario": scenario
             })
         elif self.switches.currentIndex() == self.switches.indexes.method:
             compare_fields.update({
-                "functional_unit": self.combobox_menu.func.currentText(),
+                "functional_unit": functional_unit,
+                "scenario": scenario
             })
         elif self.switches.currentIndex() == self.switches.indexes.scenario:
             compare_fields.update({
-                "method": self.parent.method_dict[self.combobox_menu.method.currentText()],
-                "functional_unit": self.combobox_menu.func.currentText(),
+                "method": method,
+                "functional_unit": functional_unit,
             })
 
         # Determine the unit for the figure, update the filenames and the
@@ -898,6 +918,7 @@ class ContributionTab(NewAnalysisTab):
         self.combobox_menu.method.currentIndexChanged.connect(self.update_tab)
         self.combobox_menu.func.currentIndexChanged.connect(self.update_tab)
         self.combobox_menu.agg.currentIndexChanged.connect(self.update_tab)
+        self.combobox_menu.scenario.currentIndexChanged.connect(self.update_tab)
 
     def update_tab(self):
         """Update the tab."""

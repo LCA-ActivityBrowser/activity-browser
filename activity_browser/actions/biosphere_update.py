@@ -1,13 +1,10 @@
-from typing import Union, Callable, Any
-
-from PySide2 import QtCore, QtWidgets
+from PySide2 import QtWidgets
 
 from activity_browser import application
-from .base import ABAction
-from ..ui.widgets import BiosphereUpdater, EcoinventVersionDialog
-from ..ui.icons import qicons
-from ..utils import sort_semantic_versions
-from ..info import __ei_versions__
+from activity_browser.actions.base import ABAction, exception_dialogs
+from activity_browser.ui.widgets import BiosphereUpdater, EcoinventVersionDialog
+from activity_browser.utils import sort_semantic_versions
+from activity_browser.info import __ei_versions__
 
 
 class BiosphereUpdate(ABAction):
@@ -15,11 +12,11 @@ class BiosphereUpdate(ABAction):
     ABAction to open the Biosphere updater.
     """
     icon = application.style().standardIcon(QtWidgets.QStyle.SP_BrowserReload)
-    title = "Update biosphere..."
+    text = "Update biosphere..."
 
-    updater: BiosphereUpdater
-
-    def onTrigger(self, toggled):
+    @staticmethod
+    @exception_dialogs
+    def run():
         """ Open a popup with progression bar and run through the different
         functions for adding ecoinvent biosphere flows.
         """
@@ -44,5 +41,4 @@ class BiosphereUpdate(ABAction):
         ei_versions = sorted_versions[:sorted_versions.index(version) + 1]
 
         # show updating dialog
-        self.updater = BiosphereUpdater(ei_versions, application.main_window)
-        self.updater.show()
+        BiosphereUpdater(ei_versions, application.main_window).show()

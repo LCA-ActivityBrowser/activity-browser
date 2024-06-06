@@ -6,6 +6,7 @@ from PySide2.QtCore import Qt, Slot
 from PySide2.QtWidgets import QMessageBox, QVBoxLayout, QApplication
 
 from activity_browser import log, signals
+from activity_browser.mod import bw2data as bd
 from .LCA_results_tabs import LCAResultsSubTab
 from ..panels import ABTab
 from ...bwutils.errors import ABError
@@ -27,10 +28,9 @@ class LCAResultsTab(ABTab):
 
     def connect_signals(self):
         signals.lca_calculation.connect(self.generate_setup)
-        signals.delete_calculation_setup.connect(self.remove_setup)
         self.tabCloseRequested.connect(self.close_tab)
-        signals.project_selected.connect(self.close_all)
-        signals.parameters_changed.connect(self.close_all)
+        bd.projects.current_changed.connect(self.close_all)
+        bd.parameters.parameters_changed.connect(self.close_all)
 
     @Slot(str, name="removeSetup")
     def remove_setup(self, name: str):
@@ -57,6 +57,10 @@ class LCAResultsTab(ABTab):
             self.tabs[name] = new_tab
             self.addTab(new_tab, name)
             self.select_tab(self.tabs[name])
+
+            new_tab.destroyed.connect(lambda: self.tabs.pop(name) if id(self.tabs.get(name, None)) == id(new_tab) else None )
+            new_tab.destroyed.connect(signals.hide_when_empty.emit)
+
             signals.show_tab.emit("LCA results")
         except (BW2CalcError, ABError) as e:
             initial, *other = e.args

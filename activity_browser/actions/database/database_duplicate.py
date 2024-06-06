@@ -1,10 +1,8 @@
-from typing import Union, Callable
+from PySide2 import QtWidgets
 
-import brightway2 as bw
-from PySide2 import QtWidgets, QtCore
-
-from activity_browser import application, database_controller
-from activity_browser.actions.base import ABAction
+from activity_browser import application
+from activity_browser.mod import bw2data as bd
+from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.ui.icons import qicons
 from activity_browser.ui.threading import ABThread
 
@@ -17,26 +15,22 @@ class DatabaseDuplicate(ABAction):
     database with the chosen name.
     """
     icon = qicons.duplicate_database
-    title = "Duplicate database..."
+    text = "Duplicate database..."
     tool_tip = "Make a duplicate of this database"
-    db_name: str
 
-    dialog: "DuplicateDatabaseDialog"
-
-    def __init__(self, database_name: Union[str, Callable], parent: QtCore.QObject):
-        super().__init__(parent, db_name=database_name)
-
-    def onTrigger(self, toggled):
-        assert self.db_name in bw.databases
+    @staticmethod
+    @exception_dialogs
+    def run(db_name: str):
+        assert db_name in bd.databases
 
         new_name, ok = QtWidgets.QInputDialog.getText(
             application.main_window,
-            f"Copy {self.db_name}",
+            f"Copy {db_name}",
             "Name of new database:" + " " * 25
         )
         if not new_name or not ok: return
 
-        if new_name in bw.databases:
+        if new_name in bd.databases:
             QtWidgets.QMessageBox.information(
                 application.main_window,
                 "Not possible",
@@ -44,8 +38,8 @@ class DatabaseDuplicate(ABAction):
             )
             return
 
-        self.dialog = DuplicateDatabaseDialog(
-            self.db_name,
+        DuplicateDatabaseDialog(
+            db_name,
             new_name,
             application.main_window
         )
@@ -79,5 +73,5 @@ class DuplicateDatabaseThread(ABThread):
         self.copy_to = to_db
 
     def run_safely(self):
-        database_controller.duplicate_database(self.copy_from, self.copy_to)
-
+        database = bd.Database(self.copy_from)
+        database.copy(self.copy_to)

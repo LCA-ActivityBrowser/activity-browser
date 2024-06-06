@@ -6,6 +6,7 @@ from .activity.activity_graph import ActivityGraph
 from .activity.activity_duplicate_to_loc import ActivityDuplicateToLoc
 from .activity.activity_delete import ActivityDelete
 from .activity.activity_duplicate_to_db import ActivityDuplicateToDB
+from .activity.activity_modify import ActivityModify
 
 from .calculation_setup.cs_new import CSNew
 from .calculation_setup.cs_delete import CSDelete
@@ -39,10 +40,16 @@ from .method.cf_uncertainty_remove import CFUncertaintyRemove
 from .parameter.parameter_new import ParameterNew
 from .parameter.parameter_new_automatic import ParameterNewAutomatic
 from .parameter.parameter_rename import ParameterRename
+from .parameter.parameter_delete import ParameterDelete
+from .parameter.parameter_modify import ParameterModify
+from .parameter.parameter_uncertainty_remove import ParameterUncertaintyRemove
+from .parameter.parameter_uncertainty_modify import ParameterUncertaintyModify
+from .parameter.parameter_clear_broken import ParameterClearBroken
 
 from .project.project_new import ProjectNew
 from .project.project_duplicate import ProjectDuplicate
 from .project.project_delete import ProjectDelete
+from .project.project_switch import ProjectSwitch
 
 from .default_install import DefaultInstall
 from .biosphere_update import BiosphereUpdate

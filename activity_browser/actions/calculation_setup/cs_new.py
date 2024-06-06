@@ -1,10 +1,9 @@
-import brightway2 as bw
 from PySide2 import QtWidgets
 
-from activity_browser import application
-from activity_browser.actions.base import ABAction
+from activity_browser import application, log, signals
+from activity_browser.mod import bw2data as bd
+from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.ui.icons import qicons
-from activity_browser.controllers import calculation_setup_controller
 
 
 class CSNew(ABAction):
@@ -14,9 +13,11 @@ class CSNew(ABAction):
     create a new Calculation Setup with the given name.
     """
     icon = qicons.add
-    title = "New"
+    text = "New"
 
-    def onTrigger(self, toggled):
+    @staticmethod
+    @exception_dialogs
+    def run():
         # prompt the user to give a name for the new calculation setup
         name, ok = QtWidgets.QInputDialog.getText(
             application.main_window,
@@ -28,7 +29,7 @@ class CSNew(ABAction):
         if not ok or not name: return
 
         # throw error if the name is already present, and return
-        if name in bw.calculation_setups.keys():
+        if name in bd.calculation_setups:
             QtWidgets.QMessageBox.warning(
                 application.main_window,
                 "Not possible",
@@ -37,4 +38,6 @@ class CSNew(ABAction):
             return
 
         # instruct the CalculationSetupController to create a CS with the new name
-        calculation_setup_controller.new_calculation_setup(name)
+        bd.calculation_setups[name] = {'inv': [], 'ia': []}
+        signals.calculation_setup_selected.emit(name)
+        log.info(f"New calculation setup: {name}")

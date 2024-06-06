@@ -1,11 +1,11 @@
-from typing import Union, Callable, List
+from typing import List
 
-import brightway2 as bw
-from PySide2 import QtCore, QtWidgets
+from PySide2 import QtWidgets
 
-from activity_browser import application, impact_category_controller
-from ..base import ABAction
-from ...ui.icons import qicons
+from activity_browser import application
+from activity_browser.mod import bw2data as bd
+from activity_browser.actions.base import ABAction, exception_dialogs
+from activity_browser.ui.icons import qicons
 
 
 class CFNew(ABAction):
@@ -13,33 +13,19 @@ class CFNew(ABAction):
     ABAction to add a new characterization flow to a method through one or more elementary-flow keys.
     """
     icon = qicons.add
-    title = "New characterization factor"
-    method_name: tuple
-    keys: List[tuple]
+    text = "New characterization factor"
 
-    def __init__(self,
-                 method_name: Union[tuple, Callable],
-                 keys: Union[List[tuple], Callable],
-                 parent: QtCore.QObject
-                 ):
-        super().__init__(parent, method_name=method_name, keys=keys)
-
-    def onTrigger(self, toggled):
+    @staticmethod
+    @exception_dialogs
+    def run(method_name: tuple, keys: List[tuple]):
         # load old cf's from the Method
-        old_cfs = bw.Method(self.method_name).load()
-
-        # get the old_keys to be able to check for duplicates
-        if old_cfs:
-            old_keys, _ = list(zip(*old_cfs))
-        # if no cfs, keys is an empty list
-        else:
-            old_keys = []
+        method_dict = bd.Method(method_name).load_dict()
 
         # use only the keys that don't already exist within the method
-        unique_keys = [key for key in self.keys if key not in old_keys]
+        unique_keys = [key for key in keys if key not in method_dict]
 
         # if there are non-unique keys warn the user that these won't be added
-        if len(unique_keys) < len(self.keys):
+        if len(unique_keys) < len(keys):
             QtWidgets.QMessageBox.warning(
                 application.main_window,
                 "Duplicate characterization factors",
@@ -47,13 +33,12 @@ class CFNew(ABAction):
                 "added"
             )
 
-        # construct new characterization factors from the unique keys
-        new_cfs = []
+        # return if there are no new keys
+        if not unique_keys: return
+
+        # add the new keys to the method dictionary
         for key in unique_keys:
-            new_cfs.append((key, 0.0))
+            method_dict[key] = 0.0
 
-        # return if there are none
-        if not new_cfs: return
-
-        # otherwise instruct the ICController to write the new CF's to the method
-        impact_category_controller.write_char_factors(self.method_name, new_cfs, overwrite=False)
+        # write the updated dict to the method
+        bd.Method(method_name).write_dict(method_dict)

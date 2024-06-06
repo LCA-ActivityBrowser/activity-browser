@@ -1,9 +1,9 @@
-# -*- coding: utf-8 -*-
-import brightway2 as bw
 from PySide2 import QtWidgets, QtGui
 from PySide2.QtCore import QSize, QUrl, Slot
 
 from activity_browser import actions, signals
+from activity_browser.mod import bw2data as bd
+
 from ..info import __version__ as ab_version
 from .icons import qicons
 
@@ -18,11 +18,11 @@ class MenuBar(QtWidgets.QMenuBar):
         self.tools_menu = QtWidgets.QMenu('&Tools', self.window)
         self.help_menu = QtWidgets.QMenu('&Help', self.window)
 
-        self.update_biosphere_action = actions.BiosphereUpdate(self)
-        self.export_db_action = actions.DatabaseExport(self)
-        self.import_db_action = actions.DatabaseImport(self)
-        self.manage_plugins_action = actions.PluginWizardOpen(self)
-        self.manage_settings_action = actions.SettingsWizardOpen(self)
+        self.update_biosphere_action = actions.BiosphereUpdate.get_QAction()
+        self.export_db_action = actions.DatabaseExport.get_QAction()
+        self.import_db_action = actions.DatabaseImport.get_QAction()
+        self.manage_plugins_action = actions.PluginWizardOpen.get_QAction()
+        self.manage_settings_action = actions.SettingsWizardOpen.get_QAction()
 
         self.addMenu(self.file_menu)
         self.addMenu(self.view_menu)
@@ -36,8 +36,8 @@ class MenuBar(QtWidgets.QMenuBar):
         self.connect_signals()
 
     def connect_signals(self):
-        signals.project_selected.connect(self.biosphere_exists)
-        signals.databases_changed.connect(self.biosphere_exists)
+        bd.projects.current_changed.connect(self.biosphere_exists)
+        bd.databases.metadata_changed.connect(self.biosphere_exists)
 
     def setup_file_menu(self) -> None:
         """Build the menu for specific importing/export/updating actions."""
@@ -67,7 +67,7 @@ class MenuBar(QtWidgets.QMenuBar):
     def setup_tools_menu(self) -> None:
         """Build the tools menu for the menubar."""
         self.tools_menu.addAction(self.manage_plugins_action)
-        
+
     def setup_help_menu(self) -> None:
         """Build the help menu for the menubar."""
         self.help_menu.addAction(
@@ -108,6 +108,7 @@ For license information please see the copyright on <a href="https://github.com/
     def biosphere_exists(self) -> None:
         """ Test if the default biosphere exists as a database in the project
         """
-        exists = True if bw.config.biosphere in bw.databases else False
+        exists = True if bd.config.biosphere in bd.databases else False
         self.update_biosphere_action.setEnabled(exists)
         self.import_db_action.setEnabled(exists)
+

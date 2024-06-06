@@ -1,14 +1,13 @@
-# -*- coding: utf-8 -*-
 from datetime import datetime as dt
 import numbers
 from pathlib import Path
 from typing import Union
 
-import brightway2 as bw
-from bw2data.utils import safe_filename
 from bw2io.export.excel import CSVFormatter, create_valid_worksheet_name
 from bw2io.export.csv import reformat
 import xlsxwriter
+
+from activity_browser.mod import bw2data as bd
 
 from .importers import ABPackage
 from .pedigree import PedigreeMatrix
@@ -81,7 +80,7 @@ def write_lci_excel(db_name: str, path: str, objs=None, sections=None) -> Path:
     """
     path = Path(path)
     if not path.suffix == ".xlsx":
-        out_file = path / "lci-{}.xlsx".format(safe_filename(db_name, False))
+        out_file = path / "lci-{}.xlsx".format(bd.utils.safe_filename(db_name, False))
     else:
         out_file = path
 
@@ -114,11 +113,11 @@ def store_database_as_package(db_name: str, directory: str = None) -> bool:
     isolated package that can be shared with others.
     Returns a boolean signifying success or failure.
     """
-    if db_name not in bw.databases:
+    if db_name not in bd.databases:
         return False
-    metadata = bw.databases[db_name]
-    db = bw.Database(db_name)
-    directory = directory or bw.projects.output_dir
+    metadata = bd.databases[db_name]
+    db = bd.Database(db_name)
+    directory = directory or bd.projects.output_dir
     output_dir = Path(directory)
     if output_dir.suffix == ".bw2package":
         out_file = output_dir

@@ -1,10 +1,12 @@
-from typing import Union, Callable, List
+from typing import List
 
-from PySide2 import QtWidgets, QtCore
+from PySide2 import QtWidgets
 
-from activity_browser import application, activity_controller
+from activity_browser import application
+from activity_browser.mod import bw2data as bd
+from activity_browser.mod.bw2data.parameters import ActivityParameter, Group, GroupDependency, parameters
 from activity_browser.ui.icons import qicons
-from activity_browser.actions.base import ABAction
+from activity_browser.actions.base import ABAction, exception_dialogs
 
 
 class ActivityDelete(ABAction):
@@ -14,15 +16,13 @@ class ActivityDelete(ABAction):
     will be removed
     """
     icon = qicons.delete
-    title = 'Delete ***'
-    activity_keys: List[tuple]
+    text = 'Delete ***'
 
-    def __init__(self, activity_keys: Union[List[tuple], Callable], parent: QtCore.QObject):
-        super().__init__(parent, activity_keys=activity_keys)
-
-    def onTrigger(self, toggled):
+    @staticmethod
+    @exception_dialogs
+    def run(activity_keys: List[tuple]):
         # retrieve activity objects from the controller using the provided keys
-        activities = activity_controller.get_activities(self.activity_keys)
+        activities = [bd.get_activity(key) for key in activity_keys]
 
         # check for downstream processes
         if any(len(act.upstream()) > 0 for act in activities):
@@ -42,4 +42,24 @@ class ActivityDelete(ABAction):
             if choice == QtWidgets.QMessageBox.No: return
 
         # use the activity controller to delete multiple activities
-        activity_controller.delete_activities(self.activity_keys)
+        for act in activities:
+            db, code = act.key
+
+            try:
+                group_name = ActivityParameter.get(
+                    (ActivityParameter.database == db) & (ActivityParameter.code == code)).group
+
+                # remove activity parameters from its group
+                parameters.remove_from_group(group_name, act)
+
+                # Also clear the group if there are no more parameters in it
+                if not ActivityParameter.select().where(ActivityParameter.group == group_name).exists():
+                    Group.delete().where(Group.name == group_name).execute()
+                    GroupDependency.delete().where(GroupDependency.group == group_name).execute()
+            except ActivityParameter.DoesNotExist:
+                # no parameters found for this activity
+                pass
+
+            act.upstream().delete()
+
+            act.delete()
