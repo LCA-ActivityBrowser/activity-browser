@@ -356,16 +356,13 @@ class Choose7zArchivePage(QtWidgets.QWizardPage):
         self.setLayout(layout)
 
     def initializePage(self):
-        # TODO: get this from eco_invent
-        #   previous stored_dbs was list just listing out all the database
-        #   locally available
-        self.stored_dbs = ecoinvent_interface.eidlstorage.stored_dbs
+        self.stored_dbs = ecoinvent_interface.CachedStorage()
         self.stored_combobox.clear()
-        self.stored_combobox.addItems(sorted(self.stored_dbs.keys()))
+        self.stored_combobox.addItems(sorted(self.stored_dbs.catalogue.keys()))
 
     @Slot(int, name="updateSelectedIndex")
     def update_stored(self, index: int) -> None:
-        self.path_edit.setText(self.stored_dbs[self.stored_combobox.currentText()])
+        self.path_edit.setText(self.stored_dbs.catalogue[self.stored_combobox.currentText()]["path"])
 
     @Slot(name="getArchiveFile")
     def get_archive(self) -> None:
@@ -1367,7 +1364,6 @@ class ImportSignals(QtCore.QObject):
 import_signals = ImportSignals()
 
 
-# TODO: reimplement downloader using ecoinvent_interface
 class ABEcoinventDownloader(object):
     def __init__(
         self,
