@@ -16,10 +16,7 @@ class ABThread(QThread):
         # also close the connections if any exception occurs
         except Exception as e:
             self.close_connections()
-            # pass exception to our excepthook
-            exception_hook(*sys.exc_info())
             raise e
-        self.eventDispatcher().wakeUp()
 
     def close_connections(self):
         """
