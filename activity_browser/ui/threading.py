@@ -1,18 +1,15 @@
 import sys
-
-from PySide2.QtCore import QThread
-from activity_browser.mod import bw2data as bd
-from activity_browser.logger import exception_hook
 import threading
 import logging
 
-from PySide2.QtCore import QThread, SignalInstance, Signal
-from activity_browser.mod import bd
+from activity_browser.mod import bw2data as bd
+from activity_browser.logger import exception_hook
 
-thread_local = threading.local()
+from PySide2.QtCore import QThread, SignalInstance, Signal
 
 
 class ABThread(QThread):
+    status: SignalInstance = Signal(int, str)
 
     def run(self):
         """Reimplemented from QThread to close any database connections before finishing."""
@@ -67,3 +64,5 @@ class LoggingProgressHandler(logging.Handler):
     def emit(self, record: logging.LogRecord):
         thread_local.progress_slot(None, record.message)
 
+
+thread_local = threading.local()

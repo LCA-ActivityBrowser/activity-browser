@@ -1,17 +1,15 @@
 from bw2io import *
 
 
-def ab_bw2setup(progress_slot=lambda progress, message: None):
+def ab_bw2setup():
     from activity_browser.mod.bw2io.importers.ecospold2_biosphere import ABEcospold2BiosphereImporter
     from .migrations import ab_create_core_migrations
 
-    bio_import = ABEcospold2BiosphereImporter(progress_slot=progress_slot)
-    progress_slot(None, "Applying strategies")
+    bio_import = ABEcospold2BiosphereImporter()
     bio_import.apply_strategies()
-    progress_slot(None, "Writing to database")
     bio_import.write_database()
 
-    ab_create_core_migrations(progress_slot)
+    ab_create_core_migrations()
 
     ab_create_default_lcia_methods()
 

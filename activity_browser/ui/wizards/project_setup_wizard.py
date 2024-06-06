@@ -1,25 +1,19 @@
 import os
-
-os.environ["AB_SIMPLE_CONSOLE"] = "1"
-
 import ecoinvent_interface as ei
 import requests
 from PySide2 import QtWidgets, QtCore
 
 from activity_browser.ui.threading import ABThread
-from activity_browser.mod import bd
+from activity_browser.mod import bw2data as bd
 from activity_browser.mod.bw2io import ab_bw2setup
 from activity_browser.mod.bw2io.ecoinvent import ab_import_ecoinvent_release
 
 
-
-
 class ProjectSetupWizard(QtWidgets.QWizard):
     choose_setup = 1
-    default_install = 2
-    ecoinvent_login = 3
-    ecoinvent_version = 4
-    ecoinvent_download = 5
+    ecoinvent_login = 2
+    ecoinvent_version = 3
+    install_page = 4
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -37,12 +31,13 @@ class ProjectSetupWizard(QtWidgets.QWizard):
         self.setWindowFlag(QtCore.Qt.WindowContextHelpButtonHint, False)
 
         self.setPage(self.choose_setup, ChooseSetupPage(self))
-        self.setPage(self.default_install, DefaultInstallPage(self))
         self.setPage(self.ecoinvent_login, EcoInventLoginPage(self))
         self.setPage(self.ecoinvent_version, EcoInventVersionPage(self))
-        self.setPage(self.ecoinvent_download, EcoInventDownloadPage(self))
+        self.setPage(self.install_page, InstallPage(self))
 
         self.setStartId(self.choose_setup)
+
+        self.type = None  # set on the first page
 
 
 class ChooseSetupPage(QtWidgets.QWizardPage):
@@ -58,7 +53,7 @@ class ChooseSetupPage(QtWidgets.QWizardPage):
         radio_1.setChecked(True)
 
         self.buttons = QtWidgets.QButtonGroup()
-        self.buttons.addButton(radio_1, ProjectSetupWizard.default_install)
+        self.buttons.addButton(radio_1, ProjectSetupWizard.install_page)
         self.buttons.addButton(radio_2, ProjectSetupWizard.ecoinvent_login)
 
         layout = QtWidgets.QVBoxLayout()
@@ -68,53 +63,9 @@ class ChooseSetupPage(QtWidgets.QWizardPage):
         self.setLayout(layout)
 
     def nextId(self):
+        choice = "ecoinvent" if self.buttons.checkedId() == ProjectSetupWizard.ecoinvent_login else "default"
+        self.wizard().type = choice
         return self.buttons.checkedId()
-
-
-class DefaultInstallPage(QtWidgets.QWizardPage):
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
-
-        self.thread: EcoinventInstallThread = None
-
-        self.setTitle("Setting up")
-        self.setSubTitle("Setting up your project")
-        self.setFinalPage(True)
-
-        self.progress = QtWidgets.QProgressBar()
-        self.progress.setMinimum(0)
-        self.progress.setMaximum(100)
-
-        self.info = QtWidgets.QLabel()
-
-        layout = QtWidgets.QVBoxLayout()
-        layout.addWidget(self.progress)
-        layout.addWidget(self.info)
-
-        self.setLayout(layout)
-
-    def initializePage(self):
-        self.wizard().setWindowFlag(QtCore.Qt.WindowCloseButtonHint, False)
-        self.wizard().show()
-
-        self.wizard().button(QtWidgets.QWizard.BackButton).hide()
-
-        self.thread = DefaultInstallThread(self)
-        self.thread.status.connect(self.status_update)
-        self.thread.finished.connect(self.completeChanged.emit)
-        self.thread.start()
-
-    def isComplete(self):
-        return self.thread.isFinished()
-
-    def status_update(self, progress: int | None, message: str):
-        if isinstance(progress, int):
-            self.progress.setRange(0, 100)
-            self.progress.setValue(progress)
-        if not progress:
-            self.progress.setRange(0, 0)
-        self.info.setText(message)
 
 
 class EcoInventLoginPage(QtWidgets.QWizardPage):
@@ -202,12 +153,11 @@ class EcoInventVersionPage(QtWidgets.QWizardPage):
         self.versions.addItems(release.list_versions())
 
 
-class EcoInventDownloadPage(QtWidgets.QWizardPage):
-
+class InstallPage(QtWidgets.QWizardPage):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        self.thread: EcoinventInstallThread = None
+        self.thread= None
 
         self.setTitle("Setting up")
         self.setSubTitle("Setting up your project")
@@ -230,7 +180,11 @@ class EcoInventDownloadPage(QtWidgets.QWizardPage):
 
         self.wizard().button(QtWidgets.QWizard.BackButton).hide()
 
-        self.thread = EcoinventInstallThread(self.field("version"), self.field("model"))
+        if self.wizard().type == "ecoinvent":
+            self.thread = EcoinventInstallThread(self.field("version"), self.field("model"), self)
+        else:
+            self.thread = DefaultInstallThread(self)
+
         self.thread.status.connect(self.status_update)
         self.thread.finished.connect(self.completeChanged.emit)
         self.thread.start()
@@ -248,16 +202,9 @@ class EcoInventDownloadPage(QtWidgets.QWizardPage):
 
 
 class DefaultInstallThread(ABThread):
-    #status: QtCore.SignalInstance = QtCore.Signal(int, str)
 
     def run_safely(self):
-        #ab_bw2setup(lambda x, y: self.status.emit(x, y))
-        import logging, pyprind, time
-        from activity_browser.mod.pyprind import progbar
-        from activity_browser.mod.bw2io.migrations import ab_create_core_migrations
-        ab_create_core_migrations()
-
-
+        ab_bw2setup()
 
 
 class EcoinventInstallThread(ABThread):
