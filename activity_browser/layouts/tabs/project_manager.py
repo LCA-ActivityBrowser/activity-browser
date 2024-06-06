@@ -6,7 +6,7 @@ from activity_browser.mod import bw2data as bd
 from ...ui.icons import qicons
 from ...ui.style import header
 from ...ui.tables import ActivitiesBiosphereTable, DatabasesTable, ProjectListWidget
-from ..panels import ABTab
+from ..panels.panel import ABTab
 
 
 class ProjectTab(QtWidgets.QWidget):

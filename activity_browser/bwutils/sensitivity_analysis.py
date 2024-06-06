@@ -19,8 +19,8 @@ from bw_graph_tools.graph_traversal import NewNodeEachVisitGraphTraversal
 from activity_browser import log
 from activity_browser.mod import bw2data as bd
 
-from activity_browser.settings import ab_settings
-from activity_browser.bwutils.montecarlo import MonteCarloLCA, perform_MonteCarlo_LCA
+from ..settings import ab_settings
+from .montecarlo import MonteCarloLCA, perform_MonteCarlo_LCA
 
 
 def get_lca(fu, method):

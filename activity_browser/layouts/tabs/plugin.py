@@ -1,4 +1,4 @@
-from ..panels import ABTab
+from ..panels.panel import ABTab
 
 
 class PluginTab(ABTab):

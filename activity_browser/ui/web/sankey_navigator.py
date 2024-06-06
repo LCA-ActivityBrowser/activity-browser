@@ -15,11 +15,12 @@ from activity_browser import log, signals
 from activity_browser.mod import bw2data as bd
 from activity_browser.mod.bw2data.backends import ActivityDataset
 
-from activity_browser.bwutils.commontasks import identify_activity_type
-from activity_browser.bwutils.superstructure.graph_traversal_with_scenario import (
+from .base import BaseGraph, BaseNavigatorWidget
+from ...bwutils.commontasks import identify_activity_type
+
+from ...bwutils.superstructure.graph_traversal_with_scenario import (
     GraphTraversalWithScenario,
 )
-from activity_browser.ui.web.base import BaseGraph, BaseNavigatorWidget
 
 
 # TODO:
