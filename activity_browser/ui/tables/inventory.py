@@ -393,7 +393,6 @@ class ActivitiesBiosphereTree(ABDictTreeView):
         self.duplicate_other_db_action.triggered.connect(self.duplicate_activities_to_db)
         self.copy_exchanges_for_SDF_action.triggered.connect(self.copy_exchanges_for_SDF)
         self.doubleClicked.connect(self.open_activity_tab)
-        # TODO make sure doubleclick only works on leaves, otherwise if you doubleclick in ecoinvent on a root node, you open 1000 activities
 
         self.model.updated.connect(self.custom_view_sizing)
         self.model.updated.connect(self.set_context_menu_policy)
@@ -409,12 +408,11 @@ class ActivitiesBiosphereTree(ABDictTreeView):
         self.update_activity_table_read_only(self.database_name, self.db_read_only)
 
     def contextMenuEvent(self, event) -> None:
-        """Right clicked menu, action depends on item level."""
+        """Right-click menu, action depends on item level."""
         if self.indexAt(event.pos()).row() == -1:
             return
 
         # determine enabling of actions based on amount of selected activities
-        print(len(self.selected_keys()), self.db_read_only, self.tree_level())
         if len(self.selected_keys()) > 1:
             act = 'activities'
             self.duplicate_activity_new_loc_action.setEnabled(False)
@@ -481,6 +479,11 @@ class ActivitiesBiosphereTree(ABDictTreeView):
     def open_activity_tab(self):
         """Open the selected activities in a new 'Activity Details' tab."""
         keys = self.selected_keys()
+
+        if self.tree_level()[0] != 'leaf':
+            # don't open activities if a root/branch is selected
+            return
+
         for key in keys:
             signals.safe_open_activity_tab.emit(key)
             signals.add_activity_to_history.emit(key)
