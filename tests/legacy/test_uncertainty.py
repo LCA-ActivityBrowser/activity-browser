@@ -3,7 +3,7 @@
 Use the existing parameters to look at the uncertainty and edit it in
 multiple ways
 """
-import brightway2 as bw
+import bw2data as bd
 import pytest
 from stats_arrays.distributions import UndefinedUncertainty, UniformUncertainty
 
@@ -14,9 +14,9 @@ from activity_browser.bwutils.uncertainty import (
 
 
 def test_exchange_interface(qtbot, ab_app):
-    bw.projects.set_current("default")
-    flow = bw.Database(bw.config.biosphere).random()
-    db = bw.Database("testdb")
+    bd.projects.set_current("default")
+    flow = bd.Database(bd.config.biosphere).random()
+    db = bd.Database("testdb")
     act_key = ("testdb", "act_unc")
     db.write({
         act_key: {
@@ -29,7 +29,7 @@ def test_exchange_interface(qtbot, ab_app):
         }
     })
 
-    act = bw.get_activity(act_key)
+    act = bd.get_activity(act_key)
     exc = next(e for e in act.biosphere())
     interface = get_uncertainty_interface(exc)
     assert isinstance(interface, ExchangeUncertaintyInterface)

@@ -1,6 +1,6 @@
 import pytest
 import os
-import brightway2 as bw
+import bw2data as bd
 from PySide2 import QtWidgets
 from activity_browser import actions, application
 from activity_browser.mod.bw2data import Database
@@ -14,7 +14,7 @@ from activity_browser.ui.wizards.plugins_manager_wizard import PluginsManagerWiz
 @pytest.mark.skipif(os.environ.get("TEST_FAST", False), reason="Skipped for faster testing")
 def test_default_install(ab_app, monkeypatch, qtbot):
     project_name = "biosphere_project"
-    bw.projects.set_current(project_name)
+    bd.projects.set_current(project_name)
 
     monkeypatch.setattr(
         EcoinventVersionDialog, 'exec_',
@@ -25,8 +25,8 @@ def test_default_install(ab_app, monkeypatch, qtbot):
         staticmethod(lambda *args, **kwargs: '3.7')
     )
 
-    assert bw.projects.current == project_name
-    assert "biosphere3" not in bw.databases
+    assert bd.projects.current == project_name
+    assert "biosphere3" not in bd.databases
     assert not application.main_window.findChild(DefaultBiosphereDialog)
 
     actions.DefaultInstall.run()
@@ -35,15 +35,15 @@ def test_default_install(ab_app, monkeypatch, qtbot):
     with qtbot.waitSignal(dialog.finished, timeout=5 * 60 * 1000): pass
     qtbot.waitUntil(lambda: len(AB_metadata.dataframe) == 4324)
 
-    assert "biosphere3" in bw.databases
+    assert "biosphere3" in bd.databases
     assert len(Database("biosphere3")) == 4324
-    assert len(bw.methods) == 762
+    assert len(bd.methods) == 762
 
 
 @pytest.mark.skipif(os.environ.get("TEST_FAST", False), reason="Skipped for faster testing")
 def test_biosphere_update(ab_app, monkeypatch, qtbot):
     project_name = "biosphere_project"
-    bw.projects.set_current(project_name)
+    bd.projects.set_current(project_name)
 
     monkeypatch.setattr(
         QtWidgets.QMessageBox, 'question',
@@ -58,8 +58,8 @@ def test_biosphere_update(ab_app, monkeypatch, qtbot):
         staticmethod(lambda *args, **kwargs: '3.9.1')
     )
 
-    assert bw.projects.current == project_name
-    assert "biosphere3" in bw.databases
+    assert bd.projects.current == project_name
+    assert "biosphere3" in bd.databases
     assert len(Database("biosphere3")) == 4324
 
     actions.BiosphereUpdate.run()

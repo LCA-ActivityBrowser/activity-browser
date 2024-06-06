@@ -1,4 +1,4 @@
-import brightway2 as bw
+import bw2data as bd
 from activity_browser import actions, application
 from PySide2 import QtWidgets
 from activity_browser.ui.widgets.dialog import DatabaseLinkingDialog
@@ -15,12 +15,12 @@ def test_database_delete(ab_app, monkeypatch):
         staticmethod(lambda *args, **kwargs: QtWidgets.QMessageBox.Yes)
     )
 
-    assert bw.projects.current == "default"
-    assert db in bw.databases
+    assert bd.projects.current == "default"
+    assert db in bd.databases
 
     actions.DatabaseDelete.run(db)
 
-    assert db not in bw.databases
+    assert db not in bd.databases
 
 
 def test_database_duplicate(ab_app, monkeypatch, qtbot):
@@ -32,9 +32,9 @@ def test_database_duplicate(ab_app, monkeypatch, qtbot):
         staticmethod(lambda *args, **kwargs: ('db_that_is_duplicated', True))
     )
 
-    assert bw.projects.current == "default"
-    assert db in bw.databases
-    assert dup_db not in bw.databases
+    assert bd.projects.current == "default"
+    assert db in bd.databases
+    assert dup_db not in bd.databases
 
     actions.DatabaseDuplicate.run(db)
 
@@ -42,8 +42,8 @@ def test_database_duplicate(ab_app, monkeypatch, qtbot):
     with qtbot.waitSignal(dialog.thread.finished, timeout=60*1000):
         pass
 
-    assert db in bw.databases
-    assert dup_db in bw.databases
+    assert db in bd.databases
+    assert dup_db in bd.databases
 
 
 def test_database_export(ab_app):
@@ -79,18 +79,18 @@ def test_database_new(ab_app, monkeypatch):
         staticmethod(lambda *args, **kwargs: True)
     )
 
-    assert bw.projects.current == "default"
-    assert new_db not in bw.databases
+    assert bd.projects.current == "default"
+    assert new_db not in bd.databases
 
     actions.DatabaseNew.run()
 
-    assert new_db in bw.databases
+    assert new_db in bd.databases
 
-    db_number = len(bw.databases)
+    db_number = len(bd.databases)
 
     actions.DatabaseNew.run()
 
-    assert db_number == len(bw.databases)
+    assert db_number == len(bd.databases)
 
 
 def test_database_relink(ab_app, monkeypatch):
@@ -108,16 +108,16 @@ def test_database_relink(ab_app, monkeypatch):
         {"db_to_relink_from": "db_to_relink_to"}
     )
 
-    assert db in bw.databases
-    assert from_db in bw.databases
-    assert to_db in bw.databases
-    assert from_db in bw.Database(db).find_dependents()
-    assert to_db not in bw.Database(db).find_dependents()
+    assert db in bd.databases
+    assert from_db in bd.databases
+    assert to_db in bd.databases
+    assert from_db in bd.Database(db).find_dependents()
+    assert to_db not in bd.Database(db).find_dependents()
 
     actions.DatabaseRelink.run(db)
 
-    assert db in bw.databases
-    assert from_db in bw.databases
-    assert to_db in bw.databases
-    assert from_db not in bw.Database(db).find_dependents()
-    assert to_db in bw.Database(db).find_dependents()
+    assert db in bd.databases
+    assert from_db in bd.databases
+    assert to_db in bd.databases
+    assert from_db not in bd.Database(db).find_dependents()
+    assert to_db in bd.Database(db).find_dependents()

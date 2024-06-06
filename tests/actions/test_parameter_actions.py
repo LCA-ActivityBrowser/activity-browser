@@ -1,4 +1,4 @@
-import brightway2 as bw
+import bw2data as bd
 from bw2data.parameters import ProjectParameter, DatabaseParameter, ActivityParameter
 from PySide2 import QtWidgets
 from activity_browser import actions
@@ -21,7 +21,7 @@ class TestParameterNew:
         monkeypatch.setattr(ParameterWizard, 'selected', 0)
         monkeypatch.setattr(ParameterWizard, 'param_data', param_data)
 
-        assert bw.projects.current == "default"
+        assert bd.projects.current == "default"
         assert "project_parameter_to_be_created" not in ProjectParameter.load().keys()
 
         actions.ParameterNew.run(key)
@@ -43,7 +43,7 @@ class TestParameterNew:
         monkeypatch.setattr(ParameterWizard, 'selected', 1)
         monkeypatch.setattr(ParameterWizard, 'param_data', param_data)
 
-        assert bw.projects.current == "default"
+        assert bd.projects.current == "default"
         assert "database_parameter_to_be_created" not in DatabaseParameter.load("activity_tests").keys()
 
         actions.ParameterNew.run(key)
@@ -68,7 +68,7 @@ class TestParameterNew:
         monkeypatch.setattr(ParameterWizard, 'selected', 2)
         monkeypatch.setattr(ParameterWizard, 'param_data', param_data)
 
-        assert bw.projects.current == "default"
+        assert bd.projects.current == "default"
         assert "activity_parameter_to_be_created" not in ActivityParameter.load(group).keys()
 
         actions.ParameterNew.run(key)
@@ -146,9 +146,9 @@ class TestParameterNew:
 
 def test_parameter_new_automatic(ab_app):
     key = ('activity_tests', 'dd4e2393573c49248e7299fbe03a169c_copy1')
-    group = bw.get_activity(key)._document.id
+    group = bd.get_activity(key)._document.id
 
-    assert bw.projects.current == "default"
+    assert bd.projects.current == "default"
     assert "dummy_parameter" not in ActivityParameter.load(group).keys()
 
     actions.ParameterNewAutomatic.run([key])
@@ -164,7 +164,7 @@ def test_parameter_rename(ab_app, monkeypatch):
         staticmethod(lambda *args, **kwargs: ("renamed_parameter", True))
     )
 
-    assert bw.projects.current == "default"
+    assert bd.projects.current == "default"
     assert "renamed_parameter" not in ProjectParameter.load().keys()
 
     actions.ParameterRename.run(parameter)
