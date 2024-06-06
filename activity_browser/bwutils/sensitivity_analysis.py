@@ -14,18 +14,13 @@ import numpy as np
 import pandas as pd
 from SALib.analyze import delta
 
+from bw_graph_tools.graph_traversal import NewNodeEachVisitGraphTraversal
+
 from activity_browser import log
 from activity_browser.mod import bw2data as bd
 
-from ..settings import ab_settings
-from .montecarlo import MonteCarloLCA, perform_MonteCarlo_LCA
-
-try:
-    # attempt bw25 import
-    from bw2calc.graph_traversal import AssumedDiagonalGraphTraversal as GraphTraversal
-except ImportError:
-    # standard import on failure
-    from bw2calc import GraphTraversal
+from activity_browser.settings import ab_settings
+from activity_browser.bwutils.montecarlo import MonteCarloLCA, perform_MonteCarlo_LCA
 
 
 def get_lca(fu, method):
@@ -49,7 +44,7 @@ def filter_technosphere_exchanges(fu, method, cutoff=0.05, max_calc=1e4):
     """Use brightway's GraphTraversal to identify the relevant
     technosphere exchanges in a non-stochastic LCA."""
     start = time()
-    res = GraphTraversal().calculate(fu, method, cutoff=cutoff, max_calc=max_calc)
+    res = NewNodeEachVisitGraphTraversal().calculate(fu, method, cutoff=cutoff, max_calc=max_calc)
 
     # get all edges
     technosphere_exchange_indices = []

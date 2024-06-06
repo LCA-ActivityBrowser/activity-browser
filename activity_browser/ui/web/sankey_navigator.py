@@ -9,22 +9,17 @@ from PySide2 import QtWidgets
 from PySide2.QtCore import Slot
 from PySide2.QtWidgets import QComboBox
 
+from bw_graph_tools import NewNodeEachVisitGraphTraversal
+
 from activity_browser import log, signals
 from activity_browser.mod import bw2data as bd
 from activity_browser.mod.bw2data.backends import ActivityDataset
 
-from ...bwutils.commontasks import identify_activity_type
-from ...bwutils.superstructure.graph_traversal_with_scenario import (
+from activity_browser.bwutils.commontasks import identify_activity_type
+from activity_browser.bwutils.superstructure.graph_traversal_with_scenario import (
     GraphTraversalWithScenario,
 )
-from .base import BaseGraph, BaseNavigatorWidget
-
-try:
-    # test whether we're running bw25
-    from bw2calc.graph_traversal import AssumedDiagonalGraphTraversal as GraphTraversal
-except:
-    # fall back on regular bw
-    from bw2calc import GraphTraversal
+from activity_browser.ui.web.base import BaseGraph, BaseNavigatorWidget
 
 
 # TODO:
@@ -261,12 +256,12 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
                 )
             else:
                 try:
-                    data = GraphTraversal().calculate(
+                    data = NewNodeEachVisitGraphTraversal().calculate(
                         demand, method, cutoff=cut_off, max_calc=max_calc
                     )
                 except:
                     lca = bc.LCA(demand, method)
-                    data = GraphTraversal().calculate(
+                    data = NewNodeEachVisitGraphTraversal().calculate(
                         lca, cutoff=cut_off, max_calc=max_calc
                     )
                     data["lca"] = lca
@@ -324,7 +319,7 @@ class Graph(BaseGraph):
 
     @staticmethod
     def get_json_data(data) -> str:
-        """Transform bw.Graphtraversal() output to JSON data."""
+        """Transform NewNodeEachVisitGraphTraversal() output to JSON data."""
         meta = data["metadata"]
         lca_score = meta["score"]
         lcia_unit = meta["unit"]
