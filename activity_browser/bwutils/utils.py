@@ -1,17 +1,13 @@
-# -*- coding: utf-8 -*-
 from collections import UserList
 from itertools import chain
 from typing import Iterable, List, NamedTuple, Optional
 
-import brightway2 as bw
-from bw2data import config
-from bw2data.backends.peewee import ActivityDataset, ExchangeDataset
-from bw2data.parameters import (
-    ProjectParameter, DatabaseParameter, ActivityParameter,
-    ParameterizedExchange,
-)
-from bw2data.utils import TYPE_DICTIONARY
 import numpy as np
+
+from activity_browser.mod import bw2data as bd
+from activity_browser.mod.bw2data.parameters import ProjectParameter, DatabaseParameter, ActivityParameter, ParameterizedExchange
+from activity_browser.mod.bw2data.backends import ActivityDataset, ExchangeDataset
+
 
 
 """
@@ -37,7 +33,7 @@ class Parameter(NamedTuple):
         - Associated activity [or None]
         - Value
         """
-        if self.group == "project" or self.group in bw.databases:
+        if self.group == "project" or self.group in bd.databases:
             scope = "global"
             associated = None
         else:
@@ -53,7 +49,7 @@ class Key(NamedTuple):
 
     @property
     def database_type(self) -> str:
-        return "biosphere" if self.database == config.biosphere else "technosphere"
+        return "biosphere" if self.database == bd.config.biosphere else "technosphere"
 
 
 class Index(NamedTuple):
@@ -109,13 +105,13 @@ class Index(NamedTuple):
     @property
     def exchange_type(self) -> int:
         if self.flow_type:
-            return TYPE_DICTIONARY.get(self.flow_type, -1)
+            return bd.utils.TYPE_DICTIONARY.get(self.flow_type, -1)
         exc_type = ExchangeDataset.get(
             ExchangeDataset.input_code == self.input.code,
             ExchangeDataset.input_database == self.input.database,
             ExchangeDataset.output_code == self.output.code,
             ExchangeDataset.output_database == self.output.database).type
-        return TYPE_DICTIONARY.get(exc_type, -1)
+        return bd.utils.TYPE_DICTIONARY.get(exc_type, -1)
 
     @property
     def ids_exc_type(self) -> (int, int, int):

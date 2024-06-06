@@ -1,23 +1,18 @@
 # -*- coding: utf-8 -*-
 import math
 
-import brightway2 as bw
+import numpy as np
+import pandas as pd
+import seaborn as sns
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
-import numpy as np
-import pandas as pd
 from PySide2 import QtWidgets
-import seaborn as sns
 
+from activity_browser import log
+from activity_browser.mod.bw2data import methods
 from activity_browser.utils import savefilepath
 from ..bwutils.commontasks import wrap_text
-
-import logging
-from activity_browser.logger import ABHandler
-
-logger = logging.getLogger('ab_logs')
-log = ABHandler.setup_with_logger(logger, __name__)
 
 
 # todo: sizing of the figures needs to be improved and systematized...
@@ -35,6 +30,7 @@ class Plot(QtWidgets.QWidget):
         # self.figure = Figure(tight_layout=True)
         self.figure = Figure(constrained_layout=True)
         self.canvas = FigureCanvasQTAgg(self.figure)
+        self.canvas.setMinimumHeight(0)
         self.ax = self.figure.add_subplot(111)  # create an axis
         self.plot_name = 'Figure'
 
@@ -92,7 +88,7 @@ class LCAResultsBarChart(Plot):
 
         # labels
         self.ax.set_yticks(np.arange(len(labels)))
-        self.ax.set_xlabel(bw.methods[method].get('unit'))
+        self.ax.set_xlabel(methods[method].get('unit'))
         self.ax.set_title(', '.join([m for m in method]))
         # self.ax.set_yticklabels(labels, minor=False)
 
@@ -207,6 +203,8 @@ class ContributionPlot(Plot):
         self.ax.grid(which="major", axis="x", color="grey", linestyle='dashed')
         self.ax.set_axisbelow(True)  # puts gridlines behind bars
 
+        #TODO review: remove or enable
+
         # refresh canvas
         # size_inches = (2 + dfp.shape[0] * 0.5, 4 + dfp.shape[1] * 0.55)
         # self.figure.set_size_inches(self.get_canvas_size_in_inches()[0], size_inches[1])
@@ -276,7 +274,7 @@ class MonteCarloPlot(Plot):
             # self.ax.axvline(df[col].median(), color=color)
             self.ax.axvline(df[col].mean(), color=color)
 
-        self.ax.set_xlabel(bw.methods[method]["unit"])
+        self.ax.set_xlabel(methods[method]["unit"])
         self.ax.set_ylabel('Probability')
         self.ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.07), ) #ncol=2
 

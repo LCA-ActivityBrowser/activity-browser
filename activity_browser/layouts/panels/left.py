@@ -18,4 +18,3 @@ class LeftPanel(ABTab):
             self.addTab(tab, tab_name)
         # tabs hidden at start
         self.hide_tab("History")
-

@@ -1,20 +1,15 @@
 # -*- coding: utf-8 -*-
 import json
 import os
-from pathlib import Path
 import shutil
+from pathlib import Path
 from typing import Optional
-from PySide2.QtWidgets import QMessageBox
 
 import appdirs
-import brightway2 as bw
+from PySide2.QtWidgets import QMessageBox
 
-from .signals import signals
-import logging
-from .logger import ABHandler
-
-logger = logging.getLogger('ab_logs')
-log = ABHandler.setup_with_logger(logger, __name__)
+from activity_browser import log, signals
+from activity_browser.mod import bw2data as bd
 
 
 class BaseSettings(object):
@@ -150,7 +145,7 @@ class ABSettings(BaseSettings):
         project = self.settings.get(
             "startup_project", self.get_default_project_name()
         )
-        if project and project not in bw.projects:
+        if project and project not in bd.projects:
             project = self.get_default_project_name()
         return project
 
@@ -167,15 +162,15 @@ class ABSettings(BaseSettings):
         try:
             return os.environ['BRIGHTWAY2_DIR']
         except KeyError:
-            return bw.projects._get_base_directories()[0]
+            return bd.projects._get_base_directories()[0]
     @staticmethod
     def get_default_project_name() -> Optional[str]:
         """ Returns the default project name.
         """
-        if "default" in bw.projects:
+        if "default" in bd.projects:
             return "default"
-        elif len(bw.projects):
-            return next(iter(bw.projects)).name
+        elif len(bd.projects):
+            return next(iter(bd.projects)).name
         else:
             return None
 
@@ -202,7 +197,7 @@ class ProjectSettings(BaseSettings):
         # it can be a custom location, based on ABsettings. So check that, and if not, use default?
         # once found, load the settings or just an empty dict.
         self.connect_signals()
-        super().__init__(bw.projects.dir, filename)
+        super().__init__(bd.projects.dir, filename)
 
         # https://github.com/LCA-ActivityBrowser/activity-browser/issues/235
         # Fix empty settings file and populate with currently active databases
@@ -216,7 +211,7 @@ class ProjectSettings(BaseSettings):
     def connect_signals(self):
         """ Reload the project settings whenever a project switch occurs.
         """
-        signals.project_selected.connect(self.reset_for_project_selection)
+        bd.projects.current_changed.connect(self.reset_for_project_selection)
         signals.plugin_selected.connect(self.add_plugin)
 
     @classmethod
@@ -234,15 +229,15 @@ class ProjectSettings(BaseSettings):
         NOTE: This ignores the existing database read-only settings.
         """
         return {
-            "read-only-databases": {name: True for name in bw.databases.list}
+            "read-only-databases": {name: True for name in bd.databases.list}
         }
 
     def reset_for_project_selection(self) -> None:
         """ On switching project, attempt to read the settings for the new
         project.
         """
-        log.info("Reset project settings directory to:", bw.projects.dir)
-        self.settings_file = os.path.join(bw.projects.dir, self.filename)
+        log.info("Project settings directory: ", bd.projects.dir)
+        self.settings_file = os.path.join(bd.projects.dir, self.filename)
         self.initialize_settings()
         # create a plugins_list entry for old projects
         if "plugins_list" not in self.settings:

@@ -1,55 +1,34 @@
 # -*- coding: utf-8 -*-
-import os
 import sys
-import traceback
 
-from PySide2.QtCore import QSysInfo, __version__ as qt_version
-from PySide2.QtWidgets import QApplication
-
-from .application import Application
-from .info import __version__
+from .logger import log, exception_hook, log_file_location
+from activity_browser.mod import bw2data
+from .application import application
+from .signals import signals
+from .settings import ab_settings, project_settings
+from .controllers import *
+from .info import __version__ as version
+from .layouts.main import MainWindow
 from .plugin import Plugin
-import logging
-from .logger import ABHandler
 
-logger = logging.getLogger('ab_logs')
-log = ABHandler.setup_with_logger(logger, __name__)
 
-# https://bugreports.qt.io/browse/QTBUG-87014
-# https://bugreports.qt.io/browse/QTBUG-85546
-# https://github.com/mapeditor/tiled/issues/2845
-# https://doc.qt.io/qt-5/qoperatingsystemversion.html#MacOSBigSur-var
-if QSysInfo.productType() == "osx":
-    supported = {'10.10', '10.11', '10.12', '10.13', '10.14', '10.15'}
-    if QSysInfo.productVersion() not in supported:
-        os.environ["QT_MAC_WANTS_LAYER"] = "1"
-        os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = "--disable-gpu"
-        log.info("Info: GPU hardware acceleration disabled")
+def load_settings() -> None:
+    if ab_settings.settings:
+        bw2data.projects.switch_dir(ab_settings.current_bw_dir)
+        bw2data.projects.set_current(ab_settings.startup_project)
+    log.info(f'Brightway2 data directory: {bw2data.projects.base_dir}')
+    log.info(f'Brightway2 current project: {bw2data.projects.current}')
 
-if QSysInfo.productType() in ["arch","nixos"]:
-    os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = "--no-sandbox"
-    log.info("Info: QtWebEngine sandbox disabled")
 
 def run_activity_browser():
-    qapp = QApplication(sys.argv)
+    log.info(f'Activity Browser version: {version}')
+    if log_file_location:
+        log.info(f'The log file can be found at {log_file_location}')
 
-    # qapp.setFont(default_font)
-#    qapp.setStyleSheet(
-#        '''
-#            * { background-color: #f0f0f0; color #101010}
-#            QWidget>QWidget>QWidget>QWidget>QWidget>QWidget { background-color: #FFFFFF; color: #101010 }
-#            QWidget>QTableView { background-color: #FFFFFF; color: #101010 }
-#            QWidget>QTableWidget { background-color: #FFFFFF; color: #101010 }
-#        '''
-#    )
-
-    application = Application()
+    application.main_window = MainWindow(application)
+    load_settings()
     application.show()
-    log.info("Qt Version:", qt_version)
-
-    def exception_hook(*args):
-        log.warning(''.join(traceback.format_exception(*args)))
 
     sys.excepthook = exception_hook
 
-    sys.exit(qapp.exec_())
+    sys.exit(application.exec_())

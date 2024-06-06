@@ -1,24 +1,19 @@
-# -*- coding: utf-8 -*-
-from copy import deepcopy
 import itertools
 import json
 import os
+from copy import deepcopy
 from typing import Optional
 
-import brightway2 as bw
 import networkx as nx
 from PySide2 import QtWidgets
 from PySide2.QtCore import Slot
 
+from activity_browser import log, signals
+from activity_browser.mod.bw2data import get_activity, Database
+
 from .base import BaseGraph, BaseNavigatorWidget
-from ...signals import signals
 from ...bwutils.commontasks import identify_activity_type
 
-import logging
-from activity_browser.logger import ABHandler
-
-logger = logging.getLogger('ab_logs')
-log = ABHandler.setup_with_logger(logger, __name__)
 
 # TODO:
 # save graph as image
@@ -35,7 +30,7 @@ log = ABHandler.setup_with_logger(logger, __name__)
 class GraphNavigatorWidget(BaseNavigatorWidget):
     HELP_TEXT = """
     How to use the Graph Navigator:
-    
+
     EXPANSION MODE (DEFAULT):
     Click on activities to expand graph. 
     - click: expand upwards
@@ -46,13 +41,13 @@ class GraphNavigatorWidget(BaseNavigatorWidget):
         1) adding direct up-/downstream nodes and connections (DEFAULT). 
         2) adding direct up-/downstream nodes and connections AS WELL as ALL OTHER connections between the activities in the graph. 
         The first option results in cleaner (but not complete) graphs.    
-    
+
     Checkbox "Remove orphaned nodes": by default nodes that do not link to the central activity (see title) are removed (this may happen after deleting nodes). Uncheck to disable.
-    
+
     Checkbox "Flip negative flows" (experimental): Arrows of negative product flows (e.g. from ecoinvent treatment activities or from substitution) can be flipped. 
     The resulting representation can be more intuitive for understanding the physical product flows (e.g. that wastes are outputs of activities and not negative inputs).   
-    
-    
+
+
     NAVIGATION MODE:
     Click on activities to jump to specific activities (instead of expanding the graph).
     """
@@ -196,7 +191,7 @@ class GraphNavigatorWidget(BaseNavigatorWidget):
             if keyboard["alt"]:  # delete node
                 log.info("Deleting node: ", key)
                 self.graph.reduce_graph(key)
-            else: # expansion mode
+            else:  # expansion mode
                 log.info("Expanding graph: ", key)
                 if keyboard["shift"]:  # downstream expansion
                     log.info("Adding downstream nodes.")
@@ -214,7 +209,7 @@ class GraphNavigatorWidget(BaseNavigatorWidget):
     def random_graph(self) -> None:
         """ Show graph for a random activity in the currently loaded database."""
         if self.selected_db:
-            self.new_graph(bw.Database(self.selected_db).random().key)
+            self.new_graph(Database(self.selected_db).random().key)
         else:
             QtWidgets.QMessageBox.information(None, "Not possible.", "Please load a database first.")
 
@@ -253,7 +248,7 @@ class Graph(BaseGraph):
     @staticmethod
     def upstream_and_downstream_nodes(key: tuple) -> (list, list):
         """Returns the upstream and downstream activity objects for a key. """
-        activity = bw.get_activity(key)
+        activity = get_activity(key)
         upstream_nodes = [ex.input for ex in activity.technosphere()]
         downstream_nodes = [ex.output for ex in activity.upstream()]
         return upstream_nodes, downstream_nodes
@@ -264,7 +259,7 @@ class Graph(BaseGraph):
 
         act.upstream refers to downstream exchanges; brightway is confused here)
         """
-        activity = bw.get_activity(key)
+        activity = get_activity(key)
         return [ex for ex in activity.technosphere()], [ex for ex in activity.upstream()]
 
     @staticmethod
@@ -291,7 +286,7 @@ class Graph(BaseGraph):
         Returns:
                 JSON data as a string
         """
-        self.central_activity = bw.get_activity(key)
+        self.central_activity = get_activity(key)
 
         # add nodes
         up_nodes, down_nodes = Graph.upstream_and_downstream_nodes(key)
@@ -340,7 +335,7 @@ class Graph(BaseGraph):
         if key == self.central_activity.key:
             log.warning("Cannot remove central activity.")
             return
-        act = bw.get_activity(key)
+        act = get_activity(key)
         self.nodes.remove(act)
         if self.direct_only:
             self.remove_outside_exchanges()
@@ -381,7 +376,7 @@ class Graph(BaseGraph):
 
         count = 1
         for count, key in enumerate(orphaned_node_ids, 1):
-            act = bw.get_activity(key)
+            act = get_activity(key)
             log.info(act["name"], act["location"])
             self.nodes.remove(act)
         log.info("\nRemoved ORPHANED nodes:", count)

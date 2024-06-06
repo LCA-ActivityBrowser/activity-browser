@@ -5,28 +5,31 @@
 # Moment-Independent measure based on Monte Carlo simulation LCA results.
 # see: https://salib.readthedocs.io/en/latest/api.html#delta-moment-independent-measure
 # =============================================================================
+import os
+import traceback
+from time import time
 
-import brightway2 as bw
 import numpy as np
 import pandas as pd
-from time import time
-import traceback
+import bw2calc as bc
 from SALib.analyze import delta
-import os
+
+from activity_browser import log
+from activity_browser.mod import bw2data as bd
 
 from .montecarlo import MonteCarloLCA, perform_MonteCarlo_LCA
 from ..settings import ab_settings
 
-import logging
-from activity_browser.logger import ABHandler
-
-logger = logging.getLogger('ab_logs')
-log = ABHandler.setup_with_logger(logger, __name__)
-
+try:
+    # attempt bw25 import
+    from bw2calc.graph_traversal import AssumedDiagonalGraphTraversal as GraphTraversal
+except ImportError:
+    # standard import on failure
+    from bw2calc import GraphTraversal
 
 def get_lca(fu, method):
     """Calculates a non-stochastic LCA and returns a the LCA object."""
-    lca = bw.LCA(fu, method=method)
+    lca = bc.LCA(fu, method=method)
     lca.lci()
     lca.lcia()
     log.info('Non-stochastic LCA score:', lca.score)
@@ -41,7 +44,7 @@ def filter_technosphere_exchanges(fu, method, cutoff=0.05, max_calc=1e4):
     """Use brightway's GraphTraversal to identify the relevant
     technosphere exchanges in a non-stochastic LCA."""
     start = time()
-    res = bw.GraphTraversal().calculate(fu, method, cutoff=cutoff, max_calc=max_calc)
+    res = GraphTraversal().calculate(fu, method, cutoff=cutoff, max_calc=max_calc)
 
     # get all edges
     technosphere_exchange_indices = []
@@ -91,10 +94,10 @@ def get_exchanges(lca, indices, biosphere=False, only_uncertain=True):
     exchanges = list()
     for i in indices:
         if biosphere:
-            from_act = bw.get_activity(lca.biosphere_dict_rev[i[0]])
+            from_act = bd.get_activity(lca.biosphere_dict_rev[i[0]])
         else:  # technosphere
-            from_act = bw.get_activity(lca.activity_dict_rev[i[0]])
-        to_act = bw.get_activity(lca.activity_dict_rev[i[1]])
+            from_act = bd.get_activity(lca.activity_dict_rev[i[0]])
+        to_act = bd.get_activity(lca.activity_dict_rev[i[1]])
 
         for exc in to_act.exchanges():
             if exc.input == from_act.key:
@@ -133,8 +136,8 @@ def get_exchanges_dataframe(exchanges, indices, biosphere=False):
     """Returns a Dataframe from the exchange data and a bit of additional information."""
 
     for exc, i in zip(exchanges, indices):
-        from_act = bw.get_activity(exc.get('input'))
-        to_act = bw.get_activity(exc.get('output'))
+        from_act = bd.get_activity(exc.get('input'))
+        to_act = bd.get_activity(exc.get('output'))
 
         exc.update(
             {
@@ -179,7 +182,7 @@ def get_CF_dataframe(lca, only_uncertain_CFs=True):
         if only_uncertain_CFs and row['uncertainty_type'] <= 1:
             continue
         cf_index = row['row']
-        bio_act = bw.get_activity(lca.biosphere_dict_rev[cf_index])
+        bio_act = bd.get_activity(lca.biosphere_dict_rev[cf_index])
 
         data.update(
             {
@@ -294,7 +297,7 @@ class GlobalSensitivityAnalysis(object):
             self.cutoff_biosphere = cutoff_biosphere
 
             self.fu = self.mc.cs['inv'][act_number]
-            self.activity = bw.get_activity(self.mc.rev_activity_index[act_number])
+            self.activity = bd.get_activity(self.mc.rev_activity_index[act_number])
             self.method = self.mc.cs['ia'][method_number]
 
         except Exception as e:
@@ -303,7 +306,7 @@ class GlobalSensitivityAnalysis(object):
             log.error('Initializing the GSA failed.')
             return None
 
-        log.info('-- GSA --\n Project:', bw.projects.current, 'CS:', self.mc.cs_name,
+        log.info('-- GSA --\n Project:', bd.projects.current, 'CS:', self.mc.cs_name,
               'Activity:', self.activity, 'Method:', self.method)
 
         # get non-stochastic LCA object with reverse dictionaries

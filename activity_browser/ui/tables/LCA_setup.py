@@ -1,20 +1,15 @@
-# -*- coding: utf-8 -*-
-import brightway2 as bw
 from PySide2.QtCore import Slot, Qt
 from PySide2 import QtWidgets
 
-from activity_browser.signals import signals
-from ..icons import qicons
+from activity_browser import log, signals
+from activity_browser.mod.bw2data import calculation_setups
+
 from .delegates import FloatDelegate
 from .impact_categories import MethodsTable, MethodsTree
 from .models import CSMethodsModel, CSActivityModel, ScenarioImportModel
 from .views import ABDataFrameView
+from ..icons import qicons
 
-import logging
-from activity_browser.logger import ABHandler
-
-logger = logging.getLogger('ab_logs')
-log = ABHandler.setup_with_logger(logger, __name__)
 
 class CSList(QtWidgets.QComboBox):
     def __init__(self, parent=None):
@@ -24,9 +19,10 @@ class CSList(QtWidgets.QComboBox):
         signals.calculation_setup_selected.connect(self.sync)
 
     def sync(self, name):
+        if not name: return
         self.blockSignals(True)
         self.clear()
-        keys = sorted(bw.calculation_setups)
+        keys = sorted(calculation_setups)
         self.insertItems(0, keys)
         self.blockSignals(False)
         self.setCurrentIndex(keys.index(name))
@@ -80,23 +76,19 @@ class CSActivityTable(CSGenericTable):
         self.model = CSActivityModel(self)
         self.setItemDelegateForColumn(0, FloatDelegate(self))
         self.model.updated.connect(self.update_proxy_model)
-        self.model.updated.connect(self.custom_view_sizing)
+        self.model.updated.connect(lambda: self.setColumnHidden(6, True))
+        self.model.updated.connect(lambda: self.resizeColumnToContents(2))
+        self.model.updated.connect(lambda: self.resizeColumnToContents(3))
         self.setToolTip("Drag Activities from the Activities table to include them as a reference flow\n"
                         "Click and drag to re-order individual rows of the table\n"
                         "Hold CTRL and click to select multiple rows to open or delete them.")
 
-    @Slot(name="resizeView")
-    def custom_view_sizing(self):
-        self.setColumnHidden(6, True)
-        self.resizeColumnsToContents()
-        self.resizeRowsToContents()
-
     @Slot(name="openActivities")
     def open_activities(self) -> None:
-        for proxy in self.selectedIndexes():
-            act = self.model.get_key(proxy)
-            signals.safe_open_activity_tab.emit(act)
-            signals.add_activity_to_history.emit(act)
+        keys = set([self.model.get_key(p) for p in self.selectedIndexes()])
+        for key in keys:
+            signals.safe_open_activity_tab.emit(key)
+            signals.add_activity_to_history.emit(key)
 
     @Slot(name="deleteRows")
     def delete_rows(self):
@@ -135,7 +127,7 @@ class CSActivityTable(CSGenericTable):
         if getattr(event.source(), "technosphere", False):
             log.info('Dropevent from:', source)
             self.model.include_activities(
-                {source.get_key(p): 1.0} for p in source.selectedIndexes()
+                {key: 1.0} for key in source.selected_keys()
             )
         elif event.source() is self:
             selection = self.selectedIndexes()
@@ -152,17 +144,11 @@ class CSMethodsTable(CSGenericTable):
         super().__init__(parent)
         self.model = CSMethodsModel(self)
         self.model.updated.connect(self.update_proxy_model)
-        self.model.updated.connect(self.custom_view_sizing)
+        self.model.updated.connect(lambda: self.setColumnHidden(3, True))
+        self.model.updated.connect(lambda: self.resizeColumnToContents(0))
         self.setToolTip("Drag impact categories from the impact categories tree/table to include them \n"
                         "Click and drag to re-order individual rows of the table\n"
                         "Hold CTRL and click to select multiple rows to open or delete them.")
-
-
-    @Slot(name="resizeView")
-    def custom_view_sizing(self):
-        self.setColumnHidden(3, True)
-        self.resizeColumnsToContents()
-        self.resizeRowsToContents()
 
     def to_python(self):
         return self.model.methods
@@ -216,7 +202,6 @@ class ScenarioImportTable(ABDataFrameView):
         super().__init__(parent=parent)
         self.model = ScenarioImportModel(None, self)
         self.model.updated.connect(self.update_proxy_model)
-        self.model.updated.connect(self.custom_view_sizing)
 
     def sync(self, names: list):
         self.model.sync(names)

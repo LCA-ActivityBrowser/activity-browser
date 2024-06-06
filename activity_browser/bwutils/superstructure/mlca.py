@@ -2,9 +2,10 @@
 from typing import Iterable, Optional
 from PySide2.QtWidgets import QPushButton
 
-from bw2calc.matrices import TechnosphereBiosphereMatrixBuilder as MB
 import numpy as np
 import pandas as pd
+
+from activity_browser.mod import bw2data as bd
 
 from ..commontasks import format_activity_label
 from ..multilca import MLCA, Contributions
@@ -15,6 +16,12 @@ from .dataframe import (
     filter_databases_indexed_superstructure
 )
 from .file_dialogs import ABPopup
+
+try:
+    from bw2calc.matrices import TechnosphereBiosphereMatrixBuilder as MB
+except ModuleNotFoundError:
+    pass  # removed in bw25
+
 
 class SuperstructureMLCA(MLCA):
     """Subclass of the `MLCA` class which adds another dimension in the form
@@ -106,11 +113,19 @@ class SuperstructureMLCA(MLCA):
     def indices_to_matrix(self) -> None:
         def convert(idx: Index) -> tuple:
             in_dict = self.lca.biosphere_dict if idx.flow_type == "biosphere" else self.lca.product_dict
-            return (
-                in_dict.get(idx.input, idx.input),
-                self.lca.activity_dict.get(idx.output, idx.output),
-                idx.exchange_type,
-            )
+            try:
+                return (
+                    in_dict.get(idx.input),
+                    self.lca.activity_dict.get(idx.output),
+                    idx.exchange_type,
+                )
+            except:
+                # bw25 compatibility
+                return (
+                    in_dict.get(bd.get_activity(idx.input).id),
+                    self.lca.activity_dict.get(bd.get_activity(idx.output).id),
+                    idx.exchange_type,
+                )
         for i, index in enumerate(self.indices):
             try:
                 self.matrix_indices[i] = convert(index)
@@ -155,8 +170,15 @@ class SuperstructureMLCA(MLCA):
                 if hasattr(self.lca, "solver"):
                     delattr(self.lca, "solver")
 
-            if kind == "technosphere":
-                MB.fix_supply_use(idx, sample)
+            # TODO: Check if this doesnt break stuff
+            # TODO: Update: It does..
+            try:
+                if kind == "technosphere":
+                    MB.fix_supply_use(idx, sample)
+            except:
+                # removed in BW25
+                mask = np.where(idx["type"] == 1)
+                sample[mask] = -1 * sample[mask]
             matrix[idx["row"], idx["col"], ] = sample
 
     def _perform_calculations(self):
@@ -165,7 +187,13 @@ class SuperstructureMLCA(MLCA):
         for ps_col in range(self.total):
             self.next_scenario()
             for row, func_unit in enumerate(self.func_units):
-                self.lca.redo_lci(func_unit)
+                try:
+                    self.lca.redo_lci(func_unit)
+                except:
+                    # bw25 compatibility requires activity id instead of activity key
+                    key = list(func_unit.keys())[0]
+                    self.lca.redo_lci({bd.get_activity(key).id: func_unit[key]})
+
                 self.scaling_factors.update({
                     (str(func_unit), ps_col): self.lca.supply_array
                 })
@@ -201,7 +229,12 @@ class SuperstructureMLCA(MLCA):
         """
         self.current = scenario_index
         self.update_matrices()
-        self.lca.redo_lci(func_unit)
+        try:
+            self.lca.redo_lci(func_unit)
+        except:
+            # brightway25 compatibility
+            key = list(func_unit.keys())[0]
+            self.lca.redo_lci({bd.get_activity(key).id: func_unit[key]})
         self.lca.characterization_matrix = self.method_matrices[method_index]
         self.lca.lcia_calculation()
         self.lca.decompose_technosphere()
