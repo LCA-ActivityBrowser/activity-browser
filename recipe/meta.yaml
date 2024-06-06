@@ -28,7 +28,6 @@ requirements:
     - arrow
     - brightway2 =2.4.6
     - eidl >=2.0.1
-    - libxml2 <=2.10.4
     - networkx
     - numpy >=1.23.5
     - pandas >=2.2.1
