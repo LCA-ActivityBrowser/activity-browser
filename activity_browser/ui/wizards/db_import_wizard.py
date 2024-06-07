@@ -165,6 +165,12 @@ class DatabaseImportWizard(QtWidgets.QWizard):
         self.import_page.complete = False
         self.reject()
 
+    def has_existing_remote_credentials(self) -> bool:
+        return (
+            self.downloader.username is not None
+            and self.downloader.password is not None
+        )
+
     @Slot(tuple, name="showMessage")
     def show_info(self, info: tuple) -> None:
         title, message = info
@@ -222,6 +228,7 @@ class RemoteImportPage(QtWidgets.QWizardPage):
         self.wizard = parent
         self.radio_buttons = [QtWidgets.QRadioButton(o[0]) for o in self.OPTIONS]
         self.radio_buttons[0].setChecked(True)
+        self.has_valid_remote_creds = False
 
         layout = QtWidgets.QVBoxLayout()
         box = QtWidgets.QGroupBox("Data source:")
@@ -233,10 +240,21 @@ class RemoteImportPage(QtWidgets.QWizardPage):
         layout.addWidget(box)
         self.setLayout(layout)
 
+    def validatePage(self):
+        if (
+            self.wizard.has_existing_remote_credentials()
+            and self.radio_buttons[0].isChecked()
+        ):
+            self.has_valid_remote_creds, _ = self.wizard.downloader.login()
+        return True
+
     def nextId(self):
         option_id = [b.isChecked() for b in self.radio_buttons].index(True)
         self.wizard.import_type = self.OPTIONS[option_id][1]
-        return self.OPTIONS[option_id][2]
+        next_id = self.OPTIONS[option_id][2]
+        if next_id == DatabaseImportWizard.EI_LOGIN and self.has_valid_remote_creds:
+            return DatabaseImportWizard.EI_VERSION
+        return next_id
 
 
 class LocalImportPage(QtWidgets.QWizardPage):
