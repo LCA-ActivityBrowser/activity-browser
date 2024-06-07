@@ -215,7 +215,7 @@ class ActivitiesBiosphereTable(ABFilterableDataFrameView):
 
     @Slot(name="resetSearch")
     def reset_search(self) -> None:
-        self.model.sync(self.model.current_database)
+        self.model.sync(self.model.database_name)
 
     @Slot(str, bool, name="updateReadOnly")
     def update_activity_table_read_only(self, db_name: str, db_read_only: bool) -> None:
@@ -269,7 +269,6 @@ class ActivitiesBiosphereTree(ABDictTreeView):
         self.connect_signals()
 
     def connect_signals(self):
-        # super()._connect_signals()
         signals.database_read_only_changed.connect(self.update_activity_table_read_only)
 
         self.copy_exchanges_for_SDF_action.triggered.connect(self.copy_exchanges_for_SDF)

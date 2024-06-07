@@ -159,7 +159,6 @@ class ActivityBiosphereTabs(ABTab):
         if not self.tabs.get(db_name, False):
             widget = ActivityBiosphereWidget(parent=self, db_name=db_name)
             self.add_tab(widget, db_name)
-            self.update_activity_biosphere_widget(db_name)
 
             widget.destroyed.connect(lambda: self.tabs.pop(db_name) if db_name in self.tabs else None)
 
@@ -172,11 +171,6 @@ class ActivityBiosphereTabs(ABTab):
             return
         db_name = self.get_tab_name_from_index(current_index)
         signals.database_tab_open.emit(db_name)
-
-    def update_activity_biosphere_widget(self, db_name: str) -> None:
-        """Check if database is open, if so, update the underlying data"""
-        if self.tabs.get(db_name, False):
-            self.tabs[db_name].database_changed(db_name)
 
 
 class ActivityBiosphereWidget(QtWidgets.QWidget):
@@ -222,6 +216,9 @@ class ActivityBiosphereWidget(QtWidgets.QWidget):
         self.v_layout.addWidget(self.header_widget)
         self.v_layout.addWidget(self.table)
         self.setLayout(self.v_layout)
+
+        # load data
+        self.database_changed(self.database)
 
     def create_tree(self):
         self.tree = ActivitiesBiosphereTree(self, self.database.name)
@@ -285,10 +282,11 @@ class ActivityBiosphereWidget(QtWidgets.QWidget):
             self.create_tree()
         self.tree.setVisible(toggled)
 
-    def database_changed(self, db_name) -> None:
-        self.table.model.sync(db_name)
-        if self.tree:
-            self.tree.model.setup_and_sync()
+    def database_changed(self, database: bd.Database) -> None:
+        if database.name != self.database.name:  # only update if the database changed is the one shown by this widget
+            return
+
+        self.table.model.sync(self.database.name)
 
         if 'ISIC rev.4 ecoinvent' in self.table.model._dataframe.columns \
                 and not isinstance(self.tree, ActivitiesBiosphereTree):
@@ -301,6 +299,7 @@ class ActivityBiosphereWidget(QtWidgets.QWidget):
             self.mode_radio_tree.show()
         elif 'ISIC rev.4 ecoinvent' in self.table.model._dataframe.columns:
             # a treeview exists
+            self.tree.model.setup_and_sync()
 
             # make sure that the radio buttons are available
             self.mode_radio_list.show()

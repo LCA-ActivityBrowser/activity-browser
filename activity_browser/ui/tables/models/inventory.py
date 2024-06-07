@@ -273,7 +273,7 @@ class ActivitiesBiosphereTreeModel(BaseTreeModel):
 
     def setup_and_sync(self) -> None:
         self.setup_model_data()
-        self.sync()
+        self.sync(self.query)
 
     @Slot(name="clearSyncModel")
     @Slot(str, name="syncModel")
