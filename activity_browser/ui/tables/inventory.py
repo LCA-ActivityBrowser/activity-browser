@@ -254,34 +254,14 @@ class ActivitiesBiosphereTree(ABDictTreeView):
         self.model.sync()
 
         # contextmenu items
-        self.open_activity_action = QtWidgets.QAction(
-            qicons.right, 'Open ***', None
-        )
-        self.open_activity_graph_action = QtWidgets.QAction(
-            qicons.graph_explorer, 'Open *** in Graph Explorer', None
-        )
-        self.new_activity_action = QtWidgets.QAction(
-            qicons.add, 'Add new activity', None
-        )
-        self.duplicate_activity_action = QtWidgets.QAction(
-            qicons.copy, 'Duplicate ***', None
-        )
-        self.duplicate_activity_new_loc_action = QtWidgets.QAction(
-            qicons.copy, 'Duplicate activity to new location', None
-        )
-        self.duplicate_activity_new_loc_action.setToolTip(
-            'Duplicate this activity to another location.\n'
-            'Link the exchanges to a new location if it is available.')  # only for 1 activity
-        self.delete_activity_action = QtWidgets.QAction(
-            qicons.delete, 'Delete ***', None
-        )
-        self.relink_activity_exch_action = QtWidgets.QAction(
-            qicons.edit, 'Relink the *** exchanges'
-        )
-        self.duplicate_other_db_action = QtWidgets.QAction(
-            qicons.duplicate_to_other_database, 'Duplicate to other database'
-        )
-
+        self.open_activity_action = actions.ActivityOpen.get_QAction(self.selected_keys)
+        self.open_activity_graph_action = actions.ActivityGraph.get_QAction(self.selected_keys)
+        self.new_activity_action = actions.ActivityNew.get_QAction(self.database_name)
+        self.dup_activity_action = actions.ActivityDuplicate.get_QAction(self.selected_keys)
+        self.dup_activity_new_loc_action = actions.ActivityDuplicateToLoc.get_QAction(lambda: self.selected_keys()[0])
+        self.delete_activity_action = actions.ActivityDelete.get_QAction(self.selected_keys)
+        self.relink_activity_exch_action = actions.ActivityRelink.get_QAction(self.selected_keys)
+        self.dup_other_db_action = actions.ActivityDuplicateToDB.get_QAction(self.selected_keys)
         self.copy_exchanges_for_SDF_action = QtWidgets.QAction(
             qicons.superstructure, 'Exchanges for scenario difference file', None
         )
@@ -289,19 +269,11 @@ class ActivitiesBiosphereTree(ABDictTreeView):
         self.connect_signals()
 
     def connect_signals(self):
-        super()._connect_signals()
+        # super()._connect_signals()
         signals.database_read_only_changed.connect(self.update_activity_table_read_only)
-        self.open_activity_action.triggered.connect(self.open_activity_tab)
-        self.open_activity_graph_action.triggered.connect(self.open_graph_explorer)
-        self.new_activity_action.triggered.connect(
-            lambda: signals.new_activity.emit(self.database_name)
-        )
-        self.duplicate_activity_action.triggered.connect(self.duplicate_activities)
-        self.duplicate_activity_new_loc_action.triggered.connect(self.duplicate_activity_to_new_loc)
-        self.delete_activity_action.triggered.connect(self.delete_activities)
-        self.relink_activity_exch_action.triggered.connect(self.relink_activity_exchanges)
-        self.duplicate_other_db_action.triggered.connect(self.duplicate_activities_to_db)
+
         self.copy_exchanges_for_SDF_action.triggered.connect(self.copy_exchanges_for_SDF)
+
         self.doubleClicked.connect(self.open_activity_tab)
 
         self.model.updated.connect(self.custom_view_sizing)
@@ -324,7 +296,7 @@ class ActivitiesBiosphereTree(ABDictTreeView):
         # determine enabling of actions based on amount of selected activities
         if len(self.selected_keys()) > 1:
             act = 'activities'
-            self.duplicate_activity_new_loc_action.setEnabled(False)
+            self.dup_activity_new_loc_action.setEnabled(False)
             self.relink_activity_exch_action.setEnabled(False)
             if len(self.selected_keys()) > 15:
                 # many activities are selected, block opening activities
@@ -337,19 +309,19 @@ class ActivitiesBiosphereTree(ABDictTreeView):
             act = 'activity'
             self.open_activity_action.setEnabled(True)
             self.open_activity_graph_action.setEnabled(True)
-            self.duplicate_activity_new_loc_action.setEnabled(not self.db_read_only)
+            self.dup_activity_new_loc_action.setEnabled(not self.db_read_only)
             self.relink_activity_exch_action.setEnabled(not self.db_read_only)
 
         # enabling of actions based on read-only state
         self.new_activity_action.setEnabled(not self.db_read_only)
         self.delete_activity_action.setEnabled(not self.db_read_only)
-        self.duplicate_activity_action.setEnabled(not self.db_read_only)
+        self.dup_activity_action.setEnabled(not self.db_read_only)
         self.relink_activity_exch_action.setEnabled(not self.db_read_only)
 
         # set plural or singular for activity
         self.open_activity_action.setText(f'Open {act}')
         self.open_activity_graph_action.setText(f'Open {act} in Graph Explorer')
-        self.duplicate_activity_action.setText(f'Duplicate {act}')
+        self.dup_activity_action.setText(f'Duplicate {act}')
         self.delete_activity_action.setText(f'Delete {act}')
         self.relink_activity_exch_action.setText(f'Relink the {act} exchanges')
 
@@ -358,9 +330,9 @@ class ActivitiesBiosphereTree(ABDictTreeView):
         submenu_dupl = QtWidgets.QMenu(menu)
         submenu_dupl.setTitle(f'Duplicate {act}')
         submenu_dupl.setIcon(qicons.copy)
-        submenu_dupl.addAction(self.duplicate_activity_action)
-        submenu_dupl.addAction(self.duplicate_activity_new_loc_action)
-        submenu_dupl.addAction(self.duplicate_other_db_action)
+        submenu_dupl.addAction(self.dup_activity_action)
+        submenu_dupl.addAction(self.dup_activity_new_loc_action)
+        submenu_dupl.addAction(self.dup_other_db_action)
         # submenu copy to clipboard
         submenu_copy = QtWidgets.QMenu(menu)
         submenu_copy.setTitle('Copy to clipboard')
@@ -387,59 +359,10 @@ class ActivitiesBiosphereTree(ABDictTreeView):
     @Slot(name="openActivityTab")
     def open_activity_tab(self):
         """Open the selected activities in a new 'Activity Details' tab."""
-        keys = self.selected_keys()
-
         if self.tree_level()[0] != 'leaf':
             # don't open activities if a root/branch is selected
             return
-
-        for key in keys:
-            signals.safe_open_activity_tab.emit(key)
-            signals.add_activity_to_history.emit(key)
-
-    @Slot(name='openActivityGraphExplorer')
-    def open_graph_explorer(self):
-        """Open the selected activities in the graph explorer."""
-        keys = self.selected_keys()
-        for key in keys:
-            signals.open_activity_graph_tab.emit(key)
-
-    @Slot(name="relinkActivityExchanges")
-    def relink_activity_exchanges(self) -> None:
-        """Relink the exchanges of the selected activity."""
-        signals.relink_activity.emit(self.get_key())
-
-    @Slot(name="deleteActivities")
-    def delete_activities(self) -> None:
-        """Delete the selected activities."""
-        keys = self.selected_keys()
-        if len(keys) > 1:
-            signals.delete_activities.emit(keys)
-        else:
-            signals.delete_activity.emit(keys[0])
-
-    @Slot(name="duplicateActivitiesWithinDb")
-    def duplicate_activities(self) -> None:
-        """Duplicate the selected activities."""
-        keys = self.selected_keys()
-        if len(keys) > 1:
-            signals.duplicate_to_db_interface_multiple.emit(keys, self.database_name)
-        else:
-            signals.duplicate_to_db_interface.emit(keys[0], self.database_name)
-
-    @Slot(name="duplicateActivitiesToNewLocWithinDb")
-    def duplicate_activity_to_new_loc(self) -> None:
-        """Duplicate the selected activity to a new location."""
-        signals.duplicate_activity_new_loc.emit(self.get_key())
-
-    @Slot(name="duplicateActivitiesToOtherDb")
-    def duplicate_activities_to_db(self) -> None:
-        """Duplicate the selected activities to another database."""
-        keys = self.selected_keys()
-        if len(keys) > 1:
-            signals.duplicate_to_db_interface_multiple.emit(keys, self.database_name)
-        else:
-            signals.duplicate_to_db_interface.emit(keys[0], self.database_name)
+        self.open_activity_action.trigger()
 
     @Slot(name="copyFlowInformation")
     def copy_exchanges_for_SDF(self) -> None:

@@ -541,6 +541,13 @@ class ABDictTreeView(QtWidgets.QTreeView):
         self.setUniformRowHeights(True)
         self.data = {}
 
+    @Slot(name="resizeView")
+    def custom_view_sizing(self) -> None:
+        """ Resize the first column (usually 'name') whenever an item is
+        expanded or collapsed.
+        """
+        self.resizeColumnToContents(0)
+
     @Slot(name="expandSelectedBranch")
     def expand_branch(self):
         """Expand selected branch."""

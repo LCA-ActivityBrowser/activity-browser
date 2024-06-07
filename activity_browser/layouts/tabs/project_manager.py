@@ -157,7 +157,7 @@ class ActivityBiosphereTabs(ABTab):
         """
         # create the tab if it doesn't exist yet
         if not self.tabs.get(db_name, False):
-            widget = ActivityBiosphereWidget(parent=self, database_name=db_name)
+            widget = ActivityBiosphereWidget(parent=self, db_name=db_name)
             self.add_tab(widget, db_name)
             self.update_activity_biosphere_widget(db_name)
 
@@ -211,6 +211,7 @@ class ActivityBiosphereWidget(QtWidgets.QWidget):
         self.mode_radio_tree = QtWidgets.QRadioButton("Tree view")
         self.mode_radio_tree.setToolTip("Tree view of the database")
         self.mode_radio_tree.hide()
+        self.mode_radio_tree.toggled.connect(self.update_view)
 
         self.header_layout.addWidget(self.mode_radio_list)
         self.header_layout.addWidget(self.mode_radio_tree)
