@@ -61,6 +61,10 @@ class ProjectsWidget(QtWidgets.QWidget):
         self.copy_project_button = actions.ProjectDuplicate.get_QButton()
         self.delete_project_button = actions.ProjectDelete.get_QButton()
 
+        self.import_project_button = QtWidgets.QPushButton(qicons.import_db, "Import")
+        self.import_project_button.setToolTip('Import a project')
+        self.import_project_button.clicked.connect(signals.import_project.emit)
+
         self.construct_layout()
 
     def construct_layout(self):
@@ -70,6 +74,7 @@ class ProjectsWidget(QtWidgets.QWidget):
         h_layout.addWidget(header('Project:'))
         h_layout.addWidget(self.projects_list)
         h_layout.addWidget(self.new_project_button)
+        h_layout.addWidget(self.import_project_button)
         h_layout.addWidget(self.copy_project_button)
         h_layout.addWidget(self.delete_project_button)
         h_widget.setLayout(h_layout)
