@@ -216,6 +216,7 @@ class ActivitiesBiosphereTable(ABFilterableDataFrameView):
     @Slot(name="resetSearch")
     def reset_search(self) -> None:
         self.model.sync(self.model.database_name)
+        self.model.query = None
 
     @Slot(str, bool, name="updateReadOnly")
     def update_activity_table_read_only(self, db_name: str, db_read_only: bool) -> None:

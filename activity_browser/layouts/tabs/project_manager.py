@@ -286,7 +286,7 @@ class ActivityBiosphereWidget(QtWidgets.QWidget):
         if database.name != self.database.name:  # only update if the database changed is the one shown by this widget
             return
 
-        self.table.model.sync(self.database.name)
+        self.table.model.sync(self.database.name, query=self.table.model.query)
 
         if 'ISIC rev.4 ecoinvent' in self.table.model._dataframe.columns \
                 and not isinstance(self.tree, ActivitiesBiosphereTree):

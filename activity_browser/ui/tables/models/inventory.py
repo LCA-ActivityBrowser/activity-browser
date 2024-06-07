@@ -58,6 +58,8 @@ class ActivitiesBiosphereListModel(DragPandasModel):
         self.ef_fields = lambda: AB_metadata.get_existing_fields(["name", "categories", "type", "unit"])
         self.technosphere = True
 
+        self.query = None
+
     @property
     def fields(self) -> list:
         """ Constructs a list of fields relevant for the type of database.
@@ -95,7 +97,9 @@ class ActivitiesBiosphereListModel(DragPandasModel):
         return df
 
     @Slot(str, name="syncModel")
-    def sync(self, db_name: str, df: pd.DataFrame = None) -> None:
+    def sync(self, db_name: str, df: pd.DataFrame = None, query=None) -> None:
+        self.query = query
+
         if df is not None:
             # skip the rest of the sync here if a dataframe is directly supplied
             log.debug("Pandas Dataframe passed to sync.", df.shape)
@@ -111,6 +115,12 @@ class ActivitiesBiosphereListModel(DragPandasModel):
         # Get dataframe from metadata and update column-names
         QApplication.setOverrideCursor(Qt.WaitCursor)
         df = self.df_from_metadata(db_name)
+
+        if query:
+            # apply query if present
+            mask = self.filter_dataframe(df, query)
+            df = df.loc[mask].reset_index(drop=True)
+
         # remove empty columns
         df.replace('', np.nan, inplace=True)
         df.dropna(how='all', axis=1, inplace=True)
@@ -120,20 +130,8 @@ class ActivitiesBiosphereListModel(DragPandasModel):
         self.updated.emit()
 
     def search(self, pattern: str = None) -> None:
-        """ Filter the dataframe with two filters and a logical element
-        in between to allow different filter combinations.
-
-        TODO: Look at the possibility of using the proxy model to filter instead
-        """
-        df = self.df_from_metadata(self.database_name)
-
-        if not pattern:
-            self.sync(self.database_name)
-            return
-
-        mask = self.filter_dataframe(df, pattern)
-        df = df.loc[mask].reset_index(drop=True)
-        self.sync(self.database_name, df=df)
+        """ Filter the dataframe with pattern."""
+        self.sync(self.database_name, query=pattern)
 
     def filter_dataframe(self, df: pd.DataFrame, pattern: str) -> pd.Series:
         """ Filter the dataframe returning a mask that is True for all rows
