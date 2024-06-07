@@ -23,6 +23,7 @@ class ActivityDuplicateToDB(ABAction):
     @classmethod
     @exception_dialogs
     def run(cls, activity_keys: List[tuple], to_db: str = None):
+        from activity_browser.bwutils.metadata import AB_metadata
         # get bw activity objects from keys
         activities = [bd.get_activity(key) for key in activity_keys]
 
@@ -39,6 +40,7 @@ class ActivityDuplicateToDB(ABAction):
             new_code = commontasks.generate_copy_code((target_db, activity["code"]))
             new_activity = activity.copy(code=new_code, database=target_db)
             new_activity_keys.append(new_activity.key)
+            AB_metadata.update_metadata(new_activity.key)
 
         ActivityOpen.run(new_activity_keys)
 
