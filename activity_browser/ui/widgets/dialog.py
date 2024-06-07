@@ -1,14 +1,14 @@
-# -*- coding: utf-8 -*-
 from pathlib import Path
 from typing import List, Tuple
 
-import brightway2 as bw
+import bw2io as bi
 from PySide2 import QtGui, QtWidgets
 from PySide2.QtCore import Qt, Signal, Slot
 
+from activity_browser import project_settings, signals
+from activity_browser.mod import bw2data as bd
 from activity_browser.bwutils.superstructure import get_sheet_names
-from activity_browser.settings import project_settings
-from activity_browser.signals import signals
+
 from ..threading import ABThread
 from ..style import style_group_box, vertical_line
 from ...ui.icons import qicons
@@ -16,6 +16,7 @@ from ...ui.widgets import BiosphereUpdater
 from ...info import __ei_versions__
 from ...bwutils.ecoinvent_biosphere_versions.ecospold2biosphereimporter import create_default_biosphere3
 from ...utils import sort_semantic_versions
+
 
 class ForceInputDialog(QtWidgets.QDialog):
     """ Due to QInputDialog not allowing 'ok' button to be disabled when
@@ -99,7 +100,7 @@ class TupleNameDialog(QtWidgets.QDialog):
         """
         Actions when the text within the TupleNameDialog is edited by the user
         """
-        # rebuild the combined name example 
+        # rebuild the combined name example
         self.view_name.setText(f"'({self.combined_names})'")
 
         # disable the button (and its outline) when all fields are empty
@@ -521,23 +522,19 @@ class DefaultBiosphereDialog(QtWidgets.QProgressDialog):
 
         self.biosphere_thread = DefaultBiosphereThread(self.version, self)
         self.biosphere_thread.update.connect(self.update_progress)
-        self.biosphere_thread.finished.connect(self.finished)
+        self.biosphere_thread.finished.connect(self.thread_finished)
         self.biosphere_thread.start()
-
-        # finally, check if patches are available for this version and apply them
-        #self.biosphere_thread.finished.connect(self.check_patches)
 
     @Slot(int, str, name='updateThread')
     def update_progress(self, current: int, text: str) -> None:
         self.setValue(current)
         self.setLabelText(text)
 
-    def finished(self, result: int = None) -> None:
-        self.biosphere_thread.exit(result or 0)
+    def thread_finished(self, result: int = None) -> None:
+        # self.biosphere_thread.exit(result or 0)
         self.setValue(3)
         self.check_patches()
-        signals.change_project.emit(bw.projects.current)
-        signals.project_selected.emit()
+        self.done(result or 0)
 
     def check_patches(self):
         """Apply any relevant biosphere patches if available."""
@@ -558,17 +555,17 @@ class DefaultBiosphereThread(ABThread):
         self.version = version
 
     def run_safely(self):
-        project = "<b>{}</b>".format(bw.projects.current)
-        if "biosphere3" not in bw.databases:
+        project = f"<b>{bd.projects.current}</b>"
+        if "biosphere3" not in bd.databases:
             self.update.emit(0, "Creating default biosphere for {}".format(project))
             create_default_biosphere3(self.version)
             project_settings.add_db("biosphere3")
-        if not len(bw.methods):
+        if not len(bd.methods):
             self.update.emit(1, "Creating default LCIA methods for {}".format(project))
-            bw.create_default_lcia_methods()
-        if not len(bw.migrations):
+            bi.create_default_lcia_methods()
+        if not len(bi.migrations):
             self.update.emit(2, "Creating core data migrations for {}".format(project))
-            bw.create_core_migrations()
+            bi.create_core_migrations()
 
 
 class FilterManagerDialog(QtWidgets.QDialog):

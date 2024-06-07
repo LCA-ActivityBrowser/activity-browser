@@ -1,16 +1,16 @@
-# -*- coding: utf-8 -*-
-
 from PySide2 import QtCore, QtWidgets
 from ...ui.icons import qicons
 
+from activity_browser import signals
+from activity_browser.mod import bw2data as bd
+
 from ...ui.style import header, horizontal_line
 from ...ui.tables import MethodCharacterizationFactorsTable, MethodsTable, MethodsTree
-from ...signals import signals
 from ..panels import ABTab
 
 
 class MethodCharacterizationFactorsTab(QtWidgets.QWidget):
-    def __init__(self, parent, method):
+    def __init__(self, parent, method_tuple):
         super().__init__(parent)
         self.panel = parent
         # Not visible when instantiated
@@ -27,20 +27,22 @@ class MethodCharacterizationFactorsTab(QtWidgets.QWidget):
         toolbar.addWidget(self.hide_uncertainty)
         toolbar.addWidget(self.editable)
         container = QtWidgets.QVBoxLayout()
-        container.addWidget(header("Method: " + " - ".join(method)))
+        container.addWidget(header("Method: " + " - ".join(method_tuple)))
         container.addWidget(horizontal_line())
         container.addWidget(toolbar)
         container.addWidget(self.cf_table)
         container.setAlignment(QtCore.Qt.AlignTop)
         self.setLayout(container)
 
-        self.cf_table.model.sync(method)
+        self.method = bd.Method(method_tuple)
+        self.cf_table.model.load(self.method)
         self.cf_table.show()
         self.panel.select_tab(self)
 
         self.connect_signals()
 
     def connect_signals(self) -> None:
+        self.method.deleted.connect(self.deleteLater)
         self.hide_uncertainty.toggled.connect(self.cf_table.hide_uncertain)
         self.cf_table.model.updated.connect(self.cf_uncertain_changed)
 
@@ -57,6 +59,7 @@ class MethodCharacterizationFactorsTab(QtWidgets.QWidget):
             self.cf_table.setEditTriggers(QtWidgets.QTableView.DoubleClicked)
         else:
             self.cf_table.setEditTriggers(QtWidgets.QTableView.NoEditTriggers)
+
 
 class MethodsTab(QtWidgets.QWidget):
     def __init__(self, parent):
@@ -144,7 +147,7 @@ class MethodsTab(QtWidgets.QWidget):
         self.search_box.textChanged.connect(self.debounce_search.start)
 
         self.reset_search_button.clicked.connect(self.search_box.clear)
-        signals.project_selected.connect(self.search_box.clear)
+        bd.projects.current_changed.connect(self.search_box.clear)
 
     @QtCore.Slot(bool, name="isListToggled")
     def update_view(self, toggled: bool):
@@ -166,7 +169,7 @@ class CharacterizationFactorsTab(ABTab):
         # signals
         signals.method_selected.connect(self.open_method_tab)
         self.tabCloseRequested.connect(self.close_tab)
-        signals.project_selected.connect(self.close_all)
+        bd.projects.current_changed.connect(self.close_all)
 
     def open_method_tab(self, method):
         if method not in self.tabs:
@@ -174,6 +177,10 @@ class CharacterizationFactorsTab(ABTab):
             full_tab_label = ' '.join(method)
             label = full_tab_label[:min((10, len(full_tab_label)))] + '..'
             self.tabs[method] = new_tab
+
+            new_tab.destroyed.connect(lambda: self.tabs.pop(method, None))
+            new_tab.destroyed.connect(signals.hide_when_empty.emit)
+
             index = self.addTab(new_tab, label)
             self.setTabToolTip(index, full_tab_label)
 

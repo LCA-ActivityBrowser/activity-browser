@@ -4,8 +4,7 @@ from PySide2.QtCore import Slot
 from PySide2.QtGui import QContextMenuEvent, QDragMoveEvent, QDropEvent
 from PySide2.QtWidgets import QAction, QMenu, QMessageBox
 
-from ...settings import project_settings
-from ...signals import signals
+from activity_browser import actions, project_settings, signals
 from ..icons import qicons
 from .delegates import *
 from .inventory import ActivitiesBiosphereTable, ActivitiesBiosphereTree
@@ -44,14 +43,10 @@ class BaseParameterTable(ABDataFrameView):
         )
         self.remove_uncertainty_action.triggered.connect(self.remove_uncertainty)
         self.model.updated.connect(self.update_proxy_model)
-        self.model.updated.connect(self.custom_view_sizing)
 
-    @Slot(name="resizeView")
-    def custom_view_sizing(self) -> None:
-        super().custom_view_sizing()
-        self.resizeColumnsToContents()
-        self.resizeRowsToContents()
-        self.setColumnHidden(self.model.param_col, True)
+        # hide raw parameter column
+        self.model.updated.connect(lambda: self.setColumnHidden(self.model.param_col, True))
+        self.model.updated.connect(lambda: self.resizeColumnToContents(0))
 
     def contextMenuEvent(self, event: QContextMenuEvent) -> None:
         """ Have the parameter test to see if it can be deleted safely.
@@ -94,8 +89,6 @@ class BaseParameterTable(ABDataFrameView):
 
     def comment_column(self, show: bool):
         self.setColumnHidden(self.model.comment_col, not show)
-
-        super().custom_view_sizing()
         self.resizeColumnsToContents()
         self.resizeRowsToContents()
 
@@ -178,11 +171,6 @@ class ActivityParameterTable(BaseParameterTable):
         self.setDragDropMode(ABDataFrameView.DropOnly)
         self.setAcceptDrops(True)
 
-    @Slot(name="resizeView")
-    def custom_view_sizing(self) -> None:
-        super().custom_view_sizing()
-        self.setColumnHidden(self.model.group_col, True)
-
     def dragEnterEvent(self, event: QDragMoveEvent) -> None:
         """ Check that the dragged row is from the databases table
         """
@@ -198,7 +186,7 @@ class ActivityParameterTable(BaseParameterTable):
         db_table = event.source()
 
         if project_settings.settings["read-only-databases"].get(
-                db_table.database_name, True):
+                db_table.current_database(), True):
             QMessageBox.warning(
                 self, "Not allowed",
                 "Cannot set activity parameters on read-only databases",
@@ -206,12 +194,13 @@ class ActivityParameterTable(BaseParameterTable):
             )
             return
 
+
         if isinstance(event.source(), ActivitiesBiosphereTable):
-            keys = [db_table.get_key(idx) for idx in db_table.selectedIndexes()]
+            keys = db_table.selected_keys()
         elif isinstance(event.source(), ActivitiesBiosphereTree):
             keys = event.source().selected_keys()
         event.accept()
-        signals.add_activity_parameters.emit(keys)
+        actions.ParameterNewAutomatic.run(keys)
 
     def contextMenuEvent(self, event: QContextMenuEvent) -> None:
         """ Override and activate QTableView.contextMenuEvent()
@@ -273,4 +262,3 @@ class ExchangesTable(ABDictTreeView):
         super().__init__(parent)
         self.model = ParameterTreeModel(parent=self)
         self.setModel(self.model)
-        self.model.updated.connect(self.custom_view_sizing)

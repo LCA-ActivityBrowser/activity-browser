@@ -1,13 +1,7 @@
 # -*- coding: utf-8 -*-
 from PySide2 import QtWidgets, QtCore
 
-from ...signals import signals
-
-import logging
-from activity_browser.logger import ABHandler
-
-logger = logging.getLogger('ab_logs')
-log = ABHandler.setup_with_logger(logger, __name__)
+from activity_browser import log, signals
 
 
 class ABTab(QtWidgets.QTabWidget):
@@ -51,7 +45,7 @@ class ABTab(QtWidgets.QTabWidget):
         if tab_name in self.tabs:
             tab = self.tabs[tab_name]
             if self.indexOf(tab) != -1:
-                log.info("-hiding tab:", tab_name)
+                log.debug("Hiding tab: ", tab_name)
                 tab.setVisible(False)
                 # Only explicitly alter the tab index if we're hiding the
                 # current tab itself.
@@ -100,7 +94,7 @@ class ABTab(QtWidgets.QTabWidget):
         if widget in self.tabs.values():
             del self.tabs[tab_name]
             widget.deleteLater()
-            self.removeTab(index)
+        self.removeTab(index)
         signals.hide_when_empty.emit()  # needs to be a signal as we want the super-tab to receive this...
 
     def close_tab_by_tab_name(self, tab_name):

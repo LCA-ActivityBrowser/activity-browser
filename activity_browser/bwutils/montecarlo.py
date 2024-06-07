@@ -1,33 +1,27 @@
-# -*- coding: utf-8 -*-
 from time import time
 from typing import Optional, Union
+from collections import defaultdict
 
-import brightway2 as bw
-from bw2calc.utils import get_seed
+import bw2calc as bc
 import numpy as np
 import pandas as pd
 from stats_arrays import MCRandomNumberGenerator
-from collections import defaultdict
 
+from activity_browser import log
+from activity_browser.mod import bw2data as bd
 from .manager import MonteCarloParameterManager
-
-import logging
-from activity_browser.logger import ABHandler
-
-logger = logging.getLogger('ab_logs')
-log = ABHandler.setup_with_logger(logger, __name__)
 
 
 class MonteCarloLCA(object):
     """A Monte Carlo LCA for multiple reference flows and methods loaded from a calculation setup."""
     def __init__(self, cs_name):
-        if cs_name not in bw.calculation_setups:
+        if cs_name not in bd.calculation_setups:
             raise ValueError(
                 "{} is not a known `calculation_setup`.".format(cs_name)
             )
 
         self.cs_name = cs_name
-        self.cs = bw.calculation_setups[cs_name]
+        self.cs = bd.calculation_setups[cs_name]
         self.seed = None
         self.cf_rngs = {}
         self.CF_rng_vectors = {}
@@ -66,7 +60,7 @@ class MonteCarloLCA(object):
 
         self.results = list()
 
-        self.lca = bw.LCA(demand=self.func_units_dict, method=self.methods[0])
+        self.lca = bc.LCA(demand=self.func_units_dict, method=self.methods[0])
 
     def unify_param_exchanges(self, data: np.ndarray) -> np.ndarray:
         """Convert an array of parameterized exchanges from input/output keys
@@ -128,7 +122,7 @@ class MonteCarloLCA(object):
         """
         start = time()
         self.iterations = iterations
-        self.seed = seed or get_seed()
+        self.seed = seed or bc.utils.get_seed()
         self.include_technosphere = kwargs.get("technosphere", True)
         self.include_biosphere = kwargs.get("biosphere", True)
         self.include_cfs = kwargs.get("cf", True)
@@ -295,7 +289,7 @@ class MonteCarloLCA(object):
                    max_length: int = None) -> list:
         fields = fields or ['name', 'reference product', 'location', 'database']
         # need to do this as the keys come from a pd.Multiindex
-        acts = (bw.get_activity(key).as_dict() for key in (k for k in key_list))
+        acts = (bd.get_activity(key).as_dict() for key in (k for k in key_list))
         translated_keys = [
             separator.join([act.get(field, '') for field in fields])
             for act in acts
@@ -309,7 +303,7 @@ def perform_MonteCarlo_LCA(project='default', cs_name=None, iterations=10):
     """Performs Monte Carlo LCA based on a calculation setup and returns the
     Monte Carlo LCA object."""
     log.info('-- Monte Carlo LCA --\n Project:', project, 'CS:', cs_name)
-    bw.projects.set_current(project)
+    bd.projects.set_current(project)
 
     # perform Monte Carlo simulation
     mc = MonteCarloLCA(cs_name)

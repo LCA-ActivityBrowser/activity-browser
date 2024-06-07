@@ -23,7 +23,6 @@ class PluginsTable(ABDataFrameView):
 
     def _connect_signals(self):
         self.model.updated.connect(self.update_proxy_model)
-        self.model.updated.connect(self.custom_view_sizing)
         self.model.updated.connect(self.resizeColumnsToContents)
 
     def mousePressEvent(self, e):

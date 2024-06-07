@@ -3,8 +3,7 @@ import functools
 from pathlib import Path
 import warnings
 
-import brightway2 as bw
-from bw2io import ExcelImporter, CSVImporter
+from bw2io import ExcelImporter, BW2Package
 from bw2io.errors import InvalidPackage, StrategyError
 from bw2io.strategies import (
     csv_restore_tuples, csv_restore_booleans, csv_numerize,
@@ -18,6 +17,8 @@ from bw2io.strategies import (
     convert_uncertainty_types_to_integers,
     convert_activity_parameters_to_list
 )
+
+from activity_browser.mod import bw2data as bd
 
 from .errors import LinkingFailed
 from .strategies import (
@@ -64,7 +65,7 @@ class ABExcelImporter(ExcelImporter):
             set_code_by_activity_hash,
             functools.partial(
                 link_iterable_by_fields,
-                other=bw.Database(bw.config.biosphere),
+                other=bd.Database(bd.config.biosphere),
                 kind='biosphere'
             ),
             assign_only_product_as_production,
@@ -107,10 +108,10 @@ class ABExcelImporter(ExcelImporter):
             obj.write_project_parameters(delete_existing=False)
         db = obj.write_database(delete_existing=True, activate_parameters=True)
         if has_params:
-            bw.parameters.recalculate()
+            bd.parameters.recalculate()
         return [db]
 
-class ABPackage(bw.BW2Package):
+class ABPackage(BW2Package):
     """ Inherits from brightway2 `BW2Package` and handles importing BW2Packages.
 
     This implementation is done to raise exceptions and show errors on imports
@@ -128,7 +129,7 @@ class ABPackage(bw.BW2Package):
         of the current brightway project.
         """
         if "depends" in metadata:
-            missing = set(metadata["depends"]).difference(bw.databases)
+            missing = set(metadata["depends"]).difference(bd.databases)
             # Remove any databases present in ignore_dbs (these will be relinked)
             missing = missing.difference(ignore_dbs)
             if missing:

@@ -4,7 +4,7 @@
 ![apple](https://raw.githubusercontent.com/vorillaz/devicons/master/!PNG/apple.png)
 ![windows](https://raw.githubusercontent.com/vorillaz/devicons/master/!PNG/windows.png)
 [![Pull request tests](https://github.com/LCA-ActivityBrowser/activity-browser/actions/workflows/main.yaml/badge.svg)](https://github.com/LCA-ActivityBrowser/activity-browser/actions/workflows/main.yaml)
-[![Coverage Status](https://coveralls.io/repos/github/LCA-ActivityBrowser/activity-browser/badge.svg?branch=master)](https://coveralls.io/github/LCA-ActivityBrowser/activity-browser?branch=master)
+[![Coverage Status](https://coveralls.io/repos/github/LCA-ActivityBrowser/activity-browser/badge.svg?branch=main)](https://coveralls.io/github/LCA-ActivityBrowser/activity-browser?branch=main)
 
 
 # Activity Browser
@@ -225,4 +225,4 @@ If you experience problems or are suffering from a specific bug, please [raise a
 - 2016-2023: Bernhard Steubing (Leiden University)
 
 # License
-You can find the license information for Activity Browser in the [license file](https://github.com/LCA-ActivityBrowser/activity-browser/blob/master/LICENSE.txt).
+You can find the license information for Activity Browser in the [license file](https://github.com/LCA-ActivityBrowser/activity-browser/blob/main/LICENSE.txt).

@@ -1,19 +1,12 @@
-from pathlib import Path
 from abc import ABC, abstractmethod
-import pandas as pd
 import ast
-
+from pathlib import Path
 from typing import Optional, Union
-from ..errors import (
-    ActivityProductionValueError, IncompatibleDatabaseNamingError,
-    InvalidSDFEntryValue, ExchangeErrorValues
-)
 
-import logging
-from activity_browser.logger import ABHandler
+import pandas as pd
 
-logger = logging.getLogger('ab_logs')
-log = ABHandler.setup_with_logger(logger, __name__)
+from activity_browser import log
+from ..errors import *
 
 
 class ABFileImporter(ABC):

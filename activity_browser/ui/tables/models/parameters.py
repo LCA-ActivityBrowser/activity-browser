@@ -2,24 +2,17 @@
 import itertools
 from typing import Iterable
 
-from asteval import Interpreter
-import brightway2 as bw
 import pandas as pd
-from bw2data.parameters import (ActivityParameter, DatabaseParameter, Group,
-                                ProjectParameter)
+from asteval import Interpreter
 from peewee import DoesNotExist
 from PySide2.QtCore import Slot, QModelIndex
+from PySide2 import QtWidgets
 
-from activity_browser.bwutils import commontasks as bc, uncertainty as uc
-from activity_browser.signals import signals
+from activity_browser import log, application, actions
+from activity_browser.mod import bw2data as bd
+from activity_browser.mod.bw2data.parameters import ProjectParameter, DatabaseParameter, ActivityParameter, Group
 from activity_browser.ui.wizards import UncertaintyWizard
 from .base import BaseTreeModel, EditablePandasModel, TreeItem
-
-import logging
-from activity_browser.logger import ABHandler
-
-logger = logging.getLogger('ab_logs')
-log = ABHandler.setup_with_logger(logger, __name__)
 
 
 class BaseParameterModel(EditablePandasModel):
@@ -33,9 +26,9 @@ class BaseParameterModel(EditablePandasModel):
         self.param_col = 0
         self.comment_col = 0
         self.dataChanged.connect(self.edit_single_parameter)
-        signals.project_selected.connect(self.sync)
-        signals.parameters_changed.connect(self.sync)
-        signals.added_parameter.connect(self.sync)
+
+        bd.projects.current_changed.connect(self.sync)
+        bd.parameters.parameters_changed.connect(self.sync)
 
     def get_parameter(self, proxy: QModelIndex) -> object:
         idx = self.proxy_to_source(proxy)
@@ -86,17 +79,25 @@ class BaseParameterModel(EditablePandasModel):
         """Take the index and update the underlying brightway Parameter."""
         param = self.get_parameter(index)
         field = self._dataframe.columns[index.column()]
-        signals.parameter_modified.emit(param, field, index.data())
+
+        try:
+            actions.ParameterModify.run(param, field, index.data())
+        except Exception as e:
+            QtWidgets.QMessageBox.warning(
+                application.main_window, "Could not save changes", str(e),
+                QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok
+            )
 
     @Slot(QModelIndex, name="startRenameParameter")
     def handle_parameter_rename(self, proxy: QModelIndex) -> None:
         group = self.get_group(proxy)
         param = self.get_parameter(proxy)
-        signals.rename_parameter.emit(param, group)
+
+        actions.ParameterRename.run(param)
 
     def delete_parameter(self, proxy: QModelIndex) -> None:
         param = self.get_parameter(proxy)
-        signals.delete_parameter.emit(param)
+        actions.ParameterDelete.run(param)
 
     @Slot(name="modifyParameterUncertainty")
     def modify_uncertainty(self, proxy: QModelIndex) -> None:
@@ -107,7 +108,7 @@ class BaseParameterModel(EditablePandasModel):
     @Slot(name="unsetParameterUncertainty")
     def remove_uncertainty(self, proxy: QModelIndex) -> None:
         param = self.get_parameter(proxy)
-        signals.parameter_uncertainty_modified.emit(param, uc.EMPTY_UNCERTAINTY)
+        actions.ParameterUncertaintyRemove.run(param)
 
     def handle_double_click(self, proxy: QModelIndex) -> None:
         column = proxy.column()
@@ -235,13 +236,11 @@ class ActivityParameterModel(BaseParameterModel):
         # Combine the 'database' and 'code' fields of the parameter into a 'key'
         row["key"] = (parameter.database, parameter.code)
         try:
-            act = bw.get_activity(row["key"])
+            act = bd.get_activity(row["key"])
         except:
             # Can occur if an activity parameter exists for a removed activity.
             log.info("Activity {} no longer exists, removing parameter.".format(row["key"]))
-            signals.clear_activity_parameter.emit(
-                parameter.database, parameter.code, parameter.group
-            )
+            actions.ParameterClearBroken.run(parameter)
             return {}
         row["product"] = act.get("reference product") or act.get("name")
         row["activity"] = act.get("name")
@@ -249,11 +248,6 @@ class ActivityParameterModel(BaseParameterModel):
         # Replace the namedtuple with the actual ActivityParameter
         row["parameter"] = ActivityParameter.get_by_id(parameter.id)
         return row
-
-    @staticmethod
-    @Slot(tuple, name="addActivityParameter")
-    def add_parameter(key: tuple) -> None:
-        signals.add_activity_parameter.emit(key)
 
     def get_activity_groups(self, proxy, ignore_groups: list = None) -> Iterable[str]:
         """ Helper method to look into the Group and determine which if any
@@ -346,11 +340,11 @@ class ParameterItem(TreeItem):
         """ Take the given activity parameter, retrieve the matching activity
         and construct tree-items for each exchange with a `formula` field.
         """
-        act = bw.get_activity((act_param.database, act_param.code))
+        act = bd.get_activity((act_param.database, act_param.code))
 
         for exc in [exc for exc in act.exchanges() if "formula" in exc]:
             try:
-                act_input = bw.get_activity(exc.input)
+                act_input = bd.get_activity(exc.input)
                 item = cls([
                     act_input.get("name"),
                     parent.data(1),
@@ -360,8 +354,8 @@ class ParameterItem(TreeItem):
                 parent.appendChild(item)
             except DoesNotExist as e:
                 # The exchange is coming from a deleted database, remove it
-                log.warning("Broken exchange: {}, removing.".format(e))
-                signals.exchanges_deleted.emit([exc])
+                log.warning(f"Broken exchange: {e}, removing.")
+                actions.ExchangeDelete.run([exc])
 
 
 class ParameterTreeModel(BaseTreeModel):
@@ -388,7 +382,6 @@ class ParameterTreeModel(BaseTreeModel):
         super().__init__(parent)
         self.root = ParameterItem.build_root(self.HEADERS)
         self.setup_model_data()
-        signals.exchange_formula_changed.connect(self.parameterize_exchanges)
 
     def setup_model_data(self) -> None:
         """ First construct the root, then process the data.
@@ -399,7 +392,7 @@ class ParameterTreeModel(BaseTreeModel):
             ParameterItem.build_item(param, self.root)
         for param in self._data.get("activity", []):
             try:
-                _ = bw.get_activity((param.database, param.code))
+                _ = bd.get_activity((param.database, param.code))
             except:
                 continue
             ParameterItem.build_item(param, self.root)
@@ -415,21 +408,3 @@ class ParameterTreeModel(BaseTreeModel):
         })
         self.setup_model_data()
         self.updated.emit()
-
-    @Slot(tuple, name="parameterizeExchanges")
-    def parameterize_exchanges(self, key: tuple) -> None:
-        """ Used whenever a formula is set on an exchange in an activity.
-
-        If no `ActivityParameter` exists for the key, generate one immediately
-        """
-        group = bc.build_activity_group_name(key)
-        if not (ActivityParameter.select()
-                .where(ActivityParameter.group == group).count()):
-            signals.add_activity_parameter.emit(key)
-
-        act = bw.get_activity(key)
-        with bw.parameters.db.atomic():
-            bw.parameters.remove_exchanges_from_group(group, act)
-            bw.parameters.add_exchanges_to_group(group, act)
-            ActivityParameter.recalculate_exchanges(group)
-        signals.parameters_changed.emit()

@@ -23,7 +23,7 @@ jobs:
         uses: ncipollo/release-action@v1
         with:
           body: ${{steps.build_changelog.outputs.changelog}}
-          commit: master
+          commit: main
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Set up conda-build environment
         uses: conda-incubator/setup-miniconda@v2

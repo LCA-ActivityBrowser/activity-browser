@@ -2,10 +2,11 @@ name: tests and development release
 on:
   pull_request:
     branches:
-      - master
+      - main
+      - minor
   push:
     branches:
-      - master
+      - main
 
 jobs:
   patch-test-environment:

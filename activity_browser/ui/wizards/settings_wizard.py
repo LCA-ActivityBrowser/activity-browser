@@ -1,26 +1,18 @@
 # -*- coding: utf-8 -*-
-import brightway2 as bw
+import os
+
 from PySide2 import QtWidgets, QtCore
 from peewee import SqliteDatabase
-import os
-import re
 
-from activity_browser.bwutils import commontasks as bc
-from ...settings import ab_settings
-from ...signals import signals
-
-import logging
-from activity_browser.logger import ABHandler
-
-logger = logging.getLogger('ab_logs')
-log = ABHandler.setup_with_logger(logger)
+from activity_browser import log, ab_settings
+from activity_browser.mod.bw2data import projects
 
 
 class SettingsWizard(QtWidgets.QWizard):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.last_project = bw.projects.current
-        self.last_bwdir = bw.projects._base_data_dir
+        self.last_project = projects.current
+        self.last_bwdir = projects.base_dir
 
         self.setWindowTitle('Activity Browser Settings')
         self.settings_page = SettingsPage(self)
@@ -48,13 +40,13 @@ class SettingsWizard(QtWidgets.QWizard):
             log.info("Saved startup project as: ", new_startup_project)
 
         ab_settings.write_settings()
-        signals.switch_bw2_dir_path.emit(field)
+        projects.switch_dir(field)
 
     def cancel(self):
         log.info("Going back to before settings were changed.")
-        if bw.projects._base_data_dir != self.last_bwdir:
-            signals.switch_bw2_dir_path.emit(self.last_bwdir)
-            signals.change_project.emit(self.last_project)  # project changes only if directory is changed
+        if projects.base_dir != self.last_bwdir:
+            projects.switch_dir(self.last_bwdir)
+            projects.set_current(self.last_project)  # project changes only if directory is changed
 
 
 class SettingsPage(QtWidgets.QWizardPage):
@@ -237,7 +229,6 @@ class SettingsPage(QtWidgets.QWizardPage):
         if not initialization:
             self.changed()
 
-
     def combobox_add_dir(self, box: QtWidgets.QComboBox, path: str) -> None:
         """ Adds a single directory to the QComboBox."""
         box.blockSignals(True)
@@ -276,5 +267,3 @@ class SettingsPage(QtWidgets.QWizardPage):
 
     def isComplete(self):
         return self.complete
-
-

@@ -1,30 +1,24 @@
 # -*- coding: utf-8 -*-
 import itertools
-from typing import List
+from typing import Union, Optional, List
+
 import numpy as np
 import pandas as pd
 from pandas.api.types import is_numeric_dtype
 from PySide2.QtWidgets import QApplication, QPushButton
 from PySide2.QtCore import Qt
-from typing import Union, Optional
 
-import brightway2 as bw
+from activity_browser import log
+from activity_browser.mod import bw2data as bd
 
 from .activities import fill_df_keys_with_fields, get_activities_from_keys
 from .dataframe import scenario_columns
 from .utils import guess_flow_type, SUPERSTRUCTURE, _time_it_
-
 from .file_dialogs import ABPopup
 from ..errors import (CriticalScenarioExtensionError, ScenarioExchangeNotFoundError,
                       ImportCanceledError, ScenarioExchangeDataNotFoundError,
                         UnalignableScenarioColumnsWarning, ScenarioExchangeDataNonNumericError
                       )
-
-import logging
-from activity_browser.logger import ABHandler
-
-logger = logging.getLogger('ab_logs')
-log = ABHandler.setup_with_logger(logger, __name__)
 
 
 EXCHANGE_KEYS = pd.Index(["from key", "to key"])
@@ -283,7 +277,7 @@ class SuperstructureManager(object):
             # 1 reference flow (because we just take index 0 from list of production exchanges)
             # Once AB has support for multiple reference flows, we need to adjust this code to match the
             # right flow -something with looping over the flows and getting the right product or something-.
-            prod_amt = list(bw.get_activity(idx[0]).production())[0].get('amount', 1)
+            prod_amt = list(bd.get_activity(idx[0]).production())[0].get('amount', 1)
             # make a new df to edit the production, add the correct values/indices where needed
             # and concat to the main df
             self_referential_production_flows.loc[idx, 'flow type'] = 'production'

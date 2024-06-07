@@ -1,9 +1,8 @@
-# -*- coding: utf-8 -*-
-import brightway2 as bw
-from bw2data.backends.peewee import ActivityDataset
 import numpy as np
 import pandas as pd
 
+from activity_browser.mod import bw2data as bd
+from activity_browser.mod.bw2data.backends import ActivityDataset
 
 FROM_ACT = pd.Index([
     "from activity name", "from reference product", "from location",
@@ -87,7 +86,7 @@ def get_relevant_activities(df: pd.DataFrame, part: str = "from") -> dict:
     """Build a dictionary of (name, product, location) -> (database, key) pairs."""
     select = FROM_ACT if part == "from" else TO_ACT
     sub = df.loc[:, select]
-    sub = sub[sub.iloc[:, 3] != bw.config.biosphere]  # Exclude biosphere exchanges
+    sub = sub[sub.iloc[:, 3] != bd.config.biosphere]  # Exclude biosphere exchanges
     if sub.empty:
         return {}
 
@@ -110,7 +109,7 @@ def get_relevant_flows(df: pd.DataFrame, part: str = "from") -> dict:
     """Determines if all activities from the given 'from' or 'to' chunk"""
     select = FROM_BIOS if part == "from" else TO_BIOS
     sub = df.loc[:, select]
-    sub = sub[sub.iloc[:, 2] == bw.config.biosphere]  # Use only biosphere exchanges
+    sub = sub[sub.iloc[:, 2] == bd.config.biosphere]  # Use only biosphere exchanges
     if sub.empty:
         return {}
 
@@ -127,7 +126,7 @@ def get_relevant_flows(df: pd.DataFrame, part: str = "from") -> dict:
 
 def match_fields_for_key(df: pd.DataFrame, matchbook: dict) -> pd.Series:
     def build_match(row):
-        if row.iat[4] == bw.config.biosphere:
+        if row.iat[4] == bd.config.biosphere:
             match = (row.iat[0], row.iat[3])
         else:
             match = (row.iat[0], row.iat[1], row.iat[2])
@@ -145,7 +144,7 @@ def fill_df_keys_with_fields(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def get_activities_from_keys(df: pd.DataFrame, db: str = bw.config.biosphere) -> pd.DataFrame:
+def get_activities_from_keys(df: pd.DataFrame, db: str = bd.config.biosphere) -> pd.DataFrame:
     """
     Uses the BW SQL database to generate a list of Activities from the input dataframe.
     Returns a pandas dataframe that contains any keys that do not identify to an Activity in BW.

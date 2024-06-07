@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 from pathlib import Path
 
-import brightway2 as bw
 import pandas as pd
 from PySide2.QtCore import Slot, QSize, Qt
 from PySide2.QtWidgets import (
@@ -10,8 +9,11 @@ from PySide2.QtWidgets import (
 )
 from xlsxwriter.exceptions import FileCreateError
 
+from activity_browser import actions, signals
+from activity_browser.signals import qparameters, qprojects
+from activity_browser.mod.bw2data import databases
+
 from ...bwutils.manager import ParameterManager
-from ...signals import signals
 from ...ui.icons import qicons
 from ...ui.style import header, horizontal_line
 from ...ui.tables import (
@@ -27,6 +29,7 @@ class ParametersTab(QTabWidget):
 
     Changing projects will trigger a reload of all parameters
     """
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setTabsClosable(False)
@@ -76,7 +79,6 @@ class ABParameterTable(QWidget):
         layout = QVBoxLayout()
         layout.addLayout(headerLayout)
         layout.addWidget(table)
-        layout.addStretch(1)
         return layout
 
     def get_table(self):
@@ -86,45 +88,35 @@ class ABParameterTable(QWidget):
 class ABProjectParameter(ABParameterTable):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.newParameter = QPushButton(qicons.add, "New")
+        self.new_parameter_button = actions.ParameterNew.get_QButton(("", ""))
         self.header = "Project:"
         self.table = ProjectParameterTable(self)
 
-        self.setLayout(self.create_layout(self.header, self.newParameter, self.table))
-        self._connect_signal()
-
-    def _connect_signal(self):
-        self.newParameter.clicked.connect(
-            lambda: signals.add_parameter.emit(None)
-        )
+        self.setLayout(self.create_layout(self.header, self.new_parameter_button, self.table))
 
 
 class ABDatabaseParameter(ABParameterTable):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.header = "Database:"
-        self.newParameter = QPushButton(qicons.add, "New")
+
+        self.new_parameter_button = actions.ParameterNew.get_QButton(("db", ""))
+
         self.table = DataBaseParameterTable(self)
 
-        self.setLayout(self.create_layout(self.header, self.newParameter, self.table))
-        self._connect_signal()
-
-    def _connect_signal(self):
-        self.newParameter.clicked.connect(
-            lambda: signals.add_parameter.emit(("db", ""))
-        )
+        self.setLayout(self.create_layout(self.header, self.new_parameter_button, self.table))
 
     def set_enabled(self, trigger):
-        if not bw.databases:
-            self.newParameter.setEnabled(False)
+        if not list(databases):
+            self.new_parameter_button.setEnabled(False)
         else:
-            self.newParameter.setEnabled(True)
+            self.new_parameter_button.setEnabled(True)
 
 
 class ABActivityParameter(ABParameterTable):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.header="Activity:"
+        self.header = "Activity:"
         self.parameter = QCheckBox("Show order column", self)
         self.table = ActivityParameterTable(self)
 
@@ -156,6 +148,7 @@ class ParameterDefinitionTab(BaseRightTab):
     Pressing the save button will cause brightway to validate the changes
     and a warning message will appear if an error occurs.
     """
+
     def __init__(self, parent=None):
         super().__init__(parent)
 
@@ -169,14 +162,14 @@ class ParameterDefinitionTab(BaseRightTab):
         for t in self.tables.values():
             t.model.sync()
 
-#        self.new_project_param = QPushButton(qicons.add, "New")
-#        self.database_header = header("Database:")
-#        self.new_database_param = QPushButton(qicons.add, "New")
-#        self.show_order = QCheckBox("Show order column", self)
+        #        self.new_project_param = QPushButton(qicons.add, "New")
+        #        self.database_header = header("Database:")
+        #        self.new_database_param = QPushButton(qicons.add, "New")
+        #        self.show_order = QCheckBox("Show order column", self)
         self.show_database_params = QCheckBox("Database parameters", self)
         self.show_database_params.setToolTip("Show/hide the database parameters")
         self.show_database_params.setChecked(True)
-#        self.activity_header = header("Activity:")
+        #        self.activity_header = header("Activity:")
         self.show_activity_params = QCheckBox("Activity parameters", self)
         self.show_activity_params.setToolTip("Show/hide the activity parameters")
         self.show_activity_params.setChecked(True)
@@ -221,15 +214,15 @@ can be used within the formula!</p>
 """
 
     def _connect_signals(self):
-        signals.project_selected.connect(self.build_tables)
-        signals.parameters_changed.connect(self.build_tables)
-#        self.new_project_param.clicked.connect(
-#            lambda: signals.add_parameter.emit(None)
-#        )
-#        self.new_database_param.clicked.connect(
-#            lambda: signals.add_parameter.emit(("db", ""))
-#        )
-#        self.show_order.stateChanged.connect(self.activity_order_column)
+        qprojects.current_changed.connect(self.build_tables)
+        qparameters.parameters_changed.connect(self.build_tables)
+        #        self.new_project_param.clicked.connect(
+        #            lambda: signals.add_parameter.emit(None)
+        #        )
+        #        self.new_database_param.clicked.connect(
+        #            lambda: signals.add_parameter.emit(("db", ""))
+        #        )
+        #        self.show_order.stateChanged.connect(self.activity_order_column)
         self.show_database_params.toggled.connect(
             self.hide_database_parameter
         )
@@ -242,7 +235,6 @@ can be used within the formula!</p>
         self.uncertainty_columns.stateChanged.connect(
             self.hide_uncertainty_columns
         )
-
 
     def _construct_layout(self):
         """ Construct the widget layout for the variable parameters tab
@@ -266,29 +258,29 @@ can be used within the formula!</p>
         layout.addWidget(horizontal_line())
 
         tables = QSplitter(Qt.Vertical)
-#        row = QHBoxLayout()
-#        row.addWidget(header("Project:"))
-#        row.addWidget(self.new_project_param)
-#        row.addStretch(1)
-#        layout.addLayout(row)
+        #        row = QHBoxLayout()
+        #        row.addWidget(header("Project:"))
+        #        row.addWidget(self.new_project_param)
+        #        row.addStretch(1)
+        #        layout.addLayout(row)
         tables.addWidget(self.project_table)
 
-#        row = QHBoxLayout()
-#        row.addWidget(self.database_header)
-#        row.addWidget(self.new_database_param)
-#        row.addStretch(1)
-#        layout.addLayout(row)
+        #        row = QHBoxLayout()
+        #        row.addWidget(self.database_header)
+        #        row.addWidget(self.new_database_param)
+        #        row.addStretch(1)
+        #        layout.addLayout(row)
         tables.addWidget(self.database_table)
 
-#        row = QHBoxLayout()
-#        row.addWidget(self.activity_header)
-#        row.addWidget(self.show_order)
-#        row.addStretch(1)
-#        layout.addLayout(row)
+        #        row = QHBoxLayout()
+        #        row.addWidget(self.activity_header)
+        #        row.addWidget(self.show_order)
+        #        row.addStretch(1)
+        #        layout.addLayout(row)
         tables.addWidget(self.activity_table)
 
         layout.addWidget(tables)
-#        layout.addStretch(1)
+        #        layout.addStretch(1)
         self.setLayout(layout)
 
     @Slot(name="rebuildParameterTables")
@@ -298,7 +290,7 @@ can be used within the formula!</p>
         self.hide_uncertainty_columns()
         self.activity_order_column()
         # Cannot create database parameters without databases
-        if not bw.databases:
+        if not list(databases):
             self.database_table.set_enabled(False)
         else:
             self.database_table.set_enabled(True)
@@ -369,8 +361,8 @@ class ParameterExchangesTab(BaseRightTab):
 """
 
     def _connect_signals(self):
-        signals.project_selected.connect(self.build_tables)
-        signals.parameters_changed.connect(self.build_tables)
+        qprojects.current_changed.connect(self.build_tables)
+        qparameters.parameters_changed.connect(self.build_tables)
 
     def _construct_layout(self):
         """ Construct the widget layout for the exchanges parameters tab
@@ -388,7 +380,6 @@ class ParameterExchangesTab(BaseRightTab):
         layout.addWidget(row)
         layout.addWidget(horizontal_line())
         layout.addWidget(self.table, 2)
-        layout.addStretch(1)
         self.setLayout(layout)
 
     def build_tables(self) -> None:
@@ -445,7 +436,7 @@ class ParameterScenariosTab(BaseRightTab):
     <p>Export parameter-scenarios. This will generate an Excel file for you where you can add scenarios (columns). 
     You may want to delete rows that you intend to change or rows that are for dependent parameters (those that depend on other parameters) as these values will be overwritten by the formulas. 
     Finally, import the parameter-scenarios in the <i>Calculation Setup</i> (not here!) to perform scenario calculations (you need to select "Scenario LCA").</p>
-    
+
     <p>For more information on this topic see also the 
     <a href="https://2.docs.brightway.dev/intro.html#parameterized-datasets">Brightway2 documentation</a>.</p>
     """
@@ -481,7 +472,6 @@ class ParameterScenariosTab(BaseRightTab):
         row.addStretch(1)
         layout.addLayout(row)
         layout.addWidget(self.tbl)
-        layout.addStretch(1)
         self.setLayout(layout)
 
     @Slot(int, object, bool, name="processParameterScenarios")

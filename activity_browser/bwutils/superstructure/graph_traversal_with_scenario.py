@@ -2,8 +2,14 @@
 from __future__ import print_function, unicode_literals, division
 
 from typing import Optional, Union
-from bw2calc import GraphTraversal
 from activity_browser.bwutils import MLCA, SuperstructureMLCA
+
+try:
+    # try bw25 import
+    from bw2calc.graph_traversal import AssumedDiagonalGraphTraversal as GraphTraversal
+except ImportError:
+    from bw2calc import GraphTraversal
+
 
 # TODO: This wont be required after migrating to brightway 2.5
 class GraphTraversalWithScenario(GraphTraversal):
