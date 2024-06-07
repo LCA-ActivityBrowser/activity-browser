@@ -1,7 +1,10 @@
+import os.path
+
 import bw2data as bd
 from PySide2 import QtWidgets
-from activity_browser import actions, ab_settings
+from activity_browser import actions, ab_settings, application
 from activity_browser.ui.widgets import ProjectDeletionDialog
+from activity_browser.actions.project.project_export import ExportThread
 
 
 def test_project_delete(ab_app, monkeypatch):
@@ -82,3 +85,22 @@ def test_project_new(ab_app, monkeypatch):
     actions.ProjectNew.run()
 
     assert len(bd.projects) == projects_number
+
+def test_project_export(ab_app, monkeypatch, qtbot):
+    project_name = "default"
+    bd.projects.set_current(project_name)
+
+    monkeypatch.setattr(
+        QtWidgets.QFileDialog, 'getSaveFileName',
+        staticmethod(lambda *args, **kwargs: (os.path.expanduser("~/default.tar.gz"), True))
+    )
+
+    assert not os.path.isfile(os.path.expanduser("~/default.tar.gz"))
+
+    actions.ProjectExport.run()
+
+    thread = application.findChild(ExportThread)
+    with qtbot.waitSignal(thread.finished, timeout=5 * 60 * 1000): pass
+
+    assert os.path.isfile(os.path.expanduser("~/default.tar.gz"))
+

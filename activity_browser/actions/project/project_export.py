@@ -33,7 +33,7 @@ class ProjectExport(ABAction):
 
         if not save_path: return
 
-        thread = ExportThread(application.main_window)
+        thread = ExportThread(application)
         setattr(thread, "save_path", save_path)
         thread.start()
 
