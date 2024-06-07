@@ -1,10 +1,8 @@
 import os
-import shutil
 import json
 import tarfile
 
-from PySide2 import QtWidgets, QtCore
-from bw2io import backup
+from PySide2 import QtWidgets
 
 from activity_browser import application, log
 from activity_browser.mod import bw2data as bd
@@ -14,9 +12,8 @@ from activity_browser.ui.threading import ABThread
 
 class ProjectExport(ABAction):
     """
-    ABAction to create a new project. Asks the user for a new name. Returns if no name is given, the user cancels, or
-    when the name is already in use by another project. Otherwise, instructs the ProjectController to create a new
-    project with the given name, and switch to it.
+    ABAction to export the current project. Prompts the user to return a save-file location. And then start a thread to
+    package the project and save it there. Saving code copied from bw2data.backup.
     """
     icon = application.style().standardIcon(QtWidgets.QStyle.SP_DriveHDIcon)
     text = "&Export this project..."

@@ -15,9 +15,10 @@ from activity_browser.ui.threading import ABThread
 
 class ProjectImport(ABAction):
     """
-    ABAction to create a new project. Asks the user for a new name. Returns if no name is given, the user cancels, or
-    when the name is already in use by another project. Otherwise, instructs the ProjectController to create a new
-    project with the given name, and switch to it.
+    ABAction to import a new project. Prompts the user to select a file. Imports the project name from the file as a
+    suggestion. Prompts user to either accept the name or change it. If the name already exists, try again. Else,
+    perform the import in a separate thread and show a progress dialog until it is finished. Finally, move to the newly
+    imported project.
     """
     icon = qicons.import_db
     text = "&Import a project..."
