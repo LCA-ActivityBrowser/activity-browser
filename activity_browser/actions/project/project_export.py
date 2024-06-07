@@ -1,0 +1,57 @@
+import os
+import shutil
+import json
+import tarfile
+
+from PySide2 import QtWidgets, QtCore
+from bw2io import backup
+
+from activity_browser import application, log
+from activity_browser.mod import bw2data as bd
+from activity_browser.actions.base import ABAction, exception_dialogs
+from activity_browser.ui.threading import ABThread
+
+
+class ProjectExport(ABAction):
+    """
+    ABAction to create a new project. Asks the user for a new name. Returns if no name is given, the user cancels, or
+    when the name is already in use by another project. Otherwise, instructs the ProjectController to create a new
+    project with the given name, and switch to it.
+    """
+    icon = application.style().standardIcon(QtWidgets.QStyle.SP_DriveHDIcon)
+    text = "&Export this project..."
+    tool_tip = "Export project to file"
+
+    @staticmethod
+    @exception_dialogs
+    def run():
+        """Export the current project to a folder chosen by the user."""
+        # get target path from the user
+        save_path, save_type = QtWidgets.QFileDialog.getSaveFileName(
+            parent=application.main_window,
+            caption="Choose where",
+            dir=os.path.expanduser(f"~/{bd.projects.current}.tar.gz"),
+            filter="Tar-file (*.tar.gz)"
+        )
+
+        if not save_path: return
+
+        thread = ExportThread(application.main_window)
+        setattr(thread, "save_path", save_path)
+        thread.start()
+
+
+class ExportThread(ABThread):
+
+    def run_safely(self):
+        project_name = bd.projects.current
+        project_dir = os.path.join(bd.projects._base_data_dir, bd.utils.safe_filename(project_name))
+
+        with open(os.path.join(project_dir, ".project-name.json"), "w") as f:
+            json.dump({"name": project_name}, f)
+
+        log.info("Creating project backup archive - this could take a few minutes...")
+        with tarfile.open(self.save_path, "w:gz") as tar:
+            tar.add(project_dir, arcname=bd.utils.safe_filename(project_name))
+
+        log.info(f"Project `{project_name}` exported.")

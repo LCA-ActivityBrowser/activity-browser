@@ -23,12 +23,7 @@ class MenuBar(QtWidgets.QMenuBar):
         self.import_db_action = actions.DatabaseImport.get_QAction()
         self.manage_plugins_action = actions.PluginWizardOpen.get_QAction()
         self.manage_settings_action = actions.SettingsWizardOpen.get_QAction()
-
-        self.export_proj_action = QtWidgets.QAction(
-            self.window.style().standardIcon(QtWidgets.QStyle.SP_DriveHDIcon),
-            "&Export this project...", None
-        )
-        self.export_proj_action.triggered.connect(signals.export_project.emit)
+        self.export_proj_action = actions.ProjectExport().get_QAction()
 
         self.addMenu(self.file_menu)
         self.addMenu(self.view_menu)
@@ -52,8 +47,6 @@ class MenuBar(QtWidgets.QMenuBar):
         self.file_menu.addAction(self.export_proj_action)
         self.file_menu.addAction(self.update_biosphere_action)
         self.file_menu.addAction(self.manage_settings_action)
-
-        self.export_proj_action.triggered.connect(signals.export_project.emit)
 
     def setup_view_menu(self) -> None:
         """Build the menu for viewing or hiding specific tabs"""
