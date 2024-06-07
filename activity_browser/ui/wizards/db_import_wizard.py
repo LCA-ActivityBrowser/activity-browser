@@ -1360,7 +1360,7 @@ class ImportSignals(QtCore.QObject):
 import_signals = ImportSignals()
 
 
-class ABEcoinventDownloader(object):
+class ABEcoinventDownloader:
     def __init__(
         self,
         version: typing.Optional[str] = None,
