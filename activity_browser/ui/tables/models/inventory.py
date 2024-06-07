@@ -119,28 +119,19 @@ class ActivitiesBiosphereListModel(DragPandasModel):
         QApplication.restoreOverrideCursor()
         self.updated.emit()
 
-    def search(self, pattern1: str = None, pattern2: str = None, logic='AND') -> None:
+    def search(self, pattern: str = None) -> None:
         """ Filter the dataframe with two filters and a logical element
         in between to allow different filter combinations.
 
         TODO: Look at the possibility of using the proxy model to filter instead
         """
         df = self.df_from_metadata(self.database_name)
-        if all((pattern1, pattern2)):
-            mask1 = self.filter_dataframe(df, pattern1)
-            mask2 = self.filter_dataframe(df, pattern2)
-            # applying the logic
-            if logic == 'AND':
-                mask = np.logical_and(mask1, mask2)
-            elif logic == 'OR':
-                mask = np.logical_or(mask1, mask2)
-            elif logic == 'AND NOT':
-                mask = np.logical_and(mask1, ~mask2)
-        elif any((pattern1, pattern2)):
-            mask = self.filter_dataframe(df, pattern1 or pattern2)
-        else:
+
+        if not pattern:
             self.sync(self.database_name)
             return
+
+        mask = self.filter_dataframe(df, pattern)
         df = df.loc[mask].reset_index(drop=True)
         self.sync(self.database_name, df=df)
 

@@ -209,8 +209,8 @@ class ActivitiesBiosphereTable(ABFilterableDataFrameView):
         else:
             self.setContextMenuPolicy(QtCore.Qt.NoContextMenu)
 
-    def search(self, pattern1: str = None) -> None:
-        self.model.search(pattern1)
+    def search(self, pattern: str = None) -> None:
+        self.model.search(pattern)
         self.apply_filters()
 
     @Slot(name="resetSearch")
