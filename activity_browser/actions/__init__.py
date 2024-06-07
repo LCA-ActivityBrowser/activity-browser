@@ -51,6 +51,7 @@ from .project.project_duplicate import ProjectDuplicate
 from .project.project_delete import ProjectDelete
 from .project.project_switch import ProjectSwitch
 from .project.project_export import ProjectExport
+from .project.project_import import ProjectImport
 
 from .default_install import DefaultInstall
 from .biosphere_update import BiosphereUpdate
