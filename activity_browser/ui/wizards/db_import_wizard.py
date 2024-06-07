@@ -1177,6 +1177,12 @@ class EcoinventVersionPage(QtWidgets.QWizardPage):
             )
             self.wizard.back()
 
+    def validatePage(self):
+        version = self.version_combobox.currentText()
+        bd.preferences["biosphere_database"] = "ecoinvent-{}-biosphere".format(version)
+        bd.preferences.flush()
+        return True
+
     def nextId(self):
         return DatabaseImportWizard.DB_NAME
 
