@@ -30,10 +30,6 @@ from ..threading import ABThread
 from ..widgets import DatabaseLinkingDialog
 
 
-# TODO: Rework the entire import wizard, the amount of different classes
-#  and interwoven connections makes the entire thing nearly incomprehensible.
-
-
 class DatabaseImportWizard(QtWidgets.QWizard):
     IMPORT_TYPE = 1
     REMOTE_TYPE = 2
@@ -750,9 +746,9 @@ class ImportPage(QtWidgets.QWizardPage):
 
 
 class MainWorkerThread(ABThread):
-    def __init__(self, downloader, parent=None):
+    def __init__(self, downloader: "ABEcoinventDownloader", parent=None):
         super().__init__(parent)
-        self.downloader: "ABEcoinventDownloader" = downloader
+        self.downloader = downloader
         self.forwast_url = (
             "https://lca-net.com/wp-content/uploads/forwast.bw2package.zip"
         )
@@ -1367,8 +1363,8 @@ import_signals = ImportSignals()
 class ABEcoinventDownloader(object):
     def __init__(
         self,
-        version=None,
-        system_model=None,
+        version: typing.Optional[str] = None,
+        system_model: typing.Optional[str] = None,
         release_type: typing.Optional[ecoinvent_interface.ReleaseType] = None,
     ):
         self.version = version
@@ -1381,20 +1377,20 @@ class ABEcoinventDownloader(object):
         self._release = ecoinvent_interface.EcoinventRelease(self._settings)
 
     @property
-    def username(self):
+    def username(self) -> typing.Optional[str]:
         return self._settings.username
 
     @username.setter
-    def username(self, value):
+    def username(self, value: str):
         self._settings.username = value
         self.update_ecoinvent_release()
 
     @property
-    def password(self):
+    def password(self) -> typing.Optional[str]:
         return self._settings.password
 
     @password.setter
-    def password(self, value):
+    def password(self, value: str):
         self._settings.password = value
         self.update_ecoinvent_release()
 
