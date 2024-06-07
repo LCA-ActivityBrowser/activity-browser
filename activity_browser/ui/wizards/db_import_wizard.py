@@ -376,7 +376,9 @@ class Choose7zArchivePage(QtWidgets.QWizardPage):
 
     @Slot(int, name="updateSelectedIndex")
     def update_stored(self, index: int) -> None:
-        self.path_edit.setText(self.stored_dbs.catalogue[self.stored_combobox.currentText()]["path"])
+        self.path_edit.setText(
+            self.stored_dbs.catalogue[self.stored_combobox.currentText()]["path"]
+        )
 
     @Slot(name="getArchiveFile")
     def get_archive(self) -> None:
@@ -1467,6 +1469,8 @@ class ABEcoinventDownloader:
 
     @lru_cache(maxsize=100)
     def list_system_models(self, version: str):
+        if version == "":
+            return []
         return self._release.list_system_models(version)
 
     def download(self) -> Path:
