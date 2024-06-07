@@ -372,7 +372,17 @@ class Choose7zArchivePage(QtWidgets.QWizardPage):
     def initializePage(self):
         self.stored_dbs = ecoinvent_interface.CachedStorage()
         self.stored_combobox.clear()
-        self.stored_combobox.addItems(sorted(self.stored_dbs.catalogue.keys()))
+        self.stored_combobox.addItems(
+            sorted(
+                [
+                    key
+                    for key, value in self.stored_dbs.catalogue.items()
+                    if value["extracted"] == False
+                    and value["kind"] == "release"
+                    and key.partition(value["system_model"])[2] == "_ecoSpold02.7z"
+                ]
+            )
+        )
 
     @Slot(int, name="updateSelectedIndex")
     def update_stored(self, index: int) -> None:
