@@ -155,7 +155,7 @@ class ABSettings(BaseSettings):
         try:
             return os.environ["BRIGHTWAY2_DIR"]
         except KeyError:
-            return bd.projects._get_base_directories()[0]
+            return str(bd.projects._get_base_directories()[0])
 
     @staticmethod
     def get_default_project_name() -> Optional[str]:
