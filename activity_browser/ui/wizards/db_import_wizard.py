@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import io
+import os.path
 import shutil
 import typing
 from functools import lru_cache
@@ -824,13 +825,17 @@ class MainWorkerThread(ABThread):
         """Run the ecoinvent downloader from start to finish."""
         archive_file = self.run_download()
 
-        with tempfile.TemporaryDirectory() as tempdir:
-            temp_dir = Path(tempdir)
-            if not import_signals.cancel_sentinel:
-                self.run_extract(archive_file, temp_dir)
-            if not import_signals.cancel_sentinel:
-                dataset_dir = temp_dir.joinpath("datasets")
-                self.run_import(dataset_dir)
+        if os.path.isdir(archive_file):
+            import_signals.unarchive_finished.emit()
+            self.run_import(archive_file.joinpath("datasets"))
+        else:
+            with tempfile.TemporaryDirectory() as tempdir:
+                temp_dir = Path(tempdir)
+                if not import_signals.cancel_sentinel:
+                    self.run_extract(archive_file, temp_dir)
+                if not import_signals.cancel_sentinel:
+                    dataset_dir = temp_dir.joinpath("datasets")
+                    self.run_import(dataset_dir)
 
     def run_forwast(self) -> None:
         """Adapted from pjamesjoyce/lcopt."""
@@ -1503,7 +1508,7 @@ class ABEcoinventDownloader:
             version=self.version,
             system_model=self.system_model,
             release_type=self.release_type,
-            extract=False,
+            extract=True,
         )
 
     @staticmethod
