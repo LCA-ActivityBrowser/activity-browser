@@ -1407,10 +1407,19 @@ class ABEcoinventDownloader:
         self.system_model = system_model
         self._release_type = release_type
         self._settings = ecoinvent_interface.Settings()
-        self._release = ecoinvent_interface.EcoinventRelease(self._settings)
+        self.update_ecoinvent_release()
 
     def update_ecoinvent_release(self):
-        self._release = ecoinvent_interface.EcoinventRelease(self._settings)
+        try:
+            self._release = ecoinvent_interface.EcoinventRelease(self._settings)
+        except ValueError:
+            self._release = None
+
+    @property
+    def release(self) -> ecoinvent_interface.EcoinventRelease:
+        if self._release is None:
+            raise ValueError("ecoinvent release has not been initialized properly")
+        return self._release
 
     @property
     def username(self) -> typing.Optional[str]:
@@ -1490,7 +1499,7 @@ class ABEcoinventDownloader:
         return self._release.list_system_models(version)
 
     def download(self) -> Path:
-        return self._release.get_release(
+        return self.release.get_release(
             version=self.version,
             system_model=self.system_model,
             release_type=self.release_type,
