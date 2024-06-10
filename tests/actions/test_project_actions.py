@@ -5,7 +5,6 @@ from PySide2 import QtWidgets
 from activity_browser import actions, ab_settings, application
 from activity_browser.ui.widgets import ProjectDeletionDialog
 from activity_browser.actions.project.project_export import ExportThread
-from activity_browser.actions.project.project_import import ImportThread
 
 
 def test_project_delete(ab_app, monkeypatch):
@@ -87,13 +86,17 @@ def test_project_new(ab_app, monkeypatch):
 
     assert len(bd.projects) == projects_number
 
+
 def test_project_export(ab_app, monkeypatch, qtbot):
     project_name = "default"
     bd.projects.set_current(project_name)
 
     monkeypatch.setattr(
-        QtWidgets.QFileDialog, 'getSaveFileName',
-        staticmethod(lambda *args, **kwargs: (os.path.expanduser("~/default.tar.gz"), True))
+        QtWidgets.QFileDialog,
+        "getSaveFileName",
+        staticmethod(
+            lambda *args, **kwargs: (os.path.expanduser("~/default.tar.gz"), True)
+        ),
     )
 
     assert not os.path.isfile(os.path.expanduser("~/default.tar.gz"))
@@ -101,7 +104,8 @@ def test_project_export(ab_app, monkeypatch, qtbot):
     actions.ProjectExport.run()
 
     thread = application.findChild(ExportThread)
-    with qtbot.waitSignal(thread.finished, timeout=5 * 60 * 1000): pass
+    with qtbot.waitSignal(thread.finished, timeout=5 * 60 * 1000):
+        pass
 
     assert os.path.isfile(os.path.expanduser("~/default.tar.gz"))
 
@@ -133,5 +137,3 @@ def test_project_import(ab_app, monkeypatch, qtbot):
     # with qtbot.waitSignal(thread.finished, timeout=5 * 60 * 1000): pass
     #
     # assert bd.projects.current == f"not_{project_name}"
-
-
