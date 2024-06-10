@@ -119,7 +119,9 @@ class CSActivityTable(CSGenericTable):
         menu.exec_(event.globalPos())
 
     def dragEnterEvent(self, event):
-        if isinstance(event.source(), (ActivitiesBiosphereTable, ActivitiesBiosphereTree))\
+        if (isinstance(event.source(), ActivitiesBiosphereTable)
+            and getattr(event.source(), "technosphere", False))\
+                or isinstance(event.source(), ActivitiesBiosphereTree)\
                 or event.source() is self:
             event.accept()
 

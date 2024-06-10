@@ -246,7 +246,7 @@ class ActivitiesBiosphereTree(ABDictTreeView):
         # set drag ability
         self.setDragEnabled(True)
         self.setDragDropMode(ABDictTreeView.DragOnly)
-        self.technosphere = True  # we need this for drag/drop functionality
+        self.table_name = "technosphere"
         # set model
         self.model = ActivitiesBiosphereTreeModel(self, self.database_name)
         self.setModel(self.model)

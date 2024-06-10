@@ -174,7 +174,9 @@ class ActivityParameterTable(BaseParameterTable):
     def dragEnterEvent(self, event: QDragMoveEvent) -> None:
         """ Check that the dragged row is from the databases table
         """
-        if isinstance(event.source(), (ActivitiesBiosphereTable, ActivitiesBiosphereTree)):
+        if (isinstance(event.source(), ActivitiesBiosphereTable)
+            and getattr(event.source(), "technosphere", False)) \
+                or isinstance(event.source(), ActivitiesBiosphereTree):
             event.accept()
 
     def dropEvent(self, event: QDropEvent) -> None:
