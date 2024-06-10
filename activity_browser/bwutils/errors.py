@@ -8,6 +8,8 @@ errors.
 
 
 """
+from bw2data.errors import *
+from bw2io.errors import *
 
 
 class ABError(Exception):

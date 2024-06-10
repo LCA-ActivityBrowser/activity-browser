@@ -5,6 +5,7 @@ from PySide2 import QtWidgets
 from activity_browser import actions, ab_settings, application
 from activity_browser.ui.widgets import ProjectDeletionDialog
 from activity_browser.actions.project.project_export import ExportThread
+from activity_browser.actions.project.project_import import ImportThread
 
 
 def test_project_delete(ab_app, monkeypatch):
@@ -103,4 +104,34 @@ def test_project_export(ab_app, monkeypatch, qtbot):
     with qtbot.waitSignal(thread.finished, timeout=5 * 60 * 1000): pass
 
     assert os.path.isfile(os.path.expanduser("~/default.tar.gz"))
+
+
+def test_project_import(ab_app, monkeypatch, qtbot):
+    """
+    This currently does not work because of limitations in the bw2data testing mode i.e.: the in-memory projects sqlite
+    db is not shared across threads.
+    """
+    return
+
+    # project_name = "default"
+    # bd.projects.set_current(project_name)
+    #
+    # monkeypatch.setattr(
+    #     QtWidgets.QFileDialog, 'getOpenFileName',
+    #     staticmethod(lambda *args, **kwargs: (os.path.expanduser("~/default.tar.gz"), True))
+    # )
+    #
+    # monkeypatch.setattr(
+    #     QtWidgets.QInputDialog, 'getText',
+    #     staticmethod(lambda *args, **kwargs: (f"not_{project_name}", None))
+    # )
+    #
+    # assert f"not_{project_name}" not in bd.projects
+    # actions.ProjectImport.run()
+    #
+    # thread = application.findChild(ImportThread)
+    # with qtbot.waitSignal(thread.finished, timeout=5 * 60 * 1000): pass
+    #
+    # assert bd.projects.current == f"not_{project_name}"
+
 
