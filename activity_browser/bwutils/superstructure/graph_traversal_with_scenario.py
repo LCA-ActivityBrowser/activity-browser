@@ -5,7 +5,7 @@ from typing import Optional, Union
 
 from activity_browser.bwutils import MLCA, SuperstructureMLCA
 
-from bw_graph_tools import NewNodeEachVisitGraphTraversal
+from bw_graph_tools.graph_traversal import NewNodeEachVisitGraphTraversal
 
 
 # TODO: This wont be required after migrating to brightway 2.5

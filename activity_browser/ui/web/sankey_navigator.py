@@ -3,6 +3,9 @@ import json
 import os
 import time
 from typing import List
+from dataclasses import asdict
+
+import numpy
 
 import bw2calc as bc
 from PySide2 import QtWidgets
@@ -21,6 +24,9 @@ from ...bwutils.commontasks import identify_activity_type
 from ...bwutils.superstructure.graph_traversal_with_scenario import (
     GraphTraversalWithScenario,
 )
+from .base import BaseGraph, BaseNavigatorWidget
+
+from bw_graph_tools.graph_traversal import NewNodeEachVisitGraphTraversal, Node, Edge
 
 
 # TODO:
@@ -256,16 +262,12 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
                     demand, method, cutoff=cut_off, max_calc=max_calc
                 )
             else:
-                try:
-                    data = NewNodeEachVisitGraphTraversal().calculate(
-                        demand, method, cutoff=cut_off, max_calc=max_calc
-                    )
-                except:
-                    lca = bc.LCA(demand, method)
-                    data = NewNodeEachVisitGraphTraversal().calculate(
-                        lca, cutoff=cut_off, max_calc=max_calc
-                    )
-                    data["lca"] = lca
+                lca = bc.LCA(demand, method)
+                lca.lci()
+                lca.lcia()
+                data = NewNodeEachVisitGraphTraversal.calculate(lca, cut_off, max_calc=max_calc)
+                data["lca"] = lca
+
             # store the metadata from this calculation
             data["metadata"] = {
                 "demand": list(data["lca"].demand.items())[0],
@@ -278,9 +280,7 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
 
         except (ValueError, ZeroDivisionError) as e:
             QtWidgets.QMessageBox.information(None, "Not possible.", str(e))
-        log.debug(
-            f"Completed graph traversal ({round(time.time() - start, 2)} seconds, {data['counter']} iterations)"
-        )
+        log.debug(f"Completed graph traversal ({round(time.time() - start, 2)} seconds")
 
         # cache the generated Sankey data
         self.cache[cache_key] = data
@@ -307,6 +307,29 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
             )
 
 
+def convert_numpy_types(obj) -> int | float | list:
+    """Converts numpy types into serializable types"""
+    if isinstance(obj, numpy.integer):
+        return int(obj)
+    if isinstance(obj, numpy.floating):
+        return float(obj)
+    if isinstance(obj, numpy.ndarray):
+        return obj.tolist()
+    return obj
+
+
+def make_serializable(data: dict) -> dict:
+    """Converts numpy data into serializable values for json.dumps"""
+    for key, value in data.items():
+        if isinstance(value, dict):
+            make_serializable(value)
+        elif isinstance(value, list):
+            data[key] = [convert_numpy_types(v) if not isinstance(v, dict) else make_serializable(v) for v in value]
+        else:
+            data[key] = convert_numpy_types(value)
+    return data
+
+
 class Graph(BaseGraph):
     """
     Python side representation of the graph.
@@ -320,35 +343,70 @@ class Graph(BaseGraph):
 
     @staticmethod
     def get_json_data(data) -> str:
-        """Transform NewNodeEachVisitGraphTraversal() output to JSON data."""
+        """Transform Graphtraversal output to JSON data."""
         meta = data["metadata"]
         lca_score = meta["score"]
         lcia_unit = meta["unit"]
         demand = meta["demand"]
-        reverse_activity_dict = {v: k for k, v in meta["act_dict"]}
-
-        build_json_node = Graph.compose_node_builder(lca_score, lcia_unit, demand[0])
-        build_json_edge = Graph.compose_edge_builder(
-            reverse_activity_dict, lca_score, lcia_unit
-        )
-
-        valid_nodes = (
-            (bd.get_activity(reverse_activity_dict[idx]), v)
-            for idx, v in data["nodes"].items()
-            if idx != -1
-        )
-        valid_edges = (
-            edge
-            for edge in data["edges"]
-            if all(i != -1 for i in (edge["from"], edge["to"]))
-        )
-
-        json_data = {
-            "nodes": [build_json_node(act, v) for act, v in valid_nodes],
-            "edges": [build_json_edge(edge) for edge in valid_edges],
-            "title": Graph.build_title(demand, lca_score, lcia_unit),
-            "max_impact": max(abs(n["cum"]) for n in data["nodes"].values()),
+        activity = bd.get_activity(demand[0])
+        activity_amount = demand[1]
+        
+        def convert_edge_to_json(edge: Edge, node: Node) -> dict:
+            p = bd.get_activity(edge.producer_index)
+            producer_key = id_to_key(edge.producer_index)
+            consumer_key = id_to_key(edge.consumer_index)
+            impact = node.cumulative_score * activity_amount / node.supply_amount
+            return {
+                "source_id": producer_key[1],
+                "target_id": consumer_key[1],
+                "amount": edge.amount,
+                "product": p.get("reference product") or p.get("name"),
+                "impact": impact,
+                "direct_emissions_score_normalized": impact / lca_score,
+                "unit": lcia_unit,
+                "tooltip": "<b>{}</b> ({:.2g} {})"
+                "<br>{:.3g} {} ({:.2g}%)".format(
+                    lcia_unit,
+                    edge.amount,
+                    p.get("unit"),
+                    impact,
+                    lcia_unit,
+                    impact / lca_score * 100,
+                )
         }
+
+        def convert_node_to_json(node: Node):
+            name = activity.get("name")
+            node_as_dict = make_serializable(asdict(node))
+            direct_emissions_score = node_as_dict.get("direct_emissions_score")
+            return {
+                "db": activity.key[0],
+                "id": activity.key[1],
+                "product": activity.get("reference product") or name,
+                "name": name,
+                "location": activity.get("location"),
+                "amount": activity_amount,
+                "LCIA_unit": lcia_unit,
+                "direct_emissions_score": direct_emissions_score,
+                "direct_emissions_score_normalized": direct_emissions_score / lca_score if lca_score != 0 else None,
+                "cumulative_score": node_as_dict.get("cumulative_score"),
+                "cumulative_score_normalized": node_as_dict.get("cumulative_score") / lca_score if lca_score != 0 else None,
+                "class": "demand" if activity == demand else identify_activity_type(activity),
+            }
+    
+        json_data = {
+            "nodes": [],
+            "edges": [],
+            "title": Graph.build_title(demand, lca_score, lcia_unit),
+            "max_impact": max(abs(node.cumulative_score) for node in data["nodes"].values())
+        }
+        valid_nodes = [node for idx, node in data["nodes"].items() if idx != -1]
+        valid_edges = [edge for edge in data["edges"] if all(i != -1 for i in (edge.producer_index, edge.consumer_index))]
+
+        for node, edge in zip(valid_nodes, valid_edges):
+            json_data["nodes"].append(convert_node_to_json(node))
+            json_data["edges"].append(convert_edge_to_json(edge, node))
+
         return json.dumps(json_data)
 
     @staticmethod
@@ -368,61 +426,6 @@ class Graph(BaseGraph):
             lca_score,
             lcia_unit,
         )
-
-    @staticmethod
-    def compose_node_builder(lca_score: float, lcia_unit: str, demand: tuple):
-        """Build and return a function which processes activities and values
-        into valid JSON documents.
-
-        Inspired by https://stackoverflow.com/a/7045809
-        """
-
-        def build_json_node(act, values: dict) -> dict:
-            return {
-                "db": act.key[0],
-                "id": act.key[1],
-                "product": act.get("reference product") or act.get("name"),
-                "name": act.get("name"),
-                "location": act.get("location"),
-                "amount": values.get("amount"),
-                "LCIA_unit": lcia_unit,
-                "ind": values.get("ind"),
-                "ind_norm": values.get("ind") / lca_score,
-                "cum": values.get("cum"),
-                "cum_norm": values.get("cum") / lca_score,
-                "class": "demand" if act == demand else identify_activity_type(act),
-            }
-
-        return build_json_node
-
-    @staticmethod
-    def compose_edge_builder(reverse_dict: dict, lca_score: float, lcia_unit: str):
-        """Build a function which turns graph edges into valid JSON documents."""
-
-        def build_json_edge(edge: dict) -> dict:
-            p = bd.get_activity(reverse_dict[edge["from"]])
-            from_key = id_to_key(reverse_dict[edge["from"]])
-            to_key = id_to_key(reverse_dict[edge["to"]])
-            return {
-                "source_id": from_key[1],
-                "target_id": to_key[1],
-                "amount": edge["amount"],
-                "product": p.get("reference product") or p.get("name"),
-                "impact": edge["impact"],
-                "ind_norm": edge["impact"] / lca_score,
-                "unit": lcia_unit,
-                "tooltip": "<b>{}</b> ({:.2g} {})"
-                "<br>{:.3g} {} ({:.2g}%) ".format(
-                    lcia_unit,
-                    edge["amount"],
-                    p.get("unit"),
-                    edge["impact"],
-                    lcia_unit,
-                    edge["impact"] / lca_score * 100,
-                ),
-            }
-
-        return build_json_edge
 
 
 def id_to_key(id):

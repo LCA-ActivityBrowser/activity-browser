@@ -2,18 +2,6 @@ console.log ("Starting "+(is_sankey_mode ? "Sankey" : "Navigator"));
 
 // SETUP GRAPH
 // https://github.com/dagrejs/graphlib/wiki/API-Reference
-// HOW TO SET EDGES AND NODES MANUALLY USING GRAPHLIB:
-// digraph.setNode("kspacey",    { label: "Kevin Spacey",  width: 144, height: 100 });
-// digraph.setEdge("kspacey",   "swilliams");
-// var graph = new dagre.graphlib.Graph({ multigraph: true });
-
-// Set an object for the graph label
-// graph.setGraph({});
-
-
-// Create and configure the renderer
-// var render = dagreD3.render();
-
 
 function getWindowSize() {
     w = window,
@@ -238,10 +226,9 @@ d3.demo.canvas = function() {
         /** ADD SHAPE **/
         // function to update dimensions, reset the canvas (with new dimensions), render the graph in canvas & minimap
         canvas.addItem = function() {
-            //canvas.render();
             updateDimensions();
             canvas.reset();
-            panCanvas.call(render,graph);
+            panCanvas.call(render, graph);
             // get panCanvas width here?
             // pan to node (implement here)
             minimap.render();
@@ -513,20 +500,22 @@ const cartographer = function() {
         heading.innerHTML = data.title;
         // Reset graph to empty
         graph = new dagre.graphlib.Graph({ multigraph: true }).setGraph({});
+        console.log(JSON.stringify(graph))
 
         // nodes --> graph
         data.nodes.forEach(buildGraphNode);
         console.log("Nodes successfully loaded...");
-
+        
         // edges --> graph
         data.edges.forEach(buildGraphEdge);
         console.log("Edges successfully loaded...")
 
         //re-renders canvas with updated dimensions of the screen
         canvas.render();
+
         //draws graph into canvas
         canvas.addItem();
-
+        
         // Adds click listener, calling handleMouseClick func
         var nodes = panCanvas.selectAll("g .node")
             .on("click", handleMouseClick);
@@ -540,11 +529,10 @@ const cartographer = function() {
             });
 
             // change node fill based on impact
-            var node_rects = panCanvas.selectAll("g .node rect")
-            .on("click", handleMouseClick)
+            panCanvas.selectAll("g .node rect").on("click", handleMouseClick)
             .style("fill", function(d) {
-                console.log(color(graph.node(d).ind_norm));
-                return color(graph.node(d).ind_norm);
+                console.log(color(graph.node(d).direct_emissions_score_normalized));
+                return color(graph.node(d).direct_emissions_score_normalized);
             });
         }
 
@@ -579,16 +567,17 @@ const cartographer = function() {
             id: n['id'],
             database: n['db'],
             class: n['class'],
+            label: ''
         };
 
         if(is_sankey_mode) {
             node_data.label = wrapText(n['name'], max_string_length)
                           + '\n' + n['location']
-                          + '\n(' + Math.round(n['ind_norm'] * 100) + '%)';
-            node_data.ind_norm = n['ind_norm'];
+                          + '\n(' + Math.round(n['direct_emissions_score_normalized'] * 100) + '%)';
+            node_data.direct_emissions_score_normalized = n['direct_emissions_score_normalized'];
             node_data.tooltip = '<b>' + n['name'] + '</b>'
-                      + '<br>Individual impact: &nbsp&nbsp&nbsp' + roundNumber(n['ind']) + ' ' + n['LCIA_unit'] +  ' (' + Math.round(n['ind_norm'] * 100) + '%)'
-                      + '<br>Cumulative impact: ' + roundNumber(n['cum']) + ' ' + n['LCIA_unit'] +  ' (' + Math.round(n['cum_norm'] * 100) + '%)';
+                      + '<br>Individual impact: &nbsp&nbsp&nbsp' + roundNumber(n['direct_emissions_score']) + ' ' + n['LCIA_unit'] +  ' (' + Math.round(n['direct_emissions_score_normalized'] * 100) + '%)'
+                      + '<br>Cumulative impact: ' + roundNumber(n['cumulative_score']) + ' ' + n['LCIA_unit'] +  ' (' + Math.round(n['cumulative_score_normalized'] * 100) + '%)';
         } else {
             node_data.label = formatNodeText(n['name'], n['location']);
             node_data.labelType = "html";
@@ -604,11 +593,12 @@ const cartographer = function() {
             product: e['product'],
             tooltip: e['tooltip'],
             curve: d3.curveBasis,
+            label: ''
         }
 
         if(is_sankey_mode) {
             edge_data.label = wrapText(e['product']
-                + '\n(' + roundNumber(e['ind_norm']*100) + '%)', max_string_length);
+                + '\n(' + roundNumber(e['direct_emissions_score_normalized']*100) + '%)', max_string_length);
             edge_data.weight = Math.abs(e["impact"] / max_impact ) * max_edge_width;
             let impact_or_benefit = "impact";
             if (e['impact'] < 0) {impact_or_benefit = "benefit"; console.log("BENEFIT");};
@@ -720,44 +710,23 @@ cartographer();
  * Build svg container and listen for zoom and drag calls
  */
 
-/*
-var svg = d3.select("body")
- .append("svg")
- .attr("viewBox", "0 0 600 400")
- .attr("height", "100%")
- .attr("width", "100%")
- .call(d3.zoom().on("zoom", function () {
-    svg.attr("transform", d3.event.transform)
- })) */
-
 
 // Tooltip: http://bl.ocks.org/d3noob/a22c42db65eb00d4e369
 var div = d3.select("#canvasqPWKOg").append("div")
     .attr("class", "tooltip")
     .style("opacity", 0);
 
-// Access graph size:
-//panCanvas.graph().width
-
 var color = d3.scaleLinear()
     .domain([-99999999, -1, 0, 1, 99999999])
     .range(["green", "green", "white", "red", "red"]);
 
-//var color = d3.scaleLinear()
-//    .domain([-1, 0, 1])
-//    .range(["green", "white", "red"]);
-
 // break strings into multiple lines after certain length if necessary
 function wrapText(str, length) {
-    //console.log(str.replace(/.{10}\S*\s+/g, "$&@").split(/\s+@/).join("\n"))
     return str.replace(/.{15}\S*\s+/g, "$&@").split(/\s+@/).join(is_sankey_mode?"\n":"<br>")
-//    return str.match(new RegExp('.{1,' + length + '}', 'g')).join("\n");
 }
 
 function roundNumber(number) {
-//    return number.toFixed(2)
     return number.toPrecision(3)
-//    return Math.round(number * 100)/100
 }
 
 function formatNodeText(name, location) {

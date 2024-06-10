@@ -8,11 +8,11 @@ from PySide2 import QtWebChannel, QtWebEngineWidgets, QtWidgets
 from PySide2.QtCore import QObject, Qt, QUrl, Signal, Slot
 
 from activity_browser import ab_settings, log, signals
-from activity_browser.mod import bw2data as bd
 
 from ... import utils
 from ...ui.icons import qicons
 from . import webutils
+from .webengine_page import Page
 
 
 class BaseNavigatorWidget(QtWidgets.QWidget):
@@ -32,6 +32,8 @@ class BaseNavigatorWidget(QtWidgets.QWidget):
         self.channel = QtWebChannel.QWebChannel(self)
         self.channel.registerObject("bridge", self.bridge)
         self.view = QtWebEngineWidgets.QWebEngineView(self)
+        self.page = Page(self.view)
+        self.view.setPage(self.page)
         self.view.loadFinished.connect(self.load_finished_handler)
         self.view.setContextMenuPolicy(Qt.PreventContextMenu)
         self.view.page().setWebChannel(self.channel)
