@@ -147,7 +147,7 @@ class MetaDataStore(object):
                 df_new = pd.DataFrame([act.as_dict()], index=pd.MultiIndex.from_tuples([act.key]))
                 df_new['key'] = [act.key]
                 if act.get('classifications', False):  # add classification data if present
-                    self.unpack_classifications(df_new, self.CLASSIFICATION_SYSTEMS)
+                    df_new = self.unpack_classifications(df_new, self.CLASSIFICATION_SYSTEMS)
                 self.dataframe = pd.concat([self.dataframe, df_new], sort=False)
                 self.dataframe.replace(np.nan, '', regex=True, inplace=True)  # replace 'nan' values with emtpy string
             # print('Dimensions of the Metadata:', self.dataframe.shape)

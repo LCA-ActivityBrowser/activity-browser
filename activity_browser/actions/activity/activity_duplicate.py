@@ -18,10 +18,8 @@ class ActivityDuplicate(ABAction):
     @staticmethod
     @exception_dialogs
     def run(activity_keys: List[tuple]):
-        from activity_browser.bwutils.metadata import AB_metadata
         activities = [get_activity(key) for key in activity_keys]
 
         for activity in activities:
             new_code = commontasks.generate_copy_code(activity.key)
             activity.copy(new_code)
-            AB_metadata.update_metadata((activity.key[0], new_code))
