@@ -193,7 +193,7 @@ class MLCA(object):
             self.func_unit_translation_dict[
                 (
                     f'{act["name"]} | '
-                    f'{act["reference product"]} | '
+                    f'{act.get("reference product", act.get("name", "Unknown"))} | '
                     f'{act["location"]} | '
                     f'{act["database"]} | '
                     f"{amount}"
