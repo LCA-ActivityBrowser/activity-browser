@@ -8,9 +8,9 @@ from activity_browser.mod import bw2data as bd
 class Statusbar(QStatusBar):
     def __init__(self, window):
         super().__init__(parent=window)
-        self.status_message_left = QLabel('Welcome')
-        self.status_message_right = QLabel('Database')
-        self.status_message_center = QLabel('Project')
+        self.status_message_left = QLabel("Welcome")
+        self.status_message_right = QLabel("Database")
+        self.status_message_center = QLabel("Project")
 
         self.addWidget(self.status_message_left, 1)
         self.addWidget(self.status_message_center, 2)

@@ -10,7 +10,7 @@ class CheckboxDelegate(QtWidgets.QStyledItemDelegate):
         return None
 
     def paint(self, painter, option, index):
-        """ Paint the cell with a styled option button, showing a checkbox
+        """Paint the cell with a styled option button, showing a checkbox
 
         See links below for inspiration:
         https://stackoverflow.com/a/11778012
@@ -23,7 +23,9 @@ class CheckboxDelegate(QtWidgets.QStyledItemDelegate):
         value = bool(index.data(QtCore.Qt.DisplayRole))
         button = QtWidgets.QStyleOptionButton()
         button.state = QtWidgets.QStyle.State_Enabled
-        button.state |= QtWidgets.QStyle.State_Off if not value else QtWidgets.QStyle.State_On
+        button.state |= (
+            QtWidgets.QStyle.State_Off if not value else QtWidgets.QStyle.State_On
+        )
         painter.translate(QtCore.QPoint(option.rect.left(), option.rect.center().y()))
         style = option.widget.style()
         style.drawControl(QtWidgets.QStyle.CE_CheckBox, button, painter, option.widget)

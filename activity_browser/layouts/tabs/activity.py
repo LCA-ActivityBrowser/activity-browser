@@ -3,20 +3,22 @@ from peewee import DoesNotExist
 from PySide2 import QtCore, QtWidgets
 from PySide2.QtCore import Slot
 
-from activity_browser import signals, project_settings, ab_settings
-from activity_browser.mod import bw2data as bd
+from activity_browser import ab_settings, project_settings, signals
 from activity_browser.bwutils import commontasks as bc
+from activity_browser.mod import bw2data as bd
 
 from ...ui.icons import qicons
 from ...ui.style import style_activity_tab
 from ...ui.tables import (BiosphereExchangeTable, DownstreamExchangeTable,
-                      ProductExchangeTable, TechnosphereExchangeTable)
-from ...ui.widgets import ActivityDataGrid, DetailsGroupBox, SignalledPlainTextEdit
+                          ProductExchangeTable, TechnosphereExchangeTable)
+from ...ui.widgets import (ActivityDataGrid, DetailsGroupBox,
+                           SignalledPlainTextEdit)
 from ..panels import ABTab
 
 
 class ActivitiesTab(ABTab):
     """Tab that contains sub-tabs describing activity information."""
+
     def __init__(self, parent=None):
         super(ActivitiesTab, self).__init__(parent)
         self.setTabsClosable(True)
@@ -47,14 +49,18 @@ class ActivitiesTab(ABTab):
             self.tabs[key] = new_tab
             tab_index = self.addTab(new_tab, bc.get_activity_name(act, str_length=30))
 
-            new_tab.destroyed.connect(lambda: self.tabs.pop(key) if key in self.tabs else None)
+            new_tab.destroyed.connect(
+                lambda: self.tabs.pop(key) if key in self.tabs else None
+            )
             new_tab.destroyed.connect(signals.hide_when_empty.emit)
-            new_tab.objectNameChanged.connect(lambda name: self.setTabText(tab_index, name))
+            new_tab.objectNameChanged.connect(
+                lambda name: self.setTabText(tab_index, name)
+            )
 
         self.select_tab(self.tabs[key])
         signals.show_tab.emit("Activity Details")
 
-    @Slot(tuple,name="unsafeOpenActivityTab")
+    @Slot(tuple, name="unsafeOpenActivityTab")
     def unsafe_open_activity_tab(self, key: tuple) -> None:
         self.open_activity_tab(key, False)
 
@@ -89,7 +95,7 @@ class ActivityTab(QtWidgets.QWidget):
         self.database = bd.Database(self.db_name)
 
         # Edit Activity checkbox
-        self.checkbox_edit_act = QtWidgets.QCheckBox('Edit Activity')
+        self.checkbox_edit_act = QtWidgets.QCheckBox("Edit Activity")
         self.checkbox_edit_act.setChecked(not self.read_only)
         self.checkbox_edit_act.toggled.connect(self.act_read_only_changed)
 
@@ -101,10 +107,16 @@ class ActivityTab(QtWidgets.QWidget):
         )
 
         # Activity Description checkbox
-        self.checkbox_activity_description = QtWidgets.QCheckBox('Description', parent=self)
-        self.checkbox_activity_description.clicked.connect(self.toggle_activity_description_visibility)
+        self.checkbox_activity_description = QtWidgets.QCheckBox(
+            "Description", parent=self
+        )
+        self.checkbox_activity_description.clicked.connect(
+            self.toggle_activity_description_visibility
+        )
         self.checkbox_activity_description.setChecked(not self.read_only)
-        self.checkbox_activity_description.setToolTip("Show/hide the activity description")
+        self.checkbox_activity_description.setToolTip(
+            "Show/hide the activity description"
+        )
         self.toggle_activity_description_visibility()
 
         # Reveal/hide uncertainty columns
@@ -121,7 +133,9 @@ class ActivityTab(QtWidgets.QWidget):
 
         # Toolbar Layout
         toolbar = QtWidgets.QToolBar()
-        self.graph_action = toolbar.addAction(qicons.graph_explorer, "Show in Graph Explorer", self.open_graph)
+        self.graph_action = toolbar.addAction(
+            qicons.graph_explorer, "Show in Graph Explorer", self.open_graph
+        )
         toolbar.addWidget(self.checkbox_edit_act)
         toolbar.addWidget(self.checkbox_activity_description)
         toolbar.addWidget(self.checkbox_uncertainty)
@@ -129,7 +143,9 @@ class ActivityTab(QtWidgets.QWidget):
 
         # Activity information
         # this contains: activity name, location, database
-        self.activity_data_grid = ActivityDataGrid(read_only=self.read_only, parent=self)
+        self.activity_data_grid = ActivityDataGrid(
+            read_only=self.read_only, parent=self
+        )
         self.db_read_only_changed(db_name=self.db_name, db_read_only=self.db_read_only)
 
         # Exchange tables
@@ -147,7 +163,8 @@ class ActivityTab(QtWidgets.QWidget):
         self.exchange_groups[-1].setChecked(False)  # hide Downstream table by default
 
         self.group_splitter = QtWidgets.QSplitter(QtCore.Qt.Vertical)
-        for group in self.exchange_groups: self.group_splitter.addWidget(group)
+        for group in self.exchange_groups:
+            self.group_splitter.addWidget(group)
         if state := ab_settings.settings.get("activity_table_layout", None):
             self.group_splitter.restoreState(bytearray.fromhex(state))
 
@@ -212,13 +229,15 @@ class ActivityTab(QtWidgets.QWidget):
 
     def populate_description_box(self):
         """Populate the activity description."""
-        self.activity_description.refresh_text(self.activity.get('comment', ''))
+        self.activity_description.refresh_text(self.activity.get("comment", ""))
         self.activity_description.setReadOnly(self.read_only)
 
     @Slot(name="toggleDescription")
     def toggle_activity_description_visibility(self) -> None:
         """Show only if checkbox is checked."""
-        self.activity_description.setVisible(self.checkbox_activity_description.isChecked())
+        self.activity_description.setVisible(
+            self.checkbox_activity_description.isChecked()
+        )
 
     @Slot(bool, name="toggleUncertaintyColumns")
     def show_exchange_uncertainty(self, toggled: bool) -> None:
@@ -232,12 +251,14 @@ class ActivityTab(QtWidgets.QWidget):
 
     @Slot(bool, name="toggleReadOnly")
     def act_read_only_changed(self, read_only: bool) -> None:
-        """ When read_only=False specific data fields in the tables below become user-editable
-                When read_only=True these same fields become read-only"""
+        """When read_only=False specific data fields in the tables below become user-editable
+        When read_only=True these same fields become read-only"""
         self.read_only = not read_only
         self.activity_description.setReadOnly(self.read_only)
 
-        if not self.read_only:  # update unique locations, units, etc. for editing (metadata)
+        if (
+            not self.read_only
+        ):  # update unique locations, units, etc. for editing (metadata)
             signals.edit_activity.emit(self.db_name)
 
         self.activity_data_grid.set_activity_fields_read_only(read_only=self.read_only)
@@ -253,7 +274,12 @@ class ActivityTab(QtWidgets.QWidget):
         EditTriggers turned off to prevent DoubleClick-selection editing.
         DragDropMode set to NoDragDrop prevents exchanges dropped on the table to add.
         """
-        for table in [self.production, self.technosphere, self.biosphere, self.downstream]:
+        for table in [
+            self.production,
+            self.technosphere,
+            self.biosphere,
+            self.downstream,
+        ]:
             if self.read_only:
                 table.setEditTriggers(QtWidgets.QTableView.NoEditTriggers)
                 table.setAcceptDrops(False)
@@ -269,12 +295,14 @@ class ActivityTab(QtWidgets.QWidget):
                 table.modify_uncertainty_action.setEnabled(True)
                 table.remove_uncertainty_action.setEnabled(True)
                 table.setSelectionMode(table.SingleSelection)
-                if not table.downstream:  # downstream consumers table never accepts drops
+                if (
+                    not table.downstream
+                ):  # downstream consumers table never accepts drops
                     table.setAcceptDrops(True)
 
     @Slot(str, bool, name="dbReadOnlyToggle")
     def db_read_only_changed(self, db_name: str, db_read_only: bool) -> None:
-        """ If database of open activity is set to read-only, the read-only checkbox cannot now be unchecked by user """
+        """If database of open activity is set to read-only, the read-only checkbox cannot now be unchecked by user"""
         if db_name == self.db_name:
             self.db_read_only = db_read_only
 
@@ -293,13 +321,19 @@ class ActivityTab(QtWidgets.QWidget):
 
     def update_tooltips(self) -> None:
         if self.db_read_only:
-            self.checkbox_edit_act.setToolTip("The database this activity belongs to is read-only."
-                                         " Enable database editing with checkbox in databases list")
+            self.checkbox_edit_act.setToolTip(
+                "The database this activity belongs to is read-only."
+                " Enable database editing with checkbox in databases list"
+            )
         else:
             if self.read_only:
-                self.checkbox_edit_act.setToolTip("Click to enable editing. Edits are saved automatically")
+                self.checkbox_edit_act.setToolTip(
+                    "Click to enable editing. Edits are saved automatically"
+                )
             else:
-                self.checkbox_edit_act.setToolTip("Click to prevent further edits. Edits are saved automatically")
+                self.checkbox_edit_act.setToolTip(
+                    "Click to prevent further edits. Edits are saved automatically"
+                )
 
     def update_style(self) -> None:
         if self.read_only:
@@ -308,5 +342,7 @@ class ActivityTab(QtWidgets.QWidget):
             self.setStyleSheet(style_activity_tab.style_sheet_editable)
 
     def save_splitter_state(self):
-        ab_settings.settings["activity_table_layout"] = bytearray(self.group_splitter.saveState()).hex()
+        ab_settings.settings["activity_table_layout"] = bytearray(
+            self.group_splitter.saveState()
+        ).hex()
         ab_settings.write_settings()

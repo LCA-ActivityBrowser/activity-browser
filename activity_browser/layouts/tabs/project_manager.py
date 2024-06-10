@@ -2,14 +2,12 @@ from PySide2 import QtCore, QtWidgets
 
 from activity_browser import actions, signals
 from activity_browser.mod import bw2data as bd
-from ..panels import ABTab
-from ...ui.style import header
+
 from ...ui.icons import qicons
-from ...ui.tables import (
-    DatabasesTable,
-    ProjectListWidget,
-    ActivitiesBiosphereTable,
-)
+from ...ui.style import header
+from ...ui.tables import (ActivitiesBiosphereTable, DatabasesTable,
+                          ProjectListWidget)
+from ..panels import ABTab
 
 
 class ProjectTab(QtWidgets.QWidget):
@@ -45,7 +43,8 @@ class ProjectTab(QtWidgets.QWidget):
 
     def update_widgets(self):
         """Update widgets when a new database has been selected or the project has been changed.
-        Hide empty widgets (e.g. Biosphere Flows table when an inventory database is selected)."""
+        Hide empty widgets (e.g. Biosphere Flows table when an inventory database is selected).
+        """
         no_databases = len(self.activity_biosphere_tabs.tabs) == 0
 
         self.activity_biosphere_tabs.setVisible(not no_databases)
@@ -67,7 +66,7 @@ class ProjectsWidget(QtWidgets.QWidget):
         h_widget = QtWidgets.QWidget()
         h_layout = QtWidgets.QHBoxLayout()
         h_layout.setAlignment(QtCore.Qt.AlignLeft)
-        h_layout.addWidget(header('Project:'))
+        h_layout.addWidget(header("Project:"))
         h_layout.addWidget(self.projects_list)
         h_layout.addWidget(self.new_project_button)
         h_layout.addWidget(self.copy_project_button)
@@ -80,9 +79,10 @@ class ProjectsWidget(QtWidgets.QWidget):
         layout.addWidget(h_widget)
         self.setLayout(layout)
 
-        self.setSizePolicy(QtWidgets.QSizePolicy(
-            QtWidgets.QSizePolicy.Expanding,
-            QtWidgets.QSizePolicy.Maximum)
+        self.setSizePolicy(
+            QtWidgets.QSizePolicy(
+                QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Maximum
+            )
         )
 
 
@@ -94,8 +94,8 @@ class DatabaseWidget(QtWidgets.QWidget):
 
         # Temporary inclusion to explain things before checkbox is back
         self.label_change_readonly = QtWidgets.QLabel(
-            "To change a database from read-only to editable and back," +
-            " click on the checkbox in the table."
+            "To change a database from read-only to editable and back,"
+            + " click on the checkbox in the table."
         )
 
         # Buttons
@@ -153,15 +153,16 @@ class ActivityBiosphereTabs(ABTab):
         signals.database_selected.connect(self.open_or_focus_tab)
 
     def open_or_focus_tab(self, db_name: str) -> None:
-        """Put focus on tab, if not open yet, open it.
-        """
+        """Put focus on tab, if not open yet, open it."""
         # create the tab if it doesn't exist yet
         if not self.tabs.get(db_name, False):
             widget = ActivityBiosphereWidget(db_name, self)
             self.add_tab(widget, db_name)
             self.update_activity_biosphere_widget(db_name)
 
-            widget.destroyed.connect(lambda: self.tabs.pop(db_name) if db_name in self.tabs else None)
+            widget.destroyed.connect(
+                lambda: self.tabs.pop(db_name) if db_name in self.tabs else None
+            )
 
         # put the focus on this tab + send signal that this is the open db
         self.select_tab(self.tabs[db_name])

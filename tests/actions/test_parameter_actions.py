@@ -1,25 +1,24 @@
 import bw2data as bd
-from bw2data.parameters import ProjectParameter, DatabaseParameter, ActivityParameter
+from bw2data.parameters import (ActivityParameter, DatabaseParameter,
+                                ProjectParameter)
 from PySide2 import QtWidgets
-from activity_browser import actions
 
+from activity_browser import actions
 from activity_browser.actions.parameter.parameter_new import ParameterWizard
 
 
 class TestParameterNew:
     def test_parameter_new_project(self, ab_app, monkeypatch):
         key = ("", "")
-        param_data = {
-            "name": "project_parameter_to_be_created",
-            "amount": "1.0"
-        }
+        param_data = {"name": "project_parameter_to_be_created", "amount": "1.0"}
 
         monkeypatch.setattr(
-            ParameterWizard, 'exec_',
-            staticmethod(lambda *args, **kwargs: ParameterWizard.Accepted)
+            ParameterWizard,
+            "exec_",
+            staticmethod(lambda *args, **kwargs: ParameterWizard.Accepted),
         )
-        monkeypatch.setattr(ParameterWizard, 'selected', 0)
-        monkeypatch.setattr(ParameterWizard, 'param_data', param_data)
+        monkeypatch.setattr(ParameterWizard, "selected", 0)
+        monkeypatch.setattr(ParameterWizard, "param_data", param_data)
 
         assert bd.projects.current == "default"
         assert "project_parameter_to_be_created" not in ProjectParameter.load().keys()
@@ -33,54 +32,64 @@ class TestParameterNew:
         param_data = {
             "name": "database_parameter_to_be_created",
             "database": "activity_tests",
-            "amount": "1.0"
+            "amount": "1.0",
         }
 
         monkeypatch.setattr(
-            ParameterWizard, 'exec_',
-            staticmethod(lambda *args, **kwargs: ParameterWizard.Accepted)
+            ParameterWizard,
+            "exec_",
+            staticmethod(lambda *args, **kwargs: ParameterWizard.Accepted),
         )
-        monkeypatch.setattr(ParameterWizard, 'selected', 1)
-        monkeypatch.setattr(ParameterWizard, 'param_data', param_data)
+        monkeypatch.setattr(ParameterWizard, "selected", 1)
+        monkeypatch.setattr(ParameterWizard, "param_data", param_data)
 
         assert bd.projects.current == "default"
-        assert "database_parameter_to_be_created" not in DatabaseParameter.load("activity_tests").keys()
+        assert (
+            "database_parameter_to_be_created"
+            not in DatabaseParameter.load("activity_tests").keys()
+        )
 
         actions.ParameterNew.run(key)
 
-        assert "database_parameter_to_be_created" in DatabaseParameter.load("activity_tests").keys()
+        assert (
+            "database_parameter_to_be_created"
+            in DatabaseParameter.load("activity_tests").keys()
+        )
 
     def test_parameter_new_activity(self, ab_app, monkeypatch):
-        key = ('activity_tests', '3fcde3e3bf424e97b32cf29347ac7f33')
+        key = ("activity_tests", "3fcde3e3bf424e97b32cf29347ac7f33")
         group = "activity_group"
         param_data = {
             "name": "activity_parameter_to_be_created",
             "database": key[0],
             "code": key[1],
             "group": group,
-            "amount": "1.0"
+            "amount": "1.0",
         }
 
         monkeypatch.setattr(
-            ParameterWizard, 'exec_',
-            staticmethod(lambda *args, **kwargs: ParameterWizard.Accepted)
+            ParameterWizard,
+            "exec_",
+            staticmethod(lambda *args, **kwargs: ParameterWizard.Accepted),
         )
-        monkeypatch.setattr(ParameterWizard, 'selected', 2)
-        monkeypatch.setattr(ParameterWizard, 'param_data', param_data)
+        monkeypatch.setattr(ParameterWizard, "selected", 2)
+        monkeypatch.setattr(ParameterWizard, "param_data", param_data)
 
         assert bd.projects.current == "default"
-        assert "activity_parameter_to_be_created" not in ActivityParameter.load(group).keys()
+        assert (
+            "activity_parameter_to_be_created"
+            not in ActivityParameter.load(group).keys()
+        )
 
         actions.ParameterNew.run(key)
 
-        assert "activity_parameter_to_be_created" in ActivityParameter.load(group).keys()
+        assert (
+            "activity_parameter_to_be_created" in ActivityParameter.load(group).keys()
+        )
 
     def test_parameter_new_wizard_project(self, ab_app):
         key = ("", "")
-        param_data = {
-            "name": "parameter_test",
-            "amount": "1.0"
-        }
+        param_data = {"name": "parameter_test", "amount": "1.0"}
         wizard = ParameterWizard(key)
 
         assert not wizard.isVisible()
@@ -101,7 +110,7 @@ class TestParameterNew:
         param_data = {
             "name": "parameter_test",
             "database": "activity_tests",
-            "amount": "1.0"
+            "amount": "1.0",
         }
         wizard = ParameterWizard(key)
 
@@ -120,13 +129,13 @@ class TestParameterNew:
         assert wizard.param_data == param_data
 
     def test_parameter_new_wizard_activity(self, ab_app):
-        key = ('activity_tests', 'be8fb2776c354aa7ad61d8348828f3af')
+        key = ("activity_tests", "be8fb2776c354aa7ad61d8348828f3af")
         param_data = {
             "name": "parameter_test",
             "database": "activity_tests",
             "code": "be8fb2776c354aa7ad61d8348828f3af",
             "group": "4748",
-            "amount": "1.0"
+            "amount": "1.0",
         }
         wizard = ParameterWizard(key)
 
@@ -145,7 +154,7 @@ class TestParameterNew:
 
 
 def test_parameter_new_automatic(ab_app):
-    key = ('activity_tests', 'dd4e2393573c49248e7299fbe03a169c_copy1')
+    key = ("activity_tests", "dd4e2393573c49248e7299fbe03a169c_copy1")
     group = bd.get_activity(key)._document.id
 
     assert bd.projects.current == "default"
@@ -157,11 +166,14 @@ def test_parameter_new_automatic(ab_app):
 
 
 def test_parameter_rename(ab_app, monkeypatch):
-    parameter = list(ProjectParameter.select().where(ProjectParameter.name == "parameter_to_rename"))[0]
+    parameter = list(
+        ProjectParameter.select().where(ProjectParameter.name == "parameter_to_rename")
+    )[0]
 
     monkeypatch.setattr(
-        QtWidgets.QInputDialog, 'getText',
-        staticmethod(lambda *args, **kwargs: ("renamed_parameter", True))
+        QtWidgets.QInputDialog,
+        "getText",
+        staticmethod(lambda *args, **kwargs: ("renamed_parameter", True)),
     )
 
     assert bd.projects.current == "default"

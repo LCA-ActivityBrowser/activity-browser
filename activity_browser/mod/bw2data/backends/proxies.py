@@ -4,9 +4,11 @@ except ModuleNotFoundError:
     # we're running bw25
     from bw2data.backends.proxies import *
 
-from activity_browser.signals import qdatabase_list, qactivity_list, qexchange_list
-from activity_browser.mod.patching import patch_superclass, patched
 from bw2data import Database
+
+from activity_browser.mod.patching import patch_superclass, patched
+from activity_browser.signals import (qactivity_list, qdatabase_list,
+                                      qexchange_list)
 
 
 @patch_superclass
@@ -32,20 +34,24 @@ class Exchanges(Exchanges):
         act_args = self._args + [act_query]
 
         # execute query to a set, and only select activities that are in act_keys
-        acts = {get_activity((doc.output_database, doc.output_code))
-                for doc in ExchangeDataset.select().where(*act_args)
-                if (doc.output_database, doc.output_code) in act_keys
-                }
+        acts = {
+            get_activity((doc.output_database, doc.output_code))
+            for doc in ExchangeDataset.select().where(*act_args)
+            if (doc.output_database, doc.output_code) in act_keys
+        }
 
         # gather affected input activities
 
         # same process as above but for input_code and input_database
         act_query = ExchangeDataset.input_code << [key[1] for key in act_keys]
         act_args = self._args + [act_query]
-        acts.update({get_activity((doc.input_database, doc.input_code))
-                     for doc in ExchangeDataset.select().where(*act_args)
-                     if (doc.input_database, doc.input_code) in act_keys
-                     })
+        acts.update(
+            {
+                get_activity((doc.input_database, doc.input_code))
+                for doc in ExchangeDataset.select().where(*act_args)
+                if (doc.input_database, doc.input_code) in act_keys
+            }
+        )
 
         # use the activities set to create a database set as well
         dbs = set([act["database"] for act in acts])
@@ -55,16 +61,32 @@ class Exchanges(Exchanges):
 
         # emitting change through any existing exchange QUpdaters
         for exc in excs:
-            [qexc.emitLater("changed", exc) for qexc in qexchange_list if qexc["id"] == exc._document.id]
-            [qexc.emitLater("deleted", exc) for qexc in qexchange_list if qexc["id"] == exc._document.id]
+            [
+                qexc.emitLater("changed", exc)
+                for qexc in qexchange_list
+                if qexc["id"] == exc._document.id
+            ]
+            [
+                qexc.emitLater("deleted", exc)
+                for qexc in qexchange_list
+                if qexc["id"] == exc._document.id
+            ]
 
         # emitting change through any existing activity QUpdaters
         for act in acts:
-            [qact.emitLater("changed", act) for qact in qactivity_list if qact["id"] == act._document.id]
+            [
+                qact.emitLater("changed", act)
+                for qact in qactivity_list
+                if qact["id"] == act._document.id
+            ]
 
         # emitting change through any existing database QUpdaters
         for db_name in dbs:
-            [qdb.emitLater("changed", Database(db_name)) for qdb in qdatabase_list if qdb["name"] == db_name]
+            [
+                qdb.emitLater("changed", Database(db_name))
+                for qdb in qdatabase_list
+                if qdb["name"] == db_name
+            ]
 
 
 @patch_superclass
@@ -101,11 +123,19 @@ class Activity(Activity):
         # exchanges cannot be changed through the activity proxy save function
 
         # emitting change through any existing qactivities (should be 1 or None)
-        [qact.emitLater("changed", self) for qact in qactivity_list if qact["id"] == self._document.id]
+        [
+            qact.emitLater("changed", self)
+            for qact in qactivity_list
+            if qact["id"] == self._document.id
+        ]
 
         # emitting change through an existing qdatabases (should be 1 or None)
         db = Database(self["database"])
-        [qdb.emitLater("changed", db) for qdb in qdatabase_list if qdb["name"] == self["database"]]
+        [
+            qdb.emitLater("changed", db)
+            for qdb in qdatabase_list
+            if qdb["name"] == self["database"]
+        ]
 
     def delete(self) -> None:
         from activity_browser.bwutils.metadata import AB_metadata
@@ -121,12 +151,24 @@ class Activity(Activity):
         # exchange deletions will emit for themselves
 
         # emitting change through any existing qactivities (should be 1 or None)
-        [qact.emitLater("changed", self) for qact in qactivity_list if qact["id"] == self._document.id]
-        [qact.emitLater("deleted", self) for qact in qactivity_list if qact["id"] == self._document.id]
+        [
+            qact.emitLater("changed", self)
+            for qact in qactivity_list
+            if qact["id"] == self._document.id
+        ]
+        [
+            qact.emitLater("deleted", self)
+            for qact in qactivity_list
+            if qact["id"] == self._document.id
+        ]
 
         # emitting change through an existing qdatabases (should be 1 or None)
         db = Database(self["database"])
-        [qdb.emitLater("changed", db) for qdb in qdatabase_list if qdb["name"] == self["database"]]
+        [
+            qdb.emitLater("changed", db)
+            for qdb in qdatabase_list
+            if qdb["name"] == self["database"]
+        ]
 
 
 @patch_superclass
@@ -161,7 +203,11 @@ class Exchange(Exchange):
         patched[Exchange]["save"](self)
 
         # emitting change through any existing qexchanges (should be 1 or None)
-        [qexc.emitLater("changed", self) for qexc in qexchange_list if qexc["id"] == self._document.id]
+        [
+            qexc.emitLater("changed", self)
+            for qexc in qexchange_list
+            if qexc["id"] == self._document.id
+        ]
 
         # collecting unique activities and databases that have changed
         acts = set()
@@ -174,12 +220,20 @@ class Exchange(Exchange):
         # emitting change through any existing qactivities
         for activity in acts:
             dbs.add(activity["database"])
-            [qact.emitLater("changed", activity) for qact in qactivity_list if qact["id"] == activity._document.id]
+            [
+                qact.emitLater("changed", activity)
+                for qact in qactivity_list
+                if qact["id"] == activity._document.id
+            ]
 
         # emitting change through any existing qdatabases
         for db_name in dbs:
             db = Database(db_name)
-            [qdb.emitLater("changed", db) for qdb in qdatabase_list if qdb["name"] == db_name]
+            [
+                qdb.emitLater("changed", db)
+                for qdb in qdatabase_list
+                if qdb["name"] == db_name
+            ]
 
         self.moved_IO.clear()
 
@@ -188,16 +242,40 @@ class Exchange(Exchange):
         patched[Exchange]["delete"](self)
 
         # emitting change and deletion through any existing qexchanges (should be 1 or None)
-        [qexc.emitLater("changed", self) for qexc in qexchange_list if qexc["id"] == self._document.id]
-        [qexc.emitLater("deleted", self) for qexc in qexchange_list if qexc["id"] == self._document.id]
+        [
+            qexc.emitLater("changed", self)
+            for qexc in qexchange_list
+            if qexc["id"] == self._document.id
+        ]
+        [
+            qexc.emitLater("deleted", self)
+            for qexc in qexchange_list
+            if qexc["id"] == self._document.id
+        ]
 
         # emitting change for any existing qactivities (should be 1 or None)
-        [qact.emitLater("changed", self.input) for qact in qactivity_list if qact["id"] == self.input._document.id]
-        [qact.emitLater("changed", self.output) for qact in qactivity_list if qact["id"] == self.output._document.id]
+        [
+            qact.emitLater("changed", self.input)
+            for qact in qactivity_list
+            if qact["id"] == self.input._document.id
+        ]
+        [
+            qact.emitLater("changed", self.output)
+            for qact in qactivity_list
+            if qact["id"] == self.output._document.id
+        ]
 
         # emitting change for related databases
         in_db = Database(self.input["database"])
-        [qdb.emitLater("changed", in_db) for qdb in qdatabase_list if qdb["name"] == in_db.name]
+        [
+            qdb.emitLater("changed", in_db)
+            for qdb in qdatabase_list
+            if qdb["name"] == in_db.name
+        ]
 
         out_db = Database(self.output["database"])
-        [qdb.emitLater("changed", out_db) for qdb in qdatabase_list if qdb["name"] == out_db.name]
+        [
+            qdb.emitLater("changed", out_db)
+            for qdb in qdatabase_list
+            if qdb["name"] == out_db.name
+        ]
