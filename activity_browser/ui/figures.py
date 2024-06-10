@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 import math
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
-import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 from PySide2 import QtWidgets
@@ -12,12 +12,13 @@ from PySide2 import QtWidgets
 from activity_browser import log
 from activity_browser.mod.bw2data import methods
 from activity_browser.utils import savefilepath
-from ..bwutils.commontasks import wrap_text
 
+from ..bwutils.commontasks import wrap_text
 
 # todo: sizing of the figures needs to be improved and systematized...
 # todo: Bokeh is a potential alternative as it allows interactive visualizations,
 #  but this issue needs to be resolved first: https://github.com/bokeh/bokeh/issues/8169
+
 
 class Plot(QtWidgets.QWidget):
     ALL_FILTER = "All Files (*.*)"
@@ -32,13 +33,15 @@ class Plot(QtWidgets.QWidget):
         self.canvas = FigureCanvasQTAgg(self.figure)
         self.canvas.setMinimumHeight(0)
         self.ax = self.figure.add_subplot(111)  # create an axis
-        self.plot_name = 'Figure'
+        self.plot_name = "Figure"
 
         # set the layout
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.canvas)
         self.setLayout(layout)
-        self.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        self.setSizePolicy(
+            QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding
+        )
         self.updateGeometry()
 
     def plot(self, *args, **kwargs):
@@ -53,27 +56,32 @@ class Plot(QtWidgets.QWidget):
         return tuple(x / self.figure.dpi for x in self.canvas.get_width_height())
 
     def to_png(self):
-        """ Export to .png format. """
-        filepath = savefilepath(default_file_name=self.plot_name, file_filter=self.PNG_FILTER)
+        """Export to .png format."""
+        filepath = savefilepath(
+            default_file_name=self.plot_name, file_filter=self.PNG_FILTER
+        )
         if filepath:
-            if not filepath.endswith('.png'):
-                filepath += '.png'
+            if not filepath.endswith(".png"):
+                filepath += ".png"
             self.figure.savefig(filepath)
 
     def to_svg(self):
-        """ Export to .svg format. """
-        filepath = savefilepath(default_file_name=self.plot_name, file_filter=self.SVG_FILTER)
+        """Export to .svg format."""
+        filepath = savefilepath(
+            default_file_name=self.plot_name, file_filter=self.SVG_FILTER
+        )
         if filepath:
-            if not filepath.endswith('.svg'):
-                filepath += '.svg'
+            if not filepath.endswith(".svg"):
+                filepath += ".svg"
             self.figure.savefig(filepath)
 
 
 class LCAResultsBarChart(Plot):
-    """" Generate a bar chart comparing the absolute LCA scores of the products """
+    """ " Generate a bar chart comparing the absolute LCA scores of the products"""
+
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.plot_name = 'LCA scores'
+        self.plot_name = "LCA scores"
 
     def plot(self, df: pd.DataFrame, method: tuple, labels: list):
         self.reset_plot()
@@ -88,12 +96,12 @@ class LCAResultsBarChart(Plot):
 
         # labels
         self.ax.set_yticks(np.arange(len(labels)))
-        self.ax.set_xlabel(methods[method].get('unit'))
-        self.ax.set_title(', '.join([m for m in method]))
+        self.ax.set_xlabel(methods[method].get("unit"))
+        self.ax.set_title(", ".join([m for m in method]))
         # self.ax.set_yticklabels(labels, minor=False)
 
         # grid
-        self.ax.grid(which="major", axis="x", color="grey", linestyle='dashed')
+        self.ax.grid(which="major", axis="x", color="grey", linestyle="dashed")
         self.ax.set_axisbelow(True)  # puts gridlines behind bars
 
         # draw
@@ -103,20 +111,22 @@ class LCAResultsBarChart(Plot):
 class LCAResultsPlot(Plot):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.plot_name = 'LCA heatmap'
+        self.plot_name = "LCA heatmap"
 
-    def plot(self, df: pd.DataFrame, invert_plot: bool= False):
-        """ Plot a heatmap grid of the different impact categories and reference flows. """
+    def plot(self, df: pd.DataFrame, invert_plot: bool = False):
+        """Plot a heatmap grid of the different impact categories and reference flows."""
         # need to clear the figure and add axis again
         # because of the colorbar which does not get removed by the ax.clear()
         self.reset_plot()
 
         dfp = df.copy()
-        dfp.index = dfp['index']
-        dfp.drop(dfp.select_dtypes(['object']), axis=1, inplace=True)  # get rid of all non-numeric columns (metadata)
+        dfp.index = dfp["index"]
+        dfp.drop(
+            dfp.select_dtypes(["object"]), axis=1, inplace=True
+        )  # get rid of all non-numeric columns (metadata)
         if "amount" in dfp.columns:
             dfp.drop(["amount"], axis=1, inplace=True)  # Drop the 'amount' col
-        if 'Total' in dfp.index:
+        if "Total" in dfp.index:
             dfp.drop("Total", inplace=True)
 
         # avoid figures getting too large horizontally
@@ -129,16 +139,24 @@ class LCAResultsPlot(Plot):
             prop = prop.T
 
         # set different color palette depending on whether all values are positive or not
-        if dfp.min(axis=None) < 0 and dfp.max(axis=None) > 0:  # has both negative AND positive values
+        if (
+            dfp.min(axis=None) < 0 and dfp.max(axis=None) > 0
+        ):  # has both negative AND positive values
             cmap = sns.color_palette("vlag_r", as_cmap=True)
         else:  # has only positive OR negative values
             cmap = sns.color_palette("Blues", as_cmap=True)
 
         sns.heatmap(
-            prop, ax=self.ax, cmap=cmap, annot=dfp, linewidths=0.05,
-            annot_kws={"size": 11 if dfp.shape[1] <= 8 else 9,
-                       "rotation": 0 if dfp.shape[1] <= 8 else 60},
-            cbar_kws={'format': '%.0f%%'}
+            prop,
+            ax=self.ax,
+            cmap=cmap,
+            annot=dfp,
+            linewidths=0.05,
+            annot_kws={
+                "size": 11 if dfp.shape[1] <= 8 else 9,
+                "rotation": 0 if dfp.shape[1] <= 8 else 60,
+            },
+            cbar_kws={"format": "%.0f%%"},
         )
         self.ax.tick_params(labelsize=8)
         if dfp.shape[1] > 5:
@@ -159,14 +177,16 @@ class ContributionPlot(Plot):
 
     def __init__(self):
         super().__init__()
-        self.plot_name = 'Contributions'
+        self.plot_name = "Contributions"
 
     def plot(self, df: pd.DataFrame, unit: str = None):
-        """ Plot a horizontal bar chart of the process contributions. """
+        """Plot a horizontal bar chart of the process contributions."""
         dfp = df.copy()
-        dfp.index = dfp['index']
-        dfp.drop(dfp.select_dtypes(['object']), axis=1, inplace=True)  # get rid of all non-numeric columns (metadata)
-        if 'Total' in dfp.index:
+        dfp.index = dfp["index"]
+        dfp.drop(
+            dfp.select_dtypes(["object"]), axis=1, inplace=True
+        )  # get rid of all non-numeric columns (metadata)
+        if "Total" in dfp.index:
             dfp.drop("Total", inplace=True)
 
         self.ax.clear()
@@ -194,16 +214,16 @@ class ContributionPlot(Plot):
 
         # show legend if not too many items
         if not dfp.shape[0] >= self.MAX_LEGEND:
-            plt.rc('legend', **{'fontsize': 8})
+            plt.rc("legend", **{"fontsize": 8})
             ncols = math.ceil(dfp.shape[0] * 0.6 / optimal_height_inches)
             # print('Ncols:', ncols, dfp.shape[0] * 0.55, optimal_height_inches)
-            self.ax.legend(loc='center left', bbox_to_anchor=(1, 0.5), ncol=ncols)
+            self.ax.legend(loc="center left", bbox_to_anchor=(1, 0.5), ncol=ncols)
 
         # grid
-        self.ax.grid(which="major", axis="x", color="grey", linestyle='dashed')
+        self.ax.grid(which="major", axis="x", color="grey", linestyle="dashed")
         self.ax.set_axisbelow(True)  # puts gridlines behind bars
 
-        #TODO review: remove or enable
+        # TODO review: remove or enable
 
         # refresh canvas
         # size_inches = (2 + dfp.shape[0] * 0.5, 4 + dfp.shape[1] * 0.55)
@@ -220,7 +240,7 @@ class CorrelationPlot(Plot):
         sns.set(style="darkgrid")
 
     def plot(self, df: pd.DataFrame):
-        """ Plot a heatmap of correlations between different reference flows. """
+        """Plot a heatmap of correlations between different reference flows."""
         # need to clear the figure and add axis again
         # because of the colorbar which does not get removed by the ax.clear()
         self.reset_plot()
@@ -236,20 +256,39 @@ class CorrelationPlot(Plot):
         # Draw the heatmap with the mask and correct aspect ratio
         vmax = np.abs(corr.values[~mask]).max()
         # vmax = np.abs(corr).max()
-        sns.heatmap(corr, mask=mask, cmap=plt.cm.PuOr, vmin=-vmax, vmax=vmax,
-                    square=True, linecolor="lightgray", linewidths=1, ax=self.ax)
+        sns.heatmap(
+            corr,
+            mask=mask,
+            cmap=plt.cm.PuOr,
+            vmin=-vmax,
+            vmax=vmax,
+            square=True,
+            linecolor="lightgray",
+            linewidths=1,
+            ax=self.ax,
+        )
 
         df_lte8_cols = df.shape[1] <= 8
         for i in range(len(corr)):
             self.ax.text(
-                i + 0.5, i + 0.5, corr.columns[i], ha="center", va="center",
-                rotation=0 if df_lte8_cols else 45, size=11 if df_lte8_cols else 9
+                i + 0.5,
+                i + 0.5,
+                corr.columns[i],
+                ha="center",
+                va="center",
+                rotation=0 if df_lte8_cols else 45,
+                size=11 if df_lte8_cols else 9,
             )
             for j in range(i + 1, len(corr)):
                 s = "{:.3f}".format(corr.values[i, j])
                 self.ax.text(
-                    j + 0.5, i + 0.5, s, ha="center", va="center",
-                    rotation=0 if df_lte8_cols else 45, size=11 if df_lte8_cols else 9
+                    j + 0.5,
+                    i + 0.5,
+                    s,
+                    ha="center",
+                    va="center",
+                    rotation=0 if df_lte8_cols else 45,
+                    size=11 if df_lte8_cols else 9,
                 )
         self.ax.axis("off")
 
@@ -260,23 +299,34 @@ class CorrelationPlot(Plot):
 
 
 class MonteCarloPlot(Plot):
-    """ Monte Carlo plot."""
+    """Monte Carlo plot."""
+
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.plot_name = 'Monte Carlo'
+        self.plot_name = "Monte Carlo"
 
     def plot(self, df: pd.DataFrame, method: tuple):
         self.ax.clear()
 
         for col in df.columns:
             color = self.ax._get_lines.get_next_color()
-            df[col].hist(ax=self.ax, figure=self.figure, label=col, density=True, color=color, alpha=0.5)  # , histtype="step")
+            df[col].hist(
+                ax=self.ax,
+                figure=self.figure,
+                label=col,
+                density=True,
+                color=color,
+                alpha=0.5,
+            )  # , histtype="step")
             # self.ax.axvline(df[col].median(), color=color)
             self.ax.axvline(df[col].mean(), color=color)
 
         self.ax.set_xlabel(methods[method]["unit"])
-        self.ax.set_ylabel('Probability')
-        self.ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.07), ) #ncol=2
+        self.ax.set_ylabel("Probability")
+        self.ax.legend(
+            loc="upper center",
+            bbox_to_anchor=(0.5, -0.07),
+        )  # ncol=2
 
         # lconfi, upconfi =mc['statistics']['interval'][0], mc['statistics']['interval'][1]
 
@@ -290,7 +340,9 @@ class SimpleDistributionPlot(Plot):
             sns.histplot(data.T, kde=True, stat="density", ax=self.ax, edgecolor="none")
         except RuntimeError as e:
             log.error("{}: Plotting without KDE.".format(e))
-            sns.histplot(data.T, kde=False, stat="density", ax=self.ax, edgecolor="none")
+            sns.histplot(
+                data.T, kde=False, stat="density", ax=self.ax, edgecolor="none"
+            )
         self.ax.set_xlabel(label)
         self.ax.set_ylabel("Probability density")
         # Add vertical line at given mean of x-axis

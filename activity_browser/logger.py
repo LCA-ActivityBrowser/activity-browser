@@ -1,29 +1,39 @@
+import inspect
+import logging
 import os
 import sys
 import time
-import inspect
-import logging
-import appdirs
-
 from traceback import extract_tb
 from types import TracebackType
 from typing import Type
+
+import appdirs
 
 
 class ABFileHandler(logging.Handler):
     """
     LogHandler for the log files. Formats them in semicolon separated CSV files for easy reading.
     """
-    headers = ["time", "type", "thread", "name", "file location", "line number", "function name", "message"]
+
+    headers = [
+        "time",
+        "type",
+        "thread",
+        "name",
+        "file location",
+        "line number",
+        "function name",
+        "message",
+    ]
 
     def __init__(self):
         super().__init__()
 
         # create a unique filename based on the datetime
-        self.filename = "ab_logs" + self.timestamp() + '.csv'
+        self.filename = "ab_logs" + self.timestamp() + ".csv"
 
         # set dir and create it if it doesn't exist yet
-        dir_path = appdirs.user_log_dir('ActivityBrowser', 'ActivityBrowser')
+        dir_path = appdirs.user_log_dir("ActivityBrowser", "ActivityBrowser")
         os.makedirs(dir_path, exist_ok=True)
 
         # create final filepath of the logfile of this session
@@ -34,7 +44,7 @@ class ABFileHandler(logging.Handler):
         log_file_location = self.filepath
 
         # create the logfile and write the headers
-        with open(self.filepath, 'a') as log_file:
+        with open(self.filepath, "a") as log_file:
             log_file.write(";".join(self.headers) + "\n")
 
     def emit(self, record: logging.LogRecord):
@@ -43,7 +53,7 @@ class ABFileHandler(logging.Handler):
         message = self.format(record)
 
         # append to the logfile
-        with open(self.filepath, 'a') as log_file:
+        with open(self.filepath, "a") as log_file:
             log_file.write(message)
 
             # if there's exception info, write the exception traceback to the file as well
@@ -58,10 +68,11 @@ class ABFileHandler(logging.Handler):
         message = message + " ".join([str(arg) for arg in record.args])
 
         # if there is no message left, return nothing
-        if message == " ": return ""
+        if message == " ":
+            return ""
 
         # make sure there a no semicolons
-        message.replace(';', ':')
+        message.replace(";", ":")
 
         # convert time
         struct_time = time.localtime(record.created)
@@ -96,6 +107,7 @@ class ABPycharmHandler(logging.Handler):
     LogHandler for the console. Make sure they are all in the same format. Adds badges, and if extended logs are enabled
     also the time and a (shortened) logger name.
     """
+
     badge = {
         "INFO": "\u001b[48;5;24m\u001b[38;5;255m INFO  \u001b[0m",
         "DEBUG": "\u001b[48;5;90m\u001b[38;5;255m DEBUG \u001b[0m",
@@ -105,10 +117,7 @@ class ABPycharmHandler(logging.Handler):
         "PRINT": "\u001b[7m PRINT \u001b[0m",
     }
 
-    alias = {
-        "activity_browser": "AB",
-        "brightway2": "BW2"
-    }
+    alias = {"activity_browser": "AB", "brightway2": "BW2"}
 
     def __init__(self):
         super().__init__()
@@ -116,7 +125,7 @@ class ABPycharmHandler(logging.Handler):
         self.filename = "pycharm_logs.log"
 
         # set dir and create it if it doesn't exist yet
-        dir_path = appdirs.user_log_dir('ActivityBrowser', 'ActivityBrowser')
+        dir_path = appdirs.user_log_dir("ActivityBrowser", "ActivityBrowser")
         os.makedirs(dir_path, exist_ok=True)
 
         # create final filepath of the logfile of this session
@@ -128,7 +137,7 @@ class ABPycharmHandler(logging.Handler):
         message = self.format_log(record)
 
         # append to the logfile
-        with open(self.filepath, 'a') as log_file:
+        with open(self.filepath, "a") as log_file:
             log_file.write(message)
 
             # if there's exception info, write the exception traceback to the file as well
@@ -143,12 +152,13 @@ class ABPycharmHandler(logging.Handler):
         message = message + " ".join([str(arg) for arg in record.args])
 
         # if there is no message left, return nothing
-        if message == " ": return ""
+        if message == " ":
+            return ""
 
         # clean-up if the message is a C++ error message
-        if message.startswith('[') and message.index(':') < message.index(']'):
+        if message.startswith("[") and message.index(":") < message.index("]"):
             # most likely a c++ error log, otherwise, very bad luck
-            i = message.index(']') + 2
+            i = message.index("]") + 2
             message = message[i:]
 
         # retrieve the badge
@@ -169,7 +179,7 @@ class ABPycharmHandler(logging.Handler):
         use the first two modules and cut it short if it's still too long
         """
         # create list of the module string
-        module_split = name.split('.')
+        module_split = name.split(".")
 
         # switch a possible alias
         for key, alias in self.alias.items():
@@ -206,6 +216,7 @@ class LoggingProxy:
     by importing log from the activity_browser module. By logging via this proxy the loggers are initiated dynamically
     through inspecting the frame in which the proxy was called.
     """
+
     def debug(self, msg, *args):
         self.log(10, msg, *args)
 
@@ -225,7 +236,7 @@ class LoggingProxy:
         self.log(40, msg, *args, stack_level=3, exc_info=exc_info)
 
     def print(self, msg):
-        self.log(25, msg,  stack_level=3)
+        self.log(25, msg, stack_level=3)
 
     def log(self, level: int, msg, *args, stack_level: int = 2, exc_info: tuple = None):
         """
@@ -250,7 +261,7 @@ class LoggingProxy:
             msg=msg,
             args=tuple(),
             exc_info=exc_info,
-            func=frame_info.function
+            func=frame_info.function,
         )
 
         # get the logger with the module's name and let it handle the record
@@ -258,7 +269,9 @@ class LoggingProxy:
         logger.handle(record)
 
 
-def exception_hook(error: Type[BaseException], message: BaseException, traceback: TracebackType):
+def exception_hook(
+    error: Type[BaseException], message: BaseException, traceback: TracebackType
+):
     """Exception hook to catch and log exceptions"""
     exc_info = (error, message, traceback)
     log.exception(f"{error.__name__}: {message}", exc_info=exc_info)
@@ -273,7 +286,9 @@ def setup():
 
     # setting up a basic stderr handler
     stderr_handler = logging.StreamHandler()
-    formatter = logging.Formatter('%(asctime)s | %(levelname)s | %(message)s', '%H:%M:%S')
+    formatter = logging.Formatter(
+        "%(asctime)s | %(levelname)s | %(message)s", "%H:%M:%S"
+    )
     stderr_handler.setFormatter(formatter)
     stderr_handler.setLevel("INFO")
     logging.root.addHandler(stderr_handler)

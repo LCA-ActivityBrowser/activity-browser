@@ -1,8 +1,9 @@
-from bw2data.parameters import *
-
 from argparse import Namespace
 
+from bw2data.parameters import *
+
 from activity_browser.signals import qparameter_list, qparameters
+
 from ..patching import patch_attribute, patch_superclass, patched
 
 
@@ -37,9 +38,12 @@ class PatchedParameterBase(ParameterBase):
         Extension to get a unique key for each parameter based on group name and own name. Useful for finding the right
         QUpdater
         """
-        if isinstance(self, ProjectParameter): return "project", self.name
-        elif isinstance(self, DatabaseParameter): return self.database, self.name
-        elif isinstance(self, ActivityParameter): return self.group, self.name
+        if isinstance(self, ProjectParameter):
+            return "project", self.name
+        elif isinstance(self, DatabaseParameter):
+            return self.database, self.name
+        elif isinstance(self, ActivityParameter):
+            return self.group, self.name
         return None
 
     @patch_attribute(ParameterBase, "delete")
@@ -50,14 +54,23 @@ class PatchedParameterBase(ParameterBase):
         follows the delete call. So we return a Namespace in which .where() is the function described below. When .where
         is called we extract what we need, emit the correct signals, and return the patched .delete().where() call.
         """
+
         def where(*args):
             """Patched .where() function. We use the *args to get the parameters that will be deleted from the
             database using a select() call"""
             # call the database with the where *args supplied by the user
             for param in cls.select().where(*args):
                 # emit that any connected params will be changed and deleted
-                [qprm.emitLater("changed", param) for qprm in qparameter_list if qprm["key"] == param.key]
-                [qprm.emitLater("deleted", param) for qprm in qparameter_list if qprm["key"] == param.key]
+                [
+                    qprm.emitLater("changed", param)
+                    for qprm in qparameter_list
+                    if qprm["key"] == param.key
+                ]
+                [
+                    qprm.emitLater("deleted", param)
+                    for qprm in qparameter_list
+                    if qprm["key"] == param.key
+                ]
 
             # also emit the overall qparameters
             qparameters.emitLater("parameters_changed")
@@ -70,8 +83,16 @@ class PatchedParameterBase(ParameterBase):
             # collect al params from the database
             for param in cls.select():
                 # emit that any connected params will be changed and deleted
-                [qprm.emitLater("changed", param) for qprm in qparameter_list if qprm["key"] == param.key]
-                [qprm.emitLater("deleted", param) for qprm in qparameter_list if qprm["key"] == param.key]
+                [
+                    qprm.emitLater("changed", param)
+                    for qprm in qparameter_list
+                    if qprm["key"] == param.key
+                ]
+                [
+                    qprm.emitLater("deleted", param)
+                    for qprm in qparameter_list
+                    if qprm["key"] == param.key
+                ]
 
             # also emit the overall qparameters
             qparameters.emitLater("parameters_changed")
@@ -89,32 +110,57 @@ class PatchedParameterBase(ParameterBase):
         follows the update call. So we return a Namespace in which .where() is the function described below. When .where
         is called we extract what we need, emit the correct signals, and return the patched .update().where() call.
         """
+
         def where(*where_args, **where_kwargs):
             """Patched .where() function. We use the *args to get the parameters that will be updated from the
             database using a select() call"""
             # call the database with the where *args supplied by the user
             for param in cls.select().where(*where_args):
                 # emit that any connected params will be changed
-                [qprm.emitLater("changed", param) for qprm in qparameter_list if qprm["key"] == param.key]
-                [qprm.emitLater("deleted", param) for qprm in qparameter_list if qprm["key"] == param.key]
+                [
+                    qprm.emitLater("changed", param)
+                    for qprm in qparameter_list
+                    if qprm["key"] == param.key
+                ]
+                [
+                    qprm.emitLater("deleted", param)
+                    for qprm in qparameter_list
+                    if qprm["key"] == param.key
+                ]
 
             # also emit the overall qparameters
             qparameters.emitLater("parameters_changed")
 
             # return by calling the patched function to restore normal functionality
-            return patched[ParameterBase]["update"].__func__(cls, *update_args, **update_kwargs).where(*where_args, **where_kwargs)
+            return (
+                patched[ParameterBase]["update"]
+                .__func__(cls, *update_args, **update_kwargs)
+                .where(*where_args, **where_kwargs)
+            )
 
         def execute():
             for param in cls.select():
                 # emit that any connected params will be changed
-                [qprm.emitLater("changed", param) for qprm in qparameter_list if qprm["key"] == param.key]
-                [qprm.emitLater("deleted", param) for qprm in qparameter_list if qprm["key"] == param.key]
+                [
+                    qprm.emitLater("changed", param)
+                    for qprm in qparameter_list
+                    if qprm["key"] == param.key
+                ]
+                [
+                    qprm.emitLater("deleted", param)
+                    for qprm in qparameter_list
+                    if qprm["key"] == param.key
+                ]
 
             # also emit the overall qparameters
             qparameters.emitLater("parameters_changed")
 
             # return by calling the patched function to restore normal functionality
-            return patched[ParameterBase]["update"].__func__(cls, *update_args, **update_kwargs).execute()
+            return (
+                patched[ParameterBase]["update"]
+                .__func__(cls, *update_args, **update_kwargs)
+                .execute()
+            )
 
         return Namespace(where=where, execute=execute)
 
@@ -133,7 +179,11 @@ class PatchedParameterBase(ParameterBase):
         patched[ParameterBase]["save"](self, **kwargs)
 
         # signal the changed parameter if it has signals connected to it
-        [qprm.emitLater("changed", self) for qprm in qparameter_list if qprm["key"] == self.key]
+        [
+            qprm.emitLater("changed", self)
+            for qprm in qparameter_list
+            if qprm["key"] == self.key
+        ]
 
         # always signal through the qparameters if a parameter has changed
         qparameters.emitLater("parameters_changed")
@@ -151,4 +201,3 @@ class ParameterManager(ParameterManager):
 
 
 parameters: ParameterManager = parameters
-

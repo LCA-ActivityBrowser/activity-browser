@@ -5,10 +5,12 @@ from typing import Iterable, List, NamedTuple, Optional
 import numpy as np
 
 from activity_browser.mod import bw2data as bd
-from activity_browser.mod.bw2data.parameters import ProjectParameter, DatabaseParameter, ActivityParameter, ParameterizedExchange
-from activity_browser.mod.bw2data.backends import ActivityDataset, ExchangeDataset
-
-
+from activity_browser.mod.bw2data.backends import (ActivityDataset,
+                                                   ExchangeDataset)
+from activity_browser.mod.bw2data.parameters import (ActivityParameter,
+                                                     DatabaseParameter,
+                                                     ParameterizedExchange,
+                                                     ProjectParameter)
 
 """
 This script is a collection of simple NamedTuple classes as well as Iterators
@@ -58,7 +60,7 @@ class Index(NamedTuple):
     flow_type: Optional[str] = None
 
     @classmethod
-    def build_from_exchange(cls, exc: ExchangeDataset) -> 'Index':
+    def build_from_exchange(cls, exc: ExchangeDataset) -> "Index":
         return cls(
             input=Key(exc.input_database, exc.input_code),
             output=Key(exc.output_database, exc.output_code),
@@ -66,7 +68,7 @@ class Index(NamedTuple):
         )
 
     @classmethod
-    def build_from_tuple(cls, data: tuple) -> 'Index':
+    def build_from_tuple(cls, data: tuple) -> "Index":
         obj = cls(
             input=Key(data[0][0], data[0][1]),
             output=Key(data[1][0], data[1][1]),
@@ -75,11 +77,12 @@ class Index(NamedTuple):
             ExchangeDataset.input_code == obj.input.code,
             ExchangeDataset.input_database == obj.input.database,
             ExchangeDataset.output_code == obj.output.code,
-            ExchangeDataset.output_database == obj.output.database).type
+            ExchangeDataset.output_database == obj.output.database,
+        ).type
         return obj._replace(flow_type=exc_type)
 
     @classmethod
-    def build_from_dict(cls, data: dict) -> 'Index':
+    def build_from_dict(cls, data: dict) -> "Index":
         in_key = data.get("input", ("", ""))
         out_key = data.get("output", ("", ""))
         return cls(
@@ -92,14 +95,14 @@ class Index(NamedTuple):
     def input_document_id(self) -> int:
         return ActivityDataset.get(
             ActivityDataset.code == self.input.code,
-            ActivityDataset.database == self.input.database
+            ActivityDataset.database == self.input.database,
         ).id
 
     @property
     def output_document_id(self) -> int:
         return ActivityDataset.get(
             ActivityDataset.code == self.output.code,
-            ActivityDataset.database == self.output.database
+            ActivityDataset.database == self.output.database,
         ).id
 
     @property
@@ -110,7 +113,8 @@ class Index(NamedTuple):
             ExchangeDataset.input_code == self.input.code,
             ExchangeDataset.input_database == self.input.database,
             ExchangeDataset.output_code == self.output.code,
-            ExchangeDataset.output_database == self.output.database).type
+            ExchangeDataset.output_database == self.output.database,
+        ).type
         return bd.utils.TYPE_DICTIONARY.get(exc_type, -1)
 
     @property
@@ -122,16 +126,24 @@ class Parameters(UserList):
     data: List[Parameter]
 
     @classmethod
-    def from_bw_parameters(cls) -> 'Parameters':
+    def from_bw_parameters(cls) -> "Parameters":
         """Construct a Parameters list from brightway2 parameters."""
-        return cls(chain(
-            (Parameter(p.name, "project", p.amount, "project")
-             for p in ProjectParameter.select()),
-            (Parameter(p.name, p.database, p.amount, "database")
-             for p in DatabaseParameter.select()),
-            (Parameter(p.name, p.group, p.amount, "activity")
-             for p in ActivityParameter.select()),
-        ))
+        return cls(
+            chain(
+                (
+                    Parameter(p.name, "project", p.amount, "project")
+                    for p in ProjectParameter.select()
+                ),
+                (
+                    Parameter(p.name, p.database, p.amount, "database")
+                    for p in DatabaseParameter.select()
+                ),
+                (
+                    Parameter(p.name, p.group, p.amount, "activity")
+                    for p in ActivityParameter.select()
+                ),
+            )
+        )
 
     def by_group(self, group: str) -> Iterable[Parameter]:
         return (p for p in self.data if p.group == group)
@@ -164,9 +176,7 @@ class Parameters(UserList):
 class Indices(UserList):
     data: List[Index]
 
-    array_dtype = [
-        ('input', 'O'), ('output', 'O'), ('type', 'u1'), ('amount', '<f4')
-    ]
+    array_dtype = [("input", "O"), ("output", "O"), ("type", "u1"), ("amount", "<f4")]
 
     def mock_params(self, values) -> np.ndarray:
         """Using the given values, construct a numpy array that can be used
@@ -199,9 +209,12 @@ class StaticParameters(object):
             for p in ActivityParameter.select(ActivityParameter.group).distinct()
         }
         self._distinct_act_params = [
-            p for p in (ActivityParameter
-                        .select(ActivityParameter.group, ActivityParameter.database)
-                        .distinct())
+            p
+            for p in (
+                ActivityParameter.select(
+                    ActivityParameter.group, ActivityParameter.database
+                ).distinct()
+            )
         ]
         self._exc_params = [p for p in ParameterizedExchange.select()]
 
@@ -232,9 +245,7 @@ class StaticParameters(object):
 
     def exc_by_group(self, group: str) -> dict:
         """Mirrors `ParameterizedExchange.load(group)`"""
-        return {
-            p.exchange: p.formula for p in self._exc_params if p.group == group
-        }
+        return {p.exchange: p.formula for p in self._exc_params if p.group == group}
 
     @staticmethod
     def prune_result_data(data: dict) -> dict:

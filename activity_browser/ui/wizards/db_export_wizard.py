@@ -4,9 +4,8 @@ import os
 from PySide2 import QtWidgets
 from PySide2.QtCore import Slot
 
-from activity_browser.mod import bw2data as bd
 from activity_browser.bwutils import exporters as exp
-
+from activity_browser.mod import bw2data as bd
 
 EXPORTERS = {
     # Store data as a BW2Package.
@@ -22,10 +21,11 @@ EXTENSIONS = {
 
 
 class DatabaseExportWizard(QtWidgets.QWizard):
-    """ Present the user with a wizard that assist in either importing
+    """Present the user with a wizard that assist in either importing
     or exporting a database.
     On either import or exporting, present a progress bar
     """
+
     def __init__(self, parent=None):
         super().__init__(parent=parent)
         self.setWindowTitle("Database export wizard")
@@ -77,7 +77,13 @@ class ExportDatabasePage(QtWidgets.QWizardPage):
         grid.addWidget(self.database, 0, 1, 1, 2)
         grid.addWidget(QtWidgets.QLabel("Exported as:"), 1, 0, 1, 1)
         grid.addWidget(self.export_option, 1, 1, 1, 2)
-        grid.addWidget(QtWidgets.QLabel("Exported data is stored in the directory below:"), 2, 0, 1, 3)
+        grid.addWidget(
+            QtWidgets.QLabel("Exported data is stored in the directory below:"),
+            2,
+            0,
+            1,
+            3,
+        )
         grid.addWidget(self.output_dir, 3, 0, 1, 2)
         grid.addWidget(self.browse_button, 3, 2, 1, 1)
         box.setLayout(grid)
@@ -92,7 +98,11 @@ class ExportDatabasePage(QtWidgets.QWizardPage):
 
     def initializePage(self):
         self.wizard.setButtonLayout(
-            [QtWidgets.QWizard.Stretch, QtWidgets.QWizard.FinishButton, QtWidgets.QWizard.CancelButton]
+            [
+                QtWidgets.QWizard.Stretch,
+                QtWidgets.QWizard.FinishButton,
+                QtWidgets.QWizard.CancelButton,
+            ]
         )
         self.database.clear()
         choices = ["-----"] + list(bd.databases)

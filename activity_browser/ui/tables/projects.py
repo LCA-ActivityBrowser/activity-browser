@@ -1,7 +1,7 @@
 import os
 
-from PySide2.QtWidgets import QComboBox, QSizePolicy
 from PySide2.QtCore import Qt
+from PySide2.QtWidgets import QComboBox, QSizePolicy
 
 from activity_browser import actions
 from activity_browser.mod import bw2data as bd
@@ -15,11 +15,7 @@ class ProjectListWidget(QComboBox):
         self.connect_signals()
         self.project_names = []
 
-        self.setSizePolicy(
-            QSizePolicy(
-                QSizePolicy.Expanding,
-                QSizePolicy.Maximum)
-        )
+        self.setSizePolicy(QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Maximum))
 
     def connect_signals(self):
         self.activated.connect(self.on_activated)
@@ -33,7 +29,9 @@ class ProjectListWidget(QComboBox):
         sorted_projects = sorted(list(bd.projects))
 
         for i, proj in enumerate(sorted_projects):
-            bw_25 = False if not isinstance(proj.data, dict) else proj.data.get("25", False)
+            bw_25 = (
+                False if not isinstance(proj.data, dict) else proj.data.get("25", False)
+            )
             name = proj.name if not bw_25 or AB_BW25 else "[BW25] " + proj.name
 
             self.addItem(name)

@@ -4,6 +4,7 @@ from PySide2.QtCore import Signal, Slot
 
 from activity_browser import log
 from activity_browser.mod import bw2data as bd
+
 from ..threading import ABThread
 
 
@@ -34,13 +35,20 @@ class BiosphereUpdater(QtWidgets.QProgressDialog):
 
 
 class UpdateBiosphereThread(ABThread):
-    PATCHES = [patch for patch in dir(data) if patch.startswith('add_ecoinvent') and patch.endswith('biosphere_flows')]
+    PATCHES = [
+        patch
+        for patch in dir(data)
+        if patch.startswith("add_ecoinvent") and patch.endswith("biosphere_flows")
+    ]
     progress = Signal(int)
+
     def __init__(self, ei_versions, parent=None):
         super().__init__(parent)
 
         # reduce the patches list to only compatible versions for this AB version
-        self.PATCHES = [p for p in self.PATCHES if any(v.replace('.', '') in p for v in ei_versions)]
+        self.PATCHES = [
+            p for p in self.PATCHES if any(v.replace(".", "") in p for v in ei_versions)
+        ]
 
         self.total_patches = len(self.PATCHES)
 
@@ -48,9 +56,9 @@ class UpdateBiosphereThread(ABThread):
         try:
             for i, patch in enumerate(self.PATCHES):
                 self.progress.emit(i)
-                log.debug(f'Applying biosphere patch: {patch}')
+                log.debug(f"Applying biosphere patch: {patch}")
                 update_bio = getattr(data, patch)
                 update_bio()
         except bd.errors.ValidityError as e:
-            log.error(f'Could not patch biosphere: {str(e)}')
+            log.error(f"Could not patch biosphere: {str(e)}")
             self.exit(1)

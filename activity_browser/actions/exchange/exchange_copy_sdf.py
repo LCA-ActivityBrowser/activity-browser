@@ -1,9 +1,9 @@
-from typing import List, Any
+from typing import Any, List
 
 import pandas as pd
 
-from activity_browser.bwutils import commontasks
 from activity_browser.actions.base import ABAction, exception_dialogs
+from activity_browser.bwutils import commontasks
 from activity_browser.ui.icons import qicons
 
 
@@ -11,6 +11,7 @@ class ExchangeCopySDF(ABAction):
     """
     ABAction to copy the exchange information in SDF format to the clipboard.
     """
+
     icon = qicons.superstructure
     text = "Exchanges for scenario difference file"
 

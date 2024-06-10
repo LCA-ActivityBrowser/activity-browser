@@ -1,8 +1,9 @@
 import sys
 
 from PySide2.QtCore import QThread
-from activity_browser.mod import bw2data as bd
+
 from activity_browser.logger import exception_hook
+from activity_browser.mod import bw2data as bd
 
 
 class ABThread(QThread):

@@ -3,16 +3,14 @@ import os
 
 import pytest
 
-from activity_browser.settings import (ABSettings, BaseSettings,
-                                           ProjectSettings)
+from activity_browser.settings import ABSettings, BaseSettings, ProjectSettings
 
 
 @pytest.fixture()
 def ab_settings(qtbot, ab_app):
-    """ Remove the test settings file after finishing the tests.
-    """
+    """Remove the test settings file after finishing the tests."""
     qtbot.waitForWindowShown(ab_app.main_window)
-    settings = ABSettings('test_ab.json')
+    settings = ABSettings("test_ab.json")
     yield settings
     if os.path.isfile(settings.settings_file):
         os.remove(settings.settings_file)
@@ -20,26 +18,27 @@ def ab_settings(qtbot, ab_app):
 
 @pytest.fixture()
 def project_settings(qtbot, ab_app):
-    """ No cleanup needed as the entire project is removed after testing.
-    """
+    """No cleanup needed as the entire project is removed after testing."""
     qtbot.waitForWindowShown(ab_app.main_window)
-    settings = ProjectSettings('test_project.json')
+    settings = ProjectSettings("test_project.json")
     yield settings
 
 
 def test_base_class():
-    """ Test that the base class raises an error on initialization
-    """
+    """Test that the base class raises an error on initialization"""
     current_path = os.path.dirname(os.path.abspath(__file__))
     with pytest.raises(NotImplementedError):
         settings = BaseSettings(current_path)
 
 
 def test_ab_default_keys(ab_settings):
-    """ Test that default setting are only created for the given keys.
-    """
+    """Test that default setting are only created for the given keys."""
     defaults = ab_settings.get_default_settings()
-    assert not {"current_bw_dir", "custom_bw_dirs", "startup_project"}.symmetric_difference(defaults)
+    assert not {
+        "current_bw_dir",
+        "custom_bw_dirs",
+        "startup_project",
+    }.symmetric_difference(defaults)
 
 
 def test_ab_default_settings(ab_settings):
@@ -54,7 +53,7 @@ def test_ab_edit_settings(ab_settings):
 
 
 def test_ab_unknown_startup(ab_settings):
-    """ Alter the startup project with an unknown project, assert that it
+    """Alter the startup project with an unknown project, assert that it
     was not altered because the project does not exist.
     """
     ab_settings.startup_project = "unknown_project"

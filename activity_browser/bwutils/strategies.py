@@ -3,20 +3,29 @@ import hashlib
 from typing import Collection
 
 from bw2io.errors import StrategyError
-from bw2io.strategies.generic import format_nonunique_key_error, link_iterable_by_fields
+from bw2io.strategies.generic import (format_nonunique_key_error,
+                                      link_iterable_by_fields)
 from bw2io.utils import DEFAULT_FIELDS, activity_hash
 
 from activity_browser import log
 from activity_browser.mod import bw2data as bd
-from activity_browser.mod.bw2data.backends import ActivityDataset, sqlite3_lci_db
-from .commontasks import clean_activity_name
-from ..bwutils.errors import ExchangeErrorValues
+from activity_browser.mod.bw2data.backends import (ActivityDataset,
+                                                   sqlite3_lci_db)
 
+from ..bwutils.errors import ExchangeErrorValues
+from .commontasks import clean_activity_name
 
 TECHNOSPHERE_TYPES = {"technosphere", "substitution", "production"}
 BIOSPHERE_TYPES = {"economic", "emission", "natural resource", "social"}
 
-RELINK_FIELDS = ("name", "database", "categories", "unit", "reference product", "location")
+RELINK_FIELDS = (
+    "name",
+    "database",
+    "categories",
+    "unit",
+    "reference product",
+    "location",
+)
 
 
 def relink_exchanges_dbs(data: Collection, relink: dict) -> Collection:
@@ -31,8 +40,11 @@ def relink_exchanges_dbs(data: Collection, relink: dict) -> Collection:
                     _ = bd.get_activity(new_key)
                     exc["input"] = new_key
                 except ActivityDataset.DoesNotExist as e:
-                    raise ValueError("Cannot relink exchange '{}', key '{}' not found.".format(exc, new_key)
-                                     ).with_traceback(e.__traceback__)
+                    raise ValueError(
+                        "Cannot relink exchange '{}', key '{}' not found.".format(
+                            exc, new_key
+                        )
+                    ).with_traceback(e.__traceback__)
     return data
 
 
@@ -40,7 +52,9 @@ def relink_exchanges_with_db(data: list, old: str, new: str) -> list:
     if old == new:
         return _relink_exchanges(data, new)
     for act in data:
-        for exc in (exc for exc in act.get("exchanges", []) if exc.get("database") == old):
+        for exc in (
+            exc for exc in act.get("exchanges", []) if exc.get("database") == old
+        ):
             exc["database"] = new
     return _relink_exchanges(data, new)
 
@@ -59,7 +73,9 @@ def _relink_exchanges(data: list, other: str) -> list:
     act = other.random()
     is_technosphere = act.get("type", "process") == "process"
     kind = TECHNOSPHERE_TYPES if is_technosphere else BIOSPHERE_TYPES
-    return link_iterable_by_fields(data, other=other, kind=kind, fields=RELINK_FIELDS, relink=True)
+    return link_iterable_by_fields(
+        data, other=other, kind=kind, fields=RELINK_FIELDS, relink=True
+    )
 
 
 def relink_exchanges_bw2package(data: dict, relink: dict) -> dict:
@@ -74,13 +90,17 @@ def relink_exchanges_bw2package(data: dict, relink: dict) -> dict:
                     _ = bd.get_activity(new_key)
                     exc["input"] = new_key
                 except ActivityDataset.DoesNotExist as e:
-                    raise ValueError("Cannot relink exchange '{}', key '{}' not found.".format(exc, new_key)
-                                     ).with_traceback(e.__traceback__)
+                    raise ValueError(
+                        "Cannot relink exchange '{}', key '{}' not found.".format(
+                            exc, new_key
+                        )
+                    ).with_traceback(e.__traceback__)
     return data
 
 
 def rename_db_bw2package(data: dict, old: str, new: str) -> dict:
     """Replace the given `old` database name with the `new`."""
+
     def swap(x: tuple) -> tuple:
         return new if x[0] == old else x[0], x[1]
 
@@ -105,11 +125,15 @@ def relink_exchanges(exchanges: list, candidates: dict, duplicates: dict) -> tup
     with sqlite3_lci_db.transaction() as transaction:
         try:
             # Only do relinking on external biosphere/technosphere exchanges.
-            for (i, exc) in exchanges:
+            for i, exc in exchanges:
                 # Use the input activity to generate the hash.
                 key = activity_hash(exc.input, DEFAULT_FIELDS)
                 if key in duplicates:
-                    raise StrategyError(format_nonunique_key_error(exc.input, DEFAULT_FIELDS, duplicates[key]))
+                    raise StrategyError(
+                        format_nonunique_key_error(
+                            exc.input, DEFAULT_FIELDS, duplicates[key]
+                        )
+                    )
                 elif key in candidates:
                     exc["input"] = candidates[key]
                     altered += 1
@@ -127,7 +151,9 @@ def relink_exchanges(exchanges: list, candidates: dict, duplicates: dict) -> tup
     return (remainder, altered, unlinked_exchanges)
 
 
-def relink_exchanges_existing_db(db: bd.Database, old: str, other: bd.Database) -> tuple:
+def relink_exchanges_existing_db(
+    db: bd.Database, old: str, other: bd.Database
+) -> tuple:
     """Relink exchanges after the database has been created/written.
 
     This means possibly doing a lot of sqlite update calls.
@@ -147,19 +173,28 @@ def relink_exchanges_existing_db(db: bd.Database, old: str, other: bd.Database) 
         else:
             candidates[key] = ds.key
 
-    exchanges = [(i, exc) for i, exc in enumerate(exc for act in db for exc in act.exchanges() if exc.get("type") in
-                                                  {"biosphere", "technosphere"} and exc.input[0] == old)]
+    exchanges = [
+        (i, exc)
+        for i, exc in enumerate(
+            exc
+            for act in db
+            for exc in act.exchanges()
+            if exc.get("type") in {"biosphere", "technosphere"} and exc.input[0] == old
+        )
+    ]
 
     # Process the database after the transaction is complete.
     #  this updates the 'depends' in metadata
-    (remainder, altered, unlinked_exchanges) = relink_exchanges(exchanges, candidates, duplicates)
+    (remainder, altered, unlinked_exchanges) = relink_exchanges(
+        exchanges, candidates, duplicates
+    )
     db.process()
     log.info(
         "Relinked database '{}', {} exchange inputs changed from '{}' to '{}'.".format(
             db.name, altered, old, other.name
         )
     )
-    return (remainder,altered, unlinked_exchanges)
+    return (remainder, altered, unlinked_exchanges)
 
 
 def relink_activity_exchanges(act, old: str, other: bd.Database) -> tuple:
@@ -178,10 +213,18 @@ def relink_activity_exchanges(act, old: str, other: bd.Database) -> tuple:
             duplicates.setdefault(key, []).append(ds)
         else:
             candidates[key] = ds.key
-    exchanges = [(i, e) for i, e in enumerate(exc for exc in act.exchanges() if exc.get("type") in
-                                              {"technosphere", "biosphere"} and exc.input[0] == old)]
+    exchanges = [
+        (i, e)
+        for i, e in enumerate(
+            exc
+            for exc in act.exchanges()
+            if exc.get("type") in {"technosphere", "biosphere"} and exc.input[0] == old
+        )
+    ]
 
-    (remainder, altered, unlinked_exchanges) = relink_exchanges(exchanges, candidates, duplicates)
+    (remainder, altered, unlinked_exchanges) = relink_exchanges(
+        exchanges, candidates, duplicates
+    )
     db.process()
     log.info(
         "Relinked database '{}', {} exchange inputs changed from '{}' to '{}'.".format(
@@ -200,7 +243,7 @@ def alter_database_name(data: list, old: str, new: str) -> list:
     for ds in data:
         # Alter db on activities.
         ds["database"] = new
-        for exc in ds.get('exchanges', []):
+        for exc in ds.get("exchanges", []):
             # Note: this will only alter database if the field exists in the exchange.
             if exc.get("database") == old:
                 exc["database"] = new
@@ -235,7 +278,9 @@ def csv_rewrite_product_key(data):
 def excel_error_detection(data: Collection):
     for ds in data:
         for exc in ds.get("exchanges", []):
-            if 'amount' not in exc:
-                raise ExchangeErrorValues(f"An Exception has occurred for activity {ds['name']}" +
-                    "with errors in the exchange flows")
+            if "amount" not in exc:
+                raise ExchangeErrorValues(
+                    f"An Exception has occurred for activity {ds['name']}"
+                    + "with errors in the exchange flows"
+                )
     return data

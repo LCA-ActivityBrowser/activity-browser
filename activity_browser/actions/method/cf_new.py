@@ -3,8 +3,8 @@ from typing import List
 from PySide2 import QtWidgets
 
 from activity_browser import application
-from activity_browser.mod import bw2data as bd
 from activity_browser.actions.base import ABAction, exception_dialogs
+from activity_browser.mod import bw2data as bd
 from activity_browser.ui.icons import qicons
 
 
@@ -12,6 +12,7 @@ class CFNew(ABAction):
     """
     ABAction to add a new characterization flow to a method through one or more elementary-flow keys.
     """
+
     icon = qicons.add
     text = "New characterization factor"
 
@@ -30,11 +31,12 @@ class CFNew(ABAction):
                 application.main_window,
                 "Duplicate characterization factors",
                 "One or more of these elementary flows already exist within this method. Duplicate flows will not be "
-                "added"
+                "added",
             )
 
         # return if there are no new keys
-        if not unique_keys: return
+        if not unique_keys:
+            return
 
         # add the new keys to the method dictionary
         for key in unique_keys:
