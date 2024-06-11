@@ -2,32 +2,28 @@
 import json
 import os
 import time
-from typing import List
 from dataclasses import asdict
-
-import numpy
+from typing import List
 
 import bw2calc as bc
+import bw2data as bd
+import numpy
+from bw_graph_tools.graph_traversal import Edge as GraphEdge
+from bw_graph_tools.graph_traversal import NewNodeEachVisitGraphTraversal
+from bw_graph_tools.graph_traversal import Node as GraphNode
 from PySide2 import QtWidgets
 from PySide2.QtCore import Slot
 from PySide2.QtWidgets import QComboBox
-
-from bw_graph_tools import NewNodeEachVisitGraphTraversal
 
 from activity_browser import log, signals
 from activity_browser.mod import bw2data as bd
 from activity_browser.mod.bw2data.backends import ActivityDataset
 
-from .base import BaseGraph, BaseNavigatorWidget
 from ...bwutils.commontasks import identify_activity_type
-
 from ...bwutils.superstructure.graph_traversal_with_scenario import (
     GraphTraversalWithScenario,
 )
 from .base import BaseGraph, BaseNavigatorWidget
-
-from bw_graph_tools.graph_traversal import NewNodeEachVisitGraphTraversal, Node, Edge
-
 
 # TODO:
 # switch between percent and absolute values
@@ -262,24 +258,23 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
                     demand, method, cutoff=cut_off, max_calc=max_calc
                 )
             else:
-                lca = bc.LCA(demand, method)
+                fu, data_objs, _ = bd.prepare_lca_inputs(demand=demand, method=method)
+                lca = bc.LCA(demand=fu, data_objs=data_objs)
                 lca.lci()
                 lca.lcia()
-                data = NewNodeEachVisitGraphTraversal.calculate(lca, cut_off, max_calc=max_calc)
-                data["lca"] = lca
+                data = NewNodeEachVisitGraphTraversal.calculate(
+                    lca_object=lca, cutoff=cut_off, max_calc=max_calc
+                )
 
             # store the metadata from this calculation
             data["metadata"] = {
-                "demand": list(data["lca"].demand.items())[0],
-                "score": data["lca"].score,
+                "lca": lca,
                 "unit": bd.methods[method]["unit"],
-                "act_dict": data["lca"].activity_dict.items(),
             }
-            # drop LCA object as it's useless from now on
-            del data["lca"]
-
         except (ValueError, ZeroDivisionError) as e:
-            QtWidgets.QMessageBox.information(None, "Not possible.", str(e))
+            QtWidgets.QMessageBox.information(
+                None, "Nonsensical numeric result.", str(e)
+            )
         log.debug(f"Completed graph traversal ({round(time.time() - start, 2)} seconds")
 
         # cache the generated Sankey data
@@ -324,7 +319,14 @@ def make_serializable(data: dict) -> dict:
         if isinstance(value, dict):
             make_serializable(value)
         elif isinstance(value, list):
-            data[key] = [convert_numpy_types(v) if not isinstance(v, dict) else make_serializable(v) for v in value]
+            data[key] = [
+                (
+                    convert_numpy_types(v)
+                    if not isinstance(v, dict)
+                    else make_serializable(v)
+                )
+                for v in value
+            ]
         else:
             data[key] = convert_numpy_types(value)
     return data
@@ -343,74 +345,128 @@ class Graph(BaseGraph):
 
     @staticmethod
     def get_json_data(data) -> str:
-        """Transform Graphtraversal output to JSON data."""
-        meta = data["metadata"]
-        lca_score = meta["score"]
-        lcia_unit = meta["unit"]
-        demand = meta["demand"]
-        activity = bd.get_activity(demand[0])
-        activity_amount = demand[1]
+        """Transform graph traversal output to JSON data.
 
-        def convert_edge_to_json(edge: Edge, node: Node) -> dict:
-            p = bd.get_activity(edge.producer_index)
-            producer_key = id_to_key(edge.producer_index)
-            consumer_key = id_to_key(edge.consumer_index)
-            impact = node.cumulative_score * activity_amount / node.supply_amount
-            return {
-                "source_id": producer_key[1],
-                "target_id": consumer_key[1],
-                "amount": edge.amount,
-                "product": p.get("reference product") or p.get("name"),
-                "impact": impact,
-                "direct_emissions_score_normalized": impact / lca_score,
-                "unit": lcia_unit,
-                "tooltip": "<b>{}</b> ({:.2g} {})"
-                "<br>{:.3g} {} ({:.2g}%)".format(
-                    lcia_unit,
-                    edge.amount,
-                    p.get("unit"),
-                    impact,
-                    lcia_unit,
-                    impact / lca_score * 100,
-                )
+        We use the [dagre](https://github.com/dagrejs/dagre) javascript library for rendering directed graphs. We need to provide the following:
+
+        ```python
+        {
+            'max_impact': float,  # Total LCA score,
+            'title': str,  # Graph title
+            'edges': [{
+                'source_id': int,  # Unique ID of producer of material or energy in graph
+                'target_id': int,  # Unique ID of consumer of material or energy in graph
+                'weight': float,  #  In graph units, relative to `max_edge_width`
+                'label': str,  # HTML label
+                'product': str,  # The label of the flowing material or energy
+                'class': str,  # "benefit" or "impact"; controls styling
+                'label': str,  # HTML label
+                'toottip': str,  # HTML tooltip
+            }],
+            'nodes': [{
+                'direct_emissions_score_normalized': float,  # Fraction of total LCA score from direct emissions
+                'product': str,  # Reference product label, if any
+                'location': str,  # Location, if any
+                'id': int,  # Graph traversal ID
+                'database_id': int,  # Node ID in SQLite database
+                'database': str,  # Database name
+                'class': str,  # Enumerated set of class label strings
+                'label': str,  # HTML label including name and location
+                'toottip': str,  # HTML tooltip
+            }],
         }
 
-        def convert_node_to_json(node: Node):
-            name = activity.get("name")
-            node_as_dict = make_serializable(asdict(node))
-            direct_emissions_score = node_as_dict.get("direct_emissions_score")
+        ```
+
+        """
+        lca_score = data["metadata"]["lca"].score
+        lcia_unit = data["metadata"]["unit"]
+        demand = data["metadata"]["lca"].demand
+
+        def convert_edge_to_json(
+            edge: GraphEdge,
+            nodes: dict[int, GraphNode],
+            total_score: float,
+            lcia_unit: str,
+            max_edge_width: int = 40,
+        ) -> dict:
+            cum_score = nodes[edge.producer_unique_id].cumulative_score
+            unit = bd.get_node(
+                id=nodes[edge.producer_unique_id].reference_product_datapackage_id
+            ).get("unit", "(unknown)")
             return {
-                "db": activity.key[0],
-                "id": activity.key[1],
-                "product": activity.get("reference product") or name,
-                "name": name,
-                "location": activity.get("location"),
-                "amount": activity_amount,
-                "LCIA_unit": lcia_unit,
-                "direct_emissions_score": direct_emissions_score,
-                "direct_emissions_score_normalized": direct_emissions_score / lca_score if lca_score != 0 else None,
-                "cumulative_score": node_as_dict.get("cumulative_score"),
-                "cumulative_score_normalized": node_as_dict.get("cumulative_score") / lca_score if lca_score != 0 else None,
-                "class": "demand" if activity == demand else identify_activity_type(activity),
+                "source_id": edge.producer_unique_id,
+                "target_id": edge.consumer_unique_id,
+                "amount": edge.amount,
+                "weight": abs(cum_score / total_score) / max_edge_width,
+                "label": f"{round(cum_score, 3)} {lcia_unit}",
+                "class": "benefit" if cum_score < 0 else "impact",
+                "tooltip": f"<b>{round(cum_score, 3)} {lcia_unit}</b> ({edge.amount:.2g} {unit})",
             }
 
-        json_data = {
-            "nodes": [],
-            "edges": [],
-            "title": Graph.build_title(demand, lca_score, lcia_unit),
-            "max_impact": max(abs(node.cumulative_score) for node in data["nodes"].values())
-        }
-        valid_nodes = [node for idx, node in data["nodes"].items() if idx != -1]
-        valid_edges = [edge for edge in data["edges"] if all(i != -1 for i in (edge.producer_index, edge.consumer_index))]
+        def convert_node_to_json(
+            graph_node: GraphNode,
+            total_score: float,
+            fu: dict,
+            lcia_unit: str,
+            max_name_length: int = 20,
+        ) -> dict:
+            db_node = bd.get_node(id=graph_node.activity_datapackage_id)
+            data = {
+                "direct_emissions_score_normalized": graph_node.direct_emissions_score
+                / (total_score or 1),
+                "direct_emissions_score": graph_node.direct_emissions_score,
+                "cumulative_score": graph_node.cumulative_score,
+                "cumulative_score_normalized": graph_node.cumulative_score
+                / (total_score or 1),
+                "product": db_node.get("reference product", ""),
+                "location": db_node.get("location", "(unknown)"),
+                "id": graph_node.unique_id,
+                "database_id": graph_node.activity_datapackage_id,
+                "database": db_node["database"],
+                "class": (
+                    "demand"
+                    if graph_node.activity_datapackage_id in fu
+                    else identify_activity_type(db_node)
+                ),
+                "name": db_node.get("name", "(unnamed)"),
+            }
+            frac_dir_score = round(data["direct_emissions_score_normalized"] * 100, 2)
+            dir_score = round(data["direct_emissions_score"], 3)
+            frac_cum_score = round(data["cumulative_score_normalized"] * 100, 2)
+            cum_score = round(data["cumulative_score"], 3)
+            data[
+                "label"
+            ] = f"""{db_node['name'][:max_name_length]}
+{data['location']}
+{frac_dir_score}%"""
+            data[
+                "tooltip"
+            ] = f"""
+                <b>{data['name']}</b>
+                <br>Individual impact: {dir_score} {lcia_unit} ({frac_dir_score }%)
+                <br>Cumulative impact: {cum_score} {lcia_unit} ({frac_cum_score}%)
+            """
+            return data
 
-        for node, edge in zip(valid_nodes, valid_edges):
-            json_data["nodes"].append(convert_node_to_json(node))
-            json_data["edges"].append(convert_edge_to_json(edge, node))
+        json_data = {
+            "nodes": [
+                convert_node_to_json(node, lca_score, demand, lcia_unit)
+                for idx, node in data["nodes"].items()
+                if idx != -1
+            ],
+            "edges": [
+                convert_edge_to_json(edge, data["nodes"], lca_score, lcia_unit)
+                for edge in data["edges"]
+                if edge.producer_index != -1 and edge.consumer_index != -1
+            ],
+            "title": "Sankey graph result",
+            # "title": self.build_title(demand, lca_score, lcia_unit),
+        }
 
         return json.dumps(json_data)
 
-    @staticmethod
-    def build_title(demand: tuple, lca_score: float, lcia_unit: str) -> str:
+    def build_title(self, demand: tuple, lca_score: float, lcia_unit: str) -> str:
         act, amount = demand[0], demand[1]
         if type(act) is tuple or type(act) is int:
             act = bd.get_activity(act)

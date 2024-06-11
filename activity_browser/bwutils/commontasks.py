@@ -5,6 +5,7 @@ import arrow
 
 from activity_browser import log
 from activity_browser.mod import bw2data as bd
+from functools import lru_cache
 
 from .metadata import AB_metadata
 
@@ -209,6 +210,7 @@ def build_activity_group_name(key: tuple, name: str = None) -> str:
     return "{}_{}".format(clean, simple_hash)
 
 
+@lru_cache(maxsize=2048)
 def identify_activity_type(activity):
     """Return the activity type based on its naming."""
     name = activity["name"]
