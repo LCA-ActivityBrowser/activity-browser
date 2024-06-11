@@ -18,7 +18,7 @@ class ABThread(QThread):
             try:
                 self.run_safely()
             except Exception as e:
-                # pass exception to our excepthook
+                # pass exception to our except hook
                 exception_hook(*sys.exc_info())
                 raise e
 
@@ -27,7 +27,6 @@ class ABThread(QThread):
 
 
 class SafeBWConnection:
-
     def __enter__(self):
         return
 
@@ -41,7 +40,6 @@ class SafeBWConnection:
 
 
 class InfoToSlot:
-
     def __init__(self, progress_slot=lambda progress, message: None):
         self.handler = LoggingProgressHandler("INFO")
         thread_local.progress_slot = progress_slot
@@ -57,8 +55,10 @@ class InfoToSlot:
 
 class LoggingProgressHandler(logging.Handler):
     def filter(self, record: logging.LogRecord) -> bool:
-        if record.thread != threading.get_ident(): return False
-        if record.levelname != "INFO": return False
+        if record.thread != threading.get_ident():
+            return False
+        if record.levelname != "INFO":
+            return False
         return True
 
     def emit(self, record: logging.LogRecord):
