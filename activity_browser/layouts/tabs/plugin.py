@@ -3,6 +3,7 @@ from ..panels import ABTab
 
 class PluginTab(ABTab):
     """Parent class of every plugin tab"""
+
     def __init__(self, plugin, panel, parent=None):
         """
         :param plugin: instance of the plugin class

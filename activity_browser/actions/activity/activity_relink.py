@@ -1,13 +1,14 @@
 from typing import List
 
-from PySide2 import QtWidgets, QtCore
+from PySide2 import QtCore, QtWidgets
 
 from activity_browser import application
-from activity_browser.mod import bw2data as bd
-from activity_browser.bwutils.strategies import relink_activity_exchanges
 from activity_browser.actions.base import ABAction, exception_dialogs
-from activity_browser.ui.widgets import ActivityLinkingDialog, ActivityLinkingResultsDialog
+from activity_browser.bwutils.strategies import relink_activity_exchanges
+from activity_browser.mod import bw2data as bd
 from activity_browser.ui.icons import qicons
+from activity_browser.ui.widgets import (ActivityLinkingDialog,
+                                         ActivityLinkingResultsDialog)
 
 
 class ActivityRelink(ABAction):
@@ -16,6 +17,7 @@ class ActivityRelink(ABAction):
 
     This action only uses the first key from activity_keys
     """
+
     icon = qicons.edit
     text = "Relink the activity exchanges"
 
@@ -35,13 +37,12 @@ class ActivityRelink(ABAction):
 
         # present the alternatives to the user in a linking dialog
         dialog = ActivityLinkingDialog.relink_sqlite(
-            activity['name'],
-            options,
-            application.main_window
+            activity["name"], options, application.main_window
         )
 
         # return if the user cancels
-        if dialog.exec_() == ActivityLinkingDialog.Rejected: return
+        if dialog.exec_() == ActivityLinkingDialog.Rejected:
+            return
 
         # relinking will take some time, set WaitCursor
         QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
@@ -50,7 +51,9 @@ class ActivityRelink(ABAction):
         relinking_results = {}
         for old, new in dialog.relink.items():
             other = bd.Database(new)
-            failed, succeeded, examples = relink_activity_exchanges(activity, old, other)
+            failed, succeeded, examples = relink_activity_exchanges(
+                activity, old, other
+            )
             relinking_results[f"{old} --> {other.name}"] = (failed, succeeded)
 
         # restore normal cursor
@@ -59,8 +62,6 @@ class ActivityRelink(ABAction):
         # if any relinks failed present them to the user
         if failed > 0:
             relinking_dialog = ActivityLinkingResultsDialog.present_relinking_results(
-                application.main_window,
-                relinking_results,
-                examples
+                application.main_window, relinking_results, examples
             )
             relinking_dialog.exec_()

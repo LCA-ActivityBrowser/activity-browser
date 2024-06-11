@@ -7,7 +7,8 @@ from activity_browser import actions
 
 class SignalledLineEdit(QtWidgets.QLineEdit):
     """Adapted from http://stackoverflow.com/questions/12182133/PyQt5-combine-textchanged-and-editingfinished-for-qlineedit"""
-    def __init__(self, key, field, contents='', parent=None):
+
+    def __init__(self, key, field, contents="", parent=None):
         super(SignalledLineEdit, self).__init__(contents, parent)
         self.editingFinished.connect(self._editing_finished)
         self.textChanged.connect(self._text_changed)
@@ -31,6 +32,7 @@ class SignalledLineEdit(QtWidgets.QLineEdit):
 
 class SignalledPlainTextEdit(QtWidgets.QPlainTextEdit):
     """Adapted from https://john.nachtimwald.com/2009/08/19/better-qplaintextedit-with-line-numbers/"""
+
     def __init__(self, key: tuple, field: str, contents: str = "", parent=None):
         super().__init__(contents, parent)
         self.highlight()
@@ -66,7 +68,7 @@ class SignalledComboEdit(QtWidgets.QComboBox):
     needed to effectively implement the location dropdown list
     """
 
-    def __init__(self, key, field, contents='', parent=None):
+    def __init__(self, key, field, contents="", parent=None):
         super().__init__(parent)
         self._before = contents
         self._key = key

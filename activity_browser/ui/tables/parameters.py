@@ -5,12 +5,12 @@ from PySide2.QtGui import QContextMenuEvent, QDragMoveEvent, QDropEvent
 from PySide2.QtWidgets import QAction, QMenu, QMessageBox
 
 from activity_browser import actions, project_settings, signals
+
 from ..icons import qicons
 from .delegates import *
-from .models import (
-    BaseParameterModel, ProjectParameterModel, DatabaseParameterModel,
-    ActivityParameterModel, ParameterTreeModel,
-)
+from .models import (ActivityParameterModel, BaseParameterModel,
+                     DatabaseParameterModel, ParameterTreeModel,
+                     ProjectParameterModel)
 from .views import ABDataFrameView, ABDictTreeView
 
 
@@ -44,12 +44,13 @@ class BaseParameterTable(ABDataFrameView):
         self.model.updated.connect(self.update_proxy_model)
 
         # hide raw parameter column
-        self.model.updated.connect(lambda: self.setColumnHidden(self.model.param_col, True))
+        self.model.updated.connect(
+            lambda: self.setColumnHidden(self.model.param_col, True)
+        )
         self.model.updated.connect(lambda: self.resizeColumnToContents(0))
 
     def contextMenuEvent(self, event: QContextMenuEvent) -> None:
-        """ Have the parameter test to see if it can be deleted safely.
-        """
+        """Have the parameter test to see if it can be deleted safely."""
         if self.indexAt(event.pos()).row() == -1:
             return
         menu = QMenu(self)
@@ -132,7 +133,6 @@ class DataBaseParameterTable(BaseParameterTable):
         self.setItemDelegateForColumn(4, StringDelegate(self))
         self.setItemDelegateForColumn(5, ViewOnlyUncertaintyDelegate(self))
 
-
     def uncertainty_columns(self, show: bool):
         for i in range(5, 11):
             self.setColumnHidden(i, not show)
@@ -145,7 +145,7 @@ class DataBaseParameterTable(BaseParameterTable):
         return DatabaseParameterModel.get_usable_parameters()
 
     def get_interpreter(self) -> Interpreter:
-        """ Take the interpreter from the ProjectParameterTable and add
+        """Take the interpreter from the ProjectParameterTable and add
         (potentially overwriting) all database symbols for the selected index.
         """
         return self.model.get_interpreter()
@@ -166,19 +166,17 @@ class ActivityParameterTable(BaseParameterTable):
         self.setItemDelegateForColumn(9, StringDelegate(self))
         self.setItemDelegateForColumn(10, ViewOnlyUncertaintyDelegate(self))
 
-
         # Set dropEnabled
         self.setDragDropMode(ABDataFrameView.DropOnly)
         self.setAcceptDrops(True)
 
     def dragMoveEvent(self, event: QDragMoveEvent) -> None:
-        """ Check that the dragged row is from the databases table
-        """
+        """Check that the dragged row is from the databases table"""
         if hasattr(event.source(), "technosphere"):
             event.accept()
 
     def dropEvent(self, event: QDropEvent) -> None:
-        """ If the user drops an activity into the activity parameters table
+        """If the user drops an activity into the activity parameters table
         read the relevant data from the database and generate a new row.
 
         Also, create a warning if the activity is from a read-only database
@@ -186,11 +184,14 @@ class ActivityParameterTable(BaseParameterTable):
         db_table = event.source()
 
         if project_settings.settings["read-only-databases"].get(
-                db_table.current_database(), True):
+            db_table.current_database(), True
+        ):
             QMessageBox.warning(
-                self, "Not allowed",
+                self,
+                "Not allowed",
                 "Cannot set activity parameters on read-only databases",
-                QMessageBox.Ok, QMessageBox.Ok
+                QMessageBox.Ok,
+                QMessageBox.Ok,
             )
             return
 
@@ -199,16 +200,14 @@ class ActivityParameterTable(BaseParameterTable):
         actions.ParameterNewAutomatic.run(keys)
 
     def contextMenuEvent(self, event: QContextMenuEvent) -> None:
-        """ Override and activate QTableView.contextMenuEvent()
+        """Override and activate QTableView.contextMenuEvent()
 
         All possible menu events should be added and wired up here
         """
         if self.indexAt(event.pos()).row() == -1:
             return
         menu = QMenu(self)
-        menu.addAction(
-            qicons.add, "Open activities", self.open_activity_tab
-        )
+        menu.addAction(qicons.add, "Open activities", self.open_activity_tab)
         menu.addAction(self.rename_action)
         menu.addAction(self.delete_action)
         menu.addAction(self.modify_uncertainty_action)
@@ -223,8 +222,7 @@ class ActivityParameterTable(BaseParameterTable):
 
     @Slot()
     def open_activity_tab(self):
-        """ Triggers the activity tab to open one or more activities.
-        """
+        """Triggers the activity tab to open one or more activities."""
         for proxy in self.selectedIndexes():
             key = self.get_key(proxy)
             signals.safe_open_activity_tab.emit(key)
@@ -245,8 +243,7 @@ class ActivityParameterTable(BaseParameterTable):
         return ActivityParameterModel.get_usable_parameters()
 
     def get_current_group(self, proxy=None) -> str:
-        """ Retrieve the group of the activity currently selected.
-        """
+        """Retrieve the group of the activity currently selected."""
         return self.model.get_group(proxy or self.currentIndex())
 
     def get_interpreter(self) -> Interpreter:
@@ -258,4 +255,3 @@ class ExchangesTable(ABDictTreeView):
         super().__init__(parent)
         self.model = ParameterTreeModel(parent=self)
         self.setModel(self.model)
-

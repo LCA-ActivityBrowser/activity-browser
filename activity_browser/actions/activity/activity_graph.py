@@ -9,6 +9,7 @@ class ActivityGraph(ABAction):
     """
     ABAction to open one or multiple activities in the graph explorer
     """
+
     icon = qicons.graph_explorer
     text = "'Open *** in Graph Explorer'"
 

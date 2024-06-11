@@ -1,29 +1,36 @@
-import pytest
 import os
+
 import bw2data as bd
+import pytest
 from PySide2 import QtWidgets
+
 from activity_browser import actions, application
-from activity_browser.mod.bw2data import Database
 from activity_browser.bwutils import AB_metadata
+from activity_browser.mod.bw2data import Database
+from activity_browser.ui.widgets import (BiosphereUpdater,
+                                         DefaultBiosphereDialog,
+                                         EcoinventVersionDialog)
+from activity_browser.ui.wizards.plugins_manager_wizard import \
+    PluginsManagerWizard
 from activity_browser.ui.widgets import EcoinventVersionDialog, DefaultBiosphereDialog, BiosphereUpdater
 from activity_browser.ui.wizards import ProjectSetupWizard
 from activity_browser.ui.wizards.settings_wizard import SettingsWizard
-from activity_browser.ui.wizards.plugins_manager_wizard import PluginsManagerWizard
 
 
-
-@pytest.mark.skipif(os.environ.get("TEST_FAST", False), reason="Skipped for faster testing")
+@pytest.mark.skipif(
+    os.environ.get("TEST_FAST", False), reason="Skipped for faster testing"
+)
 def test_default_install(ab_app, monkeypatch, qtbot):
     project_name = "biosphere_project"
     bd.projects.set_current(project_name)
 
     monkeypatch.setattr(
-        EcoinventVersionDialog, 'exec_',
-        staticmethod(lambda *args, **kwargs: EcoinventVersionDialog.Accepted)
+        EcoinventVersionDialog,
+        "exec_",
+        staticmethod(lambda *args, **kwargs: EcoinventVersionDialog.Accepted),
     )
     monkeypatch.setattr(
-        QtWidgets.QComboBox, 'currentText',
-        staticmethod(lambda *args, **kwargs: '3.7')
+        QtWidgets.QComboBox, "currentText", staticmethod(lambda *args, **kwargs: "3.7")
     )
 
     assert bd.projects.current == project_name

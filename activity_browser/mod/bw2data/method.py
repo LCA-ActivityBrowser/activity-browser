@@ -1,7 +1,8 @@
 from bw2data.method import *
 
-from ..patching import patch_superclass, patched
 from activity_browser.signals import qmethod_list
+
+from ..patching import patch_superclass, patched
 
 
 @patch_superclass
@@ -28,16 +29,27 @@ class Method(Method):
         patched[Method]["write"](self, data, process)
 
         # emit for any corresponding qmethod that exists in qmethod_list (each method that has widgets connected to it)
-        [qmthd.emitLater("changed", self) for qmthd in qmethod_list if qmthd["name"] == self.name]
+        [
+            qmthd.emitLater("changed", self)
+            for qmthd in qmethod_list
+            if qmthd["name"] == self.name
+        ]
 
     def deregister(self):
         # execute the patched function for standard functionality
         patched[Method]["deregister"](self)
 
         # emit for any corresponding qmethod that exists in qmethod_list (each method that has widgets connected to it)
-        [qmthd.emitLater("deleted", self) for qmthd in qmethod_list if qmthd["name"] == self.name]
-        [qmthd.emitLater("changed", self) for qmthd in qmethod_list if qmthd["name"] == self.name]
-
+        [
+            qmthd.emitLater("deleted", self)
+            for qmthd in qmethod_list
+            if qmthd["name"] == self.name
+        ]
+        [
+            qmthd.emitLater("changed", self)
+            for qmthd in qmethod_list
+            if qmthd["name"] == self.name
+        ]
 
     # extending Brightway Functionality
     def load_dict(self) -> dict:
@@ -53,4 +65,3 @@ class Method(Method):
         keys instead of a list. This makes it easier to edit characterization factors.
         """
         self.write(list(data.items()), process)
-

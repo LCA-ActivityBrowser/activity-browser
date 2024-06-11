@@ -1,6 +1,5 @@
 import functools
 
-
 blacklist = ["__module__", "__subclasshook__", "__dict__", "__init_subclass__"]
 
 
@@ -15,10 +14,12 @@ def patch_superclass(cls):
     for name, value in [(name, getattr(cls, name)) for name in dir(cls)]:
         try:
             # return if the name is in the blacklist
-            if name in blacklist: continue
+            if name in blacklist:
+                continue
 
             # return if the attribute is the same as the one in the superclass
-            if value == getattr(superclass, name, None): continue
+            if value == getattr(superclass, name, None):
+                continue
 
             # saving the attribute that we'll be patching
             patched[superclass] = patched.get(superclass, {})
@@ -39,6 +40,7 @@ def patch_attribute(obj, name):
     Function decorator to patch single attributes of a class. Handy when the superclass is already patched by
     another library and will be too different to use patch_superclass on. Pass the class you want to patch as argument
     """
+
     def inner(obj, name, fn):
         # saving the attribute that we'll be patching
         patched[obj] = patched.get(obj, {})
@@ -57,7 +59,9 @@ class Patched(dict):
         """
         if obj in self:
             return super().__getitem__(obj)
-        elif match := [key for key in self if issubclass(obj, key) or isinstance(obj, key)]:
+        elif match := [
+            key for key in self if issubclass(obj, key) or isinstance(obj, key)
+        ]:
             return super().__getitem__(match[0])
         raise KeyError("Patched object not found")
 

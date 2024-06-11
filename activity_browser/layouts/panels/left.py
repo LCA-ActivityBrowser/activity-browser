@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
+from ..tabs import HistoryTab, MethodsTab, ProjectTab
 from .panel import ABTab
-from ..tabs import (ProjectTab, MethodsTab, HistoryTab)
 
 
 class LeftPanel(ABTab):

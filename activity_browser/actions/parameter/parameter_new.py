@@ -1,12 +1,12 @@
 from typing import Tuple
 
-from PySide2 import QtCore, QtWidgets, QtGui
+from PySide2 import QtCore, QtGui, QtWidgets
 
-from activity_browser import application, actions
+from activity_browser import actions, application
+from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.bwutils import commontasks as bc
 from activity_browser.mod import bw2data as bd
 from activity_browser.mod.bw2data.parameters import ActivityParameter
-from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.ui.icons import qicons
 
 PARAMETER_STRINGS = (
@@ -27,6 +27,7 @@ class ParameterNew(ABAction):
     checks whether the name is valid, and then instructs the ParameterController to put the new parameter in the
     right group.
     """
+
     icon = qicons.add
     text = "New parameter..."
 
@@ -37,7 +38,8 @@ class ParameterNew(ABAction):
         wizard = ParameterWizard(activity_key, application.main_window)
 
         # return if the wizard is canceled
-        if wizard.exec_() != wizard.Accepted: return
+        if wizard.exec_() != wizard.Accepted:
+            return
 
         # gather wizard variables
         selection = wizard.selected
@@ -45,9 +47,11 @@ class ParameterNew(ABAction):
 
         # check whether the name is valid, otherwise return
         name = data.get("name")
-        if name[0] in ('0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '-', '#'):
+        if name[0] in ("0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "-", "#"):
             error = QtWidgets.QErrorMessage()
-            error.showMessage("<p>Parameter names must not start with a digit, hyphen, or hash character</p>")
+            error.showMessage(
+                "<p>Parameter names must not start with a digit, hyphen, or hash character</p>"
+            )
             error.exec_()
             return
 
@@ -82,9 +86,7 @@ class ParameterWizard(QtWidgets.QWizard):
 
     @property
     def param_data(self) -> dict:
-        data = {
-            field: self.field(field) for field in PARAMETER_FIELDS[self.selected]
-        }
+        data = {field: self.field(field) for field in PARAMETER_FIELDS[self.selected]}
         if self.selected == 2:
             data["group"] = self._get_group()
             data["database"] = self.key[0]
@@ -92,7 +94,9 @@ class ParameterWizard(QtWidgets.QWizard):
         return data
 
     def _get_group(self):
-        query = ((ActivityParameter.database == self.key[0]) & (ActivityParameter.code == self.key[1]))
+        query = (ActivityParameter.database == self.key[0]) & (
+            ActivityParameter.code == self.key[1]
+        )
 
         if not ActivityParameter.select().where(query).count():
             actions.ParameterNewAutomatic.run([self.key])
@@ -195,9 +199,7 @@ class CompleteParameterPage(QtWidgets.QWizardPage):
             dbs = list(bd.databases)
             self.database.insertItems(0, dbs)
             if self.key[0] in dbs:
-                self.database.setCurrentIndex(
-                    dbs.index(self.key[0])
-                )
+                self.database.setCurrentIndex(dbs.index(self.key[0]))
             self.database.setHidden(False)
             self.database_label.setHidden(False)
         elif self.parent.selected == 2:

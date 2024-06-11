@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
-from .activity import ActivityTab, ActivitiesTab
-from .LCA_setup import LCASetupTab
+from .activity import ActivitiesTab, ActivityTab
 from .history import HistoryTab
-from .impact_categories import MethodCharacterizationFactorsTab, MethodsTab, CharacterizationFactorsTab
-from .project_manager import ProjectTab
+from .impact_categories import (CharacterizationFactorsTab,
+                                MethodCharacterizationFactorsTab, MethodsTab)
 from .LCA_results_tab import LCAResultsTab
+from .LCA_setup import LCASetupTab
 from .parameters import ParametersTab
 from .plugin import PluginTab
+from .project_manager import ProjectTab

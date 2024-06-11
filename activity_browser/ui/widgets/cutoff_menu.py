@@ -12,12 +12,10 @@ from typing import Union
 import numpy as np
 from PySide2 import QtCore
 from PySide2.QtCore import QLocale, Qt, Signal, Slot
-from PySide2.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QRadioButton, QSlider, QLabel,
-    QLineEdit, QPushButton, QButtonGroup
-)
-
-from PySide2.QtGui import QIntValidator, QDoubleValidator
+from PySide2.QtGui import QDoubleValidator, QIntValidator
+from PySide2.QtWidgets import (QButtonGroup, QHBoxLayout, QLabel, QLineEdit,
+                               QPushButton, QRadioButton, QSlider, QVBoxLayout,
+                               QWidget)
 
 from ..style import vertical_line
 
@@ -47,28 +45,40 @@ class CutoffMenu(QWidget):
         self.buttons.relative.setChecked(True)
         self.buttons.relative.setToolTip(
             "This cut-off type shows the selected top percentage of contributions (for example the \
-top 10% contributors)")
+top 10% contributors)"
+        )
         self.buttons.topx.setToolTip(
             "This cut-off type shows the selected top number of contributions (for example the top \
-5 contributors)")
+5 contributors)"
+        )
         self.button_group = QButtonGroup()
         self.button_group.addButton(self.buttons.relative, 0)
         self.button_group.addButton(self.buttons.topx, 1)
         self.sliders = Types(LogarithmicSlider(self), QSlider(Qt.Horizontal, self))
-        self.sliders.relative.setToolTip("This slider sets the selected percentage of contributions\
- to be shown")
-        self.sliders.topx.setToolTip("This slider sets the selected number of contributions to be \
-shown")
+        self.sliders.relative.setToolTip(
+            "This slider sets the selected percentage of contributions\
+ to be shown"
+        )
+        self.sliders.topx.setToolTip(
+            "This slider sets the selected number of contributions to be \
+shown"
+        )
         self.units = Types("% of total", "top #")
         self.labels = Labels(QLabel(), QLabel(), QLabel())
         self.cutoff_slider_line = QLineEdit()
-        self.cutoff_slider_line.setToolTip("This box can set a precise cut-off value for the \
-contributions to be shown")
+        self.cutoff_slider_line.setToolTip(
+            "This box can set a precise cut-off value for the \
+contributions to be shown"
+        )
         self.cutoff_slider_line.setLocale(locale)
         self.cutoff_slider_lft_btn = QPushButton("<")
-        self.cutoff_slider_lft_btn.setToolTip("This button moves the cut-off value one increment")
+        self.cutoff_slider_lft_btn.setToolTip(
+            "This button moves the cut-off value one increment"
+        )
         self.cutoff_slider_rght_btn = QPushButton(">")
-        self.cutoff_slider_rght_btn.setToolTip("This button moves the cut-off value one increment")
+        self.cutoff_slider_rght_btn.setToolTip(
+            "This button moves the cut-off value one increment"
+        )
 
         self.debounce_slider = QtCore.QTimer()
         self.debounce_slider.setInterval(750)
@@ -181,10 +191,10 @@ contributions to be shown")
         # if called by line edit
         elif editor == "le":
             self.sliders.relative.blockSignals(True)
-            if self.cutoff_slider_line.text() == '-':
+            if self.cutoff_slider_line.text() == "-":
                 cutoff = 0.001
                 self.cutoff_slider_line.setText("0.001")
-            elif self.cutoff_slider_line.text() == '':
+            elif self.cutoff_slider_line.text() == "":
                 cutoff = 0.001
             else:
                 cutoff = abs(float(self.cutoff_slider_line.text()))
@@ -195,7 +205,7 @@ contributions to be shown")
             self.sliders.relative.log_value = float(cutoff)
             self.sliders.relative.blockSignals(False)
 
-        self.cutoff_value = (cutoff/100)
+        self.cutoff_value = cutoff / 100
         self.slider_change.emit()
 
     @Slot(str, name="sliderTopXCheck")
@@ -215,10 +225,10 @@ contributions to be shown")
         # if called by line edit
         elif editor == "le":
             self.sliders.topx.blockSignals(True)
-            if self.cutoff_slider_line.text() == '-':
+            if self.cutoff_slider_line.text() == "-":
                 cutoff = self.sliders.topx.minimum()
                 self.cutoff_slider_line.setText(str(self.sliders.topx.minimum()))
-            elif self.cutoff_slider_line.text() == '':
+            elif self.cutoff_slider_line.text() == "":
                 cutoff = self.sliders.topx.minimum()
             else:
                 cutoff = abs(int(self.cutoff_slider_line.text()))

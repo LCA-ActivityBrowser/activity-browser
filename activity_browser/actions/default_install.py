@@ -8,6 +8,7 @@ class DefaultInstall(ABAction):
     """
     ABAction to install all the default data: biosphere, IC's etcetera.
     """
+
     icon = qicons.import_db
     text = "Setup your project with default data"
 

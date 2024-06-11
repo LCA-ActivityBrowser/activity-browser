@@ -1,8 +1,10 @@
 import bw2data as bd
-from activity_browser import actions, application
 from PySide2 import QtWidgets
+
+from activity_browser import actions, application
+from activity_browser.actions.database.database_duplicate import \
+    DuplicateDatabaseDialog
 from activity_browser.ui.widgets.dialog import DatabaseLinkingDialog
-from activity_browser.actions.database.database_duplicate import DuplicateDatabaseDialog
 from activity_browser.ui.wizards.db_export_wizard import DatabaseExportWizard
 from activity_browser.ui.wizards.db_import_wizard import DatabaseImportWizard
 
@@ -11,8 +13,9 @@ def test_database_delete(ab_app, monkeypatch):
     db = "db_to_delete"
 
     monkeypatch.setattr(
-        QtWidgets.QMessageBox, 'question',
-        staticmethod(lambda *args, **kwargs: QtWidgets.QMessageBox.Yes)
+        QtWidgets.QMessageBox,
+        "question",
+        staticmethod(lambda *args, **kwargs: QtWidgets.QMessageBox.Yes),
     )
 
     assert bd.projects.current == "default"
@@ -28,8 +31,9 @@ def test_database_duplicate(ab_app, monkeypatch, qtbot):
     dup_db = "db_that_is_duplicated"
 
     monkeypatch.setattr(
-        QtWidgets.QInputDialog, 'getText',
-        staticmethod(lambda *args, **kwargs: ('db_that_is_duplicated', True))
+        QtWidgets.QInputDialog,
+        "getText",
+        staticmethod(lambda *args, **kwargs: ("db_that_is_duplicated", True)),
     )
 
     assert bd.projects.current == "default"
@@ -39,7 +43,7 @@ def test_database_duplicate(ab_app, monkeypatch, qtbot):
     actions.DatabaseDuplicate.run(db)
 
     dialog = application.main_window.findChild(DuplicateDatabaseDialog)
-    with qtbot.waitSignal(dialog.thread.finished, timeout=60*1000):
+    with qtbot.waitSignal(dialog.thread.finished, timeout=60 * 1000):
         pass
 
     assert db in bd.databases
@@ -70,13 +74,13 @@ def test_database_new(ab_app, monkeypatch):
     new_db = "db_that_is_new"
 
     monkeypatch.setattr(
-        QtWidgets.QInputDialog, 'getText',
-        staticmethod(lambda *args, **kwargs: ('db_that_is_new', True))
+        QtWidgets.QInputDialog,
+        "getText",
+        staticmethod(lambda *args, **kwargs: ("db_that_is_new", True)),
     )
 
     monkeypatch.setattr(
-        QtWidgets.QMessageBox, 'information',
-        staticmethod(lambda *args, **kwargs: True)
+        QtWidgets.QMessageBox, "information", staticmethod(lambda *args, **kwargs: True)
     )
 
     assert bd.projects.current == "default"
@@ -99,13 +103,13 @@ def test_database_relink(ab_app, monkeypatch):
     to_db = "db_to_relink_to"
 
     monkeypatch.setattr(
-        DatabaseLinkingDialog, 'exec_',
-        staticmethod(lambda *args, **kwargs: DatabaseLinkingDialog.Accepted)
+        DatabaseLinkingDialog,
+        "exec_",
+        staticmethod(lambda *args, **kwargs: DatabaseLinkingDialog.Accepted),
     )
 
     monkeypatch.setattr(
-        DatabaseLinkingDialog, 'relink',
-        {"db_to_relink_from": "db_to_relink_to"}
+        DatabaseLinkingDialog, "relink", {"db_to_relink_from": "db_to_relink_to"}
     )
 
     assert db in bd.databases

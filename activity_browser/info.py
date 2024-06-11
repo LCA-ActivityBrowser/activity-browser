@@ -1,9 +1,9 @@
 import ast
 import os.path
-from importlib.metadata import version, PackageNotFoundError
-from .utils import safe_link_fetch, sort_semantic_versions
+from importlib.metadata import PackageNotFoundError, version
 
 from .logger import log
+from .utils import safe_link_fetch, sort_semantic_versions
 
 # get AB version
 try:
@@ -22,19 +22,23 @@ def get_compatible_versions() -> list:
     """
     try:
         # read versions
-        versions_URL = 'https://raw.githubusercontent.com/LCA-ActivityBrowser/activity-browser/main/activity_browser/bwutils/ecoinvent_biosphere_versions/compatible_ei_versions.txt'
+        versions_URL = "https://raw.githubusercontent.com/LCA-ActivityBrowser/activity-browser/main/activity_browser/bwutils/ecoinvent_biosphere_versions/compatible_ei_versions.txt"
         page, error = safe_link_fetch(versions_URL)
         if not error:
             file = page.text
         else:
             # silently try a local fallback:
-            log.debug(f'Reading online compatible ecoinvent versions failed '
-                      f'-attempting local fallback- with this error: {error}')
-            file_path = os.path.join(os.path.dirname(__file__),
-                                     'bwutils',
-                                     'ecoinvent_biosphere_versions',
-                                     'compatible_ei_versions.txt')
-            with open(file_path, 'r') as f:
+            log.debug(
+                f"Reading online compatible ecoinvent versions failed "
+                f"-attempting local fallback- with this error: {error}"
+            )
+            file_path = os.path.join(
+                os.path.dirname(__file__),
+                "bwutils",
+                "ecoinvent_biosphere_versions",
+                "compatible_ei_versions.txt",
+            )
+            with open(file_path, "r") as f:
                 file = f.read()
         all_versions = ast.literal_eval(file)
 
@@ -48,12 +52,14 @@ def get_compatible_versions() -> list:
         else:
             ei_versions = all_versions[sorted_versions[-1]]
 
-        log.debug(f'Following versions of ecoinvent are compatible with AB {__version__}: {ei_versions}')
+        log.debug(
+            f"Following versions of ecoinvent are compatible with AB {__version__}: {ei_versions}"
+        )
         return ei_versions
 
     except Exception as error:
-        log.debug(f'Reading local fallback failed with: {error}')
-        return ['3.4', '3.5', '3.6', '3.7', '3.7.1', '3.8', '3.9', '3.9.1']
+        log.debug(f"Reading local fallback failed with: {error}")
+        return ["3.4", "3.5", "3.6", "3.7", "3.7.1", "3.8", "3.9", "3.9.1"]
 
 
 __ei_versions__ = get_compatible_versions()

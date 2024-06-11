@@ -5,8 +5,9 @@ import numpy as np
 import pandas as pd
 from PySide2.QtCore import Slot
 
-from activity_browser.mod.bw2data import projects, parameters
 from activity_browser.bwutils.utils import Parameters
+from activity_browser.mod.bw2data import parameters, projects
+
 from .base import PandasModel
 
 
@@ -21,18 +22,19 @@ class ScenarioModel(PandasModel):
 
     @Slot(name="doCleanSync")
     def sync(self, df: pd.DataFrame = None, include_default: bool = True) -> None:
-        """ Construct the dataframe from the existing parameters, if ``df``
+        """Construct the dataframe from the existing parameters, if ``df``
         is given, perform a merge to possibly include additional columns.
         """
         data = [p[:3] for p in Parameters.from_bw_parameters()]
         if df is None:
-            self._dataframe = pd.DataFrame(
-                data, columns=self.HEADERS).set_index("Name")
+            self._dataframe = pd.DataFrame(data, columns=self.HEADERS).set_index("Name")
         else:
             required = set(self.MATCH_COLS)
             if not required.issubset(df.columns):
                 raise ValueError(
-                    "The given dataframe does not contain required columns: {}".format(required.difference(df.columns))
+                    "The given dataframe does not contain required columns: {}".format(
+                        required.difference(df.columns)
+                    )
                 )
             assert df.columns.get_loc("Group") == 1
             if include_default:
@@ -43,17 +45,21 @@ class ScenarioModel(PandasModel):
             else:
                 # Now we're gonna need to ensure that the dataframe is of
                 # the same size
-                assert len(data) >= df.shape[0], "Too many parameters found, not possible."
+                assert (
+                    len(data) >= df.shape[0]
+                ), "Too many parameters found, not possible."
                 missing = len(data) - df.shape[0]
                 if missing != 0:
-                    nan_data = pd.DataFrame(index=pd.RangeIndex(missing), columns=df.columns)
+                    nan_data = pd.DataFrame(
+                        index=pd.RangeIndex(missing), columns=df.columns
+                    )
                     df = pd.concat([df, nan_data], ignore_index=True)
                 self._dataframe = df.set_index("Name")
         self.updated.emit()
 
     @classmethod
     def _perform_merge(cls, left: pd.DataFrame, right: pd.DataFrame) -> pd.DataFrame:
-        """ There are three kinds of actions that can occur: adding new columns,
+        """There are three kinds of actions that can occur: adding new columns,
         updating values in matching columns, and a combination of the two.
 
         ``left`` dataframe always determines the row-size of the resulting
@@ -85,7 +91,7 @@ class ScenarioModel(PandasModel):
 
     @Slot(name="resetDataIndex")
     def rebuild_table(self) -> None:
-        """ Should be called when the `parameters_changed` signal is emitted.
+        """Should be called when the `parameters_changed` signal is emitted.
         Will call sync with a copy of the current dataframe to ensure no
         user-imported data is lost.
 
@@ -96,18 +102,22 @@ class ScenarioModel(PandasModel):
 
     @Slot(str, str, str, name="renameParameterIndex")
     def update_param_name(self, old: str, group: str, new: str) -> None:
-        """ Kind of a cheat, but directly edit the dataframe.index to update
+        """Kind of a cheat, but directly edit the dataframe.index to update
         the table whenever the user renames a parameter.
         """
-        new_idx = pd.Index(np.where(
-            (self._dataframe.index == old) & (self._dataframe["Group"] == group),
-            new, self._dataframe.index
-        ), name=self._dataframe.index.name)
+        new_idx = pd.Index(
+            np.where(
+                (self._dataframe.index == old) & (self._dataframe["Group"] == group),
+                new,
+                self._dataframe.index,
+            ),
+            name=self._dataframe.index.name,
+        )
         self._dataframe.index = new_idx
         self.updated.emit()
 
     def iterate_scenarios(self) -> Iterable[Tuple[str, Iterable]]:
-        """ Iterates through all of the non-description columns from left to right.
+        """Iterates through all of the non-description columns from left to right.
 
         Returns an iterator of tuples containing the scenario name and a dictionary
         of the parameter names and new amounts.

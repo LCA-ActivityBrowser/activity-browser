@@ -1,8 +1,8 @@
 from PySide2 import QtWidgets
 
-from activity_browser import application, signals, log
-from activity_browser.mod import bw2data as bd
+from activity_browser import application, log, signals
 from activity_browser.actions.base import ABAction, exception_dialogs
+from activity_browser.mod import bw2data as bd
 from activity_browser.ui.icons import qicons
 
 
@@ -12,6 +12,7 @@ class CSRename(ABAction):
     with the same name is already present within the project. If all is right, instructs the CalculationSetupController
     to rename the CS.
     """
+
     icon = qicons.edit
     text = "Rename"
 
@@ -22,18 +23,19 @@ class CSRename(ABAction):
         new_name, ok = QtWidgets.QInputDialog.getText(
             application.main_window,
             f"Rename '{cs_name}'",
-            "New name of this calculation setup:" + " " * 10
+            "New name of this calculation setup:" + " " * 10,
         )
 
         # return if the user cancels or gives no name
-        if not ok or not new_name: return
+        if not ok or not new_name:
+            return
 
         # throw error if the name is already present, and return
         if new_name in bd.calculation_setups:
             QtWidgets.QMessageBox.warning(
                 application.main_window,
                 "Not possible",
-                "A calculation setup with this name already exists."
+                "A calculation setup with this name already exists.",
             )
             return
 

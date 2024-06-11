@@ -1,10 +1,10 @@
-from typing import Union, Callable
+from typing import Callable, Union
 
 from PySide2 import QtCore
 
+from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.mod.bw2data import get_activity
 from activity_browser.ui.icons import qicons
-from activity_browser.actions.base import ABAction, exception_dialogs
 
 
 class ActivityModify(ABAction):
@@ -13,8 +13,9 @@ class ActivityModify(ABAction):
     downstream processes and ask the user whether they want to continue if so. Exchanges from any downstream processes
     will be removed
     """
+
     icon = qicons.edit
-    text = 'Modify Activity'
+    text = "Modify Activity"
 
     @staticmethod
     @exception_dialogs

@@ -4,11 +4,12 @@ from PySide2.QtCore import Signal, Slot
 from stats_arrays import uncertainty_choices as uncertainty
 from stats_arrays.distributions import *
 
-from activity_browser import log, application, actions
-from ..figures import SimpleDistributionPlot
-from ..style import style_group_box
+from activity_browser import actions, application, log
+
 from ...bwutils import PedigreeMatrix, get_uncertainty_interface
 from ...bwutils.uncertainty import EMPTY_UNCERTAINTY
+from ..figures import SimpleDistributionPlot
+from ..style import style_group_box
 
 
 class UncertaintyWizard(QtWidgets.QWizard):
@@ -17,6 +18,7 @@ class UncertaintyWizard(QtWidgets.QWizard):
 
     Note that this can also be used for setting uncertainties on parameters
     """
+
     TYPE = 0
     PEDIGREE = 1
 
@@ -37,7 +39,9 @@ class UncertaintyWizard(QtWidgets.QWizard):
         self.setStartId(self.TYPE)
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
 
-        self.button(QtWidgets.QWizard.FinishButton).clicked.connect(self.update_uncertainty)
+        self.button(QtWidgets.QWizard.FinishButton).clicked.connect(
+            self.update_uncertainty
+        )
         self.pedigree.enable_pedigree.connect(self.used_pedigree)
         self.extract_uncertainty()
 
@@ -69,18 +73,22 @@ class UncertaintyWizard(QtWidgets.QWizard):
 
     @Slot(name="modifyUncertainty")
     def update_uncertainty(self):
-        """ Update the uncertainty information of the relevant object, optionally
+        """Update the uncertainty information of the relevant object, optionally
         including a pedigree update.
         """
         self.amount_mean_test()
         if self.obj.data_type == "exchange":
             actions.ExchangeModify.run(self.obj.data, self.uncertainty_info)
             if self.using_pedigree:
-                actions.ExchangeModify.run(self.obj.data, {"pedigree": self.pedigree.matrix.factors})
+                actions.ExchangeModify.run(
+                    self.obj.data, {"pedigree": self.pedigree.matrix.factors}
+                )
         elif self.obj.data_type == "parameter":
             actions.ParameterModify.run(self.obj.data, "data", self.uncertainty_info)
             if self.using_pedigree:
-                actions.ParameterModify.run(self.obj.data, "data", self.pedigree.matrix.factors)
+                actions.ParameterModify.run(
+                    self.obj.data, "data", self.pedigree.matrix.factors
+                )
         elif self.obj.data_type == "cf":
             self.complete.emit(self.obj.data, self.uncertainty_info)
 
@@ -107,7 +115,7 @@ class UncertaintyWizard(QtWidgets.QWizard):
                 self.setField(f, "nan")
 
     def extract_lognormal_loc(self) -> None:
-        """ Special handling for looking at the uncertainty['loc'] field
+        """Special handling for looking at the uncertainty['loc'] field
 
         This should only be used when the 'original' set uncertainty is
         lognormal.
@@ -122,8 +130,8 @@ class UncertaintyWizard(QtWidgets.QWizard):
 
     def amount_mean_test(self) -> None:
         """Asks if the 'amount' of the object should be updated to account for
-         the user altering the loc/mean value.
-         """
+        the user altering the loc/mean value.
+        """
         uc_type = self.field("uncertainty type")
         no_change = {UndefinedUncertainty.id, NoUncertainty.id}
         mean = float(self.field("loc"))
@@ -132,11 +140,16 @@ class UncertaintyWizard(QtWidgets.QWizard):
         elif uc_type in self.type.mean_is_calculated:
             mean = self.type.calculate_mean
         if not np.isclose(self.obj.amount, mean) and uc_type not in no_change:
-            msg = ("Do you want to update the 'amount' field to match mean?"
-                   "\nAmount: {}\tMean: {}".format(self.obj.amount, mean))
+            msg = (
+                "Do you want to update the 'amount' field to match mean?"
+                "\nAmount: {}\tMean: {}".format(self.obj.amount, mean)
+            )
             choice = QtWidgets.QMessageBox.question(
-                self, "Amount differs from mean", msg,
-                QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No, QtWidgets.QMessageBox.Yes
+                self,
+                "Amount differs from mean",
+                msg,
+                QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
+                QtWidgets.QMessageBox.Yes,
             )
             if choice == QtWidgets.QMessageBox.Yes:
                 if self.obj.data_type == "exchange":
@@ -147,8 +160,11 @@ class UncertaintyWizard(QtWidgets.QWizard):
                         actions.ParameterModify.run(self.obj.data, "amount", mean)
                     except Exception as e:
                         QtWidgets.QMessageBox.warning(
-                            application.main_window, "Could not save changes", str(e),
-                            QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok
+                            application.main_window,
+                            "Could not save changes",
+                            str(e),
+                            QtWidgets.QMessageBox.Ok,
+                            QtWidgets.QMessageBox.Ok,
                         )
                 elif self.obj.data_type == "cf":
                     altered = {k: v for k, v in self.obj.uncertainty.items()}
@@ -159,8 +175,8 @@ class UncertaintyWizard(QtWidgets.QWizard):
 
 
 class UncertaintyTypePage(QtWidgets.QWizardPage):
-    """Present a list of uncertainty types directly retrieved from the `stats_arrays` package.
-    """
+    """Present a list of uncertainty types directly retrieved from the `stats_arrays` package."""
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setFinalPage(True)
@@ -169,7 +185,9 @@ class UncertaintyTypePage(QtWidgets.QWizardPage):
         self.goto_pedigree = False
         self.previous = None
         self.mean_is_calculated = {
-            TriangularUncertainty.id, UniformUncertainty.id, DiscreteUniform.id,
+            TriangularUncertainty.id,
+            UniformUncertainty.id,
+            DiscreteUniform.id,
             BetaUncertainty.id,
         }
 
@@ -191,7 +209,9 @@ class UncertaintyTypePage(QtWidgets.QWizardPage):
         # Set values for selected uncertainty distribution.
         self.field_box = QtWidgets.QGroupBox("Fill out or change required parameters")
         self.field_box.setStyleSheet(style_group_box.border_title)
-        self.locale = QtCore.QLocale(QtCore.QLocale.English, QtCore.QLocale.UnitedStates)
+        self.locale = QtCore.QLocale(
+            QtCore.QLocale.English, QtCore.QLocale.UnitedStates
+        )
         self.locale.setNumberOptions(QtCore.QLocale.RejectGroupSeparator)
         self.validator = QtGui.QDoubleValidator()
         self.validator.setLocale(self.locale)
@@ -334,7 +354,7 @@ class UncertaintyTypePage(QtWidgets.QWizardPage):
         # Catch exception for DiscreteUniform (https://bitbucket.org/cmutel/stats_arrays/pull-requests/5/)
         except TypeError:
             array = self.dist.fix_nan_minimum(array)
-            calc = (array['maximum'] + array['minimum']) / 2
+            calc = (array["maximum"] + array["minimum"]) / 2
         calc = calc.mean() if isinstance(calc, np.ndarray) else calc
         return float(calc)
 
@@ -373,15 +393,37 @@ class UncertaintyTypePage(QtWidgets.QWizardPage):
         if self.dist.id in {0, 1}:
             completed = True
         elif self.dist.id in {2, 3}:
-            completed = all([field.hasAcceptableInput() and field.text() for field in (self.loc, self.scale)])
+            completed = all(
+                [
+                    field.hasAcceptableInput() and field.text()
+                    for field in (self.loc, self.scale)
+                ]
+            )
         elif self.dist.id in {4, 7}:
-            completed = all([field.hasAcceptableInput() and field.text() for field in (self.minimum, self.maximum)])
+            completed = all(
+                [
+                    field.hasAcceptableInput() and field.text()
+                    for field in (self.minimum, self.maximum)
+                ]
+            )
         elif self.dist.id in {5, 6}:
-            completed = all([field.hasAcceptableInput() and field.text() for field in (self.minimum, self.maximum,
-                    self.loc)]) and (float(self.minimum.text()) < float(self.loc.text()) < float(self.maximum.text()))
+            completed = all(
+                [
+                    field.hasAcceptableInput() and field.text()
+                    for field in (self.minimum, self.maximum, self.loc)
+                ]
+            ) and (
+                float(self.minimum.text())
+                < float(self.loc.text())
+                < float(self.maximum.text())
+            )
         elif self.dist.id in {8, 9, 10, 11, 12}:
-            completed = all([field.hasAcceptableInput() and field.text() for field in (self.scale, self.shape,
-                                                                                               self.loc)])
+            completed = all(
+                [
+                    field.hasAcceptableInput() and field.text()
+                    for field in (self.scale, self.shape, self.loc)
+                ]
+            )
         return completed
 
     @Slot(name="locToMean")
@@ -466,6 +508,7 @@ class PedigreeMatrixPage(QtWidgets.QWizardPage):
     'Empirically based uncertainty factors for the pedigree matrix in ecoinvent' (2016)
     doi: 10.1007/s11367-013-0670-5
     """
+
     enable_pedigree = Signal(bool)
 
     def __init__(self, parent=None):
@@ -475,7 +518,9 @@ class PedigreeMatrixPage(QtWidgets.QWizardPage):
 
         self.field_box = QtWidgets.QGroupBox("Fill out or change required parameters")
         self.field_box.setStyleSheet(style_group_box.border_title)
-        self.locale = QtCore.QLocale(QtCore.QLocale.English, QtCore.QLocale.UnitedStates)
+        self.locale = QtCore.QLocale(
+            QtCore.QLocale.English, QtCore.QLocale.UnitedStates
+        )
         self.locale.setNumberOptions(QtCore.QLocale.RejectGroupSeparator)
         self.validator = QtGui.QDoubleValidator()
         self.validator.setLocale(self.locale)
@@ -500,45 +545,55 @@ class PedigreeMatrixPage(QtWidgets.QWizardPage):
         box.setStyleSheet(style_group_box.border_title)
 
         self.reliable = QtWidgets.QComboBox(box)
-        self.reliable.addItems([
-            "1) Verified data based on measurements",
-            "2) Verified data partly based on assumptions",
-            "3) Non-verified data partly based on qualified measurements",
-            "4) Qualified estimate",
-            "5) Non-qualified estimate",
-        ])
+        self.reliable.addItems(
+            [
+                "1) Verified data based on measurements",
+                "2) Verified data partly based on assumptions",
+                "3) Non-verified data partly based on qualified measurements",
+                "4) Qualified estimate",
+                "5) Non-qualified estimate",
+            ]
+        )
         self.complete = QtWidgets.QComboBox(box)
-        self.complete.addItems([
-            "1) Representative relevant data from all sites, over an adequate period",
-            "2) Representative relevant data from >50% sites, over an adequate period",
-            "3) Representative relevant data from <50% sites OR >50%, but over shorter period",
-            "4) Representative relevant data from one site OR some sites but over shorter period",
-            "5) Representativeness unknown",
-        ])
+        self.complete.addItems(
+            [
+                "1) Representative relevant data from all sites, over an adequate period",
+                "2) Representative relevant data from >50% sites, over an adequate period",
+                "3) Representative relevant data from <50% sites OR >50%, but over shorter period",
+                "4) Representative relevant data from one site OR some sites but over shorter period",
+                "5) Representativeness unknown",
+            ]
+        )
         self.temporal = QtWidgets.QComboBox(box)
-        self.temporal.addItems([
-            "1) Data less than 3 years old",
-            "2) Data less than 6 years old",
-            "3) Data less than 10 years old",
-            "4) Data less than 15 years old",
-            "5) Data age unknown or more than 15 years old",
-        ])
+        self.temporal.addItems(
+            [
+                "1) Data less than 3 years old",
+                "2) Data less than 6 years old",
+                "3) Data less than 10 years old",
+                "4) Data less than 15 years old",
+                "5) Data age unknown or more than 15 years old",
+            ]
+        )
         self.geographical = QtWidgets.QComboBox(box)
-        self.geographical.addItems([
-            "1) Data from area under study",
-            "2) Average data from larger area in which area under study is included",
-            "3) Data from area with similar production conditions",
-            "4) Data from area with slightly similar production conditions",
-            "5) Data from unknown OR distinctly different area",
-        ])
+        self.geographical.addItems(
+            [
+                "1) Data from area under study",
+                "2) Average data from larger area in which area under study is included",
+                "3) Data from area with similar production conditions",
+                "4) Data from area with slightly similar production conditions",
+                "5) Data from unknown OR distinctly different area",
+            ]
+        )
         self.technological = QtWidgets.QComboBox(box)
-        self.technological.addItems([
-            "1) Data from enterprises, processes and materials under study",
-            "2) Data from processes and materials under study, different enterprise",
-            "3) Data from processes and materials under study from different technology",
-            "4) Data on related processes and materials",
-            "5) Data on related processes on lab scale OR from different technology",
-        ])
+        self.technological.addItems(
+            [
+                "1) Data from enterprises, processes and materials under study",
+                "2) Data from processes and materials under study, different enterprise",
+                "3) Data from processes and materials under study from different technology",
+                "4) Data on related processes and materials",
+                "5) Data on related processes on lab scale OR from different technology",
+            ]
+        )
         self.reliable.currentIndexChanged.connect(self.check_complete)
         self.complete.currentIndexChanged.connect(self.check_complete)
         self.temporal.currentIndexChanged.connect(self.check_complete)
@@ -554,7 +609,9 @@ class PedigreeMatrixPage(QtWidgets.QWizardPage):
         box_layout.addWidget(self.temporal, 4, 2, 2, 3)
         box_layout.addWidget(QtWidgets.QLabel("Geographical correlation"), 6, 0, 2, 2)
         box_layout.addWidget(self.geographical, 6, 2, 2, 3)
-        box_layout.addWidget(QtWidgets.QLabel("Further technological correlation"), 8, 0, 2, 2)
+        box_layout.addWidget(
+            QtWidgets.QLabel("Further technological correlation"), 8, 0, 2, 2
+        )
         box_layout.addWidget(self.technological, 8, 2, 2, 3)
         box.setLayout(box_layout)
 
@@ -603,7 +660,9 @@ class PedigreeMatrixPage(QtWidgets.QWizardPage):
         self.complete.setCurrentIndex(data.get("completeness", 1) - 1)
         self.temporal.setCurrentIndex(data.get("temporal correlation", 1) - 1)
         self.geographical.setCurrentIndex(data.get("geographical correlation", 1) - 1)
-        self.technological.setCurrentIndex(data.get("further technological correlation", 1) - 1)
+        self.technological.setCurrentIndex(
+            data.get("further technological correlation", 1) - 1
+        )
 
     @Slot(name="locToMean")
     def balance_mean_with_loc(self):
