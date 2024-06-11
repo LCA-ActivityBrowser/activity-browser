@@ -363,10 +363,10 @@ def basic_setup():
 def advanced_setup():
     # replace the low and high level StdIO's
     low_level_stdout = LowLevelStdIO(sys.stdout).start_capture("StdoutCapture")
-    low_level_stderr = LowLevelStdIO(sys.stderr).start_capture("StderrCapture")
+    # low_level_stderr = LowLevelStdIO(sys.stderr).start_capture("StderrCapture")
 
     sys.stdout = HighLevelStdIO()
-    sys.stderr = HighLevelStdIO()
+    # sys.stderr = HighLevelStdIO()
 
     # setting up our own logger
     root = logging.getLogger()

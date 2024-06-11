@@ -6,6 +6,7 @@ from typing import Union
 import xlsxwriter
 from bw2io.export.csv import reformat
 from bw2io.export.excel import CSVFormatter, create_valid_worksheet_name
+from bw_processing import safe_filename
 
 from activity_browser.mod import bw2data as bd
 
@@ -90,7 +91,7 @@ def write_lci_excel(db_name: str, path: str, objs=None, sections=None) -> Path:
     """
     path = Path(path)
     if not path.suffix == ".xlsx":
-        out_file = path / "lci-{}.xlsx".format(bd.utils.safe_filename(db_name, False))
+        out_file = path / "lci-{}.xlsx".format(safe_filename(db_name, False))
     else:
         out_file = path
 

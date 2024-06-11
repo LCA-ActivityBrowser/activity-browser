@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Iterable, Tuple
 
 import requests
+from bw_processing import safe_filename
 from PySide2 import QtWidgets
 
 from activity_browser.mod import bw2data as bd
@@ -29,7 +30,7 @@ def savefilepath(
     default_file_name: str = "AB_file", file_filter: str = "All Files (*.*)"
 ):
     """A central function to get a safe file path."""
-    safe_name = bd.utils.safe_filename(default_file_name, add_hash=False)
+    safe_name = safe_filename(default_file_name, add_hash=False)
     filepath, _ = QtWidgets.QFileDialog.getSaveFileName(
         parent=None,
         caption="Choose location for saving",

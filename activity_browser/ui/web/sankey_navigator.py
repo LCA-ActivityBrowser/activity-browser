@@ -350,7 +350,7 @@ class Graph(BaseGraph):
         demand = meta["demand"]
         activity = bd.get_activity(demand[0])
         activity_amount = demand[1]
-        
+
         def convert_edge_to_json(edge: Edge, node: Node) -> dict:
             p = bd.get_activity(edge.producer_index)
             producer_key = id_to_key(edge.producer_index)
@@ -393,7 +393,7 @@ class Graph(BaseGraph):
                 "cumulative_score_normalized": node_as_dict.get("cumulative_score") / lca_score if lca_score != 0 else None,
                 "class": "demand" if activity == demand else identify_activity_type(activity),
             }
-    
+
         json_data = {
             "nodes": [],
             "edges": [],
