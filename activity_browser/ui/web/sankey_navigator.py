@@ -2,7 +2,6 @@
 import json
 import os
 import time
-from dataclasses import asdict
 from typing import List
 
 import bw2calc as bc
