@@ -556,25 +556,7 @@ const cartographer = function() {
     };
 
     const buildGraphNode = function (n) {
-        // var node_data = {
-        //     product: n['product'],
-        //     location: n['location'],
-        //     id: n['id'],
-        //     database: n['db'],
-        //     class: n['class'],
-        //     label: ''
-        // };
-
-        // We can do this in Python
-        if(is_sankey_mode) {
-            // node_data.label = wrapText(n['name'], max_string_length)
-            //               + '\n' + n['location']
-            //               + '\n(' + Math.round(n['direct_emissions_score_normalized'] * 100) + '%)';
-            // node_data.direct_emissions_score_normalized = n['direct_emissions_score_normalized'];
-            // node_data.tooltip = '<b>' + n['name'] + '</b>'
-            //           + '<br>Individual impact: &nbsp&nbsp&nbsp' + roundNumber(n['direct_emissions_score']) + ' ' + n['LCIA_unit'] +  ' (' + Math.round(n['direct_emissions_score_normalized'] * 100) + '%)'
-            //           + '<br>Cumulative impact: ' + roundNumber(n['cumulative_score']) + ' ' + n['LCIA_unit'] +  ' (' + Math.round(n['cumulative_score_normalized'] * 100) + '%)';
-        } else {
+        if(!is_sankey_mode) {
             n.label = formatNodeText(n['name'], n['location']);
             n.labelType = "html";
         }
@@ -583,29 +565,13 @@ const cartographer = function() {
 
     const buildGraphEdge = function (e) {
         e.curve = d3.curveBasis;
-        // var edge_data = {
-        //     amount: e['amount'],
-        //     unit: e['unit'],
-        //     product: e['product'],
-        //     tooltip: e['tooltip'],
-        //     curve: d3.curveBasis,
-        //     label: ''
-        // }
 
-        // We can do this in Python
-        if(is_sankey_mode) {
-            // edge_data.label = wrapText(e['product']
-            //     + '\n(' + roundNumber(e['direct_emissions_score_normalized']*100) + '%)', max_string_length);
-            // edge_data.weight = Math.abs(e["impact"] / max_impact ) * max_edge_width;
-            // let impact_or_benefit = "impact";
-            // if (e['impact'] < 0) {impact_or_benefit = "benefit"; console.log("BENEFIT");};
-            // edge_data.class = impact_or_benefit;
-        } else {
+        if(!is_sankey_mode) {
             e.label = formatEdgeText(e['product'], max_string_length);
             e.labelType = "html";
             e.arrowhead = "vee";
         }
-
+        
         graph.setEdge(e['source_id'], e['target_id'], e);
     };
 

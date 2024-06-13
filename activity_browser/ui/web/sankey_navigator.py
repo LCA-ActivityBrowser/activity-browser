@@ -398,7 +398,7 @@ class Graph(BaseGraph):
                 "source_id": edge.producer_unique_id,
                 "target_id": edge.consumer_unique_id,
                 "amount": edge.amount,
-                "weight": abs(cum_score / total_score) / max_edge_width,
+                "weight": abs(cum_score / total_score) * max_edge_width,
                 "label": f"{round(cum_score, 3)} {lcia_unit}",
                 "class": "benefit" if cum_score < 0 else "impact",
                 "tooltip": f"<b>{round(cum_score, 3)} {lcia_unit}</b> ({edge.amount:.2g} {unit})",
