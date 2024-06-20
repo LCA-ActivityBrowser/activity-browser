@@ -430,7 +430,7 @@ class ABSortProxyModel(QSortFilterProxyModel):
     See this for context: https://github.com/LCA-ActivityBrowser/activity-browser/pull/1151
     """
 
-    def lessThan(self, left, right) -> bool:
+    def lessThan(self, left: QModelIndex, right: QModelIndex) -> bool:
         """Override to sort actual data, expects `left` and `right` are comparable.
 
         If `left` and `right` are not the same type, we check if numerical and empty string are compared, if that is the
@@ -439,20 +439,30 @@ class ABSortProxyModel(QSortFilterProxyModel):
         """
         left_data = self.sourceModel().data(left, "sorting")
         right_data = self.sourceModel().data(right, "sorting")
+
+        if not left_data and not right_data:
+            return True
         if type(left_data) is type(right_data):
             return left_data < right_data
-        elif (
-            type(left_data) in (int, float)
-            and type(right_data) is str
-            and right_data == ""
-        ):
+
+        # comparing Falsys with types
+        if (isinstance(left_data, (int, float))
+                and not right_data
+        ):  # comparing left number with nothing, compare against '0' instead
             return left_data < 0
-        elif (
-            type(right_data) in (int, float)
-            and type(left_data) is str
-            and left_data == ""
-        ):
+        if (isinstance(left_data, str)
+                and not right_data
+        ):  # comparing left str with nothing, compare against "" instead
+            return left_data < ""  # note we use '>' instead of '<', content should be above empty fields
+        if (isinstance(right_data, (int, float))
+                and not left_data
+        ):  # comparing right number with nothing, compare against '0' instead
             return 0 < right_data
+        if (isinstance(right_data, str)
+                and not left_data
+        ):  # comparing right str with nothing, compare against "" instead
+            return right_data < ""  # note we use '>' instead of '<', content should be above empty fields
+
         raise ValueError(
             f"Cannot compare {left_data} and {right_data}, incompatible types."
         )
