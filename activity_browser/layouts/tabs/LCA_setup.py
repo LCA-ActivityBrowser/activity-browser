@@ -1,38 +1,25 @@
 # -*- coding: utf-8 -*-
-from typing import Optional, Union
-
-from PySide2 import QtWidgets
-from PySide2.QtCore import Slot, Qt
-from brightway2 import calculation_setups
 import pandas as pd
-import re
+from PySide2 import QtWidgets
+from PySide2.QtCore import Qt, Slot
 
-import brightway2 as bw
-from bw2data.filesystem import safe_filename
-from ...bwutils.superstructure import (
-    SuperstructureManager, import_from_excel, scenario_names_from_df,
-    SUPERSTRUCTURE, _time_it_, ABCSVImporter, ABFeatherImporter,
-    ABFileImporter, scenario_replace_databases
-)
-from ...settings import ab_settings
-from ...bwutils.errors import (CriticalScenarioExtensionError, ScenarioExchangeNotFoundError,
-                               ScenarioDatabaseNotFoundError, ImportCanceledError, ScenarioExchangeDataNotFoundError,
-                               UnalignableScenarioColumnsWarning, ScenarioExchangeDataNonNumericError,)
-from ...signals import signals
+from activity_browser import actions, log, signals
+from activity_browser.mod import bw2data as bd
+
+from ...bwutils.errors import *
+from ...bwutils.superstructure import (SUPERSTRUCTURE, ABCSVImporter,
+                                       ABFeatherImporter, ABPopup,
+                                       SuperstructureManager, _time_it_,
+                                       edit_superstructure_for_string,
+                                       import_from_excel,
+                                       scenario_names_from_df,
+                                       scenario_replace_databases)
 from ...ui.icons import qicons
-from ...ui.style import horizontal_line, header, style_group_box
-from ...ui.tables import (
-    CSActivityTable, CSList, CSMethodsTable, ScenarioImportTable
-)
+from ...ui.style import header, horizontal_line, style_group_box
+from ...ui.tables import (CSActivityTable, CSList, CSMethodsTable,
+                          ScenarioImportTable)
 from ...ui.widgets import ExcelReadDialog, ScenarioDatabaseDialog
 from .base import BaseRightTab
-from activity_browser.bwutils.superstructure import ABPopup, edit_superstructure_for_string
-
-import logging
-from activity_browser.logger import ABHandler
-
-logger = logging.getLogger('ab_logs')
-log = ABHandler.setup_with_logger(logger, __name__)
 
 """
 Lifecycle of a calculation setup
@@ -98,6 +85,7 @@ The currently selected calculation setup is retrieved by getting the currently s
 
 """
 
+
 class LCASetupTab(QtWidgets.QWidget):
     DEFAULT = 0
     SCENARIOS = 1
@@ -114,20 +102,26 @@ class LCASetupTab(QtWidgets.QWidget):
         self.methods_table = CSMethodsTable(self)
         self.list_widget = CSList(self)
 
-        self.new_cs_button = QtWidgets.QPushButton(qicons.add, "New")
-        self.copy_cs_button = QtWidgets.QPushButton(qicons.copy, "Copy")
-        self.rename_cs_button = QtWidgets.QPushButton(qicons.edit, "Rename")
-        self.delete_cs_button = QtWidgets.QPushButton(qicons.delete, "Delete")
+        self.new_cs_button = actions.CSNew.get_QButton()
+        self.duplicate_cs_button = actions.CSDuplicate.get_QButton(
+            self.list_widget.currentText
+        )
+        self.delete_cs_button = actions.CSDelete.get_QButton(
+            self.list_widget.currentText
+        )
+        self.rename_cs_button = actions.CSRename.get_QButton(
+            self.list_widget.currentText
+        )
 
         self.calculate_button = QtWidgets.QPushButton(qicons.calculate, "Calculate")
         self.calculation_type = QtWidgets.QComboBox()
         self.calculation_type.addItems(["Standard LCA", "Scenario LCA"])
 
         name_row = QtWidgets.QHBoxLayout()
-        name_row.addWidget(header('Calculation Setup:'))
+        name_row.addWidget(header("Calculation Setup:"))
         name_row.addWidget(self.list_widget)
         name_row.addWidget(self.new_cs_button)
-        name_row.addWidget(self.copy_cs_button)
+        name_row.addWidget(self.duplicate_cs_button)
         name_row.addWidget(self.rename_cs_button)
         name_row.addWidget(self.delete_cs_button)
         name_row.addStretch(1)
@@ -145,14 +139,14 @@ class LCASetupTab(QtWidgets.QWidget):
         # widget for the reference flows
         self.reference_flow_widget = QtWidgets.QWidget()
         reference_flow_layout = QtWidgets.QVBoxLayout()
-        reference_flow_layout.addWidget(header('Reference flows:'))
+        reference_flow_layout.addWidget(header("Reference flows:"))
         reference_flow_layout.addWidget(self.activities_table)
         self.reference_flow_widget.setLayout(reference_flow_layout)
 
         # widget for the impact categories
         self.impact_categories_widget = QtWidgets.QWidget()
         impact_categories_layout = QtWidgets.QVBoxLayout()
-        impact_categories_layout.addWidget(header('Impact categories:'))
+        impact_categories_layout.addWidget(header("Impact categories:"))
         impact_categories_layout.addWidget(self.methods_table)
         self.impact_categories_widget.setLayout(impact_categories_layout)
 
@@ -161,7 +155,9 @@ class LCASetupTab(QtWidgets.QWidget):
         self.splitter.addWidget(self.reference_flow_widget)
         self.splitter.addWidget(self.impact_categories_widget)
 
-        self.no_setup_label = QtWidgets.QLabel("To do an LCA, create a new calculation setup first by pressing 'New'.")
+        self.no_setup_label = QtWidgets.QLabel(
+            "To do an LCA, create a new calculation setup first by pressing 'New'."
+        )
         cs_panel_layout.addWidget(self.no_setup_label)
         cs_panel_layout.addWidget(self.splitter)
 
@@ -176,35 +172,23 @@ class LCASetupTab(QtWidgets.QWidget):
     def connect_signals(self):
         # Signals
         self.calculate_button.clicked.connect(self.start_calculation)
-
-        self.new_cs_button.clicked.connect(signals.new_calculation_setup.emit)
-        self.copy_cs_button.clicked.connect(
-            lambda: signals.copy_calculation_setup.emit(self.list_widget.name)
-        )
-        self.delete_cs_button.clicked.connect(
-            lambda x: signals.delete_calculation_setup.emit(
-                self.list_widget.name
-        ))
-        self.rename_cs_button.clicked.connect(
-            lambda x: signals.rename_calculation_setup.emit(
-                self.list_widget.name
-        ))
         signals.calculation_setup_changed.connect(self.save_cs_changes)
         self.calculation_type.currentIndexChanged.connect(self.select_calculation_type)
 
         # Slots
-        signals.set_default_calculation_setup.connect(self.set_default_calculation_setup)
-        signals.project_selected.connect(self.set_default_calculation_setup)
-        signals.calculation_setup_selected.connect(lambda: self.show_details())
-        signals.calculation_setup_selected.connect(self.enable_calculations)
+        signals.set_default_calculation_setup.connect(
+            self.set_default_calculation_setup
+        )
+        bd.projects.current_changed.connect(self.set_default_calculation_setup)
         signals.calculation_setup_changed.connect(self.enable_calculations)
+        signals.calculation_setup_selected.connect(self.select_cs)
 
     def save_cs_changes(self):
         name = self.list_widget.name
         if name:
-            calculation_setups[name] = {
-                'inv': self.activities_table.to_python(),
-                'ia': self.methods_table.to_python()
+            bd.calculation_setups[name] = {
+                "inv": self.activities_table.to_python(),
+                "ia": self.methods_table.to_python(),
             }
 
     @Slot(name="calculationDefault")
@@ -215,15 +199,15 @@ class LCASetupTab(QtWidgets.QWidget):
         if calc_type == self.DEFAULT:
             # Standard LCA
             data = {
-                'cs_name': self.list_widget.name,
-                'calculation_type': 'simple',
+                "cs_name": self.list_widget.name,
+                "calculation_type": "simple",
             }
         elif calc_type == self.SCENARIOS:
             # Scenario LCA
             data = {
-                'cs_name': self.list_widget.name,
-                'calculation_type': 'scenario',
-                'data': self.scenario_panel.scenario_dataframe(),
+                "cs_name": self.list_widget.name,
+                "calculation_type": "scenario",
+                "data": self.scenario_panel.scenario_dataframe(),
             }
         else:
             return
@@ -233,26 +217,29 @@ class LCASetupTab(QtWidgets.QWidget):
     @Slot(name="toggleDefaultCalculation")
     def set_default_calculation_setup(self):
         self.calculation_type.setCurrentIndex(0)
-        if not len(calculation_setups):
+        cs = None if not bd.calculation_setups else sorted(bd.calculation_setups)[0]
+        signals.calculation_setup_selected.emit(cs)
+
+    def select_cs(self, name: str):
+        if not name:
             self.show_details(False)
             self.calculate_button.setEnabled(False)
         else:
-            signals.calculation_setup_selected.emit(
-                sorted(calculation_setups)[0]
-            )
+            self.show_details(True)
+            self.enable_calculations()
 
     def show_details(self, show: bool = True):
         # show/hide items from name_row
         self.rename_cs_button.setVisible(show)
         self.delete_cs_button.setVisible(show)
-        self.copy_cs_button.setVisible(show)
+        self.duplicate_cs_button.setVisible(show)
         self.list_widget.setVisible(show)
         # show/hide items from calc_row
         self.calculate_button.setVisible(show)
         self.calculation_type.setVisible(show)
         # show/hide tables widgets
         self.splitter.setVisible(show)
-        self.no_setup_label.setVisible(not(show))
+        self.no_setup_label.setVisible(not (show))
 
     @Slot(int, name="changeCalculationType")
     def select_calculation_type(self, index: int):
@@ -265,7 +252,9 @@ class LCASetupTab(QtWidgets.QWidget):
         self.cs_panel.updateGeometry()
 
     def enable_calculations(self):
-        valid_cs = all([self.activities_table.rowCount(), self.methods_table.rowCount()])
+        valid_cs = all(
+            [self.activities_table.rowCount(), self.methods_table.rowCount()]
+        )
         self.calculate_button.setEnabled(valid_cs)
 
 
@@ -273,6 +262,7 @@ class ScenarioImportPanel(BaseRightTab):
     MAX_TABLES = 5
 
     """Special kind of QWidget that contains one or more tables side by side."""
+
     def __init__(self, parent=None):
         super().__init__(parent)
 
@@ -281,22 +271,22 @@ class ScenarioImportPanel(BaseRightTab):
         <p>1. <b>Flow-scenarios</b>: alternative values for exchanges (technosphere/biosphere flows) 
         (<i>scenario difference files</i>)</p>
         <p>2. <b>Parameter-scenarios</b>: alternative values for parameters <i>(parameter scenarios files)</i></p>
-        
+
         Further information is provided in this <a href="https://www.youtube.com/watch?v=3LPcpV1G_jg">video</a>. 
-        
+
         <p>If you need a template for these files, you can go to the <i>Parameters > Scenarios tab</i>. 
         Then click <i>Export parameter-scenarios</i> to obtain a parameter-scenarios file or   
         <i>Export as flow-scenarios</i> to obtain a flow-scenarios file 
         (you need at least one parameterized activity for the latter).</p> 
-        
+
         <br> <p> You can also work with <b>multiple scenario files</b> for which there are with two options:</p>
         <p>1. <b>Combine scenarios</b>: this yields all possible scenario combinations 
         (e.g. file 1: <i>S1, S2</i> and file 2: <i>A, B</i> yields <i>S1-A, S1-B, S2-A, S2-B</i>) 
-        Click <a href="https://github.com/LCA-ActivityBrowser/activity-browser/blob/master/resources/sdf_product_combination.png"> here </a>
+        Click <a href="https://github.com/LCA-ActivityBrowser/activity-browser/blob/main/resources/sdf_product_combination.png"> here </a>
         for an example</p>
         <p>2. <b>Extend scenarios</b>: scenarios from file 2 extend scenarios of file 1 
         (only possible if scenario names are identical in all files, e.g. everywhere <i>S1, S2</i>).
-        Click <a href="https://github.com/LCA-ActivityBrowser/activity-browser/blob/master/resources/sdf_addition_combinations.png"> here
+        Click <a href="https://github.com/LCA-ActivityBrowser/activity-browser/blob/main/resources/sdf_addition_combinations.png"> here
         </a> for an example</p> 
         """
 
@@ -306,7 +296,7 @@ class ScenarioImportPanel(BaseRightTab):
         # set-up the header
         panel_header = header("Scenarios:  ")
         panel_header.setToolTip("Left click on the question mark for help")
-        
+
         # set-up the control buttons
         self.table_btn = QtWidgets.QPushButton("Add scenarios", self)
 
@@ -335,15 +325,14 @@ class ScenarioImportPanel(BaseRightTab):
 
         # add the border and hide until further notice
         self.group_box = QtWidgets.QGroupBox()
-        self.group_box.setStyleSheet(style_group_box.border_title)        
-        self.group_box.setLayout(input_field_layout)  
+        self.group_box.setStyleSheet(style_group_box.border_title)
+        self.group_box.setLayout(input_field_layout)
         self.group_box.setDisabled(True)
 
         # set-up the help button
         help_button = QtWidgets.QToolBar(self)
         help_button.addAction(
-            qicons.question, "Left click for help on Scenarios",
-            self.explanation
+            qicons.question, "Left click for help on Scenarios", self.explanation
         )
 
         # combining all into the tool row
@@ -363,7 +352,7 @@ class ScenarioImportPanel(BaseRightTab):
         # statistics at the bottom of the widget
         self.stats_widget = QtWidgets.QLabel()
         self.update_stats()
-        
+
         # construct the full layout
         layout = QtWidgets.QVBoxLayout()
         layout.addLayout(tool_row)
@@ -373,15 +362,16 @@ class ScenarioImportPanel(BaseRightTab):
         self.setLayout(layout)
 
         self._connect_signals()
-        
 
     def _connect_signals(self) -> None:
         self.table_btn.clicked.connect(self.add_table)
         self.table_btn.clicked.connect(self.can_add_table)
         self.save_scenario.clicked.connect(self.save_action)
-        signals.project_selected.connect(self.clear_tables)
-        signals.project_selected.connect(self.can_add_table)
-        signals.parameter_superstructure_built.connect(self.handle_superstructure_signal)
+        bd.projects.current_changed.connect(self.clear_tables)
+        bd.projects.current_changed.connect(self.can_add_table)
+        signals.parameter_superstructure_built.connect(
+            self.handle_superstructure_signal
+        )
 
         self.combine_group.buttonClicked.connect(self.toggle_combine_type)
 
@@ -395,7 +385,7 @@ class ScenarioImportPanel(BaseRightTab):
 
     def toggle_combine_type(self) -> None:
         """Called by signal when the combine type is switched by the user"""
-        try: 
+        try:
             # try to update the combined dataframe
             self.combined_dataframe()
         except:
@@ -405,7 +395,7 @@ class ScenarioImportPanel(BaseRightTab):
                 self.addition_choice.setChecked(True)
             if type == "addition":
                 self.product_choice.setChecked(True)
-        
+
     def get_combine_type(self) -> str:
         """Return the type of combination the user wants to do"""
         if self.product_choice.isChecked():
@@ -422,24 +412,23 @@ class ScenarioImportPanel(BaseRightTab):
         return scenario_names_from_df(self.tables[idx])
 
     def combined_dataframe(self, skip_checks: bool = False) -> None:
-        """Updates scenario dataframe to contain the combined scenarios of multiple tables.
-        """
+        """Updates scenario dataframe to contain the combined scenarios of multiple tables."""
         # if there are no tables currently, set the dataframe to be empty
         if not self.tables:
             self._scenario_dataframe = pd.DataFrame()
             self.update_stats()
             return
-        
+
         # if the tables are empty, set the dataframe to be empty
         data = [df for df in (t.dataframe for t in self.tables) if not df.empty]
         if not data:
             self._scenario_dataframe = pd.DataFrame()
             self.update_stats()
             return
-        
+
         # check what kind of combination the user wants to do
         kind = self.get_combine_type()
-        
+
         # combine the data using SuperstructureManager and update the dataframe
         manager = SuperstructureManager(*data)
         self._scenario_dataframe = manager.combined_data(kind, skip_checks)
@@ -462,13 +451,14 @@ class ScenarioImportPanel(BaseRightTab):
         # remove from the self.tables list and the layout
         table_widget = self.tables.pop(index)
         self.scenario_tables.removeWidget(table_widget)
-        
+
         # update the other widgets with new indices
         for i, widget in enumerate(self.tables):
             widget.index = i
 
         # if there was data in the widget, recalculate the combined DF
-        if not table_widget.dataframe.empty: self.combined_dataframe(skip_checks=True)
+        if not table_widget.dataframe.empty:
+            self.combined_dataframe(skip_checks=True)
 
         # free up the memory
         table_widget.deleteLater()
@@ -512,31 +502,38 @@ class ScenarioImportPanel(BaseRightTab):
 
     @Slot(int, name="SaveScenarioDataframe")
     def save_action(self) -> None:
-        """ Creates and saves to file (.xlsx, or .csv) the scenario dataframe after the loaded scenarios have been
+        """Creates and saves to file (.xlsx, or .csv) the scenario dataframe after the loaded scenarios have been
         merged. Will not contain duplicates. Will not contain self-referential technosphere flows.
 
         Triggered by a signal from ScenarioImportPanel save button, uses a dummy input argument.
         """
         filepath, _ = QtWidgets.QFileDialog.getSaveFileName(
-            parent=self, caption="Choose location to save the scenario file",
+            parent=self,
+            caption="Choose location to save the scenario file",
             filter="Excel (*.xlsx *.xls);; CSV (*.csv)",
         )
-        print('Saving scenario dataframe to file: ', filepath)
-        scenarios = self._scenario_dataframe.columns.difference(['input', 'output', 'flow'])
+        print("Saving scenario dataframe to file: ", filepath)
+        scenarios = self._scenario_dataframe.columns.difference(
+            ["input", "output", "flow"]
+        )
         superstructure = SUPERSTRUCTURE.tolist()
         cols = superstructure + scenarios.tolist()
 
         savedf = pd.DataFrame(index=self._scenario_dataframe.index, columns=cols)
         for table in self.tables:
             indices = savedf.index.intersection(table.scenario_df.index)
-            savedf.loc[indices, superstructure] = table.scenario_df.loc[indices, superstructure]
-            savedf.loc[indices, scenarios] = self._scenario_dataframe.loc[indices, scenarios]
-        if filepath.endswith('.xlsx') or filepath.endswith('.xls'):
+            savedf.loc[indices, superstructure] = table.scenario_df.loc[
+                indices, superstructure
+            ]
+            savedf.loc[indices, scenarios] = self._scenario_dataframe.loc[
+                indices, scenarios
+            ]
+        if filepath.endswith(".xlsx") or filepath.endswith(".xls"):
             savedf.to_excel(filepath, index=False)
             return
-        elif not filepath.endswith('.csv'):
-            filepath += '.csv'
-        savedf.to_csv(filepath, index=False, sep=';')
+        elif not filepath.endswith(".csv"):
+            filepath += ".csv"
+        savedf.to_csv(filepath, index=False, sep=";")
 
     def save_button(self, visible: bool):
         self.save_scenario.setDisabled(not visible)
@@ -575,11 +572,8 @@ class ScenarioImportWidget(QtWidgets.QWidget):
         self.load_btn.clicked.connect(self.load_action)
         parent = self.parent()
         if parent and isinstance(parent, ScenarioImportPanel):
-            self.remove_btn.clicked.connect(
-                lambda: parent.remove_table(self.index)
-            )
+            self.remove_btn.clicked.connect(lambda: parent.remove_table(self.index))
             self.remove_btn.clicked.connect(parent.can_add_table)
-
 
     @_time_it_
     @Slot(name="loadScenarioFile")
@@ -594,7 +588,7 @@ class ScenarioImportWidget(QtWidgets.QWidget):
                 separator = dialog.field_separator.currentData()
                 log.debug("separator == '{}'".format(separator))
                 QtWidgets.QApplication.setOverrideCursor(Qt.WaitCursor)
-                log.info('Loading Scenario file. This may take a while for large files')
+                log.info("Loading Scenario file. This may take a while for large files")
                 # Try and read as a superstructure file
                 # Choose a different routine for reading the file dependent on file type
                 if file_type_suffix == ".feather":
@@ -610,30 +604,43 @@ class ScenarioImportWidget(QtWidgets.QWidget):
                         return
                     self.sync_superstructure(df)
                 # Read the file as a parameter scenario file if it is correspondingly arranged
-                elif len(df.columns.intersection({'Name', 'Group'})) == 2:
+                elif len(df.columns.intersection({"Name", "Group"})) == 2:
                     # Try and read as parameter scenario file.
-                    log.info("Superstructure: Attempting to read as parameter scenario file.")
+                    log.info(
+                        "Superstructure: Attempting to read as parameter scenario file."
+                    )
                     include_default = True
                     if "default" not in df.columns:
                         query = QtWidgets.QMessageBox.question(
-                            self, "Default column not found",
+                            self,
+                            "Default column not found",
                             "Attempt to load and include the 'default' scenario column?",
                             QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
-                            QtWidgets.QMessageBox.No
+                            QtWidgets.QMessageBox.No,
                         )
                         if query == QtWidgets.QMessageBox.No:
                             include_default = False
-                    signals.parameter_scenario_sync.emit(self.index, df, include_default)
+                    signals.parameter_scenario_sync.emit(
+                        self.index, df, include_default
+                    )
                 else:
                     # this is a wrong file type
-                    msg = "The Activity-Browser is attempting to import a scenario file.<p>During the attempted import"\
-                        " another file type was detected. Please check the file type of the attempted import, if it is"\
-                        " a scenario file make sure it contains a valid format.</p>"\
-                        "<p>A flow exchange scenario file requires the following headers:<br>" +\
-                        edit_superstructure_for_string(sep=", ", fhighlight='"') + "</p>"\
-                        "<p>A parameter scenario file requires the following:<br>" + edit_superstructure_for_string(
-                        ["name", "group"], sep=", ", fhighlight='"') + "</p>"
-                    critical = ABPopup.abCritical("Wrong file type", msg, QtWidgets.QPushButton("Cancel"))
+                    msg = (
+                        "The Activity-Browser is attempting to import a scenario file.<p>During the attempted import"
+                        " another file type was detected. Please check the file type of the attempted import, if it is"
+                        " a scenario file make sure it contains a valid format.</p>"
+                        "<p>A flow exchange scenario file requires the following headers:<br>"
+                        + edit_superstructure_for_string(sep=", ", fhighlight='"')
+                        + "</p>"
+                        "<p>A parameter scenario file requires the following:<br>"
+                        + edit_superstructure_for_string(
+                            ["name", "group"], sep=", ", fhighlight='"'
+                        )
+                        + "</p>"
+                    )
+                    critical = ABPopup.abCritical(
+                        "Wrong file type", msg, QtWidgets.QPushButton("Cancel")
+                    )
                     QtWidgets.QApplication.restoreOverrideCursor()
                     critical.exec_()
                     return
@@ -683,9 +690,9 @@ class ScenarioImportWidget(QtWidgets.QWidget):
 
     @_time_it_
     def scenario_db_check(self, df: pd.DataFrame) -> pd.DataFrame:
-        dbs = set(df.loc[:, 'from database']).union(set(df.loc[:, 'to database']))
-        unlinkable = dbs.difference(bw.databases)
-        db_lst = list(bw.databases)
+        dbs = set(df.loc[:, "from database"]).union(set(df.loc[:, "to database"]))
+        unlinkable = dbs.difference(bd.databases)
+        db_lst = list(bd.databases)
         relink = []
         for db in unlinkable:
             relink.append((db, db_lst))
@@ -693,7 +700,6 @@ class ScenarioImportWidget(QtWidgets.QWidget):
         if unlinkable:
             dialog = ScenarioDatabaseDialog.construct_dialog(self._parent, relink)
             if dialog.exec_() == dialog.Accepted:
-
                 # TODO On update to bw2.5 this should be changed to use the bw2data.utils.get_node method
                 return scenario_replace_databases(df, dialog.relink)
                 # generate the required dialog

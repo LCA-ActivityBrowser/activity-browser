@@ -1,13 +1,11 @@
 # -*- coding: utf-8 -*
 import abc
 
+import numpy as np
 from bw2data.parameters import ParameterBase
 from bw2data.proxies import ExchangeProxyBase
-import numpy as np
-from stats_arrays import (
-    UncertaintyBase, UndefinedUncertainty, uncertainty_choices as uc
-)
-
+from stats_arrays import UncertaintyBase, UndefinedUncertainty
+from stats_arrays import uncertainty_choices as uc
 
 EMPTY_UNCERTAINTY = {
     "uncertainty type": UndefinedUncertainty.id,
@@ -23,8 +21,14 @@ EMPTY_UNCERTAINTY = {
 class BaseUncertaintyInterface(abc.ABC):
     __slots__ = ["_data"]
     KEYS = {
-        "uncertainty type", "loc", "scale", "shape", "minimum", "maximum",
-        "negative", "pedigree"
+        "uncertainty type",
+        "loc",
+        "scale",
+        "shape",
+        "minimum",
+        "maximum",
+        "negative",
+        "pedigree",
     }
     data_type = ""
 
@@ -55,6 +59,7 @@ class ExchangeUncertaintyInterface(BaseUncertaintyInterface):
     """Many kinds of exchanges use uncertainty to describe how 'correct' the
     data is which makes up the amount of the exchange.
     """
+
     _data: ExchangeProxyBase
     data_type = "exchange"
 
@@ -73,6 +78,7 @@ class ExchangeUncertaintyInterface(BaseUncertaintyInterface):
 
 class ParameterUncertaintyInterface(BaseUncertaintyInterface):
     """All levels of parameters can describe their amounts with uncertainty."""
+
     _data: ParameterBase
     data_type = "parameter"
 
@@ -98,6 +104,7 @@ class CFUncertaintyInterface(BaseUncertaintyInterface):
 
     See the ``Method`` and ``ProcessedDataStore`` classes in the bw2data library.
     """
+
     _data: tuple
     data_type = "cf"
 

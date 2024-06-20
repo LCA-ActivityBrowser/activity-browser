@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
+from ..tabs import HistoryTab, MethodsTab, ProjectTab
 from .panel import ABTab
-from ..tabs import (ProjectTab, MethodsTab, HistoryTab)
 
 
 class LeftPanel(ABTab):
@@ -18,4 +18,3 @@ class LeftPanel(ABTab):
             self.addTab(tab, tab_name)
         # tabs hidden at start
         self.hide_tab("History")
-

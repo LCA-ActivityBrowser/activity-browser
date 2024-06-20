@@ -4,21 +4,27 @@ import os
 import time
 from typing import List
 
-import brightway2 as bw
+import bw2calc as bc
 from PySide2 import QtWidgets
 from PySide2.QtCore import Slot
 from PySide2.QtWidgets import QComboBox
 
-from .base import BaseGraph, BaseNavigatorWidget
+from activity_browser import log, signals
+from activity_browser.mod import bw2data as bd
+from activity_browser.mod.bw2data.backends import ActivityDataset
+
 from ...bwutils.commontasks import identify_activity_type
-from ...bwutils.superstructure.graph_traversal_with_scenario import GraphTraversalWithScenario
-from ...signals import signals
+from ...bwutils.superstructure.graph_traversal_with_scenario import \
+    GraphTraversalWithScenario
+from .base import BaseGraph, BaseNavigatorWidget
 
-import logging
-from activity_browser.logger import ABHandler
-
-logger = logging.getLogger('ab_logs')
-log = ABHandler.setup_with_logger(logger, __name__)
+try:
+    # test whether we're running bw25
+    from bw2calc.graph_traversal import \
+        AssumedDiagonalGraphTraversal as GraphTraversal
+except:
+    # fall back on regular bw
+    from bw2calc import GraphTraversal
 
 
 # TODO:
@@ -37,13 +43,13 @@ log = ABHandler.setup_with_logger(logger, __name__)
 class SankeyNavigatorWidget(BaseNavigatorWidget):
     HELP_TEXT = """
     LCA Sankey:
-    
+
     Red flows: Impacts
     Green flows: Avoided impacts
-    
+
     """
     HTML_FILE = os.path.join(
-        os.path.abspath(os.path.dirname(__file__)), '../../static/sankey_navigator.html'
+        os.path.abspath(os.path.dirname(__file__)), "../../static/sankey_navigator.html"
     )
 
     def __init__(self, cs_name, parent=None):
@@ -61,13 +67,13 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
         self.graph = Graph()
 
         # Additional Qt objects
-        self.scenario_label = QtWidgets.QLabel('Scenario: ')
+        self.scenario_label = QtWidgets.QLabel("Scenario: ")
         self.func_unit_cb = QtWidgets.QComboBox()
         self.method_cb = QtWidgets.QComboBox()
         self.scenario_cb = QtWidgets.QComboBox()
         self.cutoff_sb = QtWidgets.QDoubleSpinBox()
         self.max_calc_sb = QtWidgets.QDoubleSpinBox()
-        self.button_calculate = QtWidgets.QPushButton('Calculate')
+        self.button_calculate = QtWidgets.QPushButton("Calculate")
         self.layout = QtWidgets.QVBoxLayout()
 
         # graph
@@ -96,10 +102,10 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
 
         # Layout Reference Flows and Impact Categories
         grid_lay = QtWidgets.QGridLayout()
-        grid_lay.addWidget(QtWidgets.QLabel('Reference flow: '), 0, 0)
+        grid_lay.addWidget(QtWidgets.QLabel("Reference flow: "), 0, 0)
 
         grid_lay.addWidget(self.scenario_label, 1, 0)
-        grid_lay.addWidget(QtWidgets.QLabel('Impact indicator: '), 2, 0)
+        grid_lay.addWidget(QtWidgets.QLabel("Impact indicator: "), 2, 0)
 
         self.update_calculation_setup()
 
@@ -108,7 +114,7 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
         grid_lay.addWidget(self.method_cb, 2, 1)
 
         # cut-off
-        grid_lay.addWidget(QtWidgets.QLabel('cutoff: '), 2, 2)
+        grid_lay.addWidget(QtWidgets.QLabel("cutoff: "), 2, 2)
         self.cutoff_sb.setRange(0.0, 1.0)
         self.cutoff_sb.setSingleStep(0.001)
         self.cutoff_sb.setDecimals(4)
@@ -117,7 +123,7 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
         grid_lay.addWidget(self.cutoff_sb, 2, 3)
 
         # max-iterations of graph traversal
-        grid_lay.addWidget(QtWidgets.QLabel('Calculation depth: '), 2, 4)
+        grid_lay.addWidget(QtWidgets.QLabel("Calculation depth: "), 2, 4)
         self.max_calc_sb.setRange(1, 2000)
         self.max_calc_sb.setSingleStep(50)
         self.max_calc_sb.setDecimals(0)
@@ -176,13 +182,15 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
 
         self.cs = cs_name or self.cs
         self.func_units = [
-            {bw.get_activity(k): v for k, v in fu.items()}
-            for fu in bw.calculation_setups[self.cs]['inv']
+            {bd.get_activity(k): v for k, v in fu.items()}
+            for fu in bd.calculation_setups[self.cs]["inv"]
         ]
-        self.methods = bw.calculation_setups[self.cs]['ia']
+        self.methods = bd.calculation_setups[self.cs]["ia"]
         self.func_unit_cb.clear()
         fu_acts = [list(fu.keys())[0] for fu in self.func_units]
-        self.func_unit_cb.addItems([f"{repr(a)} | {a._data.get('database')}" for a in fu_acts])
+        self.func_unit_cb.addItems(
+            [f"{repr(a)} | {a._data.get('database')}" for a in fu_acts]
+        )
         self.configure_scenario()
         self.method_cb.clear()
         self.method_cb.addItems([repr(m) for m in self.methods])
@@ -205,13 +213,28 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
             scenario_index = self.scenario_cb.currentIndex()
         cutoff = self.cutoff_sb.value()
         max_calc = self.max_calc_sb.value()
-        self.update_sankey(demand, method,
-                           demand_index=demand_index, method_index=method_index, scenario_index=scenario_index,
-                           scenario_lca=scenario_lca, cut_off=cutoff, max_calc=max_calc)
+        self.update_sankey(
+            demand,
+            method,
+            demand_index=demand_index,
+            method_index=method_index,
+            scenario_index=scenario_index,
+            scenario_lca=scenario_lca,
+            cut_off=cutoff,
+            max_calc=max_calc,
+        )
 
-    def update_sankey(self, demand: dict, method: tuple,
-                      demand_index: int = None, method_index: int = None, scenario_index: int = None,
-                      scenario_lca: bool = False, cut_off=0.05, max_calc=100) -> None:
+    def update_sankey(
+        self,
+        demand: dict,
+        method: tuple,
+        demand_index: int = None,
+        method_index: int = None,
+        scenario_index: int = None,
+        scenario_lca: bool = False,
+        cut_off=0.05,
+        max_calc=100,
+    ) -> None:
         """Calculate LCA, do graph traversal, get JSON graph data for this, and send to javascript."""
 
         # the cache key consists of demand/method/scenario indices (index of item in the relevant tables),
@@ -220,33 +243,48 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
         cache_key = (demand_index, method_index, scenario_index, cut_off, max_calc)
         if data := self.cache.get(cache_key, False):
             # this Sankey is already cached, generate the Sankey with the cached data
-            log.debug(f'CACHED sankey for: {demand}, {method}, key: {cache_key}')
+            log.debug(f"CACHED sankey for: {demand}, {method}, key: {cache_key}")
             self.graph.new_graph(data)
             self.has_sankey = bool(self.graph.json_data)
             self.send_json()
             return
 
         start = time.time()
-        log.debug(f'CALCULATE sankey for: {demand}, {method}, key: {cache_key}')
+        log.debug(f"CALCULATE sankey for: {demand}, {method}, key: {cache_key}")
         try:
             if scenario_lca:
-                self.parent.mlca.update_lca_calculation_for_sankey(scenario_index, demand, method_index)
-                data = GraphTraversalWithScenario(self.parent.mlca).calculate(demand, method,
-                                                                              cutoff=cut_off, max_calc=max_calc)
+                self.parent.mlca.update_lca_calculation_for_sankey(
+                    scenario_index, demand, method_index
+                )
+                data = GraphTraversalWithScenario(self.parent.mlca).calculate(
+                    demand, method, cutoff=cut_off, max_calc=max_calc
+                )
             else:
-                data = bw.GraphTraversal().calculate(demand, method,
-                                                     cutoff=cut_off, max_calc=max_calc)
+                try:
+                    data = GraphTraversal().calculate(
+                        demand, method, cutoff=cut_off, max_calc=max_calc
+                    )
+                except:
+                    lca = bc.LCA(demand, method)
+                    data = GraphTraversal().calculate(
+                        lca, cutoff=cut_off, max_calc=max_calc
+                    )
+                    data["lca"] = lca
             # store the metadata from this calculation
-            data['metadata'] = {'demand': list(data["lca"].demand.items())[0],
-                                'score': data["lca"].score,
-                                'unit': bw.Method(method).metadata["unit"],
-                                'act_dict': data["lca"].activity_dict.items()}
+            data["metadata"] = {
+                "demand": list(data["lca"].demand.items())[0],
+                "score": data["lca"].score,
+                "unit": bd.methods[method]["unit"],
+                "act_dict": data["lca"].activity_dict.items(),
+            }
             # drop LCA object as it's useless from now on
             del data["lca"]
 
         except (ValueError, ZeroDivisionError) as e:
             QtWidgets.QMessageBox.information(None, "Not possible.", str(e))
-        log.debug(f"Completed graph traversal ({round(time.time() - start, 2)} seconds, {data['counter']} iterations)")
+        log.debug(
+            f"Completed graph traversal ({round(time.time() - start, 2)} seconds, {data['counter']} iterations)"
+        )
 
         # cache the generated Sankey data
         self.cache[cache_key] = data
@@ -261,14 +299,16 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
         self.selected_db = name
 
     def random_graph(self) -> None:
-        """ Show graph for a random activity in the currently loaded database."""
+        """Show graph for a random activity in the currently loaded database."""
         if self.selected_db:
-            method = bw.methods.random()
-            act = bw.Database(self.selected_db).random()
+            method = bd.methods.random()
+            act = bd.Database(self.selected_db).random()
             demand = {act: 1.0}
             self.update_sankey(demand, method)
         else:
-            QtWidgets.QMessageBox.information(None, "Not possible.", "Please load a database first.")
+            QtWidgets.QMessageBox.information(
+                None, "Not possible.", "Please load a database first."
+            )
 
 
 class Graph(BaseGraph):
@@ -286,20 +326,24 @@ class Graph(BaseGraph):
     def get_json_data(data) -> str:
         """Transform bw.Graphtraversal() output to JSON data."""
         meta = data["metadata"]
-        lca_score = meta['score']
-        lcia_unit = meta['unit']
-        demand = meta['demand']
-        reverse_activity_dict = {v: k for k, v in meta['act_dict']}
+        lca_score = meta["score"]
+        lcia_unit = meta["unit"]
+        demand = meta["demand"]
+        reverse_activity_dict = {v: k for k, v in meta["act_dict"]}
 
         build_json_node = Graph.compose_node_builder(lca_score, lcia_unit, demand[0])
-        build_json_edge = Graph.compose_edge_builder(reverse_activity_dict, lca_score, lcia_unit)
+        build_json_edge = Graph.compose_edge_builder(
+            reverse_activity_dict, lca_score, lcia_unit
+        )
 
         valid_nodes = (
-            (bw.get_activity(reverse_activity_dict[idx]), v)
-            for idx, v in data["nodes"].items() if idx != -1
+            (bd.get_activity(reverse_activity_dict[idx]), v)
+            for idx, v in data["nodes"].items()
+            if idx != -1
         )
         valid_edges = (
-            edge for edge in data["edges"]
+            edge
+            for edge in data["edges"]
             if all(i != -1 for i in (edge["from"], edge["to"]))
         )
 
@@ -314,17 +358,19 @@ class Graph(BaseGraph):
     @staticmethod
     def build_title(demand: tuple, lca_score: float, lcia_unit: str) -> str:
         act, amount = demand[0], demand[1]
-        if type(act) is tuple:
-            act = bw.get_activity(act)
-        format_str = ("Reference flow: {:.2g} {} {} | {} | {} <br>"
-                      "Total impact: {:.2g} {}")
+        if type(act) is tuple or type(act) is int:
+            act = bd.get_activity(act)
+        format_str = (
+            "Reference flow: {:.2g} {} {} | {} | {} <br>" "Total impact: {:.2g} {}"
+        )
         return format_str.format(
             amount,
             act.get("unit"),
             act.get("reference product") or act.get("name"),
             act.get("name"),
             act.get("location"),
-            lca_score, lcia_unit,
+            lca_score,
+            lcia_unit,
         )
 
     @staticmethod
@@ -355,13 +401,12 @@ class Graph(BaseGraph):
 
     @staticmethod
     def compose_edge_builder(reverse_dict: dict, lca_score: float, lcia_unit: str):
-        """Build a function which turns graph edges into valid JSON documents.
-        """
+        """Build a function which turns graph edges into valid JSON documents."""
 
         def build_json_edge(edge: dict) -> dict:
-            p = bw.get_activity(reverse_dict[edge["from"]])
-            from_key = reverse_dict[edge["from"]]
-            to_key = reverse_dict[edge["to"]]
+            p = bd.get_activity(reverse_dict[edge["from"]])
+            from_key = id_to_key(reverse_dict[edge["from"]])
+            to_key = id_to_key(reverse_dict[edge["to"]])
             return {
                 "source_id": from_key[1],
                 "target_id": to_key[1],
@@ -370,11 +415,21 @@ class Graph(BaseGraph):
                 "impact": edge["impact"],
                 "ind_norm": edge["impact"] / lca_score,
                 "unit": lcia_unit,
-                "tooltip": '<b>{}</b> ({:.2g} {})'
-                           '<br>{:.3g} {} ({:.2g}%) '.format(
-                    lcia_unit, edge["amount"], p.get("unit"),
-                    edge["impact"], lcia_unit, edge["impact"] / lca_score * 100,
-                )
+                "tooltip": "<b>{}</b> ({:.2g} {})"
+                "<br>{:.3g} {} ({:.2g}%) ".format(
+                    lcia_unit,
+                    edge["amount"],
+                    p.get("unit"),
+                    edge["impact"],
+                    lcia_unit,
+                    edge["impact"] / lca_score * 100,
+                ),
             }
 
         return build_json_edge
+
+
+def id_to_key(id):
+    if isinstance(id, tuple):
+        return id
+    return ActivityDataset.get_by_id(id).database, ActivityDataset.get_by_id(id).code

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from .models import LCAResultsModel, InventoryModel, ContributionModel
+from .models import ContributionModel, InventoryModel, LCAResultsModel
 from .views import ABDataFrameView, ABFilterableDataFrameView
 
 
@@ -8,15 +8,15 @@ class LCAResultsTable(ABDataFrameView):
         super().__init__(parent)
         self.model = LCAResultsModel(parent=self)
         self.model.updated.connect(self.update_proxy_model)
-        self.model.updated.connect(self.custom_view_sizing)
 
 
 class InventoryTable(ABFilterableDataFrameView):
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.horizontalHeader().setStretchLastSection(True)
+
         self.model = InventoryModel(parent=self)
         self.model.updated.connect(self.update_proxy_model)
-        self.model.updated.connect(self.custom_view_sizing)
         self.model.updated.connect(self.update_filter_data)
         # below variables are required for switching between technosphere and biosphere tables
         self.showing = None
@@ -24,7 +24,7 @@ class InventoryTable(ABFilterableDataFrameView):
         self.filters_bio = None
 
     def update_filter_data(self) -> None:
-        if self.showing == 'technosphere':
+        if self.showing == "technosphere":
             self.filters = self.filters_tec
         else:
             self.filters = self.filters_bio
@@ -36,7 +36,7 @@ class InventoryTable(ABFilterableDataFrameView):
         self.apply_filters()
 
     def write_filters(self, filters: dict) -> None:
-        if self.showing == 'technosphere':
+        if self.showing == "technosphere":
             self.filters_tec = filters
         else:
             self.filters_bio = filters
@@ -48,4 +48,3 @@ class ContributionTable(ABDataFrameView):
         super().__init__(parent)
         self.model = ContributionModel(parent=self)
         self.model.updated.connect(self.update_proxy_model)
-        self.model.updated.connect(self.custom_view_sizing)

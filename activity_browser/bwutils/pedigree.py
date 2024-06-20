@@ -18,12 +18,12 @@ from bw2data.parameters import ParameterBase
 from bw2data.proxies import ExchangeProxyBase
 
 VERSION_2 = {
-    "reliability": (1., 1.54, 1.61, 1.69, 1.69),
-    "completeness": (1., 1.03, 1.04, 1.08, 1.08),
-    "temporal correlation": (1., 1.03, 1.1, 1.19, 1.29),
-    "geographical correlation": (1., 1.04, 1.08, 1.11, 1.11),
-    "further technological correlation": (1., 1.18, 1.65, 2.08, 2.8),
-    "sample size": (1., 1., 1., 1., 1.)
+    "reliability": (1.0, 1.54, 1.61, 1.69, 1.69),
+    "completeness": (1.0, 1.03, 1.04, 1.08, 1.08),
+    "temporal correlation": (1.0, 1.03, 1.1, 1.19, 1.29),
+    "geographical correlation": (1.0, 1.04, 1.08, 1.11, 1.11),
+    "further technological correlation": (1.0, 1.18, 1.65, 2.08, 2.8),
+    "sample size": (1.0, 1.0, 1.0, 1.0, 1.0),
 }
 
 
@@ -35,16 +35,15 @@ class PedigreeMatrix(object):
         "temporal correlation",
         "geographical correlation",
         "further technological correlation",
-        "sample size"
+        "sample size",
     )
 
     def __init__(self):
         self.factors = {}
 
     @classmethod
-    def from_numbers(cls, data: tuple) -> 'PedigreeMatrix':
-        """Takes a tuple of integers and construct a PedigreeMatrix.
-        """
+    def from_numbers(cls, data: tuple) -> "PedigreeMatrix":
+        """Takes a tuple of integers and construct a PedigreeMatrix."""
         assert len(data) in (5, 6), "Must provide either 5 or 6 factors"
         if len(data) == 5:
             data = data + (1,)
@@ -54,13 +53,11 @@ class PedigreeMatrix(object):
         return matrix
 
     @classmethod
-    def from_dict(cls, data: dict) -> 'PedigreeMatrix':
-        return cls.from_numbers(
-            tuple(data.get(k) for k in cls.labels if k in data)
-        )
+    def from_dict(cls, data: dict) -> "PedigreeMatrix":
+        return cls.from_numbers(tuple(data.get(k) for k in cls.labels if k in data))
 
     @classmethod
-    def from_bw_object(cls, obj) -> 'PedigreeMatrix':
+    def from_bw_object(cls, obj) -> "PedigreeMatrix":
         if isinstance(obj, ExchangeProxyBase):
             return cls.from_dict(obj.get("pedigree", {}))
         elif isinstance(obj, ParameterBase) and "pedigree" in obj.data:
@@ -68,10 +65,10 @@ class PedigreeMatrix(object):
         else:
             raise AssertionError("Could not find pedigree in object")
 
-    def calculate(self, basic_uncertainty: float = 1.,
-                  as_geometric_sigma: bool = False) -> float:
-        """ Calculates the sigma or geometric standard deviation from the factors.
-        """
+    def calculate(
+        self, basic_uncertainty: float = 1.0, as_geometric_sigma: bool = False
+    ) -> float:
+        """Calculates the sigma or geometric standard deviation from the factors."""
         values = [basic_uncertainty] + self.get_values()
         sigma = math.sqrt(sum([math.log(x) ** 2 for x in values])) / 2
         return sigma if not as_geometric_sigma else math.exp(2 * sigma)

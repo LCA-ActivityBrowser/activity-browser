@@ -1,24 +1,15 @@
-# -*- coding: utf-8 -*-
-from copy import deepcopy
 import numbers
+from copy import deepcopy
 from typing import Iterator, Optional
 
-
-import brightway2 as bw
 import numpy as np
 import pandas as pd
 from PySide2.QtCore import QModelIndex, Qt, Slot
-from PySide2.QtWidgets import QMessageBox
 
-from activity_browser.signals import signals
-from ...wizards import UncertaintyWizard
-from .base import EditablePandasModel, DragPandasModel, TreeItem, BaseTreeModel
+from activity_browser import signals
+from activity_browser.mod import bw2data as bd
 
-import logging
-from activity_browser.logger import ABHandler
-
-logger = logging.getLogger('ab_logs')
-log = ABHandler.setup_with_logger(logger, __name__)
+from .base import BaseTreeModel, DragPandasModel, EditablePandasModel, TreeItem
 
 
 class MethodsListModel(DragPandasModel):
@@ -27,8 +18,8 @@ class MethodsListModel(DragPandasModel):
     def __init__(self, parent=None):
         super().__init__(parent=parent)
         self.method_col = 0
-        self.different_column_types = {'# CFs': 'num'}
-        signals.project_selected.connect(self.sync)
+        self.different_column_types = {"# CFs": "num"}
+        bd.projects.current_changed.connect(self.sync)
 
         # needed to trigger creation of self.filterable_columns, which relies on method_col existing
         self.sync()
@@ -37,15 +28,6 @@ class MethodsListModel(DragPandasModel):
         idx = self.proxy_to_source(proxy)
         return self._dataframe.iat[idx.row(), self.method_col]
 
-    @Slot(QModelIndex, name="copyMethod")
-    def copy_method(self, proxy: QModelIndex) -> None:
-        method = self.get_method(proxy)
-        signals.copy_method.emit(method, proxy)
-
-    def delete_method(self, proxy: QModelIndex) -> None:
-        method = self.get_method(proxy)
-        signals.delete_method.emit(method, proxy)
-
     @Slot(tuple, name="filterOnMethod")
     def filter_on_method(self, method: tuple) -> None:
         query = ", ".join(method)
@@ -53,21 +35,22 @@ class MethodsListModel(DragPandasModel):
 
     @Slot(name="syncTable")
     def sync(self, query=None) -> None:
-        sorted_names = sorted([(", ".join(method), method) for method in bw.methods])
+        sorted_names = sorted([(", ".join(method), method) for method in bd.methods])
         if query:
-            sorted_names = (
-                m for m in sorted_names if query.lower() in m[0].lower()
-            )
-        self._dataframe = pd.DataFrame([
-            self.build_row(method_obj) for method_obj in sorted_names
-        ], columns=self.HEADERS)
+            sorted_names = (m for m in sorted_names if query.lower() in m[0].lower())
+        self._dataframe = pd.DataFrame(
+            [self.build_row(method_obj) for method_obj in sorted_names],
+            columns=self.HEADERS,
+        )
         self.method_col = self._dataframe.columns.get_loc("method")
-        self.filterable_columns = {col: i for i, col in enumerate(self.HEADERS) if i is not self.method_col}
+        self.filterable_columns = {
+            col: i for i, col in enumerate(self.HEADERS) if i is not self.method_col
+        }
         self.updated.emit()
 
     @staticmethod
     def build_row(method_obj) -> dict:
-        method = bw.methods[method_obj[1]]
+        method = bd.methods[method_obj[1]]
         return {
             "Name": method_obj[0],
             "Unit": method.get("unit", "Unknown"),
@@ -77,14 +60,15 @@ class MethodsListModel(DragPandasModel):
 
 
 class ImpactCategoryItem(TreeItem):
-    """ Item in MethodsTreeModel."""
+    """Item in MethodsTreeModel."""
+
     # this manual typing of COLUMNS below could be a risk later:
     # potential fix could be to get data from HEADERS in tables/impact_categories/MethodsTree
     def __init__(self, data: list, parent=None):
         super().__init__(data, parent)
 
     @classmethod
-    def build_item(cls, impact_cat, parent: TreeItem) -> 'ImpactCategoryItem':
+    def build_item(cls, impact_cat, parent: TreeItem) -> "ImpactCategoryItem":
         item = cls(list(impact_cat), parent)
         parent.appendChild(item)
         return item
@@ -100,6 +84,7 @@ class MethodsTreeModel(BaseTreeModel):
 
     for tree nested dict format see self.nest_data()
     """
+
     HEADERS = ["Name", "Unit", "# CFs", "method"]
 
     def __init__(self, parent=None):
@@ -115,8 +100,7 @@ class MethodsTreeModel(BaseTreeModel):
 
         self.setup_model_data()
 
-        signals.project_selected.connect(self.setup_and_sync)
-        # signals.new_method.connect(self.filter_on_method) # TODO: Reload interface
+        bd.projects.current_changed.connect(self.setup_and_sync)
 
     def flags(self, index):
         res = super().flags(index) | Qt.ItemIsDragEnabled
@@ -128,7 +112,7 @@ class MethodsTreeModel(BaseTreeModel):
 
     @Slot(name="clearSyncModel")
     @Slot(str, name="syncModel")
-    def sync(self, query = None) -> None:
+    def sync(self, query=None) -> None:
         self.beginResetModel()
         self.root.clear()
         self.query = query
@@ -160,10 +144,11 @@ class MethodsTreeModel(BaseTreeModel):
 
         Trigger this at init and when a method is added/deleted.
         """
-        sorted_names = sorted([(", ".join(method), method) for method in bw.methods])
-        self._dataframe = pd.DataFrame([
-            MethodsListModel.build_row(method_obj) for method_obj in sorted_names
-        ], columns=self.HEADERS)
+        sorted_names = sorted([(", ".join(method), method) for method in bd.methods])
+        self._dataframe = pd.DataFrame(
+            [MethodsListModel.build_row(method_obj) for method_obj in sorted_names],
+            columns=self.HEADERS,
+        )
         self.method_col = self._dataframe.columns.get_loc("method")
         # get the complete nested dict for the dataframe:
         self.tree_data = self.nest_data(self._dataframe)
@@ -217,7 +202,9 @@ class MethodsTreeModel(BaseTreeModel):
             #                 'climate change',
             #                 'GWP 100a'))]
             # so: [str, str, str, tuple(str, str, str, tuple(str, str, str))]
-            temp_row = list(row[-1])  # temp_row = tuple(str, str, str, tuple(str, str, str))
+            temp_row = list(
+                row[-1]
+            )  # temp_row = tuple(str, str, str, tuple(str, str, str))
             temp_row[0] = temp_row[-1][-1]  # in the example this would be 'GWP 100a'
             # temp_row[0] is taken from [-1][-1] and not from row[2] as there can be an arbitrary depth in the category
 
@@ -243,7 +230,7 @@ class MethodsTreeModel(BaseTreeModel):
     def get_method(self, tree_level: tuple) -> tuple:
         """Retrieve method data"""
         name = tree_level[1]
-        if tree_level[0] == 'branch':
+        if tree_level[0] == "branch":
             return tuple(tree_level[1])
         if not isinstance(name, str):
             name = ", ".join(tree_level[1])
@@ -253,19 +240,17 @@ class MethodsTreeModel(BaseTreeModel):
         return next(iter(methods))
 
     def get_methods(self, name: str) -> Iterator:
-        methods = self._dataframe.loc[self._dataframe["Name"].str.startswith(name), "method"]
+        methods = self._dataframe.loc[
+            self._dataframe["Name"].str.startswith(name), "method"
+        ]
         if self.query:
             queries = [
-                method for method in methods
-                if self.query.lower() in ', '.join(method).lower()
+                method
+                for method in methods
+                if self.query.lower() in ", ".join(method).lower()
             ]
             return queries
         return methods
-
-    @Slot(QModelIndex, name="copyMethod")
-    def copy_method(self, level: tuple) -> None:
-        method = self.get_method(level)
-        signals.copy_method.emit(method, level[0])
 
     @Slot(QModelIndex, name="deleteMethod")
     def delete_method(self, level: tuple) -> None:
@@ -284,7 +269,7 @@ class MethodsTreeModel(BaseTreeModel):
         for key, value in tree.items():
             if isinstance(value, tuple):
                 # this is a leaf node
-                if query.lower() not in ', '.join(value[-1]).lower():
+                if query.lower() not in ", ".join(value[-1]).lower():
                     # the query does not match
                     remove.append(key)
                 else:
@@ -293,7 +278,9 @@ class MethodsTreeModel(BaseTreeModel):
                 # this is not a leaf node
                 if query.lower() not in key.lower():
                     # the query does not match, go deeper
-                    sub_tree, matches = MethodsTreeModel.search_tree(value, query, matches)
+                    sub_tree, matches = MethodsTreeModel.search_tree(
+                        value, query, matches
+                    )
                     if len(sub_tree) > 0:
                         # there were query matches in this branch
                         tree[key] = sub_tree
@@ -315,37 +302,37 @@ class MethodCharacterizationFactorsModel(EditablePandasModel):
     def __init__(self, parent=None):
         super().__init__(parent=parent)
         self.cf_column = 0
-        self.method: Optional[bw.Method] = None
-        self.different_column_types = {k: 'num' for k in self.UNCERTAINTY + ['Amount']}
+        self.method = None
+        self.different_column_types = {k: "num" for k in self.UNCERTAINTY + ["Amount"]}
         self.filterable_columns = {col: i for i, col in enumerate(self.HEADERS[:-1])}
-        signals.method_modified.connect(self.sync)
-        self.dataChanged.connect(lambda: signals.cf_changed.emit())  # when a cell is changed, emit this signal
 
     @property
     def uncertain_cols(self) -> list:
         return [self._dataframe.columns.get_loc(c) for c in self.UNCERTAINTY]
 
-    @Slot(name="syncExistingModel")
-    @Slot(tuple, name="syncNewModel")
-    def sync(self, method: Optional[tuple] = None) -> None:
-        if self.method and self.method.name != method:
-            return
-        if method:
-            self.method = bw.Method(method)
-        assert self.method is not None, "A method must be set."
-        self._dataframe = pd.DataFrame([
-            self.build_row(obj) for obj in self.method.load()
-        ], columns=self.HEADERS + self.UNCERTAINTY)
+    def load(self, method):
+        assert self.method is None, "CF Model already loaded"
+        self.method = method
+        self.method.changed.connect(self.sync)
+
+        self.sync()
+
+    def sync(self) -> None:
+        assert self.method is not None, "A method must first be set using load()."
+        if not self.method.registered:
+            return  # the method was deleted, this table will soon be closed
+        self._dataframe = pd.DataFrame(
+            [self.build_row(obj) for obj in self.method.load()],
+            columns=self.HEADERS + self.UNCERTAINTY,
+        )
         self.cf_column = self._dataframe.columns.get_loc("cf")
         self.updated.emit()
 
     @classmethod
     def build_row(cls, method_cf: tuple) -> dict:
         key, amount = method_cf[:2]
-        flow = bw.get_activity(key)
-        row = {
-            cls.HEADERS[i]: flow.get(c) for i, c in enumerate(cls.COLUMNS)
-        }
+        flow = bd.get_activity(tuple(key))
+        row = {cls.HEADERS[i]: flow.get(c) for i, c in enumerate(cls.COLUMNS)}
         # If uncertain, unpack the uncertainty dictionary
         uncertain = not isinstance(amount, numbers.Number)
         if uncertain:
@@ -372,77 +359,11 @@ class MethodCharacterizationFactorsModel(EditablePandasModel):
         idx = self.proxy_to_source(proxy)
         return self.COLUMNS[idx.column()]
 
-    @Slot(QModelIndex, name="modifyCFUncertainty")
-    def modify_uncertainty(self, proxy: QModelIndex) -> None:
-        """Need to know both keys to select the correct exchange to update."""
-        method_cf = self.get_cf(proxy)
-        wizard = UncertaintyWizard(method_cf, self.parent())
-        wizard.complete.connect(self.modify_cf_uncertainty)
-        wizard.show()
-
-    @Slot(list, name="removeCFUncertainty")
-    def remove_uncertainty(self, proxy_indexes: Iterator[QModelIndex]) -> None:
-        to_be_modified = [self.get_cf(p) for p in proxy_indexes]
-        signals.remove_cf_uncertainties.emit(to_be_modified, self.method.name)
-
-    @Slot(list, name="deleteCF")
-    def delete_cf(self, proxy_indexes: Iterator[QModelIndex]) -> None:
-        to_delete = [self.get_cf(p) for p in proxy_indexes]
-        confirm = QMessageBox()
-        confirm.setIcon(QMessageBox.Warning)
-        confirm.setWindowTitle("Confirm deletion")
-        confirm.setText("Are you sure you want to delete "+str(len(to_delete))+" Characterization Factor(s) from this IC?")
-        confirm.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
-        confirmed = confirm.exec()
-        if confirmed == QMessageBox.Ok:
-            log.info("Deleting CF(s):", to_delete)
-            signals.delete_cf_method.emit(to_delete, self.method.name)
-
-    @Slot(tuple, object, name="modifyCfUncertainty")
-    def modify_cf_uncertainty(self, cf: tuple, uncertainty: dict) -> None:
-        """Update the CF with new uncertainty information, possibly converting
-        the second item in the tuple to a dictionary without losing information.
-        """
-        data = [*cf]
-        if isinstance(data[1], dict):
-            data[1].update(uncertainty)
-        else:
-            uncertainty["amount"] = data[1]
-            data[1] = uncertainty
-        signals.edit_method_cf.emit(tuple(data), self.method.name)
-
-    @Slot(tuple, object, name="modifyCfUncertainty")
-    def modify_cf(self, proxy: QModelIndex) -> None:
-        """Update the CF with new data, possibly converting
-        the second item in the tuple to a dictionary without losing information.
-
-        Parameters
-        ----------
-        proxy : QModelIndex
-            The Qt object of the selected cell in the table.
-        """
-        cf = self.get_cf(proxy)
-        col_name = self.get_col_from_index(proxy)
-        new_val = self.get_value(proxy)
-        new_data = {col_name: new_val}
-
-        data = [*cf]
-        if isinstance(data[1], dict):
-            data[1].update(new_data)
-        else:
-            if col_name == 'amount':
-                # if the new value we're writing is indeed 'amount', write that value, otherwise, just take the current
-                amt = new_val
-            else:
-                amt = data[1]
-
-            new_data["amount"] = amt
-            data[1] = new_data
-        signals.edit_method_cf.emit(tuple(data), self.method.name)
-
     def set_filterable_columns(self, hide: bool) -> None:
         filterable_cols = {col: i for i, col in enumerate(self.HEADERS[:-1])}
         if not hide:
             # also add the uncertainty columns
-            filterable_cols.update({col: i for col, i in zip(self.UNCERTAINTY, self.uncertain_cols)})
+            filterable_cols.update(
+                {col: i for col, i in zip(self.UNCERTAINTY, self.uncertain_cols)}
+            )
         self.filterable_columns = filterable_cols
