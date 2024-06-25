@@ -287,14 +287,12 @@ class ActivityTab(QtWidgets.QWidget):
                 table.remove_formula_action.setEnabled(False)
                 table.modify_uncertainty_action.setEnabled(False)
                 table.remove_uncertainty_action.setEnabled(False)
-                table.setSelectionMode(table.NoSelection)
             else:
                 table.setEditTriggers(QtWidgets.QTableView.DoubleClicked)
                 table.delete_exchange_action.setEnabled(True)
                 table.remove_formula_action.setEnabled(True)
                 table.modify_uncertainty_action.setEnabled(True)
                 table.remove_uncertainty_action.setEnabled(True)
-                table.setSelectionMode(table.SingleSelection)
                 if (
                     not table.downstream
                 ):  # downstream consumers table never accepts drops
