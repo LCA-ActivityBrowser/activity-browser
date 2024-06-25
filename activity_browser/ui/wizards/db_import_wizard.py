@@ -4,7 +4,6 @@ import os.path
 import shutil
 import typing
 from functools import lru_cache
-import subprocess
 import tempfile
 import zipfile
 from pathlib import Path
@@ -13,29 +12,20 @@ import bw2data.errors
 import ecoinvent_interface
 import requests
 from bw2io import BW2Package, SingleOutputEcospold2Importer
-from bw2data.subclass_mapping import DATABASE_BACKEND_MAPPING
-from bw2io import BW2Package, SingleOutputEcospold2Importer
 from bw2io.extractors import Ecospold2DataExtractor
 from PySide2 import QtCore, QtWidgets
 from PySide2.QtCore import Signal, Slot
-from bw2io.importers import Ecospold2BiosphereImporter
 from py7zr import py7zr
 
-from activity_browser import log, project_settings
+from activity_browser import log
 from activity_browser.bwutils import errors
 from activity_browser.mod import bw2data as bd
-from activity_browser.mod.bw2data import databases
-from activity_browser.bwutils.ecoinvent_biosphere_versions.ecospold2biosphereimporter import (
-    ABEcospold2BiosphereImporter,
-)
 
 from ...bwutils.importers import ABExcelImporter, ABPackage
-from ...info import __ei_versions__
 from ...utils import sort_semantic_versions
 from ..style import style_group_box
 from ..threading import ABThread
 from ..widgets import DatabaseLinkingDialog
-from ..widgets.biosphere_update import UpdateBiosphereThread
 
 
 class DatabaseImportWizard(QtWidgets.QWizard):
@@ -68,7 +58,6 @@ class DatabaseImportWizard(QtWidgets.QWizard):
         self.local_page = LocalImportPage(self)
         self.ecoinvent_login_page = EcoinventLoginPage(self)
         self.ecoinvent_version_page = EcoinventVersionPage(self)
-        self.biosphere_database_setup = BiosphereDatabaseSetup(self)
         self.archive_page = Choose7zArchivePage(self)
         self.choose_dir_page = ChooseDirPage(self)
         self.local_import_page = LocalDatabaseImportPage(self)
@@ -81,7 +70,6 @@ class DatabaseImportWizard(QtWidgets.QWizard):
         self.setPage(self.LOCAL_TYPE, self.local_page)
         self.setPage(self.EI_LOGIN, self.ecoinvent_login_page)
         self.setPage(self.EI_VERSION, self.ecoinvent_version_page)
-        self.setPage(self.DB_BIOSPHERE_CREATION, self.biosphere_database_setup)
         self.setPage(self.ARCHIVE, self.archive_page)
         self.setPage(self.DIR, self.choose_dir_page)
         self.setPage(self.LOCAL, self.local_import_page)
@@ -530,7 +518,7 @@ class ConfirmationPage(QtWidgets.QWizardPage):
                 "Dependent Database: <b>{}</b>".format(
                     self.wizard.version,
                     self.wizard.system_model,
-                    bd.preferences["biosphere_database"],
+                    bd.config.biosphere,
                 )
             )
 
@@ -940,9 +928,8 @@ class MainWorkerThread(ABThread):
             import_signals.import_failure.emit(
                 (
                     "Missing exchanges",
-                    "The import failed as required biosphere"
-                    " exchanges are missing from the biosphere3 database. Please"
-                    " update the biosphere by using 'File' -> 'Update biosphere...'",
+                    "The import failed because the biosphere3 database of this project is incompatible with the "
+                    "version of ecoinvent that you're trying to install",
                 )
             )
 
@@ -1171,9 +1158,7 @@ class EcoinventVersionPage(QtWidgets.QWizardPage):
 
     def initializePage(self):
         available_versions = self.wizard.downloader.list_versions()
-        shown_versions = set(
-            [version for version in available_versions if version in __ei_versions__]
-        )
+        shown_versions = {version for version in available_versions}
         # Catch for incorrect 'universal' key presence
         # (introduced in version 3.6 of ecoinvent)
         if "universal" in shown_versions:
@@ -1197,16 +1182,16 @@ class EcoinventVersionPage(QtWidgets.QWizardPage):
             self.wizard.back()
 
     def validatePage(self):
-        version = self.version_combobox.currentText()
-        bd.preferences["biosphere_database"] = "ecoinvent-{}-biosphere".format(version)
-        bd.preferences.flush()
-        if bd.preferences["biosphere_database"] not in databases:
-            self.requires_database_creation = True
+        # version = self.version_combobox.currentText()
+        # bd.preferences["biosphere_database"] = "ecoinvent-{}-biosphere".format(version)
+        # bd.preferences.flush()
+        # if bd.preferences["biosphere_database"] not in databases:
+        #     self.requires_database_creation = True
         return True
 
     def nextId(self):
-        if self.requires_database_creation:
-            return DatabaseImportWizard.DB_BIOSPHERE_CREATION
+        # if self.requires_database_creation:
+        #     return DatabaseImportWizard.DB_BIOSPHERE_CREATION
         return DatabaseImportWizard.DB_NAME
 
     @Slot(str)
@@ -1218,100 +1203,6 @@ class EcoinventVersionPage(QtWidgets.QWizardPage):
         items = self.wizard.downloader.list_system_models(version)
         items = sorted(items, reverse=True)
         self.system_model_combobox.addItems(items)
-
-
-class VersionedBiosphereThread(UpdateBiosphereThread):
-    update = Signal(int, str)
-
-    def __init__(self, version, parent=None):
-        # reduce biosphere update list up to the selected version
-        sorted_versions = sort_semantic_versions(
-            __ei_versions__, highest_to_lowest=False
-        )
-        ei_versions = sorted_versions[: sorted_versions.index(version) + 1]
-        super().__init__(ei_versions, parent=parent)
-        self.version = version
-
-    def run_safely(self):
-        project = f"<b>{bd.projects.current}</b>"
-        if bd.preferences["biosphere_database"] not in bd.databases:
-            self.update.emit(
-                0,
-                "Creating {} database for {}".format(
-                    bd.preferences["biosphere_database"], project
-                ),
-            )
-            self.create_biosphere3_database()
-            project_settings.add_db(bd.preferences["biosphere_database"])
-
-            self.update.emit(
-                1,
-                "Updating biosphere database",
-            )
-            super().run_safely()
-
-    def create_biosphere3_database(self):
-        if self.version == sort_semantic_versions(__ei_versions__)[0][:3]:
-            eb = Ecospold2BiosphereImporter(
-                name=bd.preferences["biosphere_database"], version=self.version
-            )
-        else:
-            eb = ABEcospold2BiosphereImporter(
-                name=bd.preferences["biosphere_database"], version=self.version
-            )
-        eb.apply_strategies()
-        eb.write_database()
-
-
-class BiosphereDatabaseSetup(QtWidgets.QWizardPage):
-    def __init__(self, parent=None):
-        super().__init__(parent=parent)
-        self.wizard: "DatabaseImportWizard" = self.parent()
-        self.update_label = QtWidgets.QLabel()
-        self.progressbar = QtWidgets.QProgressBar()
-        self.progressbar.setRange(0, 2)
-        self.complete = False
-
-        box = QtWidgets.QGroupBox("Creating biosphere database")
-        box_layout = QtWidgets.QVBoxLayout()
-        box_layout.addWidget(self.progressbar)
-        box_layout.addWidget(self.update_label)
-        box.setLayout(box_layout)
-        box.setStyleSheet(style_group_box.border_title)
-        layout = QtWidgets.QVBoxLayout()
-        layout.addWidget(box)
-        self.setLayout(layout)
-
-    def isComplete(self):
-        return self.complete
-
-    def initializePage(self):
-        self.biosphere_thread = VersionedBiosphereThread(self.wizard.version, self)
-        self.biosphere_thread.update.connect(self.update_progress)
-        self.biosphere_thread.finished.connect(self.thread_finished)
-        self.biosphere_thread.start()
-
-    def validatePage(self):
-        return self.biosphere_thread.isFinished()
-
-    @Slot(int, str, name="updateThread")
-    def update_progress(self, current: int, text: str) -> None:
-        self.progressbar.setValue(current)
-        self.update_label.setText(text)
-
-    @Slot(int, name="threadFinished")
-    def thread_finished(self, result: int = None) -> None:
-        self.progressbar.setMaximum(1)
-        self.progressbar.setValue(1)
-        if result and result != 0:
-            self.update_label.setText("Something went wrong...")
-        else:
-            self.update_label.setText("All Done")
-            self.complete = True
-            self.completeChanged.emit()
-
-    def nextId(self):
-        return DatabaseImportWizard.DB_NAME
 
 
 class LocalDatabaseImportPage(QtWidgets.QWizardPage):
@@ -1485,11 +1376,6 @@ class ActivityBrowserBackend(bd.backends.SQLiteBackend):
 
 
 bd.config.backends["activitybrowser"] = ActivityBrowserBackend
-# config is no longer enough to provide an additional backend
-# database chooser, specifically looks at DATABASE_BACKEND_MAPPING
-# to get the class implementation
-DATABASE_BACKEND_MAPPING.update({"activitybrowser": ActivityBrowserBackend})
-
 
 class ImportSignals(QtCore.QObject):
     extraction_progress = Signal(int, int)
