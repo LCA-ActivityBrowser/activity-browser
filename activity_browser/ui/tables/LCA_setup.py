@@ -124,10 +124,14 @@ class CSActivityTable(CSGenericTable):
         menu.exec_(event.globalPos())
 
     def dragEnterEvent(self, event):
-        if (isinstance(event.source(), ActivitiesBiosphereTable)
-            and getattr(event.source(), "technosphere", False))\
-                or isinstance(event.source(), ActivitiesBiosphereTree)\
-                or event.source() is self:
+        if (
+            (
+                isinstance(event.source(), ActivitiesBiosphereTable)
+                and getattr(event.source(), "technosphere", False)
+            )
+            or isinstance(event.source(), ActivitiesBiosphereTree)
+            or event.source() is self
+        ):
             event.accept()
 
     def dropEvent(self, event) -> None:
@@ -135,13 +139,13 @@ class CSActivityTable(CSGenericTable):
         source = event.source()
         if isinstance(event.source(), ActivitiesBiosphereTable):
             # get the key from the TABLE for every selected index and convert it to dict
-            log.debug('Dropevent from:', source)
+            log.debug("Dropevent from:", source)
             self.model.include_activities(
                 ({key: 1.0} for key in source.selected_keys())
             )
         elif isinstance(event.source(), ActivitiesBiosphereTree):
             # get a list of keys from the TREE for the selected tree level (respecting search) and convert to dict
-            log.debug('Dropevent from:', source)
+            log.debug("Dropevent from:", source)
             self.model.include_activities(
                 ({key: 1.0} for key in source.selected_keys())
             )

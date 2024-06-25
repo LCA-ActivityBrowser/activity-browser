@@ -2,7 +2,7 @@
 import datetime
 import functools
 from copy import deepcopy
-from typing import Iterator, Optional
+from typing import Optional
 import os
 from typing import Tuple
 
@@ -140,7 +140,7 @@ class ActivitiesBiosphereListModel(DragPandasModel):
         self.updated.emit()
 
     def search(self, pattern: str = None) -> None:
-        """ Filter the dataframe with pattern."""
+        """Filter the dataframe with pattern."""
         self.sync(self.database_name, query=pattern)
 
     def filter_dataframe(self, df: pd.DataFrame, pattern: str) -> pd.Series:
@@ -180,14 +180,15 @@ class ActivitiesBiosphereListModel(DragPandasModel):
 
 
 class ActivitiesBiosphereItem(TreeItem):
-    """ Item in ActivitiesBiosphereTreeModel."""
+    """Item in ActivitiesBiosphereTreeModel."""
+
     # this manual typing of COLUMNS below could be a risk later:
     # potential fix could be to get data from HEADERS in tables/inventory/ActivitiesBiosphereTree
     def __init__(self, data: list, parent=None):
         super().__init__(data, parent)
 
     @classmethod
-    def build_item(cls, impact_cat, parent: TreeItem) -> 'ActivitiesBiosphereItem':
+    def build_item(cls, impact_cat, parent: TreeItem) -> "ActivitiesBiosphereItem":
         item = cls(list(impact_cat), parent)
         parent.appendChild(item)
         return item
@@ -203,7 +204,15 @@ class ActivitiesBiosphereTreeModel(BaseTreeModel):
 
     for tree nested dict format see self.nest_data()
     """
-    HEADERS = ["reference product", "name", "location", "unit", "ISIC rev.4 ecoinvent", "key"]
+
+    HEADERS = [
+        "reference product",
+        "name",
+        "location",
+        "unit",
+        "ISIC rev.4 ecoinvent",
+        "key",
+    ]
 
     def __init__(self, parent=None, database_name=None):
         super().__init__(parent)
@@ -241,8 +250,13 @@ class ActivitiesBiosphereTreeModel(BaseTreeModel):
             tree_codes: keys are classification number, values are the full keys
             tree_numeric_order: keys are classification number, values are the row number in file
         """
-        path = os.path.join(os.getcwd(), "activity_browser", "static", "database_classifications",
-                            "ISIC_Rev_4_english_structure.txt")
+        path = os.path.join(
+            os.getcwd(),
+            "activity_browser",
+            "static",
+            "database_classifications",
+            "ISIC_Rev_4_english_structure.txt",
+        )
         df = pd.read_csv(path)
 
         tree_data = {}
@@ -253,17 +267,25 @@ class ActivitiesBiosphereTreeModel(BaseTreeModel):
         for idx, row in df.iterrows():
             cls, name = row  # cls is the number classification, name is the proper name
             current_depth = len(cls)  # we measure the depth by the length of cls
-            key = f'{cls}:{name}'
+            key = f"{cls}:{name}"
             tree_codes[cls] = key  # add the full key to the classification cls in dict
-            tree_numeric_order[cls] = idx  # add the row number to the classification cls in dict
+            tree_numeric_order[cls] = (
+                idx  # add the row number to the classification cls in dict
+            )
 
             if current_depth > last_super_depth:
                 # this is a sub-class at a deeper level as the last entry we read
-                path = tuple(list(last_super) + [key])  # create a tuple of the tree path
+                path = tuple(
+                    list(last_super) + [key]
+                )  # create a tuple of the tree path
             elif current_depth <= last_super_depth:
                 # this is a (sub-)class at a same or higher level than the last entry we read
-                depth = last_super_depth - current_depth + 1  # find how many entries to clip of the path
-                path = tuple(list(last_super)[:-depth] + [key])  # create a tuple of the tree path
+                depth = (
+                    last_super_depth - current_depth + 1
+                )  # find how many entries to clip of the path
+                path = tuple(
+                    list(last_super)[:-depth] + [key]
+                )  # create a tuple of the tree path
 
             tree_data[key] = path  # add the treepath to the key in dict
             last_super = path  # add as last_super
@@ -316,17 +338,17 @@ class ActivitiesBiosphereTreeModel(BaseTreeModel):
 
         QApplication.setOverrideCursor(Qt.WaitCursor)
         # remove empty columns
-        df.replace('', np.nan, inplace=True)
-        df.dropna(how='all', axis=1, inplace=True)
-        df['tree_order'] = df.apply(lambda row: self.tree_order(row), axis=1)
-        df['tree_path_tuple'] = df.apply(lambda row: self.tree_path_tuple(row), axis=1)
+        df.replace("", np.nan, inplace=True)
+        df.dropna(how="all", axis=1, inplace=True)
+        df["tree_order"] = df.apply(lambda row: self.tree_order(row), axis=1)
+        df["tree_path_tuple"] = df.apply(lambda row: self.tree_path_tuple(row), axis=1)
         df = df.reset_index(drop=True)
 
         # Sort dataframe on column: 'product' and then on 'tree_order'
         sort_field = df.columns[0]
         df = df.iloc[df[sort_field].str.lower().argsort()]
-        df = df.iloc[df['tree_order'].argsort()]
-        del df['tree_order']
+        df = df.iloc[df["tree_order"].argsort()]
+        del df["tree_order"]
         self._dataframe = df
 
         self.path_col = self._dataframe.columns.get_loc("tree_path_tuple")
@@ -336,7 +358,7 @@ class ActivitiesBiosphereTreeModel(BaseTreeModel):
         QApplication.restoreOverrideCursor()
 
     def df_from_metadata(self, db_name: str) -> pd.DataFrame:
-        """ Take the given database name and return the complete subset
+        """Take the given database name and return the complete subset
         of that database from the metadata.
 
         The fields are used to prune the dataset of unused columns.
@@ -346,37 +368,37 @@ class ActivitiesBiosphereTreeModel(BaseTreeModel):
         if df.empty:
             return df
         df = df.loc[:, self.HEADERS]
-        df.columns = [
-            bc.bw_keys_to_AB_names.get(col, col) for col in self.HEADERS
-        ]
+        df.columns = [bc.bw_keys_to_AB_names.get(col, col) for col in self.HEADERS]
         return df
 
     def tree_order(self, row) -> int:
         """Give item order to row, if no class exists, move to lowest rank."""
-        classification = row['ISIC rev.4 ecoinvent']
+        classification = row["ISIC rev.4 ecoinvent"]
         if not isinstance(classification, str):
             # this is not a valid number, return high number (low rank)
             return 99999
         # match based on the actual number code, ignore letters or text
-        class_code = classification.split(':')[0]  # take only class code
+        class_code = classification.split(":")[0]  # take only class code
         if len(class_code) > 1 and not class_code[-1].isdigit():
             class_code = class_code[:-1]  # only read the numeric part of the code
-        order = self.ISIC_order.get(class_code, 99999)  # get the row number from the ISIC file for this class
+        order = self.ISIC_order.get(
+            class_code, 99999
+        )  # get the row number from the ISIC file for this class
         return order
 
     def tree_path_tuple(self, row) -> tuple:
         """Convert the row to a tuple"""
-        classification = row['ISIC rev.4 ecoinvent']
+        classification = row["ISIC rev.4 ecoinvent"]
         if not isinstance(classification, str):
             # this is not a valid number, return 'No classification'
-            return tuple(list(('No classification',)) + [row['Product']])
+            return tuple(list(("No classification",)) + [row["Product"]])
         # match based on the actual number code, ignore letters or text
-        class_code = classification.split(':')[0]
+        class_code = classification.split(":")[0]
         if len(class_code) > 1 and not class_code[-1].isdigit():
             class_code = class_code[:-1]
-        classification = self.ISIC_tree_codes.get(class_code, ('No classification',))
+        classification = self.ISIC_tree_codes.get(class_code, ("No classification",))
         tup = self.ISIC_tree[classification]
-        tup = tuple(list(tup) + [row['Product']])
+        tup = tuple(list(tup) + [row["Product"]])
         return tup
 
     @staticmethod
@@ -403,12 +425,16 @@ class ActivitiesBiosphereTreeModel(BaseTreeModel):
                                                              <activity data as tuple>)
                  Here each index of the tuple refers to the data in the self.HEADERS list of this class
         """
-        data = np.empty(df.shape[0], dtype=object)  # create 1D np.array with same len as input df
+        data = np.empty(
+            df.shape[0], dtype=object
+        )  # create 1D np.array with same len as input df
 
         for idx, row in enumerate(df.to_numpy(dtype=object)):
             split = list(row[-1])  # convert tuple to list
             split.append(tuple(row))
-            data[idx] = split  # the split is a list of 2 items, 0) the tree path and 1) the complete row data
+            data[idx] = (
+                split  # the split is a list of 2 items, 0) the tree path and 1) the complete row data
+            )
 
         # From https://stackoverflow.com/a/19900276 but changed -2 to -1
         #  this version is ~2 orders of magnitude faster than the pandas
@@ -445,14 +471,16 @@ class ActivitiesBiosphereTreeModel(BaseTreeModel):
     def get_keys(self, tree_path: str) -> list:
         """Get all the keys under the selected root/branch."""
         # apply search on the tree_path to get all activities
-        filtered_df = self.search_df(tree_path, cols=['tree_path_tuple'])
+        filtered_df = self.search_df(tree_path, cols=["tree_path_tuple"])
         # apply any actual search queries if active
         if self.query:
             filtered_df = self.search_df(self.query, df=filtered_df)
-        keys = filtered_df['key'].tolist()
+        keys = filtered_df["key"].tolist()
         return keys
 
-    def search_df(self, query: str, cols: list = None, df: pd.DataFrame = None) -> pd.DataFrame:
+    def search_df(
+        self, query: str, cols: list = None, df: pd.DataFrame = None
+    ) -> pd.DataFrame:
         """Search DataFrame (default: self._dataframe) on query (optional: specify cols) and return filtered dataframe.
 
         Parameters
@@ -470,10 +498,8 @@ class ActivitiesBiosphereTreeModel(BaseTreeModel):
             df = deepcopy(self._dataframe)
         cols = cols or df.columns
         mask = functools.reduce(
-            np.logical_or, [
-                df[col].apply(lambda x: query.lower() in str(x).lower())
-                for col in cols
-            ]
+            np.logical_or,
+            [df[col].apply(lambda x: query.lower() in str(x).lower()) for col in cols],
         )
         return df.loc[mask].reset_index(drop=True)
 
@@ -494,8 +520,9 @@ class ActivitiesBiosphereTreeModel(BaseTreeModel):
 
     def copy_exchanges_for_SDF(self, keys: list) -> None:
         QApplication.setOverrideCursor(Qt.WaitCursor)
-        exchanges = bc.get_exchanges_from_a_list_of_activities(activities=keys,
-                                                               as_keys=True)
+        exchanges = bc.get_exchanges_from_a_list_of_activities(
+            activities=keys, as_keys=True
+        )
         data = bc.get_exchanges_in_scenario_difference_file_notation(exchanges)
         df = pd.DataFrame(data)
         df.to_clipboard(excel=True, index=False)

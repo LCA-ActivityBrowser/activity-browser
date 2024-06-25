@@ -2,14 +2,17 @@ from PySide2 import QtCore, QtWidgets
 
 from activity_browser import actions, signals
 from activity_browser.mod import bw2data as bd
+from activity_browser.layouts.panels import ABTab
 
+from ...ui.style import header
 from ...ui.icons import qicons
 from ...ui.tables import (
     DatabasesTable,
     ProjectListWidget,
     ActivitiesBiosphereTable,
-    ActivitiesBiosphereTree
+    ActivitiesBiosphereTree,
 )
+
 
 class ProjectTab(QtWidgets.QWidget):
     def __init__(self, parent):
@@ -285,13 +288,17 @@ class ActivityBiosphereWidget(QtWidgets.QWidget):
         self.tree.setVisible(toggled)
 
     def database_changed(self, database: bd.Database) -> None:
-        if database.name != self.database.name:  # only update if the database changed is the one shown by this widget
+        if (
+            database.name != self.database.name
+        ):  # only update if the database changed is the one shown by this widget
             return
 
         self.table.model.sync(self.database.name, query=self.table.model.query)
 
-        if 'ISIC rev.4 ecoinvent' in self.table.model._dataframe.columns \
-                and not isinstance(self.tree, ActivitiesBiosphereTree):
+        if (
+            "ISIC rev.4 ecoinvent" in self.table.model._dataframe.columns
+            and not isinstance(self.tree, ActivitiesBiosphereTree)
+        ):
             # a treeview does not exist and should be able to navigate to
 
             # set the view to list and show the radio buttons
@@ -299,7 +306,7 @@ class ActivityBiosphereWidget(QtWidgets.QWidget):
             self.mode_radio_tree.setChecked(False)
             self.mode_radio_list.show()
             self.mode_radio_tree.show()
-        elif 'ISIC rev.4 ecoinvent' in self.table.model._dataframe.columns:
+        elif "ISIC rev.4 ecoinvent" in self.table.model._dataframe.columns:
             # a treeview exists
             self.tree.model.setup_and_sync()
 

@@ -9,9 +9,13 @@ from activity_browser import actions
 from ..icons import qicons
 from .delegates import *
 from .inventory import ActivitiesBiosphereTable, ActivitiesBiosphereTree
-from .models import (BaseExchangeModel, BiosphereExchangeModel,
-                     DownstreamExchangeModel, ProductExchangeModel,
-                     TechnosphereExchangeModel)
+from .models import (
+    BaseExchangeModel,
+    BiosphereExchangeModel,
+    DownstreamExchangeModel,
+    ProductExchangeModel,
+    TechnosphereExchangeModel,
+)
 from .views import ABDataFrameView
 
 

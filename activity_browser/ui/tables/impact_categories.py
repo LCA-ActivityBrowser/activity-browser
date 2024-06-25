@@ -11,9 +11,12 @@ from ...signals import signals
 from ..icons import qicons
 from .delegates import FloatDelegate, UncertaintyDelegate
 from .inventory import ActivitiesBiosphereTable
-from .models import (MethodCharacterizationFactorsModel, MethodsListModel,
-                     MethodsTreeModel)
-from .views import ABDataFrameView, ABDictTreeView, ABFilterableDataFrameView
+from .models import (
+    MethodCharacterizationFactorsModel,
+    MethodsListModel,
+    MethodsTreeModel,
+)
+from .views import ABDictTreeView, ABFilterableDataFrameView
 
 
 class MethodsTable(ABFilterableDataFrameView):
@@ -88,6 +91,7 @@ class MethodsTree(ABDictTreeView):
 
 
     """
+
     HEADERS = ["Name", "Unit", "# CFs", "method"]
 
     def __init__(self, parent=None):

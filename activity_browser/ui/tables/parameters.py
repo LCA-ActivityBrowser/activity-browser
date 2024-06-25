@@ -10,8 +10,11 @@ from ..icons import qicons
 from .delegates import *
 from .inventory import ActivitiesBiosphereTable, ActivitiesBiosphereTree
 from .models import (
-    BaseParameterModel, ProjectParameterModel, DatabaseParameterModel,
-    ActivityParameterModel, ParameterTreeModel,
+    BaseParameterModel,
+    ProjectParameterModel,
+    DatabaseParameterModel,
+    ActivityParameterModel,
+    ParameterTreeModel,
 )
 from .views import ABDataFrameView, ABDictTreeView
 
@@ -173,11 +176,11 @@ class ActivityParameterTable(BaseParameterTable):
         self.setAcceptDrops(True)
 
     def dragEnterEvent(self, event: QDragMoveEvent) -> None:
-        """ Check that the dragged row is from the databases table
-        """
-        if (isinstance(event.source(), ActivitiesBiosphereTable)
-            and getattr(event.source(), "technosphere", False)) \
-                or isinstance(event.source(), ActivitiesBiosphereTree):
+        """Check that the dragged row is from the databases table"""
+        if (
+            isinstance(event.source(), ActivitiesBiosphereTable)
+            and getattr(event.source(), "technosphere", False)
+        ) or isinstance(event.source(), ActivitiesBiosphereTree):
             event.accept()
 
     def dropEvent(self, event: QDropEvent) -> None:
@@ -199,7 +202,6 @@ class ActivityParameterTable(BaseParameterTable):
                 QMessageBox.Ok,
             )
             return
-
 
         if isinstance(event.source(), ActivitiesBiosphereTable):
             keys = db_table.selected_keys()

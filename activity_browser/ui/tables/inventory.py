@@ -1,7 +1,7 @@
 from typing import List, Iterable
 
 from PySide2 import QtCore, QtWidgets
-from PySide2.QtCore import QModelIndex, Slot
+from PySide2.QtCore import Slot
 
 from activity_browser import actions
 
@@ -10,7 +10,11 @@ from ...settings import project_settings
 from ...signals import signals
 from ..icons import qicons
 from .delegates import CheckboxDelegate
-from .models import DatabasesModel, ActivitiesBiosphereListModel, ActivitiesBiosphereTreeModel
+from .models import (
+    DatabasesModel,
+    ActivitiesBiosphereListModel,
+    ActivitiesBiosphereTreeModel,
+)
 from .views import ABDictTreeView, ABDataFrameView, ABFilterableDataFrameView
 
 
@@ -262,8 +266,16 @@ class ActivitiesBiosphereTable(ABFilterableDataFrameView):
             self.dup_activity_new_loc_action.setEnabled(not self.db_read_only)
             self.relink_activity_exch_action.setEnabled(not self.db_read_only)
 
+
 class ActivitiesBiosphereTree(ABDictTreeView):
-    HEADERS = ["ISIC rev.4 ecoinvent", "reference product", "name", "location", "unit", "key"]
+    HEADERS = [
+        "ISIC rev.4 ecoinvent",
+        "reference product",
+        "name",
+        "location",
+        "unit",
+        "key",
+    ]
 
     def __init__(self, parent=None, database_name=None):
         super().__init__(parent)
@@ -284,15 +296,27 @@ class ActivitiesBiosphereTree(ABDictTreeView):
 
         # contextmenu items
         self.open_activity_action = actions.ActivityOpen.get_QAction(self.selected_keys)
-        self.open_activity_graph_action = actions.ActivityGraph.get_QAction(self.selected_keys)
+        self.open_activity_graph_action = actions.ActivityGraph.get_QAction(
+            self.selected_keys
+        )
         self.new_activity_action = actions.ActivityNew.get_QAction(self.database_name)
-        self.dup_activity_action = actions.ActivityDuplicate.get_QAction(self.selected_keys)
-        self.dup_activity_new_loc_action = actions.ActivityDuplicateToLoc.get_QAction(lambda: self.selected_keys()[0])
-        self.delete_activity_action = actions.ActivityDelete.get_QAction(self.selected_keys)
-        self.relink_activity_exch_action = actions.ActivityRelink.get_QAction(self.selected_keys)
-        self.dup_other_db_action = actions.ActivityDuplicateToDB.get_QAction(self.selected_keys)
+        self.dup_activity_action = actions.ActivityDuplicate.get_QAction(
+            self.selected_keys
+        )
+        self.dup_activity_new_loc_action = actions.ActivityDuplicateToLoc.get_QAction(
+            lambda: self.selected_keys()[0]
+        )
+        self.delete_activity_action = actions.ActivityDelete.get_QAction(
+            self.selected_keys
+        )
+        self.relink_activity_exch_action = actions.ActivityRelink.get_QAction(
+            self.selected_keys
+        )
+        self.dup_other_db_action = actions.ActivityDuplicateToDB.get_QAction(
+            self.selected_keys
+        )
         self.copy_exchanges_for_SDF_action = QtWidgets.QAction(
-            qicons.superstructure, 'Exchanges for scenario difference file', None
+            qicons.superstructure, "Exchanges for scenario difference file", None
         )
 
         self.connect_signals()
@@ -300,7 +324,9 @@ class ActivitiesBiosphereTree(ABDictTreeView):
     def connect_signals(self):
         signals.database_read_only_changed.connect(self.update_activity_table_read_only)
 
-        self.copy_exchanges_for_SDF_action.triggered.connect(self.copy_exchanges_for_SDF)
+        self.copy_exchanges_for_SDF_action.triggered.connect(
+            self.copy_exchanges_for_SDF
+        )
 
         self.doubleClicked.connect(self.open_activity_tab)
 
@@ -323,7 +349,7 @@ class ActivitiesBiosphereTree(ABDictTreeView):
 
         # determine enabling of actions based on amount of selected activities
         if len(self.selected_keys()) > 1:
-            act = 'activities'
+            act = "activities"
             self.dup_activity_new_loc_action.setEnabled(False)
             self.relink_activity_exch_action.setEnabled(False)
             if len(self.selected_keys()) > 15:
@@ -334,7 +360,7 @@ class ActivitiesBiosphereTree(ABDictTreeView):
             self.open_activity_action.setEnabled(allow_open)
             self.open_activity_graph_action.setEnabled(allow_open)
         else:  # only one activity is selected
-            act = 'activity'
+            act = "activity"
             self.open_activity_action.setEnabled(True)
             self.open_activity_graph_action.setEnabled(True)
             self.dup_activity_new_loc_action.setEnabled(not self.db_read_only)
@@ -347,30 +373,32 @@ class ActivitiesBiosphereTree(ABDictTreeView):
         self.relink_activity_exch_action.setEnabled(not self.db_read_only)
 
         # set plural or singular for activity
-        self.open_activity_action.setText(f'Open {act}')
-        self.open_activity_graph_action.setText(f'Open {act} in Graph Explorer')
-        self.dup_activity_action.setText(f'Duplicate {act}')
-        self.delete_activity_action.setText(f'Delete {act}')
-        self.relink_activity_exch_action.setText(f'Relink the {act} exchanges')
+        self.open_activity_action.setText(f"Open {act}")
+        self.open_activity_graph_action.setText(f"Open {act} in Graph Explorer")
+        self.dup_activity_action.setText(f"Duplicate {act}")
+        self.delete_activity_action.setText(f"Delete {act}")
+        self.relink_activity_exch_action.setText(f"Relink the {act} exchanges")
 
         menu = QtWidgets.QMenu(self)
         # submenu duplicates
         submenu_dupl = QtWidgets.QMenu(menu)
-        submenu_dupl.setTitle(f'Duplicate {act}')
+        submenu_dupl.setTitle(f"Duplicate {act}")
         submenu_dupl.setIcon(qicons.copy)
         submenu_dupl.addAction(self.dup_activity_action)
         submenu_dupl.addAction(self.dup_activity_new_loc_action)
         submenu_dupl.addAction(self.dup_other_db_action)
         # submenu copy to clipboard
         submenu_copy = QtWidgets.QMenu(menu)
-        submenu_copy.setTitle('Copy to clipboard')
+        submenu_copy.setTitle("Copy to clipboard")
         submenu_copy.setIcon(qicons.copy_to_clipboard)
         submenu_copy.addAction(self.copy_exchanges_for_SDF_action)
 
-        if self.tree_level()[0] != 'leaf':
+        if self.tree_level()[0] != "leaf":
             # multiple items are selected
             menu.addAction(qicons.forward, "Expand all sub levels", self.expand_branch)
-            menu.addAction(qicons.backward, "Collapse all sub levels", self.collapse_branch)
+            menu.addAction(
+                qicons.backward, "Collapse all sub levels", self.collapse_branch
+            )
             menu.addSeparator()
 
         menu.addAction(self.open_activity_action)
@@ -387,7 +415,7 @@ class ActivitiesBiosphereTree(ABDictTreeView):
     @Slot(name="openActivityTab")
     def open_activity_tab(self):
         """Open the selected activities in a new 'Activity Details' tab."""
-        if self.tree_level()[0] != 'leaf':
+        if self.tree_level()[0] != "leaf":
             # don't open activities if a root/branch is selected
             return
         self.open_activity_action.trigger()
@@ -400,10 +428,10 @@ class ActivitiesBiosphereTree(ABDictTreeView):
     def selected_keys(self) -> Iterable:
         """Return all keys selected."""
         tree_level = self.tree_level()
-        if tree_level[0] == 'leaf':
+        if tree_level[0] == "leaf":
             # select key of the leaf
             return [tree_level[1][-1]]
-        if tree_level[0] == 'root':
+        if tree_level[0] == "root":
             # filter on the root + ', '
             # (this needs to be added in case one root level starts with a shorter name of another one
             # example: 'activity a' and 'activity a, words'
@@ -417,7 +445,9 @@ class ActivitiesBiosphereTree(ABDictTreeView):
 
     def get_key(self):
         """Convenience function to get the key of the selected activity."""
-        return self.selected_keys()[0]  # should only be called when you're sure there is 1 activity selected.
+        return self.selected_keys()[
+            0
+        ]  # should only be called when you're sure there is 1 activity selected.
 
     @Slot(name="openActivity")
     def open_activity(self):
@@ -457,18 +487,18 @@ class ActivitiesBiosphereTree(ABDictTreeView):
                                   'sweet corn')
         """
         indexes = self.selectedIndexes()
-        if indexes[1].data() != '' or indexes[2].data() != '':
-            return 'leaf', self.find_levels()
+        if indexes[1].data() != "" or indexes[2].data() != "":
+            return "leaf", self.find_levels()
         elif indexes[0].parent().data() is None:
-            return 'root', indexes[0].data()
+            return "root", indexes[0].data()
         else:
-            return 'branch', self.find_levels()
+            return "branch", self.find_levels()
 
     def find_levels(self, level=None) -> list:
         """Find all levels of branch."""
         if not level:
             idx = self.selectedIndexes()
-            if idx[-1].data() != '':
+            if idx[-1].data() != "":
                 level = idx[-1]
             else:
                 level = idx[0]
@@ -510,7 +540,7 @@ class ActivitiesBiosphereTree(ABDictTreeView):
 
     @Slot(str, bool, name="updateReadOnly")
     def update_activity_table_read_only(self, db_name: str, db_read_only: bool) -> None:
-        """ [new, duplicate & delete] actions can only be selected for
+        """[new, duplicate & delete] actions can only be selected for
         databases that are not read-only.
 
         The user can change state of dbs other than the open one, so check

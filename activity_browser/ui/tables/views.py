@@ -1,13 +1,9 @@
 import os
 from typing import Optional
 
-from PySide2 import QtCore, QtGui, QtWidgets
+from PySide2 import QtGui, QtWidgets
 from PySide2.QtCore import QPoint, QRect, QSize, Qt, QTimer, Signal, Slot
-from PySide2.QtGui import QDoubleValidator, QKeyEvent
-from PySide2.QtWidgets import (QAction, QApplication, QFileDialog, QHBoxLayout,
-                               QHeaderView, QLineEdit, QMenu, QSizePolicy,
-                               QStyle, QStyleOptionButton, QTableView,
-                               QToolButton, QTreeView, QWidget, QWidgetAction)
+from PySide2.QtWidgets import QApplication, QSizePolicy, QTableView
 
 from activity_browser import ab_settings, log
 from activity_browser.mod import bw2data as bd
@@ -609,7 +605,7 @@ class ABDictTreeView(QtWidgets.QTreeView):
 
     @Slot(name="resizeView")
     def custom_view_sizing(self) -> None:
-        """ Resize the first column (usually 'name') whenever an item is
+        """Resize the first column (usually 'name') whenever an item is
         expanded or collapsed.
         """
         self.resizeColumnToContents(0)
@@ -631,6 +627,7 @@ class ABDictTreeView(QtWidgets.QTreeView):
 
         Will expand or collapse any branch and sub-branches given in index.
         expand is a boolean that defines expand (True) or collapse (False)."""
+
         # based on: https://stackoverflow.com/a/4208240
         def recursive_expand_or_collapse(index, childCount, expand):
             for childNo in range(0, childCount):
