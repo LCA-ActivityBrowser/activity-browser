@@ -9,7 +9,7 @@ from traceback import extract_tb
 from types import TracebackType
 from typing import TextIO, Type
 
-import appdirs
+import platformdirs
 
 WHITELIST = ["activity_browser", "brightway2", "bw2data", "bw2io", "C/C++"]
 EXTENDED_CONSOLE = os.environ.get("AB_EXTENDED_CONSOLE", False)
@@ -206,7 +206,7 @@ class ABFileHandler(logging.Handler):
         self.filename = "ab_logs" + self.timestamp() + ".csv"
 
         # set dir and create it if it doesn't exist yet
-        dir_path = appdirs.user_log_dir("ActivityBrowser", "ActivityBrowser")
+        dir_path = platformdirs.user_log_dir("ActivityBrowser", "ActivityBrowser")
         os.makedirs(dir_path, exist_ok=True)
 
         # create final filepath of the logfile of this session
