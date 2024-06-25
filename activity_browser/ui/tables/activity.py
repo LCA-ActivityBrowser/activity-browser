@@ -8,9 +8,14 @@ from activity_browser import actions
 
 from ..icons import qicons
 from .delegates import *
-from .models import (BaseExchangeModel, BiosphereExchangeModel,
-                     DownstreamExchangeModel, ProductExchangeModel,
-                     TechnosphereExchangeModel)
+from .inventory import ActivitiesBiosphereTable, ActivitiesBiosphereTree
+from .models import (
+    BaseExchangeModel,
+    BiosphereExchangeModel,
+    DownstreamExchangeModel,
+    ProductExchangeModel,
+    TechnosphereExchangeModel,
+)
 from .views import ABDataFrameView
 
 
@@ -75,8 +80,11 @@ class BaseExchangeTable(ABDataFrameView):
         pass
 
     def dropEvent(self, event):
-        source_table = event.source()
-        keys = source_table.selected_keys()
+        if isinstance(event.source(), ActivitiesBiosphereTable):
+            source_table = event.source()
+            keys = source_table.selected_keys()
+        elif isinstance(event.source(), ActivitiesBiosphereTree):
+            keys = event.source().selected_keys()
         event.accept()
         actions.ExchangeNew.run(keys, self.key)
 

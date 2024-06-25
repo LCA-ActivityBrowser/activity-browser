@@ -342,7 +342,7 @@ class BaseTreeModel(QAbstractItemModel):
 
         if role == Qt.DisplayRole:
             item = index.internalPointer()
-            return item.data(index.column())
+            return str(item.data(index.column()))
 
         if role == Qt.ForegroundRole:
             col_name = self.HEADERS[index.column()]

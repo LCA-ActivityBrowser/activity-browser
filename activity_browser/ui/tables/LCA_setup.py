@@ -7,7 +7,8 @@ from activity_browser.mod.bw2data import calculation_setups
 from ..icons import qicons
 from .delegates import FloatDelegate
 from .impact_categories import MethodsTable, MethodsTree
-from .models import CSActivityModel, CSMethodsModel, ScenarioImportModel
+from .inventory import ActivitiesBiosphereTable, ActivitiesBiosphereTree
+from .models import CSMethodsModel, CSActivityModel, ScenarioImportModel
 from .views import ABDataFrameView
 
 
@@ -123,15 +124,31 @@ class CSActivityTable(CSGenericTable):
         menu.exec_(event.globalPos())
 
     def dragEnterEvent(self, event):
-        if getattr(event.source(), "technosphere", False) or event.source() is self:
+        if (
+            (
+                isinstance(event.source(), ActivitiesBiosphereTable)
+                and getattr(event.source(), "technosphere", False)
+            )
+            or isinstance(event.source(), ActivitiesBiosphereTree)
+            or event.source() is self
+        ):
             event.accept()
 
-    def dropEvent(self, event):
+    def dropEvent(self, event) -> None:
         event.accept()
         source = event.source()
-        if getattr(event.source(), "technosphere", False):
-            log.info("Dropevent from:", source)
-            self.model.include_activities({key: 1.0} for key in source.selected_keys())
+        if isinstance(event.source(), ActivitiesBiosphereTable):
+            # get the key from the TABLE for every selected index and convert it to dict
+            log.debug("Dropevent from:", source)
+            self.model.include_activities(
+                ({key: 1.0} for key in source.selected_keys())
+            )
+        elif isinstance(event.source(), ActivitiesBiosphereTree):
+            # get a list of keys from the TREE for the selected tree level (respecting search) and convert to dict
+            log.debug("Dropevent from:", source)
+            self.model.include_activities(
+                ({key: 1.0} for key in source.selected_keys())
+            )
         elif event.source() is self:
             selection = self.selectedIndexes()
             from_index = selection[0].row() if selection else -1
