@@ -58,7 +58,7 @@ class ABSettings(BaseSettings):
     """
 
     def __init__(self, filename: str):
-        ab_dir = platformdirs.platformdirs("ActivityBrowser", "ActivityBrowser")
+        ab_dir = platformdirs.user_data_dir(appname="ActivityBrowser", appauthor="ActivityBrowser")
         if not os.path.isdir(ab_dir.user_data_dir):
             os.makedirs(ab_dir.user_data_dir, exist_ok=True)
         self.update_old_settings(ab_dir.user_data_dir, filename)
