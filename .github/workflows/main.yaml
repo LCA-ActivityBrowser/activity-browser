@@ -4,9 +4,11 @@ on:
     branches:
       - main
       - minor
+      - brightway25
   push:
     branches:
       - main
+      - brightway25
 
 jobs:
   patch-test-environment:
