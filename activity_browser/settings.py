@@ -5,7 +5,7 @@ import shutil
 from pathlib import Path
 from typing import Optional
 
-import appdirs
+import platformdirs
 from PySide2.QtWidgets import QMessageBox
 
 from activity_browser import log, signals
@@ -53,12 +53,12 @@ class BaseSettings(object):
 
 class ABSettings(BaseSettings):
     """
-    Interface to the json settings file. Will create a userdata directory via appdirs if not
+    Interface to the json settings file. Will create a userdata directory via platformdirs if not
     already present.
     """
 
     def __init__(self, filename: str):
-        ab_dir = appdirs.AppDirs("ActivityBrowser", "ActivityBrowser")
+        ab_dir = platformdirs.platformdirs("ActivityBrowser", "ActivityBrowser")
         if not os.path.isdir(ab_dir.user_data_dir):
             os.makedirs(ab_dir.user_data_dir, exist_ok=True)
         self.update_old_settings(ab_dir.user_data_dir, filename)
