@@ -1,8 +1,7 @@
 from activity_browser import application
 from activity_browser.actions.base import ABAction, exception_dialogs
+from activity_browser.ui.wizards import ProjectSetupWizard
 from activity_browser.ui.icons import qicons
-from activity_browser.ui.widgets import (DefaultBiosphereDialog,
-                                         EcoinventVersionDialog)
 
 
 class DefaultInstall(ABAction):
@@ -11,16 +10,9 @@ class DefaultInstall(ABAction):
     """
 
     icon = qicons.import_db
-    text = "Add default data (biosphere flows and impact categories)"
+    text = "Set up your project with default data"
 
     @staticmethod
     @exception_dialogs
     def run():
-        version_dialog = EcoinventVersionDialog(application.main_window)
-        if version_dialog.exec_() != EcoinventVersionDialog.Accepted:
-            return
-        version = version_dialog.options.currentText()
-
-        DefaultBiosphereDialog(
-            version[:3], application.main_window
-        ).show()  # only read Major/Minor part of version
+        ProjectSetupWizard(application.main_window).show()

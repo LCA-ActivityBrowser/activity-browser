@@ -30,6 +30,4 @@ def run_activity_browser():
     load_settings()
     application.show()
 
-    sys.excepthook = exception_hook
-
     sys.exit(application.exec_())

@@ -14,7 +14,6 @@ class ABAction:
 
     @classmethod
     def triggered(cls, *args, **kwargs):
-
         args = [arg if not callable(arg) else arg() for arg in args]
         kwargs = {k: v if not callable(v) else v() for k, v in kwargs.items()}
 

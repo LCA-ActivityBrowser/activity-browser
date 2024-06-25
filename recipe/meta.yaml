@@ -24,14 +24,12 @@ requirements:
     - python
     - setuptools
   run:
-    - python >=3.9,<3.12
+    - python >=3.10,<3.12
     - arrow
-    - brightway2 =2.4.4
-    - eidl >=2.0.1
-    - libxml2 <=2.10.4
+    - brightway2 =2.4.6
     - networkx
     - numpy >=1.23.5
-    - pandas <=2.1.4
+    - pandas >=2.2.1
     - pint <=0.21
     - pyperclip
     - pyside2 >=5.15.5

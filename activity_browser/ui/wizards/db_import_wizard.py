@@ -1,30 +1,31 @@
 # -*- coding: utf-8 -*-
 import io
-import subprocess
+import os.path
+import shutil
+import typing
+from functools import lru_cache
 import tempfile
 import zipfile
 from pathlib import Path
 
-import eidl
+import bw2data.errors
+import ecoinvent_interface
 import requests
 from bw2io import BW2Package, SingleOutputEcospold2Importer
 from bw2io.extractors import Ecospold2DataExtractor
 from PySide2 import QtCore, QtWidgets
 from PySide2.QtCore import Signal, Slot
+from py7zr import py7zr
 
 from activity_browser import log
 from activity_browser.bwutils import errors
 from activity_browser.mod import bw2data as bd
 
 from ...bwutils.importers import ABExcelImporter, ABPackage
-from ...info import __ei_versions__
 from ...utils import sort_semantic_versions
 from ..style import style_group_box
 from ..threading import ABThread
 from ..widgets import DatabaseLinkingDialog
-
-# TODO: Rework the entire import wizard, the amount of different classes
-#  and interwoven connections makes the entire thing nearly incomprehensible.
 
 
 class DatabaseImportWizard(QtWidgets.QWizard):
@@ -33,13 +34,14 @@ class DatabaseImportWizard(QtWidgets.QWizard):
     LOCAL_TYPE = 3
     EI_LOGIN = 4
     EI_VERSION = 5
-    ARCHIVE = 6
-    DIR = 7
-    LOCAL = 8
-    EXCEL = 9
-    DB_NAME = 10
-    CONFIRM = 11
-    IMPORT = 12
+    DB_BIOSPHERE_CREATION = 6
+    ARCHIVE = 7
+    DIR = 8
+    LOCAL = 9
+    EXCEL = 10
+    DB_NAME = 11
+    CONFIRM = 12
+    IMPORT = 13
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -93,9 +95,14 @@ class DatabaseImportWizard(QtWidgets.QWizard):
     def system_model(self):
         return self.ecoinvent_version_page.system_model_combobox.currentText()
 
+    @property
+    def release_type(self):
+        return ecoinvent_interface.ReleaseType.ecospold
+
     def update_downloader(self):
         self.downloader.version = self.version
         self.downloader.system_model = self.system_model
+        self.downloader.release_type = self.release_type
 
     def done(self, result: int):
         """
@@ -157,6 +164,12 @@ class DatabaseImportWizard(QtWidgets.QWizard):
         self.import_page.complete = False
         self.reject()
 
+    def has_existing_remote_credentials(self) -> bool:
+        return (
+            self.downloader.username is not None
+            and self.downloader.password is not None
+        )
+
     @Slot(tuple, name="showMessage")
     def show_info(self, info: tuple) -> None:
         title, message = info
@@ -214,6 +227,7 @@ class RemoteImportPage(QtWidgets.QWizardPage):
         self.wizard = parent
         self.radio_buttons = [QtWidgets.QRadioButton(o[0]) for o in self.OPTIONS]
         self.radio_buttons[0].setChecked(True)
+        self.has_valid_remote_creds = False
 
         layout = QtWidgets.QVBoxLayout()
         box = QtWidgets.QGroupBox("Data source:")
@@ -225,10 +239,21 @@ class RemoteImportPage(QtWidgets.QWizardPage):
         layout.addWidget(box)
         self.setLayout(layout)
 
+    def validatePage(self):
+        if (
+            self.wizard.has_existing_remote_credentials()
+            and self.radio_buttons[0].isChecked()
+        ):
+            self.has_valid_remote_creds, _ = self.wizard.downloader.login()
+        return True
+
     def nextId(self):
         option_id = [b.isChecked() for b in self.radio_buttons].index(True)
         self.wizard.import_type = self.OPTIONS[option_id][1]
-        return self.OPTIONS[option_id][2]
+        next_id = self.OPTIONS[option_id][2]
+        if next_id == DatabaseImportWizard.EI_LOGIN and self.has_valid_remote_creds:
+            return DatabaseImportWizard.EI_VERSION
+        return next_id
 
 
 class LocalImportPage(QtWidgets.QWizardPage):
@@ -344,13 +369,25 @@ class Choose7zArchivePage(QtWidgets.QWizardPage):
         self.setLayout(layout)
 
     def initializePage(self):
-        self.stored_dbs = eidl.eidlstorage.stored_dbs
+        self.stored_dbs = ecoinvent_interface.CachedStorage()
         self.stored_combobox.clear()
-        self.stored_combobox.addItems(sorted(self.stored_dbs.keys()))
+        self.stored_combobox.addItems(
+            sorted(
+                [
+                    key
+                    for key, value in self.stored_dbs.catalogue.items()
+                    if value["extracted"] == False
+                    and value["kind"] == "release"
+                    and key.partition(value["system_model"])[2] == "_ecoSpold02.7z"
+                ]
+            )
+        )
 
     @Slot(int, name="updateSelectedIndex")
     def update_stored(self, index: int) -> None:
-        self.path_edit.setText(self.stored_dbs[self.stored_combobox.currentText()])
+        self.path_edit.setText(
+            self.stored_dbs.catalogue[self.stored_combobox.currentText()]["path"]
+        )
 
     @Slot(name="getArchiveFile")
     def get_archive(self) -> None:
@@ -476,8 +513,12 @@ class ConfirmationPage(QtWidgets.QWizardPage):
             )
         else:
             self.path_label.setText(
-                "Ecoinvent version: <b>{}</b><br>Ecoinvent system model: <b>{}</b>".format(
-                    self.wizard.version, self.wizard.system_model
+                "Ecoinvent version: <b>{}</b><br>"
+                "Ecoinvent system model: <b>{}</b><br>"
+                "Dependent Database: <b>{}</b>".format(
+                    self.wizard.version,
+                    self.wizard.system_model,
+                    bd.config.biosphere,
                 )
             )
 
@@ -738,7 +779,7 @@ class ImportPage(QtWidgets.QWizardPage):
 
 
 class MainWorkerThread(ABThread):
-    def __init__(self, downloader, parent=None):
+    def __init__(self, downloader: "ABEcoinventDownloader", parent=None):
         super().__init__(parent)
         self.downloader = downloader
         self.forwast_url = (
@@ -784,19 +825,19 @@ class MainWorkerThread(ABThread):
 
     def run_ecoinvent(self) -> None:
         """Run the ecoinvent downloader from start to finish."""
-        self.downloader.outdir = eidl.eidlstorage.eidl_dir
-        if self.downloader.check_stored():
-            import_signals.download_complete.emit()
-        else:
-            self.run_download()
+        archive_file = self.run_download()
 
-        with tempfile.TemporaryDirectory() as tempdir:
-            temp_dir = Path(tempdir)
-            if not import_signals.cancel_sentinel:
-                self.run_extract(temp_dir)
-            if not import_signals.cancel_sentinel:
-                dataset_dir = temp_dir.joinpath("datasets")
-                self.run_import(dataset_dir)
+        if os.path.isdir(archive_file):
+            import_signals.unarchive_finished.emit()
+            self.run_import(archive_file.joinpath("datasets"))
+        else:
+            with tempfile.TemporaryDirectory() as tempdir:
+                temp_dir = Path(tempdir)
+                if not import_signals.cancel_sentinel:
+                    self.run_extract(archive_file, temp_dir)
+                if not import_signals.cancel_sentinel:
+                    dataset_dir = temp_dir.joinpath("datasets")
+                    self.run_import(dataset_dir)
 
     def run_forwast(self) -> None:
         """Adapted from pjamesjoyce/lcopt."""
@@ -823,17 +864,23 @@ class MainWorkerThread(ABThread):
             else:
                 self.delete_canceled_db()
 
-    def run_download(self) -> None:
+    def run_download(self) -> Path:
         """Use the connected ecoinvent downloader."""
-        self.downloader.download()
+        filepath = self.downloader.download()
         import_signals.download_complete.emit()
+        return filepath
 
-    def run_extract(self, temp_dir: Path) -> None:
+    def run_extract(self, archive_file: Path, temp_dir: Path) -> None:
         """Use the connected ecoinvent downloader to extract the downloaded
         7zip file.
         """
-        self.downloader.extract(target_dir=temp_dir)
-        import_signals.unarchive_finished.emit()
+        try:
+            self.downloader.extract(archive_file, temp_dir)
+        except Exception:
+            import_signals.cancel_sentinel = True
+            import_signals.unarchive_failed.emit(temp_dir)
+        else:
+            import_signals.unarchive_finished.emit()
 
     def run_extract_import(self) -> None:
         """Combine the extract and import steps when beginning from a selected
@@ -866,6 +913,7 @@ class MainWorkerThread(ABThread):
                 signal=import_signals.strategy_progress,
             )
             importer.apply_strategies()
+            # backend is a custom implementation that wraps sqlite database
             importer.write_database(backend="activitybrowser")
             if not import_signals.cancel_sentinel:
                 import_signals.finished.emit()
@@ -873,16 +921,15 @@ class MainWorkerThread(ABThread):
                 self.delete_canceled_db()
         except errors.ImportCanceledError:
             self.delete_canceled_db()
-        except errors.InvalidExchange:
+        except bw2data.errors.InvalidExchange:
             # Likely caused by new version of ecoinvent not finding required
             # biosphere flows.
             self.delete_canceled_db()
             import_signals.import_failure.emit(
                 (
                     "Missing exchanges",
-                    "The import failed as required biosphere"
-                    " exchanges are missing from the biosphere3 database. Please"
-                    " update the biosphere by using 'File' -> 'Update biosphere...'",
+                    "The import failed because the biosphere3 database of this project is incompatible with the "
+                    "version of ecoinvent that you're trying to install",
                 )
             )
 
@@ -970,11 +1017,20 @@ class EcoinventLoginPage(QtWidgets.QWizardPage):
         super().__init__(parent)
         self.wizard = parent
         self.complete = False
+        eco_settings = ecoinvent_interface.Settings()
         self.username_edit = QtWidgets.QLineEdit()
-        self.username_edit.setPlaceholderText("ecoinvent username")
+        if eco_settings.username:
+            self.username_edit.setText(eco_settings.username)
+        else:
+            self.username_edit.setPlaceholderText("ecoinvent username")
         self.password_edit = QtWidgets.QLineEdit()
-        self.password_edit.setPlaceholderText("ecoinvent password"),
         self.password_edit.setEchoMode(QtWidgets.QLineEdit.Password)
+        if eco_settings.password:
+            self.password_edit.setText(eco_settings.password)
+        else:
+            self.password_edit.setPlaceholderText("ecoinvent password")
+        self.save_creds = QtWidgets.QPushButton("Save Credentials")
+        self.save_creds.clicked.connect(self.save_credentials)
         self.login_button = QtWidgets.QPushButton("login")
         self.login_button.clicked.connect(self.login)
         self.password_edit.returnPressed.connect(self.login_button.click)
@@ -989,6 +1045,7 @@ class EcoinventLoginPage(QtWidgets.QWizardPage):
         box_layout.addWidget(self.password_edit)
         hlay = QtWidgets.QHBoxLayout()
         hlay.addWidget(self.login_button)
+        hlay.addWidget(self.save_creds)
         hlay.addStretch(1)
         box_layout.addLayout(hlay)
         box_layout.addWidget(self.success_label)
@@ -1018,6 +1075,13 @@ class EcoinventLoginPage(QtWidgets.QWizardPage):
         self.login_thread.update(self.username, self.password)
         self.login_thread.start()
 
+    @Slot(name="SaveEiCredentials")
+    def save_credentials(self):
+        self.success_label.setText("Saving Credentials")
+        ecoinvent_interface.permanent_setting("username", self.username)
+        ecoinvent_interface.permanent_setting("password", self.password)
+        self.success_label.setText("Saved Credentials")
+
     @Slot(bool, name="handleLoginResponse")
     def login_response(self, success: bool) -> None:
         if not success:
@@ -1039,7 +1103,7 @@ class EcoinventLoginPage(QtWidgets.QWizardPage):
 
 
 class LoginThread(QtCore.QThread):
-    def __init__(self, downloader, parent=None):
+    def __init__(self, downloader: "ABEcoinventDownloader", parent=None):
         super().__init__(parent)
         self.downloader = downloader
 
@@ -1048,18 +1112,36 @@ class LoginThread(QtCore.QThread):
         self.downloader.password = password
 
     def run(self):
-        self.downloader.login()
+        error_message = None
+        try:
+            login_success, error_message = self.downloader.login()
+        except Exception as e:
+            log.error(str(e), exc_info=True)
+            import_signals.login_success.emit(False)
+            msg = str(e)
+            cs = ecoinvent_interface.CachedStorage()
+            if len(cs.catalogue) > 0:
+                msg += (
+                    "\n\nIf you work offline you can use your previously downloaded databases"
+                    + " via the archive option of the import wizard."
+                )
+            import_signals.connection_problem.emit(("Unexpected error", msg))
+        else:
+            import_signals.login_success.emit(login_success)
+        finally:
+            if error_message:
+                import_signals.connection_problem.emit(error_message)
 
 
 class EcoinventVersionPage(QtWidgets.QWizardPage):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.wizard = self.parent()
+        self.wizard: "DatabaseImportWizard" = self.parent()
         self.description_label = QtWidgets.QLabel(
             "Choose ecoinvent version and system model:"
         )
         self.db_dict = None
-        self.system_models = {}
+        self.requires_database_creation = False
         self.version_combobox = QtWidgets.QComboBox()
         self.version_combobox.currentTextChanged.connect(
             self.update_system_model_combobox
@@ -1075,27 +1157,15 @@ class EcoinventVersionPage(QtWidgets.QWizardPage):
         self.setLayout(layout)
 
     def initializePage(self):
-        if self.db_dict is None:
-            self.wizard.downloader.db_dict = (
-                self.wizard.downloader.get_available_files()
-            )
-            self.db_dict = self.wizard.downloader.db_dict
-        self.system_models = {
-            version: sorted(
-                {k[1] for k in self.db_dict.keys() if k[0] == version}, reverse=True
-            )
-            for version in sorted(
-                {k[0] for k in self.db_dict.keys() if k[0] in __ei_versions__},
-                reverse=True,
-            )
-        }
+        available_versions = self.wizard.downloader.list_versions()
+        shown_versions = {version for version in available_versions}
         # Catch for incorrect 'universal' key presence
         # (introduced in version 3.6 of ecoinvent)
-        if "universal" in self.system_models:
-            del self.system_models["universal"]
+        if "universal" in shown_versions:
+            shown_versions.remove("universal")
         self.version_combobox.clear()
         self.system_model_combobox.clear()
-        versions = sort_semantic_versions(self.system_models.keys())
+        versions = sort_semantic_versions(shown_versions)
         self.version_combobox.addItems(versions)
         if bool(self.version_combobox.count()):
             # Adding the items will cause system_model_combobox to update
@@ -1111,7 +1181,17 @@ class EcoinventVersionPage(QtWidgets.QWizardPage):
             )
             self.wizard.back()
 
+    def validatePage(self):
+        # version = self.version_combobox.currentText()
+        # bd.preferences["biosphere_database"] = "ecoinvent-{}-biosphere".format(version)
+        # bd.preferences.flush()
+        # if bd.preferences["biosphere_database"] not in databases:
+        #     self.requires_database_creation = True
+        return True
+
     def nextId(self):
+        # if self.requires_database_creation:
+        #     return DatabaseImportWizard.DB_BIOSPHERE_CREATION
         return DatabaseImportWizard.DB_NAME
 
     @Slot(str)
@@ -1120,7 +1200,9 @@ class EcoinventVersionPage(QtWidgets.QWizardPage):
         different ecoinvent version.
         """
         self.system_model_combobox.clear()
-        self.system_model_combobox.addItems(self.system_models[version])
+        items = self.wizard.downloader.list_system_models(version)
+        items = sorted(items, reverse=True)
+        self.system_model_combobox.addItems(items)
 
 
 class LocalDatabaseImportPage(QtWidgets.QWizardPage):
@@ -1276,23 +1358,24 @@ class ActivityBrowserExtractor(Ecospold2DataExtractor):
 class ActivityBrowserBackend(bd.backends.SQLiteBackend):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self._ab_current_index = 0
+        self._ab_total = 0
 
     def _efficient_write_many_data(self, *args, **kwargs):
         data = args[0]
-        self.total = len(data)
+        self._ab_total = len(data)
         super()._efficient_write_many_data(*args, **kwargs)
 
     def _efficient_write_dataset(self, *args, **kwargs):
-        index = args[0]
         if import_signals.cancel_sentinel:
-            log.info(f"\nWriting canceled at position {index}!")
+            log.info(f"\nWriting canceled at position {self._ab_current_index}!")
             raise errors.ImportCanceledError
-        import_signals.db_progress.emit(index + 1, self.total)
+        self._ab_current_index += 1
+        import_signals.db_progress.emit(self._ab_current_index, self._ab_total)
         return super()._efficient_write_dataset(*args, **kwargs)
 
 
 bd.config.backends["activitybrowser"] = ActivityBrowserBackend
-
 
 class ImportSignals(QtCore.QObject):
     extraction_progress = Signal(int, int)
@@ -1316,27 +1399,126 @@ class ImportSignals(QtCore.QObject):
 import_signals = ImportSignals()
 
 
-class ABEcoinventDownloader(eidl.EcoinventDownloader):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.extraction_process = None
+class ABEcoinventDownloader:
+    def __init__(
+        self,
+        version: typing.Optional[str] = None,
+        system_model: typing.Optional[str] = None,
+        release_type: typing.Optional[ecoinvent_interface.ReleaseType] = None,
+    ):
+        self.version = version
+        self.system_model = system_model
+        self._release_type = release_type
+        self._settings = ecoinvent_interface.Settings()
+        self.update_ecoinvent_release()
 
-    def login_success(self, success):
-        import_signals.login_success.emit(success)
+    def update_ecoinvent_release(self):
+        try:
+            self._release = ecoinvent_interface.EcoinventRelease(self._settings)
+        except ValueError:
+            self._release = None
 
-    def extract(self, target_dir):
-        """Override extract method to redirect the stdout to dev null."""
-        code = super().extract(target_dir=target_dir, stdout=subprocess.DEVNULL)
-        if code != 0:
-            # The archive was corrupted in some way.
-            import_signals.cancel_sentinel = True
-            import_signals.unarchive_failed.emit(self.out_path)
+    @property
+    def release(self) -> ecoinvent_interface.EcoinventRelease:
+        if self._release is None:
+            raise ValueError("ecoinvent release has not been initialized properly")
+        return self._release
 
-    def handle_connection_timeout(self):
-        msg = "The request timed out, please check your internet connection!"
-        if eidl.eidlstorage.stored_dbs:
-            msg += (
-                "\n\nIf you work offline you can use your previously downloaded databases"
-                + " via the archive option of the import wizard."
+    @property
+    def username(self) -> typing.Optional[str]:
+        return self._settings.username
+
+    @username.setter
+    def username(self, value: str):
+        self._settings.username = value
+        self.update_ecoinvent_release()
+
+    @property
+    def password(self) -> typing.Optional[str]:
+        return self._settings.password
+
+    @password.setter
+    def password(self, value: str):
+        self._settings.password = value
+        self.update_ecoinvent_release()
+
+    @property
+    def release_type(self):
+        return self._release_type
+
+    @release_type.setter
+    def release_type(self, value: typing.Union[str, ecoinvent_interface.ReleaseType]):
+        if isinstance(value, ecoinvent_interface.ReleaseType):
+            self._release_type = value
+            return
+
+        if isinstance(value, str):
+            self._release_type = ecoinvent_interface.ReleaseType[value]
+            return
+
+        raise ValueError("invalid value provided for release_type")
+
+    def login(self) -> (bool, typing.Optional[typing.Tuple[str, str]]):
+        release = ecoinvent_interface.EcoinventRelease(self._settings)
+        error_message = None
+        try:
+            release.login()
+            login_success = True
+        except (
+            requests.ConnectTimeout,
+            requests.ReadTimeout,
+            requests.ConnectionError,
+        ) as e:
+            login_success = False
+            error_message = (
+                "Connection Problem",
+                "The request timed out, please check your internet connection!",
             )
-        import_signals.connection_problem.emit(("Connection problem", msg))
+        except requests.exceptions.HTTPError as e:
+            login_success = False
+            error_message = None
+            if e.response.status_code != 401:
+                log.error(
+                    "Unexpected status code (%d) received when trying to list ecoinvent_versions, response: %s",
+                    e.response.status_code,
+                    e.response.text,
+                )
+                error_message = (
+                    "Unexpected Problem",
+                    "An unexpected error occurred, please try again status code %d"
+                    % e.response.status_code,
+                )
+
+        return login_success, error_message
+
+    @lru_cache(maxsize=1)
+    def list_versions(self):
+        return self._release.list_versions()
+
+    @lru_cache(maxsize=100)
+    def list_system_models(self, version: str):
+        if version == "":
+            return []
+        return self._release.list_system_models(version)
+
+    def download(self) -> Path:
+        return self.release.get_release(
+            version=self.version,
+            system_model=self.system_model,
+            release_type=self.release_type,
+            extract=True,
+        )
+
+    @staticmethod
+    def extract(filepath: Path, out_dir: Path = None):
+        """
+        Extract archive
+        """
+        if filepath.suffix.lower() == ".7z":
+            with py7zr.SevenZipFile(filepath, "r") as archive:
+                directory = out_dir or (filepath.parent / filepath.stem)
+                if directory.exists():
+                    shutil.rmtree(directory)
+                archive.extractall(path=directory)
+        else:
+            raise ValueError("Unsupported archive format")

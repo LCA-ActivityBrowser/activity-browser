@@ -98,7 +98,6 @@ class CSActivityModel(CSGenericModel):
         return self._dataframe.iat[idx.row(), self.key_col]
 
     def load(self, cs_name: str = None):
-
         for act in self._activities.values():
             act.changed.disconnect(self.sync)
         self._activities.clear()
@@ -129,8 +128,6 @@ class CSActivityModel(CSGenericModel):
     def build_row(self, key: tuple, amount: float = 1.0) -> dict:
         try:
             act = bd.get_activity(key)
-            if act.get("type", "process") != "process":
-                raise TypeError("Activity is not of type 'process'")
             row = {
                 key: act.get(bc.AB_names_to_bw_keys[key], "")
                 for key in self.HEADERS[:-1]
