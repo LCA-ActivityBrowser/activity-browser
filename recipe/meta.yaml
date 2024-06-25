@@ -24,7 +24,7 @@ requirements:
     - python
     - setuptools
   run:
-    - python >=3.10,<3.12
+    - python >=3.10, <3.13
     - arrow
     - brightway2 =2.4.6
     - networkx
