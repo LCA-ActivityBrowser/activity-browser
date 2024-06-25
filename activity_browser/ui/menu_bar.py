@@ -12,17 +12,22 @@ class MenuBar(QtWidgets.QMenuBar):
     def __init__(self, window):
         super().__init__(parent=window)
         self.window = window
-        self.file_menu = QtWidgets.QMenu("&File", self.window)
+        self.file_menu = QtWidgets.QMenu("&Project", self.window)
         self.view_menu = QtWidgets.QMenu("&View", self.window)
         self.windows_menu = QtWidgets.QMenu("&Windows", self.window)
         self.tools_menu = QtWidgets.QMenu("&Tools", self.window)
         self.help_menu = QtWidgets.QMenu("&Help", self.window)
 
-        self.update_biosphere_action = actions.BiosphereUpdate.get_QAction()
-        self.export_db_action = actions.DatabaseExport.get_QAction()
+        self.new_proj_action = actions.ProjectNew.get_QAction()
+        self.dup_proj_action = actions.ProjectDuplicate.get_QAction()
+        self.delete_proj_action = actions.ProjectDelete.get_QAction()
+        self.import_proj_action = actions.ProjectImport.get_QAction()
+        self.export_proj_action = actions.ProjectExport.get_QAction()
         self.import_db_action = actions.DatabaseImport.get_QAction()
-        self.manage_plugins_action = actions.PluginWizardOpen.get_QAction()
+        self.export_db_action = actions.DatabaseExport.get_QAction()
+        self.update_biosphere_action = actions.BiosphereUpdate.get_QAction()
         self.manage_settings_action = actions.SettingsWizardOpen.get_QAction()
+        self.manage_plugins_action = actions.PluginWizardOpen.get_QAction()
 
         self.addMenu(self.file_menu)
         self.addMenu(self.view_menu)
@@ -41,9 +46,17 @@ class MenuBar(QtWidgets.QMenuBar):
 
     def setup_file_menu(self) -> None:
         """Build the menu for specific importing/export/updating actions."""
+        self.file_menu.addAction(self.new_proj_action)
+        self.file_menu.addAction(self.dup_proj_action)
+        self.file_menu.addAction(self.delete_proj_action)
+        self.file_menu.addSeparator()
+        self.file_menu.addAction(self.import_proj_action)
+        self.file_menu.addAction(self.export_proj_action)
+        self.file_menu.addSeparator()
         self.file_menu.addAction(self.import_db_action)
         self.file_menu.addAction(self.export_db_action)
         self.file_menu.addAction(self.update_biosphere_action)
+        self.file_menu.addSeparator()
         self.file_menu.addAction(self.manage_settings_action)
 
     def setup_view_menu(self) -> None:

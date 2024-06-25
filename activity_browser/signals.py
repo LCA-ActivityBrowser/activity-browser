@@ -34,6 +34,9 @@ class ABSignals(QObject):
     # project_selected = Signal()  # A project was selected (opened)
     # projects_changed = Signal()  # The list of projects changed
 
+    import_project = Signal()  # Import a project
+    export_project = Signal()  # Export the current project
+
     # Database
     # add_database = Signal()  # Trigger dialog to start a new database
     # delete_database = Signal(str)  # Delete this database | name of database
