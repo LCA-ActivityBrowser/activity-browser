@@ -1,13 +1,9 @@
 import os
 from typing import Optional
 
-from PySide2 import QtCore, QtGui, QtWidgets
+from PySide2 import QtGui, QtWidgets
 from PySide2.QtCore import QPoint, QRect, QSize, Qt, QTimer, Signal, Slot
-from PySide2.QtGui import QDoubleValidator, QKeyEvent
-from PySide2.QtWidgets import (QAction, QApplication, QFileDialog, QHBoxLayout,
-                               QHeaderView, QLineEdit, QMenu, QSizePolicy,
-                               QStyle, QStyleOptionButton, QTableView,
-                               QToolButton, QTreeView, QWidget, QWidgetAction)
+from PySide2.QtWidgets import QApplication, QSizePolicy, QTableView
 
 from activity_browser import ab_settings, log
 from activity_browser.mod import bw2data as bd
@@ -607,6 +603,13 @@ class ABDictTreeView(QtWidgets.QTreeView):
         self.setUniformRowHeights(True)
         self.data = {}
 
+    @Slot(name="resizeView")
+    def custom_view_sizing(self) -> None:
+        """Resize the first column (usually 'name') whenever an item is
+        expanded or collapsed.
+        """
+        self.resizeColumnToContents(0)
+
     @Slot(name="expandSelectedBranch")
     def expand_branch(self):
         """Expand selected branch."""
@@ -624,10 +627,9 @@ class ABDictTreeView(QtWidgets.QTreeView):
 
         Will expand or collapse any branch and sub-branches given in index.
         expand is a boolean that defines expand (True) or collapse (False)."""
+
         # based on: https://stackoverflow.com/a/4208240
-
         def recursive_expand_or_collapse(index, childCount, expand):
-
             for childNo in range(0, childCount):
                 childIndex = index.child(childNo, 0)
                 if expand:  # if expanding, do that first (wonky animation otherwise)
@@ -638,9 +640,11 @@ class ABDictTreeView(QtWidgets.QTreeView):
                 if not expand:  # if collapsing, do it last (wonky animation otherwise)
                     self.setExpanded(childIndex, expand)
 
+        QApplication.setOverrideCursor(Qt.WaitCursor)
         if not expand:  # if collapsing, do that first (wonky animation otherwise)
             self.setExpanded(index, expand)
         childCount = index.internalPointer().childCount()
         recursive_expand_or_collapse(index, childCount, expand)
         if expand:  # if expanding, do that last (wonky animation otherwise)
             self.setExpanded(index, expand)
+        QApplication.restoreOverrideCursor()
