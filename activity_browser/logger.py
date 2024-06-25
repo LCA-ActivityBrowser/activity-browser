@@ -206,7 +206,7 @@ class ABFileHandler(logging.Handler):
         self.filename = "ab_logs" + self.timestamp() + ".csv"
 
         # set dir and create it if it doesn't exist yet
-        dir_path = platformdirs.user_log_dir(appname="ActivityBrowser", appauthor="ActivityBrowser")
+        dir_path = str(platformdirs.user_log_dir(appname="ActivityBrowser", appauthor="ActivityBrowser"))
         os.makedirs(dir_path, exist_ok=True)
 
         # create final filepath of the logfile of this session
