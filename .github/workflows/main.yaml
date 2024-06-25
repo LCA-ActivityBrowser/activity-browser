@@ -107,7 +107,7 @@ jobs:
       run:
         shell: bash -l {0}
     env:
-      PKG_NAME: "activity-browser-dev"
+      PKG_NAME: "activity-browser-dev25"
     steps:
       - uses: actions/checkout@v3
         with:

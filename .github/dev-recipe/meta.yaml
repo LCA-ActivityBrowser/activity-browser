@@ -1,7 +1,7 @@
 # conda recipe for activity-browser-dev
 # https://anaconda.org/bsteubing/activity-browser-dev
 package:
-  name: "{{ os.environ.get('PKG_NAME', 'activity-browser-dev') }}"
+  name: "{{ os.environ.get('PKG_NAME', 'activity-browser-dev25') }}"
   version: "{{ os.environ.get('VERSION', 'dev') }}"
 
 source:
