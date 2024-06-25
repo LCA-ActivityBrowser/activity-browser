@@ -2,9 +2,7 @@
 import os
 import shutil
 
-from bw2data.projects import projects
-from bw2data.configuration import config
-
+from bw2data import projects, config
 import bw2io as bi
 import pytest
 
