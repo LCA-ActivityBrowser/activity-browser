@@ -3,13 +3,20 @@ import json
 import os
 import shutil
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Any
 
 import platformdirs
 from PySide2.QtWidgets import QMessageBox
 
 from activity_browser import log, signals
 from activity_browser.mod import bw2data as bd
+
+
+def pathlib_encoder(value: Any) -> Any:
+    if isinstance(value, Path):
+        return str(value)
+    else:
+        return value
 
 
 class BaseSettings(object):
@@ -48,7 +55,7 @@ class BaseSettings(object):
 
     def write_settings(self) -> None:
         with open(self.settings_file, "w") as outfile:
-            json.dump(self.settings, outfile, indent=4, sort_keys=True)
+            json.dump(self.settings, outfile, indent=4, sort_keys=True, default=pathlib_encoder)
 
 
 class ABSettings(BaseSettings):
@@ -92,7 +99,7 @@ class ABSettings(BaseSettings):
                     "startup_project": current_settings["startup_project"],
                 }
                 with open(file, "w") as new_file:
-                    json.dump(new_settings_content, new_file)
+                    json.dump(new_settings_content, new_file, default=pathlib_encoder)
 
     @classmethod
     def get_default_settings(cls) -> dict:
