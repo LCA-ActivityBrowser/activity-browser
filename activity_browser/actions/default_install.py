@@ -10,7 +10,7 @@ class DefaultInstall(ABAction):
     """
 
     icon = qicons.import_db
-    text = "Setup your project with default data"
+    text = "Set up your project with default data"
 
     @staticmethod
     @exception_dialogs

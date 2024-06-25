@@ -41,7 +41,6 @@ def test_default_install(ab_app, monkeypatch, qtbot):
 
     with qtbot.waitSignal(thread.finished, timeout=5 * 60 * 1000):
         pass
-    # qtbot.waitUntil(lambda: len(AB_metadata.dataframe) == 4709)
 
     assert "biosphere3" in bd.databases
     assert len(Database("biosphere3")) == 4709
