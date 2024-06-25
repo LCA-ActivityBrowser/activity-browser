@@ -1,6 +1,7 @@
 name: test
 channels:
   - conda-forge
+  - cmutel
 dependencies:
   - pytest
   - pytest-qt
