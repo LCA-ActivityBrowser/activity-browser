@@ -8,7 +8,6 @@ from ...ui.tables import PluginsTable
 
 
 class PluginsManagerWizard(QtWidgets.QWizard):
-
     def __init__(self, key: tuple, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Plugins manager")
@@ -23,7 +22,6 @@ class PluginsManagerWizard(QtWidgets.QWizard):
 
 
 class ManagePluginsPage(QtWidgets.QWizardPage):
-
     def __init__(self, parent=None):
         super().__init__(parent=parent)
         self.wizard = parent

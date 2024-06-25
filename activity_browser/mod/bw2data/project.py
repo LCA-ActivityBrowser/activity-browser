@@ -15,7 +15,6 @@ from ..patching import patch_superclass, patched
 
 @patch_superclass
 class ProjectManager(ProjectManager):
-
     @property
     def current_changed(self):
         """

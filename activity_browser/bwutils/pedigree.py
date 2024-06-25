@@ -13,6 +13,7 @@ Any additions made should improve the transition of the calculated sigma (or Geo
 smoothly into the related uncertainty distributions.
 """
 import math
+from pprint import pformat
 
 from bw2data.parameters import ParameterBase
 from bw2data.proxies import ExchangeProxyBase

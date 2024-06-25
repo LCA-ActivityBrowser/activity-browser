@@ -7,7 +7,6 @@ from ..patching import patch_superclass, patched
 
 @patch_superclass
 class Method(Method):
-
     @property
     def changed(self):
         """

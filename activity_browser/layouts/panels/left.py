@@ -7,6 +7,8 @@ class LeftPanel(ABTab):
     side = "left"
 
     def __init__(self, *args):
+        from ..tabs import HistoryTab, MethodsTab, ProjectTab
+
         super(LeftPanel, self).__init__(*args)
 
         self.tabs = {
