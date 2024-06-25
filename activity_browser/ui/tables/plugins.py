@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
-from PySide2 import QtWidgets, QtCore
-from PySide2.QtWidgets import QMessageBox
 import pandas
+from PySide2 import QtCore, QtWidgets
+from PySide2.QtWidgets import QMessageBox
 
 from ...signals import signals
 from .delegates import CheckboxDelegate
 from .models.plugins import PluginsModel
 from .views import ABDataFrameView
+
 
 class PluginsTable(ABDataFrameView):
     def __init__(self, parent=None):
@@ -14,10 +15,11 @@ class PluginsTable(ABDataFrameView):
         self.verticalHeader().setVisible(False)
         self.setSelectionMode(QtWidgets.QTableView.SingleSelection)
         self.setItemDelegateForColumn(0, CheckboxDelegate(self))
-        self.setSizePolicy(QtWidgets.QSizePolicy(
-            QtWidgets.QSizePolicy.Preferred,
-            QtWidgets.QSizePolicy.Maximum
-        ))
+        self.setSizePolicy(
+            QtWidgets.QSizePolicy(
+                QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Maximum
+            )
+        )
         self.model = PluginsModel(parent=self)
         self._connect_signals()
 
@@ -35,12 +37,14 @@ class PluginsTable(ABDataFrameView):
         if e.button() == QtCore.Qt.LeftButton:
             proxy = self.indexAt(e.pos())
             if proxy.column() == 0:
-                new_value = not bool(proxy.data())  
-#                plugin_name = self.model.get_plugin_name(proxy)
+                new_value = not bool(proxy.data())
+                #                plugin_name = self.model.get_plugin_name(proxy)
                 if not new_value:
                     msgBox = QMessageBox()
                     msgBox.setText("Remove plugin from project ?")
-                    msgBox.setInformativeText("This will remove all data created by the plugin.")
+                    msgBox.setInformativeText(
+                        "This will remove all data created by the plugin."
+                    )
                     msgBox.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
                     msgBox.setDefaultButton(QMessageBox.Cancel)
                     ret = msgBox.exec_()
@@ -51,8 +55,7 @@ class PluginsTable(ABDataFrameView):
 
     @property
     def selected_plugin(self) -> str:
-        """ Return the plugin name of the user-selected index.
-        """
+        """Return the plugin name of the user-selected index."""
         return self.model.get_plugin_name(self.currentIndex())
 
     def selected_plugins(self) -> pandas.DataFrame:

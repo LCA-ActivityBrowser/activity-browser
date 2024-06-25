@@ -1,10 +1,10 @@
-from typing import Union, Callable
+from typing import Callable, Union
 
 from PySide2 import QtCore, QtWidgets
 
-from activity_browser import application, signals, log
-from activity_browser.mod import bw2data as bd
+from activity_browser import application, log, signals
 from activity_browser.actions.base import ABAction, exception_dialogs
+from activity_browser.mod import bw2data as bd
 from activity_browser.ui.icons import qicons
 
 
@@ -14,6 +14,7 @@ class CSDuplicate(ABAction):
     with the same name is already present within the project. If all is right, instructs the CalculationSetupController
     to duplicate the CS.
     """
+
     icon = qicons.copy
     text = "Duplicate"
 
@@ -24,18 +25,19 @@ class CSDuplicate(ABAction):
         new_name, ok = QtWidgets.QInputDialog.getText(
             application.main_window,
             f"Duplicate '{cs_name}'",
-            "Name of the duplicated calculation setup:" + " " * 10
+            "Name of the duplicated calculation setup:" + " " * 10,
         )
 
         # return if the user cancels or gives no name
-        if not ok or not new_name: return
+        if not ok or not new_name:
+            return
 
         # throw error if the name is already present, and return
         if new_name in bd.calculation_setups:
             QtWidgets.QMessageBox.warning(
                 application.main_window,
                 "Not possible",
-                "A calculation setup with this name already exists."
+                "A calculation setup with this name already exists.",
             )
             return
 

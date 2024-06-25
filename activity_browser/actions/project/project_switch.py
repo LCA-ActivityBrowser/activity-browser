@@ -1,12 +1,13 @@
 from activity_browser import log
-from activity_browser.mod import bw2data as bd
 from activity_browser.actions.base import ABAction, exception_dialogs
+from activity_browser.mod import bw2data as bd
 
 
 class ProjectSwitch(ABAction):
     """
     ABAction to switch to another project.
     """
+
     text = "Switch project"
     tool_tip = "Switch the project"
 

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from .models import LCAResultsModel, InventoryModel, ContributionModel
+from .models import ContributionModel, InventoryModel, LCAResultsModel
 from .views import ABDataFrameView, ABFilterableDataFrameView
 
 
@@ -24,7 +24,7 @@ class InventoryTable(ABFilterableDataFrameView):
         self.filters_bio = None
 
     def update_filter_data(self) -> None:
-        if self.showing == 'technosphere':
+        if self.showing == "technosphere":
             self.filters = self.filters_tec
         else:
             self.filters = self.filters_bio
@@ -36,7 +36,7 @@ class InventoryTable(ABFilterableDataFrameView):
         self.apply_filters()
 
     def write_filters(self, filters: dict) -> None:
-        if self.showing == 'technosphere':
+        if self.showing == "technosphere":
             self.filters_tec = filters
         else:
             self.filters_bio = filters

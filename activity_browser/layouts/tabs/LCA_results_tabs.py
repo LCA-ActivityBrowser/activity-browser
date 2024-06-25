@@ -8,33 +8,29 @@ from collections import namedtuple
 from typing import List, Optional, Union
 
 import pandas as pd
-from PySide2 import QtGui, QtCore
-from PySide2.QtWidgets import (
-    QWidget, QTabWidget, QVBoxLayout, QHBoxLayout, QScrollArea, QRadioButton,
-    QLabel, QLineEdit, QCheckBox, QPushButton, QComboBox, QTableView,
-    QButtonGroup, QMessageBox, QGroupBox, QGridLayout, QFileDialog,
-    QApplication, QToolBar
-)
+from PySide2 import QtCore, QtGui
+from PySide2.QtWidgets import (QApplication, QButtonGroup, QCheckBox,
+                               QComboBox, QFileDialog, QGridLayout, QGroupBox,
+                               QHBoxLayout, QLabel, QLineEdit, QMessageBox,
+                               QPushButton, QRadioButton, QScrollArea,
+                               QTableView, QTabWidget, QToolBar, QVBoxLayout,
+                               QWidget)
 from stats_arrays.errors import InvalidParamsError
 
 from activity_browser import log, signals
 from activity_browser.mod.bw2data import calculation_setups
 
-from .base import BaseRightTab
-from ...bwutils import (
-    Contributions, MonteCarloLCA, MLCA,
-    SuperstructureMLCA, GlobalSensitivityAnalysis,
-    commontasks as bc,
-    calculations,
-)
-from ...ui.figures import (
-    LCAResultsPlot, ContributionPlot, CorrelationPlot, LCAResultsBarChart, MonteCarloPlot
-)
+from ...bwutils import (MLCA, Contributions, GlobalSensitivityAnalysis,
+                        MonteCarloLCA, SuperstructureMLCA, calculations)
+from ...bwutils import commontasks as bc
+from ...ui.figures import (ContributionPlot, CorrelationPlot,
+                           LCAResultsBarChart, LCAResultsPlot, MonteCarloPlot)
 from ...ui.icons import qicons
-from ...ui.style import horizontal_line, vertical_line, header
+from ...ui.style import header, horizontal_line, vertical_line
 from ...ui.tables import ContributionTable, InventoryTable, LCAResultsTable
-from ...ui.widgets import CutoffMenu, SwitchComboBox
 from ...ui.web import SankeyNavigatorWidget
+from ...ui.widgets import CutoffMenu, SwitchComboBox
+from .base import BaseRightTab
 
 
 def get_header_layout(header_text: str) -> QVBoxLayout:
@@ -70,10 +66,17 @@ ExportTable = namedtuple("export_table", ("label", "copy", "csv", "excel"))
 ExportPlot = namedtuple("export_plot", ("label", "png", "svg"))
 PlotTableCheck = namedtuple("plot_table_space", ("plot", "table", "invert"))
 Combobox = namedtuple(
-    "combobox_menu", (
-        "func", "func_label", "method", "method_label",
-        "agg", "agg_label", "scenario", "scenario_label",
-    )
+    "combobox_menu",
+    (
+        "func",
+        "func_label",
+        "method",
+        "method_label",
+        "agg",
+        "agg_label",
+        "scenario",
+        "scenario_label",
+    ),
 )
 
 
@@ -90,9 +93,9 @@ class LCAResultsSubTab(QTabWidget):
     def __init__(self, data: dict, parent=None):
         super().__init__(parent)
         self.data = data
-        self.cs_name = self.data.get('cs_name')
+        self.cs_name = self.data.get("cs_name")
         self.cs = calculation_setups[self.cs_name]
-        self.has_scenarios = False if data.get('calculation_type') == 'simple' else True
+        self.has_scenarios = False if data.get("calculation_type") == "simple" else True
         self.mlca: Optional[Union[MLCA, SuperstructureMLCA]] = None
         self.contributions: Optional[Contributions] = None
         self.mc: Optional[MonteCarloLCA] = None
@@ -116,7 +119,9 @@ class LCAResultsSubTab(QTabWidget):
             ef=ElementaryFlowContributionTab(self),
             process=ProcessContributionsTab(self),
             sankey=SankeyNavigatorWidget(self.cs_name, parent=self),
-            mc=MonteCarloTab(self),  # mc=None if self.mc is None else MonteCarloTab(self),
+            mc=MonteCarloTab(
+                self
+            ),  # mc=None if self.mc is None else MonteCarloTab(self),
             gsa=GSATab(self),
         )
         self.tab_names = Tabs(
@@ -164,7 +169,7 @@ class LCAResultsSubTab(QTabWidget):
     def generate_content_on_click(self, index):
         if index == self.indexOf(self.tabs.sankey):
             if not self.tabs.sankey.has_sankey:
-                log.info('Generating Sankey Tab')
+                log.info("Generating Sankey Tab")
                 self.tabs.sankey.new_sankey()
 
     @QtCore.Slot(name="lciaScenarioExport")
@@ -220,11 +225,11 @@ class NewAnalysisTab(BaseRightTab):
         space.setWidgetResizable(True)
 
         # Option switches
-        self.plot_table = PlotTableCheck(
-            QCheckBox("Plot"), QCheckBox("Table"), None
-        )
+        self.plot_table = PlotTableCheck(QCheckBox("Plot"), QCheckBox("Table"), None)
         if invertable:
-            self.plot_table = PlotTableCheck(QCheckBox("Plot"), QCheckBox("Table"), QCheckBox("Invert"))
+            self.plot_table = PlotTableCheck(
+                QCheckBox("Plot"), QCheckBox("Table"), QCheckBox("Invert")
+            )
             self.plot_table.invert.setChecked(False)
             self.plot_table.invert.stateChanged.connect(self.invert_plot)
         self.plot_table.plot.setChecked(True)
@@ -323,7 +328,9 @@ class NewAnalysisTab(BaseRightTab):
         self.export_plot.png.clicked.connect(self.plot.to_png)
         self.export_plot.svg.clicked.connect(self.plot.to_svg)
 
-    def build_export(self, has_table: bool = True, has_plot: bool = True) -> QHBoxLayout:
+    def build_export(
+        self, has_table: bool = True, has_plot: bool = True
+    ) -> QHBoxLayout:
         """Construct a custom export button layout.
 
         Produces layout with buttons for export of relevant sections (plot, table).
@@ -392,8 +399,7 @@ class InventoryTab(NewAnalysisTab):
         self.df_biosphere = None
         self.df_technosphere = None
 
-
-        self.layout.addLayout(get_header_layout('Inventory'))
+        self.layout.addLayout(get_header_layout("Inventory"))
         self.bio_tech_button_group = QButtonGroup()
         self.bio_categorisation_factor_group = QComboBox()
         # buttons
@@ -405,28 +411,38 @@ class InventoryTab(NewAnalysisTab):
         self.remove_zeros_checkbox = QCheckBox("Remove '0' values")
         self.remove_zero_state = False
 
-        self.categorisation_factor_filters = ["No filtering with categorisation factors",\
-                                                "Flows without categorisation factors", \
-                                                "Flows with categorisation factors"]
+        self.categorisation_factor_filters = [
+            "No filtering with categorisation factors",
+            "Flows without categorisation factors",
+            "Flows with categorisation factors",
+        ]
         self.categorisation_factor_state = None
         self.old_categorisation_factor_state = self.categorisation_factor_state
 
         self.last_remove_zero_state = self.remove_zero_state
         self.remove_zeros_checkbox.setChecked(self.remove_zero_state)
-        self.remove_zeros_checkbox.setToolTip("Choose whether to show '0' values or not.\n"
-                                              "When selected, '0' values are not shown.\n"
-                                              "Rows are only removed when all reference flows are '0'.")
+        self.remove_zeros_checkbox.setToolTip(
+            "Choose whether to show '0' values or not.\n"
+            "When selected, '0' values are not shown.\n"
+            "Rows are only removed when all reference flows are '0'."
+        )
         self.scenario_label = QLabel("Scenario:")
 
         # Group the radio buttons into the appropriate groups for the window
-        self.update_combobox(self.bio_categorisation_factor_group, self.categorisation_factor_filters)
+        self.update_combobox(
+            self.bio_categorisation_factor_group, self.categorisation_factor_filters
+        )
         self.bio_categorisation_factor_group.setMaximumWidth(300)
-        self.bio_categorisation_factor_group.setSizeAdjustPolicy(QComboBox.AdjustToContentsOnFirstShow)
+        self.bio_categorisation_factor_group.setSizeAdjustPolicy(
+            QComboBox.AdjustToContentsOnFirstShow
+        )
 
         # Setup the Qt environment for the buttons, including the arrangement
         self.categorisation_filter_layout = QVBoxLayout()
         self.categorisation_filter_layout.addWidget(QLabel("Filter flows:"))
-        self.categorisation_filter_layout.addWidget(self.bio_categorisation_factor_group)
+        self.categorisation_filter_layout.addWidget(
+            self.bio_categorisation_factor_group
+        )
         self.categorisation_filter_box = QWidget()
         self.categorisation_filter_box.setLayout(self.categorisation_filter_layout)
         self.categorisation_filter_box.setVisible(True)
@@ -442,7 +458,7 @@ class InventoryTab(NewAnalysisTab):
         self.layout.addWidget(self.categorisation_filter_box)
         # table
         self.table = InventoryTable(self.parent)
-        self.table.table_name = 'Inventory_' + self.parent.cs_name
+        self.table.table_name = "Inventory_" + self.parent.cs_name
         self.layout.addWidget(self.table)
 
         self.layout.addLayout(self.build_export(has_plot=False, has_table=True))
@@ -451,20 +467,32 @@ class InventoryTab(NewAnalysisTab):
     def connect_signals(self):
         self.radio_button_biosphere.toggled.connect(self.button_clicked)
         self.remove_zeros_checkbox.toggled.connect(self.remove_zeros_checked)
-        self.bio_tech_button_group.buttonClicked.connect(self.toggle_categorisation_factor_filter_buttons)
-        self.bio_categorisation_factor_group.activated.connect(self.add_categorisation_factor_filter)
+        self.bio_tech_button_group.buttonClicked.connect(
+            self.toggle_categorisation_factor_filter_buttons
+        )
+        self.bio_categorisation_factor_group.activated.connect(
+            self.add_categorisation_factor_filter
+        )
         if self.has_scenarios:
-            self.scenario_box.currentIndexChanged.connect(self.parent.update_scenario_data)
+            self.scenario_box.currentIndexChanged.connect(
+                self.parent.update_scenario_data
+            )
             self.parent.update_scenario_box_index.connect(
                 lambda index: self.set_combobox_index(self.scenario_box, index)
             )
 
     @QtCore.Slot(QRadioButton, name="addCategorisationFactorFilter")
     def add_categorisation_factor_filter(self, index: int):
-        if self.bio_categorisation_factor_group.currentText() ==  "Flows without categorisation factors":
+        if (
+            self.bio_categorisation_factor_group.currentText()
+            == "Flows without categorisation factors"
+        ):
             self.categorisation_filter_with_flows = False
             self.categorisation_factor_state = False
-        elif self.bio_categorisation_factor_group.currentText() == "Flows with categorisation factors":
+        elif (
+            self.bio_categorisation_factor_group.currentText()
+            == "Flows with categorisation factors"
+        ):
             self.categorisation_filter_with_flows = True
             self.categorisation_factor_state = True
         else:
@@ -505,46 +533,65 @@ class InventoryTab(NewAnalysisTab):
         self.clear_tables()
         super().update_tab()
 
-    def elementary_flows_contributing_to_IA_methods(self, contributary: bool = True, bios: pd.DataFrame = None) -> pd.DataFrame:
+    def elementary_flows_contributing_to_IA_methods(
+        self, contributary: bool = True, bios: pd.DataFrame = None
+    ) -> pd.DataFrame:
         """Returns a biosphere dataframe filtered for the presence in the impact assessment methods
         Requires a boolean argument for whether those flows included in the impact assessment method
         should be returned (True), or not (False)
         """
-        incl_flows = {self.parent.contributions.inventory_data['biosphere'][1][k] for mthd in self.parent.mlca.method_matrices for k in mthd.indices}
+        incl_flows = {
+            self.parent.contributions.inventory_data["biosphere"][1][k]
+            for mthd in self.parent.mlca.method_matrices
+            for k in mthd.indices
+        }
         data = bios if bios is not None else self.df_biosphere
         if contributary:
             flows = incl_flows
         else:
-            flows = (set(self.parent.contributions.inventory_data['biosphere'][1].values())).difference(incl_flows)
+            flows = (
+                set(self.parent.contributions.inventory_data["biosphere"][1].values())
+            ).difference(incl_flows)
         new_flows = [flow[1] for flow in flows]
 
-        return data.loc[data['code'].isin(new_flows)]
-
+        return data.loc[data["code"].isin(new_flows)]
 
     def update_table(self):
         """Update the table."""
-        inventory = "biosphere" if self.radio_button_biosphere.isChecked() else "technosphere"
+        inventory = (
+            "biosphere" if self.radio_button_biosphere.isChecked() else "technosphere"
+        )
         self.table.showing = inventory
         # We handle both 'df_biosphere' and 'df_technosphere' variables here.
         attr_name = "df_{}".format(inventory)
-        if getattr(self, attr_name) is None or self.remove_zero_state != self.last_remove_zero_state \
-                or self.old_categorisation_factor_state != self.categorisation_factor_state:
-            setattr(self, attr_name, self.parent.contributions.inventory_df(
-                inventory_type=inventory)
-                    )
+        if (
+            getattr(self, attr_name) is None
+            or self.remove_zero_state != self.last_remove_zero_state
+            or self.old_categorisation_factor_state != self.categorisation_factor_state
+        ):
+            setattr(
+                self,
+                attr_name,
+                self.parent.contributions.inventory_df(inventory_type=inventory),
+            )
 
         # filter the biosphere flows for the relevance to the CFs
-        if self.categorisation_filter_with_flows is not None and inventory == "biosphere":
-            self.df_biosphere = self.elementary_flows_contributing_to_IA_methods(self.categorisation_filter_with_flows, self.df_biosphere)
+        if (
+            self.categorisation_filter_with_flows is not None
+            and inventory == "biosphere"
+        ):
+            self.df_biosphere = self.elementary_flows_contributing_to_IA_methods(
+                self.categorisation_filter_with_flows, self.df_biosphere
+            )
 
         # filter the flows to remove those that have relevant exchanges
         def filter_zeroes(df):
-            filter_on = [x for x in df.columns.tolist() if '|' in x]
+            filter_on = [x for x in df.columns.tolist() if "|" in x]
             return df[df[filter_on].sum(axis=1) != 0].reset_index(drop=True)
 
-        if self.remove_zero_state and getattr(self, 'df_biosphere') is not None:
+        if self.remove_zero_state and getattr(self, "df_biosphere") is not None:
             self.df_biosphere = filter_zeroes(self.df_biosphere)
-        if self.remove_zero_state and getattr(self, 'df_technosphere') is not None:
+        if self.remove_zero_state and getattr(self, "df_technosphere") is not None:
             self.df_technosphere = filter_zeroes(self.df_technosphere)
 
         self._update_table(getattr(self, attr_name))
@@ -553,9 +600,10 @@ class InventoryTab(NewAnalysisTab):
         """Set the biosphere and technosphere to None."""
         self.df_biosphere, self.df_technosphere = None, None
 
-    def _update_table(self, table: pd.DataFrame, drop: str = 'code'):
+    def _update_table(self, table: pd.DataFrame, drop: str = "code"):
         """Update the table."""
         self.table.model.sync((table.drop(drop, axis=1)).reset_index(drop=True))
+
 
 class LCAResultsTab(NewAnalysisTab):
     """Class for the 'LCA Results' sub-tab.
@@ -575,18 +623,20 @@ class LCAResultsTab(NewAnalysisTab):
         self.lca_overview_widget = LCIAResultsTab(parent)
 
         self.layout.setAlignment(QtCore.Qt.AlignTop)
-        self.layout.addLayout(get_header_layout('LCA Results'))
+        self.layout.addLayout(get_header_layout("LCA Results"))
 
         # buttons
         button_layout = QHBoxLayout()
         self.button_group = QButtonGroup()
         self.button_overview = QRadioButton("Overview")
         self.button_overview.setToolTip(
-            "Show a matrix of all reference flows and all impact categories")
+            "Show a matrix of all reference flows and all impact categories"
+        )
         button_layout.addWidget(self.button_overview)
         self.button_by_method = QRadioButton("by impact category")
         self.button_by_method.setToolTip(
-            "Show the impacts of each reference flow for the selected impact categories")
+            "Show the impacts of each reference flow for the selected impact categories"
+        )
         self.button_by_method.setChecked(True)
         self.scenario_label = QLabel("Scenario:")
         self.button_group.addButton(self.button_overview, 0)
@@ -606,7 +656,9 @@ class LCAResultsTab(NewAnalysisTab):
     def connect_signals(self):
         self.button_overview.toggled.connect(self.button_clicked)
         if self.has_scenarios:
-            self.scenario_box.currentIndexChanged.connect(self.parent.update_scenario_data)
+            self.scenario_box.currentIndexChanged.connect(
+                self.parent.update_scenario_data
+            )
             self.parent.update_scenario_box_index.connect(
                 lambda index: self.set_combobox_index(self.scenario_box, index)
             )
@@ -651,7 +703,7 @@ class LCAScoresTab(NewAnalysisTab):
         self.layout.addLayout(self.combobox_menu)
 
         self.plot = LCAResultsBarChart(self.parent)
-        self.plot.plot_name = 'LCA scores_' + self.parent.cs_name
+        self.plot.plot_name = "LCA scores_" + self.parent.cs_name
         self.layout.addWidget(self.plot)
 
         self.layout.addLayout(self.build_export(has_plot=True, has_table=False))
@@ -661,7 +713,9 @@ class LCAScoresTab(NewAnalysisTab):
     def connect_signals(self):
         self.combobox.currentIndexChanged.connect(self.update_plot)
 
-    def build_export(self, has_table: bool = True, has_plot: bool = True) -> QHBoxLayout:
+    def build_export(
+        self, has_table: bool = True, has_plot: bool = True
+    ) -> QHBoxLayout:
         """Add 3d excel export if scenario-type LCA is performed."""
         layout = super().build_export(has_table, has_plot)
         if self.has_scenarios:
@@ -671,7 +725,9 @@ class LCAScoresTab(NewAnalysisTab):
             exp_layout = QHBoxLayout()
             exp_layout.addWidget(QLabel("Export all data"))
             btn = QPushButton("Excel")
-            btn.setToolTip("Include all reference flows, impact categories and scenarios")
+            btn.setToolTip(
+                "Include all reference flows, impact categories and scenarios"
+            )
             if self.parent:
                 btn.clicked.connect(self.parent.generate_lcia_scenario_export)
             exp_layout.addWidget(btn)
@@ -691,7 +747,7 @@ class LCAScoresTab(NewAnalysisTab):
         method = self.parent.mlca.methods[method_index]
         df = self.parent.mlca.get_results_for_method(method_index)
         labels = [
-            bc.format_activity_label(next(iter(fu.keys())), style='pnld')
+            bc.format_activity_label(next(iter(fu.keys())), style="pnld")
             for fu in self.parent.mlca.func_units
         ]
         idx = self.layout.indexOf(self.plot)
@@ -701,7 +757,7 @@ class LCAScoresTab(NewAnalysisTab):
         self.layout.insertWidget(idx, self.plot)
         super().update_plot(df, method=method, labels=labels)
         self.updateGeometry()
-        self.plot.plot_name = '_'.join([self.parent.cs_name, 'LCA scores', str(method)])
+        self.plot.plot_name = "_".join([self.parent.cs_name, "LCA scores", str(method)])
 
 
 class LCIAResultsTab(NewAnalysisTab):
@@ -715,15 +771,17 @@ class LCIAResultsTab(NewAnalysisTab):
 
         # if not self.parent.single_func_unit:
         self.plot = LCAResultsPlot(self.parent)
-        self.plot.plot_name = self.parent.cs_name + '_LCIA results'
+        self.plot.plot_name = self.parent.cs_name + "_LCIA results"
         self.table = LCAResultsTable(self.parent)
-        self.table.table_name = self.parent.cs_name + '_LCIA results'
+        self.table.table_name = self.parent.cs_name + "_LCIA results"
         self.relative = False
 
         self.layout.addWidget(self.build_main_space(True))
         self.layout.addLayout(self.build_export(True, True))
 
-    def build_export(self, has_table: bool = True, has_plot: bool = True) -> QHBoxLayout:
+    def build_export(
+        self, has_table: bool = True, has_plot: bool = True
+    ) -> QHBoxLayout:
         """Add 3d excel export if scenario-type LCA is performed."""
         layout = super().build_export(has_table, has_plot)
         if self.has_scenarios:
@@ -733,7 +791,9 @@ class LCIAResultsTab(NewAnalysisTab):
             exp_layout = QHBoxLayout()
             exp_layout.addWidget(QLabel("Export all data"))
             btn = QPushButton("Excel")
-            btn.setToolTip("Include all reference flows, impact categories and scenarios")
+            btn.setToolTip(
+                "Include all reference flows, impact categories and scenarios"
+            )
             if self.parent:
                 btn.clicked.connect(self.parent.generate_lcia_scenario_export)
             exp_layout.addWidget(btn)
@@ -787,9 +847,11 @@ class ContributionTab(NewAnalysisTab):
         self.relativity.relative.setChecked(True)
         self.relative = True
         self.relativity.relative.setToolTip(
-            "Show relative values (compare fraction of each contribution)")
+            "Show relative values (compare fraction of each contribution)"
+        )
         self.relativity.absolute.setToolTip(
-            "Show absolute values (compare magnitudes of each contribution)")
+            "Show absolute values (compare magnitudes of each contribution)"
+        )
 
         self.df = None
         self.plot = ContributionPlot()
@@ -802,13 +864,18 @@ class ContributionTab(NewAnalysisTab):
         """Given a dictionary of fields, put together a usable filename for the plot and table."""
         optional = optional_fields or {}
         fields = (
-            self.parent.cs_name, self.contribution_fn, optional.get("method"),
-            optional.get("functional_unit"), self.unit
+            self.parent.cs_name,
+            self.contribution_fn,
+            optional.get("method"),
+            optional.get("functional_unit"),
+            self.unit,
         )
-        filename = '_'.join((str(x) for x in fields if x is not None))
+        filename = "_".join((str(x) for x in fields if x is not None))
         self.plot.plot_name, self.table.table_name = filename, filename
 
-    def build_combobox(self, has_method: bool = True, has_func: bool = False) -> QHBoxLayout:
+    def build_combobox(
+        self, has_method: bool = True, has_func: bool = False
+    ) -> QHBoxLayout:
         """Construct a horizontal layout for picking and choosing what data to show and how."""
         menu = QHBoxLayout()
         # Populate the drop-down boxes with their relevant values.
@@ -882,7 +949,7 @@ class ContributionTab(NewAnalysisTab):
         if scenario < 0:
             scenario = 0
         # set aggregator to None if unwanted
-        if aggregator == 'none':
+        if aggregator == "none":
             aggregator = None
 
         # initiate dict with the field we want to compare
@@ -890,20 +957,18 @@ class ContributionTab(NewAnalysisTab):
 
         # Determine which comparison is active and update the comparison.
         if self.switches.currentIndex() == self.switches.indexes.func:
-            compare_fields.update({
-                "method": method,
-                "scenario": scenario
-            })
+            compare_fields.update({"method": method, "scenario": scenario})
         elif self.switches.currentIndex() == self.switches.indexes.method:
-            compare_fields.update({
-                "functional_unit": functional_unit,
-                "scenario": scenario
-            })
+            compare_fields.update(
+                {"functional_unit": functional_unit, "scenario": scenario}
+            )
         elif self.switches.currentIndex() == self.switches.indexes.scenario:
-            compare_fields.update({
-                "method": method,
-                "functional_unit": functional_unit,
-            })
+            compare_fields.update(
+                {
+                    "method": method,
+                    "functional_unit": functional_unit,
+                }
+            )
 
         # Determine the unit for the figure, update the filenames and the
         # underlying dataframe.
@@ -971,7 +1036,7 @@ class ElementaryFlowContributionTab(ContributionTab):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        self.layout.addLayout(get_header_layout('Elementary Flow Contributions'))
+        self.layout.addLayout(get_header_layout("Elementary Flow Contributions"))
         self.layout.addWidget(self.cutoff_menu)
         self.layout.addWidget(horizontal_line())
         combobox = self.build_combobox(has_method=True, has_func=True)
@@ -980,21 +1045,24 @@ class ElementaryFlowContributionTab(ContributionTab):
         self.layout.addWidget(self.build_main_space())
         self.layout.addLayout(self.build_export(True, True))
 
-        self.contribution_fn = 'EF contributions'
+        self.contribution_fn = "EF contributions"
         self.switches.configure(self.has_func, self.has_method)
         self.connect_signals()
         self.toggle_comparisons(self.switches.indexes.func)
 
-    def build_combobox(self, has_method: bool = True,
-                       has_func: bool = False) -> QHBoxLayout:
+    def build_combobox(
+        self, has_method: bool = True, has_func: bool = False
+    ) -> QHBoxLayout:
         self.combobox_menu.agg.addItems(self.parent.contributions.DEFAULT_EF_AGGREGATES)
         return super().build_combobox(has_method, has_func)
 
     def update_dataframe(self, *args, **kwargs):
         """Retrieve the top elementary flow contributions."""
         return self.parent.contributions.top_elementary_flow_contributions(
-            **kwargs, limit=self.cutoff_menu.cutoff_value,
-            limit_type=self.cutoff_menu.limit_type, normalize=self.relative
+            **kwargs,
+            limit=self.cutoff_menu.cutoff_value,
+            limit_type=self.cutoff_menu.limit_type,
+            normalize=self.relative
         )
 
 
@@ -1020,7 +1088,7 @@ class ProcessContributionsTab(ContributionTab):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        self.layout.addLayout(get_header_layout('Process Contributions'))
+        self.layout.addLayout(get_header_layout("Process Contributions"))
         self.layout.addWidget(self.cutoff_menu)
         self.layout.addWidget(horizontal_line())
         combobox = self.build_combobox(has_method=True, has_func=True)
@@ -1029,21 +1097,26 @@ class ProcessContributionsTab(ContributionTab):
         self.layout.addWidget(self.build_main_space())
         self.layout.addLayout(self.build_export(True, True))
 
-        self.contribution_fn = 'Process contributions'
+        self.contribution_fn = "Process contributions"
         self.switches.configure(self.has_func, self.has_method)
         self.connect_signals()
         self.toggle_comparisons(self.switches.indexes.func)
 
-    def build_combobox(self, has_method: bool = True,
-                       has_func: bool = False) -> QHBoxLayout:
-        self.combobox_menu.agg.addItems(self.parent.contributions.DEFAULT_ACT_AGGREGATES)
+    def build_combobox(
+        self, has_method: bool = True, has_func: bool = False
+    ) -> QHBoxLayout:
+        self.combobox_menu.agg.addItems(
+            self.parent.contributions.DEFAULT_ACT_AGGREGATES
+        )
         return super().build_combobox(has_method, has_func)
 
     def update_dataframe(self, *args, **kwargs):
         """Retrieve the top process contributions"""
         return self.parent.contributions.top_process_contributions(
-            **kwargs, limit=self.cutoff_menu.cutoff_value,
-            limit_type=self.cutoff_menu.limit_type, normalize=self.relative
+            **kwargs,
+            limit=self.cutoff_menu.cutoff_value,
+            limit_type=self.cutoff_menu.limit_type,
+            normalize=self.relative
         )
 
 
@@ -1053,15 +1126,17 @@ class CorrelationsTab(NewAnalysisTab):
         self.parent = parent
 
         self.tab_text = "Correlations"
-        self.layout.addLayout(get_header_layout('Correlation Analysis'))
+        self.layout.addLayout(get_header_layout("Correlation Analysis"))
 
         if not self.parent.single_func_unit:
             self.plot = CorrelationPlot(self.parent)
 
         self.layout.addWidget(self.build_main_space())
-        self.layout.addLayout(self.build_export(
-            has_table=False, has_plot=not self.parent.single_func_unit
-        ))
+        self.layout.addLayout(
+            self.build_export(
+                has_table=False, has_plot=not self.parent.single_func_unit
+            )
+        )
 
     def update_plot(self):
         """Update the plot."""
@@ -1090,7 +1165,11 @@ class MonteCarloTab(NewAnalysisTab):
         _header = header("Monte Carlo Simulation")
         _header.setToolTip("Left click on the question mark for help")
         header_.addWidget(_header)
-        header_.addAction(qicons.question, "Left click for help on Monte Carlo analysis", self.explanation)
+        header_.addAction(
+            qicons.question,
+            "Left click for help on Monte Carlo analysis",
+            self.explanation,
+        )
         self.layout.addWidget(header_)
         self.scenario_label = QLabel("Scenario:")
         self.include_box = QGroupBox("Include uncertainty for:", self)
@@ -1112,16 +1191,16 @@ class MonteCarloTab(NewAnalysisTab):
         self.add_MC_ui_elements()
 
         self.table = LCAResultsTable()
-        self.table.table_name = 'MonteCarlo_' + self.parent.cs_name
+        self.table.table_name = "MonteCarlo_" + self.parent.cs_name
         self.plot = MonteCarloPlot(self.parent)
         self.plot.hide()
-        self.plot.plot_name = 'MonteCarlo_' + self.parent.cs_name
+        self.plot.plot_name = "MonteCarlo_" + self.parent.cs_name
         self.layout.addWidget(self.plot)
         self.export_widget = self.build_export(has_plot=True, has_table=True)
         self.layout.addWidget(self.export_widget)
         self.layout.setAlignment(QtCore.Qt.AlignTop)
         self.connect_signals()
-        self.explain_text = '''
+        self.explain_text = """
             <p><b>Monte Carlo Analyses</b></p>
             <p><b>Monte Carlo</b> simulations generate stochastic data samples using existing data defined parameter 
             distributions for generating the expected distribution for the reference flows. </p>
@@ -1131,7 +1210,7 @@ class MonteCarloTab(NewAnalysisTab):
             distribution, expressing the expected variance, for the reference flows.</p>
              <p><a href="https://github.com/LCA-ActivityBrowser/activity-browser/wiki/Monte-Carlo-Simulation">More 
              information can be found here</a></p>
-        '''
+        """
 
     def connect_signals(self):
         self.button_run.clicked.connect(self.calculate_mc_lca)
@@ -1147,7 +1226,9 @@ class MonteCarloTab(NewAnalysisTab):
         # self.radio_button_technosphere.clicked.connect(self.button_clicked)
 
         if self.has_scenarios:
-            self.scenario_box.currentIndexChanged.connect(self.parent.update_scenario_data)
+            self.scenario_box.currentIndexChanged.connect(
+                self.parent.update_scenario_data
+            )
             self.parent.update_scenario_box_index.connect(
                 lambda index: self.set_combobox_index(self.scenario_box, index)
             )
@@ -1156,15 +1237,17 @@ class MonteCarloTab(NewAnalysisTab):
         layout_mc = QVBoxLayout()
 
         # H-LAYOUT start simulation
-        self.button_run = QPushButton('Run')
-        self.label_iterations = QLabel('Iterations:')
-        self.iterations = QLineEdit('30')
+        self.button_run = QPushButton("Run")
+        self.label_iterations = QLabel("Iterations:")
+        self.iterations = QLineEdit("30")
         self.iterations.setFixedWidth(40)
         self.iterations.setValidator(QtGui.QIntValidator(1, 1000))
-        self.label_seed = QLabel('Random seed:')
-        self.label_seed.setToolTip('Seed value (integer) for the random number generator. '
-                                   'Use this for reproducible samples.')
-        self.seed = QLineEdit('')
+        self.label_seed = QLabel("Random seed:")
+        self.label_seed.setToolTip(
+            "Seed value (integer) for the random number generator. "
+            "Use this for reproducible samples."
+        )
+        self.seed = QLineEdit("")
         self.seed.setFixedWidth(30)
 
         self.hlayout_run = QHBoxLayout()
@@ -1207,7 +1290,7 @@ class MonteCarloTab(NewAnalysisTab):
 
         # method selection
         self.method_selection_widget = QWidget()
-        self.label_methods = QLabel('Choose impact category')
+        self.label_methods = QLabel("Choose impact category")
         self.combobox_methods = QComboBox()
         self.hlayout_methods = QHBoxLayout()
 
@@ -1223,7 +1306,7 @@ class MonteCarloTab(NewAnalysisTab):
 
     def build_export(self, has_table: bool = True, has_plot: bool = True) -> QWidget:
         """Construct the export layout but set it into a widget because we
-         want to hide it."""
+        want to hide it."""
         export_layout = super().build_export(has_table, has_plot)
         export_widget = QWidget()
         export_widget.setLayout(export_layout)
@@ -1240,13 +1323,19 @@ class MonteCarloTab(NewAnalysisTab):
         iterations = int(self.iterations.text())
         seed = None
         if self.seed.text():
-            log.info('SEED: ', self.seed.text())
+            log.info("SEED: ", self.seed.text())
             try:
                 seed = int(self.seed.text())
             except ValueError as e:
-                log.error('Seed value must be an integer number or left empty.', error=e)
-                QMessageBox.warning(self, 'Warning', 'Seed value must be an integer number or left empty.')
-                self.seed.setText('')
+                log.error(
+                    "Seed value must be an integer number or left empty.", error=e
+                )
+                QMessageBox.warning(
+                    self,
+                    "Warning",
+                    "Seed value must be an integer number or left empty.",
+                )
+                self.seed.setText("")
                 return
         includes = {
             "technosphere": self.include_tech.isChecked(),
@@ -1260,10 +1349,14 @@ class MonteCarloTab(NewAnalysisTab):
             self.parent.mc.calculate(iterations=iterations, seed=seed, **includes)
             signals.monte_carlo_finished.emit()
             self.update_mc()
-        except InvalidParamsError as e:  # This can occur if uncertainty data is missing or otherwise broken
+        except (
+            InvalidParamsError
+        ) as e:  # This can occur if uncertainty data is missing or otherwise broken
             # print(e)
             log.error(error=e)
-            QMessageBox.warning(self, 'Could not perform Monte Carlo simulation', str(e))
+            QMessageBox.warning(
+                self, "Could not perform Monte Carlo simulation", str(e)
+            )
         QApplication.restoreOverrideCursor()
 
         # a threaded way for this - unfortunatley this crashes as:
@@ -1325,7 +1418,9 @@ class MonteCarloTab(NewAnalysisTab):
         self.scenario_label.setVisible(self.has_scenarios)
 
     def update_tab(self):
-        self.update_combobox(self.combobox_methods, [str(m) for m in self.parent.mc.methods])
+        self.update_combobox(
+            self.combobox_methods, [str(m) for m in self.parent.mc.methods]
+        )
         # self.update_combobox(self.combobox_methods, [str(m) for m in self.parent.mct.mc.methods])
 
     def update_mc(self, cs_name=None):
@@ -1347,7 +1442,9 @@ class MonteCarloTab(NewAnalysisTab):
 
         self.update_table()
         self.update_plot(method=method)
-        filename = '_'.join([str(x) for x in [self.parent.cs_name, 'Monte Carlo results', str(method)]])
+        filename = "_".join(
+            [str(x) for x in [self.parent.cs_name, "Monte Carlo results", str(method)]]
+        )
         self.plot.plot_name, self.table.table_name = filename, filename
 
     def update_plot(self, method):
@@ -1379,7 +1476,11 @@ class GSATab(NewAnalysisTab):
         _header = header("Global Sensitivity Analysis")
         _header.setToolTip("Left click on the question mark for help")
         header_.addWidget(_header)
-        header_.addAction(qicons.question, "Left click for help on Global Sensitivity Analysis", self.explanation)
+        header_.addAction(
+            qicons.question,
+            "Left click for help on Global Sensitivity Analysis",
+            self.explanation,
+        )
 
         self.layout.addWidget(header_)
         self.scenario_box = None
@@ -1387,7 +1488,7 @@ class GSATab(NewAnalysisTab):
         self.add_GSA_ui_elements()
 
         self.table = LCAResultsTable()
-        self.table.table_name = 'GSA_' + self.parent.cs_name
+        self.table.table_name = "GSA_" + self.parent.cs_name
         self.layout.addWidget(self.table)
         self.table.hide()
         # self.plot = MonteCarloPlot(self.parent)
@@ -1400,7 +1501,7 @@ class GSATab(NewAnalysisTab):
         self.layout.setAlignment(QtCore.Qt.AlignTop)
         self.connect_signals()
 
-        self.explain_text = '''
+        self.explain_text = """
             <p><b>Global Sensitivity Analysis (GSA)</b> is a family of methods that, used in conjunction with distribution
             generating functions, can investigate the contributions of model variables on the final results.</p>
              <p>Within the AB running a GSA depends on the use of a Monte Carlo simulation for generating the
@@ -1410,7 +1511,7 @@ class GSATab(NewAnalysisTab):
              level of model variability. </p>
              <p>For a more detailed explanation <a href="https://github.com/LCA-ActivityBrowser/activity-browser/wiki/Global-Sensitivity-Analysis">see the wiki</a></p>
              <p>The paper describing the methods is published by <a href="https://onlinelibrary.wiley.com/doi/10.1111/jiec.13194">Wiley online</a></p> 
-        '''
+        """
 
     def connect_signals(self):
         self.button_run.clicked.connect(self.calculate_gsa)
@@ -1420,15 +1521,15 @@ class GSATab(NewAnalysisTab):
         # H-LAYOUT SETTINGS ROW 1
 
         # run button
-        self.button_run = QPushButton('Run')
+        self.button_run = QPushButton("Run")
         self.button_run.setEnabled(False)
 
         # reference flow selection
-        self.label_fu = QLabel('Reference Flow:')
+        self.label_fu = QLabel("Reference Flow:")
         self.combobox_fu = QComboBox()
 
         # method selection
-        self.label_methods = QLabel('Impact Category:')
+        self.label_methods = QLabel("Impact Category:")
         self.combobox_methods = QComboBox()
 
         # arrange layout
@@ -1447,19 +1548,21 @@ class GSATab(NewAnalysisTab):
         self.hlayout_row2 = QHBoxLayout()
 
         # cutoff technosphere
-        self.label_cutoff_technosphere = QLabel('Cut-off technosphere:')
-        self.cutoff_technosphere = QLineEdit('0.01')
+        self.label_cutoff_technosphere = QLabel("Cut-off technosphere:")
+        self.cutoff_technosphere = QLineEdit("0.01")
         self.cutoff_technosphere.setFixedWidth(40)
         self.cutoff_technosphere.setValidator(QtGui.QDoubleValidator(0.0, 1.0, 5))
 
         # cutoff biosphere
-        self.label_cutoff_biosphere = QLabel('Cut-off biosphere:')
-        self.cutoff_biosphere = QLineEdit('0.01')
+        self.label_cutoff_biosphere = QLabel("Cut-off biosphere:")
+        self.cutoff_biosphere = QLineEdit("0.01")
         self.cutoff_biosphere.setFixedWidth(40)
         self.cutoff_biosphere.setValidator(QtGui.QDoubleValidator(0.0, 1.0, 5))
 
         # export GSA input/output data automatically with run
-        self.checkbox_export_data_automatically = QCheckBox('Save input/output data to Excel after run')
+        self.checkbox_export_data_automatically = QCheckBox(
+            "Save input/output data to Excel after run"
+        )
         self.checkbox_export_data_automatically.setChecked(False)
 
         # # exclude Pedigree
@@ -1483,7 +1586,9 @@ class GSATab(NewAnalysisTab):
         self.widget_settings.setLayout(self.layout_settings)
 
         # add to GSA layout
-        self.label_monte_carlo_first = QLabel('You need to run a Monte Carlo Simulation first.')
+        self.label_monte_carlo_first = QLabel(
+            "You need to run a Monte Carlo Simulation first."
+        )
         self.layout.addWidget(self.label_monte_carlo_first)
         self.layout.addWidget(self.widget_settings)
 
@@ -1493,8 +1598,12 @@ class GSATab(NewAnalysisTab):
         # self.label_monte_carlo_first.hide()
 
     def update_tab(self):
-        self.update_combobox(self.combobox_methods, [str(m) for m in self.parent.mc.methods])
-        self.update_combobox(self.combobox_fu, list(self.parent.mlca.func_unit_translation_dict.keys()))
+        self.update_combobox(
+            self.combobox_methods, [str(m) for m in self.parent.mc.methods]
+        )
+        self.update_combobox(
+            self.combobox_fu, list(self.parent.mlca.func_unit_translation_dict.keys())
+        )
 
     def monte_carlo_finished(self):
         self.button_run.setEnabled(True)
@@ -1510,21 +1619,29 @@ class GSATab(NewAnalysisTab):
 
         try:
             QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
-            self.GSA.perform_GSA(act_number=act_number, method_number=method_number,
-                                 cutoff_technosphere=cutoff_technosphere, cutoff_biosphere=cutoff_biosphere)
+            self.GSA.perform_GSA(
+                act_number=act_number,
+                method_number=method_number,
+                cutoff_technosphere=cutoff_technosphere,
+                cutoff_biosphere=cutoff_biosphere,
+            )
             # self.update_mc()
         except Exception as e:  # Catch any error...
             log.error(error=e)
             message = str(e)
-            message_addition = ''
-            if message == 'singular matrix':
+            message_addition = ""
+            if message == "singular matrix":
                 message_addition = "\nIn order to avoid this happening, please increase the Monte Carlo iterations (e.g. to above 50)."
             elif message == "`dataset` input should have multiple elements.":
                 message_addition = "\nIn order to avoid this happening, please increase the Monte Carlo iterations (e.g. to above 50)."
             elif message == "No objects to concatenate":
-                message_addition = "\nThe reason for this is likely that there are no uncertain exchanges. Please check " \
-                                   "the checkboxes in the Monte Carlo tab."
-            QMessageBox.warning(self, 'Could not perform GSA', str(message) + message_addition)
+                message_addition = (
+                    "\nThe reason for this is likely that there are no uncertain exchanges. Please check "
+                    "the checkboxes in the Monte Carlo tab."
+                )
+            QMessageBox.warning(
+                self, "Could not perform GSA", str(message) + message_addition
+            )
         QApplication.restoreOverrideCursor()
 
         self.update_gsa()
@@ -1537,7 +1654,7 @@ class GSATab(NewAnalysisTab):
         self.table.show()
         self.export_widget.show()
 
-        self.table.table_name = 'gsa_output_' + self.GSA.get_save_name()
+        self.table.table_name = "gsa_output_" + self.GSA.get_save_name()
 
         if self.checkbox_export_data_automatically.isChecked():
             log.info("EXPORTING DATA")
@@ -1552,7 +1669,7 @@ class GSATab(NewAnalysisTab):
 
     def build_export(self, has_table: bool = True, has_plot: bool = True) -> QWidget:
         """Construct the export layout but set it into a widget because we
-         want to hide it."""
+        want to hide it."""
         export_layout = super().build_export(has_table, has_plot)
         export_widget = QWidget()
         export_widget.setLayout(export_layout)
@@ -1579,7 +1696,7 @@ class MonteCarloWorkerThread(QtCore.QThread):
     """A worker for Monte Carlo simulations.
 
     Unfortunately, pyparadiso does not allow parallel calculations on Windows (crashes).
-    So this is for future reference in case this issue is solved... """
+    So this is for future reference in case this issue is solved..."""
 
     def __init__(self):
         pass
@@ -1589,16 +1706,16 @@ class MonteCarloWorkerThread(QtCore.QThread):
         self.iterations = iterations
 
     def run(self):
-        log.info('Starting new Worker Thread. Iterations:', self.iterations)
+        log.info("Starting new Worker Thread. Iterations:", self.iterations)
         self.mc.calculate(iterations=self.iterations)
         # res = bw.GraphTraversal().calculate(self.demand, self.method, self.cutoff, self.max_calc)
-        log.info('in thread {}'.format(QtCore.QThread.currentThread()))
+        log.info("in thread {}".format(QtCore.QThread.currentThread()))
         signals.monte_carlo_ready.emit(self.mc.cs_name)
 
 
 worker_thread = MonteCarloWorkerThread()
 
-#TODO review if can be removed
+# TODO review if can be removed
 
 # class Worker(QtCore.QObject):
 #

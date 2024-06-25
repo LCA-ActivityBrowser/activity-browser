@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from PySide2 import QtWidgets, QtCore
+from PySide2 import QtCore, QtWidgets
 
 from activity_browser import log, signals
 
@@ -15,15 +15,16 @@ class ABTab(QtWidgets.QTabWidget):
         signals.hide_tab.connect(self.hide_tab)
         signals.toggle_show_or_hide_tab.connect(self.toggle_tab_visibility)
         signals.hide_when_empty.connect(self.hide_when_empty)
-        self.connect(self, QtCore.SIGNAL('currentChanged(int)'), self.current_index_changed)
+        self.connect(
+            self, QtCore.SIGNAL("currentChanged(int)"), self.current_index_changed
+        )
 
     def current_index_changed(self, current_index: int):
         """Optional function to accept the index of the selected tab."""
         pass  # NotImplementedError is not used as this function gets called often and not neccecarily used.
 
     def add_tab(self, obj, tab_name):
-        """Default addTab method and add item to self.tabs
-        """
+        """Default addTab method and add item to self.tabs"""
         self.tabs[tab_name] = obj
         self.addTab(obj, tab_name)
 

@@ -1,4 +1,5 @@
-from PySide2 import QtWidgets, QtGui, QtCore
+from PySide2 import QtCore, QtGui, QtWidgets
+
 from activity_browser import application
 
 
@@ -31,11 +32,11 @@ class ABAction:
     @classmethod
     def get_QButton(cls, *args, **kwargs):
         """Convenience function to return a button that has this ABAction as default action."""
-        button = QtWidgets.QToolButton(None)
-        action = cls.get_QAction(*args, **kwargs)
-
-        button.setToolButtonStyle(QtCore.Qt.ToolButtonTextBesideIcon)
-        button.setDefaultAction(action)
+        button = QtWidgets.QPushButton(
+            cls.icon,
+            cls.text
+        )
+        button.clicked.connect(lambda x: cls.run(*args, **kwargs))
         return button
 
 
@@ -44,11 +45,12 @@ def exception_dialogs(func):
         try:
             func(*args, **kwargs)
         except Exception as e:
-            QtWidgets.QMessageBox.critical(application.main_window,
-                                           f"An error occurred: {type(e).__name__}",
-                                           f"An error occurred, check the logs for more information \n\n {str(e)}",
-                                           QtWidgets.QMessageBox.Ok
-                                           )
+            QtWidgets.QMessageBox.critical(
+                application.main_window,
+                f"An error occurred: {type(e).__name__}",
+                f"An error occurred, check the logs for more information \n\n {str(e)}",
+                QtWidgets.QMessageBox.Ok,
+            )
             raise e
-    return wrapper
 
+    return wrapper

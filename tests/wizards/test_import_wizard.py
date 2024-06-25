@@ -30,6 +30,5 @@ def test_open_db_wizard(ab_app, qtbot):
     wizard.show()
 
     qtbot.mouseClick(
-        wizard.button(QtWidgets.QWizard.CancelButton),
-        QtCore.Qt.LeftButton
+        wizard.button(QtWidgets.QWizard.CancelButton), QtCore.Qt.LeftButton
     )

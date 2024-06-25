@@ -1,22 +1,22 @@
-from PySide2.QtCore import Slot, Qt
 from PySide2 import QtWidgets
+from PySide2.QtCore import Qt, Slot
 
 from activity_browser import log, signals
 from activity_browser.mod.bw2data import calculation_setups
 
+from ..icons import qicons
 from .delegates import FloatDelegate
 from .impact_categories import MethodsTable, MethodsTree
 from .inventory import ActivitiesBiosphereTable, ActivitiesBiosphereTree
 from .models import CSMethodsModel, CSActivityModel, ScenarioImportModel
 from .views import ABDataFrameView
-from ..icons import qicons
 
 
 class CSList(QtWidgets.QComboBox):
     def __init__(self, parent=None):
         super(CSList, self).__init__(parent)
         # Runs even if selection doesn't change
-        self.activated['QString'].connect(self.set_cs)
+        self.activated["QString"].connect(self.set_cs)
         signals.calculation_setup_selected.connect(self.sync)
 
     def sync(self, name):
@@ -39,7 +39,7 @@ class CSList(QtWidgets.QComboBox):
 
 
 class CSGenericTable(ABDataFrameView):
-    """ Generic class to enable internal re-ordering of items in table.
+    """Generic class to enable internal re-ordering of items in table.
 
     Items commented out (blass below + first line of init) are intended to help
     with showing a 'drop indicator' where the dragged item would end up.
@@ -58,7 +58,7 @@ class CSGenericTable(ABDataFrameView):
         self.setDragDropOverwriteMode(False)
 
     def mousePressEvent(self, event):
-        """ Check whether left mouse is pressed and whether CTRL is pressed to change selection mode"""
+        """Check whether left mouse is pressed and whether CTRL is pressed to change selection mode"""
         if event.button() == Qt.LeftButton:
             if event.modifiers() & Qt.ControlModifier:
                 self.setSelectionMode(QtWidgets.QTableView.MultiSelection)
@@ -81,9 +81,11 @@ class CSActivityTable(CSGenericTable):
         self.model.updated.connect(lambda: self.setColumnHidden(6, True))
         self.model.updated.connect(lambda: self.resizeColumnToContents(2))
         self.model.updated.connect(lambda: self.resizeColumnToContents(3))
-        self.setToolTip("Drag Activities from the Activities table to include them as a reference flow\n"
-                        "Click and drag to re-order individual rows of the table\n"
-                        "Hold CTRL and click to select multiple rows to open or delete them.")
+        self.setToolTip(
+            "Drag Activities from the Activities table to include them as a reference flow\n"
+            "Click and drag to re-order individual rows of the table\n"
+            "Hold CTRL and click to select multiple rows to open or delete them."
+        )
 
     @Slot(name="openActivities")
     def open_activities(self) -> None:
@@ -100,9 +102,12 @@ class CSActivityTable(CSGenericTable):
         return self.model.activities
 
     def mousePressEvent(self, event):
-        """ Check whether left mouse is pressed and whether CTRL or SHIFT are pressed to change selection mode"""
+        """Check whether left mouse is pressed and whether CTRL or SHIFT are pressed to change selection mode"""
         if event.button() == Qt.LeftButton:
-            if event.modifiers() & Qt.ControlModifier or event.modifiers() & Qt.ShiftModifier:
+            if (
+                event.modifiers() & Qt.ControlModifier
+                or event.modifiers() & Qt.ShiftModifier
+            ):
                 self.setSelectionMode(QtWidgets.QTableView.ExtendedSelection)
                 self.setDragDropMode(QtWidgets.QTableView.DropOnly)
             else:
@@ -144,9 +149,11 @@ class CSActivityTable(CSGenericTable):
             selection = self.selectedIndexes()
             from_index = selection[0].row() if selection else -1
             to_index = self.indexAt(event.pos()).row()
-            if (0 <= from_index < self.model.rowCount() and
-                    0 <= to_index < self.model.rowCount() and
-                    from_index != to_index):
+            if (
+                0 <= from_index < self.model.rowCount()
+                and 0 <= to_index < self.model.rowCount()
+                and from_index != to_index
+            ):
                 self.model.relocateRow(from_index, to_index)
 
 
@@ -157,17 +164,22 @@ class CSMethodsTable(CSGenericTable):
         self.model.updated.connect(self.update_proxy_model)
         self.model.updated.connect(lambda: self.setColumnHidden(3, True))
         self.model.updated.connect(lambda: self.resizeColumnToContents(0))
-        self.setToolTip("Drag impact categories from the impact categories tree/table to include them \n"
-                        "Click and drag to re-order individual rows of the table\n"
-                        "Hold CTRL and click to select multiple rows to open or delete them.")
+        self.setToolTip(
+            "Drag impact categories from the impact categories tree/table to include them \n"
+            "Click and drag to re-order individual rows of the table\n"
+            "Hold CTRL and click to select multiple rows to open or delete them."
+        )
 
     def to_python(self):
         return self.model.methods
 
     def mousePressEvent(self, event):
-        """ Check whether left mouse is pressed and whether CTRL or SHIFT are pressed to change selection mode"""
+        """Check whether left mouse is pressed and whether CTRL or SHIFT are pressed to change selection mode"""
         if event.button() == Qt.LeftButton:
-            if event.modifiers() & Qt.ControlModifier or event.modifiers() & Qt.ShiftModifier:
+            if (
+                event.modifiers() & Qt.ControlModifier
+                or event.modifiers() & Qt.ShiftModifier
+            ):
                 self.setSelectionMode(QtWidgets.QTableView.ExtendedSelection)
                 self.setDragDropMode(QtWidgets.QTableView.DropOnly)
             else:
@@ -180,14 +192,17 @@ class CSMethodsTable(CSGenericTable):
             return
         menu = QtWidgets.QMenu()
         menu.addAction(
-            qicons.delete, "Remove row",
-            lambda: self.model.delete_rows(self.selectedIndexes())
+            qicons.delete,
+            "Remove row",
+            lambda: self.model.delete_rows(self.selectedIndexes()),
         )
         menu.exec_(event.globalPos())
 
     def dragEnterEvent(self, event):
-        if isinstance(event.source(), (MethodsTable, MethodsTree))\
-                or event.source() is self:
+        if (
+            isinstance(event.source(), (MethodsTable, MethodsTree))
+            or event.source() is self
+        ):
             event.accept()
 
     def dropEvent(self, event):
@@ -199,9 +214,11 @@ class CSMethodsTable(CSGenericTable):
             selection = self.selectedIndexes()
             from_index = selection[0].row() if selection else -1
             to_index = self.indexAt(event.pos()).row()
-            if (0 <= from_index < self.model.rowCount() and
-                    0 <= to_index < self.model.rowCount() and
-                    from_index != to_index):
+            if (
+                0 <= from_index < self.model.rowCount()
+                and 0 <= to_index < self.model.rowCount()
+                and from_index != to_index
+            ):
                 self.model.relocateRow(from_index, to_index)
 
 
@@ -209,6 +226,7 @@ class ScenarioImportTable(ABDataFrameView):
     """Self-contained widget that shows the scenario headers for a given
     scenario template dataframe.
     """
+
     def __init__(self, parent=None):
         super().__init__(parent=parent)
         self.model = ScenarioImportModel(None, self)
