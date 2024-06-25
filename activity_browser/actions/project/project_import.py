@@ -70,6 +70,8 @@ class ProjectImport(ABAction):
         progress.setWindowTitle("Importing project")
         progress.setWindowFlag(QtCore.Qt.WindowContextHelpButtonHint, False)
         progress.setWindowFlag(QtCore.Qt.WindowCloseButtonHint, False)
+        progress.findChild(QtWidgets.QProgressBar).setTextVisible(False)
+        progress.resize(400, 100)
         progress.show()
 
         # setup the import

@@ -2,7 +2,7 @@ import os
 import json
 import tarfile
 
-from PySide2 import QtWidgets
+from PySide2 import QtWidgets, QtCore
 
 from activity_browser import application, log
 from activity_browser.mod import bw2data as bd
@@ -33,8 +33,23 @@ class ProjectExport(ABAction):
 
         if not save_path: return
 
+        # setup dialog
+        progress = QtWidgets.QProgressDialog(
+            parent=application.main_window,
+            labelText="Exporting project",
+            maximum=0
+        )
+        progress.setCancelButton(None)
+        progress.setWindowTitle("Exporting project")
+        progress.setWindowFlag(QtCore.Qt.WindowContextHelpButtonHint, False)
+        progress.setWindowFlag(QtCore.Qt.WindowCloseButtonHint, False)
+        progress.findChild(QtWidgets.QProgressBar).setTextVisible(False)
+        progress.resize(400, 100)
+        progress.show()
+
         thread = ExportThread(application)
         setattr(thread, "save_path", save_path)
+        thread.finished.connect(lambda: progress.deleteLater())
         thread.start()
 
 
