@@ -1,6 +1,12 @@
+from zipfile import ZipFile
+
 from bw2io.importers.ecospold2_biosphere import *
 import pyprind
 import logging
+import os
+
+from activity_browser.info import __ei_versions__
+from activity_browser.utils import sort_semantic_versions
 
 
 class ABEcospold2BiosphereImporter(Ecospold2BiosphereImporter):
@@ -47,16 +53,40 @@ class ABEcospold2BiosphereImporter(Ecospold2BiosphereImporter):
             )
             return ds
 
-        if not filepath:
-            import bw2io.importers.ecospold2_biosphere as mod
-            filepath = (
-                Path(mod.__file__).parent.parent.resolve()
-                / "data"
-                / "lci"
-                / f"ecoinvent elementary flows {version}.xml"
-            )
+        if version != '3.9' and not filepath:
+            import activity_browser.bwutils as mod
+            lci_dirpath = os.path.join(os.path.dirname(mod.__file__), "ecoinvent_biosphere_versions", "legacy_biosphere")
 
-        root = objectify.parse(open(filepath, encoding="utf-8")).getroot()
+            # find the most recent legacy biosphere that is equal to or older than chosen version
+            for ei_version in sort_semantic_versions(__ei_versions__):
+                use_version = ei_version
+                zip_fp = os.path.join(
+                    lci_dirpath, f"ecoinvent elementary flows {use_version}.xml.zip"
+                )
+                if sort_semantic_versions([version, ei_version])[
+                    0
+                ] == version and os.path.isfile(zip_fp):
+                    # this version is equal/lower and available
+                    break
+
+            # extract the xml from the zip
+            with ZipFile(zip_fp) as zipped_file:
+                with zipped_file.open(
+                        f"ecoinvent elementary flows {use_version}.xml"
+                ) as file:
+                    root = objectify.parse(file).getroot()
+        else:
+            if not filepath:
+                import bw2io.importers.ecospold2_biosphere as mod
+                filepath = (
+                    Path(mod.__file__).parent.parent.resolve()
+                    / "data"
+                    / "lci"
+                    / f"ecoinvent elementary flows {version}.xml"
+                )
+
+            root = objectify.parse(open(filepath, encoding="utf-8")).getroot()
+
         flow_data = []
 
         # AB implementation: added prog_bar here

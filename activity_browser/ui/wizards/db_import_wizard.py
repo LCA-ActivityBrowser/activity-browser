@@ -9,7 +9,7 @@ import zipfile
 from pathlib import Path
 
 import bw2data.errors
-import ecoinvent_interface
+import ecoinvent_interface as ei
 import requests
 from bw2io import BW2Package, SingleOutputEcospold2Importer
 from bw2io.extractors import Ecospold2DataExtractor
@@ -97,7 +97,7 @@ class DatabaseImportWizard(QtWidgets.QWizard):
 
     @property
     def release_type(self):
-        return ecoinvent_interface.ReleaseType.ecospold
+        return ei.ReleaseType.ecospold
 
     def update_downloader(self):
         self.downloader.version = self.version
@@ -239,20 +239,10 @@ class RemoteImportPage(QtWidgets.QWizardPage):
         layout.addWidget(box)
         self.setLayout(layout)
 
-    def validatePage(self):
-        if (
-            self.wizard.has_existing_remote_credentials()
-            and self.radio_buttons[0].isChecked()
-        ):
-            self.has_valid_remote_creds, _ = self.wizard.downloader.login()
-        return True
-
     def nextId(self):
         option_id = [b.isChecked() for b in self.radio_buttons].index(True)
         self.wizard.import_type = self.OPTIONS[option_id][1]
         next_id = self.OPTIONS[option_id][2]
-        if next_id == DatabaseImportWizard.EI_LOGIN and self.has_valid_remote_creds:
-            return DatabaseImportWizard.EI_VERSION
         return next_id
 
 
@@ -369,7 +359,7 @@ class Choose7zArchivePage(QtWidgets.QWizardPage):
         self.setLayout(layout)
 
     def initializePage(self):
-        self.stored_dbs = ecoinvent_interface.CachedStorage()
+        self.stored_dbs = ei.CachedStorage()
         self.stored_combobox.clear()
         self.stored_combobox.addItems(
             sorted(
@@ -1013,90 +1003,68 @@ class MainWorkerThread(ABThread):
 
 
 class EcoinventLoginPage(QtWidgets.QWizardPage):
+
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.wizard = parent
-        self.complete = False
-        eco_settings = ecoinvent_interface.Settings()
-        self.username_edit = QtWidgets.QLineEdit()
-        if eco_settings.username:
-            self.username_edit.setText(eco_settings.username)
-        else:
-            self.username_edit.setPlaceholderText("ecoinvent username")
-        self.password_edit = QtWidgets.QLineEdit()
-        self.password_edit.setEchoMode(QtWidgets.QLineEdit.Password)
-        if eco_settings.password:
-            self.password_edit.setText(eco_settings.password)
-        else:
-            self.password_edit.setPlaceholderText("ecoinvent password")
-        self.save_creds = QtWidgets.QPushButton("Save Credentials")
-        self.save_creds.clicked.connect(self.save_credentials)
-        self.login_button = QtWidgets.QPushButton("login")
-        self.login_button.clicked.connect(self.login)
-        self.password_edit.returnPressed.connect(self.login_button.click)
-        self.success_label = QtWidgets.QLabel()
 
-        self.valid_un = None
-        self.valid_pw = None
+        self.setTitle("Login")
+        self.setSubTitle("Login with your ecoinvent credentials to authorize the download")
 
-        box = QtWidgets.QGroupBox("Login to the ecoinvent homepage:")
-        box_layout = QtWidgets.QVBoxLayout()
-        box_layout.addWidget(self.username_edit)
-        box_layout.addWidget(self.password_edit)
-        hlay = QtWidgets.QHBoxLayout()
-        hlay.addWidget(self.login_button)
-        hlay.addWidget(self.save_creds)
-        hlay.addStretch(1)
-        box_layout.addLayout(hlay)
-        box_layout.addWidget(self.success_label)
-        box.setLayout(box_layout)
-        box.setStyleSheet(style_group_box.border_title)
+        # create username field
+        self.username = QtWidgets.QLineEdit()
+        self.username.setPlaceholderText('ecoinvent username')
+        self.registerField("username*", self.username)
+
+        # create password field and set hidden
+        self.password = QtWidgets.QLineEdit()
+        self.password.setPlaceholderText('ecoinvent password'),
+        self.password.setEchoMode(QtWidgets.QLineEdit.Password)
+        self.registerField("password*", self.password)
+
+        # empty message for now, will be used in case of wrong password or other error
+        self.message = QtWidgets.QLabel()
+
+        # set layout
         layout = QtWidgets.QVBoxLayout()
-        layout.addWidget(box)
+        layout.addWidget(self.username)
+        layout.addWidget(self.password)
+        layout.addWidget(self.message)
+
         self.setLayout(layout)
 
-        self.login_thread = LoginThread(self.wizard.downloader)
-        import_signals.login_success.connect(self.login_response)
+    def initializePage(self):
+        # on initialization set stored username & password
+        settings = ei.Settings()
+        self.username.setText(settings.username)
+        self.password.setText(settings.password)
 
-    @property
-    def username(self) -> str:
-        return self.valid_un or self.username_edit.text()
+    def validatePage(self):
+        # set waitcursor because we're making http requests which take long
+        QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
 
-    @property
-    def password(self) -> str:
-        return self.valid_pw or self.password_edit.text()
+        # set the provided settings and check if we can get a version list (i.e. logon was succesful)
+        try:
+            settings = ei.Settings(username=self.username.text(), password=self.password.text())
+            release = ei.EcoinventRelease(settings)
+            release.list_versions()
 
-    def isComplete(self):
-        return self.complete
+        # logon was unsuccesful
+        except requests.exceptions.HTTPError as e:
+            QtWidgets.QApplication.restoreOverrideCursor()
 
-    @Slot(name="EidlLogin")
-    def login(self) -> None:
-        self.success_label.setText("Trying to login ...")
-        self.login_thread.update(self.username, self.password)
-        self.login_thread.start()
+            # in case of 401: Unauthorized, we prompt for a retry of logon
+            if e.response.status_code == 401:
+                self.message.setText("Invalid username and/or password, please try again.")
+                return False
+            # else, other HTTPError, try again later maybe? Raise exception for logging
+            else:
+                self.message.setText("Unknown connection error, try again later.")
+                raise e
 
-    @Slot(name="SaveEiCredentials")
-    def save_credentials(self):
-        self.success_label.setText("Saving Credentials")
-        ecoinvent_interface.permanent_setting("username", self.username)
-        ecoinvent_interface.permanent_setting("password", self.password)
-        self.success_label.setText("Saved Credentials")
-
-    @Slot(bool, name="handleLoginResponse")
-    def login_response(self, success: bool) -> None:
-        if not success:
-            self.success_label.setText("Login failed!")
-            self.complete = False
-        else:
-            self.username_edit.setEnabled(False)
-            self.password_edit.setEnabled(False)
-            self.login_button.setEnabled(False)
-            self.valid_un = self.username
-            self.valid_pw = self.password
-            self.success_label.setText("Login successful!")
-            self.login_thread.exit()
-            self.complete = True
-        self.completeChanged.emit()
+        # in case of success, set the settings for permanent use
+        ei.permanent_setting("username", self.username.text())
+        ei.permanent_setting("password", self.password.text())
+        return True
 
     def nextId(self):
         return DatabaseImportWizard.EI_VERSION
@@ -1119,7 +1087,7 @@ class LoginThread(QtCore.QThread):
             log.error(str(e), exc_info=True)
             import_signals.login_success.emit(False)
             msg = str(e)
-            cs = ecoinvent_interface.CachedStorage()
+            cs = ei.CachedStorage()
             if len(cs.catalogue) > 0:
                 msg += (
                     "\n\nIf you work offline you can use your previously downloaded databases"
@@ -1158,6 +1126,7 @@ class EcoinventVersionPage(QtWidgets.QWizardPage):
 
     def initializePage(self):
         available_versions = self.wizard.downloader.list_versions()
+        QtWidgets.QApplication.restoreOverrideCursor()
         shown_versions = {version for version in available_versions}
         # Catch for incorrect 'universal' key presence
         # (introduced in version 3.6 of ecoinvent)
@@ -1404,22 +1373,22 @@ class ABEcoinventDownloader:
         self,
         version: typing.Optional[str] = None,
         system_model: typing.Optional[str] = None,
-        release_type: typing.Optional[ecoinvent_interface.ReleaseType] = None,
+        release_type: typing.Optional[ei.ReleaseType] = None,
     ):
         self.version = version
         self.system_model = system_model
         self._release_type = release_type
-        self._settings = ecoinvent_interface.Settings()
+        self._settings = ei.Settings()
         self.update_ecoinvent_release()
 
     def update_ecoinvent_release(self):
         try:
-            self._release = ecoinvent_interface.EcoinventRelease(self._settings)
+            self._release = ei.EcoinventRelease(self._settings)
         except ValueError:
             self._release = None
 
     @property
-    def release(self) -> ecoinvent_interface.EcoinventRelease:
+    def release(self) -> ei.EcoinventRelease:
         if self._release is None:
             raise ValueError("ecoinvent release has not been initialized properly")
         return self._release
@@ -1447,19 +1416,19 @@ class ABEcoinventDownloader:
         return self._release_type
 
     @release_type.setter
-    def release_type(self, value: typing.Union[str, ecoinvent_interface.ReleaseType]):
-        if isinstance(value, ecoinvent_interface.ReleaseType):
+    def release_type(self, value: typing.Union[str, ei.ReleaseType]):
+        if isinstance(value, ei.ReleaseType):
             self._release_type = value
             return
 
         if isinstance(value, str):
-            self._release_type = ecoinvent_interface.ReleaseType[value]
+            self._release_type = ei.ReleaseType[value]
             return
 
         raise ValueError("invalid value provided for release_type")
 
     def login(self) -> (bool, typing.Optional[typing.Tuple[str, str]]):
-        release = ecoinvent_interface.EcoinventRelease(self._settings)
+        release = ei.EcoinventRelease(self._settings)
         error_message = None
         try:
             release.login()

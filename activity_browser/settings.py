@@ -8,7 +8,8 @@ from typing import Optional
 import appdirs
 from PySide2.QtWidgets import QMessageBox
 
-from activity_browser import log, signals
+from activity_browser import log
+from activity_browser.signals import signals
 from activity_browser.mod import bw2data as bd
 
 
