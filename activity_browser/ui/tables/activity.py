@@ -131,8 +131,8 @@ class ProductExchangeTable(BaseExchangeTable):
         """
         source = event.source()
         if (
-            getattr(source, "table_name", "") == "technosphere"
-            or getattr(source, "technosphere", False) is True
+                getattr(source, "table_name", "") == "technosphere"
+                or getattr(source, "technosphere", False) is True
         ):
             event.accept()
 
@@ -186,8 +186,9 @@ class TechnosphereExchangeTable(BaseExchangeTable):
         downstream exchanges table.
         """
         source = event.source()
-        if getattr(source, "table_name", "") == "downstream" or hasattr(
-            source, "technosphere"
+        if (getattr(source, "table_name", "") == "downstream"
+                or hasattr(source, "technosphere")
+                or getattr(source, "table_name", "") == "technosphere"
         ):
             event.accept()
 
