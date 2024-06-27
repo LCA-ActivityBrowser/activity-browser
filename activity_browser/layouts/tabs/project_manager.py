@@ -307,8 +307,10 @@ class ActivityBiosphereWidget(QtWidgets.QWidget):
             self.mode_radio_list.show()
             self.mode_radio_tree.show()
         elif "ISIC rev.4 ecoinvent" in self.table.model._dataframe.columns:
-            # a treeview exists
+            # a treeview exists, update it
+            self.tree.get_expand_state()
             self.tree.model.setup_and_sync()
+            self.tree.set_expand_state()
 
             # make sure that the radio buttons are available
             self.mode_radio_list.show()

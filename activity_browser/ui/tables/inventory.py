@@ -281,6 +281,7 @@ class ActivitiesBiosphereTree(ABDictTreeView):
         super().__init__(parent)
         self.database_name = database_name
         self.db_read_only = project_settings.db_is_readonly(self.database_name)
+        self.expand_state = []
         self.HEADERS = AB_metadata.get_existing_fields(self.HEADERS)
 
         # set drag ability
@@ -511,14 +512,25 @@ class ActivitiesBiosphereTree(ABDictTreeView):
             parent = parent.parent()
         return levels[::-1]
 
-    def expanded_list(self):
+    def get_expand_state(self) -> None:
+        """Store the expanded state of the tree.
+
+        Does not return anything but stores the expanded items in a self.expand_state."""
         it = self.model.iterator(None)
         expanded_items = []
         while it != None:
             if self.isExpanded(self.model.createIndex(it.row(), 0, it)):
                 expanded_items.append(self.build_path(it))
             it = self.model.iterator(it)
-        return expanded_items
+        self.expand_state = expanded_items
+
+    def set_expand_state(self) -> None:
+        """Sets any items in self.expand_state in the tree to expanded."""
+        it = self.model.iterator(None)
+        while it != None:
+            if self.build_path(it) in self.expand_state:
+                self.setExpanded(self.model.createIndex(it.row(), 0, it), True)
+            it = self.model.iterator(it)
 
     def build_path(self, iter):
         """Given an iterator of the TreeItem type build the path back to the
