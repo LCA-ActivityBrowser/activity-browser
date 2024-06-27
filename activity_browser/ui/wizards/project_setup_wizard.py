@@ -1,19 +1,25 @@
 import os
 import ecoinvent_interface as ei
+import bw2io as bi
 import requests
 from PySide2 import QtWidgets, QtCore
 
+from activity_browser import project_settings
+from activity_browser.bwutils.ecoinvent_biosphere_versions.ecospold2biosphereimporter import create_default_biosphere3
 from activity_browser.ui.threading import ABThread
 from activity_browser.mod import bw2data as bd
 from activity_browser.mod.bw2io import ab_bw2setup
 from activity_browser.mod.bw2io.ecoinvent import ab_import_ecoinvent_release
+from activity_browser.utils import sort_semantic_versions
+from activity_browser.info import __ei_versions__
 
 
 class ProjectSetupWizard(QtWidgets.QWizard):
     choose_setup = 1
     ecoinvent_login = 2
     ecoinvent_version = 3
-    install_page = 4
+    biosphere_version = 4
+    install_page = 5
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -34,6 +40,7 @@ class ProjectSetupWizard(QtWidgets.QWizard):
         self.setPage(self.choose_setup, ChooseSetupPage(self))
         self.setPage(self.ecoinvent_login, EcoInventLoginPage(self))
         self.setPage(self.ecoinvent_version, EcoInventVersionPage(self))
+        self.setPage(self.biosphere_version, DefaultVersionPage(self))
         self.setPage(self.install_page, InstallPage(self))
 
         self.type = None  # set on the first page
@@ -54,7 +61,7 @@ class ChooseSetupPage(QtWidgets.QWizardPage):
 
         # join the buttons in a buttongroup, id of the button is the id of the next page for that choice
         self.buttons = QtWidgets.QButtonGroup()
-        self.buttons.addButton(radio_1, ProjectSetupWizard.install_page)
+        self.buttons.addButton(radio_1, ProjectSetupWizard.biosphere_version)
         self.buttons.addButton(radio_2, ProjectSetupWizard.ecoinvent_login)
 
         # set the layout
@@ -73,6 +80,29 @@ class ChooseSetupPage(QtWidgets.QWizardPage):
 
         # id of the button is the id of the next page
         return self.buttons.checkedId()
+
+
+class DefaultVersionPage(QtWidgets.QWizardPage):
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+        self.setTitle("Choose version")
+        self.setSubTitle("Choose biosphere version")
+
+        # set combobox for version selection
+        self.versions = QtWidgets.QComboBox(self)
+        self.versions.addItems(sort_semantic_versions(__ei_versions__))
+
+        # register fields for said comboboxes
+        self.registerField("bio-version", self.versions, "currentText", "currentTextChanged")
+
+        # set layout
+        layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(self.versions)
+
+        self.setLayout(layout)
+
 
 
 class EcoInventLoginPage(QtWidgets.QWizardPage):
@@ -185,6 +215,9 @@ class EcoInventVersionPage(QtWidgets.QWizardPage):
         # restore override cursor from last page
         QtWidgets.QApplication.restoreOverrideCursor()
 
+    def nextId(self):
+        return self.wizard().install_page
+
 
 class InstallPage(QtWidgets.QWizardPage):
     def __init__(self, parent=None):
@@ -241,7 +274,7 @@ class InstallPage(QtWidgets.QWizardPage):
 class DefaultInstallThread(ABThread):
 
     def run_safely(self):
-        ab_bw2setup()
+        ab_bw2setup(self.parent().field("bio-version"))
 
 
 class EcoinventInstallThread(ABThread):
