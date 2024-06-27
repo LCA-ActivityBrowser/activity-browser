@@ -11,6 +11,7 @@ import pandas as pd
 from PySide2.QtCore import QModelIndex, Qt, Slot
 from PySide2.QtWidgets import QApplication
 
+import activity_browser
 from activity_browser import log, project_settings
 from activity_browser.bwutils import AB_metadata
 from activity_browser.bwutils import commontasks as bc
@@ -251,12 +252,12 @@ class ActivitiesBiosphereTreeModel(BaseTreeModel):
             tree_numeric_order: keys are classification number, values are the row number in file
         """
         path = os.path.join(
-            os.getcwd(),
-            "activity_browser",
+            os.path.dirname(os.path.abspath(activity_browser.__file__)),
             "static",
             "database_classifications",
             "ISIC_Rev_4_english_structure.txt",
         )
+
         df = pd.read_csv(path)
 
         tree_data = {}
