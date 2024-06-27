@@ -43,8 +43,8 @@ def ab_bw2setup(version):
         and any(version.replace(".", "") in patch for version in ei_versions)
     ]
 
-    for i, patch in enumerate(patches):
-        log.debug(f"Applying biosphere patch: {patch}")
+    for patch in patches:
+        log.info(f"Applying biosphere patch: {patch}")
         update_bio = getattr(bi.data, patch)
         update_bio()
 
