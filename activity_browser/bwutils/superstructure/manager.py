@@ -319,7 +319,7 @@ class SuperstructureManager(object):
             prod_amt = list(bd.get_activity(idx[0]).production())[0].get("amount", 1)
             # make a new df to edit the production, add the correct values/indices where needed
             # and concat to the main df
-            self_referential_production_flows.loc[idx, "flow type"] = "production"
+            self_referential_production_flows.loc[idx, ["flow type"]] = "production"
             self_referential_production_flows.loc[idx, scenario_cols] = prod_amt
         if len(self_referential_production_flows) > 0:
             tech_idxs = [
