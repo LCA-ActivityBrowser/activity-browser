@@ -36,6 +36,7 @@ def test_default_install(ab_app, monkeypatch, qtbot):
 
     wizard: ProjectSetupWizard = application.main_window.findChild(ProjectSetupWizard)
     wizard.next()
+    wizard.next()
 
     thread = wizard.page(wizard.install_page).install_thread
 
@@ -43,7 +44,7 @@ def test_default_install(ab_app, monkeypatch, qtbot):
         pass
 
     assert "biosphere3" in bd.databases
-    assert len(Database("biosphere3")) == 4709
+    assert len(Database("biosphere3")) == 4718
     assert len(bd.methods) == 762
 
 
