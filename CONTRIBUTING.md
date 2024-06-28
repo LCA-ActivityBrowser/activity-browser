@@ -81,7 +81,7 @@ This section is here to help give some direction.
 
 - __Controllers__
 
-  [Controllers](https://github.com/LCA-ActivityBrowser/activity-browser/tree/master/activity_browser/controllers) 
+  [Controllers](https://github.com/LCA-ActivityBrowser/activity-browser/tree/main/activity_browser/controllers) 
   in the activity browser act as go-betweens for the Qt application and the underlying brightway layer. 
   Ideally, these controllers are called exclusively through signals from the Qt application and will in turn call
   methods and classes that edit the structured data in brightway.
@@ -91,7 +91,7 @@ This section is here to help give some direction.
 - __BW-Utils__
 
   The code, methods and classes in the 
-  [`bwutils`](https://github.com/LCA-ActivityBrowser/activity-browser/tree/master/activity_browser/bwutils)
+  [`bwutils`](https://github.com/LCA-ActivityBrowser/activity-browser/tree/main/activity_browser/bwutils)
   directory are kept separate from the rest of the application specifically because they are only dependent on-, and 
   extensions of the brightway layer.  
   Keeping a strict separation between brightway and the rest of the activity browser application allows for future 
@@ -99,14 +99,14 @@ This section is here to help give some direction.
 
 - __Tables__
 
-  [Tables](https://github.com/LCA-ActivityBrowser/activity-browser/tree/master/activity_browser/ui/tables) 
+  [Tables](https://github.com/LCA-ActivityBrowser/activity-browser/tree/main/activity_browser/ui/tables) 
   in the activity browser are one of the more complex parts of the application as these are required to both present 
   the data from brightway as well as handle the editing of this data (through the model embedded in
   the table class).
 
 - __Figures__
 
-  [Figures](https://github.com/LCA-ActivityBrowser/activity-browser/blob/master/activity_browser/ui/figures.py) 
+  [Figures](https://github.com/LCA-ActivityBrowser/activity-browser/blob/main/activity_browser/ui/figures.py) 
   constructed in the Activity Browser are currently implemented in matplotlib through either using pandas .plot or 
   matplotlib directly.
   In the future we want to move to a different library, to make figures more interactive.
@@ -114,9 +114,9 @@ This section is here to help give some direction.
 - __Graphs__
 
   These graphs are made up out of two parts, the 
-  [__python__](https://github.com/LCA-ActivityBrowser/activity-browser/tree/master/activity_browser/ui/web) 
+  [__python__](https://github.com/LCA-ActivityBrowser/activity-browser/tree/main/activity_browser/ui/web) 
   part which extracts information from brightway and prepares a JSON document, and the 
-  [__javascript__](https://github.com/LCA-ActivityBrowser/activity-browser/tree/master/activity_browser/static/javascript) 
+  [__javascript__](https://github.com/LCA-ActivityBrowser/activity-browser/tree/main/activity_browser/static/javascript) 
   part which presents a given JSON document as a graph (built using the JavaScript dagre D3 library).
 
 ### Setting up a development environment
@@ -156,7 +156,7 @@ Also note that having multiple instances of the AB open can lead to unexpected r
 
 In an ideal case, you can write your own tests for new features that you add.
 Please see the tests that are already present in the 
-[`tests`](https://github.com/LCA-ActivityBrowser/activity-browser/tree/master/tests) folder or look at the 
+[`tests`](https://github.com/LCA-ActivityBrowser/activity-browser/tree/main/tests) folder or look at the 
 [pytest-qt documentation](https://pytest-qt.readthedocs.io/en/latest/) for inspiration and examples.
 
 ### Pull requests
@@ -164,7 +164,7 @@ Once you are happy with your changes to AB, please open a pull-request.
 We use the
 [fork and pull model](https://help.github.com/articles/about-collaborative-development-models/)
 for external contributions. 
-Fork the AB repository, create a new branch from the `master` branch, apply your changes on the new branch in your 
+Fork the AB repository, create a new branch from the `main` branch, apply your changes on the new branch in your 
 forked repository and open a pull request from there. 
 When creating a pull-request, please add a description of what your new changes should accomplish (and if this wasn't a 
 known problem, _why_ AB needs this).
@@ -297,7 +297,7 @@ To create a new release follow these steps:
 - Review if all scheduled changes in the [milestone](https://github.com/LCA-ActivityBrowser/activity-browser/milestones) 
   for the next version are complete, if not, either re-plan them for a next milestone or finish them
 - __Do not__ close the milestone yet
-- Check out the master branch (either through your IDE or with `git checkout master`)
+- Check out the main branch (either through your IDE or with `git checkout main`)
 - `Fetch` and `Pull` changes
 - Create a new tag: `git tag -a x.y.z -m 'x.y.z'` (where `x.y.z` is the new version number)
 - Push the new tag to the repository: `git push upstream x.y.z`

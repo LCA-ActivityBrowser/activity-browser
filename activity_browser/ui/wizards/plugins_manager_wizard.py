@@ -1,13 +1,13 @@
 import pandas
 from PySide2 import QtCore, QtWidgets
-from PySide2.QtCore import Slot, Qt
+from PySide2.QtCore import Qt, Slot
 
+from ...signals import signals
 from ...ui.style import header
 from ...ui.tables import PluginsTable
-from ...signals import signals
+
 
 class PluginsManagerWizard(QtWidgets.QWizard):
-
     def __init__(self, key: tuple, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Plugins manager")
@@ -22,7 +22,6 @@ class PluginsManagerWizard(QtWidgets.QWizard):
 
 
 class ManagePluginsPage(QtWidgets.QWizardPage):
-
     def __init__(self, parent=None):
         super().__init__(parent=parent)
         self.wizard = parent
@@ -38,13 +37,15 @@ class ManagePluginsPage(QtWidgets.QWizardPage):
         self.setFinalPage(True)
 
     def initializePage(self):
-        self.wizard.setButtonText(QtWidgets.QWizard.FinishButton, 'Confirm')
-        self.wizard.button(QtWidgets.QWizard.FinishButton).clicked.connect(self.confirm_plugins)
+        self.wizard.setButtonText(QtWidgets.QWizard.FinishButton, "Confirm")
+        self.wizard.button(QtWidgets.QWizard.FinishButton).clicked.connect(
+            self.confirm_plugins
+        )
         self.wizard.setButtonLayout(
             [QtWidgets.QWizard.Stretch, QtWidgets.QWizard.FinishButton]
         )
 
-    @Slot('ConfirmPlugins')
+    @Slot("ConfirmPlugins")
     def confirm_plugins(self):
         plugin_list = self.plugins_widget.plugin_list()
         QtWidgets.QApplication.setOverrideCursor(Qt.WaitCursor)
@@ -52,7 +53,9 @@ class ManagePluginsPage(QtWidgets.QWizardPage):
             if self.loaded_plugins.iloc[i, 0] != plugin_list.iloc[i, 0]:
                 # Compare the latest data from the table to what was initialized will get everything we've changed
                 on = plugin_list.iloc[i, 0]
-                signals.plugin_selected.emit(plugin_list.iloc[i, 1], on) # Emit a signal to turn on, or off
+                signals.plugin_selected.emit(
+                    plugin_list.iloc[i, 1], on
+                )  # Emit a signal to turn on, or off
         signals.restore_cursor.emit()
 
 

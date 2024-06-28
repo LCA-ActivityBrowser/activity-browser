@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
 from PySide2 import QtCore, QtWidgets
-from PySide2.QtWidgets import QMessageBox
 
-from .line_edit import SignalledLineEdit, SignalledComboEdit
-from ..icons import qicons
-from ...settings import project_settings
-from ...signals import signals
+from activity_browser import actions, project_settings, signals
+
 from ...bwutils import AB_metadata
+from ..icons import qicons
+from .line_edit import SignalledComboEdit, SignalledLineEdit
 
 
 class DetailsGroupBox(QtWidgets.QGroupBox):
@@ -31,6 +30,11 @@ class DetailsGroupBox(QtWidgets.QGroupBox):
     @QtCore.Slot(name="showHideTable")
     def showhide(self):
         self.widget.setVisible(self.isChecked())
+        if not self.isChecked():
+            minimum_height = self.minimumSizeHint().height()
+            self.setMaximumHeight(minimum_height)
+        else:
+            self.setMaximumHeight(16777215)  # apparently this is the Qt default
 
     @QtCore.Slot(name="toggleEmptyTable")
     def toggle_empty_table(self) -> None:
@@ -38,11 +42,12 @@ class DetailsGroupBox(QtWidgets.QGroupBox):
 
 
 class ActivityDataGrid(QtWidgets.QWidget):
-    """ Displayed at the top of each activity panel to show the user basic data related to the activity
+    """Displayed at the top of each activity panel to show the user basic data related to the activity
     Expects to find the following data for each activity displayed: name, location, database
     Includes the read-only checkbox which enables or disables user-editing of some activity and exchange data
     Exchange data is displayed separately, below this grid, in tables.
     """
+
     def __init__(self, parent, read_only=True):
         super(ActivityDataGrid, self).__init__(parent)
 
@@ -61,22 +66,31 @@ class ActivityDataGrid(QtWidgets.QWidget):
             key=parent.key,
             field="location",
             parent=self,
-            contents=parent.activity.get('location', '')
+            contents=parent.activity.get("location", ""),
         )
-        self.location_combo.setToolTip("Select an existing location from the current activity database."
-                                          " Or add new location")
-        self.location_combo.setEditable(True)  # always 'editable', but not always 'enabled'
+        self.location_combo.setToolTip(
+            "Select an existing location from the current activity database."
+            " Or add new location"
+        )
+        self.location_combo.setEditable(
+            True
+        )  # always 'editable', but not always 'enabled'
 
         # database label
-        self.database_label = QtWidgets.QLabel('Database')
-        self.database_label.setToolTip("Select a different database to duplicate activity to it")
+        self.database_label = QtWidgets.QLabel("Database")
+        self.database_label.setToolTip(
+            "Select a different database to duplicate activity to it"
+        )
 
         # database combobox
         # the database of the activity is shown as a dropdown (ComboBox), which enables user to change it
         self.database_combo = QtWidgets.QComboBox()
         self.database_combo.currentTextChanged.connect(
-            lambda target_db: self.duplicate_confirm_dialog(target_db))
-        self.database_combo.setToolTip("Use dropdown menu to duplicate activity to another database")
+            lambda target_db: self.duplicate_confirm_dialog(target_db)
+        )
+        self.database_combo.setToolTip(
+            "Use dropdown menu to duplicate activity to another database"
+        )
 
         # arrange widgets for display as a grid
         self.grid = QtWidgets.QGridLayout()
@@ -86,9 +100,9 @@ class ActivityDataGrid(QtWidgets.QWidget):
         self.grid.setSpacing(6)
         self.grid.setAlignment(QtCore.Qt.AlignTop)
 
-        self.grid.addWidget(QtWidgets.QLabel('Name'), 1, 1)
+        self.grid.addWidget(QtWidgets.QLabel("Name"), 1, 1)
         self.grid.addWidget(self.name_box, 1, 2, 1, 3)
-        self.grid.addWidget(QtWidgets.QLabel('Location'), 2, 1)
+        self.grid.addWidget(QtWidgets.QLabel("Location"), 2, 1)
         self.grid.addWidget(self.location_combo, 2, 2, 1, -1)
         self.grid.addWidget(self.database_combo, 3, 2, 1, -1)
         self.grid.addWidget(self.database_label, 3, 1)
@@ -106,17 +120,17 @@ class ActivityDataGrid(QtWidgets.QWidget):
 
     def populate(self):
         # fill in the values of the ActivityDataGrid widgets
-        self.name_box.setText(self.parent.activity.get('name', ''))
+        self.name_box.setText(self.parent.activity.get("name", ""))
         self.name_box._key = self.parent.activity.key
 
         self.populate_location_combo()
         self.populate_database_combo()
 
     def populate_location_combo(self):
-        """ acts as both of: a label to show current location of act, and
-                auto-completes with all other locations in the database, to enable selection """
+        """acts as both of: a label to show current location of act, and
+        auto-completes with all other locations in the database, to enable selection"""
         self.location_combo.blockSignals(True)
-        location = str(self.parent.activity.get('location', ''))
+        location = str(self.parent.activity.get("location", ""))
         self.location_combo.addItem(location)
         self.location_combo.setCurrentText(location)
         self.location_combo.blockSignals(False)
@@ -124,12 +138,12 @@ class ActivityDataGrid(QtWidgets.QWidget):
     def update_location_combo(self):
         """Update when in edit mode"""
         self.location_combo.blockSignals(True)
-        location = str(self.parent.activity.get('location', 'unknown'))
+        location = str(self.parent.activity.get("location", "unknown"))
         self.location_combo._before = location
 
         # get all locations in db
         self.location_combo.clear()
-        db = self.parent.activity.get('database', '')
+        db = self.parent.activity.get("database", "")
         locations = sorted(AB_metadata.get_locations(db))
         locations.append("unknown")
         self.location_combo.insertItems(0, locations)
@@ -137,14 +151,14 @@ class ActivityDataGrid(QtWidgets.QWidget):
         self.location_combo.blockSignals(False)
 
     def populate_database_combo(self):
-        """ acts as both: a label to show current db of act, and
-                allows copying to others editable dbs via populated drop-down list """
+        """acts as both: a label to show current db of act, and
+        allows copying to others editable dbs via populated drop-down list"""
         # clear any existing items first
         self.database_combo.blockSignals(True)
         self.database_combo.clear()
 
         # first item in db combo, shown by default, is the current database
-        current_db = self.parent.activity.get('database', 'Error: db of Act not found')
+        current_db = self.parent.activity.get("database", "Error: db of Act not found")
         self.database_combo.addItem(current_db)
 
         # other items are the dbs that the activity can be duplicated to: find them and add
@@ -157,18 +171,7 @@ class ActivityDataGrid(QtWidgets.QWidget):
         self.database_combo.blockSignals(False)
 
     def duplicate_confirm_dialog(self, target_db):
-        """ Get user confirmation for duplication action """
-        title = "Duplicate activity to new database"
-        text = "Copy {} to {} and open as new tab?".format(
-            self.parent.activity.get('name', 'Error: Name of activity not found'), target_db)
-
-        user_choice = QMessageBox.question(self, title, text, QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
-        if user_choice == QMessageBox.Yes:
-            signals.duplicate_activity_to_db.emit(target_db, self.parent.activity)
-        # todo: give user more options in the dialog:
-        #   * retain / delete version in current db
-        #   * open / don't open new tab
-
+        actions.ActivityDuplicateToDB.run([self.parent.activity], target_db)
         # change selected database item back to original (index=0), to avoid confusing user
         # block and unblock signals to prevent unwanted extra emits from the automated change
         self.database_combo.blockSignals(True)
@@ -176,8 +179,8 @@ class ActivityDataGrid(QtWidgets.QWidget):
         self.database_combo.blockSignals(False)
 
     def set_activity_fields_read_only(self, read_only=True):
-        """ called on init after widgets instantiated
-            also whenever a user clicks the read-only checkbox """
+        """called on init after widgets instantiated
+        also whenever a user clicks the read-only checkbox"""
         # user cannot edit these fields if they are read-only
         self.read_only = read_only
         self.name_box.setReadOnly(self.read_only)

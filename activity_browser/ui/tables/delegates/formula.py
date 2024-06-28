@@ -5,14 +5,14 @@ from asteval import Interpreter
 from PySide2 import QtCore, QtGui, QtWidgets
 from PySide2.QtCore import Signal, Slot
 
-from activity_browser.signals import signals
-from activity_browser.ui.icons import qicons
+from activity_browser import actions, signals
 
 
 class CalculatorButtons(QtWidgets.QWidget):
-    """ A custom layout containing calculator buttons, emits a signal
+    """A custom layout containing calculator buttons, emits a signal
     for each button pressed.
     """
+
     button_press = Signal(str)
     clear = Signal()
 
@@ -60,8 +60,11 @@ Keep in mind that the result of a formula must be a scalar value!
     @Slot()
     def explanation(self):
         return QtWidgets.QMessageBox.question(
-            self, "More...", self.explain_text, QtWidgets.QMessageBox.Ok,
-            QtWidgets.QMessageBox.Ok
+            self,
+            "More...",
+            self.explain_text,
+            QtWidgets.QMessageBox.Ok,
+            QtWidgets.QMessageBox.Ok,
         )
 
 
@@ -80,9 +83,13 @@ class FormulaDialog(QtWidgets.QDialog):
         self.buttons = QtWidgets.QDialogButtonBox(
             QtWidgets.QDialogButtonBox.Save | QtWidgets.QDialogButtonBox.Cancel
         )
-        self.buttons.setSizePolicy(QtWidgets.QSizePolicy(
-            QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.ButtonBox
-        ))
+        self.buttons.setSizePolicy(
+            QtWidgets.QSizePolicy(
+                QtWidgets.QSizePolicy.Expanding,
+                QtWidgets.QSizePolicy.Preferred,
+                QtWidgets.QSizePolicy.ButtonBox,
+            )
+        )
         self.parameters = QtWidgets.QTableView(self)
         model = QtGui.QStandardItemModel(self)
         self.parameters.setModel(model)
@@ -90,12 +97,8 @@ class FormulaDialog(QtWidgets.QDialog):
         completer.setCaseSensitivity(QtCore.Qt.CaseInsensitive)
         self.text_field.setCompleter(completer)
         self.parameters.doubleClicked.connect(self.append_parameter_name)
-        self.new_parameter = QtWidgets.QPushButton(
-            qicons.add, "New parameter", self
-        )
-        self.new_parameter.clicked.connect(
-            lambda: signals.add_parameter.emit(self.key)
-        )
+
+        self.new_parameter_button = actions.ParameterNew.get_QButton(self.get_key)
 
         self.calculator = CalculatorButtons(self)
         self.calculator.button_press.connect(self.text_field.insert)
@@ -105,7 +108,7 @@ class FormulaDialog(QtWidgets.QDialog):
         grid.addWidget(self.buttons, 5, 0, 1, 1)
         grid.addWidget(self.calculator, 0, 1, 5, 1)
         grid.addWidget(self.parameters, 0, 2, 5, 1)
-        grid.addWidget(self.new_parameter, 5, 2, 1, 1)
+        grid.addWidget(self.new_parameter_button, 5, 2, 1, 1)
 
         self.buttons.accepted.connect(self.accept)
         self.buttons.rejected.connect(self.reject)
@@ -113,7 +116,7 @@ class FormulaDialog(QtWidgets.QDialog):
         self.show()
 
     def insert_parameters(self, items) -> None:
-        """ Take the given list of parameter names, amounts and types, insert
+        """Take the given list of parameter names, amounts and types, insert
         them into the model.
         """
         model = self.parameters.model()
@@ -128,8 +131,7 @@ class FormulaDialog(QtWidgets.QDialog):
 
     @Slot(str, str, str, name="appendParameter")
     def append_parameter(self, name: str, amount: str, p_type: str) -> None:
-        """ Catch new parameters from the wizard and add them to the list.
-        """
+        """Catch new parameters from the wizard and add them to the list."""
         model = self.parameters.model()
         x = model.rowCount()
         for y, i in enumerate([name, amount, p_type]):
@@ -145,20 +147,20 @@ class FormulaDialog(QtWidgets.QDialog):
         self.interpreter = interpreter
 
     def insert_key(self, key: tuple) -> None:
-        """ The key consists of two strings, no more, no less.
-        """
+        """The key consists of two strings, no more, no less."""
         self.key = key
+
+    def get_key(self) -> tuple:
+        return self.key
 
     @property
     def formula(self) -> str:
-        """ Look into the text_field and return the formula.
-        """
+        """Look into the text_field and return the formula."""
         return self.text_field.text().strip()
 
     @formula.setter
     def formula(self, value) -> None:
-        """ Take the formula and set it to the text_field widget.
-        """
+        """Take the formula and set it to the text_field widget."""
         if value is None:
             self.text_field.clear()
         else:
@@ -166,7 +168,7 @@ class FormulaDialog(QtWidgets.QDialog):
 
     @Slot(QtCore.QModelIndex)
     def append_parameter_name(self, index: QtCore.QModelIndex) -> None:
-        """ Take the index from the parameters table and append the parameter
+        """Take the index from the parameters table and append the parameter
         name to the formula.
         """
         param_name = self.parameters.model().index(index.row(), 0).data()
@@ -174,8 +176,7 @@ class FormulaDialog(QtWidgets.QDialog):
 
     @Slot()
     def validate_formula(self) -> None:
-        """ Qt slot triggered whenever a change is detected in the text_field.
-        """
+        """Qt slot triggered whenever a change is detected in the text_field."""
         self.text_field.blockSignals(True)
         if self.interpreter:
             formula = self.text_field.text().strip()
@@ -185,14 +186,18 @@ class FormulaDialog(QtWidgets.QDialog):
                 self.interpreter.err_writer = errfile
                 self.interpreter(formula)
                 if len(self.interpreter.error) > 0:
-                    self.buttons.button(QtWidgets.QDialogButtonBox.Save).setEnabled(False)
+                    self.buttons.button(QtWidgets.QDialogButtonBox.Save).setEnabled(
+                        False
+                    )
                 else:
-                    self.buttons.button(QtWidgets.QDialogButtonBox.Save).setEnabled(True)
+                    self.buttons.button(QtWidgets.QDialogButtonBox.Save).setEnabled(
+                        True
+                    )
         self.text_field.blockSignals(False)
 
 
 class FormulaDelegate(QtWidgets.QStyledItemDelegate):
-    """ An extensive delegate to allow users to build and validate formulas
+    """An extensive delegate to allow users to build and validate formulas
     The delegate spawns a dialog containing:
       - An editable textfield for the formula.
       - A listview containing parameter names that can be used in the formula
@@ -201,9 +206,15 @@ class FormulaDelegate(QtWidgets.QStyledItemDelegate):
     the delegate dialog itself. Requiring us to also include refreshing
     for the parameter list.
     """
-    ACCEPTED_TABLES = {"project_parameter", "database_parameter",
-                       "activity_parameter", "product", "technosphere",
-                       "biosphere"}
+
+    ACCEPTED_TABLES = {
+        "project_parameter",
+        "database_parameter",
+        "activity_parameter",
+        "product",
+        "technosphere",
+        "biosphere",
+    }
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -212,12 +223,11 @@ class FormulaDelegate(QtWidgets.QStyledItemDelegate):
         editor = QtWidgets.QWidget(parent)
         dialog = FormulaDialog(editor, QtCore.Qt.Window)
         dialog.accepted.connect(lambda: self.commitData.emit(editor))
-        dialog.rejected.connect(signals.parameters_changed.emit)
+        # dialog.rejected.connect(signals.parameters_changed.emit)
         return editor
 
     def setEditorData(self, editor: QtWidgets.QWidget, index: QtCore.QModelIndex):
-        """ Populate the editor with data if editing an existing field.
-        """
+        """Populate the editor with data if editing an existing field."""
         dialog = editor.findChild(FormulaDialog)
         data = index.data(QtCore.Qt.DisplayRole)
 
@@ -236,9 +246,13 @@ class FormulaDelegate(QtWidgets.QStyledItemDelegate):
             elif hasattr(parent, "get_key"):
                 dialog.insert_key(parent.get_key())
 
-    def setModelData(self, editor: QtWidgets.QWidget, model: QtCore.QAbstractItemModel,
-                     index: QtCore.QModelIndex):
-        """ Take the editor, read the given value and set it in the model.
+    def setModelData(
+        self,
+        editor: QtWidgets.QWidget,
+        model: QtCore.QAbstractItemModel,
+        index: QtCore.QModelIndex,
+    ):
+        """Take the editor, read the given value and set it in the model.
 
         If the new formula is the same as the existing one, do not call setData
         """

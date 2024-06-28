@@ -1,3 +1,2 @@
-# -*- coding: utf-8 -*-
-from .parameter_wizard import ParameterWizard
 from .uncertainty import UncertaintyWizard
+from .project_setup_wizard import ProjectSetupWizard
