@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 import os
 import shutil
+import tempfile
+from pathlib import Path
+from typing import Optional
 
 from bw2data import projects, config
 import bw2io as bi
@@ -9,12 +12,26 @@ import pytest
 from activity_browser import MainWindow, application
 
 
-@pytest.fixture(scope="session")
+def create_temp_dirs(temp_dir: Optional[Path] = None):
+    """
+    Create temporary directories for testing
+    """
+    temp_dir = temp_dir or Path(tempfile.mkdtemp())
+    dir_base_data = temp_dir / "data"
+    dir_base_data.mkdir(parents=True, exist_ok=True)
+    dir_base_logs = temp_dir / "logs"
+    dir_base_logs.mkdir(parents=True, exist_ok=True)
+    return dir_base_data, dir_base_logs
+
+
+@pytest.fixture()
 def ab_app():
     """Initialize the application and yield it. Cleanup the 'test' project
     after session is complete.
     """
-    projects._use_temp_directory()
+    dir_base_data, dir_base_logs = create_temp_dirs()
+    projects.change_base_directories(dir_base_data, dir_base_logs)
+
     bi.restore_project_directory(
         os.path.join(os.path.dirname(os.path.abspath(__file__)), "pytest_base.gz"),
         "default",
@@ -39,9 +56,15 @@ def bw2test():
     config.dont_warn = True
     config.is_test = True
     config.cache = {}
-    tempdir = projects._use_temp_directory()
+    current_data_dir = projects._base_data_dir
+    current_log_dir = projects._base_logs_dir
+    tempdir = Path(tempfile.mkdtemp())
+    dir_base_data, dir_base_logs = create_temp_dirs(tempdir)
+    projects.change_base_directories(dir_base_data, dir_base_logs)
+
     yield tempdir
-    projects._restore_orig_directory()
+
+    projects.change_base_directories(current_data_dir, current_log_dir)
     # Make the jump back to the pytest_project if it exists
     if "pytest_project" in projects:
         projects.set_current("pytest_project", update=False)
