@@ -7,3 +7,4 @@ dependencies:
   - pytest-qt
   - pytest-mock
   - pytest-env
+  - pytest-cov
