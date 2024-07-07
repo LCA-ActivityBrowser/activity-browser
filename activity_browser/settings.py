@@ -11,6 +11,8 @@ from PySide2.QtWidgets import QMessageBox
 from activity_browser import log, signals
 from activity_browser.mod import bw2data as bd
 
+DEFAULT_BW_DATA_DIR = bd.projects._base_data_dir
+
 
 def pathlib_encoder(value: Any) -> Any:
     if isinstance(value, Path):
@@ -159,10 +161,7 @@ class ABSettings(BaseSettings):
     @staticmethod
     def get_default_directory() -> str:
         """Returns the default brightway application directory"""
-        try:
-            return os.environ["BRIGHTWAY2_DIR"]
-        except KeyError:
-            return bd.projects._get_base_directories()[0]
+        return DEFAULT_BW_DATA_DIR
 
     @staticmethod
     def get_default_project_name() -> Optional[str]:
