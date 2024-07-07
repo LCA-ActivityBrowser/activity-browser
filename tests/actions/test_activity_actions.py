@@ -1,3 +1,4 @@
+from bw2data.errors import BW2Exception
 from bw2data.project import projects
 from bw2data.utils import get_activity
 
@@ -26,7 +27,7 @@ def test_activity_delete(ab_app, monkeypatch):
 
     actions.ActivityDelete.run([key])
 
-    with pytest.raises(Exception):
+    with pytest.raises(BW2Exception):
         get_activity(key)
 
 
@@ -36,7 +37,7 @@ def test_activity_duplicate(ab_app):
 
     assert projects.current == "default"
     assert get_activity(key)
-    with pytest.raises(Exception):
+    with pytest.raises(BW2Exception):
         get_activity(dup_key)
 
     actions.ActivityDuplicate.run([key])
@@ -57,7 +58,7 @@ def test_activity_duplicate_to_db(ab_app, monkeypatch):
 
     assert projects.current == "default"
     assert get_activity(key)
-    with pytest.raises(Exception):
+    with pytest.raises(BW2Exception):
         get_activity(dup_key)
 
     actions.ActivityDuplicateToDB.run([key])
@@ -78,7 +79,7 @@ def test_activity_duplicate_to_loc(ab_app, monkeypatch):
 
     assert projects.current == "default"
     assert get_activity(key).as_dict()["location"] == "MOON"
-    with pytest.raises(Exception):
+    with pytest.raises(BW2Exception):
         get_activity(dup_key)
 
     actions.ActivityDuplicateToLoc.run(key)

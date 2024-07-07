@@ -31,7 +31,7 @@ def test_default_install(ab_app, monkeypatch, qtbot):
         staticmethod(lambda *args, **kwargs: EcoinventVersionDialog.Accepted),
     )
     monkeypatch.setattr(
-        QtWidgets.QComboBox, "currentText", staticmethod(lambda *args, **kwargs: "3.7")
+        QtWidgets.QComboBox, "currentText", staticmethod(lambda *args, **kwargs: "3.9")
     )
 
     assert projects.current == project_name
@@ -43,10 +43,10 @@ def test_default_install(ab_app, monkeypatch, qtbot):
     dialog = application.main_window.findChild(DefaultBiosphereDialog)
     with qtbot.waitSignal(dialog.finished, timeout=5 * 60 * 1000):
         pass
-    qtbot.waitUntil(lambda: len(AB_metadata.dataframe) == 4324)
+    qtbot.waitUntil(lambda: len(AB_metadata.dataframe) == 4718)
 
     assert "biosphere3" in databases
-    assert len(Database("biosphere3")) == 4324
+    assert len(Database("biosphere3")) == 4718
     assert len(methods) == 762
 
 
@@ -75,7 +75,7 @@ def test_biosphere_update(ab_app, monkeypatch, qtbot):
 
     assert projects.current == project_name
     assert "biosphere3" in databases
-    assert len(Database("biosphere3")) == 4324
+    assert len(Database("biosphere3")) == 4718
 
     actions.BiosphereUpdate.run()
 
