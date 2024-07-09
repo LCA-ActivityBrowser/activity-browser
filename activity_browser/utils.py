@@ -53,7 +53,7 @@ def safe_link_fetch(url: str) -> Tuple[object, object]:
     object: response if no error, otherwise None
     """
     try:
-        response = requests.get(url)  # retrieve the page from the URL
+        response = requests.get(url, timeout=2)  # retrieve the page from the URL
         response.raise_for_status()
     except Exception as error:
         return (None, error)
