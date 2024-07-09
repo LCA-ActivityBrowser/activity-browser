@@ -601,8 +601,9 @@ class ActivityLinkingResultsDialog(QtWidgets.QDialog):
 
 
 class DefaultBiosphereDialog(QtWidgets.QProgressDialog):
-    def __init__(self, version, parent=None):
+    def __init__(self, version, check_patches: bool = True, parent=None):
         super().__init__(parent=parent)
+        self._check_patches = check_patches
         self.setWindowTitle("Biosphere and impact categories")
         self.setRange(0, 3)
         self.setModal(Qt.ApplicationModal)
@@ -622,7 +623,8 @@ class DefaultBiosphereDialog(QtWidgets.QProgressDialog):
     def thread_finished(self, result: int = None) -> None:
         # self.biosphere_thread.exit(result or 0)
         self.setValue(3)
-        self.check_patches()
+        if self._check_patches:
+            self.check_patches()
         self.done(result or 0)
 
     def check_patches(self):
