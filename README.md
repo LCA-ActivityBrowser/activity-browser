@@ -64,6 +64,17 @@ mamba activate ab
 activity-browser
 ```
 
+### Pip
+
+You can install AB using native python tools:
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install .
+activity-browser
+```
+
 ## The thorough way
 ### Conda
 

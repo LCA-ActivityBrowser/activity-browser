@@ -19,3 +19,4 @@ activity_browser/ABSettings.json
 .coverage
 .logs
 test/.logs
+.venv*

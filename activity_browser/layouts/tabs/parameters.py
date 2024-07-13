@@ -335,7 +335,7 @@ can be used within the formula!</p>
     @Slot(bool, name="hideDatabaseParameterTable")
     def hide_database_parameter(self, toggled: bool) -> None:
         self.database_table.header.setHidden(not toggled)
-        self.database_table.newParameter.setHidden(not toggled)
+        self.database_table.new_parameter_button.setHidden(not toggled)
         self.database_table.table.setHidden(not toggled)
         self.database_table.setHidden(not toggled)
 

@@ -107,7 +107,7 @@ class ExportDatabasePage(QtWidgets.QWizardPage):
         self.database.clear()
         choices = ["-----"] + list(bd.databases)
         self.database.addItems(choices)
-        self.output_dir.setText(bd.projects.output_dir)
+        self.output_dir.setText(str(bd.projects.output_dir))
 
     def changed(self):
         self.complete = False if self.database.currentText() == "-----" else True

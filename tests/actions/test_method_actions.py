@@ -1,3 +1,4 @@
+from bw2data import methods
 from bw2data.method import Method
 from bw2data.project import projects
 
@@ -130,14 +131,14 @@ def test_method_delete(ab_app, monkeypatch):
     )
 
     assert projects.current == "default"
-    assert method in Methods
-    assert branched_method in Methods
+    assert method in methods
+    assert branched_method in methods
 
     actions.MethodDelete.run([method], "leaf")
     actions.MethodDelete.run([branch], "branch")
 
-    assert method not in Methods
-    assert branched_method not in Methods
+    assert method not in methods
+    assert branched_method not in methods
 
 
 def test_method_duplicate(ab_app, monkeypatch):
@@ -153,10 +154,10 @@ def test_method_duplicate(ab_app, monkeypatch):
 
     monkeypatch.setattr(TupleNameDialog, "result_tuple", result)
 
-    assert method in Methods
-    assert duplicated_method not in Methods
+    assert method in methods
+    assert duplicated_method not in methods
 
     actions.MethodDuplicate.run([method], "leaf")
 
-    assert method in Methods
-    assert duplicated_method in Methods
+    assert method in methods
+    assert duplicated_method in methods

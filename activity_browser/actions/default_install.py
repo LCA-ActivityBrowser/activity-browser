@@ -14,12 +14,14 @@ class DefaultInstall(ABAction):
 
     @staticmethod
     @exception_dialogs
-    def run():
+    def run(check_patches: bool = True):
         version_dialog = EcoinventVersionDialog(application.main_window)
         if version_dialog.exec_() != EcoinventVersionDialog.Accepted:
             return
         version = version_dialog.options.currentText()
 
         DefaultBiosphereDialog(
-            version[:3], application.main_window
+            version[:3],
+            check_patches=check_patches,
+            parent=application.main_window,
         ).show()  # only read Major/Minor part of version

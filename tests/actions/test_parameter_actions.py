@@ -131,11 +131,15 @@ class TestParameterNew:
 
     def test_parameter_new_wizard_activity(self, ab_app):
         key = ("activity_tests", "be8fb2776c354aa7ad61d8348828f3af")
+        group = get_activity(key)._document.id
+
+        assert "dummy_parameter" not in ActivityParameter.load(group).keys()
+
         param_data = {
             "name": "parameter_test",
             "database": "activity_tests",
             "code": "be8fb2776c354aa7ad61d8348828f3af",
-            "group": "activity_22cfa9e9ef870ff4a93cbf5d3beff363",
+            "group": "4748",
             "amount": "1.0",
         }
         wizard = ParameterWizard(key)
@@ -152,18 +156,7 @@ class TestParameterNew:
         wizard.done(1)
         assert not wizard.isVisible()
         assert wizard.param_data == param_data
-
-
-def test_parameter_new_automatic(ab_app):
-    key = ("activity_tests", "be8fb2776c354aa7ad61d8348828f3af")
-    group = get_activity(key)._document.id
-
-    assert projects.current == "default"
-    assert "dummy_parameter" not in ActivityParameter.load(group).keys()
-
-    actions.ParameterNewAutomatic.run([key])
-
-    assert "dummy_parameter" in ActivityParameter.load(group).keys()
+        assert "dummy_parameter" in ActivityParameter.load(group).keys()
 
 
 def test_parameter_rename(ab_app, monkeypatch):
