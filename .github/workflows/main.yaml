@@ -1,4 +1,4 @@
-name: tests and development release
+name: conda - tests and development release
 on:
   pull_request:
     branches:
