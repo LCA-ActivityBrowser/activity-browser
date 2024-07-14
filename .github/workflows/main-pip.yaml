@@ -65,12 +65,17 @@ jobs:
     # And only on a push event, not a pull_request.
     if: ${{ github.event_name == 'push' }}
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
     defaults:
       run:
         shell: bash -l {0}
     env:
       PKG_NAME: "activity-browser-dev25"
     steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Overwrite package name
         run: |
           sed -i "s/name = \"activity_browser\"/name=\"$PKG_NAME\"/" pyproject.toml
@@ -79,6 +84,7 @@ jobs:
           python -m pip install build --user
       - name: Build a binary wheel and a source tarball
         run: |
+          export GIT_DESCRIBE_TAG=`git describe --tags`
           python -m build --outdir dist/ .
       - name: Publish distribution 📦 to Test PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
