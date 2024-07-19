@@ -7,10 +7,10 @@ from .mod import bw2data
 from .application import application
 from .signals import signals
 from .settings import ab_settings, project_settings
-from .controllers import *
 from .info import __version__ as version
 from .layouts.main import MainWindow
 from .plugin import Plugin
+from .controllers import *
 
 
 def load_settings() -> None:
