@@ -39,14 +39,21 @@ class PluginController(QObject):
             importlib.reload(plugin_lib)
             return plugin_lib.Plugin()
         except Exception as e:
-            log.error("Error: Import of plugin {} failed".format(name), error=e)
+            log.error(f"Import of plugin '{name}' failed: {e}")
 
     def add_plugin(self, name, select: bool = True):
         """add or reload tabs of the given plugin"""
         if select:
             plugin = self.plugins[name]
             # Apply plugin load() function
-            plugin.load()
+            try:
+                plugin.load()
+            except Exception as e:
+                log.warning(f"Failed to load plugin '{name}' due to an error in the plugin, ignoring plugin. "
+                            "If this keeps happening contact the plugin developers and let them know of this error:"
+                            f"\n{e}")
+                return
+
             # Add plugins tabs
             for tab in plugin.tabs:
                 application.main_window.add_tab_to_panel(
@@ -76,7 +83,7 @@ class PluginController(QObject):
             try:
                 self.add_plugin(name)
             except:
-                log.error(f"Error: plugin {name} not installed")
+                log.warning(f"Tried to load plugin '{name}' but it is not installed, ignoring plugin")
 
     def close(self):
         """close all plugins"""
