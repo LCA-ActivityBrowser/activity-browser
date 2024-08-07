@@ -260,26 +260,26 @@ class MetaDataStore(object):
 
     def _unpacker(self, classifications: list, system: str) -> list:
         """Iterate over all 'c' lists in 'classifications'
-        and add those matching 'system' to list 'x', when no matches, add empty string.
+        and add those matching 'system' to list 'system_classifications', when no matches, add empty string.
         If 'c' is not a list, add empty string.
 
-        Always returns a list 'x' where len(x) == len(classifications).
+        Always returns a list 'system_classifications' where len(system_classifications) == len(classifications).
 
         Testing showed that converting to list and doing the checks on a list is ~5x faster than keeping
         data in DF and using a df.apply() function, we do this now (difference was ~0.4s vs ~2s).
         """
-        x = []
+        system_classifications = []
         for c in classifications:
-            cls = ""
-            if type(c) != list:
-                x.append(cls)
+            result = ""
+            if not isinstance(c, (list, tuple, set)):
+                system_classifications.append(result)
                 continue
             for s in c:
                 if s[0] == system:
-                    cls = s[1]
+                    result = s[1]
                     break
-            x.append(cls)
-        return x
+            system_classifications.append(result)  # result is either "" or the classification
+        return system_classifications
 
 
 AB_metadata = MetaDataStore()
