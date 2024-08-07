@@ -1,11 +1,13 @@
-from typing import Callable, Union
+from logging import getLogger
 
-from PySide2 import QtCore, QtWidgets
+from PySide2 import QtWidgets
 
-from activity_browser import application, log, signals
+from activity_browser import application, signals
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.mod import bw2data as bd
 from activity_browser.ui.icons import qicons
+
+log = getLogger(__name__)
 
 
 class CSDuplicate(ABAction):

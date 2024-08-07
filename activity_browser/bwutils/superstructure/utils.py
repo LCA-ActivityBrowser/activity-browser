@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 import time
+from logging import getLogger
 
 import pandas as pd
 
-from activity_browser import log
 from activity_browser.mod import bw2data as bd
+
+log = getLogger(__name__)
 
 # Different kinds of indexes, to allow for quick selection of data from
 # the Superstructure DataFrame.

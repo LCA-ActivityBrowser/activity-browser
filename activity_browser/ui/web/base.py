@@ -3,16 +3,19 @@ import os
 from abc import abstractmethod
 from copy import deepcopy
 from typing import Type
+from logging import getLogger
 
 from PySide2 import QtWebChannel, QtWebEngineWidgets, QtWidgets
 from PySide2.QtCore import QObject, Qt, QUrl, Signal, Slot
 
-from activity_browser import ab_settings, log, signals
+from activity_browser import ab_settings, signals
 from activity_browser.mod import bw2data as bd
 
 from ... import utils
 from ...ui.icons import qicons
 from . import webutils
+
+log = getLogger(__name__)
 
 
 class BaseNavigatorWidget(QtWidgets.QWidget):

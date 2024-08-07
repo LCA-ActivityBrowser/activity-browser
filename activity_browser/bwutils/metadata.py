@@ -1,14 +1,17 @@
 # -*- coding: utf-8 -*-
+from logging import getLogger
+
 import numpy as np
 import pandas as pd
 from bw2data.errors import UnknownObject
 
 import activity_browser.bwutils.commontasks as bc
-from activity_browser import log
 from activity_browser.mod import bw2data as bd
 from activity_browser.mod.bw2data.backends import ActivityDataset
 
 # todo: extend store over several projects
+
+log = getLogger(__name__)
 
 
 def list_to_tuple(x) -> tuple:

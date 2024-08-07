@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import math
+from logging import getLogger
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -9,11 +10,12 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 from PySide2 import QtWidgets
 
-from activity_browser import log
 from activity_browser.mod.bw2data import methods
 from activity_browser.utils import savefilepath
 
 from ..bwutils.commontasks import wrap_text
+
+log = getLogger(__name__)
 
 # todo: sizing of the figures needs to be improved and systematized...
 # todo: Bokeh is a potential alternative as it allows interactive visualizations,

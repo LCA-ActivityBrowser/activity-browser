@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
 import importlib.util
 from pkgutil import iter_modules
+from logging import getLogger
 
 from PySide2.QtCore import QObject
 
-from activity_browser import (ab_settings, application, log, project_settings,
-                              signals)
+from activity_browser import ab_settings, application, project_settings, signals
 from activity_browser.mod import bw2data as bd
+
+log = getLogger(__name__)
 
 
 class PluginController(QObject):

@@ -1,7 +1,9 @@
+from logging import getLogger
+
 from PySide2 import QtWidgets
 from PySide2.QtCore import Qt, Slot
 
-from activity_browser import log, signals
+from activity_browser import signals
 from activity_browser.mod.bw2data import calculation_setups
 
 from ..icons import qicons
@@ -10,6 +12,8 @@ from .impact_categories import MethodsTable, MethodsTree
 from .inventory import ActivitiesBiosphereTable, ActivitiesBiosphereTree
 from .models import CSMethodsModel, CSActivityModel, ScenarioImportModel
 from .views import ABDataFrameView
+
+log = getLogger(__name__)
 
 
 class CSList(QtWidgets.QComboBox):

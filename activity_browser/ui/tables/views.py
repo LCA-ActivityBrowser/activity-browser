@@ -1,11 +1,12 @@
 import os
 from typing import Optional
+from logging import getLogger
 
 from PySide2 import QtGui, QtWidgets
 from PySide2.QtCore import QPoint, QRect, QSize, Qt, QTimer, Signal, Slot
 from PySide2.QtWidgets import QApplication, QSizePolicy, QTableView
 
-from activity_browser import ab_settings, log
+from activity_browser import ab_settings
 from activity_browser.mod import bw2data as bd
 
 from ..icons import qicons
@@ -13,6 +14,8 @@ from ..widgets.dialog import FilterManagerDialog, SimpleFilterDialog
 from .delegates import ViewOnlyDelegate
 from .models import PandasModel
 from .models.base import ABSortProxyModel
+
+log = getLogger(__name__)
 
 
 class ABDataFrameView(QtWidgets.QTableView):

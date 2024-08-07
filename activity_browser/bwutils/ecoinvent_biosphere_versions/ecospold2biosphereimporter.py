@@ -1,15 +1,17 @@
 import os
 from zipfile import ZipFile
+from logging import getLogger
 
 from bw2io.importers import Ecospold2BiosphereImporter
 from bw2io.importers.ecospold2_biosphere import EMISSIONS_CATEGORIES
 from lxml import objectify
 
-from activity_browser import log
 from activity_browser.mod import bw2data as bd
 
 from ...info import __ei_versions__
 from ...utils import sort_semantic_versions
+
+log = getLogger(__name__)
 
 
 def create_default_biosphere3(version) -> None:

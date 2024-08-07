@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
+from logging import getLogger
+
 import pandas as pd
 from PySide2 import QtWidgets
 from PySide2.QtCore import Qt, Slot
 
-from activity_browser import actions, log, signals
+from activity_browser import actions, signals
 from activity_browser.mod import bw2data as bd
 
 from ...bwutils.errors import *
@@ -20,6 +22,8 @@ from ...ui.tables import (CSActivityTable, CSList, CSMethodsTable,
                           ScenarioImportTable)
 from ...ui.widgets import ExcelReadDialog, ScenarioDatabaseDialog
 from .base import BaseRightTab
+
+log = getLogger(__name__)
 
 """
 Lifecycle of a calculation setup

@@ -2,13 +2,14 @@
 from ast import literal_eval
 from pathlib import Path
 from typing import List, Union
+from logging import getLogger
 
 import openpyxl
 import pandas as pd
 
-from activity_browser import log
-
 from .utils import SUPERSTRUCTURE
+
+log = getLogger(__name__)
 
 
 def convert_tuple_str(x):

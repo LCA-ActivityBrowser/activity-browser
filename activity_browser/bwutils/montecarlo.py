@@ -1,16 +1,18 @@
 from collections import defaultdict
 from time import time
 from typing import Optional, Union
+from logging import getLogger
 
 import bw2calc as bc
 import numpy as np
 import pandas as pd
 from stats_arrays import MCRandomNumberGenerator
 
-from activity_browser import log
 from activity_browser.mod import bw2data as bd
 
 from .manager import MonteCarloParameterManager
+
+log = getLogger(__name__)
 
 
 class MonteCarloLCA(object):

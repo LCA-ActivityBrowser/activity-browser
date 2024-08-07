@@ -4,14 +4,15 @@ import os
 import shutil
 from pathlib import Path
 from typing import Optional
+from logging import getLogger
 
 import appdirs
 from PySide2.QtWidgets import QMessageBox
 
-from activity_browser import log
 from activity_browser.signals import signals
 from activity_browser.mod import bw2data as bd
 
+log = getLogger(__name__)
 
 class BaseSettings(object):
     """Base Class for handling JSON settings files."""
@@ -227,7 +228,7 @@ class ProjectSettings(BaseSettings):
         """On switching project, attempt to read the settings for the new
         project.
         """
-        log.info("Project settings directory: ", bd.projects.dir)
+        log.info(f"Project settings directory: {bd.projects.dir}")
         self.settings_file = os.path.join(bd.projects.dir, self.filename)
         self.initialize_settings()
         # create a plugins_list entry for old projects

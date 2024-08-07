@@ -7,6 +7,7 @@ from functools import lru_cache
 import tempfile
 import zipfile
 from pathlib import Path
+from logging import getLogger
 
 import bw2data.errors
 import ecoinvent_interface as ei
@@ -17,7 +18,6 @@ from PySide2 import QtCore, QtWidgets
 from PySide2.QtCore import Signal, Slot
 from py7zr import py7zr
 
-from activity_browser import log
 from activity_browser.bwutils import errors
 from activity_browser.mod import bw2data as bd
 
@@ -26,6 +26,8 @@ from ...utils import sort_semantic_versions
 from ..style import style_group_box
 from ..threading import ABThread
 from ..widgets import DatabaseLinkingDialog
+
+log = getLogger(__name__)
 
 
 class DatabaseImportWizard(QtWidgets.QWizard):

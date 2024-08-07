@@ -8,13 +8,13 @@
 import os
 import traceback
 from time import time
+from logging import getLogger
 
 import bw2calc as bc
 import numpy as np
 import pandas as pd
 from SALib.analyze import delta
 
-from activity_browser import log
 from activity_browser.mod import bw2data as bd
 
 from ..settings import ab_settings
@@ -27,6 +27,8 @@ try:
 except ImportError:
     # standard import on failure
     from bw2calc import GraphTraversal
+
+log = getLogger(__name__)
 
 
 def get_lca(fu, method):

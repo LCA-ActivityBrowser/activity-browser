@@ -6,6 +6,7 @@ Each of these classes is either a parent for - or a sub-LCA results tab.
 
 from collections import namedtuple
 from typing import List, Optional, Union
+from logging import getLogger
 
 import pandas as pd
 from PySide2 import QtCore, QtGui
@@ -17,7 +18,7 @@ from PySide2.QtWidgets import (QApplication, QButtonGroup, QCheckBox,
                                QWidget)
 from stats_arrays.errors import InvalidParamsError
 
-from activity_browser import log, signals
+from activity_browser import signals
 from activity_browser.mod.bw2data import calculation_setups
 
 from ...bwutils import (MLCA, Contributions, GlobalSensitivityAnalysis,
@@ -31,6 +32,8 @@ from ...ui.tables import ContributionTable, InventoryTable, LCAResultsTable
 from ...ui.web import SankeyNavigatorWidget
 from ...ui.widgets import CutoffMenu, SwitchComboBox
 from .base import BaseRightTab
+
+log = getLogger(__name__)
 
 
 def get_header_layout(header_text: str) -> QVBoxLayout:

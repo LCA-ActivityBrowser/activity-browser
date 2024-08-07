@@ -3,16 +3,20 @@ import json
 import os
 from copy import deepcopy
 from typing import Optional
+from logging import getLogger
 
 import networkx as nx
 from PySide2 import QtWidgets
 from PySide2.QtCore import Slot
 
-from activity_browser import log, signals
+from activity_browser import signals
 from activity_browser.mod.bw2data import Database, get_activity
 
 from ...bwutils.commontasks import identify_activity_type
 from .base import BaseGraph, BaseNavigatorWidget
+
+log = getLogger(__name__)
+
 
 # TODO:
 # save graph as image

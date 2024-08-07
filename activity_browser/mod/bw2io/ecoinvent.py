@@ -1,10 +1,13 @@
+from logging import getLogger
+
 from bw2io.ecoinvent import *
 
 import pyprind
 
-from activity_browser import log
 from activity_browser.mod.ecoinvent_interface.release import ABEcoinventRelease
 from activity_browser.mod.bw2io.importers.ecospold2_biosphere import ABEcospold2BiosphereImporter
+
+log = getLogger(__name__)
 
 
 def ab_import_ecoinvent_release(version, system_model):

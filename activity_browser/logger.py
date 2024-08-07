@@ -1,8 +1,7 @@
-import inspect
 import logging
 import os
-import sys
 import time
+import sys
 from traceback import extract_tb
 from types import TracebackType
 from typing import Type
@@ -209,75 +208,16 @@ class ABPycharmHandler(logging.Handler):
         return message
 
 
-class LoggingProxy:
-    """
-    Official logging documentation states that loggers should be initiated per module using the __name__ attribute of
-    said module. Doing this for each module is in my opinion messy and unneeded. Enter: this proxy that modules can use
-    by importing log from the activity_browser module. By logging via this proxy the loggers are initiated dynamically
-    through inspecting the frame in which the proxy was called.
-    """
-
-    def debug(self, msg, *args):
-        self.log(10, msg, *args)
-
-    def info(self, msg, *args):
-        self.log(20, msg, *args)
-
-    def warning(self, msg, *args):
-        self.log(30, msg, *args)
-
-    def warn(self, msg, *args):
-        self.log(30, msg, *args)
-
-    def error(self, msg, *args):
-        self.log(40, msg, *args)
-
-    def exception(self, msg, *args, exc_info):
-        self.log(40, msg, *args, stack_level=3, exc_info=exc_info)
-
-    def print(self, msg):
-        self.log(25, msg, stack_level=3)
-
-    def log(self, level: int, msg, *args, stack_level: int = 2, exc_info: tuple = None):
-        """
-        Get all logrecord info ourselves by inspecting the stack and log it by requesting a logger with the __name__ of
-        the module from which the proxy was called.
-
-        Do not use directly: it will inspect a frame too high in that case.
-        """
-        # get frame info from 2 frames up in the stack, retrieve the name of the module
-        frame_info = inspect.stack()[stack_level]
-        name = inspect.getmodule(frame_info.frame).__name__
-
-        # already solve args
-        msg = msg + " ".join([str(arg) for arg in args])
-
-        # create a LogRecord using all the supplied information
-        record = logging.LogRecord(
-            name=name,
-            level=level,
-            pathname=frame_info.filename,
-            lineno=frame_info.lineno,
-            msg=msg,
-            args=tuple(),
-            exc_info=exc_info,
-            func=frame_info.function,
-        )
-
-        # get the logger with the module's name and let it handle the record
-        logger = logging.getLogger(name)
-        logger.handle(record)
-
-
 def exception_hook(
     error: Type[BaseException], message: BaseException, traceback: TracebackType
 ):
     """Exception hook to catch and log exceptions"""
     exc_info = (error, message, traceback)
+    log = logging.getLogger("exception_hook")
     log.exception(f"{error.__name__}: {message}", exc_info=exc_info)
 
 
-def setup():
+def setup_ab_logging():
     # set the root logger's level to 0, this gives us access to all logs
     logging.root.setLevel(0)
 
@@ -305,7 +245,4 @@ def setup():
     sys.excepthook = exception_hook
 
 
-setup()
-
-log = LoggingProxy()
 log_file_location = None

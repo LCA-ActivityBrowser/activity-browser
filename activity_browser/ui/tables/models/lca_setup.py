@@ -1,15 +1,18 @@
 from typing import Iterable
+from logging import getLogger
 
 import numpy as np
 import pandas as pd
 from PySide2.QtCore import QModelIndex, Qt, Slot
 
-from activity_browser import log, signals
+from activity_browser import signals
 from activity_browser.bwutils import commontasks as bc
 from activity_browser.mod import bw2data as bd
 from activity_browser.mod.bw2data.backends import ActivityDataset
 
 from .base import EditablePandasModel, PandasModel
+
+log = getLogger(__name__)
 
 
 class CSGenericModel(EditablePandasModel):
