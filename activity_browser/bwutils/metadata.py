@@ -260,7 +260,7 @@ class MetaDataStore(object):
 
     def _unpacker(self, classifications: list, system: str) -> list:
         """Iterate over all 'c' lists in 'classifications'
-        and add those matching 'system' to list 'x', when no matches, add empty string.
+        and add those matching 'system' to list 'system_classifications', when no matches, add empty string.
         If 'c' is not a list, add empty string.
 
         Always returns a list 'system_classifications' where len(system_classifications) == len(classifications).
@@ -270,15 +270,15 @@ class MetaDataStore(object):
         """
         system_classifications = []
         for c in classifications:
-            cls = ""
+            result = ""
             if not isinstance(c, (list, tuple, set)):
-                system_classifications.append(cls)
+                system_classifications.append(result)
                 continue
             for s in c:
                 if s[0] == system:
-                    cls = s[1]
+                    result = s[1]
                     break
-            system_classifications.append(cls)  # cls is either "" or the classification
+            system_classifications.append(result)  # result is either "" or the classification
         return system_classifications
 
 
