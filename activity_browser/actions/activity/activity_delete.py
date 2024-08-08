@@ -27,6 +27,19 @@ class ActivityDelete(ABAction):
         # retrieve activity objects from the controller using the provided keys
         activities = [bd.get_activity(key) for key in activity_keys]
 
+        # alert the user
+        choice = QtWidgets.QMessageBox.warning(
+            application.main_window,
+            "Deleting activity/activities",
+            f"Are you certain you want to delete {len(activities)} activity/activities?",
+            QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
+            QtWidgets.QMessageBox.No,
+        )
+
+        # return if the user cancels
+        if choice == QtWidgets.QMessageBox.No:
+            return
+
         # check for downstream processes
         if any(len(act.upstream()) > 0 for act in activities):
             # warning text
