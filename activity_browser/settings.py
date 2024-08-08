@@ -72,6 +72,25 @@ class ABSettings(BaseSettings):
 
         super().__init__(ab_dir.user_data_dir, filename)
 
+        if not self.healthy():
+            log.warn("Settings health check failed, resetting")
+            self.restore_default_settings()
+
+    def healthy(self) -> bool:
+        """
+        Checks the settings file to see if it is healthy. Returns True if all checks pass, otherwise returns False.
+        """
+        healthy = True
+
+        # check for write access to the current bw dir
+        healthy = healthy and os.access(self.settings.get("current_bw_dir"), os.W_OK)
+
+        # check for write access to the custom bw dirs
+        access = [os.access(path, os.W_OK) for path in self.settings.get("custom_bw_dirs")]
+        healthy = healthy and False not in access
+
+        return healthy
+
     @staticmethod
     def update_old_settings(directory: str, filename: str) -> None:
         """Recycling code to enable backward compatibility: This function is only required for compatibility
