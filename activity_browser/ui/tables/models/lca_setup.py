@@ -1,4 +1,4 @@
-from typing import Iterable
+from typing import Iterable, List, Union
 
 import numpy as np
 import pandas as pd
@@ -191,6 +191,13 @@ class CSMethodsModel(CSGenericModel):
             if self._dataframe is None
             else self._dataframe.loc[:, "method"].to_list()
         )
+
+    def get_method(self, proxy: Union[QModelIndex, int]) -> tuple:
+        """
+        Return the method coupled to a model index
+        """
+        idx = self.proxy_to_source(proxy)
+        return self._dataframe["method"][idx.row()]
 
     def load(self, cs_name: str = None) -> None:
         """
