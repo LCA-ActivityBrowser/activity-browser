@@ -145,7 +145,7 @@ class Bridge(QObject):
             click_dict["database"],
             click_dict["id"],
         )  # since JSON does not know tuples
-        log.info("Click information: ", click_dict)  # TODO click_dict needs correcting
+        log.info(f"Click information: {click_dict}")  # TODO click_dict needs correcting
         self.update_graph.emit(click_dict)
 
     @Slot(str, name="download_triggered")

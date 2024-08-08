@@ -1086,7 +1086,7 @@ class LoginThread(QtCore.QThread):
         try:
             login_success, error_message = self.downloader.login()
         except Exception as e:
-            log.error(str(e), exc_info=True)
+            log.error(e)
             import_signals.login_success.emit(False)
             msg = str(e)
             cs = ei.CachedStorage()
@@ -1339,7 +1339,7 @@ class ActivityBrowserBackend(bd.backends.SQLiteBackend):
 
     def _efficient_write_dataset(self, *args, **kwargs):
         if import_signals.cancel_sentinel:
-            log.info(f"\nWriting canceled at position {self._ab_current_index}!")
+            log.info(f"Writing canceled at position {self._ab_current_index}")
             raise errors.ImportCanceledError
         self._ab_current_index += 1
         import_signals.db_progress.emit(self._ab_current_index, self._ab_total)
@@ -1450,9 +1450,8 @@ class ABEcoinventDownloader:
             error_message = None
             if e.response.status_code != 401:
                 log.error(
-                    "Unexpected status code (%d) received when trying to list ecoinvent_versions, response: %s",
-                    e.response.status_code,
-                    e.response.text,
+                    f"Unexpected status code {e.response.status_code} received when trying to list ecoinvent_versions, "
+                    f"response: {e.response.text}",
                 )
                 error_message = (
                     "Unexpected Problem",

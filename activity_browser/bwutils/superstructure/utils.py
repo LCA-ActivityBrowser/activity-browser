@@ -79,7 +79,7 @@ def _time_it_(func):
     def wrapper(*args):
         now = time.time()
         result = func(*args)
-        log.info(f"{func} -- " + str(time.time() - now))
+        log.info(f"{func} -- {time.time() - now}")
         return result
 
     return wrapper

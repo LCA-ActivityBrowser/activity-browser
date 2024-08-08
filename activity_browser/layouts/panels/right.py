@@ -52,7 +52,7 @@ class RightPanel(ABTab):
         """
         if tab_name in self.tabs:
             tab = self.tabs[tab_name]
-            log.info("+showing tab:", tab_name)
+            log.info(f"+showing tab: {tab_name}")
             tab.setVisible(True)
             self.insertTab(self.tab_order[tab_name], tab, tab_name)
             self.select_tab(tab)

@@ -96,7 +96,7 @@ def cleanup_deleted_bw_projects() -> None:
     NOTE: This cannot be done from within the AB.
     """
     n_dir = bd.projects.purge_deleted_directories()
-    log.info("Deleted {} unused project directories!".format(n_dir))
+    log.info(f"Deleted {n_dir} unused project directories!")
 
 
 # Database

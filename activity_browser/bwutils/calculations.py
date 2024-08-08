@@ -51,7 +51,7 @@ def do_LCA_calculations(data: dict):
             QApplication.restoreOverrideCursor()
             raise CriticalCalculationError
     else:
-        log.error("Calculation type must be: simple or scenario. Given:", cs_name)
+        log.error(f"Calculation type must be: simple or scenario. Given: {cs_name}")
         raise ValueError
 
     mlca.calculate()

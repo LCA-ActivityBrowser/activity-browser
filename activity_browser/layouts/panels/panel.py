@@ -61,7 +61,7 @@ class ABTab(QtWidgets.QTabWidget):
         """Makes existing tab visible."""
         if tab_name in self.tabs:
             tab = self.tabs[tab_name]
-            log.info("+showing tab:", tab_name)
+            log.info(f"+showing tab: {tab_name}")
             tab.setVisible(True)
             self.addTab(tab, tab_name)
             self.select_tab(tab)
@@ -72,7 +72,7 @@ class ABTab(QtWidgets.QTabWidget):
         if len(tab_names) == 1:
             return tab_names[0]
         else:
-            log.warning("found", len(tab_names), "occurences of this object.")
+            log.warning(f"found {len(tab_names)} occurrences of this object.")
 
     def get_tab_name_from_index(self, index):
         """Return the name of a tab based on its index."""

@@ -36,7 +36,7 @@ def get_lca(fu, method):
     lca = bc.LCA(fu, method=method)
     lca.lci()
     lca.lcia()
-    log.info("Non-stochastic LCA score:", lca.score)
+    log.info(f"Non-stochastic LCA score: {lca.score}")
 
     # add reverse dictionaries
     lca.activity_dict_rev, lca.product_dict_rev, lca.biosphere_dict_rev = (
@@ -230,7 +230,7 @@ def get_parameters_DF(mc):
     if bool(mc.parameter_data):  # returns False if dict is empty
         dfp = pd.DataFrame(mc.parameter_data).T
         dfp["GSA name"] = "P: " + dfp["name"]
-        log.info("PARAMETERS:", len(dfp))
+        log.info(f"PARAMETERS: {len(dfp)}")
         return dfp
     else:
         log.info("PARAMETERS: None included.")
@@ -334,14 +334,8 @@ class GlobalSensitivityAnalysis(object):
             return None
 
         log.info(
-            "-- GSA --\n Project:",
-            bd.projects.current,
-            "CS:",
-            self.mc.cs_name,
-            "Activity:",
-            self.activity,
-            "Method:",
-            self.method,
+            f"-- GSA --\n Project: {bd.projects.current} CS: {self.mc.cs_name} "
+            f"Activity: {self.activity} Method: {self.method}",
         )
 
         # get non-stochastic LCA object with reverse dictionaries
