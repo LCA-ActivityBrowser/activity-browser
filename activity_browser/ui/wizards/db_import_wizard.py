@@ -230,7 +230,6 @@ class RemoteImportPage(QtWidgets.QWizardPage):
 
     OPTIONS = (
         ("ecoinvent (requires login)", "homepage", DatabaseImportWizard.EI_LOGIN),
-        ("Forwast", "forwast", DatabaseImportWizard.DB_NAME),
     )
 
     def __init__(self, parent=None):
@@ -450,8 +449,6 @@ class DBNamePage(QtWidgets.QWizardPage):
             version = self.wizard.version
             sys_mod = self.wizard.system_model
             self.name_edit.setText(sys_mod + version.replace(".", ""))
-        elif self.wizard.import_type == "forwast":
-            self.name_edit.setText("Forwast")
         elif self.wizard.import_type == "local":
             filename = Path(self.field("archive_path")).name
             if "." in filename:
@@ -512,12 +509,6 @@ class ConfirmationPage(QtWidgets.QWizardPage):
             self.path_label.setText(
                 "Path to 7z archive:<br><b>{}</b>".format(self.field("archive_path"))
             )
-        elif self.wizard.import_type == "forwast":
-            self.path_label.setOpenExternalLinks(True)
-            self.path_label.setText(
-                'Download forwast from <a href="https://lca-net.com/projects/show/forwast/">'
-                + "https://lca-net.com/projects/show/forwast/</a>"
-            )
         elif self.wizard.import_type == "local":
             self.path_label.setText(
                 "Path to local file:<br><b>{}</b>".format(self.field("archive_path"))
@@ -548,8 +539,8 @@ class ConfirmationPage(QtWidgets.QWizardPage):
 class ImportPage(QtWidgets.QWizardPage):
     NO_DOWNLOAD = {"directory", "archive", "local"}
     NO_UNPACK = {"directory", "local"}
-    NO_EXTRACT = {"forwast", "local"}
-    NO_STRATEGY = {"forwast", "local"}
+    NO_EXTRACT = {"local"}
+    NO_STRATEGY = {"local"}
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -655,10 +646,6 @@ class ImportPage(QtWidgets.QWizardPage):
         elif self.wizard.import_type == "archive":
             self.main_worker_thread.update(
                 db_name=self.field("db_name"), archive_path=self.field("archive_path")
-            )
-        elif self.wizard.import_type == "forwast":
-            self.main_worker_thread.update(
-                db_name=self.field("db_name"), use_forwast=True
             )
         elif self.wizard.import_type == "local":
             kwargs = {
@@ -793,13 +780,9 @@ class MainWorkerThread(ABThread):
     def __init__(self, downloader: "ABEcoinventDownloader", parent=None):
         super().__init__(parent)
         self.downloader = downloader
-        self.forwast_url = (
-            "https://lca-net.com/wp-content/uploads/forwast.bw2package.zip"
-        )
         self.db_name = None
         self.archive_path = None
         self.datasets_path = None
-        self.use_forwast = None
         self.use_local = None
         self.relink = {}
 
@@ -808,7 +791,6 @@ class MainWorkerThread(ABThread):
         db_name: str,
         archive_path=None,
         datasets_path=None,
-        use_forwast=False,
         use_local=False,
         relink=None,
     ) -> None:
@@ -816,16 +798,13 @@ class MainWorkerThread(ABThread):
         self.archive_path = archive_path
         if datasets_path:
             self.datasets_path = Path(datasets_path)
-        self.use_forwast = use_forwast
         self.use_local = use_local
         self.relink = relink or {}
 
     def run_safely(self):
         # Set the cancel sentinal to false whenever the thread (re-)starts
         import_signals.cancel_sentinel = False
-        if self.use_forwast:
-            self.run_forwast()
-        elif self.use_local:  # excel or bw2package
+        if self.use_local:  # excel or bw2package
             self.run_local_import()
         elif self.datasets_path:  # ecospold2 files
             self.run_import(self.datasets_path)
@@ -849,31 +828,6 @@ class MainWorkerThread(ABThread):
                 if not import_signals.cancel_sentinel:
                     dataset_dir = temp_dir.joinpath("datasets")
                     self.run_import(dataset_dir)
-
-    def run_forwast(self) -> None:
-        """Adapted from pjamesjoyce/lcopt."""
-        response = requests.get(self.forwast_url)
-        forwast_zip = zipfile.ZipFile(io.BytesIO(response.content))
-        import_signals.download_complete.emit()
-        with tempfile.TemporaryDirectory() as tempdir:
-            temp_dir = Path(tempdir)
-            if not import_signals.cancel_sentinel:
-                forwast_zip.extractall(tempdir)
-                import_signals.unarchive_finished.emit()
-            if not import_signals.cancel_sentinel:
-                import_signals.extraction_progress.emit(0, 0)
-                import_signals.strategy_progress.emit(0, 0)
-                import_signals.db_progress.emit(0, 0)
-                BW2Package.import_file(str(temp_dir.joinpath("forwast.bw2package")))
-            if self.db_name.lower() != "forwast":
-                bd.Database("forwast").rename(self.db_name)
-            if not import_signals.cancel_sentinel:
-                import_signals.extraction_progress.emit(1, 1)
-                import_signals.strategy_progress.emit(1, 1)
-                import_signals.db_progress.emit(1, 1)
-                import_signals.finished.emit()
-            else:
-                self.delete_canceled_db()
 
     def run_download(self) -> Path:
         """Use the connected ecoinvent downloader."""
