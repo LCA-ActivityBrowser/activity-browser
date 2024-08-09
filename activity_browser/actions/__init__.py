@@ -30,6 +30,7 @@ from .exchange.exchange_copy_sdf import ExchangeCopySDF
 
 from .method.method_duplicate import MethodDuplicate
 from .method.method_delete import MethodDelete
+from .method.method_open import MethodOpen
 
 from .method.cf_uncertainty_modify import CFUncertaintyModify
 from .method.cf_amount_modify import CFAmountModify
