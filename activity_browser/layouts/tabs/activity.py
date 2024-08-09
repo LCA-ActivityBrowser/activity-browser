@@ -167,6 +167,7 @@ class ActivityTab(QtWidgets.QWidget):
             self.group_splitter.addWidget(group)
         if state := ab_settings.settings.get("activity_table_layout", None):
             self.group_splitter.restoreState(bytearray.fromhex(state))
+        self.group_splitter.setChildrenCollapsible(False)
 
         # Full layout
         layout = QtWidgets.QVBoxLayout()

@@ -3,7 +3,7 @@ from logging import getLogger
 from PySide2 import QtWidgets
 from PySide2.QtCore import Qt, Slot
 
-from activity_browser import signals
+from activity_browser import signals, actions
 from activity_browser.mod.bw2data import calculation_setups
 
 from ..icons import qicons
@@ -178,6 +178,8 @@ class CSMethodsTable(CSGenericTable):
             "Hold CTRL and click to select multiple rows to open or delete them."
         )
 
+        self.open_method_action = actions.MethodOpen.get_QAction(self.selected_methods)
+
     def to_python(self):
         return self.model.methods
 
@@ -199,11 +201,14 @@ class CSMethodsTable(CSGenericTable):
         if self.indexAt(event.pos()).row() == -1:
             return
         menu = QtWidgets.QMenu()
+
+        menu.addAction(self.open_method_action)
         menu.addAction(
             qicons.delete,
-            "Remove row",
+            "Remove rows",
             lambda: self.model.delete_rows(self.selectedIndexes()),
         )
+
         menu.exec_(event.globalPos())
 
     def dragEnterEvent(self, event):
@@ -228,6 +233,9 @@ class CSMethodsTable(CSGenericTable):
                 and from_index != to_index
             ):
                 self.model.relocateRow(from_index, to_index)
+
+    def selected_methods(self):
+        return [self.model.get_method(p) for p in self.selectedIndexes() if p.column() == 0]
 
 
 class ScenarioImportTable(ABDataFrameView):

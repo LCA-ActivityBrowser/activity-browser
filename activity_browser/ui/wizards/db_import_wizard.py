@@ -885,7 +885,7 @@ class MainWorkerThread(ABThread):
         self.downloader.out_path = self.archive_path
         with tempfile.TemporaryDirectory() as tempdir:
             temp_dir = Path(tempdir)
-            self.run_extract(tempdir)
+            self.run_extract(Path(self.archive_path), temp_dir)
             if not import_signals.cancel_sentinel:
                 # Working with ecoinvent 7z file? look for 'datasets' dir
                 eco_dir = temp_dir.joinpath("datasets")
