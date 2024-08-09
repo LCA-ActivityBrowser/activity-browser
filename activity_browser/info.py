@@ -1,9 +1,11 @@
 import ast
 import os.path
 from importlib.metadata import PackageNotFoundError, version
+from logging import getLogger
 
-from .logger import log
 from .utils import safe_link_fetch, sort_semantic_versions
+
+log = getLogger(__name__)
 
 # get AB version
 try:

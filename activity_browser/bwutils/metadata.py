@@ -1,14 +1,17 @@
 # -*- coding: utf-8 -*-
+from logging import getLogger
+
 import numpy as np
 import pandas as pd
 from bw2data.errors import UnknownObject
 
 import activity_browser.bwutils.commontasks as bc
-from activity_browser import log
 from activity_browser.mod import bw2data as bd
 from activity_browser.mod.bw2data.backends import ActivityDataset
 
 # todo: extend store over several projects
+
+log = getLogger(__name__)
 
 
 def list_to_tuple(x) -> tuple:
@@ -74,15 +77,13 @@ class MetaDataStore(object):
         dfs = list()
         dfs.append(self.dataframe)
         log.debug(
-            "Current shape and databases in the MetaDataStore:",
-            self.dataframe.shape,
-            self.databases,
+            f"Current shape and databases in the MetaDataStore: {self.dataframe.shape} {self.databases}"
         )
         for db_name in new:
             if db_name not in bd.databases:
                 raise ValueError("This database does not exist:", db_name)
 
-            log.debug("Adding:", db_name)
+            log.debug(f"Adding: {db_name}")
             self.databases.add(db_name)
 
             # make a temporary DataFrame and index it by ('database', 'code') (like all brightway activities)
@@ -127,7 +128,7 @@ class MetaDataStore(object):
             )  # if this does not work, it has been deleted (see except:).
         except (UnknownObject, ActivityDataset.DoesNotExist):
             # Situation 1: activity has been deleted (metadata needs to be deleted)
-            log.debug("Deleting activity from metadata:", key)
+            log.debug(f"Deleting activity from metadata: {key}")
             self.dataframe.drop(key, inplace=True, errors="ignore")
             # print('Dimensions of the Metadata:', self.dataframe.shape)
             return
@@ -140,7 +141,7 @@ class MetaDataStore(object):
             if (
                 key in self.dataframe.index
             ):  # Situation 2: activity has been modified (metadata needs to be updated)
-                log.debug("Updating activity in metadata: ", act, key)
+                log.debug(f"Updating activity in metadata: {key}")
                 for col in self.dataframe.columns:
                     if col in self.CLASSIFICATION_SYSTEMS:
                         # update classification data
@@ -153,7 +154,7 @@ class MetaDataStore(object):
                 self.dataframe.at[key, 'key'] = act.key
 
             else:  # Situation 3: Activity has been added to database (metadata needs to be generated)
-                log.debug('Adding activity to metadata:', act, key)
+                log.debug(f'Adding activity to metadata: {key}')
                 df_new = pd.DataFrame([act.as_dict()], index=pd.MultiIndex.from_tuples([act.key]))
                 df_new['key'] = [act.key]
                 if act.get('classifications', False):  # add classification data if present

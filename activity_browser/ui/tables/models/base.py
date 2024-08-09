@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import datetime
 from typing import Optional
+from logging import getLogger
 
 import arrow
 import numpy as np
@@ -9,9 +10,10 @@ from PySide2.QtCore import (QAbstractItemModel, QAbstractTableModel,
                             QModelIndex, QSortFilterProxyModel, Qt, Signal)
 from PySide2.QtGui import QBrush
 
-from activity_browser import log
 from activity_browser.bwutils import commontasks as bc
 from activity_browser.ui.style import style_item
+
+log = getLogger(__name__)
 
 
 class PandasModel(QAbstractTableModel):

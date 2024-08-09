@@ -1,16 +1,18 @@
 from collections import defaultdict
 from time import time
 from typing import Optional, Union
+from logging import getLogger
 
 import bw2calc as bc
 import numpy as np
 import pandas as pd
 from stats_arrays import MCRandomNumberGenerator
 
-from activity_browser import log
 from activity_browser.mod import bw2data as bd
 
 from .manager import MonteCarloParameterManager
+
+log = getLogger(__name__)
 
 
 class MonteCarloLCA(object):
@@ -243,12 +245,8 @@ class MonteCarloLCA(object):
                     self.results[iteration, row, col] = self.lca.score
 
         log.info(
-            "Monte Carlo LCA: finished {} iterations for {} reference flows and {} methods in {} seconds.".format(
-                iterations,
-                len(self.func_units),
-                len(self.methods),
-                np.round(time() - start, 2),
-            )
+            f"Monte Carlo LCA: finished {iterations} iterations for {len(self.func_units)} reference flows and "
+            f"{len(self.methods)} methods in {np.round(time() - start, 2)} seconds."
         )
 
     @property
@@ -270,10 +268,10 @@ class MonteCarloLCA(object):
 
         if act_key:
             act_index = self.activity_index.get(act_key)
-            log.info("Activity key provided:", act_key, act_index)
+            log.info(f"Activity key provided: {act_key} {act_index}")
         if method:
             method_index = self.method_index.get(method)
-            log.info("Method provided", method, method_index)
+            log.info(f"Method provided: {method} {method_index}")
 
         if not act_key and not method:
             return self.results
@@ -282,7 +280,6 @@ class MonteCarloLCA(object):
         elif method and not act_key:
             return np.squeeze(self.results[:, :, method_index])
         elif method and act_key:
-            log.info(act_index, method_index)
             return np.squeeze(self.results[:, act_index, method_index])
 
     def get_results_dataframe(self, act_key=None, method=None, labelled=True):
@@ -333,7 +330,7 @@ class MonteCarloLCA(object):
 def perform_MonteCarlo_LCA(project="default", cs_name=None, iterations=10):
     """Performs Monte Carlo LCA based on a calculation setup and returns the
     Monte Carlo LCA object."""
-    log.info("-- Monte Carlo LCA --\n Project:", project, "CS:", cs_name)
+    log.info(f"-- Monte Carlo LCA --\n Project: {project} CS: {cs_name}")
     bd.projects.set_current(project)
 
     # perform Monte Carlo simulation
