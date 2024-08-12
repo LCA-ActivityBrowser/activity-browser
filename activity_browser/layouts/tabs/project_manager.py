@@ -58,24 +58,32 @@ class ProjectsWidget(QtWidgets.QWidget):
         self.new_project_button = actions.ProjectNew.get_QButton()
         self.copy_project_button = actions.ProjectDuplicate.get_QButton()
         self.delete_project_button = actions.ProjectDelete.get_QButton()
+        self.remote_import_project_button = actions.ProjectRemoteImport.get_QButton()
 
         self.construct_layout()
 
     def construct_layout(self):
-        h_widget = QtWidgets.QWidget()
-        h_layout = QtWidgets.QHBoxLayout()
-        h_layout.setAlignment(QtCore.Qt.AlignLeft)
-        h_layout.addWidget(header("Project:"))
-        h_layout.addWidget(self.projects_list)
-        h_layout.addWidget(self.new_project_button)
-        h_layout.addWidget(self.copy_project_button)
-        h_layout.addWidget(self.delete_project_button)
-        h_widget.setLayout(h_layout)
+        project_list_widget = QtWidgets.QWidget()
+        project_list_layout = QtWidgets.QHBoxLayout()
+        project_list_layout.setAlignment(QtCore.Qt.AlignLeft)
+        project_list_layout.addWidget(header("Project:"))
+        project_list_layout.addWidget(self.projects_list)
+        project_list_widget.setLayout(project_list_layout)
+
+        project_actions_widget = QtWidgets.QWidget()
+        project_actions_layout = QtWidgets.QHBoxLayout()
+        project_actions_layout.setAlignment(QtCore.Qt.AlignLeft)
+        project_actions_layout.addWidget(self.new_project_button)
+        project_actions_layout.addWidget(self.copy_project_button)
+        project_actions_layout.addWidget(self.delete_project_button)
+        project_actions_layout.addWidget(self.remote_import_project_button)
+        project_actions_widget.setLayout(project_actions_layout)
 
         # Overall Layout
         layout = QtWidgets.QVBoxLayout()
         layout.setAlignment(QtCore.Qt.AlignTop)
-        layout.addWidget(h_widget)
+        layout.addWidget(project_list_widget)
+        layout.addWidget(project_actions_widget)
         self.setLayout(layout)
 
         self.setSizePolicy(
