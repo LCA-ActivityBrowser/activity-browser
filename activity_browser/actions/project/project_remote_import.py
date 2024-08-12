@@ -53,9 +53,8 @@ class CatalogueTable(QtWidgets.QTableView):
         self.horizontalHeader().setStretchLastSection(True)
         self.horizontalHeader().setHighlightSections(False)
         self.horizontalHeader().setDefaultAlignment(QtCore.Qt.AlignLeft)
-
-        # self.verticalHeader().setDefaultSectionSize(22)
         self.verticalHeader().setVisible(False)
+        self.setTabKeyNavigation(False)
 
         self.table_name = "Available projects"
 
@@ -100,7 +99,7 @@ class ProjectRemoteImportWindow(QtWidgets.QDialog):
         refresh_button_layout.addWidget(self.refresh_button)
         layout.addLayout(refresh_button_layout)
 
-        self.table = CatalogueTable(self)
+        self.table = CatalogueTable()
         self.table.populate("https://files.brightway.dev/projects-config.json")
         layout.addWidget(self.table)
 
