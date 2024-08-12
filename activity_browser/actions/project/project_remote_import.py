@@ -30,6 +30,11 @@ class CatalogueModel(QtCore.QAbstractTableModel):
     def columnCount(self, index: int) -> int:
         return 1
 
+    def headerData(self, section:int, orientation:QtCore.Qt.Orientation, role: int=QtCore.Qt.DisplayRole) -> Any:
+        if orientation == QtCore.Qt.Horizontal and role == QtCore.Qt.DisplayRole:
+            return "Available projects"
+        return None
+
 
 class CatalogueTable(QtWidgets.QTableView):
     def __init__(self, parent=None):
