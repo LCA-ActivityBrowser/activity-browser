@@ -20,6 +20,8 @@ from .database.database_delete import DatabaseDelete
 from .database.database_duplicate import DatabaseDuplicate
 from .database.database_relink import DatabaseRelink
 
+from .database.importer.database_importer_ecoinvent_7z import DatabaseImporterEcoinvent7z
+
 from .exchange.exchange_new import ExchangeNew
 from .exchange.exchange_delete import ExchangeDelete
 from .exchange.exchange_modify import ExchangeModify
