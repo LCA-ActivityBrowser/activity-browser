@@ -254,14 +254,14 @@ class ProjectRemoteImportWindow(QtWidgets.QDialog):
 
         If the project already exists, it can only be imported with the
         overwrite flag set. To make sure the user does not import it accidentaly,
-        the flag is reset every time a name is selected which does not exist.
+        the flag is reset every time the selected project or the project name changes.
         """
+        self._overwrite_checkbox.setChecked(False)
         if self._project_name() in bd.projects:
             self._overwrite_checkbox.setEnabled(True)
             self._duplicate_project_checkbox_update()
         else:
             self._overwrite_checkbox.setEnabled(False)
-            self._overwrite_checkbox.setChecked(False)
             # Disable the import if there is no selection
             self._unique_project_selection_update(len(self.table.selectedIndexes()) > 0)
 
