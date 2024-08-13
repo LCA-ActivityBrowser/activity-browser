@@ -83,6 +83,7 @@ class ProjectRemoteImportWindow(QtWidgets.QDialog):
         )
 
         layout = QtWidgets.QVBoxLayout()
+        dialog_spacing = 8
 
         remote_url_layout = QtWidgets.QHBoxLayout()
         remote_url_layout.setAlignment(QtCore.Qt.AlignLeft)
@@ -99,12 +100,14 @@ class ProjectRemoteImportWindow(QtWidgets.QDialog):
         self.remote_catalogue.setText("projects-config.json")
         remote_catalogue_layout.addWidget(self.remote_catalogue)
         layout.addLayout(remote_catalogue_layout)
+        layout.addSpacing(dialog_spacing)
 
         refresh_button_layout = QtWidgets.QHBoxLayout()
         self.refresh_button = QtWidgets.QPushButton("Download catalogue")
         refresh_button_layout.addWidget(self.refresh_button)
         self.refresh_button.clicked.connect(self._populate_table)
         layout.addLayout(refresh_button_layout)
+        layout.addSpacing(dialog_spacing)
 
         self.table = CatalogueTable()
         self._populate_table()
@@ -112,6 +115,7 @@ class ProjectRemoteImportWindow(QtWidgets.QDialog):
             self._handle_table_selection_changed
         )
         layout.addWidget(self.table)
+        layout.addSpacing(dialog_spacing)
 
         project_name_layout = QtWidgets.QHBoxLayout()
         project_name_layout.setAlignment(QtCore.Qt.AlignLeft)
