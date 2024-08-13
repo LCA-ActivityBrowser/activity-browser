@@ -148,30 +148,42 @@ class ProjectRemoteImportWindow(QtWidgets.QDialog):
     def _reset_dialog(self):
         self.table.setEnabled(False)
         self.table.populate(dict())
+        self.table.selectionModel().clearSelection()
         self.project_name.setEnabled(False)
+        self.project_name.setPlaceholderText("")
         self._overwrite_checkbox.setEnabled(False)
         self._overwrite_checkbox.setChecked(False)
         self._activate_project_checkbox.setEnabled(False)
         self.import_button.setEnabled(False)
-        self._message_label.setText("Load a valid catalogue")
+        self._message_label.setText("")
 
     def url(self) -> str:
         return urljoin(self.remote_url_path.text(), self.remote_catalogue.text())
 
     def _populate_table(self):
         self._reset_dialog()
-
         try:
+            self.refresh_button.setText("Downloading...")
+            self.refresh_button.setEnabled(False)
+            self.repaint()
+            self.setCursor(QtCore.Qt.WaitCursor)
             self._last_url = self.url()
             data = requests.get(self._last_url).json()
             self.table.setEnabled(True)
             self.project_name.setEnabled(True)
             self._activate_project_checkbox.setEnabled(True)
-            self._check_project_already_exists()
+            success = True
         except:
             data = {"Error loading catalogue": None}
+            self._message_label.setText("Load a valid catalogue")
+            success = False
 
+        self.refresh_button.setText("Download catalogue")
+        self.refresh_button.setEnabled(True)
+        self.setCursor(QtCore.Qt.ArrowCursor)
         self.table.populate(data)
+        if success:
+            self._check_project_already_exists()
 
     def _selected_project_name(self) -> str:
         """Return the selected project name."""
@@ -191,6 +203,7 @@ class ProjectRemoteImportWindow(QtWidgets.QDialog):
     def _handle_url_changed(self):
         if self._last_url != self.url():
             self._reset_dialog()
+            self._message_label.setText("Load a valid catalogue")
 
     def _handle_table_selection_changed(self):
         """
@@ -264,6 +277,11 @@ class ProjectRemoteImportWindow(QtWidgets.QDialog):
         if original_name and new_name:
             log.info(f"Importing project with name {new_name} "
                         f"(original name {original_name})")
+            self.import_button.setText("Creating project...")
+            self.import_button.setEnabled(False)
+            self.repaint()
+            self.setCursor(QtCore.Qt.WaitCursor)
+
             install_project(
                 original_name,
                 new_name,
@@ -272,6 +290,7 @@ class ProjectRemoteImportWindow(QtWidgets.QDialog):
             )
             if self._activate_project_checkbox.isChecked():
                 bd.projects.set_current(new_name)
+            self.setCursor(QtCore.Qt.ArrowCursor)
             self.accept()
         else:
             log.error(f"Project name ({new_name}) or import name ({original_name}) is not valid.")
