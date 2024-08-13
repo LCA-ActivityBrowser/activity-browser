@@ -1,4 +1,5 @@
 from typing import Any
+from urllib.parse import urljoin
 from PySide2 import QtWidgets, QtCore
 
 from bw2io import install_project
@@ -64,11 +65,8 @@ class CatalogueTable(QtWidgets.QTableView):
         # Make sure the selected projects is still visible after the focus leaves the table
         self.setStyleSheet("QTableView:!active {selection-background-color: lightgray;}")
 
-    def populate(self, url: str) -> None:
-        try:
-            self.model.populate(requests.get(url).json())
-        except:
-            self.model.populate({"Error": None})
+    def populate(self, data: dict) -> None:
+        self.model.populate(data)
         self.model.layoutChanged.emit()
 
 
@@ -90,6 +88,7 @@ class ProjectRemoteImportWindow(QtWidgets.QDialog):
         remote_url_layout.addWidget(header("Remote URL:"))
         self.remote_url_path = QtWidgets.QLineEdit()
         self.remote_url_path.setText("https://files.brightway.dev/")
+        self.remote_url_path.textChanged.connect(self._handle_url_changed)
         remote_url_layout.addWidget(self.remote_url_path)
         layout.addLayout(remote_url_layout)
 
@@ -98,6 +97,7 @@ class ProjectRemoteImportWindow(QtWidgets.QDialog):
         remote_catalogue_layout.addWidget(header("Catalogue file:"))
         self.remote_catalogue = QtWidgets.QLineEdit()
         self.remote_catalogue.setText("projects-config.json")
+        self.remote_catalogue.textChanged.connect(self._handle_url_changed)
         remote_catalogue_layout.addWidget(self.remote_catalogue)
         layout.addLayout(remote_catalogue_layout)
         layout.addSpacing(dialog_spacing)
@@ -110,7 +110,6 @@ class ProjectRemoteImportWindow(QtWidgets.QDialog):
         layout.addSpacing(dialog_spacing)
 
         self.table = CatalogueTable()
-        self._populate_table()
         self.table.selectionModel().selectionChanged.connect(
             self._handle_table_selection_changed
         )
@@ -128,24 +127,51 @@ class ProjectRemoteImportWindow(QtWidgets.QDialog):
 
         self._overwrite_checkbox = QtWidgets.QCheckBox("Overwrite existing project")
         self._overwrite_checkbox.clicked.connect(self._handle_overwrite_clicked)
-        self._overwrite_checkbox.setEnabled(False)
         layout.addWidget(self._overwrite_checkbox)
+
+        self._activate_project_checkbox = QtWidgets.QCheckBox("Activate project after import")
+        layout.addWidget(self._activate_project_checkbox)
 
         import_button_layout = QtWidgets.QHBoxLayout()
         self.import_button = QtWidgets.QPushButton("Create project")
         import_button_layout.addWidget(self.import_button)
-        # Can not import until nothing is selected
-        self.import_button.setEnabled(False)
         self.import_button.clicked.connect(self._import_project)
         layout.addLayout(import_button_layout)
+        self._message_label = QtWidgets.QLabel("")
+        layout.addWidget(self._message_label)
 
         self.setLayout(layout)
+        self._last_url = ""
+        # Initialize the dialog
+        self._populate_table()
+
+    def _reset_dialog(self):
+        self.table.setEnabled(False)
+        self.table.populate(dict())
+        self.project_name.setEnabled(False)
+        self._overwrite_checkbox.setEnabled(False)
+        self._overwrite_checkbox.setChecked(False)
+        self._activate_project_checkbox.setEnabled(False)
+        self.import_button.setEnabled(False)
+        self._message_label.setText("Load a valid catalogue")
+
+    def url(self) -> str:
+        return urljoin(self.remote_url_path.text(), self.remote_catalogue.text())
 
     def _populate_table(self):
-        url_path = self.remote_url_path.text()
-        if url_path[-1] != "/":
-            url_path += "/"
-        self.table.populate(url_path + self.remote_catalogue.text())
+        self._reset_dialog()
+
+        try:
+            self._last_url = self.url()
+            data = requests.get(self._last_url).json()
+            self.table.setEnabled(True)
+            self.project_name.setEnabled(True)
+            self._activate_project_checkbox.setEnabled(True)
+            self._check_project_already_exists()
+        except:
+            data = {"Error loading catalogue": None}
+
+        self.table.populate(data)
 
     def _selected_project_name(self) -> str:
         """Return the selected project name."""
@@ -162,6 +188,10 @@ class ProjectRemoteImportWindow(QtWidgets.QDialog):
             return self._selected_project_name()
         return self.project_name.text()
 
+    def _handle_url_changed(self):
+        if self._last_url != self.url():
+            self._reset_dialog()
+
     def _handle_table_selection_changed(self):
         """
         Update the UI when the table selection changes.
@@ -175,8 +205,35 @@ class ProjectRemoteImportWindow(QtWidgets.QDialog):
     def _handle_project_name_changed(self):
         self._check_project_already_exists()
 
-    def _handle_overwrite_clicked(self, checked: bool):
-        self.import_button.setEnabled(checked)
+    def _unique_project_selection_update(self, selection_valid: bool):
+        """
+        Update the UI when the selection in the table changes and the
+        project name is unique.
+        """
+        if selection_valid:
+            self.import_button.setEnabled(True)
+            self._message_label.setText("")
+        else:
+            self.import_button.setEnabled(False)
+            self._message_label.setText("Select a project to import")
+
+    def _duplicate_project_checkbox_update(self):
+        """
+        Update the UI when the overwrite checkbox state changes and the
+        project name is not unique.
+
+        Use the actual state of the checkbox, because it is not
+        called only from the checkbox click event.
+        """
+        if self._overwrite_checkbox.isChecked():
+            self.import_button.setEnabled(True)
+            self._message_label.setText("")
+        else:
+            self.import_button.setEnabled(False)
+            self._message_label.setText("Project name already exists")
+
+    def _handle_overwrite_clicked(self):
+        self._duplicate_project_checkbox_update()
 
     def _check_project_already_exists(self):
         """
@@ -188,34 +245,36 @@ class ProjectRemoteImportWindow(QtWidgets.QDialog):
         """
         if self._project_name() in bd.projects:
             self._overwrite_checkbox.setEnabled(True)
-            self.import_button.setEnabled(False)
+            self._duplicate_project_checkbox_update()
         else:
             self._overwrite_checkbox.setEnabled(False)
             self._overwrite_checkbox.setChecked(False)
             # Disable the import if there is no selection
-            self.import_button.setEnabled(len(self.table.selectedIndexes()) > 0)
+            self._unique_project_selection_update(len(self.table.selectedIndexes()) > 0)
 
     def _import_project(self):
-        """Import the selected project with the new name."""
-        selection = self.table.selectedIndexes()
-        if selection:
-            selected_item: QtCore.QModelIndex = selection[0]
-            if selected_item.isValid():
-                original_name = self._selected_project_name()
-                new_name = self._project_name()
-                log.info(f"Importing project with name {new_name} "
-                         f"(original name {original_name})")
-                install_project(
-                    original_name,
-                    new_name,
-                    url=self.remote_url_path.text(),
-                    overwrite_existing=self._overwrite_checkbox.isChecked()
-                )
-                self.accept()
-            else:
-                log.error("Selected item for import invalid!")
+        """
+        Import the selected project with the new name.
+        It is checked with the UI flow, that there is a catalogue loaded,
+        a project to import selected and a unique name provided or the overwrite
+        flag is set.
+        """
+        original_name = self._selected_project_name()
+        new_name = self._project_name()
+        if original_name and new_name:
+            log.info(f"Importing project with name {new_name} "
+                        f"(original name {original_name})")
+            install_project(
+                original_name,
+                new_name,
+                url=self.remote_url_path.text(),
+                overwrite_existing=self._overwrite_checkbox.isChecked()
+            )
+            if self._activate_project_checkbox.isChecked():
+                bd.projects.set_current(new_name)
+            self.accept()
         else:
-            log.error("No project selected for import!")
+            log.error(f"Project name ({new_name}) or import name ({original_name}) is not valid.")
 
 
 
