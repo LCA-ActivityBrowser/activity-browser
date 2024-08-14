@@ -47,8 +47,8 @@ dependencies = [
     "bw2analyzer>=0.11.5",
     "bw2io",
     "bw2calc>=2.0.dev17",
-    "bw2data>=4.0.dev43",
-    "bw2io>=0.9.dev28"
+    "bw2data>=4.0.dev46",
+    "bw2io>=0.9.dev31"
 ]
 
 
