@@ -44,6 +44,8 @@ from .parameter.parameter_uncertainty_remove import ParameterUncertaintyRemove
 from .plugin_wizard_open import PluginWizardOpen
 from .project.project_delete import ProjectDelete
 from .project.project_duplicate import ProjectDuplicate
+from .project.project_remote_import import ProjectRemoteImport
+from .project.project_local_import import ProjectLocalImport
 from .project.project_new import ProjectNew
 from .project.project_switch import ProjectSwitch
 from .settings_wizard_open import SettingsWizardOpen
