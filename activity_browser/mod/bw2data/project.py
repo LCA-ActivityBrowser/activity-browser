@@ -1,3 +1,4 @@
+from pathlib import Path
 import os
 
 from bw2data.project import *
@@ -67,21 +68,21 @@ class ProjectManager(ProjectManager):
         """
         return projects._base_data_dir
 
-    def switch_dir(self, path: str) -> None:
+    def switch_dir(self, path: Path) -> None:
         """
         Switch the brightway2 project directory to the given path.
         """
         # change the paths to the given dir
-        projects._base_data_dir = path
-        projects._base_logs_dir = os.path.join(path, "logs")
+        if not isinstance(path, Path):
+            path = Path(path)
 
-        # create the dir if it doesn't exist yet
-        if not os.path.isdir(projects._base_logs_dir):
-            os.mkdir(projects._base_logs_dir)
+        projects._base_data_dir = path
+        projects._base_logs_dir = path / "logs"
+        projects._base_logs_dir.mkdir(exist_ok=True, parents=True)
 
         # open (or otherwise create) the projects.db at the given location
         projects.db = SubstitutableDatabase(
-            os.path.join(projects._base_data_dir, "projects.db"), [ProjectDataset]
+            projects._base_data_dir / "projects.db", [ProjectDataset]
         )
 
         # emit that the current project has changed through the qUpdater
