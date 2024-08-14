@@ -5,6 +5,7 @@ from PySide2 import QtWidgets, QtCore
 from activity_browser import application
 from activity_browser.mod import bw2data as bd
 from activity_browser.mod.tqdm import qt_tqdm
+from activity_browser.mod.pyprind import qt_pyprind
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.ui.icons import qicons
 from activity_browser.ui.threading import ABThread
@@ -50,14 +51,22 @@ class DatabaseImporterEcoinvent7z(ABAction):
         else:
             ei_thread.start()
 
+        # setup a progress dialog
         progress_dialog = QtWidgets.QProgressDialog(application.main_window)
         progress_dialog.setWindowTitle("Import database")
         progress_dialog.setLabelText("Initializing")
         progress_dialog.setAutoReset(False)
         progress_dialog.setCancelButton(None)
-        qt_tqdm.updated.connect(lambda text, _: progress_dialog.setLabelText(text))
-        qt_tqdm.updated.connect(lambda _, progress: progress_dialog.setValue(int(progress * 100)))
 
+        # connect to tqdm progress bars
+        qt_tqdm.updated.connect(lambda text, _: progress_dialog.setLabelText(text))
+        qt_tqdm.updated.connect(lambda _, progress: progress_dialog.setValue(int(progress)))
+
+        # connect to pyprind progress bars
+        qt_pyprind.updated.connect(lambda text, _: progress_dialog.setLabelText(text))
+        qt_pyprind.updated.connect(lambda _, progress: progress_dialog.setValue(int(progress)))
+
+        ei_thread.finished.connect(progress_dialog.deleteLater)
         progress_dialog.show()
 
 
