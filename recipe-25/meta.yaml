@@ -28,6 +28,7 @@ requirements:
     - bw2analyzer >=0.11.5
     - matrix_utils >=0.4.3
     - bw_processing >=0.9.5
+    - multifunctional
     - platformdirs
     - ecoinvent_interface
     - bw_graph_tools
