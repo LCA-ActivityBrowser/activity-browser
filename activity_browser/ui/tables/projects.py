@@ -23,10 +23,14 @@ class ProjectListWidget(QComboBox):
         self.clear()
         self.project_names.clear()
 
-        for i, proj in enumerate(bd.projects):
+        alternative_default = None
+
+        for i, proj in enumerate(sorted(bd.projects, key=lambda x: x.name)):
             bw_25 = (
                 False if not isinstance(proj.data, dict) else proj.data.get("25", False)
             )
+            if bw_25 and alternative_default is None:
+                alternative_default = proj.name
             name = proj.name if bw_25 else "[BW2] " + proj.name
 
             self.addItem(name)
@@ -34,7 +38,18 @@ class ProjectListWidget(QComboBox):
             self.setItemData(i, name, Qt.ToolTipRole)
             self.model().item(i).setEnabled(bw_25)
 
-        index = self.project_names.index(bd.projects.current)
+        try:
+            index = self.project_names.index(bd.projects.current)
+        except ValueError:
+            # Current project not in given project names!?
+            # Sync error between AB settings and Brightway project management
+            if alternative_default is not None:
+                index = self.project_names.index(alternative_default)
+                bd.projects.set_current(alternative_default)
+            else:
+                # Create new project
+                bd.projects.set_current("default-bw25")
+                index = self.project_names.index("default-bw25")
         self.setCurrentIndex(index)
 
     def on_activated(self, index):
