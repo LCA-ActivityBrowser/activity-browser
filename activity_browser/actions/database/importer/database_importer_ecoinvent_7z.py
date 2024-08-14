@@ -33,21 +33,28 @@ class DatabaseImporterEcoinvent7z(ABAction):
         if not path:
             return
 
+        # show the setup dialog in wich the user can choose the name, and what biosphere database to use
         setup_dialog = ImportSetupDialog()
         if setup_dialog.exec_() == QtWidgets.QDialog.Rejected:
             return
 
+        # initialize the import thread, setting needed attributes
         ei_thread = ImportEIThread(application)
         setattr(ei_thread, "path", path)
         setattr(ei_thread, "database_name", setup_dialog.database_name)
         setattr(ei_thread, "biosphere_name", setup_dialog.biosphere_name)
 
+        # if we're importing biosphere as well, initialize that thread and run it first
         if setup_dialog.import_biosphere:
+            # initialize the import thread, setting needed attributes
             bio_thread = ImportBiosphereThread(application)
             setattr(bio_thread, "path", path)
             setattr(bio_thread, "biosphere_name", setup_dialog.biosphere_name)
+
+            # start the thread and run the ei importer after it has finished
             bio_thread.start()
             bio_thread.finished.connect(ei_thread.start)
+        # if we're not also importing the biosphere, just start the ei import thread
         else:
             ei_thread.start()
 
@@ -66,9 +73,9 @@ class DatabaseImporterEcoinvent7z(ABAction):
         qt_pyprind.updated.connect(lambda text, _: progress_dialog.setLabelText(text))
         qt_pyprind.updated.connect(lambda _, progress: progress_dialog.setValue(int(progress)))
 
+        # set the progress dialog to disappear when installation has finished, then show the dialog
         ei_thread.finished.connect(progress_dialog.deleteLater)
         progress_dialog.show()
-
 
 
 class ImportSetupDialog(QtWidgets.QDialog):
@@ -84,6 +91,7 @@ class ImportSetupDialog(QtWidgets.QDialog):
         self.db_name_textbox.setPlaceholderText("Database name")
         self.db_name_textbox.textChanged.connect(self.db_name_check)
 
+        # Create warning text for when the user enters a database that already exists
         self.db_name_warning = QtWidgets.QLabel()
         self.db_name_warning.setTextFormat(QtCore.Qt.RichText)
         self.db_name_warning.setText(
@@ -113,6 +121,7 @@ class ImportSetupDialog(QtWidgets.QDialog):
         self.bio_name_textbox.setHidden(True)
         self.bio_name_textbox.textChanged.connect(self.bio_name_check)
 
+        # Create warning text for when the user enters a biosphere database that already exists
         self.bio_name_warning = QtWidgets.QLabel()
         self.bio_name_warning.setTextFormat(QtCore.Qt.RichText)
         self.bio_name_warning.setText(
@@ -150,16 +159,19 @@ class ImportSetupDialog(QtWidgets.QDialog):
         self.setLayout(layout)
 
     def select_existing_bio(self):
+        """Slot for when the existing bio radio button is clicked, hide the correct widgets and validate"""
         self.bio_name_textbox.setHidden(True)
         self.bio_name_dropdown.setHidden(False)
         self.validate()
 
     def select_import_bio(self):
+        """Slot for when the import bio radio button is clicked, hide the correct widgets and validate"""
         self.bio_name_dropdown.setHidden(True)
         self.bio_name_textbox.setHidden(False)
         self.validate()
 
     def db_name_check(self):
+        """Slot for when the db_name_textbox is changed, hide/show the warning and validate"""
         if self.db_name_textbox.text() in bd.databases:
             self.db_name_warning.setHidden(False)
         else:
@@ -168,6 +180,7 @@ class ImportSetupDialog(QtWidgets.QDialog):
         self.validate()
 
     def bio_name_check(self):
+        """Slot for when the bio_name_textbox is changed, hide/show the warning and validate"""
         if self.bio_name_textbox.text() in bd.databases:
             self.bio_name_warning.setHidden(False)
         else:
@@ -176,6 +189,7 @@ class ImportSetupDialog(QtWidgets.QDialog):
         self.validate()
 
     def validate(self):
+        """Validate the user input and enable the OK button if all is clear"""
         valid = (
             bool(self.db_name_textbox.text()) and (
                 self.existing_bio_radio.isChecked() or (
@@ -187,6 +201,7 @@ class ImportSetupDialog(QtWidgets.QDialog):
         self.ok_button.setEnabled(valid)
     
     def accept(self):
+        """Correctly set the dialog's attributes for further use in the action"""
         self.database_name = self.db_name_textbox.text()
         if self.import_bio_radio.isChecked():
             self.import_biosphere = True
