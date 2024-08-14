@@ -59,6 +59,7 @@ class ProjectsWidget(QtWidgets.QWidget):
         self.copy_project_button = actions.ProjectDuplicate.get_QButton()
         self.delete_project_button = actions.ProjectDelete.get_QButton()
         self.remote_import_project_button = actions.ProjectRemoteImport.get_QButton()
+        self.local_import_project_button = actions.ProjectLocalImport.get_QButton()
 
         self.construct_layout()
 
@@ -71,12 +72,18 @@ class ProjectsWidget(QtWidgets.QWidget):
         project_list_widget.setLayout(project_list_layout)
 
         project_actions_widget = QtWidgets.QWidget()
-        project_actions_layout = QtWidgets.QHBoxLayout()
-        project_actions_layout.setAlignment(QtCore.Qt.AlignLeft)
-        project_actions_layout.addWidget(self.new_project_button)
-        project_actions_layout.addWidget(self.copy_project_button)
-        project_actions_layout.addWidget(self.delete_project_button)
-        project_actions_layout.addWidget(self.remote_import_project_button)
+        project_actions_layout = QtWidgets.QVBoxLayout()
+        project_create_delete_layout = QtWidgets.QHBoxLayout()
+        project_create_delete_layout.setAlignment(QtCore.Qt.AlignLeft)
+        project_create_delete_layout.addWidget(self.new_project_button)
+        project_create_delete_layout.addWidget(self.copy_project_button)
+        project_create_delete_layout.addWidget(self.delete_project_button)
+        project_actions_layout.addLayout(project_create_delete_layout)
+        project_import_layout = QtWidgets.QHBoxLayout()
+        project_import_layout.setAlignment(QtCore.Qt.AlignLeft)
+        project_import_layout.addWidget(self.remote_import_project_button)
+        project_import_layout.addWidget(self.local_import_project_button)
+        project_actions_layout.addLayout(project_import_layout)
         project_actions_widget.setLayout(project_actions_layout)
 
         # Overall Layout
