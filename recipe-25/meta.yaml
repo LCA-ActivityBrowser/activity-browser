@@ -2,7 +2,7 @@
 # https://anaconda.org/bsteubing/activity-browser-dev
 package:
   name: "activity-browser-dev25"
-  version: "3.0.dev3"
+  version: "3.0.dev4"
 
 source:
   path: ..
