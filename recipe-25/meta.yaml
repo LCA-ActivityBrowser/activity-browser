@@ -1,0 +1,55 @@
+# conda recipe for activity-browser-dev
+# https://anaconda.org/bsteubing/activity-browser-dev
+package:
+  name: "activity-browser-dev25"
+  version: "3.0.dev3"
+
+source:
+  path: ..
+
+build:
+  noarch: python
+  number: 0
+  script: "{{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation"
+  entry_points:
+    - activity-browser = activity_browser:run_activity_browser
+    - activity-browser-cleanup = activity_browser.bwutils:cleanup
+
+requirements:
+  build:
+    - python
+    - setuptools
+  run:
+    - python >=3.8,<3.12
+    - arrow
+    - bw2data >=4.0.dev46
+    - bw2io >=0.9.dev31
+    - bw2calc >=2.0.dev17
+    - bw2analyzer >=0.11.5
+    - matrix_utils >=0.4.3
+    - bw_processing >=0.9.5
+    - platformdirs
+    - ecoinvent_interface
+    - bw_graph_tools
+    - libxml2 <=2.10.4
+    - networkx
+    - numpy >=1.23.5,<2
+    - pandas <=2.1.4
+    - pint <=0.21
+    - pyperclip
+    - pyside2 >=5.15.5
+    - qt-webengine
+    - salib >=1.4
+    - seaborn
+
+about:
+  home: https://github.com/LCA-ActivityBrowser/activity-browser
+  license: LGPL3+
+  license_family: LGPL
+  license_file: LICENSE.txt
+  summary: "Development version of the Activity Browser for Brightway 2.5"
+  description: |
+    The Activity Browser is a graphical user interface for the [brightway](https://brightway.dev/)
+    advanced life cycle assessment framework. More details and installation instructions can be found
+    on [github](https://github.com/LCA-ActivityBrowser/activity-browser).
+    This is the development version. For the stable release install the `activity-browser` package.
