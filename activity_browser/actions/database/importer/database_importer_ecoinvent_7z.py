@@ -1,12 +1,16 @@
-import sys
+from logging import getLogger
 
 from PySide2 import QtWidgets, QtCore
 
 from activity_browser import application
 from activity_browser.mod import bw2data as bd
+from activity_browser.mod.tqdm import qt_tqdm
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.ui.icons import qicons
+from activity_browser.ui.threading import ABThread
 from activity_browser.bwutils.io.ecoinvent_importer import Ecoinvent7zImporter
+
+log = getLogger(__name__)
 
 
 class DatabaseImporterEcoinvent7z(ABAction):
@@ -28,16 +32,34 @@ class DatabaseImporterEcoinvent7z(ABAction):
         if not path:
             return
 
-        importer = Ecoinvent7zImporter(path)
-
         setup_dialog = ImportSetupDialog()
         if setup_dialog.exec_() == QtWidgets.QDialog.Rejected:
             return
 
-        if setup_dialog.import_biosphere:
-            importer.install_biosphere(setup_dialog.biosphere_name)
+        ei_thread = ImportEIThread(application)
+        setattr(ei_thread, "path", path)
+        setattr(ei_thread, "database_name", setup_dialog.database_name)
+        setattr(ei_thread, "biosphere_name", setup_dialog.biosphere_name)
 
-        importer.install_ecoinvent(setup_dialog.database_name, setup_dialog.biosphere_name)
+        if setup_dialog.import_biosphere:
+            bio_thread = ImportBiosphereThread(application)
+            setattr(bio_thread, "path", path)
+            setattr(bio_thread, "biosphere_name", setup_dialog.biosphere_name)
+            bio_thread.start()
+            bio_thread.finished.connect(ei_thread.start)
+        else:
+            ei_thread.start()
+
+        progress_dialog = QtWidgets.QProgressDialog(application.main_window)
+        progress_dialog.setWindowTitle("Import database")
+        progress_dialog.setLabelText("Initializing")
+        progress_dialog.setAutoReset(False)
+        progress_dialog.setCancelButton(None)
+        qt_tqdm.updated.connect(lambda text, _: progress_dialog.setLabelText(text))
+        qt_tqdm.updated.connect(lambda _, progress: progress_dialog.setValue(int(progress * 100)))
+
+        progress_dialog.show()
+
 
 
 class ImportSetupDialog(QtWidgets.QDialog):
@@ -163,4 +185,16 @@ class ImportSetupDialog(QtWidgets.QDialog):
         else:
             self.biosphere_name = self.bio_name_dropdown.currentText()
         super().accept()
-        
+
+
+class ImportBiosphereThread(ABThread):
+    def run_safely(self):
+        importer = Ecoinvent7zImporter(self.path)
+        importer.install_biosphere(self.biosphere_name)
+
+
+class ImportEIThread(ABThread):
+    def run_safely(self):
+        importer = Ecoinvent7zImporter(self.path)
+        importer.install_ecoinvent(self.database_name, self.biosphere_name)
+
