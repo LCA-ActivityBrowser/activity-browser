@@ -1,18 +1,12 @@
 import sys
-import os
-import tqdm
-import multiprocessing
 
-import py7zr
-from PySide2 import QtWidgets
-from bw2io.importers.ecospold2 import *
-from bw2io.extractors.ecospold2 import Ecospold2DataExtractor, getattr2, ACTIVITY_TYPES
-from lxml import objectify
+from PySide2 import QtWidgets, QtCore
 
 from activity_browser import application
+from activity_browser.mod import bw2data as bd
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.ui.icons import qicons
-from activity_browser.ui.wizards.db_import_wizard import DatabaseImportWizard
+from activity_browser.bwutils.io.ecoinvent_importer import Ecoinvent7zImporter
 
 
 class DatabaseImporterEcoinvent7z(ABAction):
@@ -28,227 +22,145 @@ class DatabaseImporterEcoinvent7z(ABAction):
         # get the path from the user
         path, _ = QtWidgets.QFileDialog.getOpenFileName(
             parent=application.main_window,
-            caption='Choose project file to import',
+            caption='Choose ecoinvent .7z file to import',
             filter='7z archive (*.7z);; All files (*.*)'
         )
         if not path:
             return
 
-        importer = Ecoinvent7zImporter(
-            path,
-            "Test",
-            "biosphere3",
-        )
+        importer = Ecoinvent7zImporter(path)
 
-        importer.apply_strategies()
-        importer.write_database()
+        setup_dialog = ImportSetupDialog()
+        if setup_dialog.exec_() == QtWidgets.QDialog.Rejected:
+            return
+
+        if setup_dialog.import_biosphere:
+            importer.install_biosphere(setup_dialog.biosphere_name)
+
+        importer.install_ecoinvent(setup_dialog.database_name, setup_dialog.biosphere_name)
 
 
-class Ecoinvent7zExtractor(Ecospold2DataExtractor):
-    @classmethod
-    def extract(cls, dirpath, db_name, use_mp=True):
-        assert os.path.isfile(dirpath)
-        with py7zr.SevenZipFile(dirpath, mode='r') as archive:
-            # List the contents of the archive
-            file_list = [file.filename for file in archive.list()
-                         if file.filename.startswith("datasets")
-                         and file.filename.endswith(".spold")]
-            extracted_data = archive.read(file_list)
+class ImportSetupDialog(QtWidgets.QDialog):
+    database_name = None
+    biosphere_name = None
+    import_biosphere = False
+    
+    def __init__(self, parent=None):
+        super().__init__(parent)
 
-        with multiprocessing.Pool(processes=multiprocessing.cpu_count()) as pool:
-            print("Extracting XML data from {} datasets".format(len(extracted_data)))
-            results = [
-                pool.apply_async(
-                    cls.extract_activity,
-                    args=(x, "test_db"),
+        # Create db name textbox
+        self.db_name_textbox = QtWidgets.QLineEdit()
+        self.db_name_textbox.setPlaceholderText("Database name")
+        self.db_name_textbox.textChanged.connect(self.db_name_check)
+
+        self.db_name_warning = QtWidgets.QLabel()
+        self.db_name_warning.setTextFormat(QtCore.Qt.RichText)
+        self.db_name_warning.setText(
+            "<p style='color: red; font-size: small;'>Existing database will be overwritten</p>")
+        self.db_name_warning.setHidden(True)
+
+        # Create biosphere choice buttons
+        self.existing_bio_radio = QtWidgets.QRadioButton("Link to an existing biosphere")
+        self.import_bio_radio = QtWidgets.QRadioButton("Import bundled biosphere")
+
+        self.existing_bio_radio.clicked.connect(self.select_existing_bio)
+        self.import_bio_radio.clicked.connect(self.select_import_bio)
+
+        # Add radio buttons to a button group
+        self.button_group = QtWidgets.QButtonGroup(self)
+        self.button_group.addButton(self.existing_bio_radio, id=1)
+        self.button_group.addButton(self.import_bio_radio, id=2)
+
+        # Drop-down for an existing biosphere
+        self.bio_name_dropdown = QtWidgets.QComboBox(self)
+        self.bio_name_dropdown.addItems(bd.databases)
+        self.bio_name_dropdown.setHidden(True)
+
+        # Text-box for bundled biosphere
+        self.bio_name_textbox = QtWidgets.QLineEdit()
+        self.bio_name_textbox.setPlaceholderText("New biosphere name")
+        self.bio_name_textbox.setHidden(True)
+        self.bio_name_textbox.textChanged.connect(self.bio_name_check)
+
+        self.bio_name_warning = QtWidgets.QLabel()
+        self.bio_name_warning.setTextFormat(QtCore.Qt.RichText)
+        self.bio_name_warning.setText(
+            "<p style='color: red; font-size: small;'>Existing biosphere will be overwritten</p>")
+        self.bio_name_warning.setHidden(True)
+
+        # Create OK and Cancel buttons
+        self.ok_button = QtWidgets.QPushButton("OK")
+        self.cancel_button = QtWidgets.QPushButton("Cancel")
+
+        self.ok_button.setEnabled(False)
+
+        # Connect buttons to their respective slots
+        self.ok_button.clicked.connect(self.accept)
+        self.cancel_button.clicked.connect(self.reject)
+
+        # Set button layout
+        button_layout = QtWidgets.QHBoxLayout()
+        button_layout.addWidget(self.cancel_button)
+        button_layout.addWidget(self.ok_button)
+
+        # Create layout and add widgets
+        layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(QtWidgets.QLabel("Set database name:"))
+        layout.addWidget(self.db_name_textbox)
+        layout.addWidget(self.db_name_warning)
+        layout.addWidget(self.existing_bio_radio)
+        layout.addWidget(self.bio_name_dropdown)
+        layout.addWidget(self.import_bio_radio)
+        layout.addWidget(self.bio_name_textbox)
+        layout.addWidget(self.bio_name_warning)
+        layout.addLayout(button_layout)
+
+        # Set the dialog layout
+        self.setLayout(layout)
+
+    def select_existing_bio(self):
+        self.bio_name_textbox.setHidden(True)
+        self.bio_name_dropdown.setHidden(False)
+        self.validate()
+
+    def select_import_bio(self):
+        self.bio_name_dropdown.setHidden(True)
+        self.bio_name_textbox.setHidden(False)
+        self.validate()
+
+    def db_name_check(self):
+        if self.db_name_textbox.text() in bd.databases:
+            self.db_name_warning.setHidden(False)
+        else:
+            self.db_name_warning.setHidden(True)
+        self.window().adjustSize()
+        self.validate()
+
+    def bio_name_check(self):
+        if self.bio_name_textbox.text() in bd.databases:
+            self.bio_name_warning.setHidden(False)
+        else:
+            self.bio_name_warning.setHidden(True)
+        self.window().adjustSize()
+        self.validate()
+
+    def validate(self):
+        valid = (
+            bool(self.db_name_textbox.text()) and (
+                self.existing_bio_radio.isChecked() or (
+                    self.import_bio_radio.isChecked() and
+                    bool(self.bio_name_textbox.text())
                 )
-                for x in extracted_data.values()
-            ]
-            data = [p.get() for p in results]
-
-        return data
-
-    @classmethod
-    def extract_activity_from_raw(cls, xml_bytes, db_name):
-        root = objectify.parse(xml_bytes).getroot()
-        if hasattr(root, "activityDataset"):
-            stem = root.activityDataset
-        else:
-            stem = root.childActivityDataset
-
-        comments = [
-            cls.condense_multiline_comment(
-                getattr2(stem.activityDescription.activity, "generalComment")
-            ),
-            (
-                "Included activities start: ",
-                getattr2(
-                    stem.activityDescription.activity, "includedActivitiesStart"
-                ).get("text"),
-            ),
-            (
-                "Included activities end: ",
-                getattr2(
-                    stem.activityDescription.activity, "includedActivitiesEnd"
-                ).get("text"),
-            ),
-            (
-                "Geography: ",
-                cls.condense_multiline_comment(
-                    getattr2(stem.activityDescription.geography, "comment")
-                ),
-            ),
-            (
-                "Technology: ",
-                cls.condense_multiline_comment(
-                    getattr2(stem.activityDescription.technology, "comment")
-                ),
-            ),
-            (
-                "Time period: ",
-                cls.condense_multiline_comment(
-                    getattr2(stem.activityDescription.timePeriod, "comment")
-                ),
-            ),
-        ]
-        comment = "\n".join(
-            [
-                (" ".join(x) if isinstance(x, tuple) else x)
-                for x in comments
-                if (x[1] if isinstance(x, tuple) else x)
-            ]
-        )
-
-        classifications = [
-            (el.classificationSystem.text, el.classificationValue.text)
-            for el in stem.activityDescription.iterchildren()
-            if el.tag == u"{http://www.EcoInvent.org/EcoSpold02}classification"
-        ]
-
-        data = {
-            "comment": comment,
-            "classifications": classifications,
-            "activity type": ACTIVITY_TYPES[
-                int(stem.activityDescription.activity.get("specialActivityType") or 0)
-            ],
-            'activity':  stem.activityDescription.activity.get('id'),
-            'database': db_name,
-            "exchanges": [
-                cls.extract_exchange(exc)
-                for exc in stem.flowData.iterchildren()
-                if "parameter" not in exc.tag
-            ],
-            #'filename':  os.path.basename(filename),
-            'location':  stem.activityDescription.geography.shortname.text,
-            'name':      stem.activityDescription.activity.activityName.text,
-            'synonyms': [s.text for s in getattr(stem.activityDescription.activity, 'synonym', [])],
-            "parameters": dict(
-                [
-                    cls.extract_parameter(exc)
-                    for exc in stem.flowData.iterchildren()
-                    if "parameter" in exc.tag
-                ]
-            ),
-            "authors": {
-                "data entry": {
-                    "name": stem.administrativeInformation.dataEntryBy.get(
-                        "personName"
-                    ),
-                    "email": stem.administrativeInformation.dataEntryBy.get(
-                        "personEmail"
-                    ),
-                },
-                "data generator": {
-                    "name": stem.administrativeInformation.dataGeneratorAndPublication.get(
-                        "personName"
-                    ),
-                    "email": stem.administrativeInformation.dataGeneratorAndPublication.get(
-                        "personEmail"
-                    ),
-                },
-            },
-            "type": "process",
-        }
-        return data
-
-
-class Ecoinvent7zImporter(SingleOutputEcospold2Importer):
-    def __init__(
-            self,
-            filepath: str,
-            db_name: str,
-            biosphere_database_name: str | None = None,
-            extractor: Any = Ecoinvent7zExtractor,
-            use_mp: bool = USE_MP,
-            signal: Any = None,
-            reparametrize_lognormals: bool = False,
-    ):
-
-        """
-        Initializes the SingleOutputEcospold2Importer class instance.
-
-        Parameters
-        ----------
-        dirpath : str
-            Path to the directory containing the ecospold2 file.
-        db_name : str
-            Name of the LCI database.
-        biosphere_database_name : str | None
-            Name of biosphere database to link to. Uses `config.biosphere` if not provided.
-        extractor : class
-            Class for extracting data from the ecospold2 file, by default Ecospold2DataExtractor.
-        use_mp : bool
-            Flag to indicate whether to use multiprocessing, by default True.
-        signal : object
-            Object to indicate the status of the import process, by default None.
-        reparametrize_lognormals: bool
-            Flag to indicate if lognormal distributions for exchanges should be reparametrized
-            such that the mean value of the resulting distribution meets the amount
-            defined for the exchange.
-        """
-        self.db_name = db_name
-        self.signal = signal
-        self.strategies = [
-            normalize_units,
-            update_ecoinvent_locations,
-            remove_zero_amount_coproducts,
-            remove_zero_amount_inputs_with_no_activity,
-            remove_unnamed_parameters,
-            es2_assign_only_product_with_amount_as_reference_product,
-            assign_single_product_as_activity,
-            create_composite_code,
-            drop_unspecified_subcategories,
-            fix_ecoinvent_flows_pre35,
-            drop_temporary_outdated_biosphere_flows,
-            partial(link_biosphere_by_flow_uuid, biosphere=biosphere_database_name or config.biosphere),
-            link_internal_technosphere_by_composite_code,
-            delete_exchanges_missing_activity,
-            delete_ghost_exchanges,
-            remove_uncertainty_from_negative_loss_exchanges,
-            fix_unreasonably_high_lognormal_uncertainties,
-            convert_activity_parameters_to_list,
-            add_cpc_classification_from_single_reference_product,
-            delete_none_synonyms,
-            partial(update_social_flows_in_older_consequential,
-                    biosphere_db=Database(biosphere_database_name or config.biosphere)),
-        ]
-
-        if reparametrize_lognormals:
-            self.strategies.append(reparametrize_lognormal_to_agree_with_static_amount)
-        else:
-            self.strategies.append(set_lognormal_loc_value)
-
-        start = time()
-        try:
-            self.data = extractor.extract(filepath, db_name, use_mp=use_mp)
-        except RuntimeError as e:
-            raise MultiprocessingError(
-                "Multiprocessing error; re-run using `use_mp=False`"
-            ).with_traceback(e.__traceback__)
-        print(
-            u"Extracted {} datasets in {:.2f} seconds".format(
-                len(self.data), time() - start
             )
         )
-
-
+        self.ok_button.setEnabled(valid)
+    
+    def accept(self):
+        self.database_name = self.db_name_textbox.text()
+        if self.import_bio_radio.isChecked():
+            self.import_biosphere = True
+            self.biosphere_name = self.bio_name_textbox.text()
+        else:
+            self.biosphere_name = self.bio_name_dropdown.currentText()
+        super().accept()
+        
