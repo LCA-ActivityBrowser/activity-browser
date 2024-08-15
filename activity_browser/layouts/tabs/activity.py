@@ -1,11 +1,17 @@
 # -*- coding: utf-8 -*-
+from dataclasses import dataclass
+from math import nan
+from typing import Any, Optional, Union
 from peewee import DoesNotExist
 from PySide2 import QtCore, QtWidgets
 from PySide2.QtCore import Slot
 
 from activity_browser import ab_settings, project_settings, signals
 from activity_browser.bwutils import commontasks as bc
+from activity_browser.logger import log
 from activity_browser.mod import bw2data as bd
+from activity_browser.mod.bw2data.backends import Activity
+
 
 from ...ui.icons import qicons
 from ...ui.style import style_activity_tab
@@ -15,6 +21,7 @@ from ...ui.tables import (
     ProductExchangeTable,
     TechnosphereExchangeTable,
 )
+from ...ui.tables.delegates import StringDelegate, FloatDelegate
 from ...ui.widgets import ActivityDataGrid, DetailsGroupBox, SignalledPlainTextEdit
 from ..panels.panel import ABTab
 
@@ -39,7 +46,7 @@ class ActivitiesTab(ABTab):
         """Opens new tab or focuses on already open one."""
         if key not in self.tabs:
             act = bd.get_activity(key)
-            if not bc.is_technosphere_activity(act):
+            if act.get("type") not in bd.labels.node_types:
                 return
             new_tab = ActivityTab(key, read_only, self)
 
@@ -143,6 +150,14 @@ class ActivityTab(QtWidgets.QWidget):
         toolbar.addWidget(self.checkbox_activity_description)
         toolbar.addWidget(self.checkbox_uncertainty)
         toolbar.addWidget(self.checkbox_comment)
+        # Align the properties button to the right
+        spacer = QtWidgets.QWidget()
+        spacer.setSizePolicy(
+            QtWidgets.QSizePolicy.Expanding,
+            QtWidgets.QSizePolicy.Fixed
+        )
+        toolbar.addWidget(spacer)
+        toolbar.addAction("Properties", self.open_properties)
 
         # Activity information
         # this contains: activity name, location, database
@@ -349,3 +364,195 @@ class ActivityTab(QtWidgets.QWidget):
             self.group_splitter.saveState()
         ).hex()
         ab_settings.write_settings()
+
+    def open_properties(self):
+        """Opens the property editor for the current activity"""
+        editor = PropertyEditor(self.activity, self)
+        # Do not save the changes if the user pressed cancel
+        if editor.exec_() == editor.Accepted:
+            old_properties = self.activity.get("properties")
+            if old_properties is not None and not isinstance(old_properties, dict):
+                log.error(f"Activity property is not dict type! "
+                    f"Activity name: {self.activity.get('name')}, type: {type(old_properties)}")
+                return
+            # Get the values modified by the user
+            updated_properties = editor.properties()
+            # Nothing to do
+            if not old_properties and not updated_properties:
+                return
+            # The user has deleted all properties
+            elif old_properties and not updated_properties:
+                del self.activity["properties"]
+            # There were no properties and the user created some
+            elif not old_properties and updated_properties:
+                self.activity["properties"] = updated_properties
+            else:
+                # Properties changed, merge the values, to avoid reordering
+                # the unmodified properties
+                for property in list(old_properties.keys()):
+                    if not property in updated_properties:
+                        del old_properties[property]
+                old_properties |= updated_properties
+            self.activity.save()
+
+
+class PropertyModel(QtCore.QAbstractTableModel):
+    """
+    Model for the property editor table
+    The data is (str, float).
+    """
+
+    @dataclass
+    class PropertyData:
+        """Dataclass to represent one row with correct typehints"""
+        key: str = ""
+        value: float = 0
+
+        def __getitem__(self, index: int) -> Union[str, float]:
+            """x[k] operator for easier usage"""
+            if index == 0:
+                return self.key
+            elif index == 1:
+                return self.value
+            raise IndexError
+
+        def __setitem__(self, index: int, value: Union[str, float]):
+            """x[k]=v operator for easier usage"""
+            if index == 0:
+                if not isinstance(value, str):
+                    raise TypeError
+                self.key = value
+            elif index == 1:
+                if not isinstance(value, float):
+                    raise TypeError
+                self.value = value
+            else:
+                raise IndexError
+
+
+    def __init__(self):
+        super().__init__()
+        self._data: list[PropertyModel.PropertyData] = []
+
+    def populate(self, data: Optional[dict[str, float]]) -> None:
+        self._data.clear()
+        log.info(f"Input data for property table: {data}")
+        if data is not None:
+            for key in data:
+                self._data.append(PropertyModel.PropertyData(key, data[key]))
+        self._data.append(PropertyModel.PropertyData())
+        self.layoutChanged.emit()
+
+    def data(self, index: QtCore.QModelIndex,
+             role: int = QtCore.Qt.ItemDataRole.DisplayRole) -> Any:
+        if index.isValid():
+            if role == QtCore.Qt.ItemDataRole.EditRole:
+                return self._data[index.row()][index.column()]
+            elif (role == QtCore.Qt.ItemDataRole.DisplayRole
+                    or role == QtCore.Qt.ItemDataRole.ToolTipRole):
+                # Do not show values for properties which have no name
+                # to hint that these will not be saved
+                if (index.column() == 1 and self._data[index.row()][0] == ""):
+                    return nan
+
+                return self._data[index.row()][index.column()]
+        return None
+
+    def setData(self, index: QtCore.QModelIndex, value: Any,
+             role: int = QtCore.Qt.ItemDataRole.DisplayRole) -> bool:
+        if index.isValid() and role == QtCore.Qt.ItemDataRole.EditRole:
+            self._data[index.row()][index.column()] = value
+            self.dataChanged.emit(index, index, [])
+            # Make sure there is an empty row at the end
+            if self._data[-1][0] != "":
+                self._data.append(PropertyModel.PropertyData())
+                self.layoutChanged.emit()
+
+            return True
+        return False
+
+    def flags(self, index: QtCore.QModelIndex) -> QtCore.Qt.ItemFlags:
+        return (QtCore.Qt.ItemFlag.ItemIsSelectable
+                | QtCore.Qt.ItemFlag.ItemIsEnabled
+                | QtCore.Qt.ItemFlag.ItemIsEditable)
+
+    def rowCount(self, index: int) -> int:
+        return len(self._data)
+
+    def columnCount(self, index: int) -> int:
+        return 2
+
+    def headerData(self, section:int, orientation:QtCore.Qt.Orientation,
+                   role: int=QtCore.Qt.ItemDataRole.DisplayRole) -> Any:
+        if (orientation == QtCore.Qt.Orientation.Horizontal
+                and role == QtCore.Qt.ItemDataRole.DisplayRole):
+            return ("Name", "Value")[section]
+        return None
+
+    def get_data_table(self) -> dict[str, float]:
+        result = { item.key:item.value for item in self._data if item.key != ""}
+        return result
+
+
+class PropertyTable(QtWidgets.QTableView):
+    """Table view for editing properties"""
+    def __init__(self, model: PropertyModel, parent=None):
+        super().__init__(parent)
+        self.setVerticalScrollMode(QtWidgets.QTableView.ScrollPerPixel)
+        self.setHorizontalScrollMode(QtWidgets.QTableView.ScrollPerPixel)
+        self.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Expanding)
+        self.setWordWrap(True)
+        self.setAlternatingRowColors(True)
+        self.setSortingEnabled(False)
+        self.horizontalHeader().setStretchLastSection(True)
+        self.horizontalHeader().setHighlightSections(False)
+        self.horizontalHeader().setDefaultAlignment(QtCore.Qt.AlignLeft)
+        self.verticalHeader().setVisible(False)
+        self.setSelectionMode(QtWidgets.QAbstractItemView.SelectionMode.SingleSelection)
+        self.setEditTriggers(
+            QtWidgets.QAbstractItemView.EditTrigger.DoubleClicked |
+            QtWidgets.QAbstractItemView.EditTrigger.SelectedClicked |
+            QtWidgets.QAbstractItemView.EditTrigger.EditKeyPressed |
+            QtWidgets.QAbstractItemView.EditTrigger.AnyKeyPressed
+        )
+
+        self.setItemDelegateForColumn(0, StringDelegate(self))
+        # Use FloatDelegate, so that int values do not trigger an int validation
+        self.setItemDelegateForColumn(1, FloatDelegate(self))
+
+        self._model = model
+        self.setModel(self._model)
+
+    def populate(self, data: Optional[dict]) -> None:
+        self._model.populate(data)
+
+
+class PropertyEditor(QtWidgets.QDialog):
+    """Property editor dialog"""
+
+    def __init__(self, activity: Activity, parent: Optional[QtWidgets.QWidget] = None):
+        super().__init__(parent)
+        self.setWindowTitle("Property Editor")
+        self._data_model = PropertyModel()
+        self._editor_table = PropertyTable(self._data_model)
+        self._editor_table.populate(activity.get("properties"))
+        save_button = QtWidgets.QPushButton("Save")
+        save_button.clicked.connect(self.accept)
+        cancel_button = QtWidgets.QPushButton("Cancel")
+        cancel_button.clicked.connect(self.reject)
+
+        # Prevent hitting enter in the table from closing the dialog
+        save_button.setAutoDefault(False)
+        cancel_button.setAutoDefault(False)
+
+        layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(self._editor_table)
+        button_layout = QtWidgets.QHBoxLayout()
+        button_layout.addWidget(save_button)
+        button_layout.addWidget(cancel_button)
+        layout.addLayout(button_layout)
+        self.setLayout(layout)
+
+    def properties(self) -> dict[str, float]:
+        """Access method to get the result of the editing"""
+        return self._data_model.get_data_table()

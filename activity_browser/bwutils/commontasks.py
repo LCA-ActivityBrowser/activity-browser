@@ -10,7 +10,7 @@ from functools import lru_cache
 from .metadata import AB_metadata
 
 """
-bwutils is a collection of methods that build upon brightway2 and are generic enough to provide here so that we avoid 
+bwutils is a collection of methods that build upon brightway2 and are generic enough to provide here so that we avoid
 re-typing the same code in different parts of the Activity Browser.
 
 When adding new methods, please use the sections below (or add a new section, if required).
@@ -123,15 +123,6 @@ def is_technosphere_db(db_name: str) -> bool:
         return True
     else:
         return False
-
-
-def is_technosphere_activity(activity: bd.Node) -> bool:
-    """Avoid database lookups by testing the activity for a type, calls the
-    above method if the field does not exist.
-    """
-    if "type" not in activity:
-        return is_technosphere_db(activity.key[0])
-    return activity.get("type") == "process"
 
 
 def count_database_records(name: str) -> int:
