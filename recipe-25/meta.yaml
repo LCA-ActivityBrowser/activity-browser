@@ -2,7 +2,7 @@
 # https://anaconda.org/bsteubing/activity-browser-dev
 package:
   name: "activity-browser-dev25"
-  version: "3.0.dev4"
+  version: "3.0.dev7"
 
 source:
   path: ..
@@ -22,15 +22,19 @@ requirements:
   run:
     - python >=3.8,<3.12
     - arrow
-    - bw2data >=4.0.dev46
-    - bw2io >=0.9.dev31
+    - bw2data >=4.0.dev47
+    - bw2io >=0.9.dev33
     - bw2calc >=2.0.dev17
     - bw2analyzer >=0.11.5
     - matrix_utils >=0.4.3
     - bw_processing >=0.9.5
     - multifunctional
     - platformdirs
+    # Only needed for Windows but I don't want to set up a build farm...
+    - sqlite-fts4
     - ecoinvent_interface
+    - randonneur_data >=0.1.2
+    - randonneur
     - bw_graph_tools
     - libxml2 <=2.10.4
     - networkx
