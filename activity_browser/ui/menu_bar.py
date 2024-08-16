@@ -131,18 +131,22 @@ class ImportDatabaseMenu(QtWidgets.QMenu):
 
         self.import_from_z7_action = actions.DatabaseImporterEcoinvent7z.get_QAction()
         self.import_from_excel_action = actions.DatabaseImporterExcel.get_QAction()
+        self.import_from_bw2package_action = actions.DatabaseImporterBW2Package.get_QAction()
         self.open_import_wizard_action = actions.DatabaseImport.get_QAction()
 
         self.import_from_z7_action.setText("from ecoinvent .7z archive")
         self.import_from_excel_action.setText("from Brightway2 excel")
+        self.import_from_bw2package_action.setText("from Brightway2 package")
         self.open_import_wizard_action.setText("using legacy wizard")
 
         self.import_from_z7_action.setIcon(QtGui.QIcon())
         self.import_from_excel_action.setIcon(QtGui.QIcon())
+        self.import_from_bw2package_action.setIcon(QtGui.QIcon())
         self.open_import_wizard_action.setIcon(QtGui.QIcon())
 
         self.addAction(self.import_from_z7_action)
         self.addAction(self.import_from_excel_action)
+        self.addAction(self.import_from_bw2package_action)
         self.addSeparator()
         self.addAction(self.open_import_wizard_action)
 
