@@ -44,12 +44,7 @@ def exception_dialogs(func):
         try:
             func(*args, **kwargs)
         except Exception as e:
-            QtWidgets.QMessageBox.critical(
-                application.main_window,
-                f"An error occurred: {type(e).__name__}",
-                f"An error occurred, check the logs for more information \n\n {str(e)}",
-                QtWidgets.QMessageBox.Ok,
-            )
+            application.main_window.dialog_on_exception(e)
             raise e
 
     return wrapper
