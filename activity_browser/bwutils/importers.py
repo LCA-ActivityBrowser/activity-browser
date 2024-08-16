@@ -3,6 +3,7 @@ import functools
 import warnings
 from pathlib import Path
 
+import tqdm
 from bw2io import BW2Package, ExcelImporter
 from bw2io.errors import InvalidPackage, StrategyError
 from bw2io.strategies import (assign_only_product_as_production,
@@ -48,8 +49,11 @@ class ABExcelImporter(ExcelImporter):
         """
 
         obj = cls(filepath)
-        obj.strategies = [
-            functools.partial(alter_database_name, old=obj.db_name, new=db_name),
+        return obj.automated_import(db_name, relink)
+
+    def automated_import(self, db_name: str, relink: dict = None) -> list:
+        self.strategies = [
+            functools.partial(alter_database_name, old=self.db_name, new=db_name),
             csv_restore_tuples,
             csv_restore_booleans,
             csv_numerize,
@@ -73,46 +77,52 @@ class ABExcelImporter(ExcelImporter):
             hash_parameter_group,
             convert_activity_parameters_to_list,
         ]
-        obj.db_name = db_name
+        self.db_name = db_name
 
         # Test if the import contains any parameters.
         has_params = any(
             [
-                obj.project_parameters,
-                obj.database_parameters,
-                any("parameters" in ds for ds in obj.data),
+                self.project_parameters,
+                self.database_parameters,
+                any("parameters" in ds for ds in self.data),
             ]
         )
-        obj.apply_strategies()
-        if any(obj.unlinked) and relink:
+        self.apply_strategies()
+        if any(self.unlinked) and relink:
             for db, new_db in relink.items():
                 if db == "(name missing)":
-                    obj.apply_strategy(
+                    self.apply_strategy(
                         functools.partial(link_exchanges_without_db, db=new_db)
                     )
                 else:
-                    obj.apply_strategy(
+                    self.apply_strategy(
                         functools.partial(relink_exchanges_with_db, old=db, new=new_db)
                     )
             # Relinking failed (some exchanges still unlinked)
-            if any(obj.unlinked):
+            if any(self.unlinked):
                 # Raise a different exception.
-                excs = [exc for exc in obj.unlinked][:10]
+                excs = [exc for exc in self.unlinked][:10]
                 databases = {
-                    exc.get("database", "(name missing)") for exc in obj.unlinked
+                    exc.get("database", "(name missing)") for exc in self.unlinked
                 }
                 raise LinkingFailed(excs, databases)
-        if any(obj.unlinked):
+        if any(self.unlinked):
             # Still have unlinked fields? Raise exception.
-            excs = [exc for exc in obj.unlinked][:10]
-            databases = {exc.get("database", "(name missing)") for exc in obj.unlinked}
+            excs = [exc for exc in self.unlinked][:10]
+            databases = {exc.get("database", "(name missing)") for exc in self.unlinked}
             raise StrategyError(excs, databases)
-        if obj.project_parameters:
-            obj.write_project_parameters(delete_existing=False)
-        db = obj.write_database(delete_existing=True, activate_parameters=True)
+        if self.project_parameters:
+            self.write_project_parameters(delete_existing=False)
+        db = self.write_database(delete_existing=True, activate_parameters=True)
         if has_params:
             bd.parameters.recalculate()
         return [db]
+
+    def apply_strategies(self, strategies=None, verbose=False):
+        strategies = strategies or self.strategies
+        for strategy in tqdm.tqdm(strategies, desc="Applying strategies", total=len(strategies)):
+            self.apply_strategy(strategy, verbose)
+
 
 
 class ABPackage(BW2Package):

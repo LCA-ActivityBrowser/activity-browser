@@ -12,3 +12,4 @@ from .dialog import (ActivityLinkingDialog, ActivityLinkingResultsDialog,
 from .line_edit import (SignalledComboEdit, SignalledLineEdit,
                         SignalledPlainTextEdit)
 from .message import parameter_save_errorbox, simple_warning_box
+from .progress_dialog import ABProgressDialog

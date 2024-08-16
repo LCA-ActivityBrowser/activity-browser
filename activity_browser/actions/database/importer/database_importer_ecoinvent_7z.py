@@ -9,6 +9,7 @@ from activity_browser.mod.pyprind import qt_pyprind
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.ui.icons import qicons
 from activity_browser.ui.threading import ABThread
+from activity_browser.ui.widgets import ABProgressDialog
 from activity_browser.bwutils.io.ecoinvent_importer import Ecoinvent7zImporter
 
 log = getLogger(__name__)
@@ -59,19 +60,7 @@ class DatabaseImporterEcoinvent7z(ABAction):
             ei_thread.start()
 
         # setup a progress dialog
-        progress_dialog = QtWidgets.QProgressDialog(application.main_window)
-        progress_dialog.setWindowTitle("Import database")
-        progress_dialog.setLabelText("Initializing")
-        progress_dialog.setAutoReset(False)
-        progress_dialog.setCancelButton(None)
-
-        # connect to tqdm progress bars
-        qt_tqdm.updated.connect(lambda text, _: progress_dialog.setLabelText(text))
-        qt_tqdm.updated.connect(lambda _, progress: progress_dialog.setValue(int(progress)))
-
-        # connect to pyprind progress bars
-        qt_pyprind.updated.connect(lambda text, _: progress_dialog.setLabelText(text))
-        qt_pyprind.updated.connect(lambda _, progress: progress_dialog.setValue(int(progress)))
+        progress_dialog = ABProgressDialog.get_connected_dialog("Importing database")
 
         # set the progress dialog to disappear when installation has finished, then show the dialog
         ei_thread.finished.connect(progress_dialog.deleteLater)
