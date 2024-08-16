@@ -29,9 +29,6 @@ class MenuBar(QtWidgets.QMenuBar):
         self.manage_settings_action = actions.SettingsWizardOpen.get_QAction()
         self.manage_plugins_action = actions.PluginWizardOpen.get_QAction()
 
-        self.import_from_z7_action = actions.DatabaseImporterEcoinvent7z.get_QAction()
-        self.import_from_excel_action = actions.DatabaseImporterExcel.get_QAction()
-
         self.addMenu(self.file_menu)
         self.addMenu(self.view_menu)
         self.addMenu(self.tools_menu)
@@ -56,15 +53,11 @@ class MenuBar(QtWidgets.QMenuBar):
         self.file_menu.addAction(self.import_proj_action)
         self.file_menu.addAction(self.export_proj_action)
         self.file_menu.addSeparator()
-        self.file_menu.addAction(self.import_db_action)
+        self.file_menu.addMenu(ImportDatabaseMenu(self))
         self.file_menu.addAction(self.export_db_action)
         self.file_menu.addAction(self.update_biosphere_action)
         self.file_menu.addSeparator()
         self.file_menu.addAction(self.manage_settings_action)
-
-        self.file_menu.addSeparator()
-        self.file_menu.addAction(self.import_from_z7_action)
-        self.file_menu.addAction(self.import_from_excel_action)
 
     def setup_view_menu(self) -> None:
         """Build the menu for viewing or hiding specific tabs"""
@@ -128,3 +121,28 @@ For license information please see the copyright on <a href="https://github.com/
         exists = True if bd.config.biosphere in bd.databases else False
         self.update_biosphere_action.setEnabled(exists)
         self.import_db_action.setEnabled(exists)
+
+
+class ImportDatabaseMenu(QtWidgets.QMenu):
+    def __init__(self, parent=None) -> None:
+        super().__init__(parent=parent)
+        self.setTitle("Import database")
+        self.setIcon(qicons.import_db)
+
+        self.import_from_z7_action = actions.DatabaseImporterEcoinvent7z.get_QAction()
+        self.import_from_excel_action = actions.DatabaseImporterExcel.get_QAction()
+        self.open_import_wizard_action = actions.DatabaseImport.get_QAction()
+
+        self.import_from_z7_action.setText("from ecoinvent .7z archive")
+        self.import_from_excel_action.setText("from Brightway2 excel")
+        self.open_import_wizard_action.setText("using legacy wizard")
+
+        self.import_from_z7_action.setIcon(QtGui.QIcon())
+        self.import_from_excel_action.setIcon(QtGui.QIcon())
+        self.open_import_wizard_action.setIcon(QtGui.QIcon())
+
+        self.addAction(self.import_from_z7_action)
+        self.addAction(self.import_from_excel_action)
+        self.addSeparator()
+        self.addAction(self.open_import_wizard_action)
+
