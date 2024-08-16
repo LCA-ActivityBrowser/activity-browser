@@ -33,6 +33,7 @@ class DatabasesTable(ABDataFrameView):
         self.setSelectionMode(QtWidgets.QTableView.SingleSelection)
         self.setItemDelegateForColumn(2, CheckboxDelegate(self))
 
+        self.new_db_action = actions.DatabaseNew.get_QAction()
         self.relink_action = actions.DatabaseRelink.get_QAction(self.current_database)
         self.new_activity_action = actions.ActivityNew.get_QAction(
             self.current_database
@@ -54,10 +55,16 @@ class DatabasesTable(ABDataFrameView):
         self.model.updated.connect(self.update_proxy_model)
 
     def contextMenuEvent(self, event) -> None:
+        from activity_browser.ui.menu_bar import ImportDatabaseMenu
+        menu = QtWidgets.QMenu(self)
+        menu.addAction(self.new_db_action)
+        menu.addMenu(ImportDatabaseMenu(menu))
+
         if self.indexAt(event.pos()).row() == -1:
+            menu.exec_(event.globalPos())
             return
 
-        menu = QtWidgets.QMenu(self)
+        menu.addSeparator()
         menu.addAction(self.delete_db_action)
         menu.addAction(self.relink_action)
         menu.addAction(self.duplicate_db_action)
