@@ -83,6 +83,7 @@ class TableItemStyle:
         "database": (96, 96, 96),
         "categories": (0, 0, 0),
         "key": (96, 96, 96),
+        "modified": (200, 0, 0)
     }
 
     def __init__(self):

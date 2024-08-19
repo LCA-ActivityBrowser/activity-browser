@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from copy import copy
 from dataclasses import dataclass
 from math import nan
 from typing import Any, Optional, Union
@@ -10,8 +11,7 @@ from activity_browser import ab_settings, project_settings, signals
 from activity_browser.bwutils import commontasks as bc
 from activity_browser.logger import log
 from activity_browser.mod import bw2data as bd
-from activity_browser.mod.bw2data.backends import Activity
-
+from activity_browser.ui.style import style_item
 
 from ...ui.icons import qicons
 from ...ui.style import style_activity_tab
@@ -367,14 +367,10 @@ class ActivityTab(QtWidgets.QWidget):
 
     def open_properties(self):
         """Opens the property editor for the current activity"""
-        editor = PropertyEditor(self.activity, self.read_only, self)
+        editor = PropertyEditor(self.activity.get("properties"), self.read_only, self)
         # Do not save the changes if the user pressed cancel
         if editor.exec_() == editor.Accepted:
             old_properties = self.activity.get("properties")
-            if old_properties is not None and not isinstance(old_properties, dict):
-                log.error(f"Activity property is not dict type! "
-                    f"Activity name: {self.activity.get('name')}, type: {type(old_properties)}")
-                return
             # Get the values modified by the user
             updated_properties = editor.properties()
             # Nothing to do
@@ -439,8 +435,11 @@ class PropertyModel(QtCore.QAbstractTableModel):
         self._data.clear()
         log.info(f"Input data for property table: {data}")
         if data is not None:
+            self._original_data = copy(data)
             for key in data:
                 self._data.append(PropertyModel.PropertyData(key, data[key]))
+        else:
+            self._original_data = dict()
         self._data.append(PropertyModel.PropertyData())
         self.layoutChanged.emit()
 
@@ -457,6 +456,11 @@ class PropertyModel(QtCore.QAbstractTableModel):
                     return nan
 
                 return self._data[index.row()][index.column()]
+            if role == QtCore.Qt.ItemDataRole.ForegroundRole:
+
+                if self._original_data.get(self._data[index.row()].key) == self._data[index.row()].value:
+                    return None
+                return style_item.brushes.get("modified")
         return None
 
     def setData(self, index: QtCore.QModelIndex, value: Any,
@@ -497,6 +501,10 @@ class PropertyModel(QtCore.QAbstractTableModel):
         result = { item.key:item.value for item in self._data if item.key != ""}
         return result
 
+    def has_duplicate_key(self) -> bool:
+        key_set = {item.key for item in self._data}
+        return len(key_set) < len(self._data)
+
 
 class PropertyTable(QtWidgets.QTableView):
     """Table view for editing properties"""
@@ -534,14 +542,14 @@ class PropertyTable(QtWidgets.QTableView):
 class PropertyEditor(QtWidgets.QDialog):
     """Property editor dialog"""
 
-    def __init__(self, activity: Activity, read_only: bool, parent: Optional[QtWidgets.QWidget] = None):
+    def __init__(self, properties: Optional[dict[str, float]], read_only: bool, parent: Optional[QtWidgets.QWidget] = None):
         super().__init__(parent)
         self.setWindowTitle("Property Editor")
         self._data_model = PropertyModel(read_only)
         if not read_only:
             self._data_model.dataChanged.connect(self._handle_data_changed)
         self._editor_table = PropertyTable(self._data_model)
-        self._editor_table.populate(activity.get("properties"))
+        self._editor_table.populate(properties)
         self._save_button = QtWidgets.QPushButton()
         if read_only:
             self._save_button.setText("Read only")
@@ -569,5 +577,12 @@ class PropertyEditor(QtWidgets.QDialog):
         return self._data_model.get_data_table()
 
     def _handle_data_changed(self):
-        self._save_button.setText("Save changes")
-        self._save_button.setEnabled(True)
+        if self._data_model.has_duplicate_key():
+            self._save_button.setText("Duplicate keys")
+            self._save_button.setEnabled(False)
+        else:
+            self._save_button.setText("Save changes")
+            self._save_button.setEnabled(True)
+
+
+
