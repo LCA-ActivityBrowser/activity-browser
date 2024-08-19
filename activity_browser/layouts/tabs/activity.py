@@ -367,7 +367,7 @@ class ActivityTab(QtWidgets.QWidget):
 
     def open_properties(self):
         """Opens the property editor for the current activity"""
-        editor = PropertyEditor(self.activity, self)
+        editor = PropertyEditor(self.activity, self.read_only, self)
         # Do not save the changes if the user pressed cancel
         if editor.exec_() == editor.Accepted:
             old_properties = self.activity.get("properties")
@@ -430,9 +430,10 @@ class PropertyModel(QtCore.QAbstractTableModel):
                 raise IndexError
 
 
-    def __init__(self):
+    def __init__(self, read_only: bool):
         super().__init__()
         self._data: list[PropertyModel.PropertyData] = []
+        self._read_only = read_only
 
     def populate(self, data: Optional[dict[str, float]]) -> None:
         self._data.clear()
@@ -461,8 +462,9 @@ class PropertyModel(QtCore.QAbstractTableModel):
     def setData(self, index: QtCore.QModelIndex, value: Any,
              role: int = QtCore.Qt.ItemDataRole.DisplayRole) -> bool:
         if index.isValid() and role == QtCore.Qt.ItemDataRole.EditRole:
-            self._data[index.row()][index.column()] = value
-            self.dataChanged.emit(index, index, [])
+            if self._data[index.row()][index.column()] != value:
+                self._data[index.row()][index.column()] = value
+                self.dataChanged.emit(index, index, [])
             # Make sure there is an empty row at the end
             if self._data[-1][0] != "":
                 self._data.append(PropertyModel.PropertyData())
@@ -472,10 +474,12 @@ class PropertyModel(QtCore.QAbstractTableModel):
         return False
 
     def flags(self, index: QtCore.QModelIndex) -> QtCore.Qt.ItemFlags:
-        return (QtCore.Qt.ItemFlag.ItemIsSelectable
-                | QtCore.Qt.ItemFlag.ItemIsEnabled
-                | QtCore.Qt.ItemFlag.ItemIsEditable)
-
+        result = (QtCore.Qt.ItemFlag.ItemIsSelectable
+                  | QtCore.Qt.ItemFlag.ItemIsEnabled) 
+        if not self._read_only:
+            result |= QtCore.Qt.ItemFlag.ItemIsEditable
+        return result
+    
     def rowCount(self, index: int) -> int:
         return len(self._data)
 
@@ -530,25 +534,32 @@ class PropertyTable(QtWidgets.QTableView):
 class PropertyEditor(QtWidgets.QDialog):
     """Property editor dialog"""
 
-    def __init__(self, activity: Activity, parent: Optional[QtWidgets.QWidget] = None):
+    def __init__(self, activity: Activity, read_only: bool, parent: Optional[QtWidgets.QWidget] = None):
         super().__init__(parent)
         self.setWindowTitle("Property Editor")
-        self._data_model = PropertyModel()
+        self._data_model = PropertyModel(read_only)
+        if not read_only:
+            self._data_model.dataChanged.connect(self._handle_data_changed)
         self._editor_table = PropertyTable(self._data_model)
         self._editor_table.populate(activity.get("properties"))
-        save_button = QtWidgets.QPushButton("Save")
-        save_button.clicked.connect(self.accept)
+        self._save_button = QtWidgets.QPushButton()
+        if read_only:
+            self._save_button.setText("Read only")
+        else:
+            self._save_button.setText("No changes yet")
+        self._save_button.setEnabled(False)
+        self._save_button.clicked.connect(self.accept)
         cancel_button = QtWidgets.QPushButton("Cancel")
         cancel_button.clicked.connect(self.reject)
 
         # Prevent hitting enter in the table from closing the dialog
-        save_button.setAutoDefault(False)
+        self._save_button.setAutoDefault(False)
         cancel_button.setAutoDefault(False)
 
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self._editor_table)
         button_layout = QtWidgets.QHBoxLayout()
-        button_layout.addWidget(save_button)
+        button_layout.addWidget(self._save_button)
         button_layout.addWidget(cancel_button)
         layout.addLayout(button_layout)
         self.setLayout(layout)
@@ -556,3 +567,7 @@ class PropertyEditor(QtWidgets.QDialog):
     def properties(self) -> dict[str, float]:
         """Access method to get the result of the editing"""
         return self._data_model.get_data_table()
+
+    def _handle_data_changed(self):
+        self._save_button.setText("Save changes")
+        self._save_button.setEnabled(True)
