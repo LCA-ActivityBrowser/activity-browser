@@ -4,10 +4,10 @@ from dataclasses import dataclass
 from math import nan
 from typing import Any, Optional, Union
 from peewee import DoesNotExist
-from PySide2 import QtCore, QtWidgets
+from PySide2 import QtCore, QtWidgets, QtGui
 from PySide2.QtCore import Slot
 
-from activity_browser import ab_settings, project_settings, signals
+from activity_browser import ab_settings, application, project_settings, signals
 from activity_browser.bwutils import commontasks as bc
 from activity_browser.logger import log
 from activity_browser.mod import bw2data as bd
@@ -403,6 +403,7 @@ class PropertyModel(QtCore.QAbstractTableModel):
         """Dataclass to represent one row with correct typehints"""
         key: str = ""
         value: float = 0
+        to_be_deleted: bool = False
 
         def __getitem__(self, index: int) -> Union[str, float]:
             """x[k] operator for easier usage"""
@@ -445,7 +446,7 @@ class PropertyModel(QtCore.QAbstractTableModel):
 
     def data(self, index: QtCore.QModelIndex,
              role: int = QtCore.Qt.ItemDataRole.DisplayRole) -> Any:
-        if index.isValid():
+        if index.isValid() and index.column() < 2:
             if role == QtCore.Qt.ItemDataRole.EditRole:
                 return self._data[index.row()][index.column()]
             elif (role == QtCore.Qt.ItemDataRole.DisplayRole
@@ -454,18 +455,31 @@ class PropertyModel(QtCore.QAbstractTableModel):
                 # to hint that these will not be saved
                 if (index.column() == 1 and self._data[index.row()][0] == ""):
                     return nan
-
                 return self._data[index.row()][index.column()]
-            if role == QtCore.Qt.ItemDataRole.ForegroundRole:
-
-                if self._original_data.get(self._data[index.row()].key) == self._data[index.row()].value:
-                    return None
-                return style_item.brushes.get("modified")
+            elif role == QtCore.Qt.ItemDataRole.FontRole:
+                font = QtGui.QFont()
+                if self._data[index.row()].to_be_deleted:
+                    font.setStrikeOut(True)
+                return font
+            elif role == QtCore.Qt.ItemDataRole.ForegroundRole:
+                current_key = self._data[index.row()].key
+                if self._data[index.row()].to_be_deleted:
+                    return style_item.brushes.get("deleted")
+                elif current_key in self._duplicate_keys():
+                    return style_item.brushes.get("duplicate")
+                elif self._original_data.get(current_key) == None:
+                    return style_item.brushes.get("new")
+                elif self._original_data.get(current_key) != self._data[index.row()].value:
+                    return style_item.brushes.get("modified")
+                return None
+        if index.isValid() and index.column() == 2 and role == QtCore.Qt.ItemDataRole.DisplayRole:
+            return ""
         return None
 
     def setData(self, index: QtCore.QModelIndex, value: Any,
              role: int = QtCore.Qt.ItemDataRole.DisplayRole) -> bool:
-        if index.isValid() and role == QtCore.Qt.ItemDataRole.EditRole:
+        if (index.isValid() and role == QtCore.Qt.ItemDataRole.EditRole 
+                and index.column() < 2):
             if self._data[index.row()][index.column()] != value:
                 self._data[index.row()][index.column()] = value
                 self.dataChanged.emit(index, index, [])
@@ -478,32 +492,86 @@ class PropertyModel(QtCore.QAbstractTableModel):
         return False
 
     def flags(self, index: QtCore.QModelIndex) -> QtCore.Qt.ItemFlags:
-        result = (QtCore.Qt.ItemFlag.ItemIsSelectable
-                  | QtCore.Qt.ItemFlag.ItemIsEnabled) 
-        if not self._read_only:
-            result |= QtCore.Qt.ItemFlag.ItemIsEditable
-        return result
+        if index.isValid() and index.column() < 2:
+            result = (QtCore.Qt.ItemFlag.ItemIsSelectable
+                    | QtCore.Qt.ItemFlag.ItemIsEnabled) 
+            if not self._read_only:
+                result |= QtCore.Qt.ItemFlag.ItemIsEditable
+            return result
+        if index.isValid() and index.column() == 2:
+            return (QtCore.Qt.ItemFlag.ItemIsEnabled | QtCore.Qt.ItemFlag.ItemIsEditable) 
+        return None
     
-    def rowCount(self, index: int) -> int:
+    def rowCount(self, parent: QtCore.QModelIndex = QtCore.QModelIndex()) -> int:
         return len(self._data)
 
-    def columnCount(self, index: int) -> int:
-        return 2
+    def columnCount(self, parent: QtCore.QModelIndex = QtCore.QModelIndex()) -> int:
+        return 3
 
     def headerData(self, section:int, orientation:QtCore.Qt.Orientation,
                    role: int=QtCore.Qt.ItemDataRole.DisplayRole) -> Any:
-        if (orientation == QtCore.Qt.Orientation.Horizontal
+        
+        if (section < 3 and 
+                orientation == QtCore.Qt.Orientation.Horizontal
                 and role == QtCore.Qt.ItemDataRole.DisplayRole):
-            return ("Name", "Value")[section]
+            return ("Name", "Value", "")[section]
         return None
 
     def get_data_table(self) -> dict[str, float]:
         result = { item.key:item.value for item in self._data if item.key != ""}
         return result
 
+    def _duplicate_keys(self) -> list[str]:
+        duplicates:list[str] = []
+        key_set: set[str] = set()
+        for item in self._data:
+            if not item.to_be_deleted:            
+                if item.key in key_set:
+                    duplicates.append(item.key)
+                else:
+                    key_set.add(item.key)
+        return duplicates
+
     def has_duplicate_key(self) -> bool:
-        key_set = {item.key for item in self._data}
-        return len(key_set) < len(self._data)
+        return len(self._duplicate_keys()) > 0
+    
+    def handle_delete_request(self, index: QtCore.QModelIndex):
+        if index.isValid():
+            self._data[index.row()].to_be_deleted = not self._data[index.row()].to_be_deleted
+            start_index = self.createIndex(index.row(), 0)
+            end_index = self.createIndex(index.row(), 1)
+            self.dataChanged.emit(start_index, end_index, [])
+
+
+
+class DeleteButtonDelegate(QtWidgets.QStyledItemDelegate):
+    """For deleting rows"""
+
+    delete_request = QtCore.Signal(QtCore.QModelIndex)
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+    def createEditor(self, 
+                     parent: QtWidgets.QWidget, 
+                     option: QtWidgets.QStyleOptionViewItem, 
+                     index: QtCore.QModelIndex):
+        button = QtWidgets.QPushButton()
+        button.setFocusPolicy(QtCore.Qt.FocusPolicy.NoFocus)
+        button.setFixedSize(20, 20)
+        button.setAutoDefault(False)
+        button.clicked.connect(lambda: self.delete_request.emit(index))
+        style = application.style()
+        icon = style.standardIcon(QtWidgets.QStyle.StandardPixmap.SP_DockWidgetCloseButton)
+        button.setIcon(icon)
+        button.setStyleSheet("background-color: rgb(200, 150, 150); border-radius: 3")
+        editor = QtWidgets.QWidget(parent)
+        editor.setFocusPolicy(QtCore.Qt.FocusPolicy.NoFocus)
+        layout = QtWidgets.QHBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(button)
+        editor.setLayout(layout)
+        return editor
 
 
 class PropertyTable(QtWidgets.QTableView):
@@ -516,7 +584,6 @@ class PropertyTable(QtWidgets.QTableView):
         self.setWordWrap(True)
         self.setAlternatingRowColors(True)
         self.setSortingEnabled(False)
-        self.horizontalHeader().setStretchLastSection(True)
         self.horizontalHeader().setHighlightSections(False)
         self.horizontalHeader().setDefaultAlignment(QtCore.Qt.AlignLeft)
         self.verticalHeader().setVisible(False)
@@ -531,12 +598,24 @@ class PropertyTable(QtWidgets.QTableView):
         self.setItemDelegateForColumn(0, StringDelegate(self))
         # Use FloatDelegate, so that int values do not trigger an int validation
         self.setItemDelegateForColumn(1, FloatDelegate(self))
+        delete_delegate = DeleteButtonDelegate(self)
+        self.setItemDelegateForColumn(2, delete_delegate)
+        # self.setItemDelegateForColumn(2, CheckboxDelegate(self))
 
         self._model = model
         self.setModel(self._model)
+        delete_delegate.delete_request.connect(self._model.handle_delete_request)
+
+        self.horizontalHeader().setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeMode.Stretch)
+        self.horizontalHeader().setSectionResizeMode(2, QtWidgets.QHeaderView.ResizeMode.Fixed)
+        self.horizontalHeader().resizeSection(2, 40)
+
 
     def populate(self, data: Optional[dict]) -> None:
         self._model.populate(data)
+        for i in range(self._model.rowCount(2)):
+            index = self._model.createIndex(i, 2)
+            self.openPersistentEditor(index)
 
 
 class PropertyEditor(QtWidgets.QDialog):
@@ -583,6 +662,9 @@ class PropertyEditor(QtWidgets.QDialog):
         else:
             self._save_button.setText("Save changes")
             self._save_button.setEnabled(True)
+        for i in range(self._data_model.rowCount(2)):
+            index = self._data_model.createIndex(i, 2)
+            self._editor_table.openPersistentEditor(index)
 
 
 
