@@ -409,36 +409,42 @@ class PropertyEditor(QtWidgets.QDialog):
             self._data_model.dataChanged.connect(self._handle_data_changed)
         self._editor_table = PropertyTable(self._data_model)
         self._editor_table.populate(properties)
-        self._save_button = QtWidgets.QPushButton()
-        if read_only:
-            self._save_button.setText("Read only")
-        else:
-            self._save_button.setText("No changes yet")
+        self._save_button = QtWidgets.QPushButton("Save changes")
         self._save_button.setEnabled(False)
         self._save_button.clicked.connect(self.accept)
-        cancel_button = QtWidgets.QPushButton("Cancel")
+        cancel_button = QtWidgets.QPushButton("Close" if read_only else "Cancel")
         cancel_button.clicked.connect(self.reject)
 
         # Prevent hitting enter in the table from closing the dialog
         self._save_button.setAutoDefault(False)
         cancel_button.setAutoDefault(False)
-
+        self._message_label = QtWidgets.QLabel()
+        if read_only:
+            self._message_label.setText("Read only")
+        else:
+            self._message_label.setText("No changes yet")
+    
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self._editor_table)
         button_layout = QtWidgets.QHBoxLayout()
         button_layout.addWidget(self._save_button)
         button_layout.addWidget(cancel_button)
         layout.addLayout(button_layout)
+        layout.addWidget(self._message_label)
         self.setLayout(layout)
 
     def properties(self) -> dict[str, float]:
         """Access method to get the result of the editing"""
-        return self._data_model.get_data_table()
+        return self._data_model.get_properties()
 
     def _handle_data_changed(self):
         if self._data_model.has_duplicate_key():
-            self._save_button.setText("Duplicate keys")
+            self._message_label.setText("Error: there are duplicate property names")
             self._save_button.setEnabled(False)
         else:
-            self._save_button.setText("Save changes")
-            self._save_button.setEnabled(True)
+            if self._data_model.is_modified():
+                self._message_label.setText("Modified")
+                self._save_button.setEnabled(True)
+            else:
+                self._message_label.setText("No changes")
+                self._save_button.setEnabled(False)

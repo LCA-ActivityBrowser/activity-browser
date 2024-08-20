@@ -16,7 +16,7 @@ class PropertyModel(QtCore.QAbstractTableModel):
         - property key
         - property value
         - to be deleted - if this flag is set, the property will not be reported in 
-            get_data_table
+            get_properties
     """
 
     @dataclass
@@ -46,12 +46,16 @@ class PropertyModel(QtCore.QAbstractTableModel):
                 self.value = value
             else:
                 raise IndexError
+            
+        def __hash__(self) -> int:
+            return hash((self.key, self.value))
 
 
     def __init__(self, read_only: bool):
         """Model created with the read-only flag will not be editable."""
         super().__init__()
         self._data: list[PropertyModel.PropertyData] = []
+        self._original_data: dict[str, float] = {}
         self._read_only = read_only
 
     def populate(self, data: Optional[dict[str, float]]) -> None:
@@ -165,7 +169,7 @@ class PropertyModel(QtCore.QAbstractTableModel):
             return ("Name", "Value", "")[section]
         return None
 
-    def get_data_table(self) -> dict[str, float]:
+    def get_properties(self) -> dict[str, float]:
         """
         Returns the result of the property editing.
 
@@ -198,3 +202,6 @@ class PropertyModel(QtCore.QAbstractTableModel):
             start_index = self.createIndex(index.row(), 0)
             end_index = self.createIndex(index.row(), 1)
             self.dataChanged.emit(start_index, end_index, [])
+
+    def is_modified(self) -> bool:
+        return self.get_properties() != self._original_data
