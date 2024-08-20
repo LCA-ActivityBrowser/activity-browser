@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from .checkbox import CheckboxDelegate
 from .database import DatabaseDelegate
+from .delete_button import DeleteButtonDelegate
 from .float import FloatDelegate
 from .formula import FormulaDelegate
 from .list import ListDelegate
@@ -15,6 +16,7 @@ from .viewonly import (
 __all__ = [
     "CheckboxDelegate",
     "DatabaseDelegate",
+    "DeleteButtonDelegate",
     "FloatDelegate",
     "FormulaDelegate",
     "ListDelegate",
