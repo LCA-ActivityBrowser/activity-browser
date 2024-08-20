@@ -123,7 +123,7 @@ class PropertyModel(QtCore.QAbstractTableModel):
         """
         Implementation of the model.setData() interface.
 
-        Inserta an empty row at the end of the model, if there is no row
+        Insert an empty row at the end of the model, if there is no row
         with an empty key at the end.
         """
         if (index.isValid() and role == QtCore.Qt.ItemDataRole.EditRole 
