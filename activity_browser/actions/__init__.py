@@ -26,6 +26,7 @@ from .exchange.exchange_modify import ExchangeModify
 from .exchange.exchange_new import ExchangeNew
 from .exchange.exchange_uncertainty_modify import ExchangeUncertaintyModify
 from .exchange.exchange_uncertainty_remove import ExchangeUncertaintyRemove
+from .exchange.exchange_properties import ExchangeProperties
 from .method.cf_amount_modify import CFAmountModify
 from .method.cf_new import CFNew
 from .method.cf_remove import CFRemove
