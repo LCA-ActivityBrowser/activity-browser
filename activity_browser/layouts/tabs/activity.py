@@ -141,6 +141,11 @@ class ActivityTab(QtWidgets.QWidget):
         self.checkbox_comment.setChecked(False)
         self.checkbox_comment.toggled.connect(self.show_comments)
 
+        # Properties button
+        properties = QtWidgets.QPushButton("Properties")
+        properties.clicked.connect(self.open_properties)
+        properties.setToolTip("Show the properties dialog")
+
         # Toolbar Layout
         toolbar = QtWidgets.QToolBar()
         self.graph_action = toolbar.addAction(
@@ -157,7 +162,7 @@ class ActivityTab(QtWidgets.QWidget):
             QtWidgets.QSizePolicy.Fixed
         )
         toolbar.addWidget(spacer)
-        toolbar.addAction("Properties", self.open_properties)
+        toolbar.addWidget(properties)
 
         # Activity information
         # this contains: activity name, location, database
