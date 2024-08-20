@@ -472,7 +472,9 @@ class PropertyModel(QtCore.QAbstractTableModel):
                 elif self._original_data.get(current_key) != self._data[index.row()].value:
                     return style_item.brushes.get("modified")
                 return None
-        if index.isValid() and index.column() == 2 and role == QtCore.Qt.ItemDataRole.DisplayRole:
+        if (index.isValid() and index.column() == 2 
+                and (role == QtCore.Qt.ItemDataRole.DisplayRole 
+                     or role == QtCore.Qt.ItemDataRole.EditRole)):
             return ""
         return None
 
@@ -485,8 +487,9 @@ class PropertyModel(QtCore.QAbstractTableModel):
                 self.dataChanged.emit(index, index, [])
             # Make sure there is an empty row at the end
             if self._data[-1][0] != "":
+                self.beginInsertRows(QtCore.QModelIndex(), len(self._data), len(self._data))
                 self._data.append(PropertyModel.PropertyData())
-                self.layoutChanged.emit()
+                self.endInsertRows()
 
             return True
         return False
@@ -574,6 +577,7 @@ class DeleteButtonDelegate(QtWidgets.QStyledItemDelegate):
         return editor
 
 
+
 class PropertyTable(QtWidgets.QTableView):
     """Table view for editing properties"""
     def __init__(self, model: PropertyModel, parent=None):
@@ -605,17 +609,25 @@ class PropertyTable(QtWidgets.QTableView):
         self._model = model
         self.setModel(self._model)
         delete_delegate.delete_request.connect(self._model.handle_delete_request)
+        self._model.rowsInserted.connect(self._handle_rows_inserted)
 
         self.horizontalHeader().setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeMode.Stretch)
         self.horizontalHeader().setSectionResizeMode(2, QtWidgets.QHeaderView.ResizeMode.Fixed)
         self.horizontalHeader().resizeSection(2, 40)
 
 
-    def populate(self, data: Optional[dict]) -> None:
+    def populate(self, data: Optional[dict[str, float]]) -> None:
         self._model.populate(data)
-        for i in range(self._model.rowCount(2)):
+        for i in range(self._model.rowCount()):
             index = self._model.createIndex(i, 2)
             self.openPersistentEditor(index)
+
+    def _handle_rows_inserted(self, parent: QtCore.QModelIndex, first: int, last: int):
+        # first , last are inclusive
+        for i in range(first, last + 1):
+            index = self._model.createIndex(i, 2)
+            self.openPersistentEditor(index)
+
 
 
 class PropertyEditor(QtWidgets.QDialog):
@@ -662,9 +674,3 @@ class PropertyEditor(QtWidgets.QDialog):
         else:
             self._save_button.setText("Save changes")
             self._save_button.setEnabled(True)
-        for i in range(self._data_model.rowCount(2)):
-            index = self._data_model.createIndex(i, 2)
-            self._editor_table.openPersistentEditor(index)
-
-
-
