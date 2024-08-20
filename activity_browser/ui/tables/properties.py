@@ -36,7 +36,7 @@ class PropertyTable(QtWidgets.QTableView):
         self._model = model
         self.setModel(self._model)
         delete_delegate.delete_request.connect(self._model.handle_delete_request)
-        self._model.rowsInserted.connect(self._handle_rows_inserted)
+        self._model.dataChanged.connect(self._handle_data_changed)
 
         self.horizontalHeader().setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeMode.Stretch)
         # Read-only mode has fewer columns
@@ -44,20 +44,23 @@ class PropertyTable(QtWidgets.QTableView):
             self.horizontalHeader().setSectionResizeMode(2, QtWidgets.QHeaderView.ResizeMode.Fixed)
             self.horizontalHeader().resizeSection(2, 40)
 
+    def _show_delete_button_for_row(self, row: int):
+        key_index = self._model.createIndex(row, 0)
+        index = self._model.createIndex(row, 2)
+        # No delete button for the last empty row
+        if self.model().data(key_index) != "":
+            self.openPersistentEditor(index)
+
     def populate(self, data: Optional[dict[str, float]]) -> None:
         """Load the data into the table"""
         self._model.populate(data)
         # Read-only mode has fewer columns
         if self.model().columnCount() >= 3:
             for i in range(self._model.rowCount()):
-                index = self._model.createIndex(i, 2)
-                self.openPersistentEditor(index)
+                self._show_delete_button_for_row(i)
 
-    def _handle_rows_inserted(self, parent: QtCore.QModelIndex, first: int, last: int):
+    def _handle_data_changed(self, top_left: QtCore.QModelIndex, 
+            bottom_right: QtCore.QModelIndex):
         """Show the delete row delegates for new rows"""
-        # Read-only mode has fewer columns
-        if self.model().columnCount() >= 3:
-            # first , last are inclusive
-            for i in range(first, last + 1):
-                index = self._model.createIndex(i, 2)
-                self.openPersistentEditor(index)
+        for i in range(top_left.row(), bottom_right.row() + 1):
+            self._show_delete_button_for_row(i)
