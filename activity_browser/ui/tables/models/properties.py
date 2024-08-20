@@ -157,6 +157,8 @@ class PropertyModel(QtCore.QAbstractTableModel):
 
     def columnCount(self, parent: QtCore.QModelIndex = QtCore.QModelIndex()) -> int:
         """ Implementation of the model.columnCount() interface. """
+        if self._read_only:
+            return 2
         return 3
 
     def headerData(self, section:int, orientation:QtCore.Qt.Orientation,

@@ -39,19 +39,25 @@ class PropertyTable(QtWidgets.QTableView):
         self._model.rowsInserted.connect(self._handle_rows_inserted)
 
         self.horizontalHeader().setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeMode.Stretch)
-        self.horizontalHeader().setSectionResizeMode(2, QtWidgets.QHeaderView.ResizeMode.Fixed)
-        self.horizontalHeader().resizeSection(2, 40)
+        # Read-only mode has fewer columns
+        if self.model().columnCount() >= 3:
+            self.horizontalHeader().setSectionResizeMode(2, QtWidgets.QHeaderView.ResizeMode.Fixed)
+            self.horizontalHeader().resizeSection(2, 40)
 
     def populate(self, data: Optional[dict[str, float]]) -> None:
         """Load the data into the table"""
         self._model.populate(data)
-        for i in range(self._model.rowCount()):
-            index = self._model.createIndex(i, 2)
-            self.openPersistentEditor(index)
+        # Read-only mode has fewer columns
+        if self.model().columnCount() >= 3:
+            for i in range(self._model.rowCount()):
+                index = self._model.createIndex(i, 2)
+                self.openPersistentEditor(index)
 
     def _handle_rows_inserted(self, parent: QtCore.QModelIndex, first: int, last: int):
         """Show the delete row delegates for new rows"""
-        # first , last are inclusive
-        for i in range(first, last + 1):
-            index = self._model.createIndex(i, 2)
-            self.openPersistentEditor(index)
+        # Read-only mode has fewer columns
+        if self.model().columnCount() >= 3:
+            # first , last are inclusive
+            for i in range(first, last + 1):
+                index = self._model.createIndex(i, 2)
+                self.openPersistentEditor(index)
