@@ -87,19 +87,23 @@ class PropertyModel(QtCore.QAbstractTableModel):
                 return self._data[index.row()][index.column()]
             elif (role == QtCore.Qt.ItemDataRole.DisplayRole
                     or role == QtCore.Qt.ItemDataRole.ToolTipRole):
-                # Do not show values for properties which have no name
-                # to hint that these will not be saved
-                if (index.column() == 1 and self._data[index.row()][0] == ""):
+                # Show values for properties which have no name as deleted
+                # Do not show value for the last row
+                if (index.column() == 1 and index.row() == len(self._data) - 1):
                     return nan
                 return self._data[index.row()][index.column()]
             elif role == QtCore.Qt.ItemDataRole.FontRole:
                 font = QtGui.QFont()
-                if self._data[index.row()].to_be_deleted:
+                # Show rows with empty key as deleted ones
+                if (self._data[index.row()].to_be_deleted 
+                        or self._data[index.row()].key == ""):
                     font.setStrikeOut(True)
                 return font
             elif role == QtCore.Qt.ItemDataRole.ForegroundRole:
                 current_key = self._data[index.row()].key
-                if self._data[index.row()].to_be_deleted:
+                # Show rows with empty key as deleted ones
+                if (self._data[index.row()].to_be_deleted 
+                        or self._data[index.row()].key == ""):
                     return style_item.brushes.get("deleted")
                 elif current_key in self._duplicate_keys():
                     return style_item.brushes.get("duplicate")
@@ -129,7 +133,9 @@ class PropertyModel(QtCore.QAbstractTableModel):
                 self.dataChanged.emit(index, index, [])
             # Make sure there is an empty row at the end
             if self._data[-1][0] != "":
-                self.beginInsertRows(QtCore.QModelIndex(), len(self._data), len(self._data))
+                self.beginInsertRows(QtCore.QModelIndex(), 
+                                     len(self._data), 
+                                     len(self._data))
                 self._data.append(PropertyModel.PropertyData())
                 self.endInsertRows()
             return True
@@ -147,9 +153,12 @@ class PropertyModel(QtCore.QAbstractTableModel):
             if not self._read_only:
                 result |= QtCore.Qt.ItemFlag.ItemIsEditable
             return result
-        if index.isValid() and index.column() == 2:
+        # Do not allow editing the last column in the last row
+        # Editing it shows the delete button then hides it
+        if (index.isValid() and index.row() < len(self._data) - 1 
+                and index.column() == 2):
             return (QtCore.Qt.ItemFlag.ItemIsEnabled | QtCore.Qt.ItemFlag.ItemIsEditable) 
-        return None
+        return QtCore.Qt.ItemFlag.NoItemFlags
     
     def rowCount(self, parent: QtCore.QModelIndex = QtCore.QModelIndex()) -> int:
         """ Implementation of the model.rowCount() interface. """
@@ -186,7 +195,9 @@ class PropertyModel(QtCore.QAbstractTableModel):
         duplicates:list[str] = []
         key_set: set[str] = set()
         for item in self._data:
-            if not item.to_be_deleted:            
+            # Do not count the empty keys as duplicates, they will
+            # be dropped on export
+            if not item.to_be_deleted and item.key != "":            
                 if item.key in key_set:
                     duplicates.append(item.key)
                 else:
@@ -199,7 +210,7 @@ class PropertyModel(QtCore.QAbstractTableModel):
     
     def handle_delete_request(self, index: QtCore.QModelIndex):
         """Marks items to be deleted."""
-        if index.isValid():
+        if index.isValid() and self._data[index.row()].key != "":
             self._data[index.row()].to_be_deleted = not self._data[index.row()].to_be_deleted
             start_index = self.createIndex(index.row(), 0)
             end_index = self.createIndex(index.row(), 1)
