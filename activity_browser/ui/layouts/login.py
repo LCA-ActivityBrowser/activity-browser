@@ -1,29 +1,39 @@
-from PySide2 import QtWidgets, QtCore
+from PySide2 import QtWidgets
 from PySide2.QtCore import Signal, SignalInstance
 
 
 class LoginLayout(QtWidgets.QVBoxLayout):
+    """
+    Layout that contains username and password textboxes. Will check whether both are filled in and signal
+    valid or invalid accordingly.
+    """
     valid: SignalInstance = Signal(bool)
     invalid: SignalInstance = Signal(bool)
 
     def __init__(self,
                  label="",
-                 warning="",
                  username_placeholder="Username",
                  username_preset="",
                  password_placeholder="Password",
-                 password_preset="",
-                 parent=None):
-        super().__init__(parent)
+                 password_preset=""
+                 ):
+        """
+        Parameters
+        ----------
+            label : `str`
+                Header to show above the login screen. If an empty string is provided (default), label will not be added
+            username_placeholder : `str`
+                Text to show in the background of the username field
+            username_preset : `str`
+                Text with which to fill in the username field as suggestion
+            password_placeholder : `str`
+                Text to show in the background of the password field
+            password_preset : `str`
+                Text with which to fill in the password field as suggestion
+        """
+        super().__init__()
 
         self.label = QtWidgets.QLabel(label)
-
-        # Create warning text for when the user enters a database that already exists
-        self.warning = QtWidgets.QLabel()
-        self.warning.setTextFormat(QtCore.Qt.RichText)
-        self.warning.setText(
-            f"<p style='color: red; font-size: small;'>{warning}</p>")
-        self.warning.setHidden(True)
 
         # Login fields
         self.username = QtWidgets.QLineEdit()
@@ -39,12 +49,15 @@ class LoginLayout(QtWidgets.QVBoxLayout):
         self.username.textChanged.connect(self.validate)
         self.password.textChanged.connect(self.validate)
 
-        self.addWidget(self.label)
+        if label:
+            self.addWidget(self.label)
         self.addWidget(self.username)
         self.addWidget(self.password)
-        self.addWidget(self.warning)
 
     def validate(self) -> bool:
+        """
+        Slot to validate whether the username and password are filled in and signal accordingly
+        """
         if self.username.text() and self.password.text():
             self.valid.emit(True)
             self.invalid.emit(False)

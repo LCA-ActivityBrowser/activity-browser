@@ -8,10 +8,7 @@ from PySide2.QtCore import Signal, SignalInstance
 from activity_browser import application
 from activity_browser.mod.ecoinvent_interface import ABEcoinventRelease
 from activity_browser.actions.base import ABAction, exception_dialogs
-from activity_browser.ui import layouts, widgets
-from activity_browser.ui.icons import qicons
-from activity_browser.ui.threading import ABThread
-from activity_browser.ui.widgets import ABProgressDialog
+from activity_browser.ui import layouts, widgets, icons, threading
 from activity_browser.bwutils.io.ecoinvent_importer import Ecoinvent7zImporter
 
 log = getLogger(__name__)
@@ -20,15 +17,16 @@ log = getLogger(__name__)
 class DatabaseImporterEcoinventInterface(ABAction):
     """ABAction to open the DatabaseImportWizard"""
 
-    icon = qicons.import_db
+    icon = icons.qicons.import_db
     text = "Import database from ecoinvent"
     tool_tip = "Import database from ecoinvent"
 
     @staticmethod
     @exception_dialogs
     def run():
-        # show the setup dialog in wich the user can choose the name, and what biosphere database to use
-        setup_dialog = ImportSetupDialog()
+        # show the setup dialog in which the user can first login and then choose the name of the database
+        # and whether to import the accompanied biosphere, or connect to an existing biosphere
+        setup_dialog = ImportSetupDialog(application.main_window)
         if setup_dialog.exec_() == QtWidgets.QDialog.Rejected:
             return
 
@@ -41,7 +39,7 @@ class DatabaseImporterEcoinventInterface(ABAction):
         setattr(ei_thread, "model", setup_dialog.model)
 
         # setup a progress dialog
-        progress_dialog = ABProgressDialog.get_connected_dialog("Importing database")
+        progress_dialog = widgets.ABProgressDialog.get_connected_dialog("Importing database")
 
         # set the progress dialog to disappear when installation has finished, then show the dialog
         ei_thread.finished.connect(progress_dialog.deleteLater)
@@ -67,9 +65,13 @@ class ImportSetupDialog(QtWidgets.QDialog):
         self.setLayout(self.login_layout)
 
     def to_setup_layout(self):
+        """
+        Switch to the setup layout by deleting the login layout and setting a new layout.
+        """
         setup_layout = EcoinventSetupLayout(self.login_layout.release)
         QtWidgets.QWidget().setLayout(self.layout())
 
+        # connect signals to the right slots
         setup_layout.rejected.connect(self.reject)
         setup_layout.accepted.connect(self.accept)
 
@@ -92,8 +94,9 @@ class EcoinventLoginLayout(layouts.LoginLayout):
 
     def __init__(self):
         self.settings = ei.Settings()
-        self.release: ei.EcoinventRelease = None
+        self.release: ei.EcoinventRelease = None  # Maybe move it into the dialog?
 
+        # initialize with a special focus on ecoinvent credentials
         super().__init__(
             label="Provide your ecoinvent credentials",
             username_placeholder="ecoinvent username",
@@ -102,6 +105,7 @@ class EcoinventLoginLayout(layouts.LoginLayout):
             password_preset=self.settings.password,
         )
 
+        # set up the buttons and connect
         self.buttons = layouts.HorizontalButtonsLayout("Cancel", "~Login")
         self.buttons["Login"].setEnabled(self.validate())
         self.valid.connect(self.buttons["Login"].setEnabled)
@@ -109,9 +113,14 @@ class EcoinventLoginLayout(layouts.LoginLayout):
         self.buttons["Cancel"].clicked.connect(self.rejected.emit)
         self.buttons["Login"].clicked.connect(self.credential_check)
 
+        # add buttons to self
         self.addLayout(self.buttons)
 
     def credential_check(self):
+        """
+        Check whether the supplied credentials are valid by instantiating an EcoinventInterface.Release
+        and seeing if we can request a list of available versions from it.
+        """
         # set waitcursor because we're making http requests which take long
         QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
 
@@ -153,10 +162,14 @@ class EcoinventSetupLayout(layouts.DatabaseNameLayout):
     accepted: SignalInstance = Signal()
 
     def __init__(self, release: ei.EcoinventRelease):
+        self.release = release
+
+        # initialize superclass with an ecoinvent focus
         super().__init__(
             label="Set ecoinvent database name"
         )
-        self.release = release
+        # validate when the database name is changed by the user
+        self.database_name.textChanged.connect(self.validate)
 
         # set up the version & model comboboxes
         self.versions = QtWidgets.QComboBox()
@@ -166,12 +179,16 @@ class EcoinventSetupLayout(layouts.DatabaseNameLayout):
 
         # setup the biosphere choice section
         self.biosphere_choice = layouts.RadioButtonCollapseLayout()
+
+        # add option to connect to an existing biosphere database
         self.biosphere_choice.add_option(
             name="existing",
             label="Link to an existing biosphere",
             view=widgets.ABComboBox.get_database_combobox()
         )
         self.biosphere_choice.button("existing").clicked.connect(self.validate)
+
+        # add option to install the supplied biosphere database
         self.biosphere_choice.add_option(
             name="import",
             label="Import included biosphere",
@@ -180,17 +197,17 @@ class EcoinventSetupLayout(layouts.DatabaseNameLayout):
         self.biosphere_choice.button("import").clicked.connect(self.validate)
         self.biosphere_choice.view("import").database_name.textChanged.connect(self.validate)
 
+        # set up the buttons at the bottom of the layout and connect the signals
         self.buttons = layouts.HorizontalButtonsLayout("Cancel", "*~Download")
         self.buttons["Cancel"].clicked.connect(self.rejected.emit)
         self.buttons["Download"].clicked.connect(self.accepted.emit)
 
+        # finalize the layout
         self.addWidget(QtWidgets.QLabel("Choose ecoinvent version"))
         self.addWidget(self.versions)
         self.addWidget(self.models)
         self.addLayout(self.biosphere_choice)
         self.addLayout(self.buttons)
-
-        self.database_name.textChanged.connect(self.validate)
 
         self.validate()
 
@@ -236,7 +253,7 @@ class EcoinventSetupLayout(layouts.DatabaseNameLayout):
         self.buttons["Download"].setEnabled(valid)
 
 
-class ImportEIThread(ABThread):
+class ImportEIThread(threading.ABThread):
     database_name: str
     biosphere_name: str
     version: str
@@ -256,11 +273,3 @@ class ImportEIThread(ABThread):
         if self.import_biosphere:
             importer.install_biosphere(self.biosphere_name)
         importer.install_ecoinvent(self.database_name, self.biosphere_name)
-
-
-if __name__ == '__main__':
-    dialog = ImportSetupDialog()
-    dialog.show()
-
-    application.exec_()
-
