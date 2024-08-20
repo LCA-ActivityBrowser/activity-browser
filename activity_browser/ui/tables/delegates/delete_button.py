@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from PySide2 import QtCore, QtWidgets
 
-from activity_browser import application
+from activity_browser.ui.icons import qicons
 
 
 class DeleteButtonDelegate(QtWidgets.QStyledItemDelegate):
@@ -18,13 +18,10 @@ class DeleteButtonDelegate(QtWidgets.QStyledItemDelegate):
                      index: QtCore.QModelIndex):
         button = QtWidgets.QPushButton()
         button.setFocusPolicy(QtCore.Qt.FocusPolicy.NoFocus)
-        button.setFixedSize(20, 20)
+        button.setFixedSize(22, 22)
         button.setAutoDefault(False)
         button.clicked.connect(lambda: self.delete_request.emit(index))
-        style = application.style()
-        icon = style.standardIcon(QtWidgets.QStyle.StandardPixmap.SP_DockWidgetCloseButton)
-        button.setIcon(icon)
-        button.setStyleSheet("background-color: rgb(200, 150, 150); border-radius: 3")
+        button.setIcon(qicons.delete)
         editor = QtWidgets.QWidget(parent)
         editor.setFocusPolicy(QtCore.Qt.FocusPolicy.NoFocus)
         layout = QtWidgets.QHBoxLayout()
