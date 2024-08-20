@@ -43,6 +43,10 @@ class ActivitiesTab(ABTab):
         if key not in self.tabs:
             act = bd.get_activity(key)
             if act.get("type") not in bd.labels.node_types:
+                QtWidgets.QMessageBox.information(self, 
+                    "Node can't be displayed",
+                    "Node can't be displayed because it isn't a process or a product",
+                    QtWidgets.QMessageBox.StandardButton.Ok)
                 return
             new_tab = ActivityTab(key, read_only, self)
 
