@@ -34,6 +34,7 @@ class BaseExchangeModel(EditablePandasModel):
         "minimum",
         "maximum",
         "comment",
+        "functional",
     }
 
     def __init__(self, key=None, parent=None):
