@@ -49,12 +49,18 @@ class TableStyle:
 
 class ActivitiesTab:
     style_sheet_read_only = """
+        QToolBar {
+            spacing: 8px;
+        }
         QTabWidget::pane {
             border-top: 0px solid rgb(128,0,0); /*red line (read-only indicator) - removed due to request */
             /*border-bottom: 3px solid rgb(128,0,0);*/
         }        
     """
     style_sheet_editable = """
+        QToolbar {
+            spacing: 8px;
+        }
         QTabWidget::pane {
             border-top: 3px solid rgb(0,128,0);
             /* border-bottom: 3px solid rgb(0,128,0);*/
