@@ -1,28 +1,28 @@
-console.log ("Starting "+(is_sankey_mode ? "Sankey" : "Navigator"));
+console.log("Starting " + (is_sankey_mode ? "Sankey" : "Navigator"));
 
 // SETUP GRAPH
 // https://github.com/dagrejs/graphlib/wiki/API-Reference
 
 function getWindowSize() {
     w = window,
-    d = document,
-    e = d.documentElement,
-    g = d.getElementsByTagName('body')[0],
-    x = w.innerWidth ; //|| e.clientWidth || g.clientWidth;
-    y = w.innerHeight ; //|| e.clientHeight || g.clientHeight;
+        d = document,
+        e = d.documentElement,
+        g = d.getElementsByTagName('body')[0],
+        x = w.innerWidth; //|| e.clientWidth || g.clientWidth;
+    y = w.innerHeight; //|| e.clientHeight || g.clientHeight;
 
     //preventing the svg canvas to be 0x0, as page is loaded in the background with dimensions 0x0
-    if (x,y == 0) {
+    if (x, y == 0) {
         x = 600;
         y = 500;
-    };
+    }
 
-    globalWidth = x;
+    globalWidth = x * .95;
     globalHeight = y;
     if (!globalMinWidth) {
         globalMinWidth = globalWidth * 0.99;
     }
-    return {x,y};
+    return {x, y};
 };
 
 var max_string_length = 20;
@@ -47,22 +47,22 @@ d3.demo = {};
 
 /** CANVAS **/
 // function object for the canvas
-d3.demo.canvas = function() {
+d3.demo.canvas = function () {
 
     getWindowSize();
 
     "use strict";
-    console.log("w: "+globalWidth+ " ; h: "+globalHeight)
-    var width           = globalWidth*(is_sankey_mode?0.9:1.0),
-        height          = globalHeight*0.6,
-        base            = null,
-        wrapperBorder   = 0,
-        minimap         = null,
-        minimapPadding  = 10,
-        minimapScale    = 0.1; //reduced minimap scale to (help) prevent graph to exceed panel size
+    console.log("w: " + globalWidth + " ; h: " + globalHeight)
+    var width = globalWidth * (is_sankey_mode ? 0.9 : 1.0),
+        height = globalHeight * 0.6,
+        base = null,
+        wrapperBorder = 0,
+        minimap = null,
+        minimapPadding = 10,
+        minimapScale = 0.1; //reduced minimap scale to (help) prevent graph to exceed panel size
 
     //introduced function to reset width/height according to new window sizes
-    updateDimensions = function(minWidth) {
+    updateDimensions = function (minWidth) {
         getWindowSize();
         if (arguments.length) {
             if (minWidth < globalWidth * 0.99) {
@@ -73,17 +73,16 @@ d3.demo.canvas = function() {
         } else {
             minWidth = globalMinWidth;
         }
-        width           = minWidth;
-        height          = globalHeight*(is_sankey_mode?0.6:0.65);
+        width = minWidth;
+        height = globalHeight * (is_sankey_mode ? 0.6 : 0.65);
     }
-
 
     function canvas(selection) {
 
         base = selection;
         //changed location of MiniMap to under the graph for better layout with very wide graphs
-        var svgWidth = (width  + (wrapperBorder*2) + minimapPadding*2);
-        var svgHeight = (height + (wrapperBorder*2) + minimapPadding*2 + (height*minimapScale));
+        var svgWidth = (width + (wrapperBorder * 2) + minimapPadding * 2);
+        var svgHeight = (height + (wrapperBorder * 2) + minimapPadding * 2 + (height * minimapScale));
         var svg = selection.append("svg")
             .attr("class", "svg canvas")
             .attr("width", svgWidth)
@@ -156,8 +155,8 @@ d3.demo.canvas = function() {
             .attr("transform", "translate(0, " + minimapPadding + ")");
         outerWrapper.append("rect")
             .attr("class", "background")
-            .attr("width", width + wrapperBorder*2)
-            .attr("height", height + wrapperBorder*2);
+            .attr("width", width + wrapperBorder * 2)
+            .attr("height", height + wrapperBorder * 2);
 
         var innerWrapper = outerWrapper.append("g")
             .attr("class", "wrapper inner")
@@ -184,7 +183,7 @@ d3.demo.canvas = function() {
             .scaleExtent([0.25, 5]);
 
         // updates the zoom boundaries based on the current size and scale
-        var updateCanvasZoomExtents = function() {
+        var updateCanvasZoomExtents = function () {
             var scale = innerWrapper.property("__zoom").k;
             var targetWidth = svgWidth;
             var targetHeight = svgHeight;
@@ -198,7 +197,7 @@ d3.demo.canvas = function() {
             //]);
         };
 
-        var zoomHandler = function() {
+        var zoomHandler = function () {
             panCanvas.attr("transform", d3.event.transform);
             // here we filter out the emitting of events that originated outside of the normal ZoomBehavior; this prevents an infinite loop
             // between the host and the minimap
@@ -219,13 +218,13 @@ d3.demo.canvas = function() {
             .target(panCanvas)
             .minimapScale(minimapScale)
             .x(minimapPadding)
-            .y(height + 2*minimapPadding);
+            .y(height + 2 * minimapPadding);
 
         svg.call(minimap);
 
         /** ADD SHAPE **/
         // function to update dimensions, reset the canvas (with new dimensions), render the graph in canvas & minimap
-        canvas.addItem = function() {
+        canvas.addItem = function () {
             updateDimensions();
             canvas.reset();
             panCanvas.call(render, graph);
@@ -238,7 +237,7 @@ d3.demo.canvas = function() {
         };
 
         /** RENDER **/
-        canvas.render = function() {
+        canvas.render = function () {
             updateDimensions(); //added call to update window sizes
             svgDefs
                 .select(".clipPath .background")
@@ -246,13 +245,13 @@ d3.demo.canvas = function() {
                 .attr("height", height);
             //changed location of MiniMap to under the graph for better layout with very wide graphs
             svg
-                .attr("width",  width  + (wrapperBorder*2) )
-                .attr("height", height + (wrapperBorder*2) + minimapPadding*2 + (width*minimapScale));
+                .attr("width", width + (wrapperBorder * 2))
+                .attr("height", height + (wrapperBorder * 2) + minimapPadding * 2 + (width * minimapScale));
 
             outerWrapper
                 .select(".background")
-                .attr("width", width + wrapperBorder*2)
-                .attr("height", height + wrapperBorder*2);
+                .attr("width", width + wrapperBorder * 2)
+                .attr("height", height + wrapperBorder * 2);
 
             innerWrapper
                 .attr("transform", "translate(" + (wrapperBorder) + "," + (wrapperBorder) + ")")
@@ -269,11 +268,11 @@ d3.demo.canvas = function() {
 
             minimap
                 .x(minimapPadding)
-                .y(height + 2*minimapPadding)
+                .y(height + 2 * minimapPadding)
                 .render();
         };
 
-        canvas.reset = function() {
+        canvas.reset = function () {
 
             //svg.call(zoom.event);
             //svg.transition().duration(750).call(zoom.event);
@@ -282,7 +281,7 @@ d3.demo.canvas = function() {
             minimap.update(d3.zoomIdentity);
         };
 
-        canvas.update = function(minimapZoomTransform) {
+        canvas.update = function (minimapZoomTransform) {
             zoom.transform(panCanvas, minimapZoomTransform);
             // update the '__zoom' property with the new transform on the rootGroup which is where the zoomBehavior stores it since it was the
             // call target during initialization
@@ -299,13 +298,13 @@ d3.demo.canvas = function() {
     // Accessors
     //============================================================
 
-    canvas.width = function(value) {
+    canvas.width = function (value) {
         if (!arguments.length) return width;
         width = parseInt(value, 10);
         return this;
     };
 
-    canvas.height = function(value) {
+    canvas.height = function (value) {
         if (!arguments.length) return height;
         height = parseInt(value, 10);
         return this;
@@ -315,20 +314,19 @@ d3.demo.canvas = function() {
 };
 
 
-
 /** MINIMAP **/
-d3.demo.minimap = function() {
+d3.demo.minimap = function () {
 
     "use strict";
 
-    var minimapScale    = 0.1,
-        host            = null,
-        base            = null,
-        target          = null,
-        width           = 0,
-        height          = 0,
-        x               = 0,
-        y               = 0;
+    var minimapScale = 0.1,
+        host = null,
+        base = null,
+        target = null,
+        width = 0,
+        height = 0,
+        x = 0,
+        y = 0;
 
     function minimap(selection) {
 
@@ -338,7 +336,7 @@ d3.demo.minimap = function() {
             .scaleExtent([0.25, 5]);
 
         // updates the zoom boundaries based on the current size and scale
-        var updateMinimapZoomExtents = function() {
+        var updateMinimapZoomExtents = function () {
             var scale = container.property("__zoom").k;
             var targetWidth = parseInt(target.attr("width"));
             var targetHeight = parseInt(target.attr("height"));
@@ -352,7 +350,7 @@ d3.demo.minimap = function() {
             //]);
         };
 
-        var zoomHandler = function() {
+        var zoomHandler = function () {
             frame.attr("transform", d3.event.transform);
             // here we filter out the emitting of events that originated outside of the normal ZoomBehavior; this prevents an infinite loop
             // between the host and the minimap
@@ -360,7 +358,7 @@ d3.demo.minimap = function() {
                 // invert the outgoing transform and apply it to the host
                 var transform = d3.event.transform;
                 // ordering matters here! you have to scale() before you translate()
-                var modifiedTransform = d3.zoomIdentity.scale(1/transform.k).translate(-transform.x, -transform.y);
+                var modifiedTransform = d3.zoomIdentity.scale(1 / transform.k).translate(-transform.x, -transform.y);
                 host.update(modifiedTransform);
             }
 
@@ -386,9 +384,9 @@ d3.demo.minimap = function() {
             .attr("filter", "url(#minimapDropShadow_qPWKOg)");
 
 
-        minimap.update = function(hostTransform) {
+        minimap.update = function (hostTransform) {
             // invert the incoming zoomTransform; ordering matters here! you have to scale() before you translate()
-            var modifiedTransform = d3.zoomIdentity.scale((1/hostTransform.k)).translate(-hostTransform.x, -hostTransform.y);
+            var modifiedTransform = d3.zoomIdentity.scale((1 / hostTransform.k)).translate(-hostTransform.x, -hostTransform.y);
             // call this.zoom.transform which will reuse the handleZoom method below
             zoom.transform(frame, modifiedTransform);
             // update the new transform onto the minimapCanvas which is where the zoomBehavior stores it since it was the call target during initialization
@@ -399,7 +397,7 @@ d3.demo.minimap = function() {
 
 
         /** RENDER **/
-        minimap.render = function() {
+        minimap.render = function () {
             // update the placement of the minimap
             container.attr("transform", "translate(" + x + "," + y + ")scale(" + minimapScale + ")");
             // update the visualization being shown by the minimap in case its appearance has changed
@@ -424,7 +422,7 @@ d3.demo.minimap = function() {
     //============================================================
 
 
-    minimap.width = function(value) {
+    minimap.width = function (value) {
         var bBox = this.node.getBBox();
         var w = bBox.width * minimapScale;
         if (!arguments.length) return w;
@@ -433,45 +431,51 @@ d3.demo.minimap = function() {
     };
 
 
-    minimap.height = function(value) {
+    minimap.height = function (value) {
         if (!arguments.length) return height;
         height = parseInt(value, 10);
         return this;
     };
 
 
-    minimap.x = function(value) {
+    minimap.x = function (value) {
         if (!arguments.length) return x;
         x = parseInt(value, 10);
         return this;
     };
 
 
-    minimap.y = function(value) {
+    minimap.y = function (value) {
         if (!arguments.length) return y;
         y = parseInt(value, 10);
         return this;
     };
 
 
-    minimap.host = function(value) {
-        if (!arguments.length) { return host;}
+    minimap.host = function (value) {
+        if (!arguments.length) {
+            return host;
+        }
         host = value;
         return this;
     }
 
 
-    minimap.minimapScale = function(value) {
-        if (!arguments.length) { return minimapScale; }
+    minimap.minimapScale = function (value) {
+        if (!arguments.length) {
+            return minimapScale;
+        }
         minimapScale = value;
         return this;
     };
 
 
-    minimap.target = function(value) {
-        if (!arguments.length) { return target; }
+    minimap.target = function (value) {
+        if (!arguments.length) {
+            return target;
+        }
         target = value;
-        width  = parseInt(target.attr("width"),  10);
+        width = parseInt(target.attr("width"), 10);
         height = parseInt(target.attr("height"), 10);
         return this;
     };
@@ -480,7 +484,8 @@ d3.demo.minimap = function() {
 };
 
 /** GRAPH **/
-const cartographer = function() {
+const cartographer = function () {
+    let data;
     // call to render to ensure sizing is correct.
     canvas.render();
 
@@ -488,77 +493,113 @@ const cartographer = function() {
         window.style_element_text = svg
     }
 
-    // Allow update of graph by parsing a JSON document.
-    cartographer.update_graph = function (json_data) {
-        console.log("Updating Graph");
-        let data = JSON.parse(json_data);
-        heading.innerHTML = data.title;
-        // Reset graph to empty
-        graph = new dagre.graphlib.Graph({ multigraph: true }).setGraph({});
-        console.log(JSON.stringify(graph))
-
-        // nodes --> graph
-        data.nodes.forEach(buildGraphNode);
-        console.log("Nodes successfully loaded...");
-        
-        // edges --> graph
-        data.edges.forEach(buildGraphEdge);
-        console.log("Edges successfully loaded...")
-
+    cartographer.renderGraph = function () {
         //re-renders canvas with updated dimensions of the screen
         canvas.render();
 
         //draws graph into canvas
         canvas.addItem();
-        
+
         // Adds click listener, calling handleMouseClick func
         var nodes = panCanvas.selectAll("g .node")
             .on("click", handleMouseClick);
 
-        if(is_sankey_mode) {
+        if (is_sankey_mode) {
             nodes.on("mouseover", handleMouseOverNode)
-            nodes.on("mouseout", function(d) {
+            nodes.on("mouseout", function (d) {
                 div.transition()
                     .duration(500)
                     .style("opacity", 0);
             });
 
             // change node fill based on impact
-            panCanvas.selectAll("g .node rect").on("click", handleMouseClick)
-            .style("fill", function(d) {
-                console.log(color(graph.node(d).direct_emissions_score_normalized));
-                return color(graph.node(d).direct_emissions_score_normalized);
-            });
+            panCanvas.selectAll("g .node rect")
+                .style("fill", function (d) {
+                    // console.log(color(graph.node(d).direct_emissions_score_normalized));
+                    return color(graph.node(d).direct_emissions_score_normalized);
+                });
         }
 
         // listener for mouse-hovers
         var edges = panCanvas.selectAll("g .edgePath")
             .on("mouseover", handleMouseOverEdge)
-            .on("mouseout", function(d) {
-            div.transition()
-            .duration(500)
-            .style("opacity", 0);
-        });
+            .on("mouseout", function (d) {
+                div.transition()
+                    .duration(500)
+                    .style("opacity", 0);
+            });
 
-        if(is_sankey_mode) {
-            edges.attr("stroke-width", function(d) { return graph.edge(d).weight; })
+        if (is_sankey_mode) {
+            edges.attr("stroke-width", function (d) {
+                return graph.edge(d).weight;
+            })
 
-             // re-scale arrowheads to fit into edge (they become really big otherwise)
+            // re-scale arrowheads to fit into edge (they become really big otherwise)
             markers = d3.selectAll("marker")
                 .attr("viewBox", "0 0 60 60");  // basically zoom out on the arrowhead
 
             // fix arrowhead urls
-            d3.selectAll("path").attr("marker-end", function(data) {
+            d3.selectAll("path").attr("marker-end", function (data) {
                 if (!this.attributes["marker-end"]) return null;
                 else return "url(" + /url\(.*?(#.*?)\)/.exec(this.attributes["marker-end"].textContent)[1] + ")";
             });
         }
+
+        if (interactive) {
+            d3.selectAll("g.node").append("path").attr("class", "triangle").attr("d", d3.symbol().type(d3.symbolTriangle).size(50))
+                .attr("transform", "translate(0, -35)").attr("data-expanded", function (d) {
+                if (!graph.node(d)) {
+                    return null
+                }
+                return graph.node(d).expanded ? "1" : "0"
+            })
+            const {width: graphWidth, height: graphHeight} = graph.graph();
+            const canvasWidth = new Number(panCanvas.attr("width")) || globalWidth;
+            const canvasHeight = new Number(panCanvas.attr("height")) || (globalHeight || 600);
+            const heightRatio = canvasHeight / graphHeight;
+            const widthRatio = canvasWidth / (graphWidth * 1.05);
+            const scale = Math.min(heightRatio, widthRatio, 1);
+            const {e: x, f: y} = d3.select("g.node").node().transform.baseVal[0].matrix
+            const count = d3.selectAll("g.node").size();
+            let ty
+            switch (count) {
+                case 1:
+                    ty = ((y * -scale) + (canvasHeight / 2));
+                    break
+                default:
+                    ty = ((y * -scale) + (canvasHeight * .90))
+            }
+            canvas.update(d3.zoomIdentity.scale(scale).translate(((x * -scale) + (canvasWidth / 2)), ty))
+        }
+    }
+
+    // Allow update of graph by parsing a JSON document.
+    cartographer.update_graph = function (json_data) {
+        console.log("Updating Graph");
+        data = JSON.parse(json_data);
+        heading.innerHTML = data.title;
+        // Reset graph to empty
+        graph = new dagre.graphlib.Graph({multigraph: true}).setGraph({});
+        console.log(JSON.stringify(graph))
+
+        // nodes --> graph
+        data.nodes.forEach(buildGraphNode);
+        console.log("Nodes successfully loaded...");
+
+        // edges --> graph
+        data.edges.forEach(buildGraphEdge);
+        console.log("Edges successfully loaded...")
+        cartographer.renderGraph();
     };
 
     const buildGraphNode = function (n) {
-        if(!is_sankey_mode) {
+        if (!is_sankey_mode) {
             n.label = formatNodeText(n['name'], n['location']);
             n.labelType = "html";
+        }
+        if (interactive) {
+            n.expanded = n['expanded']
+            n.collapsed = false;
         }
         graph.setNode(n['id'], n);
     };
@@ -566,52 +607,87 @@ const cartographer = function() {
     const buildGraphEdge = function (e) {
         e.curve = d3.curveBasis;
 
-        if(!is_sankey_mode) {
+        if (!is_sankey_mode) {
             e.label = formatEdgeText(e['product'], max_string_length);
             e.labelType = "html";
             e.arrowhead = "vee";
         }
-        
+
         graph.setEdge(e['source_id'], e['target_id'], e);
     };
+
+    function toggleCollapse(nodeId) {
+        const node = graph.node(nodeId);
+        const edges = graph.nodeEdges(nodeId);
+        if (node.collapsed) {
+            // Expand the node
+            data.edges.forEach(edge => {
+                console.log(edge)
+                if (edge.target_id == node.id) {
+                    buildGraphEdge(edge)
+                    let addNode = data.nodes.find(n => n.id == edge.source_id);
+                    if (addNode) {
+                        buildGraphNode(addNode)
+                        graph.node(addNode.id).collapsed = true;
+                    }
+                }
+            })
+            node.collapsed = false
+        } else {
+            // Collapse the node
+            edges.forEach(edge => {
+                if (edge.w == node.id) {
+                    toggleCollapse(edge.v)
+                    graph.removeEdge(edge.v, edge.w);
+                    graph.removeNode(edge.v);
+                }
+            });
+            node.collapsed = true
+        }
+
+        cartographer.renderGraph()
+    }
 
     // Function called on click
     const handleMouseClick = function (node) {
         // make dictionary containing the node key and how the user clicked on it
         // see also mouse events: https://www.w3schools.com/jsref/obj_mouseevent.asp
+        let gNode = graph.node(node)
         let click_dict = {
-            "database": graph.node(node).database,
-            "id": graph.node(node).id,
+            "database": gNode.database,
+            "id": gNode.id,
             "mouse": event.button,
             "keyboard": {
                 "shift": event.shiftKey,
                 "alt": event.altKey,
             }
         }
-        console.log(click_dict)
+        if (interactive && gNode.expanded) {
+            toggleCollapse(node)
+        }
 
         // pass click_dict (as json text) to python via bridge
         window.bridge.node_clicked(JSON.stringify(click_dict))
     };
 
     const handleMouseOverNode = function (n) {
-        console.log ("mouseover Node!");
+        console.log("mouseover Node!");
         node = graph.node(n);
         div.transition()
             .duration(200)
             .style("opacity", .9);
-        div	.html(node.tooltip)
+        div.html(node.tooltip)
             .style("left", (d3.event.pageX) + "px")
             .style("top", (d3.event.pageY - 28) + "px");
     };
 
     const handleMouseOverEdge = function (e) {
-        console.log ("mouseover Edge!");
+        console.log("mouseover Edge!");
         edge = graph.edge(e);
         div.transition()
             .duration(200)
             .style("opacity", .9);
-        div	.html(edge.tooltip)
+        div.html(edge.tooltip)
             .style("left", (d3.event.pageX) + "px")
             .style("top", (d3.event.pageY - 28) + "px");
     };
@@ -624,11 +700,11 @@ const cartographer = function() {
 var canvas = d3.demo.canvas();
 d3.select("#canvasqPWKOg").call(canvas);
 
-d3.select("#resetButtonqPWKOg").on("click", function() {
+d3.select("#resetButtonqPWKOg").on("click", function () {
     canvas.reset();
 });
 
-d3.select("#downloadSVGtButtonqPWKOg").on("click", function() {
+d3.select("#downloadSVGtButtonqPWKOg").on("click", function () {
 
     // create new svg element
     var clone = document.createElementNS("http://www.w3.org/2000/svg", "svg");
@@ -664,7 +740,7 @@ d3.select("#downloadSVGtButtonqPWKOg").on("click", function() {
 
 // Construct 'render' object and initialize cartographer.
 var render = dagreD3.render();
-var graph = new dagre.graphlib.Graph({ multigraph: true }).setGraph({});
+var graph = new dagre.graphlib.Graph({multigraph: true}).setGraph({});
 cartographer();
 
 /* END OF ADAPTED DEMO SCRIPT*/
@@ -685,7 +761,7 @@ var color = d3.scaleLinear()
 
 // break strings into multiple lines after certain length if necessary
 function wrapText(str, length) {
-    return str.replace(/.{15}\S*\s+/g, "$&@").split(/\s+@/).join(is_sankey_mode?"\n":"<br>")
+    return str.replace(/.{15}\S*\s+/g, "$&@").split(/\s+@/).join(is_sankey_mode ? "\n" : "<br>")
 }
 
 function roundNumber(number) {
@@ -694,7 +770,7 @@ function roundNumber(number) {
 
 function formatNodeText(name, location) {
     html = '<text class="activityNameText">' + wrapText(name) + '<br>'
-    + '</span><span class="locationText">' + location + '</text>'
+        + '</span><span class="locationText">' + location + '</text>'
     return html
 }
 

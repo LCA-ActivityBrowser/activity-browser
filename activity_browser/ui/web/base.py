@@ -87,6 +87,8 @@ class BaseNavigatorWidget(QtWidgets.QWidget):
             signals.new_statusbar_message.emit("No data to go back to.")
 
     def send_json(self) -> None:
+        if self.graph.json_data is None:
+            return
         self.bridge.graph_ready.emit(self.graph.json_data)
         css_path = webutils.get_static_css_path(self.css_file)
         css_code = utils.read_file_text(css_path)
