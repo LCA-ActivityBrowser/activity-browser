@@ -153,13 +153,6 @@ class ActivityTab(QtWidgets.QWidget):
         toolbar.addWidget(self.checkbox_activity_description)
         toolbar.addWidget(self.checkbox_uncertainty)
         toolbar.addWidget(self.checkbox_comment)
-        # Align the properties button to the right
-        spacer = QtWidgets.QWidget()
-        spacer.setSizePolicy(
-            QtWidgets.QSizePolicy.Expanding,
-            QtWidgets.QSizePolicy.Fixed
-        )
-        toolbar.addWidget(spacer)
         toolbar.addWidget(properties)
 
         # Activity information
@@ -339,6 +332,7 @@ class ActivityTab(QtWidgets.QWidget):
                 )
 
     def update_style(self) -> None:
+        # pass
         if self.read_only:
             self.setStyleSheet(style_activity_tab.style_sheet_read_only)
         else:
