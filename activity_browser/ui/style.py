@@ -58,7 +58,7 @@ class ActivitiesTab:
         }        
     """
     style_sheet_editable = """
-        QToolbar {
+        QToolBar {
             spacing: 8px;
         }
         QTabWidget::pane {
