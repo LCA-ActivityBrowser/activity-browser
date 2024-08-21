@@ -97,6 +97,7 @@ class BaseExchangeModel(EditablePandasModel):
             "shape",
             "minimum",
             "maximum",
+            "functional",
         }:
             actions.ExchangeUncertaintyModify.run([self.get_exchange(proxy)])
 
