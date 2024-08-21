@@ -150,6 +150,7 @@ AB_names_to_bw_keys = {
     "Categories": "categories",
     "Type": "type",
     "Comment": "comment",
+    "Functional": "functional",
 }
 
 bw_keys_to_AB_names = {v: k for k, v in AB_names_to_bw_keys.items()}
