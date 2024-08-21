@@ -23,7 +23,7 @@ from .database.database_relink import DatabaseRelink
 from .database.importer.database_importer_ecoinvent_7z import DatabaseImporterEcoinvent7z
 from .database.importer.database_importer_excel import DatabaseImporterExcel
 from .database.importer.database_importer_bw2package import DatabaseImporterBW2Package
-from .database.importer.database_importer_ecoinvent_interace import DatabaseImporterEcoinventInterface
+from .database.importer.database_importer_ecoinvent_interface import DatabaseImporterEcoinventInterface
 
 from .exchange.exchange_new import ExchangeNew
 from .exchange.exchange_delete import ExchangeDelete
