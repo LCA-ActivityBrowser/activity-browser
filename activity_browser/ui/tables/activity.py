@@ -25,7 +25,7 @@ class BaseExchangeTable(ABDataFrameView):
         super().__init__(parent)
         self.setDragEnabled(True)
         self.setAcceptDrops(False)
-        self._read_only = True
+        self.setSelectionMode(self.SingleSelection)
 
         self.delete_exchange_action = actions.ExchangeDelete.get_QAction(
             self.selected_exchanges
@@ -42,14 +42,15 @@ class BaseExchangeTable(ABDataFrameView):
         self.copy_exchanges_for_SDF_action = actions.ExchangeCopySDF.get_QAction(
             self.selected_exchanges
         )
-        self.properties_action = actions.ExchangeProperties.get_QAction(
-            # Use a lambda for the read-only flag, so that the value
-            # is not captured at definition, but at execution
-            self.selected_exchanges, lambda: self._read_only, self
-        )
 
         self.key = getattr(parent, "key", None)
         self.model = self.MODEL(self.key, self)
+
+        self.properties_action = actions.ExchangeProperties.get_QAction(
+            # Use a lambda for the read-only flag, so that the value
+            # is not captured at definition, but at execution
+            self.selected_exchanges, lambda: self.model.is_read_only(), self
+        )
 
         self.downstream = False
         self.setEditTriggers(
@@ -105,24 +106,16 @@ class BaseExchangeTable(ABDataFrameView):
             return [self.model.get_exchange(self.currentIndex())]
     
     def set_read_only(self, read_only: bool):
-        if read_only:
-            # Clear the selection when read-only is set to false,
-            # otherwise the selection persists afterwards
-            # and context menu operates on wrong entries
-            self.clearSelection()
         self._read_only = read_only
 
+        self.model.set_read_only(read_only)
         self.delete_exchange_action.setEnabled(self._read_only)
         self.remove_formula_action.setEnabled(self._read_only)
         self.modify_uncertainty_action.setEnabled(self._read_only)
         self.remove_uncertainty_action.setEnabled(self._read_only)
         if self._read_only:
-            self.setEditTriggers(QtWidgets.QTableView.NoEditTriggers)
             self.setAcceptDrops(False)
-            self.setSelectionMode(self.NoSelection)
         else:
-            self.setEditTriggers(QtWidgets.QTableView.DoubleClicked)
-            self.setSelectionMode(self.SingleSelection)
             if (
                 not self.downstream
             ):  # downstream consumers table never accepts drops

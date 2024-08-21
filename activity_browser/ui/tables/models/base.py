@@ -249,13 +249,29 @@ class PandasModel(QAbstractTableModel):
                 all_mask = col_mask
         return all_mask
 
+    def set_read_only(self, read_only: bool):
+        """Interface function, to support editable models"""
+        pass
+
+    def is_read_only(self) -> bool:
+        """Interface function, to support editable models"""
+        return True
 
 class EditablePandasModel(PandasModel):
     """Allows underlying dataframe to be edited through Delegate classes."""
 
+    def __init__(self, df: pd.DataFrame = None, parent=None):
+        super().__init__(df, parent)
+        self._read_only = True
+
     def flags(self, index):
-        """Returns ItemIsEditable flag"""
-        return super().flags(index) | Qt.ItemIsEditable
+        """Returns ItemIsEditable flag only if the model is not read only
+        This prevents editing of data on QAbstractTableModel level.
+        """
+        result = super().flags(index)
+        if not self._read_only:
+            result |= Qt.ItemIsEditable
+        return result
 
     def setData(self, index, value, role=Qt.EditRole):
         """Inserts the given validated data into the given index"""
@@ -265,6 +281,13 @@ class EditablePandasModel(PandasModel):
             return True
         return False
 
+    def set_read_only(self, read_only: bool):
+        """Allows to set the model to editable"""
+        self._read_only = read_only
+
+    def is_read_only(self) -> bool:
+        """Returns if the model is editable"""
+        return self._read_only
 
 # Take the classes defined above and add the ItemIsDragEnabled flag
 class DragPandasModel(PandasModel):
