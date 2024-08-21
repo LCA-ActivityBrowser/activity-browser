@@ -191,14 +191,25 @@ class BaseExchangeModel(EditablePandasModel):
         return interpreter
 
 
+def as_number(o) -> str:
+    if o is None:
+        return "(unknown)"
+    return "{:.2f}".format(o)
+
+
 class ProductExchangeModel(BaseExchangeModel):
-    COLUMNS = ["Amount", "Unit", "Product", "Functional", "Formula"]
+    COLUMNS = ["Amount", "Unit", "Product", "Functional", "Allocation factor", "Formula"]
 
     def create_row(self, exchange) -> dict:
         row = super().create_row(exchange)
         act = exchange.input
         product = act.get("reference product", act.get("name"))
-        row.update({"Product": product, "Functional": str(exchange.get("functional", "False")), "Formula": exchange.get("formula")})
+        row.update({
+            "Product": product,
+            "Functional": str(exchange.get("functional", "False")),
+            "Allocation factor": as_number(exchange.get('mf_allocation_factor')),
+            "Formula": exchange.get("formula")
+        })
         return row
 
 
