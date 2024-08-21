@@ -137,7 +137,8 @@ class ProductExchangeTable(BaseExchangeTable):
         self.setItemDelegateForColumn(0, FloatDelegate(self))
         self.setItemDelegateForColumn(1, StringDelegate(self))
         self.setItemDelegateForColumn(2, StringDelegate(self))
-        self.setItemDelegateForColumn(3, FormulaDelegate(self))
+        self.setItemDelegateForColumn(3, StringDelegate(self))
+        self.setItemDelegateForColumn(4, FormulaDelegate(self))
 
         self.setDragDropMode(QtWidgets.QTableView.DragDrop)
         self.table_name = "product"

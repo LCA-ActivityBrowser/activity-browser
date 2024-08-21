@@ -192,13 +192,14 @@ class BaseExchangeModel(EditablePandasModel):
 
 
 class ProductExchangeModel(BaseExchangeModel):
-    COLUMNS = ["Amount", "Unit", "Product", "Formula"]
+    COLUMNS = ["Amount", "Unit", "Product", "Functional", "Formula"]
 
     def create_row(self, exchange) -> dict:
         row = super().create_row(exchange)
         act = exchange.input
         product = act.get("reference product", act.get("name"))
-        row.update({"Product": product, "Formula": exchange.get("formula")})
+        row.update({"Product": product, "Functional": str(exchange.get("functional", "False")),
+                    "Formula": exchange.get("formula")})
         return row
 
 
