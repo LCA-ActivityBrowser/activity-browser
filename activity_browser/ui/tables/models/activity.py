@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import itertools
-from typing import Iterable, Optional
+from typing import Any, Iterable
 
 import pandas as pd
 from asteval import Interpreter
@@ -213,6 +213,45 @@ class ProductExchangeModel(BaseExchangeModel):
             "Formula": exchange.get("formula")
         })
         return row
+    
+    def flags(self, index: QModelIndex):
+        result = super().flags(index)
+        if index.column() == 3 and not self.is_read_only():
+            # Remove the editable flag, so that the user can not change the 
+            # "True" and "False" values, only check the checkbox
+            result &= ~Qt.ItemFlag.ItemIsEditable
+            result |= Qt.ItemIsUserCheckable
+        return result
+    
+    def data(self, index: QModelIndex,
+             role: int = Qt.ItemDataRole.DisplayRole) -> Any:
+        check_state_role = False
+        if index.isValid() and index.column() == 3 and role == Qt.ItemDataRole.CheckStateRole:
+            # Checkboxes produce queries with CheckStateRole, but the base model
+            # only suports DisplayRole queries
+            role = Qt.ItemDataRole.DisplayRole
+            check_state_role = True
+        result = super().data(index, role)
+        if check_state_role:
+            # Convert the data to an appropriate value for the checkbox
+            return Qt.CheckState.Checked if result == "True" else Qt.CheckState.Unchecked
+        return result
+        
+    def setData(self, index: QModelIndex, value: Any,
+             role: int = Qt.ItemDataRole.DisplayRole) -> bool:
+        check_state_role = False
+        if index.isValid() and index.column() == 3 and role == Qt.ItemDataRole.CheckStateRole:
+            # Checkbox values will be Checked or Unchecked, convert these to the
+            # value expected by the database
+            value = "True" if value == Qt.CheckState.Checked else "False"
+            # The base model handles only the EditRole
+            role = Qt.ItemDataRole.EditRole
+            check_state_role = True
+        result = super().setData(index, value, role)
+        if result and check_state_role:
+            # Notify the view that the checkbox roles has also changed
+            self.dataChanged.emit(index, index, [Qt.ItemDataRole.CheckStateRole])
+        return result
 
 
 class TechnosphereExchangeModel(BaseExchangeModel):
