@@ -24,6 +24,7 @@ from .database.importer.database_importer_ecoinvent_7z import DatabaseImporterEc
 from .database.importer.database_importer_excel import DatabaseImporterExcel
 from .database.importer.database_importer_bw2package import DatabaseImporterBW2Package
 from .database.importer.database_importer_ecoinvent_interface import DatabaseImporterEcoinventInterface
+from .database.importer.database_importer_forwast import DatabaseImporterForwast
 
 from .exchange.exchange_new import ExchangeNew
 from .exchange.exchange_delete import ExchangeDelete
