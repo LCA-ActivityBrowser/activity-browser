@@ -105,7 +105,7 @@ class BaseExchangeTable(ABDataFrameView):
         else:
             return [self.model.get_exchange(self.currentIndex())]
     
-    def set_read_only(self, read_only: bool):
+    def set_read_only_flag(self, read_only: bool):
         self._read_only = read_only
 
         self.model.set_read_only(read_only)
@@ -130,7 +130,7 @@ class ProductExchangeTable(BaseExchangeTable):
         self.setItemDelegateForColumn(0, FloatDelegate(self))
         self.setItemDelegateForColumn(1, StringDelegate(self))
         self.setItemDelegateForColumn(2, StringDelegate(self))
-        self.setItemDelegateForColumn(3, StringDelegate(self))
+        # builtin checkbox delegate for column 3
         self.setItemDelegateForColumn(4, StringDelegate(self))
         self.setItemDelegateForColumn(5, FormulaDelegate(self))
 

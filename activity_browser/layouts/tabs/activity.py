@@ -82,13 +82,13 @@ class ActivityTab(QtWidgets.QWidget):
     The interface is a GUI representation of the standard activity data format as determined by Brightway
     This is necessitated as AB does not save its own data structures to disk
     Data format documentation is under the heading "The schema for an LCI dataset in voluptuous is:" at this link:
-    https://2.docs.brightway.dev/intro.html#database-is-a-subclass-of-datastore
+    https://docs.brightway.dev/en/latest/content/theory/structure.html#database-is-a-subclass-of-datastore
     Note that all activity data are optional.
     When activities contain exchanges, some fields are required (input, type, amount)
     Each exchange has a type: production, substitution, technosphere, or biosphere
     AB does not yet support 'substitution'. Other exchange types are shown in separate columns on this interface
     Required and other common exchange data fields are hardcoded as column headers in these tables
-    More detail available at: https://2.docs.brightway.dev/intro.html#exchange-data-format
+    More detail available at: https://docs.brightway.dev/en/latest/content/theory/structure.html#exchange-data-format
     The technosphere products (first table) of the visible activity are consumed by other activities downstream
     The final table of this tab lists these 'Downstream Consumers'
     """
@@ -141,7 +141,7 @@ class ActivityTab(QtWidgets.QWidget):
 
         # Properties button
         properties = QtWidgets.QPushButton("Properties")
-        properties.clicked.connect(self.open_properties)
+        properties.clicked.connect(self.open_property_editor)
         properties.setToolTip("Show the properties dialog")
 
         # Toolbar Layout
@@ -294,7 +294,7 @@ class ActivityTab(QtWidgets.QWidget):
             self.biosphere,
             self.downstream,
         ]:
-            table.set_read_only(self.read_only)
+            table.set_read_only_flag(self.read_only)
 
     @Slot(str, bool, name="dbReadOnlyToggle")
     def db_read_only_changed(self, db_name: str, db_read_only: bool) -> None:
@@ -344,7 +344,7 @@ class ActivityTab(QtWidgets.QWidget):
         ).hex()
         ab_settings.write_settings()
 
-    def open_properties(self):
+    def open_property_editor(self):
         """Opens the property editor for the current """
         # Do not save the changes if nothing changed
         if PropertyEditor.edit_properties(self.activity, self.read_only, self):
