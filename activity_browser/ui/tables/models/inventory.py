@@ -16,7 +16,7 @@ from .base import DragPandasModel, PandasModel
 
 
 class DatabasesModel(PandasModel):
-    HEADERS = ["Name", "Records", "Read-only", "Depends", "Modified"]
+    HEADERS = ["Name", "Records", "Read-only", "Depends", "Def. Alloc.", "Modified"]
 
     def __init__(self, parent=None):
         super().__init__(parent=parent)
@@ -43,6 +43,7 @@ class DatabasesModel(PandasModel):
                     "Modified": dt,
                     "Records": bc.count_database_records(name),
                     "Read-only": database_read_only,
+                    "Def. Alloc.": databases[name].get("default_allocation", "")
                 }
             )
 
