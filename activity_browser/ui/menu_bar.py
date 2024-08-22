@@ -29,6 +29,8 @@ class MenuBar(QtWidgets.QMenuBar):
         self.manage_settings_action = actions.SettingsWizardOpen.get_QAction()
         self.manage_plugins_action = actions.PluginWizardOpen.get_QAction()
 
+        self.import_methods_action = actions.MethodImporterEcoinvent.get_QAction()
+
         self.addMenu(self.file_menu)
         self.addMenu(self.view_menu)
         self.addMenu(self.tools_menu)
@@ -58,6 +60,8 @@ class MenuBar(QtWidgets.QMenuBar):
         self.file_menu.addAction(self.update_biosphere_action)
         self.file_menu.addSeparator()
         self.file_menu.addAction(self.manage_settings_action)
+        self.file_menu.addSeparator()
+        self.file_menu.addAction(self.import_methods_action)
 
     def setup_view_menu(self) -> None:
         """Build the menu for viewing or hiding specific tabs"""
