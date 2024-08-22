@@ -46,7 +46,12 @@ class BaseExchangeTable(ABDataFrameView):
         self.key = getattr(parent, "key", None)
         self.model = self.MODEL(self.key, self)
 
-        self.properties_action = actions.ExchangeProperties.get_QAction(
+        self.edge_properties_action = actions.EdgeProperties.get_QAction(
+            # Use a lambda for the read-only flag, so that the value
+            # is not captured at definition, but at execution
+            self.selected_exchanges, lambda: self.model.is_read_only(), self
+        )
+        self.node_properties_action = actions.NodeProperties.get_QAction(
             # Use a lambda for the read-only flag, so that the value
             # is not captured at definition, but at execution
             self.selected_exchanges, lambda: self.model.is_read_only(), self
@@ -148,7 +153,8 @@ class ProductExchangeTable(BaseExchangeTable):
         submenu_copy.setIcon(qicons.copy_to_clipboard)
         submenu_copy.addAction(self.copy_exchanges_for_SDF_action)
         menu.addMenu(submenu_copy)
-        menu.addAction(self.properties_action)
+        menu.addAction(self.edge_properties_action)
+        menu.addAction(self.node_properties_action)
         menu.exec_(event.globalPos())
 
     def dragEnterEvent(self, event):
