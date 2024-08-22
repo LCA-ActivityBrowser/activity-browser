@@ -43,7 +43,7 @@ class DatabasesModel(PandasModel):
                     "Modified": dt,
                     "Records": bc.count_database_records(name),
                     "Read-only": database_read_only,
-                    "Def. Alloc.": databases[name].get("default_allocation", "")
+                    "Def. Alloc.": databases[name].get("default_allocation", "(unspecified)")
                 }
             )
 
