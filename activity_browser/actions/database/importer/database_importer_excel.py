@@ -6,9 +6,7 @@ from PySide2.QtCore import Signal, SignalInstance
 from activity_browser import application
 from activity_browser.mod import bw2data as bd
 from activity_browser.actions.base import ABAction, exception_dialogs
-from activity_browser.ui.icons import qicons
-from activity_browser.ui.threading import ABThread
-from activity_browser.ui.widgets import ABProgressDialog
+from activity_browser.ui import icons, threading, widgets, layouts
 from activity_browser.bwutils.importers import ABExcelImporter
 
 log = getLogger(__name__)
@@ -17,7 +15,7 @@ log = getLogger(__name__)
 class DatabaseImporterExcel(ABAction):
     """ABAction to open the DatabaseImportWizard"""
 
-    icon = qicons.import_db
+    icon = icons.qicons.import_db
     text = "Import database from brightway excel format"
     tool_tip = "Import database from brightway excel format"
 
@@ -53,7 +51,7 @@ class DatabaseImporterExcel(ABAction):
         importer_thread.linking_dict = import_dialog.linking_dict
 
         # setup a progress dialog
-        progress_dialog = ABProgressDialog.get_connected_dialog("Importing Database")
+        progress_dialog = widgets.ABProgressDialog.get_connected_dialog("Importing Database")
         importer_thread.finished.connect(progress_dialog.deleteLater)
 
         progress_dialog.show()
@@ -70,41 +68,19 @@ class ImportSetupDialog(QtWidgets.QDialog):
 
         self.setWindowTitle("Import database from Excel")
 
-        # Create db name textbox
-        self.db_name_textbox = QtWidgets.QLineEdit()
-        self.db_name_textbox.setPlaceholderText("Database name")
-        self.db_name_textbox.setText(importer.db_name)
-        self.db_name_textbox.textChanged.connect(self.db_name_check)
+        self.db_name_layout = layouts.DatabaseNameLayout(label="Input database name:", database_preset=importer.db_name)
+        self.button_layout = layouts.HorizontalButtonsLayout("Cancel", "*OK")
 
-        # Create warning text for when the user enters a database that already exists
-        self.db_name_warning = QtWidgets.QLabel()
-        self.db_name_warning.setTextFormat(QtCore.Qt.RichText)
-        self.db_name_warning.setText(
-            "<p style='color: red; font-size: small;'>Existing database will be overwritten</p>")
-        self.db_name_warning.setHidden(True)
+        # Connect the necessary signals
+        self.db_name_layout.database_name.textChanged.connect(self.validate)
+        self.button_layout["OK"].clicked.connect(self.accept)
+        self.button_layout["Cancel"].clicked.connect(self.reject)
 
-        # Create OK and Cancel buttons
-        self.ok_button = QtWidgets.QPushButton("OK")
-        self.cancel_button = QtWidgets.QPushButton("Cancel")
-
-        self.ok_button.setEnabled(False)
-
-        # Connect buttons to their respective slots
-        self.ok_button.clicked.connect(self.accept)
-        self.cancel_button.clicked.connect(self.reject)
-
-        # Set button layout
-        button_layout = QtWidgets.QHBoxLayout()
-        button_layout.addWidget(self.cancel_button)
-        button_layout.addWidget(self.ok_button)
-
-        # Create layout and add widgets
+        # Create final layout
         layout = QtWidgets.QVBoxLayout()
-        layout.addWidget(QtWidgets.QLabel("Set database name:"))
-        layout.addWidget(self.db_name_textbox)
-        layout.addWidget(self.db_name_warning)
+        layout.addLayout(self.db_name_layout)
         layout.addLayout(self.get_linking_layout())
-        layout.addLayout(button_layout)
+        layout.addLayout(self.button_layout)
 
         # Set the dialog layout
         self.setLayout(layout)
@@ -149,15 +125,6 @@ class ImportSetupDialog(QtWidgets.QDialog):
 
         return layout
 
-    def db_name_check(self):
-        """Slot for when the db_name_textbox is changed, hide/show the warning and validate"""
-        if self.db_name_textbox.text() in bd.databases:
-            self.db_name_warning.setHidden(False)
-        else:
-            self.db_name_warning.setHidden(True)
-        self.window().adjustSize()
-        self.validate()
-
     def build_linking_dict(self) -> dict[str, str]:
         linking_dict = {}
         for child in self.findChildren(QtWidgets.QComboBox):
@@ -167,19 +134,19 @@ class ImportSetupDialog(QtWidgets.QDialog):
     def validate(self):
         """Validate the user input and enable the OK button if all is clear"""
         valid = (
-                bool(self.db_name_textbox.text())  # the textbox has been filled in
+                bool(self.db_name_layout.database_name.text())  # the textbox has been filled in
                 and not [i for i in self.build_linking_dict().values() if i == ""]  # no link dropdowns are empty
         )
-        self.ok_button.setEnabled(valid)
+        self.button_layout["OK"].setEnabled(valid)
 
     def accept(self):
         """Correctly set the dialog's attributes for further use in the action"""
-        self.database_name = self.db_name_textbox.text()
+        self.database_name = self.db_name_layout.database_name.text()
         self.linking_dict = self.build_linking_dict()
         super().accept()
 
 
-class ExtractExcelThread(ABThread):
+class ExtractExcelThread(threading.ABThread):
     loaded: SignalInstance = Signal(ABExcelImporter)
     path = None
 
@@ -188,7 +155,7 @@ class ExtractExcelThread(ABThread):
         self.loaded.emit(importer)
 
 
-class ImportExcelThread(ABThread):
+class ImportExcelThread(threading.ABThread):
     database_name: str
     linking_dict: dict[str, str]
     importer: ABExcelImporter
