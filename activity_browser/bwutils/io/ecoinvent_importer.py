@@ -85,9 +85,13 @@ class Ecoinvent7zImporter:
         db = bd.Database(db_name)
         db.register()
 
+        bd.mapping.add(db_data.keys())
+        bd.geomapping.add({x["location"] for x in db_data.values() if x.get("location")})
         # directly write using the private function, because we don't want to make it searchable and that takes a lot
         # of time. If the user wants it to be searchable, they can do so manually later.
         db._efficient_write_many_data(db_data)
+        log.info(f"Processing database {db_name}")
+        db.process()
 
     def apply_strategies(self, db_data, biosphere_name):
         strategies = [
@@ -250,20 +254,4 @@ class Ecoinvent7zImporter:
             "type": "process",
         }
         return data
-
-
-if __name__ == "__main__":
-    path = "C:\\Users\\marin\\.vscode\\projects\\fast_extract\\ei310.7z"
-    name = "fast_io_test_310"
-    bio_name = "test_biosphere_310"
-
-    # try:
-    #     bd.projects.delete_project("fast_import_test", True)
-    # except ValueError:
-    #     pass
-    bd.projects.set_current("fast_import_test")
-
-    importer = Ecoinvent7zImporter(path)
-    importer.install_biosphere(bio_name)
-    importer.install_ecoinvent(name, bio_name)
 
