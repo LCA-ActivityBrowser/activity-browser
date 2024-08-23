@@ -29,8 +29,6 @@ class MenuBar(QtWidgets.QMenuBar):
         self.manage_settings_action = actions.SettingsWizardOpen.get_QAction()
         self.manage_plugins_action = actions.PluginWizardOpen.get_QAction()
 
-        self.import_methods_action = actions.MethodImporterEcoinvent.get_QAction()
-
         self.addMenu(self.file_menu)
         self.addMenu(self.view_menu)
         self.addMenu(self.tools_menu)
@@ -59,9 +57,9 @@ class MenuBar(QtWidgets.QMenuBar):
         self.file_menu.addAction(self.export_db_action)
         self.file_menu.addAction(self.update_biosphere_action)
         self.file_menu.addSeparator()
-        self.file_menu.addAction(self.manage_settings_action)
+        self.file_menu.addMenu(ImportICMenu(self))
         self.file_menu.addSeparator()
-        self.file_menu.addAction(self.import_methods_action)
+        self.file_menu.addAction(self.manage_settings_action)
 
     def setup_view_menu(self) -> None:
         """Build the menu for viewing or hiding specific tabs"""
@@ -163,3 +161,17 @@ class ImportDatabaseMenu(QtWidgets.QMenu):
         self.addSeparator()
         self.addAction(self.open_import_wizard_action)
 
+
+class ImportICMenu(QtWidgets.QMenu):
+    def __init__(self, parent=None) -> None:
+        super().__init__(parent=parent)
+        self.setTitle("Import impact categories")
+        self.setIcon(qicons.import_db)
+
+        self.import_from_ei_excel_action = actions.MethodImporterEcoinvent.get_QAction()
+
+        self.import_from_ei_excel_action.setText("from ecoinvent excel")
+
+        self.import_from_ei_excel_action.setIcon(QtGui.QIcon())
+
+        self.addAction(self.import_from_ei_excel_action)
