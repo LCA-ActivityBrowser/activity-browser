@@ -1,7 +1,33 @@
+let is_sankey_mode = window.ab_sankey_mode || false;
+let interactive = window.ab_interactive || false;
 console.log("Starting " + (is_sankey_mode ? "Sankey" : "Navigator"));
 
 // SETUP GRAPH
 // https://github.com/dagrejs/graphlib/wiki/API-Reference
+
+const clamp = function (num, min, max) {
+    return Math.min(Math.max(num, min), max);
+};
+
+/**
+ * Debounces a function so repeated calls are ignored.
+ * @param func
+ * @param wait
+ * @returns {(function(): void)|*}
+ */
+function debounce(func, wait) {
+    var timeout;
+    return () => {
+        const context = this, args = arguments;
+        const later = function () {
+            timeout = null;
+            func.apply(context, args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+};
+
 
 function getWindowSize() {
     w = window,
@@ -17,11 +43,9 @@ function getWindowSize() {
         y = 500;
     }
 
-    globalWidth = x * .95;
+    globalWidth = x;
     globalHeight = y;
-    if (!globalMinWidth) {
-        globalMinWidth = globalWidth * 0.99;
-    }
+    globalMinWidth = globalWidth * 0.98;
     return {x, y};
 };
 
@@ -62,7 +86,7 @@ d3.demo.canvas = function () {
         minimapScale = 0.1; //reduced minimap scale to (help) prevent graph to exceed panel size
 
     //introduced function to reset width/height according to new window sizes
-    updateDimensions = function (minWidth) {
+    function updateDimensions(minWidth) {
         getWindowSize();
         if (arguments.length) {
             if (minWidth < globalWidth * 0.99) {
@@ -225,15 +249,18 @@ d3.demo.canvas = function () {
         /** ADD SHAPE **/
         // function to update dimensions, reset the canvas (with new dimensions), render the graph in canvas & minimap
         canvas.addItem = function () {
-            updateDimensions();
-            canvas.reset();
+            graph.graph().transition = function (selection) {
+                return selection.transition().duration(300);
+            };
+            canvas.render();
             panCanvas.call(render, graph);
             // get panCanvas width here?
             // pan to node (implement here)
-            minimap.render();
+            var miniMapInterval = setInterval(() => minimap.render(), 100);
+            setTimeout(function () {
+                clearInterval(miniMapInterval);
+            }, 500);
             updateDimensions(minimap.width());
-            canvas.render();
-            canvas.reset();
         };
 
         /** RENDER **/
@@ -289,6 +316,11 @@ d3.demo.canvas = function () {
 
             updateCanvasZoomExtents();
         };
+
+        canvas.zoomTo = function (zoomTo) {
+            canvas.update(zoomTo)
+            minimap.update(zoomTo);
+        }
 
         updateCanvasZoomExtents();
     }
@@ -493,24 +525,20 @@ const cartographer = function () {
         window.style_element_text = svg
     }
 
-    cartographer.renderGraph = function () {
-        //re-renders canvas with updated dimensions of the screen
-        canvas.render();
-
+    cartographer.renderGraph = function (options = {}) {
+        const renderOptions = Object.assign({
+            center: true,
+        }, options)
         //draws graph into canvas
         canvas.addItem();
 
         // Adds click listener, calling handleMouseClick func
-        var nodes = panCanvas.selectAll("g .node")
-            .on("click", handleMouseClick);
+        var nodes = panCanvas.selectAll("g .node").data(graph.nodes());
+        nodes.on("click", handleMouseClick)
 
         if (is_sankey_mode) {
             nodes.on("mouseover", handleMouseOverNode)
-            nodes.on("mouseout", function (d) {
-                div.transition()
-                    .duration(500)
-                    .style("opacity", 0);
-            });
+            nodes.on("mouseout", handleMouseOutNode);
 
             // change node fill based on impact
             panCanvas.selectAll("g .node rect")
@@ -531,7 +559,7 @@ const cartographer = function () {
 
         if (is_sankey_mode) {
             edges.attr("stroke-width", function (d) {
-                return graph.edge(d).weight;
+                return (graph.edge(d) || {weight: 1}).weight;
             })
 
             // re-scale arrowheads to fit into edge (they become really big otherwise)
@@ -546,19 +574,28 @@ const cartographer = function () {
         }
 
         if (interactive) {
-            d3.selectAll("g.node").append("path").attr("class", "triangle").attr("d", d3.symbol().type(d3.symbolTriangle).size(50))
-                .attr("transform", "translate(0, -35)").attr("data-expanded", function (d) {
+            const dataExpanded = function (d) {
                 if (!graph.node(d)) {
                     return null
                 }
                 return graph.node(d).expanded ? "1" : "0"
-            })
+            }
+            nodes.each(
+                function (d) {
+                    var triangles = d3.select(this).selectAll('.triangle').data([d]);
+                    triangles.enter().append("path").merge(triangles).attr("class", "triangle").attr("d", d3.symbol().type(d3.symbolTriangle).size(50))
+                        .attr("transform", "translate(0, -35)").attr("data-expanded", dataExpanded)
+                }
+            )
+        }
+
+        if (renderOptions.center) {
             const {width: graphWidth, height: graphHeight} = graph.graph();
             const canvasWidth = new Number(panCanvas.attr("width")) || globalWidth;
             const canvasHeight = new Number(panCanvas.attr("height")) || (globalHeight || 600);
             const heightRatio = canvasHeight / graphHeight;
             const widthRatio = canvasWidth / (graphWidth * 1.05);
-            const scale = Math.min(heightRatio, widthRatio, 1);
+            const scale = clamp(Math.min(heightRatio, widthRatio, 1), .25, 5)
             const {e: x, f: y} = d3.select("g.node").node().transform.baseVal[0].matrix
             const count = d3.selectAll("g.node").size();
             let ty
@@ -569,7 +606,7 @@ const cartographer = function () {
                 default:
                     ty = ((y * -scale) + (canvasHeight * .90))
             }
-            canvas.update(d3.zoomIdentity.scale(scale).translate(((x * -scale) + (canvasWidth / 2)), ty))
+            canvas.zoomTo(d3.zoomIdentity.scale(scale).translate(((x * -scale) + (canvasWidth / 2)), ty))
         }
     }
 
@@ -589,7 +626,7 @@ const cartographer = function () {
         // edges --> graph
         data.edges.forEach(buildGraphEdge);
         console.log("Edges successfully loaded...")
-        cartographer.renderGraph();
+        cartographer.renderGraph({center: true});
     };
 
     const buildGraphNode = function (n) {
@@ -616,19 +653,19 @@ const cartographer = function () {
         graph.setEdge(e['source_id'], e['target_id'], e);
     };
 
-    function toggleCollapse(nodeId) {
+    function toggleCollapse(nodeId, collapse = false) {
         const node = graph.node(nodeId);
         const edges = graph.nodeEdges(nodeId);
         if (node.collapsed) {
             // Expand the node
             data.edges.forEach(edge => {
-                console.log(edge)
                 if (edge.target_id == node.id) {
                     buildGraphEdge(edge)
                     let addNode = data.nodes.find(n => n.id == edge.source_id);
                     if (addNode) {
                         buildGraphNode(addNode)
                         graph.node(addNode.id).collapsed = true;
+                        toggleCollapse(addNode.id)
                     }
                 }
             })
@@ -637,6 +674,7 @@ const cartographer = function () {
             // Collapse the node
             edges.forEach(edge => {
                 if (edge.w == node.id) {
+                    graph.node(edge.v).collapsed = false;
                     toggleCollapse(edge.v)
                     graph.removeEdge(edge.v, edge.w);
                     graph.removeNode(edge.v);
@@ -645,7 +683,6 @@ const cartographer = function () {
             node.collapsed = true
         }
 
-        cartographer.renderGraph()
     }
 
     // Function called on click
@@ -664,6 +701,7 @@ const cartographer = function () {
         }
         if (interactive && gNode.expanded) {
             toggleCollapse(node)
+            cartographer.renderGraph({center: true})
         }
 
         // pass click_dict (as json text) to python via bridge
@@ -671,8 +709,9 @@ const cartographer = function () {
     };
 
     const handleMouseOverNode = function (n) {
-        console.log("mouseover Node!");
         node = graph.node(n);
+        d3.select(node.elem)
+            .style("opacity", .4);
         div.transition()
             .duration(200)
             .style("opacity", .9);
@@ -681,8 +720,16 @@ const cartographer = function () {
             .style("top", (d3.event.pageY - 28) + "px");
     };
 
+    const handleMouseOutNode = function (n) {
+        node = graph.node(n);
+        d3.select(node.elem)
+            .style("opacity", 1);
+        div.transition()
+            .duration(500)
+            .style("opacity", 0);
+    }
+
     const handleMouseOverEdge = function (e) {
-        console.log("mouseover Edge!");
         edge = graph.edge(e);
         div.transition()
             .duration(200)
@@ -741,6 +788,7 @@ d3.select("#downloadSVGtButtonqPWKOg").on("click", function () {
 // Construct 'render' object and initialize cartographer.
 var render = dagreD3.render();
 var graph = new dagre.graphlib.Graph({multigraph: true}).setGraph({});
+
 cartographer();
 
 /* END OF ADAPTED DEMO SCRIPT*/
@@ -786,3 +834,12 @@ new QWebChannel(qt.webChannelTransport, function (channel) {
     window.bridge.style.connect(cartographer.update_svg_style);
 });
 
+function rerenderGraphImp() {
+    cartographer.renderGraph({center: true})
+}
+
+const rerenderGraph = debounce(rerenderGraphImp, 500)
+
+window.addEventListener('resize', function (event) {
+    rerenderGraph()
+}, true);
