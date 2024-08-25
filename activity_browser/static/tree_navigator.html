@@ -13,6 +13,7 @@
 <script>
     window.ab_sankey_mode = true;
     window.ab_interactive = true;
+    window.ab_graph_direction = 'RL';
 </script>
 <script src="javascript/d3.js"></script>
 <script src="javascript/dagre.js"></script>
@@ -20,8 +21,14 @@
 <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
 <!--<script type="text/javascript_libs" src="jquery.tipsy.js"></script>-->
 <link href="css/tree_navigator.css" rel="stylesheet" type="text/css"/>
-<button id="resetButtonqPWKOg">Reset Zoom</button>
-<button id="downloadSVGtButtonqPWKOg">Download SVG</button>
+<section>
+    <button id="resetButtonqPWKOg">Reset Zoom</button>
+    <button id="downloadSVGtButtonqPWKOg">Download SVG</button>
+</section>
+<section>
+    <select id="nodeSelectPWK0g"></select>
+    <button id="nodeSelectPWK0gExecute">Go to Node</button>
+</section>
 <div id="canvasqPWKOg" class="canvas"></div>
 <script type="text/javascript" src="javascript/navigator.js"></script>
 </body>
