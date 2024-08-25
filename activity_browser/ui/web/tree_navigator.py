@@ -9,8 +9,8 @@ from PySide2 import QtWidgets
 from PySide2.QtCore import Slot
 from PySide2.QtWidgets import QComboBox
 from bw2calc import LCA
-from bw_graph_tools.graph_traversal import Edge as GraphEdge, Counter, CachingSolver, Node
-from bw_graph_tools.graph_traversal import NewNodeEachVisitGraphTraversal
+from bw_graph_tools.graph_traversal import Edge as GraphEdge
+from bw_graph_tools.graph_traversal import StatefulGraphTraversal
 from bw_graph_tools.graph_traversal import Node as GraphNode
 
 from activity_browser import log, signals
@@ -19,9 +19,6 @@ from activity_browser.mod.bw2data.backends import ActivityDataset
 from activity_browser.utils import get_base_path
 from .base import BaseGraph, BaseNavigatorWidget
 from ...bwutils.commontasks import identify_activity_type
-from ...bwutils.superstructure.graph_traversal_with_scenario import (
-    GraphTraversalWithScenario,
-)
 
 
 class TreeNavigatorWidget(BaseNavigatorWidget):
@@ -206,15 +203,15 @@ class TreeNavigatorWidget(BaseNavigatorWidget):
         )
 
     def update_sankey(
-            self,
-            demand: dict,
-            method: tuple,
-            demand_index: int = None,
-            method_index: int = None,
-            scenario_index: int = None,
-            scenario_lca: bool = False,
-            cut_off=0.05,
-            max_calc=100,
+        self,
+        demand: dict,
+        method: tuple,
+        demand_index: int = None,
+        method_index: int = None,
+        scenario_index: int = None,
+        scenario_lca: bool = False,
+        cut_off=0.05,
+        max_calc=100,
     ) -> None:
         """Calculate LCA, do graph traversal, get JSON graph data for this, and send to javascript."""
 
@@ -241,7 +238,7 @@ class TreeNavigatorWidget(BaseNavigatorWidget):
             lca = bc.LCA(demand=fu, data_objs=data_objs)
             lca.lci()
             lca.lcia()
-            data = InteractiveGraphTraversal.calculate(
+            data = StatefulGraphTraversal(
                 lca_object=lca, cutoff=cut_off, max_calc=max_calc, max_depth=1
             )
 
@@ -289,169 +286,8 @@ class TreeNavigatorWidget(BaseNavigatorWidget):
         if not traversed:
             # nothing has changed
             return
-        self.graph.json_data = Graph.get_json_data(self.graph.state_graph.data)
+        self.graph.json_data = Graph.get_json_data(self.graph.state_graph)
         self.send_json()
-
-
-class InteractiveGraphTraversal(NewNodeEachVisitGraphTraversal):
-    """
-    Graph traversal that maintains state for a partial depth graph traversal.
-    """
-
-    def __init__(self, nodes, edges, flows, calculation_count, metadata=None, parameters=None):
-        super().__init__()
-        self.nodes: Dict[int, GraphNode] = nodes
-        self.edges: List[GraphEdge] = edges
-        self.flows = flows
-        self.calculation_count = calculation_count
-        self.metadata = metadata or {}
-        self.parameters = parameters or {}
-        self.already_calculated = set()
-
-    @property
-    def data(self):
-        return {
-            "nodes": self.nodes,
-            "edges": self.edges,
-            "flows": self.flows,
-            "calculation_count": self.calculation_count.value,
-            "metadata": self.metadata
-        }
-
-    @classmethod
-    def calculate(
-            cls,
-            lca_object: LCA,
-            cutoff: Optional[float] = 5e-3,
-            biosphere_cutoff: Optional[float] = 1e-4,
-            max_calc: Optional[int] = 10000,
-            max_depth: Optional[int] = None,
-            skip_coproducts: Optional[bool] = False,
-            separate_biosphere_flows: Optional[bool] = True,
-            static_activity_indices: Optional[set[int]] = set(),
-            functional_unit_unique_id: Optional[int] = -1,
-    ) -> "InteractiveGraphTraversal":
-        total_score = lca_object.score
-        if total_score == 0:
-            raise ValueError("Zero total LCA score makes traversal impossible")
-
-        cutoff_score = abs(total_score * cutoff)
-        biosphere_cutoff_score = abs(total_score * biosphere_cutoff)
-        technosphere_matrix = lca_object.technosphere_matrix
-        production_exchange_mapping = {
-            x: y for x, y in zip(*cls.get_production_exchanges(lca_object.technosphere_mm))
-        }
-        heap, edges, flows = [], [], []
-        calculation_count = Counter()
-        characterized_biosphere = cls.get_characterized_biosphere(lca_object)
-        caching_solver = CachingSolver(lca_object)
-
-        nodes = {
-            functional_unit_unique_id: Node(
-                unique_id=functional_unit_unique_id,
-                activity_datapackage_id=functional_unit_unique_id,
-                activity_index=functional_unit_unique_id,
-                reference_product_datapackage_id=functional_unit_unique_id,
-                reference_product_index=functional_unit_unique_id,
-                reference_product_production_amount=1.0,
-                depth=0,
-                supply_amount=1.0,
-                cumulative_score=lca_object.score,
-                direct_emissions_score=0.0,
-            )
-        }
-
-        cls.traverse_edges(
-            consumer_index=functional_unit_unique_id,
-            consumer_unique_id=functional_unit_unique_id,
-            product_indices=[lca_object.dicts.product[key] for key in lca_object.demand],
-            product_amounts=lca_object.demand.values(),
-            lca=lca_object,
-            current_depth=0,
-            max_depth=max_depth,
-            calculation_count=calculation_count,
-            characterized_biosphere=characterized_biosphere,
-            matrix=technosphere_matrix,
-            edges=edges,
-            flows=flows,
-            nodes=nodes,
-            heap=heap,
-            caching_solver=caching_solver,
-            production_exchange_mapping=production_exchange_mapping,
-            separate_biosphere_flows=separate_biosphere_flows,
-            cutoff_score=cutoff_score,
-            static_activity_indices=static_activity_indices,
-            biosphere_cutoff_score=biosphere_cutoff_score,
-        )
-
-        cls.traverse(
-            heap=heap,
-            nodes=nodes,
-            edges=edges,
-            flows=flows,
-            max_calc=max_calc,
-            max_depth=max_depth,
-            cutoff_score=cutoff_score,
-            characterized_biosphere=characterized_biosphere,
-            calculation_count=calculation_count,
-            static_activity_indices=static_activity_indices,
-            caching_solver=caching_solver,
-            production_exchange_mapping=production_exchange_mapping,
-            technosphere_matrix=technosphere_matrix,
-            lca=lca_object,
-            skip_coproducts=skip_coproducts,
-            separate_biosphere_flows=separate_biosphere_flows,
-            biosphere_cutoff_score=biosphere_cutoff_score,
-        )
-
-        flows.sort(reverse=True)
-
-        non_terminal_nodes = {edge.consumer_unique_id for edge in edges}
-        for node_id_key in nodes:
-            if node_id_key not in non_terminal_nodes:
-                nodes[node_id_key].terminal = True
-
-        return cls(nodes, edges, flows, calculation_count, parameters=dict(
-            max_calc=max_calc,
-            cutoff_score=cutoff_score,
-            characterized_biosphere=characterized_biosphere,
-            calculation_count=calculation_count,
-            static_activity_indices=static_activity_indices,
-            caching_solver=caching_solver,
-            production_exchange_mapping=production_exchange_mapping,
-            technosphere_matrix=technosphere_matrix,
-            lca=lca_object,
-            skip_coproducts=skip_coproducts,
-            separate_biosphere_flows=separate_biosphere_flows,
-            biosphere_cutoff_score=biosphere_cutoff_score,
-        ))
-
-    def traverse_from_node(self, node_id: int, max_depth: Optional[int] = None) -> None:
-        node = self.nodes[node_id]
-        if getattr(node, '_ab_traversed', False):
-            log.debug("Node(id=%s) already traversed", node_id)
-            return False
-        setattr(node, '_ab_traversed', True)
-        self.traverse(
-            heap=[(0, node)],
-            nodes=self.nodes,
-            edges=self.edges,
-            flows=self.flows,
-            max_depth=node.depth + 1 if max_depth is None else max_depth,
-            **self.parameters
-        )
-
-        self.flows.sort(reverse=True)
-
-        non_terminal_nodes = {edge.consumer_unique_id for edge in self.edges}
-        for node_id_key in self.nodes:
-            if node_id_key not in non_terminal_nodes:
-                terminal = True
-            else:
-                terminal = False
-            self.nodes[node_id_key].terminal = terminal
-
-        return True
 
 
 class Graph(BaseGraph):
@@ -463,15 +299,25 @@ class Graph(BaseGraph):
 
     def __init__(self):
         super().__init__()
-        self.state_graph: Optional["InteractiveGraphTraversal"] = None
+        self.state_graph: Optional["StatefulGraphTraversal"] = None
 
-    def new_graph(self, state_graph: "InteractiveGraphTraversal"):
+    @staticmethod
+    def get_data_from_state_graph(state_graph: "StatefulGraphTraversal"):
+        return {
+            "nodes": state_graph.nodes,
+            "edges": state_graph.edges,
+            "flows": state_graph.flows,
+            "calculation_count": state_graph.calculation_count.value,
+            "metadata": state_graph.metadata,
+        }
+
+    def new_graph(self, state_graph: "StatefulGraphTraversal"):
         self.state_graph = state_graph
-        self.json_data = Graph.get_json_data(self.state_graph.data)
+        self.json_data = Graph.get_json_data(state_graph)
         self.update()
 
     @staticmethod
-    def get_json_data(data) -> str:
+    def get_json_data(state_graph: "StatefulGraphTraversal") -> str:
         """Transform graph traversal output to JSON data.
 
         We use the [dagre](https://github.com/dagrejs/dagre) javascript library for rendering directed graphs. We need to provide the following:
@@ -506,16 +352,16 @@ class Graph(BaseGraph):
         ```
 
         """
-        lca_score = data["metadata"]["lca"].score
-        lcia_unit = data["metadata"]["unit"]
-        demand = data["metadata"]["lca"].demand
+        lca_score = state_graph.lca_object.score
+        lcia_unit = state_graph.metadata["unit"]
+        demand = state_graph.lca_object.demand
 
         def convert_edge_to_json(
-                edge: GraphEdge,
-                nodes: dict[int, GraphNode],
-                total_score: float,
-                lcia_unit: str,
-                max_edge_width: int = 40,
+            edge: GraphEdge,
+            nodes: dict[int, GraphNode],
+            total_score: float,
+            lcia_unit: str,
+            max_edge_width: int = 40,
         ) -> dict:
             cum_score = nodes[edge.producer_unique_id].cumulative_score
             unit = bd.get_node(
@@ -532,21 +378,21 @@ class Graph(BaseGraph):
             }
 
         def convert_node_to_json(
-                graph_node: GraphNode,
-                total_score: float,
-                fu: dict,
-                lcia_unit: str,
-                max_name_length: int = 20,
+            graph_node: GraphNode,
+            total_score: float,
+            fu: dict,
+            lcia_unit: str,
+            max_name_length: int = 20,
         ) -> dict:
-            expanded = getattr(graph_node, "_ab_traversed", False)
+            expanded = state_graph.traversed_node(graph_node.unique_id)
             db_node = bd.get_node(id=graph_node.activity_datapackage_id)
             data = {
                 "direct_emissions_score_normalized": graph_node.direct_emissions_score
-                                                     / (total_score or 1),
+                / (total_score or 1),
                 "direct_emissions_score": graph_node.direct_emissions_score,
                 "cumulative_score": graph_node.cumulative_score,
                 "cumulative_score_normalized": graph_node.cumulative_score
-                                               / (total_score or 1),
+                / (total_score or 1),
                 "product": db_node.get("reference product", ""),
                 "location": db_node.get("location", "(unknown)"),
                 "id": graph_node.unique_id,
@@ -582,12 +428,12 @@ class Graph(BaseGraph):
         json_data = {
             "nodes": [
                 convert_node_to_json(node, lca_score, demand, lcia_unit)
-                for idx, node in data["nodes"].items()
+                for idx, node in state_graph.nodes.items()
                 if idx != -1
             ],
             "edges": [
-                convert_edge_to_json(edge, data["nodes"], lca_score, lcia_unit)
-                for edge in data["edges"]
+                convert_edge_to_json(edge, state_graph.nodes, lca_score, lcia_unit)
+                for edge in state_graph.edges
                 if edge.producer_index != -1 and edge.consumer_index != -1
             ],
             "title": "Tree graph result",
