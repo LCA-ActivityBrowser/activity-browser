@@ -1,12 +1,21 @@
 let is_sankey_mode = window.ab_sankey_mode || false;
 let interactive = window.ab_interactive || false;
-console.log("Starting " + (is_sankey_mode ? "Sankey" : "Navigator"));
+let graph_direction = window.ab_graph_direction || "BT";
+let mode = is_sankey_mode ? "Sankey" : "Navigator";
+
+console.log(`Starting ${mode}, interactive: ${interactive}`);
 
 // SETUP GRAPH
 // https://github.com/dagrejs/graphlib/wiki/API-Reference
 
 const clamp = function (num, min, max) {
     return Math.min(Math.max(num, min), max);
+};
+
+const getGraphConfig = function () {
+    return {
+        rankdir: graph_direction,
+    };
 };
 
 /**
@@ -322,6 +331,18 @@ d3.demo.canvas = function () {
             minimap.update(zoomTo);
         }
 
+        canvas.zoomToNode = function (nodeId, options = {}) {
+            const node = graph.node(nodeId)
+            const canvasWidth = new Number(panCanvas.attr("width")) || globalWidth;
+            const canvasHeight = new Number(panCanvas.attr("height")) || (globalHeight || 600);
+            const scale = 1;
+            const {e: x, f: y} = node.elem.transform.baseVal[0].matrix
+            const xOffset = canvasWidth / 2;
+            const yOffset = canvasHeight / 2;
+            canvas.zoomTo(d3.zoomIdentity.scale(scale).translate(((x * -scale) + xOffset), ((y * -scale) + yOffset)
+            ))
+        }
+
         updateCanvasZoomExtents();
     }
 
@@ -532,6 +553,22 @@ const cartographer = function () {
         //draws graph into canvas
         canvas.addItem();
 
+        // add node selection items
+        const nodeSelectionOptions = nodeSelection.selectAll("option")
+            .data(graph.nodes());
+        nodeSelectionOptions
+            .enter()
+            .append("option")
+            .merge(nodeSelectionOptions)
+            .attr("value", function (d) {
+                return d;
+            })
+            .text(function (d) {
+                const node = graph.node(d);
+                return node.name;
+            });
+        nodeSelectionOptions.exit().remove();
+
         // Adds click listener, calling handleMouseClick func
         var nodes = panCanvas.selectAll("g .node").data(graph.nodes());
         nodes.on("click", handleMouseClick)
@@ -580,11 +617,35 @@ const cartographer = function () {
                 }
                 return graph.node(d).expanded ? "1" : "0"
             }
+            let transformTriangle
+            switch (ab_graph_direction) {
+                case "TB":
+                    transformTriangle = () => {
+                        return "translate(0, -35)"
+                    }
+                    break
+                case "BT":
+                    transformTriangle = () => {
+                        return "translate(0, 35) rotate(180)"
+                    }
+                    break
+                case "RL":
+                    transformTriangle = (rect) => {
+                        return `translate(${rect.width.baseVal.value / 2 + 5}, 5) rotate(90)`
+                    }
+                    break
+                case "LR":
+                    transformTriangle = (rect) => {
+                        return `translate(-${rect.width.baseVal.value / 2 + 5}, 5) rotate(-90)`
+                    }
+                    break
+            }
             nodes.each(
                 function (d) {
                     var triangles = d3.select(this).selectAll('.triangle').data([d]);
+                    var rect = d3.select(this).select('rect').node();
                     triangles.enter().append("path").merge(triangles).attr("class", "triangle").attr("d", d3.symbol().type(d3.symbolTriangle).size(50))
-                        .attr("transform", "translate(0, -35)").attr("data-expanded", dataExpanded)
+                        .attr("transform", transformTriangle(rect)).attr("data-expanded", dataExpanded)
                 }
             )
         }
@@ -595,18 +656,30 @@ const cartographer = function () {
             const canvasHeight = new Number(panCanvas.attr("height")) || (globalHeight || 600);
             const heightRatio = canvasHeight / graphHeight;
             const widthRatio = canvasWidth / (graphWidth * 1.05);
-            const scale = clamp(Math.min(heightRatio, widthRatio, 1), .25, 5)
+            const scale = clamp(Math.min(heightRatio, widthRatio, 1), .25, .5)
             const {e: x, f: y} = d3.select("g.node").node().transform.baseVal[0].matrix
             const count = d3.selectAll("g.node").size();
-            let ty
+            let ty, xOffset, yOffset;
+            switch (graph.graph().rankdir) {
+                case "TB":
+                case "BT":
+                    xOffset = canvasWidth / 2;
+                    yOffset = y;
+                    break
+                case "LR":
+                case "RL":
+                default:
+                    xOffset = x + 25;
+                    yOffset = (canvasHeight / 2);
+            }
             switch (count) {
                 case 1:
                     ty = ((y * -scale) + (canvasHeight / 2));
                     break
                 default:
-                    ty = ((y * -scale) + (canvasHeight * .90))
+                    ty = ((y * -scale) + yOffset)
             }
-            canvas.zoomTo(d3.zoomIdentity.scale(scale).translate(((x * -scale) + (canvasWidth / 2)), ty))
+            canvas.zoomTo(d3.zoomIdentity.scale(scale).translate(((x * -scale) + xOffset), ty))
         }
     }
 
@@ -616,7 +689,7 @@ const cartographer = function () {
         data = JSON.parse(json_data);
         heading.innerHTML = data.title;
         // Reset graph to empty
-        graph = new dagre.graphlib.Graph({multigraph: true}).setGraph({});
+        graph = new dagre.graphlib.Graph({multigraph: true}).setGraph(getGraphConfig());
         console.log(JSON.stringify(graph))
 
         // nodes --> graph
@@ -787,8 +860,7 @@ d3.select("#downloadSVGtButtonqPWKOg").on("click", function () {
 
 // Construct 'render' object and initialize cartographer.
 var render = dagreD3.render();
-var graph = new dagre.graphlib.Graph({multigraph: true}).setGraph({});
-
+var graph = new dagre.graphlib.Graph({multigraph: true}).setGraph(getGraphConfig());
 cartographer();
 
 /* END OF ADAPTED DEMO SCRIPT*/
@@ -806,6 +878,13 @@ var div = d3.select("#canvasqPWKOg").append("div")
 var color = d3.scaleLinear()
     .domain([-99999999, -1, 0, 1, 99999999])
     .range(["green", "green", "white", "red", "red"]);
+
+var nodeSelection = d3.select("select#nodeSelectPWK0g")
+
+d3.select("#nodeSelectPWK0gExecute").on("click", function () {
+    var selectedId = d3.select("#nodeSelectPWK0g").property("value");
+    canvas.zoomToNode(selectedId, {scale: 1.5});
+})
 
 // break strings into multiple lines after certain length if necessary
 function wrapText(str, length) {
