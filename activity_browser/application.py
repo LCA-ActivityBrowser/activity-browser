@@ -47,8 +47,12 @@ if QSysInfo.productType() == "osx":
         os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = "--disable-gpu"
         log.info("Info: GPU hardware acceleration disabled")
 
+# on macos buttons silently crashes the renderer without any logs
+# confirmed that buttons works on the latest version of qt using pyside6
 if QSysInfo.productType() in ["arch", "nixos", "osx"]:
-    os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = "{} --no-sandbox".format(os.getenv("QTWEBENGINE_CHROMIUM_FLAGS"))
+    os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = "{} --no-sandbox".format(
+        os.getenv("QTWEBENGINE_CHROMIUM_FLAGS")
+    )
     log.info("Info: QtWebEngine sandbox disabled")
 
 QCoreApplication.setAttribute(Qt.AA_ShareOpenGLContexts, True)
