@@ -15,7 +15,12 @@ from ...ui.tables import (
     ProductExchangeTable,
     TechnosphereExchangeTable,
 )
-from ...ui.widgets import ActivityDataGrid, DetailsGroupBox, SignalledPlainTextEdit
+from ...ui.widgets import (
+    ActivityDataGrid,
+    DetailsGroupBox,
+    SignalledPlainTextEdit,
+    TagEditor,
+)
 from ..panels.panel import ABTab
 
 
@@ -134,6 +139,11 @@ class ActivityTab(QtWidgets.QWidget):
         self.checkbox_comment.setChecked(False)
         self.checkbox_comment.toggled.connect(self.show_comments)
 
+        # Tags button
+        self.tags_button = QtWidgets.QPushButton("Tags")
+        self.tags_button.clicked.connect(self.open_tag_editor)
+        self.tags_button.setToolTip("Show the tags dialog")
+
         # Toolbar Layout
         toolbar = QtWidgets.QToolBar()
         self.graph_action = toolbar.addAction(
@@ -143,6 +153,7 @@ class ActivityTab(QtWidgets.QWidget):
         toolbar.addWidget(self.checkbox_activity_description)
         toolbar.addWidget(self.checkbox_uncertainty)
         toolbar.addWidget(self.checkbox_comment)
+        toolbar.addWidget(self.tags_button)
 
         # Activity information
         # this contains: activity name, location, database
@@ -349,3 +360,9 @@ class ActivityTab(QtWidgets.QWidget):
             self.group_splitter.saveState()
         ).hex()
         ab_settings.write_settings()
+
+    def open_tag_editor(self):
+        """Opens the tag editor for the current"""
+        # Do not save the changes if nothing changed
+        if TagEditor.edit(self.activity, self.read_only, self):
+            self.activity.save()
