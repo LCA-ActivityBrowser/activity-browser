@@ -52,11 +52,10 @@ class PandasModel(QAbstractTableModel):
         """
         if not index.isValid():
             return None
-
         # instantiate value only in case of DisplayRole or ToolTipRole
         value = None
         tt_date_flag = False  # flag to indicate if value is datetime object and role is ToolTipRole
-        if role == Qt.DisplayRole or role == Qt.ToolTipRole or role == "sorting":
+        if role in [Qt.DisplayRole, Qt.ToolTipRole, "sorting", Qt.EditRole]:
             value = self._dataframe.iat[index.row(), index.column()]
             if isinstance(value, np.float64):
                 value = float(value)
