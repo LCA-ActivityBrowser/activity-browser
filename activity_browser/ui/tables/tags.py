@@ -1,6 +1,7 @@
 from PySide2 import QtWidgets
 from PySide2.QtWidgets import QAction
 
+from activity_browser.bwutils import AB_metadata
 from activity_browser.ui.icons import qicons
 from activity_browser.ui.tables.delegates import (
     StringDelegate,
@@ -9,17 +10,28 @@ from activity_browser.ui.tables.delegates import (
 )
 from activity_browser.ui.tables.models.tags import TagsModel
 from activity_browser.ui.tables.views import ABDataFrameView
+from activity_browser.ui.widgets.line_edit import AutoCompleteLineEdit
+
+
+class TagDelegate(StringDelegate):
+    def __init__(self, database: str, parent=None):
+        super().__init__(parent=parent)
+        self.database = database
+
+    def createEditor(self, parent, option, index):
+        editor = AutoCompleteLineEdit(AB_metadata.get_tag_names(self.database), parent)
+        return editor
 
 
 class TagTable(ABDataFrameView):
 
-    def __init__(self, tags: dict, read_only: bool = False, parent=None):
+    def __init__(self, tags: dict, database: str, read_only: bool = False, parent=None):
         super().__init__(parent)
         self.read_only = read_only
         self.verticalHeader().setVisible(False)
         self.setSelectionMode(QtWidgets.QTableView.SingleSelection)
         if not read_only:
-            self.setItemDelegateForColumn(0, StringDelegate(self))
+            self.setItemDelegateForColumn(0, TagDelegate(database, self))
             self.setItemDelegateForColumn(1, JSONDelegate(2, self))
             self.setItemDelegateForColumn(
                 2,

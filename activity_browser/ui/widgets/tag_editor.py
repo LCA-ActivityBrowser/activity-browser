@@ -11,6 +11,7 @@ class TagEditor(QtWidgets.QDialog):
 
     def __init__(
         self,
+        target: MutableMapping[str, Any] = None,
         tags: Optional[dict[str, Any]] = None,
         read_only: bool = False,
         parent: Optional[QtWidgets.QWidget] = None,
@@ -18,7 +19,12 @@ class TagEditor(QtWidgets.QDialog):
         super().__init__(parent)
         self.setWindowTitle("Tag Editor")
         self.setMinimumWidth(400)
-        self._tag_table = TagTable(tags or {}, read_only=read_only, parent=self)
+        self._tag_table = TagTable(
+            tags or {},
+            read_only=read_only,
+            database=target.get("database"),
+            parent=self,
+        )
         self._save_button = QtWidgets.QPushButton("Save changes")
         self._save_button.setEnabled(False)
 
@@ -67,7 +73,7 @@ class TagEditor(QtWidgets.QDialog):
         Return True if the tags were changed.
         """
         tags = target.get("tags")
-        editor = TagEditor(tags, read_only, parent)
+        editor = TagEditor(target, tags, read_only, parent)
         # Do not save the changes if the user pressed cancel
         if editor.exec_() == editor.DialogCode.Accepted:
             target["tags"] = editor.tags()
