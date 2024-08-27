@@ -1,15 +1,18 @@
-from typing import Iterable
+from typing import Iterable, List, Union
+from logging import getLogger
 
 import numpy as np
 import pandas as pd
 from PySide2.QtCore import QModelIndex, Qt, Slot
 
-from activity_browser import log, signals
+from activity_browser import signals
 from activity_browser.bwutils import commontasks as bc
 from activity_browser.mod import bw2data as bd
 from activity_browser.mod.bw2data.backends import ActivityDataset
 
 from .base import EditablePandasModel, PandasModel
+
+log = getLogger(__name__)
 
 
 class CSGenericModel(EditablePandasModel):
@@ -191,6 +194,13 @@ class CSMethodsModel(CSGenericModel):
             if self._dataframe is None
             else self._dataframe.loc[:, "method"].to_list()
         )
+
+    def get_method(self, proxy: Union[QModelIndex, int]) -> tuple:
+        """
+        Return the method coupled to a model index
+        """
+        idx = self.proxy_to_source(proxy)
+        return self._dataframe["method"][idx.row()]
 
     def load(self, cs_name: str = None) -> None:
         """

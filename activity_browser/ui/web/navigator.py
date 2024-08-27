@@ -3,16 +3,20 @@ import json
 import os
 from copy import deepcopy
 from typing import Optional
+from logging import getLogger
 
 import networkx as nx
 from PySide2 import QtWidgets
 from PySide2.QtCore import Slot
 
-from activity_browser import log, signals
+from activity_browser import signals
 from activity_browser.mod.bw2data import Database, get_activity
 
 from ...bwutils.commontasks import identify_activity_type
 from .base import BaseGraph, BaseNavigatorWidget
+
+log = getLogger(__name__)
+
 
 # TODO:
 # save graph as image
@@ -168,12 +172,12 @@ class GraphNavigatorWidget(BaseNavigatorWidget):
     def toggle_navigation_mode(self):
         mode = next(self.navigation_label)
         self.button_navigation_mode.setText(mode)
-        log.info("Switched to:", mode)
+        log.info(f"Switched to: {mode}")
         self.checkbox_remove_orphaned_nodes.setVisible(self.is_expansion_mode)
         self.checkbox_direct_only.setVisible(self.is_expansion_mode)
 
     def new_graph(self, key: tuple) -> None:
-        log.info("New Graph for key: ", key)
+        log.info(f"New Graph for key: {key}")
         self.graph.new_graph(key)
         self.send_json()
 
@@ -202,10 +206,10 @@ class GraphNavigatorWidget(BaseNavigatorWidget):
             self.new_graph(key)
         else:
             if keyboard["alt"]:  # delete node
-                log.info("Deleting node: ", key)
+                log.info(f"Deleting node: {key}")
                 self.graph.reduce_graph(key)
             else:  # expansion mode
-                log.info("Expanding graph: ", key)
+                log.info(f"Expanding graph: {key}")
                 if keyboard["shift"]:  # downstream expansion
                     log.info("Adding downstream nodes.")
                     self.graph.expand_graph(key, down=True)
@@ -398,9 +402,8 @@ class Graph(BaseGraph):
         count = 1
         for count, key in enumerate(orphaned_node_ids, 1):
             act = get_activity(key)
-            log.info(act["name"], act["location"])
             self.nodes.remove(act)
-        log.info("\nRemoved ORPHANED nodes:", count)
+        log.info(f"Removed ORPHANED nodes: {count}")
 
         # update edges again to remove those that link to nodes that have been deleted
         self.remove_outside_exchanges()

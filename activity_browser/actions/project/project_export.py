@@ -1,13 +1,16 @@
 import os
 import json
 import tarfile
+from logging import getLogger
 
 from PySide2 import QtWidgets, QtCore
 
-from activity_browser import application, log
+from activity_browser import application
 from activity_browser.mod import bw2data as bd
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.ui.threading import ABThread
+
+log = getLogger(__name__)
 
 
 class ProjectExport(ABAction):

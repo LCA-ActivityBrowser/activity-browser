@@ -5,6 +5,7 @@ from copy import deepcopy
 from typing import Optional
 import os
 from typing import Tuple
+from logging import getLogger
 
 import numpy as np
 import pandas as pd
@@ -12,12 +13,14 @@ from PySide2.QtCore import QModelIndex, Qt, Slot
 from PySide2.QtWidgets import QApplication
 
 import activity_browser
-from activity_browser import log, project_settings
+from activity_browser import project_settings
 from activity_browser.bwutils import AB_metadata
 from activity_browser.bwutils import commontasks as bc
 from activity_browser.mod.bw2data import databases, projects, utils
 
 from .base import PandasModel, DragPandasModel, TreeItem, BaseTreeModel
+
+log = getLogger(__name__)
 
 
 class DatabasesModel(PandasModel):
@@ -111,7 +114,7 @@ class ActivitiesBiosphereListModel(DragPandasModel):
 
         if df is not None:
             # skip the rest of the sync here if a dataframe is directly supplied
-            log.debug("Pandas Dataframe passed to sync.", df.shape)
+            log.debug("Pandas Dataframe passed to sync.")
             self._dataframe = df
             self.updated.emit()
             return

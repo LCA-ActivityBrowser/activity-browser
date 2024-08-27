@@ -1,6 +1,9 @@
-from activity_browser import log
+from logging import getLogger
+
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.mod import bw2data as bd
+
+log = getLogger(__name__)
 
 
 class ProjectSwitch(ABAction):

@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 import os
+from logging import getLogger
 
 from PySide2.QtCore import QCoreApplication, QObject, QSysInfo, Qt
 from PySide2.QtWidgets import QApplication
 
-from activity_browser import log
+log = getLogger(__name__)
 
 
 class ABApplication(QApplication):

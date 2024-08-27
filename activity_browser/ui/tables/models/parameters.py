@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import itertools
 from typing import Iterable
+from logging import getLogger
 
 import pandas as pd
 from asteval import Interpreter
@@ -8,7 +9,7 @@ from peewee import DoesNotExist
 from PySide2 import QtWidgets
 from PySide2.QtCore import QModelIndex, Slot
 
-from activity_browser import actions, application, log
+from activity_browser import actions, application
 from activity_browser.mod import bw2data as bd
 from activity_browser.mod.bw2data.parameters import (ActivityParameter,
                                                      DatabaseParameter, Group,
@@ -16,6 +17,8 @@ from activity_browser.mod.bw2data.parameters import (ActivityParameter,
 from activity_browser.ui.wizards import UncertaintyWizard
 
 from .base import BaseTreeModel, EditablePandasModel, TreeItem
+
+log = getLogger(__name__)
 
 
 class BaseParameterModel(EditablePandasModel):
@@ -366,7 +369,7 @@ class ParameterItem(TreeItem):
                 parent.appendChild(item)
             except DoesNotExist as e:
                 # The exchange is coming from a deleted database, remove it
-                log.warning(f"Broken exchange: {e}, removing.")
+                log.warning(f"Broken exchange: {exc}, removing.")
                 actions.ExchangeDelete.run([exc])
 
 

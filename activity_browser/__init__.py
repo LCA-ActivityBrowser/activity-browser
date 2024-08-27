@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 import sys
+from logging import getLogger
 
 
-from .logger import exception_hook, log, log_file_location
+from .logger import log_file_location, setup_ab_logging
 from .mod import bw2data
 from .application import application
 from .signals import signals
@@ -11,6 +12,8 @@ from .info import __version__ as version
 from .layouts.main import MainWindow
 from .plugin import Plugin
 from .controllers import *
+
+log = getLogger(__name__)
 
 
 def load_settings() -> None:
@@ -22,6 +25,7 @@ def load_settings() -> None:
 
 
 def run_activity_browser():
+    setup_ab_logging()
     log.info(f"Activity Browser version: {version}")
     if log_file_location:
         log.info(f"The log file can be found at {log_file_location}")

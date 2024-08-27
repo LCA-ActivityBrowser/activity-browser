@@ -6,6 +6,7 @@ Each of these classes is either a parent for - or a sub-LCA results tab.
 
 from collections import namedtuple
 from typing import List, Optional, Union
+from logging import getLogger
 
 import pandas as pd
 from PySide2 import QtCore, QtGui
@@ -17,7 +18,7 @@ from PySide2.QtWidgets import (QApplication, QButtonGroup, QCheckBox,
                                QWidget)
 from stats_arrays.errors import InvalidParamsError
 
-from activity_browser import log, signals
+from activity_browser import signals
 from activity_browser.mod.bw2data import calculation_setups
 
 from ...bwutils import (MLCA, Contributions, GlobalSensitivityAnalysis,
@@ -31,6 +32,8 @@ from ...ui.tables import ContributionTable, InventoryTable, LCAResultsTable
 from ...ui.web import SankeyNavigatorWidget
 from ...ui.widgets import CutoffMenu, SwitchComboBox
 from .base import BaseRightTab
+
+log = getLogger(__name__)
 
 
 def get_header_layout(header_text: str) -> QVBoxLayout:
@@ -1323,12 +1326,12 @@ class MonteCarloTab(NewAnalysisTab):
         iterations = int(self.iterations.text())
         seed = None
         if self.seed.text():
-            log.info("SEED: ", self.seed.text())
+            log.info(f"SEED: {self.seed.text()}")
             try:
                 seed = int(self.seed.text())
             except ValueError as e:
                 log.error(
-                    "Seed value must be an integer number or left empty.", error=e
+                    "Seed value must be an integer number or left empty.", exc_info=e
                 )
                 QMessageBox.warning(
                     self,
@@ -1353,7 +1356,7 @@ class MonteCarloTab(NewAnalysisTab):
             InvalidParamsError
         ) as e:  # This can occur if uncertainty data is missing or otherwise broken
             # print(e)
-            log.error(error=e)
+            log.error(e)
             QMessageBox.warning(
                 self, "Could not perform Monte Carlo simulation", str(e)
             )
@@ -1627,7 +1630,7 @@ class GSATab(NewAnalysisTab):
             )
             # self.update_mc()
         except Exception as e:  # Catch any error...
-            log.error(error=e)
+            log.error(e)
             message = str(e)
             message_addition = ""
             if message == "singular matrix":
@@ -1706,7 +1709,7 @@ class MonteCarloWorkerThread(QtCore.QThread):
         self.iterations = iterations
 
     def run(self):
-        log.info("Starting new Worker Thread. Iterations:", self.iterations)
+        log.info(f"Starting new Worker Thread. Iterations: {self.iterations}")
         self.mc.calculate(iterations=self.iterations)
         # res = bw.GraphTraversal().calculate(self.demand, self.method, self.cutoff, self.max_calc)
         log.info("in thread {}".format(QtCore.QThread.currentThread()))

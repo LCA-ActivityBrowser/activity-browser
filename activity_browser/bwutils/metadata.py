@@ -1,14 +1,17 @@
 # -*- coding: utf-8 -*-
+from logging import getLogger
+
 import numpy as np
 import pandas as pd
 from bw2data.errors import UnknownObject
 
 import activity_browser.bwutils.commontasks as bc
-from activity_browser import log
 from activity_browser.mod import bw2data as bd
 from activity_browser.mod.bw2data.backends import ActivityDataset
 
 # todo: extend store over several projects
+
+log = getLogger(__name__)
 
 
 def list_to_tuple(x) -> tuple:
@@ -74,15 +77,13 @@ class MetaDataStore(object):
         dfs = list()
         dfs.append(self.dataframe)
         log.debug(
-            "Current shape and databases in the MetaDataStore:",
-            self.dataframe.shape,
-            self.databases,
+            f"Current shape and databases in the MetaDataStore: {self.dataframe.shape} {self.databases}"
         )
         for db_name in new:
             if db_name not in bd.databases:
                 raise ValueError("This database does not exist:", db_name)
 
-            log.debug("Adding:", db_name)
+            log.debug(f"Adding: {db_name}")
             self.databases.add(db_name)
 
             # make a temporary DataFrame and index it by ('database', 'code') (like all brightway activities)
@@ -127,7 +128,7 @@ class MetaDataStore(object):
             )  # if this does not work, it has been deleted (see except:).
         except (UnknownObject, ActivityDataset.DoesNotExist):
             # Situation 1: activity has been deleted (metadata needs to be deleted)
-            log.debug("Deleting activity from metadata:", key)
+            log.debug(f"Deleting activity from metadata: {key}")
             self.dataframe.drop(key, inplace=True, errors="ignore")
             # print('Dimensions of the Metadata:', self.dataframe.shape)
             return
@@ -140,7 +141,7 @@ class MetaDataStore(object):
             if (
                 key in self.dataframe.index
             ):  # Situation 2: activity has been modified (metadata needs to be updated)
-                log.debug("Updating activity in metadata: ", act, key)
+                log.debug(f"Updating activity in metadata: {key}")
                 for col in self.dataframe.columns:
                     if col in self.CLASSIFICATION_SYSTEMS:
                         # update classification data
@@ -153,7 +154,7 @@ class MetaDataStore(object):
                 self.dataframe.at[key, 'key'] = act.key
 
             else:  # Situation 3: Activity has been added to database (metadata needs to be generated)
-                log.debug('Adding activity to metadata:', act, key)
+                log.debug(f'Adding activity to metadata: {key}')
                 df_new = pd.DataFrame([act.as_dict()], index=pd.MultiIndex.from_tuples([act.key]))
                 df_new['key'] = [act.key]
                 if act.get('classifications', False):  # add classification data if present
@@ -260,26 +261,26 @@ class MetaDataStore(object):
 
     def _unpacker(self, classifications: list, system: str) -> list:
         """Iterate over all 'c' lists in 'classifications'
-        and add those matching 'system' to list 'x', when no matches, add empty string.
+        and add those matching 'system' to list 'system_classifications', when no matches, add empty string.
         If 'c' is not a list, add empty string.
 
-        Always returns a list 'x' where len(x) == len(classifications).
+        Always returns a list 'system_classifications' where len(system_classifications) == len(classifications).
 
         Testing showed that converting to list and doing the checks on a list is ~5x faster than keeping
         data in DF and using a df.apply() function, we do this now (difference was ~0.4s vs ~2s).
         """
-        x = []
+        system_classifications = []
         for c in classifications:
-            cls = ""
-            if type(c) != list:
-                x.append(cls)
+            result = ""
+            if not isinstance(c, (list, tuple, set)):
+                system_classifications.append(result)
                 continue
             for s in c:
                 if s[0] == system:
-                    cls = s[1]
+                    result = s[1]
                     break
-            x.append(cls)
-        return x
+            system_classifications.append(result)  # result is either "" or the classification
+        return system_classifications
 
 
 AB_metadata = MetaDataStore()
