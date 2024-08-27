@@ -25,7 +25,9 @@ class PluginController(QObject):
     def load_plugins(self):
         names = self.discover_plugins()
         for name in names:
-            self.plugins[name] = self.load_plugin(name)
+            plugin = self.load_plugin(name)
+            if plugin:
+               self.plugins[name] = plugin
 
     def discover_plugins(self):
         plugins = []
@@ -41,17 +43,19 @@ class PluginController(QObject):
             importlib.reload(plugin_lib)
             return plugin_lib.Plugin()
         except Exception as e:
-            log.error(f"Import of plugin '{name}' failed: {e}")
+            log.error(f"Import of plugin module '{name}' failed. "
+                      "If this keeps happening contact the plugin developers and let them know of this error:"
+                      f"\n{e}")
+            return None
 
     def add_plugin(self, name, select: bool = True):
         """add or reload tabs of the given plugin"""
         if select:
             plugin = self.plugins[name]
-            # Apply plugin load() function
             try:
                 plugin.load()
             except Exception as e:
-                log.warning(f"Failed to load plugin '{name}' due to an error in the plugin, ignoring plugin. "
+                log.warning(f"Loading of plugin '{name}' failed. "
                             "If this keeps happening contact the plugin developers and let them know of this error:"
                             f"\n{e}")
                 return
@@ -61,9 +65,10 @@ class PluginController(QObject):
                 application.main_window.add_tab_to_panel(
                     tab, plugin.infos["name"], tab.panel
                 )
-            log.info("Loaded tab {}".format(name))
+            log.info(f"Loaded tab '{name}'")
             return
-        log.info("Removing plugin {}".format(name))
+
+        log.info(f"Removing plugin '{name}'")
         # Apply plugin remove() function
         self.plugins[name].remove()
         # Close plugin tabs
@@ -82,10 +87,11 @@ class PluginController(QObject):
         for name in plugins_list:
             self.close_plugin_tabs(self.plugins[name])
         for name in project_settings.get_plugins_list():
-            try:
+            if name in self.plugins:
                 self.add_plugin(name)
-            except:
-                log.warning(f"Tried to load plugin '{name}' but it is not installed, ignoring plugin")
+            else:
+                log.warning(f"Reloading of plugin '{name}' was skipped due to a previous error. "
+                            "To reload this plugin, restart Activity Browser")
 
     def close(self):
         """close all plugins"""
