@@ -41,7 +41,7 @@ jobs:
       - name: Update wiki
         run: |
           cd ..
-          git clone https://github.com/LCA-ActivityBrowser/activity-browser.wiki.git
+          git clone https://github.com/$GITHUB_REPOSITORY.wiki.git
           yes | cp -rf activity-browser/activity_browser/docs/wiki/* activity-browser.wiki/
           cd activity-browser.wiki
           grep -lr "link:[a-zA-Z0-9_.-]*.asciidoc.*" .| xargs -r sed -i "s/.asciidoc//g"
@@ -52,11 +52,11 @@ jobs:
             exit 0
           else 
             echo "Wiki documentation was changed, documentation, updating."
-            git config --global user.name "$(git log -n 1 --pretty=format:%an)"
+            git config --global user.name "$GITHUB_ACTOR"
             git config --global user.email "$(git log -n 1 --pretty=format:%ae)"            
             git status
             git add .
-            git commit -m "Automated documentation update for new release"
-            git remote add origin-wiki "https://$GITHUB_ACTOR:${{ secrets.GITHUB_TOKEN }}@https://github.com/LCA-ActivityBrowser/activity-browser.wiki"
+            git commit -m "Automated documentation update for $GITHUB_REF_NAME"
+            git remote add origin-wiki "https://$GITHUB_ACTOR:${{ secrets.GITHUB_TOKEN }}@github.com/$GITHUB_REPOSITORY.wiki"
             git push origin-wiki master
           fi
