@@ -38,7 +38,6 @@ jobs:
         run: |
           anaconda -t ${{ secrets.CONDA_UPLOAD_TOKEN }} upload \
           /usr/share/miniconda/envs/build/conda-bld/noarch/*.tar.bz2
-            - uses: actions/checkout@v3
       - name: Update wiki
         run: |
           cd ..
