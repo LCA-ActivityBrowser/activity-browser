@@ -25,6 +25,7 @@ class BaseExchangeTable(ABDataFrameView):
         super().__init__(parent)
         self.setDragEnabled(True)
         self.setAcceptDrops(False)
+        self.setSelectionMode(self.SingleSelection)
 
         self.delete_exchange_action = actions.ExchangeDelete.get_QAction(
             self.selected_exchanges
@@ -44,6 +45,17 @@ class BaseExchangeTable(ABDataFrameView):
 
         self.key = getattr(parent, "key", None)
         self.model = self.MODEL(self.key, self)
+
+        self.edge_properties_action = actions.EdgeProperties.get_QAction(
+            # Use a lambda for the read-only flag, so that the value
+            # is not captured at definition, but at execution
+            self.selected_exchanges, lambda: self.model.is_read_only(), self
+        )
+        self.node_properties_action = actions.NodeProperties.get_QAction(
+            # Use a lambda for the read-only flag, so that the value
+            # is not captured at definition, but at execution
+            self.selected_exchanges, lambda: self.model.is_read_only(), self
+        )
 
         self.downstream = False
         self.setEditTriggers(
@@ -91,7 +103,28 @@ class BaseExchangeTable(ABDataFrameView):
         return self.model.get_interpreter()
 
     def selected_exchanges(self) -> List[any]:
-        return [self.model.get_exchange(index) for index in self.selectedIndexes()]
+        # The context menu still makes sense in read-only mode, but
+        # item selection is disabled, so we need to use the current item
+        if self.selectedIndexes():
+            return [self.model.get_exchange(index) for index in self.selectedIndexes()]
+        else:
+            return [self.model.get_exchange(self.currentIndex())]
+    
+    def set_read_only_flag(self, read_only: bool):
+        self._read_only = read_only
+
+        self.model.set_read_only(read_only)
+        self.delete_exchange_action.setEnabled(self._read_only)
+        self.remove_formula_action.setEnabled(self._read_only)
+        self.modify_uncertainty_action.setEnabled(self._read_only)
+        self.remove_uncertainty_action.setEnabled(self._read_only)
+        if self._read_only:
+            self.setAcceptDrops(False)
+        else:
+            if (
+                not self.downstream
+            ):  # downstream consumers table never accepts drops
+                self.setAcceptDrops(True)
 
 
 class ProductExchangeTable(BaseExchangeTable):
@@ -102,7 +135,9 @@ class ProductExchangeTable(BaseExchangeTable):
         self.setItemDelegateForColumn(0, FloatDelegate(self))
         self.setItemDelegateForColumn(1, StringDelegate(self))
         self.setItemDelegateForColumn(2, StringDelegate(self))
-        self.setItemDelegateForColumn(3, FormulaDelegate(self))
+        # builtin checkbox delegate for column 3
+        self.setItemDelegateForColumn(4, StringDelegate(self))
+        self.setItemDelegateForColumn(5, FormulaDelegate(self))
 
         self.setDragDropMode(QtWidgets.QTableView.DragDrop)
         self.table_name = "product"
@@ -118,7 +153,8 @@ class ProductExchangeTable(BaseExchangeTable):
         submenu_copy.setIcon(qicons.copy_to_clipboard)
         submenu_copy.addAction(self.copy_exchanges_for_SDF_action)
         menu.addMenu(submenu_copy)
-
+        menu.addAction(self.edge_properties_action)
+        menu.addAction(self.node_properties_action)
         menu.exec_(event.globalPos())
 
     def dragEnterEvent(self, event):

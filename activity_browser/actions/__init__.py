@@ -7,6 +7,7 @@ from .activity.activity_modify import ActivityModify
 from .activity.activity_new import ActivityNew
 from .activity.activity_open import ActivityOpen
 from .activity.activity_relink import ActivityRelink
+from .activity.node_properties import NodeProperties
 from .biosphere_update import BiosphereUpdate
 from .calculation_setup.cs_delete import CSDelete
 from .calculation_setup.cs_duplicate import CSDuplicate
@@ -26,6 +27,7 @@ from .exchange.exchange_modify import ExchangeModify
 from .exchange.exchange_new import ExchangeNew
 from .exchange.exchange_uncertainty_modify import ExchangeUncertaintyModify
 from .exchange.exchange_uncertainty_remove import ExchangeUncertaintyRemove
+from .exchange.edge_properties import EdgeProperties
 from .method.cf_amount_modify import CFAmountModify
 from .method.cf_new import CFNew
 from .method.cf_remove import CFRemove
