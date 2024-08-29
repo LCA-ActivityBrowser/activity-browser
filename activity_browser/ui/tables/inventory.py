@@ -2,8 +2,10 @@ from typing import List
 
 from PySide2 import QtCore, QtWidgets
 from PySide2.QtCore import Slot
+from multifunctional import allocation_strategies
 
 from activity_browser import actions
+from activity_browser.ui.tables.delegates.combobox import ComboboxDelegate
 
 from ...settings import project_settings
 from ...signals import signals
@@ -27,6 +29,13 @@ class DatabasesTable(ABDataFrameView):
         self.verticalHeader().setVisible(False)
         self.setSelectionMode(QtWidgets.QTableView.SingleSelection)
         self.setItemDelegateForColumn(2, CheckboxDelegate(self))
+        allocation_options = list(allocation_strategies.keys())
+        allocation_options.insert(0, DatabasesModel.UNSPECIFIED_ALLOCATION)
+        self.setItemDelegateForColumn(4, ComboboxDelegate(allocation_options, self))
+        self.setEditTriggers(
+            QtWidgets.QAbstractItemView.EditTrigger.DoubleClicked |
+            QtWidgets.QAbstractItemView.EditTrigger.SelectedClicked
+        )
 
         self.relink_action = actions.DatabaseRelink.get_QAction(self.current_database)
         self.new_activity_action = actions.ActivityNew.get_QAction(

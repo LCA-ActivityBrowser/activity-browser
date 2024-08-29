@@ -12,16 +12,18 @@ from activity_browser.bwutils import AB_metadata
 from activity_browser.bwutils import commontasks as bc
 from activity_browser.mod.bw2data import databases, projects, utils
 
-from .base import DragPandasModel, PandasModel
+from .base import DragPandasModel, EditablePandasModel, PandasModel
 
 
-class DatabasesModel(PandasModel):
+class DatabasesModel(EditablePandasModel):
     HEADERS = ["Name", "Records", "Read-only", "Depends", "Def. Alloc.", "Modified"]
+    UNSPECIFIED_ALLOCATION = "(unspecified)"
 
     def __init__(self, parent=None):
         super().__init__(parent=parent)
         projects.current_changed.connect(self.sync)
         databases.metadata_changed.connect(self.sync)
+        self.dataChanged.connect(self._handle_data_changed)
 
     def get_db_name(self, proxy: QModelIndex) -> str:
         idx = self.proxy_to_source(proxy)
@@ -43,13 +45,37 @@ class DatabasesModel(PandasModel):
                     "Modified": dt,
                     "Records": bc.count_database_records(name),
                     "Read-only": database_read_only,
-                    "Def. Alloc.": databases[name].get("default_allocation", "(unspecified)")
+                    "Def. Alloc.": databases[name].get("default_allocation", 
+                                                       self.UNSPECIFIED_ALLOCATION)
                 }
             )
 
         self._dataframe = pd.DataFrame(data, columns=self.HEADERS)
         self.updated.emit()
 
+    def flags(self, index: QModelIndex):
+        """Only allow editing of rows where the read-only flag is not set."""
+        read_only = self._dataframe.iat[index.row(), 2]
+        # Skip the EditablePandasModel.flags() because it always returns the editable
+        # flag
+        result = PandasModel.flags(self, index)
+        if not read_only:
+            result |= Qt.ItemIsEditable
+        return result
+    
+    def _handle_data_changed(self, top_left: QModelIndex, bottom_right: QModelIndex, roles: list[Qt.ItemDataRole]):
+        if top_left.isValid() and bottom_right.isValid():
+            # Default allocation column
+            if top_left.column() <= 4 <= bottom_right.column():
+                for row in range(top_left.row(), bottom_right.row() + 1):
+                    current_alloc_idx = self.createIndex(row, 4)
+                    current_db = self.data(self.createIndex(row, 0))
+                    if self.data(current_alloc_idx) == self.UNSPECIFIED_ALLOCATION:
+                        if databases[current_db].get("default_allocation") is not None:
+                            del databases[current_db]["default_allocation"]
+                    else:
+                        databases[current_db]["default_allocation"] = self.data(current_alloc_idx)
+                databases.flush()
 
 class ActivitiesBiosphereModel(DragPandasModel):
     def __init__(self, parent=None):

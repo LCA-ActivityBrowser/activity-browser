@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from .checkbox import CheckboxDelegate
+from .combobox import ComboboxDelegate
 from .database import DatabaseDelegate
 from .delete_button import DeleteButtonDelegate
 from .float import FloatDelegate
@@ -15,6 +16,7 @@ from .viewonly import (
 
 __all__ = [
     "CheckboxDelegate",
+    "ComboboxDelegate",
     "DatabaseDelegate",
     "DeleteButtonDelegate",
     "FloatDelegate",
