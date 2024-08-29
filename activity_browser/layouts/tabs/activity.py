@@ -285,7 +285,7 @@ class ActivityTab(QtWidgets.QWidget):
     def exchange_tables_read_only_changed(self) -> None:
         """The user should not be able to edit the exchange tables when read_only
 
-        EditTriggers turned off to prevent DoubleClick-selection editing.
+        Read-only flag set to True in models to prevent DoubleClick-selection editing.
         DragDropMode set to NoDragDrop prevents exchanges dropped on the table to add.
         """
         for table in [
