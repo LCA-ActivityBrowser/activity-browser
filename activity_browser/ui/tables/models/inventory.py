@@ -30,6 +30,7 @@ class DatabasesModel(EditablePandasModel):
         return self._dataframe.iat[idx.row(), 0]
 
     def sync(self):
+        self.beginResetModel()
         data = []
         for name in utils.natural_sort(databases):
             # get the modified time, in case it doesn't exist, just write 'now' in the correct format
@@ -51,7 +52,7 @@ class DatabasesModel(EditablePandasModel):
             )
 
         self._dataframe = pd.DataFrame(data, columns=self.HEADERS)
-        self.updated.emit()
+        self.endResetModel()
 
     def flags(self, index: QModelIndex):
         """Only allow editing of rows where the read-only flag is not set."""

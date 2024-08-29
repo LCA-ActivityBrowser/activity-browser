@@ -49,13 +49,13 @@ class DatabasesTable(ABDataFrameView):
         )
 
         self.model = DatabasesModel(parent=self)
+        self.update_proxy_model()
         self._connect_signals()
 
     def _connect_signals(self):
         self.doubleClicked.connect(
             lambda p: signals.database_selected.emit(self.model.get_db_name(p))
         )
-        self.model.updated.connect(self.update_proxy_model)
 
     def contextMenuEvent(self, event) -> None:
         if self.indexAt(event.pos()).row() == -1:
@@ -92,7 +92,8 @@ class DatabasesTable(ABDataFrameView):
                 db_name = self.model.get_db_name(proxy)
                 project_settings.modify_db(db_name, new_value)
                 signals.database_read_only_changed.emit(db_name, new_value)
-                self.model.sync()
+                self.proxy_model.setData(proxy, new_value)
+
         super().mousePressEvent(e)
 
     def current_database(self) -> str:
