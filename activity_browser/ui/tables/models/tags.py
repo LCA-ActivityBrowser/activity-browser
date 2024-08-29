@@ -47,11 +47,12 @@ class TagsModel(EditablePandasModel):
         self.updated.emit()
 
     def add_new_tag(self):
-        self._dataframe.loc[self._dataframe.index.max() + 1] = ["", "", "str"]
+        self.insertRows(self.rowCount())
+        self._dataframe.loc[self.rowCount() - 1] = ["", "", "str"]
         self.updated.emit()
 
     def remove_tag(self, index: int) -> None:
-        self._dataframe.drop(index, inplace=True)
+        self.removeRow(index)
         self.updated.emit()
 
     def get_tags(self) -> dict[str, Any]:

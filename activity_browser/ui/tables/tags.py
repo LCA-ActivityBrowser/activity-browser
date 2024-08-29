@@ -1,4 +1,5 @@
 from PySide2 import QtWidgets
+from PySide2.QtCore import Slot, Qt, QSortFilterProxyModel
 from PySide2.QtWidgets import QAction
 
 from activity_browser.bwutils import AB_metadata
@@ -38,7 +39,6 @@ class TagTable(ABDataFrameView):
                 ComboBoxDelegate(
                     [
                         ("Integer", "int"),
-                        ("Float", "float"),
                         ("String", "str"),
                         ("Date", "date"),
                     ],
@@ -48,33 +48,34 @@ class TagTable(ABDataFrameView):
         self.model = TagsModel(TagsModel.dataframe_from_tags(tags), parent=self)
         self.add_tag_button = QAction(qicons.add, "Add Tag", self)
         self.add_tag_button.setStatusTip("Add new tag to the table")
-        self.add_tag_button.triggered.connect(self.addTag)
         self.remove_tag_button = QAction(qicons.delete, "Remove Tag", self)
         self.remove_tag_button.setStatusTip("Remove tag from the table")
-        self.remove_tag_button.triggered.connect(self.removeTag)
 
         self._connect_signals()
         self.update_proxy_model()
 
     def _connect_signals(self):
-        self.model.updated.connect(self.update_proxy_model)
+        self.add_tag_button.triggered.connect(self.model.add_new_tag)
+        self.remove_tag_button.triggered.connect(self.remove_tag)
 
-    def addTag(self):
-        self.model.add_new_tag()
-        self.update_proxy_model()
+    @Slot(name="updateProxyModel")
+    def update_proxy_model(self) -> None:
+        self.proxy_model = QSortFilterProxyModel(self)
+        self.proxy_model.setSourceModel(self.model)
+        self.proxy_model.setSortCaseSensitivity(Qt.CaseSensitive)
+        self.setModel(self.proxy_model)
+        self.sortByColumn(0, Qt.AscendingOrder)
 
-    def removeTag(self):
+    def remove_tag(self):
         proxy = self.currentIndex()
         self.model.remove_tag(proxy.row())
-        self.update_proxy_model()
 
     def contextMenuEvent(self, event) -> None:
         menu = QtWidgets.QMenu(self)
         if not self.read_only:
             menu.addAction(self.add_tag_button)
-            menu.addAction(self.remove_tag_button)
         proxy = self.indexAt(event.pos())
-        if proxy.row() == -1:
-            pass
+        if proxy.row() != -1:
+            menu.addAction(self.remove_tag_button)
 
         menu.exec_(event.globalPos())
