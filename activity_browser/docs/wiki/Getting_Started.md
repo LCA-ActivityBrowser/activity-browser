@@ -49,10 +49,10 @@ You can install and start the activity-browser like this:
    activity-browser
    ```
 
-## User Interface
+## First steps
+### User interface
 ...
 
-## First steps
 ### Understanding Activity Browser terms
 Activity Browser uses [Brightway](https://docs.brightway.dev/en/latest/) for its data management and calculations. 
 Brightway has its own 'accent' of LCA terms,
