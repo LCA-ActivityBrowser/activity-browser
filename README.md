@@ -13,11 +13,6 @@
 
 The **Activity Browser (AB) is an open source software for Life Cycle Assessment (LCA)** that builds on [Brightway2](https://brightway.dev).
 
-[Video tutorials](https://www.youtube.com/channel/UCsyySKrzEMsRFsWW1Oz-6aA/) are available on youtube.
-
-Please also read and cite our [scientific paper](https://doi.org/10.1016/j.simpa.2019.100012).
-
-
 ### Some highlights
 
 - **Fast LCA calculations**: for multiple reference flows, impact categories, and scenarios
@@ -27,10 +22,7 @@ Please also read and cite our [scientific paper](https://doi.org/10.1016/j.simpa
 
 # Contents
 - [Installation](#installation)
-- [Updating the AB](#updating-the-ab)
-- [Getting started](#getting-started)
-    - [Running the AB](#running-the-ab)
-    - [Importing LCI databases](#importing-lci-databases)
+- [First Steps](#first-steps)
     - [Additional Resources](#additional-resources)
 - [Plugins](#plugins)
     - [Available plugins](#available-plugins)
@@ -44,45 +36,13 @@ Please also read and cite our [scientific paper](https://doi.org/10.1016/j.simpa
 
 # Installation
 
+## Step-by-step guide
+See our 
+[Installation Guide](https://github.com/LCA-ActivityBrowser/activity-browser/wiki/Getting-Started#installation-guide) 
+wiki page for a step-by-step guide to installing Activity Browser.
+
 ## The quick way
-
 You can install and start the activity-browser like this:
-
-```bash
-conda create -n ab -c conda-forge --solver libmamba activity-browser
-conda activate ab
-activity-browser
-```
-
-### Mamba
-
-You can also install the AB using [Mamba](https://mamba.readthedocs.io/en/latest/mamba-installation.html#mamba-install):
-
-```bash
-mamba create -n ab activity-browser
-mamba activate ab
-activity-browser
-```
-
-## The thorough way
-### Conda
-
-We recommend that you use **conda** to manage your python installation. You can install [Anaconda](https://www.anaconda.com/products/individual) or the more compact [miniconda](https://conda.io/miniconda.html) (Python 3 version) for your operating system. Installation instructions for miniconda can be found [here](https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html). See also the [conda user guide](https://docs.conda.io/projects/conda/en/latest/user-guide/index.html) or the [Conda cheat sheet](https://docs.conda.io/projects/conda/en/latest/_downloads/843d9e0198f2a193a3484886fa28163c/conda-cheatsheet.pdf).
-
-Skip this step if you already have a working installation of anaconda or miniconda, but make sure to keep your conda installation up-to-date: `conda update -n base conda`.
-
-### Add the Conda-Forge channel
-The activity-browser has many dependencies that are managed by the [conda-forge](https://conda.io/docs/user-guide/tasks/manage-channels.html) channel. Open a cmd-window or terminal (in Windows you may have to use the Anaconda prompt) and type the following:
-
-```bash
-conda config --prepend channels conda-forge
-```
-Also configure conda to use the libmamba solver which is significantly faster than the default.
-```bash
-conda config --set solver libmamba
-```
-
-### Installing Activity Browser
 
 ```bash
 conda create -n ab -c conda-forge activity-browser
@@ -90,51 +50,10 @@ conda activate ab
 activity-browser
 ```
 
-#### Activity Browser is installed
-
-At this point the activity-browser and all of its dependencies will be installed in a new conda environment called `ab`. You can change the environment name `ab` to whatever suits you.
-
-## Updating the AB
-
-We recommend to regularly update the AB to receive new features & bugfixes. These commands will update the activity-browser and all of its dependencies in the conda environment called `ab`.
-
-```bash
-conda activate ab
-conda update activity-browser
-```
-
-# Getting started
-
-## Running the AB
-
-First activate the environment where the activity browser is installed:
-
-```bash
-conda activate ab
-```
-
-Then simply run `activity-browser` and the application will open.
-
-## Importing LCI databases
-
-- In the `Project`-tab there is initially a button called _"Add default data (biosphere flows and impact categories)"_. Click this button to add the default data. This is equivalent to `brightway2.bw2setup()` in python.
-- After adding the default data, you can import a database with the _"Import Database"_-Button. Follow the instructions of the database import wizard. Imports can be done in several ways:
-    - Directly from the ecoinvent homepage (ecoinvent login credentials required)
-    - From a 7zip archive
-    - From a directory with ecospold2 files (same as in brightway2)
-    - From Excel files using the brightway Excel format
-
-## Additional Resources
-
-- [Youtube tutorials](https://www.youtube.com/channel/UCsyySKrzEMsRFsWW1Oz-6aA/)
-- [Introduction video by ETH Zurich](https://www.youtube.com/watch?v=j3uLptvsxeA)
-- [AB Discussions page](https://github.com/LCA-ActivityBrowser/activity-browser/discussions)
-- [AB Wiki](https://github.com/LCA-ActivityBrowser/activity-browser/wiki)
-- [AB scientific article](https://doi.org/10.1016/j.simpa.2019.100012)
-- The AB has two mailing lists, for [updates](https://brightway.groups.io/g/AB-updates) and [user exchange](https://brightway.groups.io/g/AB-discussion)
-- [Brightway2](https://brightway.dev/)
-- [Global Sensitiviy Analysis paper](https://onlinelibrary.wiley.com/doi/10.1111/jiec.13194) describing GSA as implemented in the AB; see also our [wiki](https://github.com/LCA-ActivityBrowser/activity-browser/wiki/Global-Sensitivity-Analysis)
-- [Modular LCA paper](https://link.springer.com/article/10.1007/s11367-015-1015-3); [documentation modular LCA](http://activity-browser.readthedocs.io/en/latest/index.html); re-implementation of modular LCA into the AB is [ongoing](https://github.com/marc-vdm/activity-browser/tree/mLCA)
+# First Steps
+See our
+[First steps](https://github.com/LCA-ActivityBrowser/activity-browser/wiki/Getting-Started#first-steps)
+wiki page to learn how to get started using Activity Browser.
 
 # Plugins
 | :warning: DISCLAIMER                                                                                                                                                                  |
