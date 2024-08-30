@@ -33,15 +33,21 @@ welcome!
 If you want to include the opening graphics created for the existing youtube videos, please 
 [contact the developers](https://github.com/LCA-ActivityBrowser/activity-browser#developers).
 
-### Github wiki page
+### Wiki
 The Activity Browser has its own
-[__wiki__](https://github.com/LCA-ActivityBrowser/activity-browser/wiki)!
-This page contains an explanation (in text) of how to get started with the AB.
+[__wiki__](https://github.com/LCA-ActivityBrowser/activity-browser/wiki).
+This page contains an explanation of how to get started with the AB.
 
 If you want to contribute to the wiki, either by adding figures or links or by writing
-new sections, please contact the developers! Alternatively, you can open a pull request with suggested changes to 
-[`docs/wiki`](https://github.com/LCA-ActivityBrowser/activity-browser/tree/main/activity_browser/docs/wiki) 
-if you know how to. 
+new sections, please [contact the developers](https://github.com/LCA-ActivityBrowser/activity-browser#developers)! 
+
+#### Making changes to the wiki directly
+To make changes to the wiki, you can open a pull request with suggested changes to 
+[`docs/wiki`](https://github.com/LCA-ActivityBrowser/activity-browser/tree/main/activity_browser/docs/wiki).
+While contributors with write access to Activity Browser can directly change the wiki, changes should be made
+to the files in `docs/wiki` instead. 
+When a new release is made, the changes will automatically be written to the wiki 
+([#1350](https://github.com/LCA-ActivityBrowser/activity-browser/pull/1350)).
 
 ### In-software guidance
 With more and more features being included into the AB, the inclusion of
