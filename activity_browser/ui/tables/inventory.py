@@ -59,9 +59,7 @@ class DatabasesTable(ABDataFrameView):
         self._connect_signals()
 
     def _connect_signals(self):
-        self.doubleClicked.connect(
-            lambda p: signals.database_selected.emit(self.model.get_db_name(p))
-        )
+        self.doubleClicked.connect(self._handle_double_click)
 
     def contextMenuEvent(self, event) -> None:
         if self.indexAt(event.pos()).row() == -1:
@@ -101,6 +99,17 @@ class DatabasesTable(ABDataFrameView):
                 self.proxy_model.setData(proxy, new_value)
 
         super().mousePressEvent(e)
+
+    def _handle_double_click(self, index: QtCore.QModelIndex):
+        # No double click on the checkboxes
+        if index.isValid() and index.column() != 2:
+            # No double click on editable default allocation column,
+            # because this should open the item editor
+            read_only_idx = self.proxy_model.index(index.row(), 2)
+            rd_only = self.proxy_model.data(read_only_idx)
+
+            if index.column() != 4 or rd_only == True:
+                signals.database_selected.emit(self.model.get_db_name(index))
 
     def current_database(self) -> str:
         """Return the database name of the user-selected index."""
