@@ -10,7 +10,7 @@ from PySide2.QtWidgets import QApplication
 from activity_browser import log, project_settings
 from activity_browser.bwutils import AB_metadata
 from activity_browser.bwutils import commontasks as bc
-from activity_browser.mod.bw2data import databases, projects, utils
+from activity_browser.mod.bw2data import databases, projects
 
 from .base import DragPandasModel, EditablePandasModel, PandasModel
 
@@ -32,7 +32,7 @@ class DatabasesModel(EditablePandasModel):
     def sync(self):
         self.beginResetModel()
         data = []
-        for name in utils.natural_sort(databases):
+        for name in databases:
             # get the modified time, in case it doesn't exist, just write 'now' in the correct format
             dt = databases[name].get("modified", datetime.datetime.now().isoformat())
             dt = datetime.datetime.strptime(dt, "%Y-%m-%dT%H:%M:%S.%f")

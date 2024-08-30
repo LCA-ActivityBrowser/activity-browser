@@ -30,6 +30,7 @@ class DatabasesTable(ABDataFrameView):
         self.setSelectionMode(QtWidgets.QTableView.SingleSelection)
         self.setItemDelegateForColumn(2, CheckboxDelegate(self))
         allocation_options = list(allocation_strategies.keys())
+        # Make the unspecified value the first in the list of options
         allocation_options.insert(0, DatabasesModel.UNSPECIFIED_ALLOCATION)
         self.setItemDelegateForColumn(4, ComboboxDelegate(allocation_options, self))
         self.setEditTriggers(
@@ -50,6 +51,11 @@ class DatabasesTable(ABDataFrameView):
 
         self.model = DatabasesModel(parent=self)
         self.update_proxy_model()
+        # Set up an initial sort on the table
+        # This is kept and applied even after the model is reset.
+        # Without this the list of databases does not match the sorting
+        # of the table and the first click on the header does nothing
+        self.sortByColumn(0, QtCore.Qt.SortOrder.AscendingOrder)
         self._connect_signals()
 
     def _connect_signals(self):
