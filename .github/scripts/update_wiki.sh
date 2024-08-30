@@ -6,8 +6,8 @@
 
 cd ..
 git clone https://github.com/$GITHUB_REPOSITORY.wiki.git
-yes | cp -rf GH_testing/docs/wiki/* GH_testing.wiki/
-cd GH_testing.wiki
+yes | cp -rf activity-browser/docs/wiki/* activity-browser.wiki/
+cd activity-browser.wiki
 grep -lr "link:[a-zA-Z0-9_.-]*.asciidoc.*" .| xargs -r sed -i "s/.asciidoc//g"
 if git diff-index --quiet HEAD && [ ! -n "$(git status -s)" ]; then
   echo "Wiki documentation was not changed, documentation, not updating."
