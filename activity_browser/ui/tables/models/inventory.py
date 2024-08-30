@@ -69,8 +69,8 @@ class DatabasesModel(EditablePandasModel):
             # Default allocation column
             if top_left.column() <= 4 <= bottom_right.column():
                 for row in range(top_left.row(), bottom_right.row() + 1):
-                    current_alloc_idx = self.createIndex(row, 4)
-                    current_db = self.data(self.createIndex(row, 0))
+                    current_alloc_idx = self.index(row, 4)
+                    current_db = self.data(self.index(row, 0))
                     if self.data(current_alloc_idx) == self.UNSPECIFIED_ALLOCATION:
                         if databases[current_db].get("default_allocation") is not None:
                             del databases[current_db]["default_allocation"]

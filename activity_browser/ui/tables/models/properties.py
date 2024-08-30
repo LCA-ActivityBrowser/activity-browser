@@ -212,8 +212,8 @@ class PropertyModel(QtCore.QAbstractTableModel):
         """Marks items to be deleted."""
         if index.isValid() and self._data[index.row()].key != "":
             self._data[index.row()].to_be_deleted = not self._data[index.row()].to_be_deleted
-            start_index = self.createIndex(index.row(), 0)
-            end_index = self.createIndex(index.row(), 1)
+            start_index = self.index(index.row(), 0)
+            end_index = self.index(index.row(), 1)
             self.dataChanged.emit(start_index, end_index, [])
 
     def is_modified(self) -> bool:
