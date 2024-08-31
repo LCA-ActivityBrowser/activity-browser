@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 from PySide2 import QtCore, QtWidgets
+from multifunctional import allocation_strategies
 
 from activity_browser import actions, project_settings, signals
+from activity_browser.logger import log
 
 from ...bwutils import AB_metadata
 from ..icons import qicons
@@ -47,6 +49,8 @@ class ActivityDataGrid(QtWidgets.QWidget):
     Includes the read-only checkbox which enables or disables user-editing of some activity and exchange data
     Exchange data is displayed separately, below this grid, in tables.
     """
+    DATABASE_DEFINED_ALLOCATION = "(database default)"
+
 
     def __init__(self, parent, read_only=True):
         super(ActivityDataGrid, self).__init__(parent)
@@ -92,6 +96,27 @@ class ActivityDataGrid(QtWidgets.QWidget):
             "Use dropdown menu to duplicate activity to another database"
         )
 
+        is_multifunctional = parent.activity.get("type") == "multifunctional"
+        if is_multifunctional:
+            # Default allocation combobox
+            self.def_alloc_combo = QtWidgets.QComboBox()
+            allocation_options = list(allocation_strategies.keys())
+            # Make the unspecified value the first in the list of options
+            allocation_options.insert(0, self.DATABASE_DEFINED_ALLOCATION)
+            self.def_alloc_combo.insertItems(0, allocation_options)
+            index = 0
+            if (process_alloc := parent.activity.get("default_allocation")) is not None:
+                try:
+                    index = allocation_options.index(process_alloc)
+                except ValueError:
+                    log.error(f"Invalid Default allocation value {process_alloc} for process {parent.key}")
+
+            self.def_alloc_combo.setCurrentIndex(index)
+            self.def_alloc_combo.currentTextChanged.connect(self._handle_def_alloc_changed)
+            self.def_alloc_combo.setToolTip(
+                "Use dropdown menu to change the default allocation"
+            )
+
         # arrange widgets for display as a grid
         self.grid = QtWidgets.QGridLayout()
 
@@ -106,6 +131,9 @@ class ActivityDataGrid(QtWidgets.QWidget):
         self.grid.addWidget(self.location_combo, 2, 2, 1, -1)
         self.grid.addWidget(self.database_combo, 3, 2, 1, -1)
         self.grid.addWidget(self.database_label, 3, 1)
+        if is_multifunctional:
+            self.grid.addWidget(QtWidgets.QLabel("Default Allocation"), 4, 1)
+            self.grid.addWidget(self.def_alloc_combo, 4, 2, 1, -1)
 
         self.setLayout(self.grid)
 
@@ -185,3 +213,18 @@ class ActivityDataGrid(QtWidgets.QWidget):
         self.read_only = read_only
         self.name_box.setReadOnly(self.read_only)
         self.location_combo.setEnabled(not self.read_only)
+        self.def_alloc_combo.setEnabled(not self.read_only)
+
+    def _handle_def_alloc_changed(self, selection: str):
+        changed = False
+        current_def_alloc = self.parent.activity.get("default_allocation")
+        if selection == self.DATABASE_DEFINED_ALLOCATION:
+            if current_def_alloc is not None:
+                del self.parent.activity["default_allocation"]
+                changed = True
+        elif current_def_alloc != selection:
+            self.parent.activity["default_allocation"] = selection
+            changed = True
+        if changed:
+            self.parent.activity.save()
+            
