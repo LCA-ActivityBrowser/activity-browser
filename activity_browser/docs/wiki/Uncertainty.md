@@ -1,3 +1,27 @@
+# Uncertainty
+...
+
+___
+# Monte Carlo simulation
+[Monte Carlo Simulation](https://en.wikipedia.org/wiki/Monte_Carlo_method) is method that relies on repeated random sampling of data to produce numerical results for uncertain input data. In LCA, economic and environmental flows as well as other data such as characterization factors or parameters may include uncertainty information (e.g. mathematical distributions or pedigree scores). During Monte Carlo simulation, random samples of this data are generated to calculate LCA results. 
+
+In the Activity Browser, Monte Carlo Simulation can be used. The **steps **for this are:
+1. To create a [calculation setup](https://github.com/LCA-ActivityBrowser/activity-browser/wiki#creating-a-calculation-setup) and perform a (static, i.e. non-stochastic) LCA. 
+2. Then the user should go to the `Monte Carlo` tab
+3. Then the following settings are available
+
+* Here the users needs to specify the number of **iterations** (we recommend to start with at least 100). 
+* A **random seed** can be determined, which can be used to reproduce the same random values again. 
+* Finally, the user interface provides the option for **including or excluding uncertainty information** at the level of the technology matrix (technosphere), the interventions matrix (biosphere), the characterization factors, and parameters (if any have been defined by the practitioner). 
+
+![Monte Carlo Simulation](https://user-images.githubusercontent.com/33026150/115353678-16e41480-a1b9-11eb-962e-9df0c7869d69.jpg)
+
+An example for Monte Carlo Simulation results are shown below.
+
+![Monte Carlo results](https://user-images.githubusercontent.com/33026150/115353677-16e41480-a1b9-11eb-8106-87f09b36991c.jpg)
+
+___
+# Global Sensitivity Analysis
 ## Overview
 Global Sensitivity Analysis (GSA) is a family of methods that aim to determine which input variables are contributing the most to variations in the outcome of a stochastic model. In the context of Life Cycle Assessment (LCA), this means that GSA aims at identifying those variables (e.g. economic flows, environmental flows, characterization factors, or parameters) that due to their uncertainty distributions affect LCA results most. This provides the LCA practitioner with a shortlist of important variables for his model. For some of these variables, it may be possible to collect additional data to reduce uncertainties, which may then reduce the overall uncertainties of the LCA results. 
  
@@ -23,4 +47,3 @@ Now the user can go to the `Sensitivity Analysis` tab to perform GSA. The figure
 After the GSA is performed, the user will see a table with all input variables (environmental, economic flows, characterization factors and parameters) sorted by their delta value, which is the result of the GSA and characterizes their overall relevance. Additional data and metadata is also provided in the table.
 
 ![GSA results only delta](https://user-images.githubusercontent.com/33026150/115353671-151a5100-a1b9-11eb-8218-544a5b00ebef.jpg)
- 

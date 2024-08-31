@@ -47,8 +47,8 @@ ___
 - <details><summary>Uncertainty in LCA</summary>
 
   - [Uncertainty](Uncertainty.md)
-  - [Monte Carlo Simulation](./Monte-Carlo-Simulation.md)
-  - [Global Sensitivity Analysis](./Global-Sensitivity-Analysis.md)
+  - [Monte Carlo Simulation](Uncertainty.md#monte-carlo-simulation)
+  - [Global Sensitivity Analysis](Uncertainty.md#global-sensitivity-analysis)
   </details>
 
 - <details><summary>Scenarios</summary>
