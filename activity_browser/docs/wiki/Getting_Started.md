@@ -49,47 +49,6 @@ You can install and start the activity-browser like this:
    activity-browser
    ```
 
-## First steps
-### User interface
-...
-
-### Understanding Activity Browser terms
-Activity Browser uses [Brightway](https://docs.brightway.dev/en/latest/) for its data management and calculations. 
-Brightway has its own 'accent' of LCA terms,
-you can compare LCA terms from Brightway, [ISO 14044](https://www.iso.org/standard/38498.html) and others in the
-[Brightway Glossary](https://docs.brightway.dev/en/latest/content/other/glossary.html).
-
-### Starting Activity Browser
-First activate the environment where the activity browser is installed:
-
-```bash
-conda activate ab
-```
-
-Then simply run `activity-browser` and the application will open.
-
-### Setting up a project
-#### Installing a biosphere and impact categories
-In the `Project`-tab there is initially a button called `Set up your project with default data`. 
-Click this button to add the default data. 
-This is equivalent to `brightway2.bw2setup()` in brightway.
-You can choose a biosphere version, this biosphere version will be compatible with that version of ecoinvent.
-If you don't use ecoinvent, don't worry about this and choose the highest version.
-
-### Importing LCI databases
-After adding the default data, you can import a database with the `Import Database` button. 
-Follow the instructions of the database import wizard. 
-Some special options are:
-- [Ecoinvent](https://ecoinvent.org/) is a paid database you can install directly in Activity Browser if you have a 
-license and login information.
-- [Forwast](http://forwast.brgm.fr/) is a free database you can install directly in Activity Browser.
-
-### Creating your own databases
-...
-
-### Running an LCA calculation
-...
-
 ## Updating Activity Browser
 We recommend to regularly update Activity Browser to receive new features & bugfixes. 
 These commands will update the Activity Browser and all of its dependencies in the conda environment called `ab`.
@@ -99,15 +58,112 @@ conda activate ab
 conda update activity-browser
 ```
 
-## Need help?
-Activity Browser supports its users through the community.
-If you have **questions** about using Activity Browser and can't find the answer in this wiki, ask it on our 
-[discussions](https://github.com/LCA-ActivityBrowser/activity-browser/discussions) page! 
-If you have **found a problem** or have **suggestions to improve** Activity Browser, open an 
-[issue](https://github.com/LCA-ActivityBrowser/activity-browser/issues).
-If you want to **contribute to the Activity Browser** project, you can check out our 
-[contributing](https://github.com/LCA-ActivityBrowser/activity-browser/blob/main/CONTRIBUTING.md)
-page to see how you can help out.
+## First steps
+### Starting Activity Browser
+First activate the environment where the activity browser is installed:
+
+```bash
+conda activate ab
+```
+
+Then simply run `activity-browser` and the application will open.
+
+### User interface
+...
+
+### Understanding Activity Browser terms
+Activity Browser uses [Brightway](https://docs.brightway.dev/en/latest/) for its data management and calculations. 
+Brightway has its own 'accent' of LCA terms,
+you can compare LCA terms from Brightway, [ISO 14044](https://www.iso.org/standard/38498.html) and others in the
+[Brightway Glossary](https://docs.brightway.dev/en/latest/content/other/glossary.html).
+
+### Organization of data in Brightway and Activity Browser
+Data in Brightway is organized into projects
+- Projects contain databases, impact categories, calculation setups and more
+  - Databases contain activities (biosphere and technosphere)
+    - Activities are the building blocks of your LCA model 
+- Impact categories are used to score your LCA models against
+- Calculation setups are the combinations of reference flows and impact categories that you can calculate
+- Projects also contain other data, such as parameters and plugin settings.
+
+**... Ideally some figure showing data organization visually**
+
+### Setting up a project
+#### Installing a biosphere and impact categories
+**... reorder this section when screenshots are available**
+
+In the `Project`-tab there is initially a button called `Set up your project with default data`. 
+Click this button to add the default data. 
+This adds a `biosphere` database which contains a number of standardized biosphere flows.
+
+> [!NOTE]
+> Once a project is set up, you cannot reset it.
+
+**... screenshot of first dialog page**
+
+##### Setting up with Biosphere3 data
+You can choose a biosphere version, this biosphere version will be compatible with that version of ecoinvent, 
+if you choose to import that later.
+If you don't use ecoinvent, don't worry about this and choose the highest version.
+
+**... screenshot of relevant dialog**
+
+##### Setting up with ecoinvent data
+If you have a valid ecoinvent license and login information, you can immediately set up ecoinvent in your project with all 
+relevant and compatible data. 
+
+**... screenshot of relevant dialog**
+
+[Read more about projects...](Projects.md)
+
+### LCI databases
+After adding the default data, you can create or import a database with the `New` and `Import Database` buttons. 
+
+**... Screenshot of AB left pane until new/import buttons**
+
+#### New databases
+With `New` you can create a completely empty database with any given name and
+enter your own activity data.
+
+[Read more about activities...](Activities.md)
+
+#### Importing databases
+Clicking 'Import' will open a new dialog that will allow you to select how you want to import data into brightway 
+(and by extension, the Activity Browser).
+There are two main options: 'remote data' and 'local data':
+
+<details><summary><b>Remote database import</b></summary>
+
+We currently support 2 remote databases, Ecoinvent and Forwast:
+
+##### Importing Ecoinvent
+[**Ecoinvent**](https://ecoinvent.org/) is a paid database you can install directly in Activity Browser if you have a 
+valid ecoinvent license and login information.
+
+##### Importing Forwast
+[**Forwast**](http://forwast.brgm.fr/) is a free database you can install directly in Activity Browser.
+</details>
+
+<details><summary><b>Local database import</b></summary>
+
+We support various local import methods
+- Local 7z-archive of ecospold2 files
+- Local directory of ecospold2 files
+- Local Excel file
+- Local Brightway database file
+</details>
+
+[Read more about databases...](Databases.md)
+
+### Running an LCA calculation
+To run an LCA, you must first create a calculation setup, add at least one reference flow and one impact category 
+to be able to calculate results.
+
+[Read more about LCA calculation setups...](LCA_calculation_setups.md)
+
+[Read more about LCA results...](LCA_results.md)
+
+[Follow a tutorial to do your first LCA...](Tutorials.md#your-first-lca)
 
 ## Additional Resources
 - [Youtube tutorials](https://www.youtube.com/channel/UCsyySKrzEMsRFsWW1Oz-6aA/)
@@ -118,3 +174,13 @@ page to see how you can help out.
 - [Brightway2](https://brightway.dev/)
 - [Global Sensitiviy Analysis paper](https://onlinelibrary.wiley.com/doi/10.1111/jiec.13194) describing GSA as implemented in the AB; see also our [wiki](https://github.com/LCA-ActivityBrowser/activity-browser/wiki/Global-Sensitivity-Analysis)
 - [Modular LCA paper](https://link.springer.com/article/10.1007/s11367-015-1015-3); [documentation modular LCA](http://activity-browser.readthedocs.io/en/latest/index.html); re-implementation of modular LCA into the AB is [ongoing](https://github.com/marc-vdm/activity-browser/tree/mLCA)
+
+## Need help?
+Activity Browser supports its users through the community.
+If you have **questions** about using Activity Browser and can't find the answer in this wiki, ask it on our 
+[discussions](https://github.com/LCA-ActivityBrowser/activity-browser/discussions) page! 
+If you have **found a problem** or have **suggestions to improve** Activity Browser, open an 
+[issue](https://github.com/LCA-ActivityBrowser/activity-browser/issues).
+If you want to **contribute to the Activity Browser** project, you can check out our 
+[contributing](https://github.com/LCA-ActivityBrowser/activity-browser/blob/main/CONTRIBUTING.md)
+page to see how you can help out.
