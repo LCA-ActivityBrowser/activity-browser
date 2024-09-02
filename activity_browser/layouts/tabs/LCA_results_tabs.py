@@ -200,6 +200,11 @@ class LCAResultsSubTab(QTabWidget):
                 log.info("Generating Sankey Tab")
                 self.tabs.sankey.new_sankey()
 
+        if index == self.indexOf(self.tabs.tree):
+            if not self.tabs.tree.has_rendered_once:
+                log.info("Generating Tree Tab")
+                self.tabs.tree.new_tree()
+
     @QtCore.Slot(name="lciaScenarioExport")
     def generate_lcia_scenario_export(self):
         """Create a dataframe of the impact category results for all reference flows,

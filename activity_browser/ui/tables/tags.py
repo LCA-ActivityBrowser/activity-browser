@@ -20,7 +20,9 @@ class TagDelegate(StringDelegate):
         self.database = database
 
     def createEditor(self, parent, option, index):
-        editor = AutoCompleteLineEdit(AB_metadata.get_tag_names(self.database), parent)
+        editor = AutoCompleteLineEdit(
+            AB_metadata.get_tag_names_for_db(self.database), parent
+        )
         return editor
 
 
