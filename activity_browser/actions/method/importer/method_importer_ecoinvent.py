@@ -80,7 +80,10 @@ class ImportSetupDialog(QtWidgets.QDialog):
         self.info.setWordWrap(True)
         self.info.setTextFormat(QtCore.Qt.RichText)
 
+        self.prepend_label = QtWidgets.QLabel("Prepend method names")
+
         self.prepend_textbox = QtWidgets.QLineEdit()
+        self.prepend_textbox.setPlaceholderText("Enter name prepend")
         self.prepend_textbox.textChanged.connect(self.check_overwrite)
 
         # Connect the necessary signals
@@ -91,6 +94,7 @@ class ImportSetupDialog(QtWidgets.QDialog):
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(QtWidgets.QLabel("Choose biosphere database:"))
         layout.addWidget(self.db_chooser)
+        layout.addWidget(self.prepend_label)
         layout.addWidget(self.prepend_textbox)
         layout.addWidget(self.info)
         layout.addLayout(self.button_layout)
