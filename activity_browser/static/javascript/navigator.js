@@ -657,7 +657,11 @@ const cartographer = function () {
             const heightRatio = canvasHeight / graphHeight;
             const widthRatio = canvasWidth / (graphWidth * 1.05);
             const scale = clamp(Math.min(heightRatio, widthRatio, 1), .25, .5)
-            const {e: x, f: y} = d3.select("g.node").node().transform.baseVal[0].matrix
+            const node = d3.select("g.node").node();
+            if (node === null) {
+                return;
+            }
+            const {e: x, f: y} = node.transform.baseVal[0].matrix
             const count = d3.selectAll("g.node").size();
             let ty, xOffset, yOffset;
             switch (graph.graph().rankdir) {

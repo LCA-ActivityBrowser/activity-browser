@@ -19,6 +19,8 @@ from activity_browser.mod import bw2data as bd
 from activity_browser.mod.bw2data.backends import ActivityDataset
 from activity_browser.utils import get_base_path
 from .base import BaseGraph, BaseNavigatorWidget
+from ..widgets.combobox import CheckableComboBox
+from ...bwutils import AB_metadata
 from ...bwutils.commontasks import identify_activity_type
 
 
@@ -40,7 +42,7 @@ class TreeNavigatorWidget(BaseNavigatorWidget):
         self.has_scenarios = self.parent.has_scenarios
         self.cs = cs_name
         self.selected_db = None
-        self.has_sankey = False
+        self.has_rendered_once = False
         self.func_units = []
         self.methods = []
         self.scenarios = []
@@ -51,6 +53,7 @@ class TreeNavigatorWidget(BaseNavigatorWidget):
         self.func_unit_cb = QtWidgets.QComboBox()
         self.method_cb = QtWidgets.QComboBox()
         self.scenario_cb = QtWidgets.QComboBox()
+        self.tag_cb = CheckableComboBox()
         self.cutoff_sb = QtWidgets.QDoubleSpinBox()
         self.max_calc_sb = QtWidgets.QDoubleSpinBox()
         self.button_calculate = QtWidgets.QPushButton("Calculate")
@@ -67,12 +70,13 @@ class TreeNavigatorWidget(BaseNavigatorWidget):
 
     def connect_signals(self):
         super().connect_signals()
-        self.button_calculate.clicked.connect(self.new_sankey)
+        self.button_calculate.clicked.connect(self.new_tree)
         signals.database_selected.connect(self.set_database)
         # checkboxes
-        self.func_unit_cb.currentIndexChanged.connect(self.new_sankey)
-        self.method_cb.currentIndexChanged.connect(self.new_sankey)
-        self.scenario_cb.currentIndexChanged.connect(self.new_sankey)
+        self.func_unit_cb.currentIndexChanged.connect(self.new_tree)
+        self.method_cb.currentIndexChanged.connect(self.new_tree)
+        self.scenario_cb.currentIndexChanged.connect(self.new_tree)
+        self.tag_cb.onHidePopup.connect(self.new_tree)
         self.bridge.update_graph.connect(self.update_graph)
 
     def construct_layout(self) -> None:
@@ -86,12 +90,14 @@ class TreeNavigatorWidget(BaseNavigatorWidget):
 
         grid_lay.addWidget(self.scenario_label, 1, 0)
         grid_lay.addWidget(QtWidgets.QLabel("Impact indicator: "), 2, 0)
+        grid_lay.addWidget(QtWidgets.QLabel("Tag System: "), 3, 0)
 
         self.update_calculation_setup()
 
         grid_lay.addWidget(self.func_unit_cb, 0, 1)
         grid_lay.addWidget(self.scenario_cb, 1, 1)
         grid_lay.addWidget(self.method_cb, 2, 1)
+        grid_lay.addWidget(self.tag_cb, 3, 1)
 
         # cut-off
         grid_lay.addWidget(QtWidgets.QLabel("cutoff: "), 2, 2)
@@ -117,16 +123,14 @@ class TreeNavigatorWidget(BaseNavigatorWidget):
 
         # Controls Layout
         hl_controls = QtWidgets.QHBoxLayout()
-        hl_controls.addWidget(self.button_back)
-        hl_controls.addWidget(self.button_forward)
         hl_controls.addWidget(self.button_calculate)
         hl_controls.addWidget(self.button_refresh)
         hl_controls.addWidget(self.button_toggle_help)
         hl_controls.addStretch(1)
 
         # Layout
-        self.layout.addLayout(hl_controls)
         self.layout.addLayout(hlay)
+        self.layout.addLayout(hl_controls)
         self.layout.addWidget(self.label_help)
         self.layout.addWidget(self.view)
         self.setLayout(self.layout)
@@ -156,8 +160,9 @@ class TreeNavigatorWidget(BaseNavigatorWidget):
     def update_calculation_setup(self, cs_name=None) -> None:
         """Update Calculation Setup, reference flows and impact categories, and dropdown menus."""
         # block signals
-        self.func_unit_cb.blockSignals(True)
-        self.method_cb.blockSignals(True)
+        block_signals = [self.func_unit_cb, self.method_cb, self.tag_cb]
+        for b in block_signals:
+            b.blockSignals(True)
 
         self.cs = cs_name or self.cs
         self.func_units = [
@@ -174,12 +179,16 @@ class TreeNavigatorWidget(BaseNavigatorWidget):
         self.method_cb.clear()
         self.method_cb.addItems([repr(m) for m in self.methods])
 
-        # unblock signals
-        self.func_unit_cb.blockSignals(False)
-        self.method_cb.blockSignals(False)
+        # tags
+        self.tag_cb.clear()
+        self.tag_cb.addItems(AB_metadata.get_tag_names())
 
-    def new_sankey(self) -> None:
-        """(re)-generate the sankey diagram."""
+        # unblock signals
+        for b in block_signals:
+            b.blockSignals(False)
+
+    def new_tree(self) -> None:
+        """(re)-generate the tree diagram."""
         demand_index = self.func_unit_cb.currentIndex()
         method_index = self.method_cb.currentIndex()
 
@@ -192,7 +201,8 @@ class TreeNavigatorWidget(BaseNavigatorWidget):
             scenario_index = self.scenario_cb.currentIndex()
         cutoff = self.cutoff_sb.value()
         max_calc = self.max_calc_sb.value()
-        self.update_sankey(
+        tags = self.tag_cb.currentData()
+        self.update_tree(
             demand,
             method,
             demand_index=demand_index,
@@ -201,9 +211,10 @@ class TreeNavigatorWidget(BaseNavigatorWidget):
             scenario_lca=scenario_lca,
             cut_off=cutoff,
             max_calc=max_calc,
+            tags=tags,
         )
 
-    def update_sankey(
+    def update_tree(
         self,
         demand: dict,
         method: tuple,
@@ -213,6 +224,7 @@ class TreeNavigatorWidget(BaseNavigatorWidget):
         scenario_lca: bool = False,
         cut_off=0.05,
         max_calc=100,
+        tags=None,
     ) -> None:
         """Calculate LCA, do graph traversal, get JSON graph data for this, and send to javascript."""
 
@@ -224,7 +236,7 @@ class TreeNavigatorWidget(BaseNavigatorWidget):
             # this Graph is already cached, generate the tree with Graph cached data
             log.debug(f"CACHED tree for: {demand}, {method}, key: {cache_key}")
             self.graph.new_graph(data)
-            self.has_sankey = bool(self.graph.json_data)
+            self.has_rendered_once = bool(self.graph.json_data)
             self.send_json()
             return
 
@@ -262,7 +274,7 @@ class TreeNavigatorWidget(BaseNavigatorWidget):
 
         # generate the new Graph
         self.graph.new_graph(data)
-        self.has_sankey = bool(self.graph.json_data)
+        self.has_rendered_once = bool(self.graph.json_data)
         self.send_json()
 
     def set_database(self, name):
@@ -275,7 +287,7 @@ class TreeNavigatorWidget(BaseNavigatorWidget):
             method = bd.methods.random()
             act = bd.Database(self.selected_db).random()
             demand = {act: 1.0}
-            self.update_sankey(demand, method)
+            self.update_tree(demand, method)
         else:
             QtWidgets.QMessageBox.information(
                 None, "Not possible.", "Please load a database first."
