@@ -1,17 +1,18 @@
 import json
 import time
-from heapq import heappush
-from typing import List, Optional, Dict
+from typing import List, Optional
 
 import bw2calc as bc
 import bw2data as bd
 from PySide2 import QtWidgets
 from PySide2.QtCore import Slot
 from PySide2.QtWidgets import QComboBox
-from bw2calc import LCA
 from bw_graph_tools.graph_traversal import Edge as GraphEdge
-from bw_graph_tools.graph_traversal import StatefulGraphTraversal
 from bw_graph_tools.graph_traversal import Node as GraphNode
+from bw_graph_tools.graph_traversal import (
+    SameNodeEachVisitGraphTraversal,
+    SupplyChainTraversalSettings,
+)
 
 from activity_browser import log, signals
 from activity_browser.mod import bw2data as bd
@@ -238,16 +239,17 @@ class TreeNavigatorWidget(BaseNavigatorWidget):
             lca = bc.LCA(demand=fu, data_objs=data_objs)
             lca.lci()
             lca.lcia()
-            data = StatefulGraphTraversal(
-                lca_object=lca, cutoff=cut_off, max_calc=max_calc, max_depth=1
+            data = SameNodeEachVisitGraphTraversal(
+                lca=lca,
+                settings=SupplyChainTraversalSettings(
+                    cutoff=cut_off, max_calc=max_calc
+                ),
             )
+            data.traverse(max_depth=1)
 
             # store the metadata from this calculation
             data.metadata = {
-                "lca": lca,
                 "unit": bd.methods[method]["unit"],
-                "cut_off": cut_off,
-                "max_calc": max_calc,
             }
         except (ValueError, ZeroDivisionError) as e:
             QtWidgets.QMessageBox.information(
@@ -299,10 +301,10 @@ class Graph(BaseGraph):
 
     def __init__(self):
         super().__init__()
-        self.state_graph: Optional["StatefulGraphTraversal"] = None
+        self.state_graph: Optional["SameNodeEachVisitGraphTraversal"] = None
 
     @staticmethod
-    def get_data_from_state_graph(state_graph: "StatefulGraphTraversal"):
+    def get_data_from_state_graph(state_graph: "SameNodeEachVisitGraphTraversal"):
         return {
             "nodes": state_graph.nodes,
             "edges": state_graph.edges,
@@ -311,13 +313,13 @@ class Graph(BaseGraph):
             "metadata": state_graph.metadata,
         }
 
-    def new_graph(self, state_graph: "StatefulGraphTraversal"):
+    def new_graph(self, state_graph: "SameNodeEachVisitGraphTraversal"):
         self.state_graph = state_graph
         self.json_data = Graph.get_json_data(state_graph)
         self.update()
 
     @staticmethod
-    def get_json_data(state_graph: "StatefulGraphTraversal") -> str:
+    def get_json_data(state_graph: "SameNodeEachVisitGraphTraversal") -> str:
         """Transform graph traversal output to JSON data.
 
         We use the [dagre](https://github.com/dagrejs/dagre) javascript library for rendering directed graphs. We need to provide the following:
@@ -352,9 +354,9 @@ class Graph(BaseGraph):
         ```
 
         """
-        lca_score = state_graph.lca_object.score
+        lca_score = state_graph.lca.score
         lcia_unit = state_graph.metadata["unit"]
-        demand = state_graph.lca_object.demand
+        demand = state_graph.lca.demand
 
         def convert_edge_to_json(
             edge: GraphEdge,
@@ -384,7 +386,7 @@ class Graph(BaseGraph):
             lcia_unit: str,
             max_name_length: int = 20,
         ) -> dict:
-            expanded = state_graph.traversed_node(graph_node.unique_id)
+            expanded = graph_node.unique_id in state_graph.visited_nodes
             db_node = bd.get_node(id=graph_node.activity_datapackage_id)
             data = {
                 "direct_emissions_score_normalized": graph_node.direct_emissions_score
