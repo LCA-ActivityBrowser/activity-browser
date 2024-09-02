@@ -54,8 +54,10 @@ class DatabasesModel(EditablePandasModel):
         self._dataframe = pd.DataFrame(data, columns=self.HEADERS)
         self.endResetModel()
 
-    def flags(self, index: QModelIndex):
+    def flags(self, index: QModelIndex) -> Qt.ItemFlags:
         """Only allow editing of rows where the read-only flag is not set."""
+        if not index.isValid():
+            return Qt.ItemFlag.NoItemFlags
         read_only = self._dataframe.iat[index.row(), 2]
         # Skip the EditablePandasModel.flags() because it always returns the editable
         # flag
