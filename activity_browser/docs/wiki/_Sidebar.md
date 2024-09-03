@@ -1,44 +1,44 @@
 #### Navigation
 ___
-○ [**Home**](./Home.md)
+○ [**Home**](Home)
 
 <details><summary><b>Getting Started & Help</b></summary>
 
-- [Installation Guide](./Getting_Started.md#installation-guide)
-- [First steps](./Getting_Started.md#first-steps)
-- [Need Help?](./Getting_Started.md#need-help)
+- [Installation Guide](Getting-Started#installation-guide)
+- [First steps](Getting-Started#first-steps)
+- [Need Help?](Getting-Started#need-help)
 </details>
 
 <details><summary><b>Tutorials</b></summary>
 
-- [General](Tutorials.md#general)
-- [Managing activities and databases](Tutorials.md#managing-activities-and-databases)
-- [Uncertainty](Tutorials.md#uncertainty)
-- [Flow Scenarios](Tutorials.md#flow-scenarios)
-- [Parameters](Tutorials.md#parameters)
+- [General](Tutorials#general)
+- [Managing activities and databases](Tutorials#managing-activities-and-databases)
+- [Uncertainty](Tutorials#uncertainty)
+- [Flow Scenarios](Tutorials#flow-scenarios)
+- [Parameters](Tutorials#parameters)
 </details>
 
 ___
-○ [**Projects**](Projects.md)
+○ [**Projects**](Projects)
 
-○ [**Databases**](Databases.md)
+○ [**Databases**](Databases)
 
-○ [**Activities**](Activities.md)
+○ [**Activities**](Activities)
 
-○ [**Impact Categories**](Impact_Categories.md)
+○ [**Impact Categories**](Impact_Categories)
 
 <details><summary><b>LCA calculation setup</b></summary>
 
-- [Overview](LCA_calculation_setups.md)
-- [Scenarios](Flow_scenarios.md)
-- [Parameters](Parameters.md#scenarios)
+- [Overview](LCA_calculation_setups)
+- [Scenarios](Flow_scenarios)
+- [Parameters](Parameters#scenarios)
 </details>
 
 <details><summary><b>LCA results</b></summary>
 
-- [Overview](LCA_results.md)
-- [Contribution Analysis](LCA_results.md#contribution-analysis)
-- [Sankey](LCA_results.md#sankey)
+- [Overview](LCA_results)
+- [Contribution Analysis](LCA_results#contribution-analysis)
+- [Sankey](LCA_results#sankey)
 </details>
 
 ___
@@ -46,14 +46,14 @@ ___
 
 - <details><summary>Uncertainty in LCA</summary>
 
-  - [Uncertainty](Uncertainty.md)
-  - [Monte Carlo Simulation](Uncertainty.md#monte-carlo-simulation)
-  - [Global Sensitivity Analysis](Uncertainty.md#global-sensitivity-analysis)
+  - [Uncertainty](Uncertainty)
+  - [Monte Carlo Simulation](Uncertainty#monte-carlo-simulation)
+  - [Global Sensitivity Analysis](Uncertainty#global-sensitivity-analysis)
   </details>
 
 - <details><summary>Scenarios</summary>
 
-  - [Flow Scenarios](Flow_scenarios.md)  
-  - [Parameter Scenarios](Parameters.md)
+  - [Flow Scenarios](Flow_scenarios)  
+  - [Parameter Scenarios](Parameters)
   </details>
 </details>

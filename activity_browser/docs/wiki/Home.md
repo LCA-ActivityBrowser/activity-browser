@@ -11,32 +11,32 @@ The wiki aims to help users get started and to document all features in Activity
 
 # Getting started
 **Check out these resources to get you started with Activity Browser**
-- [Installation guide](Getting_Started.md#installation-guide)
-- [Updating Activity Browser](Getting_Started.md#first-steps)
-- [First steps](Getting_Started.md#first-steps)
-  - [User interface](Getting_Started.md#user-interface)
-  - [Understanding Activity Browser terms](Getting_Started.md#understanding-activity-browser-terms)
-  - [Setting up a project](Getting_Started.md#setting-up-a-project)
-  - [LCI databases](Getting_Started.md#lci-databases)
-  - [Running an LCA calculation](Getting_Started.md#running-an-lca-calculation)
-- [Additional Resources](Getting_Started.md#additional-resources)
-- [Need help?](Getting_Started.md#first-steps)
+- [Installation guide](Getting-Started#installation-guide)
+- [Updating Activity Browser](Getting-Started#first-steps)
+- [First steps](Getting-Started#first-steps)
+  - [User interface](Getting-Started#user-interface)
+  - [Understanding Activity Browser terms](Getting-Started#understanding-activity-browser-terms)
+  - [Setting up a project](Getting-Started#setting-up-a-project)
+  - [LCI databases](Getting-Started#lci-databases)
+  - [Running an LCA calculation](Getting-Started#running-an-lca-calculation)
+- [Additional Resources](Getting-Started#additional-resources)
+- [Need help?](Getting-Started#first-steps)
 
 ___
 # Tutorials
-Have a look at our [tutorials page](./Tutorials.md) to follow along with examples.
+Have a look at our [tutorials page](Tutorials) to follow along with examples.
 
-- [Follow a tutorial to do your first LCA](Tutorials.md#your-first-lca)
+- [Follow a tutorial to do your first LCA](Tutorials#your-first-lca)
 
 ___
 # Documentation
 
-- [Projects](Projects.md)
-- [Databases](Databases.md)
-- [Activities](Activities.md)
-- [Impact Categories](Impact_Categories.md)
-- [LCA Calculation Setups](LCA_calculation_setups.md)
-- [LCA Results](LCA_results.md)
-- [Uncertainty](Uncertainty.md)
-- [Flow Scenarios](Flow_scenarios.md)  
-- [Parameter Scenarios](Parameters.md)
+- [Projects](Projects)
+- [Databases](Databases)
+- [Activities](Activities)
+- [Impact Categories](Impact_Categories)
+- [LCA Calculation Setups](LCA_calculation_setups)
+- [LCA Results](LCA_results)
+- [Uncertainty](Uncertainty)
+- [Flow Scenarios](Flow_scenarios)  
+- [Parameter Scenarios](Parameters)

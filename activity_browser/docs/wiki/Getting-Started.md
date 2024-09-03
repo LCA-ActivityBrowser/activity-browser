@@ -112,7 +112,7 @@ relevant and compatible data.
 
 **... screenshot of relevant dialog**
 
-[Read more about projects...](Projects.md)
+[Read more about projects...](Projects)
 
 ## LCI databases
 After adding the default data, you can create or import a database with the `New` and `Import Database` buttons. 
@@ -123,7 +123,7 @@ After adding the default data, you can create or import a database with the `New
 With `New` you can create a completely empty database with any given name and
 enter your own activity data.
 
-[Read more about activities...](Activities.md)
+[Read more about activities...](Activities)
 
 ### Importing databases
 Clicking 'Import' will open a new dialog that will allow you to select how you want to import data into brightway 
@@ -151,17 +151,17 @@ We support various local import methods
 - Local Brightway database file
 </details>
 
-[Read more about databases...](Databases.md)
+[Read more about databases...](Databases)
 
 ## Running an LCA calculation
 To run an LCA, you must first create a calculation setup, add at least one reference flow and one impact category 
 to be able to calculate results.
 
-[Read more about LCA calculation setups...](LCA_calculation_setups.md)
+[Read more about LCA calculation setups...](LCA_calculation_setups)
 
-[Read more about LCA results...](LCA_results.md)
+[Read more about LCA results...](LCA_results)
 
-[Follow a tutorial to do your first LCA...](Tutorials.md#your-first-lca)
+[Follow a tutorial to do your first LCA...](Tutorials#your-first-lca)
 
 # Additional Resources
 - [Youtube tutorials](https://www.youtube.com/channel/UCsyySKrzEMsRFsWW1Oz-6aA/)

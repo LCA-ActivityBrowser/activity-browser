@@ -22,8 +22,8 @@ Write in a few sentences what reader will learn (what problem to solve) from fol
 ### Before you start
 > [!IMPORTANT]
 > Make sure you have/know the following:
-> - [x] [Have a working installation of Activity Browser](Getting_Started.md#installation-guide)
-> - [x] [Have a project set up](Getting_Started.md#setting-up-a-project) 
+> - [x] [Have a working installation of Activity Browser](Getting-Started#installation-guide)
+> - [x] [Have a project set up](Getting-Started#setting-up-a-project) 
 > - [x] ...
 
 ### 1. ...
@@ -51,8 +51,8 @@ and water use impact.
 ### Before you start
 > [!IMPORTANT]
 > Make sure you have/know the following:
-> - [x] [Have a working installation of Activity Browser](Getting_Started.md#installation-guide)
-> - [x] [Have a project set up](Getting_Started.md#setting-up-a-project)
+> - [x] [Have a working installation of Activity Browser](Getting-Started#installation-guide)
+> - [x] [Have a project set up](Getting-Started#setting-up-a-project)
 > - [x] Know the basics of LCA
 
 ### 1. Create a new database
