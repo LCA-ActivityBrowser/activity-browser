@@ -24,25 +24,20 @@ class MethodDelete(ABAction):
     @staticmethod
     @exception_dialogs
     def run(methods: List[tuple], level: str):
-        # this action can handle only one selected method for now
-        selected_method = methods[0]
-
         # check whether we're dealing with a leaf or node. If it's a node, select all underlying methods for deletion
         if level is not None and level != "leaf":
             all_methods = [
-                bd.Method(method)
-                for method in bd.methods
-                if set(selected_method).issubset(method)
+                bd.Method(method_name)
+                for method_name in methods
             ]
         else:
-            all_methods = [bd.Method(selected_method)]
+            all_methods = [bd.Method(methods[0])]
 
         # warn the user about the pending deletion
         warning = QtWidgets.QMessageBox.warning(
             application.main_window,
             "Deleting Method",
-            f"Are you sure you want to delete this method and possible underlying "
-            f"methods?\n\n{selected_method}",
+            f"Are you sure you want to delete {len(all_methods)} methods?",
             QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
             QtWidgets.QMessageBox.No,
         )
