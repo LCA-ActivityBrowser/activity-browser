@@ -7,11 +7,16 @@ import bw2data as bd
 from PySide2 import QtWidgets
 from PySide2.QtCore import Slot
 from PySide2.QtWidgets import QComboBox
-from bw_graph_tools.graph_traversal import Edge as GraphEdge
-from bw_graph_tools.graph_traversal import Node as GraphNode
 from bw_graph_tools.graph_traversal import (
     SameNodeEachVisitGraphTraversal,
+    SameNodeEachVisitTaggedGraphTraversal,
     SupplyChainTraversalSettings,
+    TaggedSupplyChainTraversalSettings,
+)
+from bw_graph_tools.graph_traversal.graph_objects import (
+    Node as GraphNode,
+    Edge as GraphEdge,
+    GroupedNodes as GraphGroupedNodes,
 )
 
 from activity_browser import log, signals
@@ -181,7 +186,7 @@ class TreeNavigatorWidget(BaseNavigatorWidget):
 
         # tags
         self.tag_cb.clear()
-        self.tag_cb.addItems(AB_metadata.get_tag_names())
+        self.tag_cb.addItems(sorted(list(AB_metadata.get_tag_names())))
 
         # unblock signals
         for b in block_signals:
@@ -231,7 +236,14 @@ class TreeNavigatorWidget(BaseNavigatorWidget):
         # the cache key consists of demand/method/scenario indices (index of item in the relevant tables),
         # the cutoff, max_calc.
         # together, these are unique.
-        cache_key = (demand_index, method_index, scenario_index, cut_off, max_calc)
+        cache_key = (
+            demand_index,
+            method_index,
+            scenario_index,
+            cut_off,
+            max_calc,
+            str(tags),
+        )
         if data := self.cache.get(cache_key, False):
             # this Graph is already cached, generate the tree with Graph cached data
             log.debug(f"CACHED tree for: {demand}, {method}, key: {cache_key}")
@@ -251,13 +263,21 @@ class TreeNavigatorWidget(BaseNavigatorWidget):
             lca = bc.LCA(demand=fu, data_objs=data_objs)
             lca.lci()
             lca.lcia()
-            data = SameNodeEachVisitGraphTraversal(
-                lca=lca,
-                settings=SupplyChainTraversalSettings(
-                    cutoff=cut_off, max_calc=max_calc
-                ),
-            )
-            data.traverse(max_depth=1)
+            if tags:
+                data = SameNodeEachVisitTaggedGraphTraversal(
+                    lca=lca,
+                    settings=TaggedSupplyChainTraversalSettings(
+                        tags=tags, cutoff=cut_off, max_calc=max_calc
+                    ),
+                )
+            else:
+                data = SameNodeEachVisitGraphTraversal(
+                    lca=lca,
+                    settings=SupplyChainTraversalSettings(
+                        cutoff=cut_off, max_calc=max_calc
+                    ),
+                )
+            data.traverse(max_depth=2)
 
             # store the metadata from this calculation
             data.metadata = {
@@ -378,9 +398,13 @@ class Graph(BaseGraph):
             max_edge_width: int = 40,
         ) -> dict:
             cum_score = nodes[edge.producer_unique_id].cumulative_score
-            unit = bd.get_node(
-                id=nodes[edge.producer_unique_id].reference_product_datapackage_id
-            ).get("unit", "(unknown)")
+            node = nodes[edge.producer_unique_id]
+            if isinstance(node, GraphGroupedNodes):
+                unit = ""
+            else:
+                unit = bd.get_node(
+                    id=nodes[edge.producer_unique_id].reference_product_datapackage_id
+                ).get("unit", "(unknown)")
             return {
                 "source_id": edge.producer_unique_id,
                 "target_id": edge.consumer_unique_id,
@@ -399,36 +423,55 @@ class Graph(BaseGraph):
             max_name_length: int = 20,
         ) -> dict:
             expanded = graph_node.unique_id in state_graph.visited_nodes
-            db_node = bd.get_node(id=graph_node.activity_datapackage_id)
-            data = {
-                "direct_emissions_score_normalized": graph_node.direct_emissions_score
-                / (total_score or 1),
-                "direct_emissions_score": graph_node.direct_emissions_score,
-                "cumulative_score": graph_node.cumulative_score,
-                "cumulative_score_normalized": graph_node.cumulative_score
-                / (total_score or 1),
-                "product": db_node.get("reference product", ""),
-                "location": db_node.get("location", "(unknown)"),
-                "id": graph_node.unique_id,
-                "database_id": graph_node.activity_datapackage_id,
-                "database": db_node["database"],
-                "class": (
-                    "demand"
-                    if graph_node.activity_datapackage_id in fu
-                    else identify_activity_type(db_node)
-                ),
-                "name": db_node.get("name", "(unnamed)"),
-                "expanded": expanded,
-            }
+            if isinstance(graph_node, GraphGroupedNodes):
+                data = {
+                    "direct_emissions_score_normalized": graph_node.direct_emissions_score
+                    / (total_score or 1),
+                    "direct_emissions_score": graph_node.direct_emissions_score,
+                    "cumulative_score": graph_node.cumulative_score,
+                    "cumulative_score_normalized": graph_node.cumulative_score
+                    / (total_score or 1),
+                    "product": "",
+                    "location": "",
+                    "id": graph_node.unique_id,
+                    "database_id": "",
+                    "database": "",
+                    "class": "",
+                    "name": graph_node.label,
+                    "expanded": expanded,
+                }
+            else:
+                db_node = bd.get_node(id=graph_node.activity_datapackage_id)
+                data = {
+                    "direct_emissions_score_normalized": graph_node.direct_emissions_score
+                    / (total_score or 1),
+                    "direct_emissions_score": graph_node.direct_emissions_score,
+                    "cumulative_score": graph_node.cumulative_score,
+                    "cumulative_score_normalized": graph_node.cumulative_score
+                    / (total_score or 1),
+                    "product": db_node.get("reference product", ""),
+                    "location": db_node.get("location", "(unknown)"),
+                    "id": graph_node.unique_id,
+                    "database_id": graph_node.activity_datapackage_id,
+                    "database": db_node["database"],
+                    "class": (
+                        "demand"
+                        if graph_node.activity_datapackage_id in fu
+                        else identify_activity_type(db_node)
+                    ),
+                    "name": db_node.get("name", "(unnamed)"),
+                    "expanded": expanded,
+                }
             frac_dir_score = round(data["direct_emissions_score_normalized"] * 100, 2)
             dir_score = round(data["direct_emissions_score"], 3)
             frac_cum_score = round(data["cumulative_score_normalized"] * 100, 2)
             cum_score = round(data["cumulative_score"], 3)
-            data[
-                "label"
-            ] = f"""{db_node['name'][:max_name_length]}
-{data['location']}
-{frac_dir_score}%"""
+            if isinstance(graph_node, GraphGroupedNodes):
+                data["label"] = data["name"]
+            else:
+                data["label"] = "{}\n{}\n{}".format(
+                    db_node["name"][:max_name_length], data["location"], frac_dir_score
+                )
             data[
                 "tooltip"
             ] = f"""
