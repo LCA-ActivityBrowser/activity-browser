@@ -81,7 +81,7 @@ jobs:
       - canary-installs-mamba
     steps:
       - name: Download all artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4.1.7
       - name: show files
         run: |
           ls -la
