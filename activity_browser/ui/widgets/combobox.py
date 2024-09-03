@@ -44,7 +44,6 @@ class CheckableComboBox(QComboBox):
         super().resizeEvent(event)
 
     def eventFilter(self, object, event):
-        print(object, event)
         if event.type() in [QEvent.KeyPress, QEvent.KeyRelease] and (
             event.key() in [Qt.Key_Enter, Qt.Key_Return]
         ):
