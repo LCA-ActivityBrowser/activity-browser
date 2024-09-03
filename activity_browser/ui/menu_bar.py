@@ -169,9 +169,13 @@ class ImportICMenu(QtWidgets.QMenu):
         self.setIcon(qicons.import_db)
 
         self.import_from_ei_excel_action = actions.MethodImporterEcoinvent.get_QAction()
+        self.import_from_bw2io_action = actions.MethodImporterBW2IO.get_QAction()
 
         self.import_from_ei_excel_action.setText("from ecoinvent excel")
+        self.import_from_bw2io_action.setText("from bw2io")
 
         self.import_from_ei_excel_action.setIcon(QtGui.QIcon())
+        self.import_from_bw2io_action.setIcon(QtGui.QIcon())
 
         self.addAction(self.import_from_ei_excel_action)
+        self.addAction(self.import_from_bw2io_action)

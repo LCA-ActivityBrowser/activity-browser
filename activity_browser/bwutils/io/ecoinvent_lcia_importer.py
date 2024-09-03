@@ -22,14 +22,23 @@ class EcoinventLCIAImporter(LCIAImporter):
     A class for importing ecoinvent-compatible LCIA methods
 
     """
+    def __init__(self, filepath, biosphere=None):
+        self.strategies = []
+        self.applied_strategies = []
+        self.filepath = filepath
+        self.biosphere_name = biosphere
 
-    def __init__(self, file: str, biosphere_database: str | None = None):
+        if self.biosphere_name:
+            self.set_biosphere(self.biosphere_name)
+
+    @classmethod
+    def setup_with_ei_excel(cls, file: str, biosphere_database: str | None = None):
         """Initialize an instance of EcoinventLCIAImporter.
 
         Defines strategies in ``__init__`` because ``config.biosphere`` is dynamic.
         """
-        self.file = file
-        self.strategies = [
+        importer = cls(file, biosphere_database)
+        importer.strategies = [
             normalize_units,
             set_biosphere_type,
             drop_unspecified_subcategories,
@@ -39,9 +48,9 @@ class EcoinventLCIAImporter(LCIAImporter):
                 fields=("name", "categories"),
             ),
         ]
-        self.applied_strategies = []
-        self.cf_data, self.units = convert_lcia_methods_data(self.file)
-        self.separate_methods()
+        importer.cf_data, importer.units = convert_lcia_methods_data(file)
+        importer.separate_methods()
+        return importer
 
     def set_biosphere(self, biosphere_database: str):
         self.strategies = [
@@ -52,6 +61,7 @@ class EcoinventLCIAImporter(LCIAImporter):
                 link_iterable_by_fields,
                 other=Database(biosphere_database),
                 fields=("name", "categories"),
+                relink=True,
             ),
         ]
 
@@ -79,7 +89,7 @@ class EcoinventLCIAImporter(LCIAImporter):
 
             if line["method"] not in self.data:
                 self.data[line["method"]] = {
-                    "filename": self.file,
+                    "filename": self.filepath,
                     "unit": self.units.get(line["method"], ""),
                     "name": line["method"],
                     "description": "",

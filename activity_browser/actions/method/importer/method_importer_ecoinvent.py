@@ -106,7 +106,7 @@ class ImportSetupDialog(QtWidgets.QDialog):
 
     def check_overwrite(self, prepend=None) -> int:
         overwrite = 0
-        for name in self.importer.units.keys():
+        for name in [x["name"] for x in self.importer.data]:
             if prepend:
                 name = tuple([prepend, *name])
 
@@ -140,7 +140,7 @@ class ExtractExcelThread(threading.ABThread):
     path: str
 
     def run_safely(self):
-        importer = EcoinventLCIAImporter(self.path)
+        importer = EcoinventLCIAImporter.setup_with_ei_excel(self.path)
         self.loaded.emit(importer)
 
 
