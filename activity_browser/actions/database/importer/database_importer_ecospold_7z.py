@@ -12,12 +12,12 @@ from activity_browser.bwutils.io.ecoinvent_importer import Ecoinvent7zImporter
 log = getLogger(__name__)
 
 
-class DatabaseImporterEcoinvent7z(ABAction):
+class DatabaseImporterEcospold7z(ABAction):
     """ABAction to open the DatabaseImportWizard"""
 
     icon = icons.qicons.import_db
-    text = "Import database from ecoinvent .7z file"
-    tool_tip = "Import database from ecoinvent .7z file"
+    text = "Import database from ecospold .7z file"
+    tool_tip = "Import database from ecospold .7z file"
 
     @staticmethod
     @exception_dialogs

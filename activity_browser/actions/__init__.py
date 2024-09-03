@@ -20,7 +20,7 @@ from .database.database_delete import DatabaseDelete
 from .database.database_duplicate import DatabaseDuplicate
 from .database.database_relink import DatabaseRelink
 
-from .database.importer.database_importer_ecoinvent_7z import DatabaseImporterEcoinvent7z
+from .database.importer.database_importer_ecospold_7z import DatabaseImporterEcospold7z
 from .database.importer.database_importer_excel import DatabaseImporterExcel
 from .database.importer.database_importer_bw2package import DatabaseImporterBW2Package
 from .database.importer.database_importer_ecoinvent_interface import DatabaseImporterEcoinventInterface

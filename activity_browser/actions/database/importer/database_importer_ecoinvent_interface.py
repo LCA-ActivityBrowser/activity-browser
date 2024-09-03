@@ -11,7 +11,7 @@ from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.mod.ecoinvent_interface import ABEcoinventRelease
 from activity_browser.bwutils.io.ecoinvent_importer import Ecoinvent7zImporter
 
-from .database_importer_ecoinvent_7z import EcoinventSetupLayout
+from .database_importer_ecospold_7z import EcoinventSetupLayout
 
 log = getLogger(__name__)
 
