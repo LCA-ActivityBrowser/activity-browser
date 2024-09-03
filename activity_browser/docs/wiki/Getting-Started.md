@@ -157,9 +157,9 @@ We support various local import methods
 To run an LCA, you must first create a calculation setup, add at least one reference flow and one impact category 
 to be able to calculate results.
 
-[Read more about LCA calculation setups...](LCA_calculation_setups)
+[Read more about LCA calculation setups...](LCA-Calculation_Setups)
 
-[Read more about LCA results...](LCA_results)
+[Read more about LCA results...](LCA-Results)
 
 [Follow a tutorial to do your first LCA...](Tutorials#your-first-lca)
 
