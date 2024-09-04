@@ -18,8 +18,6 @@ class CustomAllocationEditor(QDialog):
                  parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         self.setWindowTitle("Define custom allocation")
-        # Default width is too small, default height is too big
-        self.resize(400, 300)
         self._database_label = database_label
         self._selected_property = old_property
         title = QLabel(f"Define custom allocation for {database_label}")
@@ -72,6 +70,8 @@ class CustomAllocationEditor(QDialog):
         splitter = QSplitter(Qt.Orientation.Vertical)
         splitter.addWidget(self._property_table)
         splitter.addWidget(self._status_text)
+        splitter.setStretchFactor(0, 1)
+        splitter.setStretchFactor(1, 0)
         layout.addWidget(splitter)
         button_layout = QHBoxLayout()
         button_layout.addWidget(self._save_button)
@@ -79,6 +79,14 @@ class CustomAllocationEditor(QDialog):
         layout.addLayout(button_layout)
         self.setLayout(layout)
         self.setStyleSheet("QTableView:!active {selection-background-color: lightgray;}")
+        # Default width is too small, default height is too big
+        self.resize(400, 400)
+        # The QPlainTextEdit is too tall, this (together with the stretch factor) 
+        # is a way to setting it to fixed height when the dialog is resized.
+        # The user can still make it bigger using the splitter.
+        # These sizes are adjusted by the splitter, so they only set the 
+        # proportions.
+        splitter.setSizes([300, 100])
 
     def _fill_table(self):
         property_list = list_available_properties(self._database_label)
