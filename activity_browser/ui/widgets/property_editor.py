@@ -20,10 +20,10 @@ class PropertyEditor(QtWidgets.QDialog):
         super().__init__(parent)
         self.setWindowTitle("Property Editor")
         self._data_model = PropertyModel(read_only)
+        self._data_model.value_error.connect(self._handle_value_error)
         if not read_only:
             self._data_model.dataChanged.connect(self._handle_data_changed)
         self._editor_table = PropertyTable(self._data_model)
-        self._editor_table.populate(properties)
         self._save_button = QtWidgets.QPushButton("Save changes")
         self._save_button.setEnabled(False)
         self._save_button.clicked.connect(self.accept)
@@ -34,6 +34,7 @@ class PropertyEditor(QtWidgets.QDialog):
         self._save_button.setAutoDefault(False)
         self._cancel_button.setAutoDefault(False)
         self._message_label = QtWidgets.QLabel()
+        self._errors = ""
         if read_only:
             self._message_label.setText(self.MESSAGE_READ_ONLY)
         else:
@@ -47,6 +48,18 @@ class PropertyEditor(QtWidgets.QDialog):
         layout.addLayout(button_layout)
         layout.addWidget(self._message_label)
         self.setLayout(layout)
+
+        self._editor_table.populate(properties)
+
+    def _handle_value_error(self, property: str, type: str, error_value: str):
+        self._errors += f"\nProperty {property}, type: {type}, value `{error_value}`"
+        self._message_label.setText(
+            "Error: there are some non-numerical property values!\n"
+            "These will be overwritten on save with the displayed values.\n"
+            "Make some changes to enable saving."
+            "Properties in error:"
+            + self._errors
+        )
 
     def properties(self) -> dict[str, float]:
         """Access method to get the result of the editing"""
