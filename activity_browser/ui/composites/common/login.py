@@ -1,10 +1,12 @@
 from PySide2 import QtWidgets
 from PySide2.QtCore import Signal, SignalInstance
 
+from activity_browser.ui.composites import ABComposite
 
-class LoginLayout(QtWidgets.QVBoxLayout):
+
+class LoginComposite(ABComposite):
     """
-    Layout that contains username and password textboxes. Will check whether both are filled in and signal
+    Composite that contains username and password textboxes. Will check whether both are filled in and signal
     valid or invalid accordingly.
     """
     valid: SignalInstance = Signal(bool)
@@ -49,10 +51,14 @@ class LoginLayout(QtWidgets.QVBoxLayout):
         self.username.textChanged.connect(self.validate)
         self.password.textChanged.connect(self.validate)
 
+        layout = QtWidgets.QVBoxLayout()
+
         if label:
-            self.addWidget(self.label)
-        self.addWidget(self.username)
-        self.addWidget(self.password)
+            layout.addWidget(self.label)
+        layout.addWidget(self.username)
+        layout.addWidget(self.password)
+
+        self.setLayout(layout)
 
     def validate(self) -> bool:
         """
@@ -66,3 +72,15 @@ class LoginLayout(QtWidgets.QVBoxLayout):
             self.valid.emit(False)
             self.invalid.emit(True)
             return False
+
+
+if __name__ == '__main__':
+    import sys
+    from activity_browser import application
+
+    comp = LoginComposite()
+    comp.show()
+
+    sys.exit(application.exec_())
+
+

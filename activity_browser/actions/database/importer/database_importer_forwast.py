@@ -5,12 +5,11 @@ from logging import getLogger
 import requests
 import zipfile
 import tempfile
-from PySide2 import QtWidgets, QtCore
+from PySide2 import QtWidgets
 
 from activity_browser import application
-from activity_browser.mod import bw2data as bd
 from activity_browser.actions.base import ABAction, exception_dialogs
-from activity_browser.ui import icons, widgets, layouts, threading
+from activity_browser.ui import icons, widgets, threading, composites
 from activity_browser.bwutils.importers import ABPackage
 
 log = getLogger(__name__)
@@ -49,21 +48,21 @@ class ImportSetupDialog(QtWidgets.QDialog):
         self.setWindowTitle("Import database from Forwast")
 
         # Create db name textbox
-        self.db_name_layout = layouts.DatabaseNameLayout(
+        self.db_name_comp = composites.DatabaseNameComposite(
             label="Set database name:",
             database_preset="Forwast",
         )
-        self.db_name_layout.database_name.textChanged.connect(self.validate)
+        self.db_name_comp.database_name.textChanged.connect(self.validate)
 
         # Create buttons
-        self.buttons = layouts.HorizontalButtonsLayout("Cancel", "*OK")
+        self.buttons = composites.HorizontalButtonsComposite("Cancel", "*OK")
         self.buttons["Cancel"].clicked.connect(self.reject)
         self.buttons["OK"].clicked.connect(self.accept)
 
         # Create layout and add widgets
         layout = QtWidgets.QVBoxLayout()
-        layout.addLayout(self.db_name_layout)
-        layout.addLayout(self.buttons)
+        layout.addWidget(self.db_name_comp)
+        layout.addWidget(self.buttons)
 
         # Set the dialog layout
         self.setLayout(layout)
@@ -71,13 +70,13 @@ class ImportSetupDialog(QtWidgets.QDialog):
 
     def validate(self):
         """Validate the user input and enable the OK button if all is clear"""
-        valid = bool(self.db_name_layout.database_name.text())  # the textbox has been filled in
+        valid = bool(self.db_name_comp.database_name.text())  # the textbox has been filled in
 
         self.buttons["OK"].setEnabled(valid)
 
     def accept(self):
         """Correctly set the dialog's attributes for further use in the action"""
-        self.database_name = self.db_name_layout.database_name.text()
+        self.database_name = self.db_name_comp.database_name.text()
         super().accept()
 
 

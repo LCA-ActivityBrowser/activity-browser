@@ -1,12 +1,12 @@
 from logging import getLogger
 
-from PySide2 import QtWidgets, QtCore
+from PySide2 import QtWidgets
 from PySide2.QtCore import Signal, SignalInstance
 
 from activity_browser import application
 from activity_browser.mod import bw2data as bd
 from activity_browser.actions.base import ABAction, exception_dialogs
-from activity_browser.ui import icons, threading, widgets, layouts
+from activity_browser.ui import icons, threading, widgets, composites
 from activity_browser.bwutils.importers import ABExcelImporter
 
 log = getLogger(__name__)
@@ -38,6 +38,7 @@ class DatabaseImporterExcel(ABAction):
         extract_thread.start()
 
     @staticmethod
+    @exception_dialogs
     def write_database(importer: ABExcelImporter):
         # show the import setup dialog
         import_dialog = ImportSetupDialog(importer, application.main_window)
@@ -68,19 +69,19 @@ class ImportSetupDialog(QtWidgets.QDialog):
 
         self.setWindowTitle("Import database from Excel")
 
-        self.db_name_layout = layouts.DatabaseNameLayout(label="Input database name:", database_preset=importer.db_name)
-        self.button_layout = layouts.HorizontalButtonsLayout("Cancel", "*OK")
+        self.db_name_comp = composites.DatabaseNameComposite(label="Input database name:", database_preset=importer.db_name)
+        self.button_comp = composites.HorizontalButtonsComposite("Cancel", "*OK")
 
         # Connect the necessary signals
-        self.db_name_layout.database_name.textChanged.connect(self.validate)
-        self.button_layout["OK"].clicked.connect(self.accept)
-        self.button_layout["Cancel"].clicked.connect(self.reject)
+        self.db_name_comp.database_name.textChanged.connect(self.validate)
+        self.button_comp["OK"].clicked.connect(self.accept)
+        self.button_comp["Cancel"].clicked.connect(self.reject)
 
         # Create final layout
         layout = QtWidgets.QVBoxLayout()
-        layout.addLayout(self.db_name_layout)
+        layout.addWidget(self.db_name_comp)
         layout.addLayout(self.get_linking_layout())
-        layout.addLayout(self.button_layout)
+        layout.addWidget(self.button_comp)
 
         # Set the dialog layout
         self.setLayout(layout)
@@ -134,14 +135,14 @@ class ImportSetupDialog(QtWidgets.QDialog):
     def validate(self):
         """Validate the user input and enable the OK button if all is clear"""
         valid = (
-                bool(self.db_name_layout.database_name.text())  # the textbox has been filled in
+                bool(self.db_name_comp.database_name.text())  # the textbox has been filled in
                 and not [i for i in self.build_linking_dict().values() if i == ""]  # no link dropdowns are empty
         )
-        self.button_layout["OK"].setEnabled(valid)
+        self.button_comp["OK"].setEnabled(valid)
 
     def accept(self):
         """Correctly set the dialog's attributes for further use in the action"""
-        self.database_name = self.db_name_layout.database_name.text()
+        self.database_name = self.db_name_comp.database_name.text()
         self.linking_dict = self.build_linking_dict()
         super().accept()
 

@@ -1,12 +1,15 @@
 from PySide2 import QtWidgets, QtCore
+
+from activity_browser.ui.composites import ABComposite
 import activity_browser.mod.bw2data as bd
 
 
-class DatabaseNameLayout(QtWidgets.QVBoxLayout):
+class DatabaseNameComposite(ABComposite):
     """
-    Simple LineEdit layout that will check whether the database name provided by the user already exist and warn
+    Simple LineEdit composite that will check whether the database name provided by the user already exist and warn
     the user accordingly.
     """
+    textChanged: QtCore.SignalInstance = QtCore.Signal(str)
 
     def __init__(self,
                  label: str | None = "",
@@ -35,6 +38,7 @@ class DatabaseNameLayout(QtWidgets.QVBoxLayout):
         self.database_name = QtWidgets.QLineEdit()
         self.database_name.setPlaceholderText(database_placeholder)
         self.database_name.setText(database_preset)
+        self.database_name.textChanged.connect(self.textChanged.emit)
 
         # Only show warning when a string is given
         if overwrite_warning:
@@ -47,10 +51,14 @@ class DatabaseNameLayout(QtWidgets.QVBoxLayout):
             f"<p style='color: red; font-size: small;'>{overwrite_warning}</p>")
         self.warning.setHidden(True)
 
+        layout = QtWidgets.QVBoxLayout()
+
         if label:
-            self.addWidget(self.label)
-        self.addWidget(self.database_name)
-        self.addWidget(self.warning)
+            layout.addWidget(self.label)
+        layout.addWidget(self.database_name)
+        layout.addWidget(self.warning)
+
+        self.setLayout(layout)
 
     def name_check(self):
         """Slot to check whether the database already exists and show the warning if so"""
@@ -58,3 +66,18 @@ class DatabaseNameLayout(QtWidgets.QVBoxLayout):
             self.warning.setHidden(False)
         else:
             self.warning.setHidden(True)
+
+    @property
+    def text(self):
+        return self.database_name.text()
+
+
+if __name__ == '__main__':
+    import sys
+    from activity_browser import application
+
+    comp = DatabaseNameComposite()
+    comp.show()
+
+    sys.exit(application.exec_())
+

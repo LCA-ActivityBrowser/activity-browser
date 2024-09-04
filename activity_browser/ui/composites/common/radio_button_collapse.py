@@ -1,24 +1,27 @@
 from PySide2 import QtWidgets
 
+from activity_browser.ui.composites import ABComposite
 
-class RadioButtonCollapseLayout(QtWidgets.QVBoxLayout):
+
+class RadioButtonCollapseComposite(ABComposite):
     """
-    Layout that shows different 'views' depending on what radio button is clicked. After initialization you may
+    Composite that shows different 'views' depending on what radio button is clicked. After initialization you may
     add different options through the add_option method. These are displayed horizontally and only shown when the
     corresponding radiobutton is clicked.
     """
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, parent=None):
+        super().__init__(parent)
 
         self._options = {}
         self.button_group = QtWidgets.QButtonGroup()
+        self.setLayout(QtWidgets.QVBoxLayout())
 
     def __getitem__(self, item):
         """Give option name, returns tuple of the corresponding button and view_widget"""
         return self._options[item]
 
-    def add_option(self, name: str, label: str, view: QtWidgets.QWidget | QtWidgets.QLayout):
+    def add_option(self, name: str, label: str, view: QtWidgets.QWidget):
         """
         Add a collapsible option to the layout.
 
@@ -29,15 +32,9 @@ class RadioButtonCollapseLayout(QtWidgets.QVBoxLayout):
             label : `str`
                 Label to be shown next to the radio button. Append a * to disable the button, a # to hide the button,
                 or a ~ to select the button.
-            view : `QtWidgets.QWidget | QtWidgets.QLayout`
-                Either a QWidget or a QLayout that will be shown once the radio button is checked by the user
+            view : `QtWidgets.QWidget`
+                A QWidget that will be shown once the radio button is checked by the user
         """
-        # QLayouts cannot be hidden, so we need to wrap it into a QtWidget (Or ViewWidget in this case)
-        if isinstance(view, QtWidgets.QLayout):
-            widget = ViewWidget()
-            widget.setLayout(view)
-            view = widget
-
         # set the view hidden by default
         view.setHidden(True)
 
@@ -66,8 +63,9 @@ class RadioButtonCollapseLayout(QtWidgets.QVBoxLayout):
         # add the button and view to the correct locations
         self.button_group.addButton(button)
         self._options[name] = (button, view)
-        self.addWidget(button)
-        self.addWidget(view)
+
+        self.layout().addWidget(button)
+        self.layout().addWidget(view)
 
     def hide_all(self, uncheck=True):
         """
@@ -97,12 +95,7 @@ class RadioButtonCollapseLayout(QtWidgets.QVBoxLayout):
 
     def view(self, name: str) -> QtWidgets.QWidget | QtWidgets.QLayout:
         """Returns the view associated with the given name"""
-        view = self._options[name][1]
-
-        # if the instance is a ViewWidget, return the associated layout
-        if isinstance(view, ViewWidget):
-            view = view.layout()
-        return view
+        return self._options[name][1]
 
     def current_option(self) -> None | str:
         """Returns the name of the currently checked option. Returns None if nothing is selected"""
@@ -112,10 +105,15 @@ class RadioButtonCollapseLayout(QtWidgets.QVBoxLayout):
         return button.objectName()
 
 
-class ViewWidget(QtWidgets.QWidget):
-    """Only exists to differentiate between normal QWidgets and Widgets that exist to contain a layout"""
-    def setLayout(self, layout):
-        """This will remove any unwanted margins that come from packing the layout inside another widget"""
-        layout.setContentsMargins(0, 0, 0, 0)
-        super().setLayout(layout)
+if __name__ == '__main__':
+    import sys
+    from activity_browser import application
+
+    comp = RadioButtonCollapseComposite()
+    comp.add_option("option_1", "Option 1", QtWidgets.QLabel("This is one option"))
+    comp.add_option("option_2", "Option 2", QtWidgets.QLabel("This is another option"))
+    comp.show()
+
+    sys.exit(application.exec_())
+
 

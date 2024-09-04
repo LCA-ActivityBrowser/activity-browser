@@ -1,12 +1,10 @@
 from logging import getLogger
 
-from PySide2 import QtWidgets, QtCore
-from PySide2.QtCore import Signal, SignalInstance
+from PySide2 import QtWidgets
 
 from activity_browser import application
-from activity_browser.mod import bw2data as bd
 from activity_browser.actions.base import ABAction, exception_dialogs
-from activity_browser.ui import icons, threading, widgets, layouts
+from activity_browser.ui import icons, threading, widgets, composites
 from activity_browser.bwutils.io.ecoinvent_importer import Ecoinvent7zImporter
 
 log = getLogger(__name__)
@@ -75,90 +73,21 @@ class ImportSetupDialog(QtWidgets.QDialog):
         super().__init__(parent)
 
         # create layouts
-        self.login_layout = EcoinventSetupLayout()
-        self.login_layout.rejected.connect(self.reject)
-        self.login_layout.accepted.connect(self.accept)
+        self.setup_comp = composites.EcoinventSetupComposite()
+        self.setup_comp.rejected.connect(self.reject)
+        self.setup_comp.accepted.connect(self.accept)
 
-        self.setLayout(self.login_layout)
+        layout = QtWidgets.QVBoxLayout()
+        #layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(self.setup_comp)
+        self.setLayout(layout)
 
     def accept(self):
         """Correctly set the dialog's attributes for further use in the action"""
-        self.database_name = self.login_layout.get_database_name()
-        self.biosphere_name = self.login_layout.get_biosphere_name()
-        self.import_biosphere = self.login_layout.get_biosphere_choice() == "import"
+        self.database_name = self.setup_comp.get_database_name()
+        self.biosphere_name = self.setup_comp.get_biosphere_name()
+        self.import_biosphere = self.setup_comp.get_biosphere_choice() == "import"
         super().accept()
-
-
-class EcoinventSetupLayout(layouts.DatabaseNameLayout):
-    rejected: SignalInstance = Signal()
-    accepted: SignalInstance = Signal()
-
-    def __init__(self):
-        # initialize superclass with an ecoinvent focus
-        super().__init__(
-            label="Set ecoinvent database name"
-        )
-        # validate when the database name is changed by the user
-        self.database_name.textChanged.connect(self.validate)
-
-        # setup the biosphere choice section
-        self.biosphere_choice = layouts.RadioButtonCollapseLayout()
-
-        # add option to connect to an existing biosphere database
-        self.biosphere_choice.add_option(
-            name="existing",
-            label="Link to an existing biosphere",
-            view=widgets.ABComboBox.get_database_combobox()
-        )
-        self.biosphere_choice.button("existing").clicked.connect(self.validate)
-
-        # add option to install the supplied biosphere database
-        self.biosphere_choice.add_option(
-            name="import",
-            label="Import included biosphere",
-            view=layouts.DatabaseNameLayout(label=None, database_placeholder="Set biosphere name")
-        )
-        self.biosphere_choice.button("import").clicked.connect(self.validate)
-        self.biosphere_choice.view("import").database_name.textChanged.connect(self.validate)
-
-        # set up the buttons at the bottom of the layout and connect the signals
-        self.buttons = layouts.HorizontalButtonsLayout("Cancel", "*~Import")
-        self.buttons["Cancel"].clicked.connect(self.rejected.emit)
-        self.buttons["Import"].clicked.connect(self.accepted.emit)
-
-        # finalize the layout
-        self.addLayout(self.biosphere_choice)
-        self.addLayout(self.buttons)
-
-        self.validate()
-
-    def get_database_name(self) -> str:
-        return self.database_name.text()
-
-    def get_biosphere_choice(self) -> None | str:
-        return self.biosphere_choice.current_option()
-
-    def get_biosphere_name(self) -> None | str:
-        choice = self.get_biosphere_choice()
-        if choice == "existing":
-            return self.biosphere_choice.view(choice).currentText()
-        if choice == "import":
-            return self.biosphere_choice.view(choice).database_name.text()
-        else:
-            return None
-
-    def validate(self):
-        valid = (
-            bool(self.get_database_name())
-            and (
-                self.get_biosphere_choice() == "existing"
-                or (
-                    self.get_biosphere_choice() == "import"
-                    and bool(self.get_biosphere_name())
-                )
-            )
-        )
-        self.buttons["Import"].setEnabled(valid)
 
 
 class ImportBiosphereThread(threading.ABThread):

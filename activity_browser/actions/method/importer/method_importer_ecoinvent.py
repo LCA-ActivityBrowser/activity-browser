@@ -6,7 +6,7 @@ from PySide2.QtCore import Signal, SignalInstance
 from activity_browser import application
 from activity_browser.mod import bw2data as bd
 from activity_browser.actions.base import ABAction, exception_dialogs
-from activity_browser.ui import icons, threading, widgets, layouts
+from activity_browser.ui import icons, threading, widgets, composites
 from activity_browser.bwutils.io.ecoinvent_lcia_importer import EcoinventLCIAImporter
 
 log = getLogger(__name__)
@@ -74,7 +74,7 @@ class ImportSetupDialog(QtWidgets.QDialog):
         self.setWindowTitle("Import methods from ecoinvent Excel")
 
         self.db_chooser = widgets.ABComboBox.get_database_combobox(self)
-        self.button_layout = layouts.HorizontalButtonsLayout("Cancel", "*OK")
+        self.button_comp = composites.HorizontalButtonsComposite("Cancel", "*OK")
 
         self.info = QtWidgets.QLabel()
         self.info.setWordWrap(True)
@@ -87,8 +87,8 @@ class ImportSetupDialog(QtWidgets.QDialog):
         self.prepend_textbox.textChanged.connect(self.check_overwrite)
 
         # Connect the necessary signals
-        self.button_layout["OK"].clicked.connect(self.accept)
-        self.button_layout["Cancel"].clicked.connect(self.reject)
+        self.button_comp["OK"].clicked.connect(self.accept)
+        self.button_comp["Cancel"].clicked.connect(self.reject)
 
         # Create final layout
         layout = QtWidgets.QVBoxLayout()
@@ -97,7 +97,7 @@ class ImportSetupDialog(QtWidgets.QDialog):
         layout.addWidget(self.prepend_label)
         layout.addWidget(self.prepend_textbox)
         layout.addWidget(self.info)
-        layout.addLayout(self.button_layout)
+        layout.addWidget(self.button_layout)
 
         # Set the dialog layout
         self.setLayout(layout)

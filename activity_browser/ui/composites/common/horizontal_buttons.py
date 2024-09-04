@@ -1,8 +1,10 @@
 from PySide2 import QtWidgets
 from PySide2.QtCore import Signal, SignalInstance
 
+from activity_browser.ui.composites import ABComposite
 
-class HorizontalButtonsLayout(QtWidgets.QHBoxLayout):
+
+class HorizontalButtonsComposite(ABComposite):
     """
     Layout that will display buttons horizontally. Will signal clicked together with the button name when a button is
     clicked
@@ -17,6 +19,7 @@ class HorizontalButtonsLayout(QtWidgets.QHBoxLayout):
         super().__init__()
 
         self._buttons = {}
+        layout = QtWidgets.QHBoxLayout()
 
         # for each button_name in args, create a button and connect accordingly
         for button_name in args:
@@ -43,8 +46,23 @@ class HorizontalButtonsLayout(QtWidgets.QHBoxLayout):
 
             # add the button accordingly
             self._buttons[button_name] = button
-            self.addWidget(button)
+
+            layout.addWidget(button)
+
+        self.setLayout(layout)
 
     def __getitem__(self, item) -> QtWidgets.QPushButton:
         """Buttons can be indexed based on their provided name"""
         return self._buttons[item]
+
+
+if __name__ == '__main__':
+    import sys
+    from activity_browser import application
+
+    comp = HorizontalButtonsComposite("Test", "*Test", "#Test", "~Test")
+    comp.show()
+
+    sys.exit(application.exec_())
+
+
