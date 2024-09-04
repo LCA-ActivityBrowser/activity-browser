@@ -24,6 +24,7 @@ class CustomAllocationEditor(QDialog):
         self._selected_property = old_property
         title = QLabel(f"Define custom allocation for {database_label}")
         self._property_table = QTableWidget()
+        self._property_table.setSortingEnabled(True)
         self._property_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self._property_table.itemSelectionChanged.connect(
             self._handle_table_selection_changed
@@ -41,6 +42,7 @@ class CustomAllocationEditor(QDialog):
         self._property_table.horizontalHeader().setDefaultAlignment(Qt.AlignLeft)
         self._property_table.horizontalHeader().setStretchLastSection(True)
         self._property_table.verticalHeader().setVisible(False)
+        self._property_table.sortByColumn(0, Qt.SortOrder.AscendingOrder)
 
         self._property_table.setSelectionMode(
             QAbstractItemView.SelectionMode.SingleSelection
@@ -76,12 +78,17 @@ class CustomAllocationEditor(QDialog):
         button_layout.addWidget(self._cancel_button)
         layout.addLayout(button_layout)
         self.setLayout(layout)
+        self.setStyleSheet("QTableView:!active {selection-background-color: lightgray;}")
 
     def _fill_table(self):
         property_list = list_available_properties(self._database_label)
         self._property_table.clearContents()
-        self._property_table.setRowCount(len(property_list))
+        # Disable sorting while filling the table, otherwise the
+        # inserted items will move between setting the property name 
+        # and status.
+        self._property_table.setSortingEnabled(False)
 
+        self._property_table.setRowCount(len(property_list))
         row = 0
         for property, type in property_list:
             self._property_table.setItem(row, 0, QTableWidgetItem(property))
@@ -96,6 +103,7 @@ class CustomAllocationEditor(QDialog):
                 self._property_table.item(row, 0).setForeground(
                     style_item.brushes["warning"])
             row += 1
+        self._property_table.setSortingEnabled(True)
 
     def _get_property_for_row(self, row: int) -> str:
         property_item = self._property_table.item(row, 0)
