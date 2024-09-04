@@ -89,6 +89,11 @@ class CustomAllocationEditor(QDialog):
         splitter.setSizes([300, 100])
 
     def _fill_table(self):
+        """
+        Add the list of of available properties and their status to the table
+        (calculated using list_available_properties) and color them
+        according to the status.
+        """
         property_list = list_available_properties(self._database_label)
         self._property_table.clearContents()
         # Disable sorting while filling the table, otherwise the
@@ -133,6 +138,10 @@ class CustomAllocationEditor(QDialog):
                 break
             
     def _handle_table_selection_changed(self):
+        """
+        Execute check_property_for_allocation for the selected property
+        and display its output in the status text.
+        """
         property = self._get_current_property()
         messages = check_property_for_allocation(self._database_label, property)
         if isinstance(messages, bool):
@@ -148,16 +157,28 @@ class CustomAllocationEditor(QDialog):
             self._status_text.setPlainText(text)
 
     def _handle_select(self):
+        """
+        Create a custom allocation based on the selected property using
+        add_custom_property_allocation_to_project.
+        """
         self._selected_property = self._get_current_property()
         if not self._selected_property in allocation_strategies:
             add_custom_property_allocation_to_project(self._selected_property)
         self.accept()
 
     def selected_property(self) -> str:
+        """
+        Return the property the user selected, or the old one if the user
+        cancelled the dialog.
+        """
         return self._selected_property
 
     @staticmethod
     def define_custom_allocation(old_property: str, database_label: str, parent: Optional[QWidget] = None) -> str:
+        """
+        Open the custom allocation editor and return the new property, if the user
+        selected one, or the old one if the user cancelled the dialog.
+        """
         editor = CustomAllocationEditor(old_property, database_label, parent)
         if editor.exec_() == QDialog.DialogCode.Accepted:
             return editor.selected_property()
