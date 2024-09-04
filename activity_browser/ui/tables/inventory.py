@@ -38,7 +38,9 @@ class DatabasesTable(ABDataFrameView):
             options.append(DatabasesModel.CUSTOM_ALLOCATION)
             return options
         
-        self.setItemDelegateForColumn(4, ComboboxDelegate(allocation_options, self))
+        combo_delegate = ComboboxDelegate(allocation_options, self)
+        combo_delegate.set_early_commit_item(DatabasesModel.CUSTOM_ALLOCATION)
+        self.setItemDelegateForColumn(4, combo_delegate)
         self.setEditTriggers(
             QtWidgets.QAbstractItemView.EditTrigger.DoubleClicked |
             QtWidgets.QAbstractItemView.EditTrigger.SelectedClicked
