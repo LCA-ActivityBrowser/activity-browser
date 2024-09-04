@@ -93,10 +93,13 @@ class TableItemStyle:
         "duplicate": (200, 0, 0),
         "deleted": (180, 180, 180),
         "new": (0, 200, 0),
+        "good": (0, 200, 0),
+        "warning": (200, 200, 0),
+        "critical": (200, 0, 0),
     }
 
     def __init__(self):
-        self.brushes = {}
+        self.brushes: dict[str, QtGui.QBrush] = {}
         for key, values in self.COLOR_CODE.items():
             self.brushes.update({key: QtGui.QBrush(QtGui.QColor(*values))})
 

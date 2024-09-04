@@ -29,9 +29,15 @@ class DatabasesTable(ABDataFrameView):
         self.verticalHeader().setVisible(False)
         self.setSelectionMode(QtWidgets.QTableView.SingleSelection)
         self.setItemDelegateForColumn(2, CheckboxDelegate(self))
-        allocation_options = list(allocation_strategies.keys())
-        # Make the unspecified value the first in the list of options
-        allocation_options.insert(0, DatabasesModel.UNSPECIFIED_ALLOCATION)
+        # Use a callable for the delegate, so that every newly created combobox
+        # uses an up-to-date value
+        def allocation_options() -> list[str]:
+            options = list(allocation_strategies.keys())
+            # Make the unspecified value the first in the list of options
+            options.insert(0, DatabasesModel.UNSPECIFIED_ALLOCATION)
+            options.append(DatabasesModel.CUSTOM_ALLOCATION)
+            return options
+        
         self.setItemDelegateForColumn(4, ComboboxDelegate(allocation_options, self))
         self.setEditTriggers(
             QtWidgets.QAbstractItemView.EditTrigger.DoubleClicked |

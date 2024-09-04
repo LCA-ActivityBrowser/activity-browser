@@ -4,6 +4,7 @@ from multifunctional import allocation_strategies
 
 from activity_browser import actions, project_settings, signals
 from activity_browser.logger import log
+from activity_browser.ui.widgets.custom_allocation_editor import CustomAllocationEditor
 
 from ...bwutils import AB_metadata
 from ..icons import qicons
@@ -50,6 +51,7 @@ class ActivityDataGrid(QtWidgets.QWidget):
     Exchange data is displayed separately, below this grid, in tables.
     """
     DATABASE_DEFINED_ALLOCATION = "(database default)"
+    CUSTOM_ALLOCATION = "Custom..."
 
 
     def __init__(self, parent, read_only=True):
@@ -100,22 +102,13 @@ class ActivityDataGrid(QtWidgets.QWidget):
         if is_multifunctional:
             # Default allocation combobox
             self.def_alloc_combo = QtWidgets.QComboBox()
-            allocation_options = list(allocation_strategies.keys())
-            # Make the unspecified value the first in the list of options
-            allocation_options.insert(0, self.DATABASE_DEFINED_ALLOCATION)
-            self.def_alloc_combo.insertItems(0, allocation_options)
-            index = 0
-            if (process_alloc := parent.activity.get("default_allocation")) is not None:
-                try:
-                    index = allocation_options.index(process_alloc)
-                except ValueError:
-                    log.error(f"Invalid Default allocation value {process_alloc} for process {parent.key}")
-
-            self.def_alloc_combo.setCurrentIndex(index)
+            self._refresh_def_alloc_combo_values()
             self.def_alloc_combo.currentTextChanged.connect(self._handle_def_alloc_changed)
             self.def_alloc_combo.setToolTip(
                 "Use dropdown menu to change the default allocation"
             )
+        else: 
+            self.def_alloc_combo = None
 
         # arrange widgets for display as a grid
         self.grid = QtWidgets.QGridLayout()
@@ -131,7 +124,7 @@ class ActivityDataGrid(QtWidgets.QWidget):
         self.grid.addWidget(self.location_combo, 2, 2, 1, -1)
         self.grid.addWidget(self.database_combo, 3, 2, 1, -1)
         self.grid.addWidget(self.database_label, 3, 1)
-        if is_multifunctional:
+        if self.def_alloc_combo:
             self.grid.addWidget(QtWidgets.QLabel("Default Allocation"), 4, 1)
             self.grid.addWidget(self.def_alloc_combo, 4, 2, 1, -1)
 
@@ -213,7 +206,26 @@ class ActivityDataGrid(QtWidgets.QWidget):
         self.read_only = read_only
         self.name_box.setReadOnly(self.read_only)
         self.location_combo.setEnabled(not self.read_only)
-        self.def_alloc_combo.setEnabled(not self.read_only)
+        if self.def_alloc_combo:
+            self.def_alloc_combo.setEnabled(not self.read_only)
+
+    def _refresh_def_alloc_combo_values(self):
+        if self.def_alloc_combo:
+            allocation_options = list(allocation_strategies.keys())
+            # Make the unspecified value the first in the list of options
+            allocation_options.insert(0, self.DATABASE_DEFINED_ALLOCATION)
+            index = 0
+            if (process_alloc := self.parent.activity.get("default_allocation")) is not None:
+                try:
+                    index = allocation_options.index(process_alloc)
+                except ValueError:
+                    log.error(f"Invalid Default allocation value '{process_alloc}'"
+                              f" for process {self.parent.key}")
+            # Append custom option after the index has been calculated
+            allocation_options.append(self.CUSTOM_ALLOCATION)
+            self.def_alloc_combo.clear()
+            self.def_alloc_combo.insertItems(0, allocation_options)
+            self.def_alloc_combo.setCurrentIndex(index)
 
     def _handle_def_alloc_changed(self, selection: str):
         changed = False
@@ -222,6 +234,18 @@ class ActivityDataGrid(QtWidgets.QWidget):
             if current_def_alloc is not None:
                 del self.parent.activity["default_allocation"]
                 changed = True
+        elif selection == self.CUSTOM_ALLOCATION:
+            db = self.parent.activity.get("database", "")
+            custom_value = CustomAllocationEditor.define_custom_allocation(
+                                current_def_alloc, db, self
+                            )
+            if custom_value != current_def_alloc:
+                self.parent.activity["default_allocation"] = custom_value
+                self._refresh_def_alloc_combo_values()
+                changed = True
+            # Update the selected text of the combo in both cases, so it is not
+            # stuck on "Custom..."
+            self.def_alloc_combo.setCurrentText(custom_value)
         elif current_def_alloc != selection:
             self.parent.activity["default_allocation"] = selection
             changed = True

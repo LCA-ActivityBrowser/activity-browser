@@ -11,6 +11,7 @@ from activity_browser import log, project_settings
 from activity_browser.bwutils import AB_metadata
 from activity_browser.bwutils import commontasks as bc
 from activity_browser.mod.bw2data import databases, projects
+from activity_browser.ui.widgets.custom_allocation_editor import CustomAllocationEditor
 
 from .base import DragPandasModel, EditablePandasModel, PandasModel
 
@@ -18,6 +19,7 @@ from .base import DragPandasModel, EditablePandasModel, PandasModel
 class DatabasesModel(EditablePandasModel):
     HEADERS = ["Name", "Records", "Read-only", "Depends", "Def. Alloc.", "Modified"]
     UNSPECIFIED_ALLOCATION = "(unspecified)"
+    CUSTOM_ALLOCATION = "Custom..."
 
     def __init__(self, parent=None):
         super().__init__(parent=parent)
@@ -76,6 +78,16 @@ class DatabasesModel(EditablePandasModel):
                     if self.data(current_alloc_idx) == self.UNSPECIFIED_ALLOCATION:
                         if databases[current_db].get("default_allocation") is not None:
                             del databases[current_db]["default_allocation"]
+                    elif self.data(current_alloc_idx) == self.CUSTOM_ALLOCATION:
+                        current = databases[current_db].get("default_allocation")
+                        custom_value = CustomAllocationEditor.define_custom_allocation(
+                            current, current_db, self.parent()
+                        )
+                        if custom_value != current:
+                            databases[current_db]["default_allocation"] = custom_value
+                        # No need to reset the "Custom..." value in the cell, because the
+                        # flush below will trigger a refresh of the table from the persistent
+                        # data
                     else:
                         databases[current_db]["default_allocation"] = self.data(current_alloc_idx)
                 databases.flush()
