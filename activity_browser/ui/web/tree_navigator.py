@@ -277,7 +277,7 @@ class TreeNavigatorWidget(BaseNavigatorWidget):
                         cutoff=cut_off, max_calc=max_calc
                     ),
                 )
-            data.traverse(max_depth=2)
+            data.traverse(depth=2)
 
             # store the metadata from this calculation
             data.metadata = {
