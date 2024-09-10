@@ -20,6 +20,7 @@ class DatabasesModel(EditablePandasModel):
     HEADERS = ["Name", "Records", "Read-only", "Depends", "Def. Alloc.", "Modified"]
     UNSPECIFIED_ALLOCATION = "(unspecified)"
     CUSTOM_ALLOCATION = "Custom..."
+    NOT_APPLICABLE = "Not applicable"
 
     def __init__(self, parent=None):
         super().__init__(parent=parent)
@@ -48,23 +49,30 @@ class DatabasesModel(EditablePandasModel):
                     "Modified": dt,
                     "Records": bc.count_database_records(name),
                     "Read-only": database_read_only,
-                    "Def. Alloc.": databases[name].get("default_allocation", 
-                                                       self.UNSPECIFIED_ALLOCATION)
+                    "Def. Alloc.": self._get_alloc_value(name),
                 }
             )
 
         self._dataframe = pd.DataFrame(data, columns=self.HEADERS)
         self.endResetModel()
 
+    @staticmethod
+    def _get_alloc_value(db_name: str) -> str:
+        if databases[db_name].get("backend") != "multifunctional":
+            return DatabasesModel.NOT_APPLICABLE
+        return databases[db_name].get("default_allocation", 
+                                      DatabasesModel.UNSPECIFIED_ALLOCATION)
+
     def flags(self, index: QModelIndex) -> Qt.ItemFlags:
         """Only allow editing of rows where the read-only flag is not set."""
         if not index.isValid():
             return Qt.ItemFlag.NoItemFlags
         read_only = self._dataframe.iat[index.row(), 2]
+        multifunctional = self._dataframe.iat[index.row(), 4] != self.NOT_APPLICABLE
         # Skip the EditablePandasModel.flags() because it always returns the editable
         # flag
         result = PandasModel.flags(self, index)
-        if not read_only:
+        if not read_only and multifunctional:
             result |= Qt.ItemIsEditable
         return result
     

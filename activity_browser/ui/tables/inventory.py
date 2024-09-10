@@ -116,7 +116,12 @@ class DatabasesTable(ABDataFrameView):
             read_only_idx = self.proxy_model.index(index.row(), 2)
             rd_only = self.proxy_model.data(read_only_idx)
 
-            if index.column() != 4 or rd_only == True:
+            def_alloc_idx = self.proxy_model.index(index.row(), 4)
+            def_alloc_editable = bool(
+                self.proxy_model.flags(def_alloc_idx) & QtCore.Qt.ItemIsEditable
+            )
+
+            if index.column() != 4 or not def_alloc_editable:
                 signals.database_selected.emit(self.model.get_db_name(index))
 
     def current_database(self) -> str:
