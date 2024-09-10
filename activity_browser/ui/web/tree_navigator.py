@@ -10,8 +10,8 @@ from PySide2.QtWidgets import QComboBox
 from bw_graph_tools.graph_traversal import (
     SameNodeEachVisitGraphTraversal,
     SameNodeEachVisitTaggedGraphTraversal,
-    SupplyChainTraversalSettings,
-    TaggedSupplyChainTraversalSettings,
+    GraphTraversalSettings,
+    TaggedGraphTraversalSettings,
 )
 from bw_graph_tools.graph_traversal.graph_objects import (
     Node as GraphNode,
@@ -266,14 +266,13 @@ class TreeNavigatorWidget(BaseNavigatorWidget):
             if tags:
                 data = SameNodeEachVisitTaggedGraphTraversal(
                     lca=lca,
-                    settings=TaggedSupplyChainTraversalSettings(
+                    settings=TaggedGraphTraversalSettings(
                         tags=tags, cutoff=cut_off, max_calc=max_calc
                     ),
                 )
             else:
                 data = SameNodeEachVisitGraphTraversal(
                     lca=lca,
-                    settings=SupplyChainTraversalSettings(
                         cutoff=cut_off, max_calc=max_calc
                     ),
                 )
