@@ -28,4 +28,5 @@ from .parameters import (
     ParameterTreeModel,
     ProjectParameterModel,
 )
+from .properties import PropertyModel
 from .scenarios import ScenarioModel

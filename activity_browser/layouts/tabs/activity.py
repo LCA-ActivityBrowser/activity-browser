@@ -6,6 +6,7 @@ from PySide2.QtCore import Slot
 from activity_browser import ab_settings, project_settings, signals
 from activity_browser.bwutils import commontasks as bc
 from activity_browser.mod import bw2data as bd
+from activity_browser.ui.widgets.property_editor import PropertyEditor
 
 from ...ui.icons import qicons
 from ...ui.style import style_activity_tab
@@ -44,7 +45,11 @@ class ActivitiesTab(ABTab):
         """Opens new tab or focuses on already open one."""
         if key not in self.tabs:
             act = bd.get_activity(key)
-            if not bc.is_technosphere_activity(act):
+            if act.get("type") not in bd.labels.node_types:
+                QtWidgets.QMessageBox.information(self,
+                    "Node can't be displayed",
+                    "Node can't be displayed because it isn't a process or a product",
+                    QtWidgets.QMessageBox.StandardButton.Ok)
                 return
             new_tab = ActivityTab(key, read_only, self)
 
@@ -82,13 +87,13 @@ class ActivityTab(QtWidgets.QWidget):
     The interface is a GUI representation of the standard activity data format as determined by Brightway
     This is necessitated as AB does not save its own data structures to disk
     Data format documentation is under the heading "The schema for an LCI dataset in voluptuous is:" at this link:
-    https://2.docs.brightway.dev/intro.html#database-is-a-subclass-of-datastore
+    https://docs.brightway.dev/en/latest/content/theory/structure.html#database-is-a-subclass-of-datastore
     Note that all activity data are optional.
     When activities contain exchanges, some fields are required (input, type, amount)
     Each exchange has a type: production, substitution, technosphere, or biosphere
     AB does not yet support 'substitution'. Other exchange types are shown in separate columns on this interface
     Required and other common exchange data fields are hardcoded as column headers in these tables
-    More detail available at: https://2.docs.brightway.dev/intro.html#exchange-data-format
+    More detail available at: https://docs.brightway.dev/en/latest/content/theory/structure.html#exchange-data-format
     The technosphere products (first table) of the visible activity are consumed by other activities downstream
     The final table of this tab lists these 'Downstream Consumers'
     """
@@ -139,6 +144,11 @@ class ActivityTab(QtWidgets.QWidget):
         self.checkbox_comment.setChecked(False)
         self.checkbox_comment.toggled.connect(self.show_comments)
 
+        # Properties button
+        properties = QtWidgets.QPushButton("Properties")
+        properties.clicked.connect(self.open_property_editor)
+        properties.setToolTip("Show the properties dialog")
+
         # Tags button
         self.tags_button = QtWidgets.QPushButton("Tags")
         self.tags_button.clicked.connect(self.open_tag_editor)
@@ -153,6 +163,7 @@ class ActivityTab(QtWidgets.QWidget):
         toolbar.addWidget(self.checkbox_activity_description)
         toolbar.addWidget(self.checkbox_uncertainty)
         toolbar.addWidget(self.checkbox_comment)
+        toolbar.addWidget(properties)
         toolbar.addWidget(self.tags_button)
 
         # Activity information
@@ -294,25 +305,7 @@ class ActivityTab(QtWidgets.QWidget):
             self.biosphere,
             self.downstream,
         ]:
-            if self.read_only:
-                table.setEditTriggers(QtWidgets.QTableView.NoEditTriggers)
-                table.setAcceptDrops(False)
-                table.delete_exchange_action.setEnabled(False)
-                table.remove_formula_action.setEnabled(False)
-                table.modify_uncertainty_action.setEnabled(False)
-                table.remove_uncertainty_action.setEnabled(False)
-                table.setSelectionMode(table.NoSelection)
-            else:
-                table.setEditTriggers(QtWidgets.QTableView.DoubleClicked)
-                table.delete_exchange_action.setEnabled(True)
-                table.remove_formula_action.setEnabled(True)
-                table.modify_uncertainty_action.setEnabled(True)
-                table.remove_uncertainty_action.setEnabled(True)
-                table.setSelectionMode(table.SingleSelection)
-                if (
-                    not table.downstream
-                ):  # downstream consumers table never accepts drops
-                    table.setAcceptDrops(True)
+            table.set_read_only_flag(self.read_only)
 
     @Slot(str, bool, name="dbReadOnlyToggle")
     def db_read_only_changed(self, db_name: str, db_read_only: bool) -> None:
@@ -350,6 +343,7 @@ class ActivityTab(QtWidgets.QWidget):
                 )
 
     def update_style(self) -> None:
+        # pass
         if self.read_only:
             self.setStyleSheet(style_activity_tab.style_sheet_read_only)
         else:
@@ -360,6 +354,12 @@ class ActivityTab(QtWidgets.QWidget):
             self.group_splitter.saveState()
         ).hex()
         ab_settings.write_settings()
+
+    def open_property_editor(self):
+        """Opens the property editor for the current """
+        # Do not save the changes if nothing changed
+        if PropertyEditor.edit_properties(self.activity, self.read_only, self):
+            self.activity.save()
 
     def open_tag_editor(self):
         """Opens the tag editor for the current"""
