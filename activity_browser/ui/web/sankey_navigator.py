@@ -259,7 +259,7 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
             else:
                 fu, data_objs, _ = bd.prepare_lca_inputs(demand=demand, method=method)
                 lca = bc.LCA(demand=fu, data_objs=data_objs)
-                lca.lci()
+                lca.lci(factorize=True)
                 lca.lcia()
                 data = NewNodeEachVisitGraphTraversal.calculate(
                     lca_object=lca, cutoff=cut_off, max_calc=max_calc
