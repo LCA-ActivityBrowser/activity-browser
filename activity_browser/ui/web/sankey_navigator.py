@@ -252,7 +252,7 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
                     scenario_index, demand, method_index
                 )
                 data = GraphTraversalWithScenario(self.parent.mlca).calculate(
-                    demand, method, cutoff=cut_off, max_calc=max_calc
+                    demand, method, cutoff=cut_off, max_calc=int(max_calc)
                 )
             else:
                 fu, data_objs, _ = bd.prepare_lca_inputs(demand=demand, method=method)
@@ -260,7 +260,7 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
                 lca.lci(factorize=True)
                 lca.lcia()
                 data = NewNodeEachVisitGraphTraversal.calculate(
-                    lca_object=lca, cutoff=cut_off, max_calc=max_calc
+                    lca_object=lca, cutoff=cut_off, max_calc=int(max_calc)
                 )
 
             # store the metadata from this calculation

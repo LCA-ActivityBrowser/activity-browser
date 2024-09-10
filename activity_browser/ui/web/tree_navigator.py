@@ -196,27 +196,16 @@ class TreeNavigatorWidget(BaseNavigatorWidget):
         """(re)-generate the tree diagram."""
         demand_index = self.func_unit_cb.currentIndex()
         method_index = self.method_cb.currentIndex()
-
-        demand = self.func_units[demand_index]
-        method = self.methods[method_index]
-        scenario_index = None
-        scenario_lca = False
-        if self.has_scenarios:
-            scenario_lca = True
-            scenario_index = self.scenario_cb.currentIndex()
-        cutoff = self.cutoff_sb.value()
-        max_calc = self.max_calc_sb.value()
-        tags = self.tag_cb.currentData()
         self.update_tree(
-            demand,
-            method,
+            self.func_units[demand_index],
+            self.methods[method_index],
             demand_index=demand_index,
             method_index=method_index,
-            scenario_index=scenario_index,
-            scenario_lca=scenario_lca,
-            cut_off=cutoff,
-            max_calc=max_calc,
-            tags=tags,
+            scenario_index=self.scenario_cb.currentIndex() if self.has_scenarios else None,
+            scenario_lca=bool(self.has_scenarios),
+            cut_off=self.cutoff_sb.value(),
+            max_calc=int(self.max_calc_sb.value()),
+            tags=self.tag_cb.currentData(),
         )
 
     def update_tree(
@@ -273,6 +262,7 @@ class TreeNavigatorWidget(BaseNavigatorWidget):
             else:
                 data = SameNodeEachVisitGraphTraversal(
                     lca=lca,
+                    settings=GraphTraversalSettings(
                         cutoff=cut_off, max_calc=max_calc
                     ),
                 )
