@@ -435,7 +435,7 @@ class Graph(BaseGraph):
     def build_json_node(act) -> dict:
         """Take an activity and return a valid JSON document."""
         return {
-            "db": act.key[0],
+            "database": act.key[0],
             "id": act.key[1],
             "product": act.get("reference product") or act.get("name"),
             "name": act.get("name"),

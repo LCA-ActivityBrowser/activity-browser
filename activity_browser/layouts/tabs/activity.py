@@ -16,7 +16,12 @@ from ...ui.tables import (
     ProductExchangeTable,
     TechnosphereExchangeTable,
 )
-from ...ui.widgets import ActivityDataGrid, DetailsGroupBox, SignalledPlainTextEdit
+from ...ui.widgets import (
+    ActivityDataGrid,
+    DetailsGroupBox,
+    SignalledPlainTextEdit,
+    TagEditor,
+)
 from ..panels.panel import ABTab
 
 
@@ -41,7 +46,7 @@ class ActivitiesTab(ABTab):
         if key not in self.tabs:
             act = bd.get_activity(key)
             if act.get("type") not in bd.labels.node_types:
-                QtWidgets.QMessageBox.information(self, 
+                QtWidgets.QMessageBox.information(self,
                     "Node can't be displayed",
                     "Node can't be displayed because it isn't a process or a product",
                     QtWidgets.QMessageBox.StandardButton.Ok)
@@ -144,6 +149,11 @@ class ActivityTab(QtWidgets.QWidget):
         properties.clicked.connect(self.open_property_editor)
         properties.setToolTip("Show the properties dialog")
 
+        # Tags button
+        self.tags_button = QtWidgets.QPushButton("Tags")
+        self.tags_button.clicked.connect(self.open_tag_editor)
+        self.tags_button.setToolTip("Show the tags dialog")
+
         # Toolbar Layout
         toolbar = QtWidgets.QToolBar()
         self.graph_action = toolbar.addAction(
@@ -154,6 +164,7 @@ class ActivityTab(QtWidgets.QWidget):
         toolbar.addWidget(self.checkbox_uncertainty)
         toolbar.addWidget(self.checkbox_comment)
         toolbar.addWidget(properties)
+        toolbar.addWidget(self.tags_button)
 
         # Activity information
         # this contains: activity name, location, database
@@ -348,4 +359,10 @@ class ActivityTab(QtWidgets.QWidget):
         """Opens the property editor for the current """
         # Do not save the changes if nothing changed
         if PropertyEditor.edit_properties(self.activity, self.read_only, self):
+            self.activity.save()
+
+    def open_tag_editor(self):
+        """Opens the tag editor for the current"""
+        # Do not save the changes if nothing changed
+        if TagEditor.edit(self.activity, self.read_only, self):
             self.activity.save()
