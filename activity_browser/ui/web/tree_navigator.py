@@ -261,7 +261,7 @@ class TreeNavigatorWidget(BaseNavigatorWidget):
                 )
             fu, data_objs, _ = bd.prepare_lca_inputs(demand=demand, method=method)
             lca = bc.LCA(demand=fu, data_objs=data_objs)
-            lca.lci()
+            lca.lci(factorize=True)
             lca.lcia()
             if tags:
                 data = SameNodeEachVisitTaggedGraphTraversal(
