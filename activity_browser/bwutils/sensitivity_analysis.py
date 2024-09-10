@@ -42,11 +42,11 @@ def get_lca(fu, method):
     return lca
 
 
-def filter_technosphere_exchanges(fu, method, cutoff=0.05, max_calc=1e4):
+def filter_technosphere_exchanges(fu, method, cutoff=0.05, max_calc=1000):
     """Use brightway's GraphTraversal to identify the relevant
     technosphere exchanges in a non-stochastic LCA."""
     start = time()
-    res = NewNodeEachVisitGraphTraversal.calculate(fu, method, cutoff=cutoff, max_calc=max_calc)
+    res = NewNodeEachVisitGraphTraversal.calculate(fu, method, cutoff=cutoff, max_calc=int(max_calc))
 
     # get all edges
     technosphere_exchange_indices = []
