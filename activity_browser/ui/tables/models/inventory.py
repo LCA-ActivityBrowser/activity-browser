@@ -8,6 +8,7 @@ from PySide2.QtCore import QModelIndex, Qt, Slot
 from PySide2.QtWidgets import QApplication
 
 from activity_browser import log, project_settings
+from activity_browser.actions.database.database_redo_allocation import DatabaseRedoAllocation
 from activity_browser.bwutils import AB_metadata
 from activity_browser.bwutils import commontasks as bc
 from activity_browser.mod.bw2data import databases, projects
@@ -60,7 +61,7 @@ class DatabasesModel(EditablePandasModel):
     def _get_alloc_value(db_name: str) -> str:
         if databases[db_name].get("backend") != "multifunctional":
             return DatabasesModel.NOT_APPLICABLE
-        return databases[db_name].get("default_allocation", 
+        return databases[db_name].get("default_allocation",
                                       DatabasesModel.UNSPECIFIED_ALLOCATION)
 
     def flags(self, index: QModelIndex) -> Qt.ItemFlags:
@@ -75,7 +76,7 @@ class DatabasesModel(EditablePandasModel):
         if not read_only and multifunctional:
             result |= Qt.ItemIsEditable
         return result
-    
+
     def _handle_data_changed(self, top_left: QModelIndex, bottom_right: QModelIndex, roles: list[Qt.ItemDataRole]):
         if top_left.isValid() and bottom_right.isValid():
             # Default allocation column
@@ -99,6 +100,8 @@ class DatabasesModel(EditablePandasModel):
                     else:
                         databases[current_db]["default_allocation"] = self.data(current_alloc_idx)
                 databases.flush()
+                DatabaseRedoAllocation.run(current_db)
+
 
 class ActivitiesBiosphereModel(DragPandasModel):
     def __init__(self, parent=None):

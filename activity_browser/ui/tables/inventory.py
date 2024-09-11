@@ -56,6 +56,9 @@ class DatabasesTable(ABDataFrameView):
         self.duplicate_db_action = actions.DatabaseDuplicate.get_QAction(
             self.current_database
         )
+        self.re_allocate_action = actions.DatabaseRedoAllocation.get_QAction(
+            self.current_database
+        )
 
         self.model = DatabasesModel(parent=self)
         self.update_proxy_model()
@@ -78,13 +81,14 @@ class DatabasesTable(ABDataFrameView):
         menu.addAction(self.relink_action)
         menu.addAction(self.duplicate_db_action)
         menu.addAction(self.new_activity_action)
+        menu.addAction(self.re_allocate_action)
         proxy = self.indexAt(event.pos())
         if proxy.isValid():
             db_name = self.model.get_db_name(proxy)
-            self.relink_action.setEnabled(not project_settings.db_is_readonly(db_name))
-            self.new_activity_action.setEnabled(
-                not project_settings.db_is_readonly(db_name)
-            )
+            db_read_only = project_settings.db_is_readonly(db_name)
+            self.relink_action.setEnabled(not db_read_only)
+            self.re_allocate_action.setEnabled(not db_read_only)
+            self.new_activity_action.setEnabled(not db_read_only)
         menu.exec_(event.globalPos())
 
     def mousePressEvent(self, e):

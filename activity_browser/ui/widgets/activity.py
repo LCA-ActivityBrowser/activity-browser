@@ -3,6 +3,7 @@ from PySide2 import QtCore, QtWidgets
 from multifunctional import allocation_strategies
 
 from activity_browser import actions, project_settings, signals
+from activity_browser.actions.database.database_redo_allocation import DatabaseRedoAllocation
 from activity_browser.logger import log
 from activity_browser.ui.widgets.custom_allocation_editor import CustomAllocationEditor
 
@@ -107,7 +108,7 @@ class ActivityDataGrid(QtWidgets.QWidget):
             self.def_alloc_combo.setToolTip(
                 "Use dropdown menu to change the default allocation"
             )
-        else: 
+        else:
             self.def_alloc_combo = None
 
         # arrange widgets for display as a grid
@@ -251,4 +252,5 @@ class ActivityDataGrid(QtWidgets.QWidget):
             changed = True
         if changed:
             self.parent.activity.save()
-            
+            DatabaseRedoAllocation.run(self.parent.activity.get("database", ""))
+

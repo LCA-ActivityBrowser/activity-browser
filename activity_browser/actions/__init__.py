@@ -19,6 +19,7 @@ from .database.database_export import DatabaseExport
 from .database.database_import import DatabaseImport
 from .database.database_new import DatabaseNew
 from .database.database_relink import DatabaseRelink
+from .database.database_redo_allocation import DatabaseRedoAllocation
 from .default_install import DefaultInstall
 from .exchange.exchange_copy_sdf import ExchangeCopySDF
 from .exchange.exchange_delete import ExchangeDelete
