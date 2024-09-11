@@ -36,12 +36,12 @@ dependencies = [
     "bw2analyzer>=0.11.5",
     "bw2calc>=2.0.dev20",
     "bw2data>=4.0.dev52",
-    "bw2io>=0.9.dev37"
+    "bw2io>=0.9.dev37",
     "bw_graph_tools>=0.5",
     "bw_processing>=1.0",
     "bw_simapro_csv >=0.2.4",
     "ecoinvent_interface",
-    "matrix_utils>=0.5"
+    "matrix_utils>=0.5",
     "multifunctional>=0.7.1",
     "networkx",
     "numpy>=1.23.5,<2",

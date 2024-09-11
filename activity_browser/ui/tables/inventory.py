@@ -5,7 +5,7 @@ from PySide2.QtCore import Slot
 from multifunctional import allocation_strategies
 
 from activity_browser import actions
-from activity_browser.ui.tables.delegates.combobox import ComboboxDelegate
+from activity_browser.ui.tables.delegates.combobox import ComboBoxDelegate
 
 from ...settings import project_settings
 from ...signals import signals
@@ -38,7 +38,7 @@ class DatabasesTable(ABDataFrameView):
             options.append(DatabasesModel.CUSTOM_ALLOCATION)
             return options
         
-        combo_delegate = ComboboxDelegate(allocation_options, self)
+        combo_delegate = ComboBoxDelegate(allocation_options, self)
         combo_delegate.set_early_commit_item(DatabasesModel.CUSTOM_ALLOCATION)
         self.setItemDelegateForColumn(4, combo_delegate)
         self.setEditTriggers(
