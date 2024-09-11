@@ -1,6 +1,7 @@
 from PySide2 import QtWidgets
 from PySide2.QtCore import Slot
 from PySide2.QtGui import QTextFormat
+from PySide2.QtWidgets import QCompleter
 
 from activity_browser import actions
 
@@ -80,3 +81,12 @@ class SignalledComboEdit(QtWidgets.QComboBox):
             self._before = after
             actions.ActivityModify.run(self._key, self._field, after)
         super(SignalledComboEdit, self).focusOutEvent(event)
+
+
+class AutoCompleteLineEdit(QtWidgets.QLineEdit):
+    """Line Edit with a completer attached"""
+
+    def __init__(self, items: list[str], parent=None):
+        super().__init__(parent=parent)
+        completer = QCompleter(items, self)
+        self.setCompleter(completer)

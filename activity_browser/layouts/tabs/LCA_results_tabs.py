@@ -54,7 +54,7 @@ from ...ui.figures import (
 from ...ui.icons import qicons
 from ...ui.style import header, horizontal_line, vertical_line
 from ...ui.tables import ContributionTable, InventoryTable, LCAResultsTable
-from ...ui.web import SankeyNavigatorWidget
+from ...ui.web import SankeyNavigatorWidget, TreeNavigatorWidget
 from ...ui.widgets import CutoffMenu, SwitchComboBox
 from .base import BaseRightTab
 
@@ -85,7 +85,7 @@ def get_unit(method: tuple, relative: bool = False) -> str:
 
 # Special namedtuple for the LCAResults TabWidget.
 Tabs = namedtuple(
-    "tabs", ("inventory", "results", "ef", "process", "sankey", "mc", "gsa")
+    "tabs", ("inventory", "results", "ef", "process", "sankey", "tree", "mc", "gsa")
 )
 Relativity = namedtuple("relativity", ("relative", "absolute"))
 ExportTable = namedtuple("export_table", ("label", "copy", "csv", "excel"))
@@ -145,6 +145,7 @@ class LCAResultsSubTab(QTabWidget):
             ef=ElementaryFlowContributionTab(self),
             process=ProcessContributionsTab(self),
             sankey=SankeyNavigatorWidget(self.cs_name, parent=self),
+            tree=TreeNavigatorWidget(self.cs_name, parent=self),
             mc=MonteCarloTab(
                 self
             ),  # mc=None if self.mc is None else MonteCarloTab(self),
@@ -156,6 +157,7 @@ class LCAResultsSubTab(QTabWidget):
             ef="EF Contributions",
             process="Process Contributions",
             sankey="Sankey",
+            tree="Tree",
             mc="Monte Carlo",
             gsa="Sensitivity Analysis",
         )
@@ -197,6 +199,11 @@ class LCAResultsSubTab(QTabWidget):
             if not self.tabs.sankey.has_sankey:
                 log.info("Generating Sankey Tab")
                 self.tabs.sankey.new_sankey()
+
+        if index == self.indexOf(self.tabs.tree):
+            if not self.tabs.tree.has_rendered_once:
+                log.info("Generating Tree Tab")
+                self.tabs.tree.new_tree()
 
     @QtCore.Slot(name="lciaScenarioExport")
     def generate_lcia_scenario_export(self):
@@ -1088,7 +1095,7 @@ class ElementaryFlowContributionTab(ContributionTab):
             **kwargs,
             limit=self.cutoff_menu.cutoff_value,
             limit_type=self.cutoff_menu.limit_type,
-            normalize=self.relative
+            normalize=self.relative,
         )
 
 
@@ -1142,7 +1149,7 @@ class ProcessContributionsTab(ContributionTab):
             **kwargs,
             limit=self.cutoff_menu.cutoff_value,
             limit_type=self.cutoff_menu.limit_type,
-            normalize=self.relative
+            normalize=self.relative,
         )
 
 
@@ -1175,12 +1182,6 @@ class CorrelationsTab(NewAnalysisTab):
         super().update_plot(df)
         if self.pt_layout.parentWidget():
             self.pt_layout.parentWidget().updateGeometry()
-
-
-class SankeyTab(QWidget):
-    def __init__(self, parent):
-        super(SankeyTab, self).__init__(parent)
-        self.parent = parent
 
 
 class MonteCarloTab(NewAnalysisTab):

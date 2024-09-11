@@ -28,6 +28,7 @@ svg {
 }
 .canvas .wrapper.outer > .background {
   fill: #FFFFFF;
+  stroke: #333333;
 }
 .canvas .wrapper.inner > .background {
   fill: #FFFFFF;
@@ -35,7 +36,6 @@ svg {
 }
 .canvas .background {
   fill: #FFFFFF;
-  stroke: #333333;
   cursor: move;
 }
 .canvas .panCanvas {
@@ -43,7 +43,6 @@ svg {
 }
 
 .canvas .minimap {
-  stroke: #000000; /* #111111 */
   stroke-width: 1px;
 }
 

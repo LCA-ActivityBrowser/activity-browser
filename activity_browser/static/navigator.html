@@ -10,7 +10,7 @@
 
 <!--<p id="data"> </p>-->
 <script>
-    let is_sankey_mode = false;
+    window.ab_sankey_mode = false;
 </script>
 <script src="javascript/d3.js"></script>
 <script src="javascript/dagre.js"></script>
@@ -18,10 +18,17 @@
 <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
 <!--<script type="text/javascript_libs" src="jquery.tipsy.js"></script>-->
 
-<button id="resetButtonqPWKOg">Reset Zoom</button>
-<button id="downloadSVGtButtonqPWKOg">Download SVG</button>
+<section>
+    <button id="resetButtonqPWKOg">Reset Zoom</button>
+    <button id="downloadSVGtButtonqPWKOg">Download SVG</button>
+</section>
+<section>
+    <select id="nodeSelectPWK0g"></select>
+    <button id="nodeSelectPWK0gExecute">Go to Node</button>
+</section>
 <div id="canvasqPWKOg" class="canvas"></div>
 <script type="text/javascript" src="javascript/navigator.js"></script>
+<link href="css/navigator.common.css" rel="stylesheet" type="text/css" />
 <link href="css/navigator.css" rel="stylesheet" type="text/css" />
 
 </body>

@@ -1,4 +1,8 @@
 # -*- coding: utf-8 -*-
+import itertools
+from functools import lru_cache
+from typing import Set
+
 import numpy as np
 import pandas as pd
 from bw2data.errors import UnknownObject
@@ -7,6 +11,7 @@ import activity_browser.bwutils.commontasks as bc
 from activity_browser import log
 from activity_browser.mod import bw2data as bd
 from activity_browser.mod.bw2data.backends import ActivityDataset
+
 
 # todo: extend store over several projects
 
@@ -154,6 +159,7 @@ class MetaDataStore(object):
                     np.nan, "", regex=True, inplace=True
                 )  # replace 'nan' values with emtpy string
             # print('Dimensions of the Metadata:', self.dataframe.shape)
+        AB_metadata.get_tag_names_for_db.cache_clear()
 
     def reset_metadata(self) -> None:
         """Deletes metadata when the project is changed."""
@@ -221,6 +227,25 @@ class MetaDataStore(object):
             return set()
         units = data["unit"].unique()
         return set(units[units != ""])
+
+    @lru_cache(maxsize=10)
+    def get_tag_names_for_db(self, db_name: str) -> Set[str]:
+        """Returns a set of tag names for the given database name."""
+        data = self.get_database_metadata(db_name)
+        if "tags" not in data.columns:
+            return set()
+        tags = data.tags.drop_duplicates().values
+        tag_names = set(
+            itertools.chain(*map(lambda x: x.keys(), filter(lambda x: x, tags)))
+        )
+        return tag_names
+
+    def get_tag_names(self):
+        """Returns a set of tag names for all databases."""
+        tag_names = set()
+        for db_name in self.databases:
+            tag_names = tag_names.union(self.get_tag_names_for_db(db_name))
+        return tag_names
 
     def print_convenience_information(self, db_name: str) -> None:
         """Reports how many unique locations and units the database has."""

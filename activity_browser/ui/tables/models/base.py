@@ -23,10 +23,6 @@ from activity_browser.ui.style import style_item
 class PandasModel(QAbstractTableModel):
     """Abstract pandas table model adapted from
     https://stackoverflow.com/a/42955764.
-
-    TODO: Further improve the model by implementing insertRows and removeRows
-     methods, this will allow us to stop recreating the proxy model on every
-     add/delete call. See https://doc.qt.io/qt-5/qabstracttablemodel.html
     """
 
     HEADERS = []
@@ -52,11 +48,10 @@ class PandasModel(QAbstractTableModel):
         """
         if not index.isValid():
             return None
-
         # instantiate value only in case of DisplayRole or ToolTipRole
         value = None
         tt_date_flag = False  # flag to indicate if value is datetime object and role is ToolTipRole
-        if role == Qt.DisplayRole or role == Qt.ToolTipRole or role == "sorting":
+        if role in [Qt.DisplayRole, Qt.ToolTipRole, "sorting", Qt.EditRole]:
             value = self._dataframe.iat[index.row(), index.column()]
             if isinstance(value, np.float64):
                 value = float(value)
@@ -288,6 +283,28 @@ class EditablePandasModel(PandasModel):
     def is_read_only(self) -> bool:
         """Returns if the model is editable"""
         return self._read_only
+
+    def insertRows(self, position, rows=1, parent=QModelIndex()):
+        """Add new rows to the underlying dataframe"""
+        self.beginInsertRows(parent, position, position + rows - 1)
+        new_rows = pd.DataFrame(
+            [[None] * self.columnCount()] * rows, columns=self._dataframe.columns
+        )
+        self._dataframe = pd.concat(
+            [self._dataframe.iloc[:position], new_rows, self._dataframe.iloc[position:]]
+        ).reset_index(drop=True)
+        self.endInsertRows()
+        return True
+
+    def removeRows(self, position, rows=1, parent=QModelIndex()):
+        """Remove rows from the underlying dataframe"""
+        self.beginRemoveRows(parent, position, position + rows - 1)
+        self._dataframe = self._dataframe.drop(
+            self._dataframe.index[position : position + rows]
+        ).reset_index(drop=True)
+        self.endRemoveRows()
+        return True
+
 
 # Take the classes defined above and add the ItemIsDragEnabled flag
 class DragPandasModel(PandasModel):

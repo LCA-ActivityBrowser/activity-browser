@@ -28,7 +28,7 @@ svg {
 }
 .canvas .wrapper.outer > .background {
   fill: #FFFFFF;
-  stroke: #333333;
+  stroke: black;
 }
 .canvas .wrapper.inner > .background {
   fill: #FFFFFF;
@@ -113,6 +113,13 @@ text {
     /* no effect:
     white-space: nowrap;
     */
+    cursor: pointer;
+}
+
+.node[data-expanded="1"]::before {
+  content: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='100' cy='50' r='40' stroke='black' stroke-width='2' fill='red'/%3E%3Cpolyline points='20,20 40,25 60,40 80,120 120,140 200,180' style='fill:none;stroke:black;stroke-width:3'/%3E%3C/svg%3E ");
+  width: 200px;
+  height: 200px;
 }
 
 .node rect {
@@ -120,6 +127,8 @@ text {
   fill: #fff;
   stroke-width: 3px;
 }
+
+
 
 .node.demand {
   /*stroke: #333;  */
@@ -150,6 +159,19 @@ text {
   stroke-width: 3px;
 }
 
+.node .triangle {
+    stroke: black;
+    fill: #f8f404;
+}
+
+.node .triangle[data-expanded="1"] {
+    opacity: 0;
+}
+
+.node .triangle:hover {
+    opacity: 50%;
+}
+
 /* Edges */
 /*.edgePath path.path {
   stroke: red;
@@ -167,12 +189,17 @@ text {
   opacity: 0.7;
 }
 
+.edgePath path.path:hover {
+  opacity: 0.5;
+}
+
 /* Arrowhead */
 .edgePath path {
   stroke: none;
   /*fill: black;*/
   opacity: 0.3;
 }
+
 /*.edgePath marker {
   fill: darkgrey; /* Arrow head */
   /*opacity: 1;
@@ -221,8 +248,9 @@ div.tooltip {
     padding: 2px;
     font: 12px sans-serif;
     background: #fffce2;
-    border: 0px;
+    border: 1px;
     border-radius: 8px;
     pointer-events: none;
     /*color: red;*/
 }
+
