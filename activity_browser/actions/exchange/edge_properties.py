@@ -3,6 +3,7 @@ from typing import Any, List
 from PySide2 import QtWidgets, QtGui
 
 from activity_browser.actions.base import ABAction, exception_dialogs
+from activity_browser.actions.database.database_redo_allocation import DatabaseRedoAllocation
 from activity_browser.ui.widgets.property_editor import PropertyEditor
 
 
@@ -22,4 +23,5 @@ class EdgeProperties(ABAction):
             target = exchanges[0]
             if PropertyEditor.edit_properties(target, read_only, parent):
                 target.save()
-            
+                # Properties changed, redo allocations, the values might have changed
+                DatabaseRedoAllocation.run(target.output.key[0])
