@@ -221,11 +221,15 @@ class ProductExchangeModel(BaseExchangeModel):
 
     def flags(self, index: QModelIndex):
         result = super().flags(index)
-        if index.column() == 3 and not self.is_read_only():
-            # Remove the editable flag, so that the user can not change the
-            # "True" and "False" values, only check the checkbox
-            result &= ~Qt.ItemFlag.ItemIsEditable
-            result |= Qt.ItemIsUserCheckable
+        if not self.is_read_only():
+            if index.column() in [3, 4]:
+                # Remove the editable flag, so that the user can not change the
+                # "True" and "False" values for functional or the value of
+                # the allocation factor
+                result &= ~Qt.ItemFlag.ItemIsEditable
+            if index.column() == 3:
+                # Make functional column checkable
+                result |= Qt.ItemIsUserCheckable
         return result
 
     def data(self, index: QModelIndex,
