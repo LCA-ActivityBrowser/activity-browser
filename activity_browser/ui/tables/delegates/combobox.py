@@ -18,6 +18,7 @@ class ComboBoxDelegate(QtWidgets.QStyledItemDelegate):
         """
         super(ComboBoxDelegate, self).__init__(parent)
         self.item_source = item_source  # List of items to be shown in the combo box
+        self._early_commit_item_text = ""
 
     def set_early_commit_item(self, item_text: str):
         """Set the early commit trigger."""
