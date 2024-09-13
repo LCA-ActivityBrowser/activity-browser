@@ -1,11 +1,11 @@
 from typing import Optional
 from PySide2.QtCore import Qt
-from PySide2.QtWidgets import (QAbstractItemView, QDialog, QHBoxLayout, QLabel, 
-                               QPlainTextEdit, QPushButton, QSizePolicy, QSplitter, 
+from PySide2.QtWidgets import (QAbstractItemView, QDialog, QHBoxLayout, QLabel,
+                               QPlainTextEdit, QPushButton, QSizePolicy, QSplitter,
                                QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget)
 
-from multifunctional import (add_custom_property_allocation_to_project, 
-                             allocation_strategies, check_property_for_allocation, 
+from multifunctional import (add_custom_property_allocation_to_project,
+                             allocation_strategies, check_property_for_allocation,
                              list_available_properties)
 from multifunctional.custom_allocation import MessageType
 
@@ -14,7 +14,7 @@ from activity_browser.ui.style import style_item
 
 class CustomAllocationEditor(QDialog):
 
-    def __init__(self, old_property: str, database_label: str, 
+    def __init__(self, old_property: str, database_label: str,
                  parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         self.setWindowTitle("Define custom allocation")
@@ -48,7 +48,6 @@ class CustomAllocationEditor(QDialog):
         self._property_table.setSelectionBehavior(
             QAbstractItemView.SelectionBehavior.SelectRows
         )
-        self._fill_table()
         self._status_text = QPlainTextEdit()
         self._status_text.setReadOnly(True)
         if self._property_table.rowCount() == 0:
@@ -58,10 +57,9 @@ class CustomAllocationEditor(QDialog):
         else:
             self._status_text.setPlaceholderText(
                 "Select a property to see a detailed analysis of eligibility")
-        self._select_old()
 
         self._save_button = QPushButton("Select")
-        self._save_button.clicked.connect(self._handle_select)
+        self._save_button.clicked.connect(self._handle_select_clicked)
         self._cancel_button = QPushButton("Cancel")
         self._cancel_button.clicked.connect(self.reject)
 
@@ -81,12 +79,14 @@ class CustomAllocationEditor(QDialog):
         self.setStyleSheet("QTableView:!active {selection-background-color: lightgray;}")
         # Default width is too small, default height is too big
         self.resize(400, 400)
-        # The QPlainTextEdit is too tall, this (together with the stretch factor) 
+        # The QPlainTextEdit is too tall, this (together with the stretch factor)
         # is a way to setting it to fixed height when the dialog is resized.
         # The user can still make it bigger using the splitter.
-        # These sizes are adjusted by the splitter, so they only set the 
+        # These sizes are adjusted by the splitter, so they only set the
         # proportions.
         splitter.setSizes([300, 100])
+        self._fill_table()
+        self._select_old()
 
     def _fill_table(self):
         """
@@ -97,7 +97,7 @@ class CustomAllocationEditor(QDialog):
         property_list = list_available_properties(self._database_label)
         self._property_table.clearContents()
         # Disable sorting while filling the table, otherwise the
-        # inserted items will move between setting the property name 
+        # inserted items will move between setting the property name
         # and status.
         self._property_table.setSortingEnabled(False)
 
@@ -136,35 +136,39 @@ class CustomAllocationEditor(QDialog):
             if self._get_property_for_row(i) == self._selected_property:
                 self._property_table.selectRow(i)
                 break
-            
+
     def _handle_table_selection_changed(self):
         """
         Execute check_property_for_allocation for the selected property
         and display its output in the status text.
         """
-        property = self._get_current_property()
-        messages = check_property_for_allocation(self._database_label, property)
-        if isinstance(messages, bool):
-            if messages == True:
-                self._status_text.setPlainText("All good!")
+        if property := self._get_current_property():
+            self._save_button.setEnabled(True)
+            messages = check_property_for_allocation(self._database_label, property)
+            if isinstance(messages, bool):
+                if messages == True:
+                    self._status_text.setPlainText("All good!")
+                else:
+                    self._status_text.setPlainText("")
+                    log.error("Unexpected return from check_property_for_allocation.")
             else:
-                self._status_text.setPlainText("")
-                log.error("Unexpected return from check_property_for_allocation.")
+                text = ""
+                for message in messages:
+                    text += message.message
+                self._status_text.setPlainText(text)
         else:
-            text = ""
-            for message in messages:
-                text += message.message
-            self._status_text.setPlainText(text)
+            self._save_button.setEnabled(False)
 
-    def _handle_select(self):
+    def _handle_select_clicked(self):
         """
         Create a custom allocation based on the selected property using
         add_custom_property_allocation_to_project.
         """
-        self._selected_property = self._get_current_property()
-        if not self._selected_property in allocation_strategies:
-            add_custom_property_allocation_to_project(self._selected_property)
-        self.accept()
+        if selected_property := self._get_current_property():
+            self._selected_property = selected_property
+            if not self._selected_property in allocation_strategies:
+                add_custom_property_allocation_to_project(self._selected_property)
+            self.accept()
 
     def selected_property(self) -> str:
         """
