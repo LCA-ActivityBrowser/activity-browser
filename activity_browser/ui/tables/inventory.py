@@ -5,6 +5,7 @@ from PySide2.QtCore import Slot
 from multifunctional import allocation_strategies
 
 from activity_browser import actions
+from activity_browser.mod.bw2data import databases
 from activity_browser.ui.tables.delegates.combobox import ComboBoxDelegate
 
 from ...settings import project_settings
@@ -37,7 +38,7 @@ class DatabasesTable(ABDataFrameView):
             options.insert(0, DatabasesModel.UNSPECIFIED_ALLOCATION)
             options.append(DatabasesModel.CUSTOM_ALLOCATION)
             return options
-        
+
         combo_delegate = ComboBoxDelegate(allocation_options, self)
         combo_delegate.set_early_commit_item(DatabasesModel.CUSTOM_ALLOCATION)
         self.setItemDelegateForColumn(4, combo_delegate)
@@ -81,7 +82,8 @@ class DatabasesTable(ABDataFrameView):
         menu.addAction(self.relink_action)
         menu.addAction(self.duplicate_db_action)
         menu.addAction(self.new_activity_action)
-        menu.addAction(self.re_allocate_action)
+        if databases[self.current_database()].get("backend") == "multifunctional":
+            menu.addAction(self.re_allocate_action)
         proxy = self.indexAt(event.pos())
         if proxy.isValid():
             db_name = self.model.get_db_name(proxy)
