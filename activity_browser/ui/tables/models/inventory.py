@@ -107,7 +107,7 @@ class ActivitiesBiosphereModel(DragPandasModel):
     def __init__(self, parent=None):
         super().__init__(parent=parent)
         self.act_fields = lambda: AB_metadata.get_existing_fields(
-            ["reference product", "name", "location", "unit", "ISIC rev.4 ecoinvent"]
+            ["name", "reference product", "location", "unit", "ISIC rev.4 ecoinvent", "type"]
         )
         self.ef_fields = lambda: AB_metadata.get_existing_fields(
             ["name", "categories", "type", "unit"]
@@ -138,8 +138,8 @@ class ActivitiesBiosphereModel(DragPandasModel):
         # New / empty database? Shortcut the sorting / structuring process
         if df.empty:
             return df
-        df = df.loc[:, self.fields + ["key"]]
-        df.columns = [bc.bw_keys_to_AB_names.get(c, c) for c in self.fields] + ["key"]
+        df = df.loc[:, self.fields]
+        df.columns = [bc.bw_keys_to_AB_names.get(c, c) for c in self.fields]
 
         # Sort dataframe on first column (activity name, usually)
         # while ignoring case sensitivity

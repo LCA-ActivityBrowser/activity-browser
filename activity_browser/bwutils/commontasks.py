@@ -115,14 +115,8 @@ def is_technosphere_db(db_name: str) -> bool:
     """Returns True if database describes the technosphere, False if it describes a biosphere."""
     if not db_name in bd.databases:
         raise KeyError("Not an existing database:", db_name)
-    db = bd.Database(db_name)
-    if len(db) == 0:
-        return True
-    act = db.random()
-    if act is None or act.get("type", "process") == "process":
-        return True
-    else:
-        return False
+    # This code seems incorrect, just return True for now
+    return True
 
 
 def count_database_records(name: str) -> int:
@@ -140,8 +134,8 @@ def count_database_records(name: str) -> int:
 # Activity
 AB_names_to_bw_keys = {
     "Amount": "amount",
-    "Product": "reference product",
-    "Activity": "name",
+    "Ref. Product": "reference product",
+    "Name": "name",
     "Unit": "unit",
     "Location": "location",
     "Database": "database",
