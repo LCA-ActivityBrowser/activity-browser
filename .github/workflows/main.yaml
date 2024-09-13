@@ -22,7 +22,7 @@ jobs:
       - name: Show patched environment
         run: cat patched-environment.yml
       - name: Upload patched environment as artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: patched-environment
           path: patched-environment.yml
@@ -41,7 +41,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Download patched test environment
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: patched-environment
       - name: Setup python ${{ matrix.python-version }} conda environment
