@@ -103,8 +103,8 @@ class ActivityDataGrid(QtWidgets.QWidget):
         if is_multifunctional:
             # Default allocation combobox
             self.def_alloc_combo = QtWidgets.QComboBox()
-            self._refresh_def_alloc_combo_values()
             self.def_alloc_combo.currentTextChanged.connect(self._handle_def_alloc_changed)
+            self._refresh_def_alloc_combo_values()
             self.def_alloc_combo.setToolTip(
                 "Use dropdown menu to change the default allocation"
             )
@@ -224,9 +224,11 @@ class ActivityDataGrid(QtWidgets.QWidget):
                               f" for process {self.parent.key}")
             # Append custom option after the index has been calculated
             allocation_options.append(self.CUSTOM_ALLOCATION)
+            self.def_alloc_combo.currentTextChanged.disconnect()
             self.def_alloc_combo.clear()
             self.def_alloc_combo.insertItems(0, allocation_options)
             self.def_alloc_combo.setCurrentIndex(index)
+            self.def_alloc_combo.currentTextChanged.connect(self._handle_def_alloc_changed)
 
     def _handle_def_alloc_changed(self, selection: str):
         changed = False
