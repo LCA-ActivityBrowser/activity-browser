@@ -232,9 +232,9 @@ class ActivityDataGrid(QtWidgets.QWidget):
 
     def _handle_def_alloc_changed(self, selection: str):
         changed = False
-        current_def_alloc = self.parent.activity.get("default_allocation")
+        current_def_alloc = self.parent.activity.get("default_allocation", "")
         if selection == self.DATABASE_DEFINED_ALLOCATION:
-            if current_def_alloc is not None:
+            if current_def_alloc != "":
                 del self.parent.activity["default_allocation"]
                 changed = True
         elif selection == self.CUSTOM_ALLOCATION:
@@ -242,13 +242,16 @@ class ActivityDataGrid(QtWidgets.QWidget):
             custom_value = CustomAllocationEditor.define_custom_allocation(
                                 current_def_alloc, db, self
                             )
-            if custom_value != current_def_alloc:
+            if custom_value and custom_value != current_def_alloc:
                 self.parent.activity["default_allocation"] = custom_value
                 self._refresh_def_alloc_combo_values()
                 changed = True
             # Update the selected text of the combo in both cases, so it is not
             # stuck on "Custom..."
-            self.def_alloc_combo.setCurrentText(custom_value)
+            if custom_value:
+                self.def_alloc_combo.setCurrentText(custom_value)
+            else:
+                self.def_alloc_combo.setCurrentIndex(0)
         elif current_def_alloc != selection:
             self.parent.activity["default_allocation"] = selection
             changed = True

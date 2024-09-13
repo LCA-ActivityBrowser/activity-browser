@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import datetime
 import functools
+from typing import Optional
 
 import numpy as np
 import pandas as pd
@@ -88,7 +89,7 @@ class DatabasesModel(EditablePandasModel):
                         if databases[current_db].get("default_allocation") is not None:
                             del databases[current_db]["default_allocation"]
                     elif self.data(current_alloc_idx) == self.CUSTOM_ALLOCATION:
-                        current = databases[current_db].get("default_allocation")
+                        current = databases[current_db].get("default_allocation", "")
                         custom_value = CustomAllocationEditor.define_custom_allocation(
                             current, current_db, self.parent()
                         )
@@ -152,7 +153,7 @@ class ActivitiesBiosphereModel(DragPandasModel):
         return df
 
     @Slot(str, name="syncModel")
-    def sync(self, db_name: str, df: pd.DataFrame = None) -> None:
+    def sync(self, db_name: str, df: Optional[pd.DataFrame] = None) -> None:
         if df is not None:
             # skip the rest of the sync here if a dataframe is directly supplied
             log.debug("Pandas Dataframe passed to sync.", df.shape)
