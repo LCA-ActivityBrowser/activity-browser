@@ -123,8 +123,11 @@ class CustomAllocationEditor(QDialog):
         return property_item.data(Qt.ItemDataRole.DisplayRole)
 
     def _get_current_property(self) -> str:
-        current_row = self._property_table.currentRow()
-        return self._get_property_for_row(current_row)
+        selection = self._property_table.selectedIndexes()
+        if selection:
+            row = selection[0].row()
+            return self._get_property_for_row(row)
+        return ""
 
     def _select_old(self):
         """
