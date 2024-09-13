@@ -138,8 +138,8 @@ class ActivitiesBiosphereModel(DragPandasModel):
         # New / empty database? Shortcut the sorting / structuring process
         if df.empty:
             return df
-        df = df.loc[:, self.fields]
-        df.columns = [bc.bw_keys_to_AB_names.get(c, c) for c in self.fields]
+        df = df.loc[:, self.fields + ["key"]]
+        df.columns = [bc.bw_keys_to_AB_names.get(c, c) for c in self.fields] + ["key"]
 
         # Sort dataframe on first column (activity name, usually)
         # while ignoring case sensitivity
