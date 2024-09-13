@@ -42,8 +42,9 @@ If you want to contribute to the wiki, either by adding figures or links or by w
 new sections, please [contact the developers](https://github.com/LCA-ActivityBrowser/activity-browser#developers)! 
 
 #### Making changes to the wiki _(for developers)_
-Any images or other assets in the documentation should be stored in `docs/assets` and linked to there instead of 
-online links (unless copyrighted material is linked that cannot be shown in any other way).
+Any images or other assets in the documentation should be stored in `docs/wiki/assets` and linked to there instead of 
+online links (unless copyrighted material is linked that cannot be shown in any other way). 
+This way all assets are stored in the wiki git.
 
 To make changes to the wiki, open a pull request with suggested changes to 
 [`docs/wiki`](https://github.com/LCA-ActivityBrowser/activity-browser/tree/main/activity_browser/docs/wiki).
@@ -214,9 +215,12 @@ When the tests pass on a pull-request, one of the maintainers of AB will review 
 
 ### Do's and Don'ts
 - Please do document any new code you wish to include in the activity browser.
-  This means writing useful documentation in the code (please follow the 
-  [numpy style guide](https://numpydoc.readthedocs.io/en/latest/format.html)), but also writing useful tooltips, labels
-  and other things that can help users.
+  This means:
+  - Writing useful documentation in the code (please follow the 
+  [numpy style guide](https://numpydoc.readthedocs.io/en/latest/format.html)), 
+  - Writing useful tooltips, labels and other things that can help users in the software,
+  - Updating the wiki in 
+    [`./activity_browser/docs/wiki`](https://github.com/LCA-ActivityBrowser/activity-browser/tree/main/activity_browser/docs/wiki)
 - Where possible, avoid importing and using brightway2 classes and methods directly in the Qt application code. 
   If some complex data processing is needed, see if your use-case is covered by bwutils instead. 
   If bwutils does not contain any for your use-case you are welcome to add it.
