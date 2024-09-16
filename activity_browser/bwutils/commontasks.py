@@ -134,8 +134,8 @@ def count_database_records(name: str) -> int:
 # Activity
 AB_names_to_bw_keys = {
     "Amount": "amount",
-    "Ref. Product": "reference product",
-    "Name": "name",
+    "Product": "reference product",
+    "Activity": "name",
     "Unit": "unit",
     "Location": "location",
     "Database": "database",

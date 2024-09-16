@@ -108,22 +108,41 @@ class ActivitiesBiosphereModel(DragPandasModel):
     def __init__(self, parent=None):
         super().__init__(parent=parent)
         self.act_fields = lambda: AB_metadata.get_existing_fields(
-            ["name", "reference product", "location", "unit", "ISIC rev.4 ecoinvent", "type"]
+            ["name", "reference product", "location", "unit", "ISIC rev.4 ecoinvent", "type", "key"]
         )
         self.ef_fields = lambda: AB_metadata.get_existing_fields(
-            ["name", "categories", "type", "unit"]
+            ["name", "categories", "type", "unit", "key"]
         )
         self.technosphere = True
 
     @property
-    def fields(self) -> list:
+    def fields(self) -> list[str]:
         """Constructs a list of fields relevant for the type of database."""
-        return self.act_fields() if self.technosphere else self.ef_fields()
+        return (self.act_fields() if self.technosphere else self.ef_fields())
+
+    @property
+    def visible_columns(self) -> list[str]:
+        """Return the list of column titles"""
+        # Create a local list to avoid changing AB_names_to_bw_keys
+        # Key column is hidden
+        if self.technosphere:
+            return  ["Name", "Ref. Product", "Location", "Unit", "Type"]
+        else:
+            return ["Name", "Categories", "Type", "Unit"]
+
+    @property
+    def columns(self) -> list[str]:
+        # Key column is hidden
+        return self.visible_columns + ["key"]
+
+    def columnCount(self, parent=None, *args, **kwargs):
+        # Hide the key column, but keep the data to be able to open activities
+        return 0 if self._dataframe is None else self._dataframe.shape[1] - 1
 
     def get_key(self, proxy: QModelIndex) -> tuple:
         """Get the key from the model using the given proxy index"""
         idx = self.proxy_to_source(proxy)
-        return self._dataframe.iat[idx.row(), self._dataframe.columns.get_loc("key")]
+        return self._dataframe.iat[idx.row(), self.columns.index("key")]
 
     def clear(self) -> None:
         self._dataframe = pd.DataFrame([])
@@ -139,8 +158,8 @@ class ActivitiesBiosphereModel(DragPandasModel):
         # New / empty database? Shortcut the sorting / structuring process
         if df.empty:
             return df
-        df = df.loc[:, self.fields + ["key"]]
-        df.columns = [bc.bw_keys_to_AB_names.get(c, c) for c in self.fields] + ["key"]
+        df = df.loc[:, self.fields]
+        df.columns = self.columns
 
         # Sort dataframe on first column (activity name, usually)
         # while ignoring case sensitivity
@@ -174,7 +193,7 @@ class ActivitiesBiosphereModel(DragPandasModel):
         df.dropna(how="all", axis=1, inplace=True)
         self._dataframe = df.reset_index(drop=True)
         self.filterable_columns = {
-            col: i for i, col in enumerate(self._dataframe.columns.to_list())
+            col: i for i, col in enumerate(self.visible_columns)
         }
         QApplication.restoreOverrideCursor()
         self.updated.emit()
@@ -215,12 +234,11 @@ class ActivitiesBiosphereModel(DragPandasModel):
         An alternative solution would be to use .str.contains, but this does
         not work for columns containing tuples (https://stackoverflow.com/a/29463757)
         """
-        search_columns = (bc.bw_keys_to_AB_names.get(c, c) for c in self.fields)
         mask = functools.reduce(
             np.logical_or,
             [
                 df[col].apply(lambda x: pattern.lower() in str(x).lower())
-                for col in search_columns
+                for col in self.visible_columns
             ],
         )
         return mask
