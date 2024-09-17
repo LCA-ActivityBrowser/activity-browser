@@ -131,6 +131,9 @@ class ImportDatabaseMenu(QtWidgets.QMenu):
         self.setTitle("Import database")
         self.setIcon(qicons.import_db)
 
+        self.beta_warning = QtWidgets.QWidgetAction(self)
+        self.beta_warning.setDefaultWidget(QtWidgets.QLabel("Beta features, use at your own risk"))
+
         self.import_from_ecoinvent_action = actions.DatabaseImporterEcoinventInterface.get_QAction()
         self.import_from_forwast_action = actions.DatabaseImporterForwast.get_QAction()
         self.import_from_z7_action = actions.DatabaseImporterEcospold7z.get_QAction()
@@ -145,13 +148,8 @@ class ImportDatabaseMenu(QtWidgets.QMenu):
         self.import_from_bw2package_action.setText("from Brightway2 package")
         self.open_import_wizard_action.setText("using legacy wizard")
 
-        self.import_from_ecoinvent_action.setIcon(QtGui.QIcon())
-        self.import_from_forwast_action.setIcon(QtGui.QIcon())
-        self.import_from_z7_action.setIcon(QtGui.QIcon())
-        self.import_from_excel_action.setIcon(QtGui.QIcon())
-        self.import_from_bw2package_action.setIcon(QtGui.QIcon())
-        self.open_import_wizard_action.setIcon(QtGui.QIcon())
-
+        self.addAction(self.beta_warning)
+        self.addSeparator()
         self.addAction(self.import_from_ecoinvent_action)
         self.addAction(self.import_from_forwast_action)
         self.addSeparator()
@@ -168,6 +166,9 @@ class ImportICMenu(QtWidgets.QMenu):
         self.setTitle("Import impact categories")
         self.setIcon(qicons.import_db)
 
+        self.beta_warning = QtWidgets.QWidgetAction(self)
+        self.beta_warning.setDefaultWidget(QtWidgets.QLabel("Beta features, use at your own risk"))
+
         self.import_from_ei_excel_action = actions.MethodImporterEcoinvent.get_QAction()
         self.import_from_bw2io_action = actions.MethodImporterBW2IO.get_QAction()
 
@@ -177,5 +178,7 @@ class ImportICMenu(QtWidgets.QMenu):
         self.import_from_ei_excel_action.setIcon(QtGui.QIcon())
         self.import_from_bw2io_action.setIcon(QtGui.QIcon())
 
+        self.addAction(self.beta_warning)
+        self.addSeparator()
         self.addAction(self.import_from_ei_excel_action)
         self.addAction(self.import_from_bw2io_action)

@@ -97,7 +97,7 @@ class ImportSetupDialog(QtWidgets.QDialog):
         layout.addWidget(self.prepend_label)
         layout.addWidget(self.prepend_textbox)
         layout.addWidget(self.info)
-        layout.addWidget(self.button_layout)
+        layout.addWidget(self.button_comp)
 
         # Set the dialog layout
         self.setLayout(layout)
@@ -126,7 +126,7 @@ class ImportSetupDialog(QtWidgets.QDialog):
     def validate(self):
         """Validate the user input and enable the OK button if all is clear"""
         valid = True
-        self.button_layout["OK"].setEnabled(valid)
+        self.button_comp["OK"].setEnabled(valid)
 
     def accept(self):
         """Correctly set the dialog's attributes for further use in the action"""
