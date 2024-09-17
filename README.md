@@ -34,11 +34,11 @@ The **Activity Browser (AB) is an open source software for Life Cycle Assessment
 
 ## Step-by-step guide
 See our 
-[Installation Guide](https://github.com/LCA-ActivityBrowser/activity-browser/wiki/Getting-Started#installation-guide) 
+[Installation Guide](https://github.com/LCA-ActivityBrowser/activity-browser/wiki/Installation-Guide) 
 wiki page for a step-by-step guide to installing Activity Browser.
 
 ## The quick way
-You can install and start the activity-browser like this:
+Or you can install and start the activity-browser like this:
 
 ```bash
 conda create -n ab -c conda-forge activity-browser
@@ -48,7 +48,7 @@ activity-browser
 
 # First Steps
 See our
-[First steps](https://github.com/LCA-ActivityBrowser/activity-browser/wiki/Getting-Started#first-steps)
+[Getting Started](https://github.com/LCA-ActivityBrowser/activity-browser/wiki/Getting-Started)
 wiki page to learn how to get started using Activity Browser.
 
 # Contributing
