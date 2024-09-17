@@ -57,6 +57,8 @@ class MenuBar(QtWidgets.QMenuBar):
         self.file_menu.addAction(self.export_db_action)
         self.file_menu.addAction(self.update_biosphere_action)
         self.file_menu.addSeparator()
+        self.file_menu.addMenu(MigrationsMenu(self))
+        self.file_menu.addSeparator()
         self.file_menu.addAction(self.manage_settings_action)
 
     def setup_view_menu(self) -> None:
@@ -121,3 +123,16 @@ For license information please see the copyright on <a href="https://github.com/
         exists = True if bd.config.biosphere in bd.databases else False
         self.update_biosphere_action.setEnabled(exists)
         self.import_db_action.setEnabled(exists)
+
+
+class MigrationsMenu(QtWidgets.QMenu):
+    def __init__(self, parent=None) -> None:
+        super().__init__(parent)
+
+        self.setTitle("Migrations")
+        self.install_migrations_action = actions.MigrationsInstall.get_QAction()
+
+        self.addAction(self.install_migrations_action)
+
+
+
