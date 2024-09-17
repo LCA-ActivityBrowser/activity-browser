@@ -108,27 +108,38 @@ class ActivitiesBiosphereModel(DragPandasModel):
     def __init__(self, parent=None):
         super().__init__(parent=parent)
         self.act_fields = lambda: AB_metadata.get_existing_fields(
-            ["name", "reference product", "location", "unit", "ISIC rev.4 ecoinvent", "type", "key"]
+            ["name", "reference product", "location", "unit", "ISIC rev.4 ecoinvent", "type"]
         )
         self.ef_fields = lambda: AB_metadata.get_existing_fields(
-            ["name", "categories", "type", "unit", "key"]
+            ["name", "categories", "type", "unit"]
         )
         self.technosphere = True
 
     @property
-    def fields(self) -> list[str]:
-        """Constructs a list of fields relevant for the type of database."""
+    def visible_fields(self) -> list[str]:
+        """Constructs a list of visible fields relevant for the type of database."""
         return (self.act_fields() if self.technosphere else self.ef_fields())
+
+    @property
+    def fields(self) -> list[str]:
+        """Constructs a list of all fields"""
+        return self.visible_fields + ["key"]
 
     @property
     def visible_columns(self) -> list[str]:
         """Return the list of column titles"""
-        # Create a local list to avoid changing AB_names_to_bw_keys
-        # Key column is hidden
-        if self.technosphere:
-            return  ["Name", "Ref. Product", "Location", "Unit", "Type"]
-        else:
-            return ["Name", "Categories", "Type", "Unit"]
+        # Create a local dict to avoid changing AB_names_to_bw_keys
+        # We can not hardcode column names, because some might be filtered out
+        # by AB_metadata.get_existing_fields above.
+        column_names = {
+            "name": "Name",
+            "reference product": "reference product",
+            "location": "location",
+            "unit": "unit",
+            "ISIC rev.4 ecoinvent": "ISIC rev.4 ecoinvent",
+            "type": "Type",
+        }
+        return  [column_names[field] for field in self.visible_fields]
 
     @property
     def columns(self) -> list[str]:
@@ -142,7 +153,7 @@ class ActivitiesBiosphereModel(DragPandasModel):
     def get_key(self, proxy: QModelIndex) -> tuple:
         """Get the key from the model using the given proxy index"""
         idx = self.proxy_to_source(proxy)
-        return self._dataframe.iat[idx.row(), self.columns.index("key")]
+        return self._dataframe.iat[idx.row(), self._dataframe.columns.get_loc("key")]
 
     def clear(self) -> None:
         self._dataframe = pd.DataFrame([])
