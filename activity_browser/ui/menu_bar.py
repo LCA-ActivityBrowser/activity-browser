@@ -46,6 +46,7 @@ class MenuBar(QtWidgets.QMenuBar):
 
     def setup_file_menu(self) -> None:
         """Build the menu for specific importing/export/updating actions."""
+        self.file_menu.addMenu(ProjectsMenu(self))
         self.file_menu.addAction(self.new_proj_action)
         self.file_menu.addAction(self.dup_proj_action)
         self.file_menu.addAction(self.delete_proj_action)
@@ -121,3 +122,20 @@ For license information please see the copyright on <a href="https://github.com/
         exists = True if bd.config.biosphere in bd.databases else False
         self.update_biosphere_action.setEnabled(exists)
         self.import_db_action.setEnabled(exists)
+
+
+class ProjectsMenu(QtWidgets.QMenu):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setTitle("Open project")
+        self.populate()
+
+    def populate(self):
+        import bw2data as bd
+
+        for proj in bd.projects:
+            action = QtWidgets.QAction(proj.name, self)
+            self.addAction(action)
+
+        self.triggered.connect(lambda act: bd.projects.set_current(act.text()))
+
