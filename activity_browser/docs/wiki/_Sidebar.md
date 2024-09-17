@@ -4,7 +4,6 @@ ___
 
 <details><summary><b>⁉️ Getting Started & Help</b></summary>
 
-- (fix links in tutorial links and home)
 - [Installation Guide](Installation-Guide)
 - [Getting Started](Getting-Started)
 - [Need Help?](Need-Help)
