@@ -24,6 +24,12 @@ Data in Brightway is organized into projects
 - Calculation setups are the combinations of reference flows and impact categories that you can calculate
 - Projects also contain other data, such as parameters and plugin settings.
 
+![brightway organizational structure](./assets/brightway_org-scheme.png)
+<sub>
+_Image copied from the
+[Brightway documentation](https://docs.brightway.dev/en/latest/content/theory/structure.html#brightway-objects)._
+</sub>
+
 Read more about how data is organized in the 
 [Brightway documentation](https://docs.brightway.dev/en/latest/content/theory/structure.html#brightway-objects).
 
