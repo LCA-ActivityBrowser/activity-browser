@@ -4,9 +4,10 @@ ___
 
 <details><summary><b>⁉️ Getting Started & Help</b></summary>
 
-- [Installation Guide](Getting-Started#installation-guide)
-- [First steps](Getting-Started#first-steps)
-- [Need Help?](Getting-Started#need-help)
+- (fix links in tutorial links and home)
+- [Installation Guide](Installation-Guide)
+- [Getting Started](Getting-Started)
+- [Need Help?](Need-Help)
 </details>
 
 <details><summary><b>🎓 Tutorials</b></summary>
@@ -59,4 +60,4 @@ ___
   </details>
 </details>
 
-○ [**⚙️ Settings**](Settings) 
+○ [**⚙️ Settings**](Settings)

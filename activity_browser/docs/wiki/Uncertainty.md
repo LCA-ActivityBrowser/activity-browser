@@ -5,7 +5,6 @@
 > [contributing guidelines](https://github.com/LCA-ActivityBrowser/activity-browser/blob/main/CONTRIBUTING.md#wiki).
 
 # Uncertainty
-...
 
 ___
 # Monte Carlo simulation
@@ -20,11 +19,11 @@ In the Activity Browser, Monte Carlo Simulation can be used. The **steps **for t
 * A **random seed** can be determined, which can be used to reproduce the same random values again. 
 * Finally, the user interface provides the option for **including or excluding uncertainty information** at the level of the technology matrix (technosphere), the interventions matrix (biosphere), the characterization factors, and parameters (if any have been defined by the practitioner). 
 
-![Monte Carlo Simulation](https://user-images.githubusercontent.com/33026150/115353678-16e41480-a1b9-11eb-962e-9df0c7869d69.jpg)
+![overview monte carlo setup](./assets/overview_monte_carlo_setup.jpg)
 
 An example for Monte Carlo Simulation results are shown below.
 
-![Monte Carlo results](https://user-images.githubusercontent.com/33026150/115353677-16e41480-a1b9-11eb-8106-87f09b36991c.jpg)
+![monte carlo results](./assets/monte_carlo_results.jpg)
 
 ___
 # Global Sensitivity Analysis
@@ -48,8 +47,8 @@ Now the user can go to the `Sensitivity Analysis` tab to perform GSA. The figure
 * The user can specify the **cut-off values **used for flows in the A (technosphere) and B (biosphere) matrices. 
 * Finally, the user can **select to export both input and output data** to the GSA. If the user does not select this option, he will later only have the option to export the output data.
 
-![GSA setup](https://user-images.githubusercontent.com/33026150/115353675-164b7e00-a1b9-11eb-8063-dfca57e5d0b3.jpg)
+![global sensitivity analysis setup](./assets/overview_global_sensitivity_analysis_setup.jpg)
 
 After the GSA is performed, the user will see a table with all input variables (environmental, economic flows, characterization factors and parameters) sorted by their delta value, which is the result of the GSA and characterizes their overall relevance. Additional data and metadata is also provided in the table.
 
-![GSA results only delta](https://user-images.githubusercontent.com/33026150/115353671-151a5100-a1b9-11eb-8218-544a5b00ebef.jpg)
+![GSA results only delta](./assets/global_sensitivity_analysis_results.jpg)
