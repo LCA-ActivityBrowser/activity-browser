@@ -41,6 +41,9 @@ ___
 </details>
 
 ___
+
+○ [**🔁 Graph Explorer**](Graph-Explorer)
+
 ○ [**🧩 Plugins**](Plugins)
 
 <details><summary><b>🚀 Advanced topics</b></summary>

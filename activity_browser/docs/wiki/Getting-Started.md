@@ -47,36 +47,36 @@ Finally, the menu bar at the top allows you to manage Activity Browser, Plugins 
 
 # Setting up a project
 ## Installing a biosphere and impact categories
-**... reorder this section when screenshots are available**
-
-In the `Project`-tab there is initially a button called `Set up your project with default data`. 
+In the `Project` tab there is initially a button called `Set up your project with default data`. 
 Click this button to add the default data. 
 This adds a `biosphere` database which contains a number of standardized biosphere flows.
 
 > [!NOTE]
 > Once a project is set up, you cannot reset it.
 
-**... screenshot of first dialog page**
+![project setup - choose type](./assets/project_setup_dialog_choose_type.png)
 
 ### Setting up with Biosphere3 data
 You can choose a biosphere version, this biosphere version will be compatible with that version of ecoinvent, 
 if you choose to import that later.
 If you don't use ecoinvent, don't worry about this and choose the highest version.
 
-**... screenshot of relevant dialog**
+![project setup - choose biosphere version](./assets/project_setup_dialog_bio_vsn.png)
 
 ### Setting up with ecoinvent data
 If you have a valid ecoinvent license and login information, you can immediately set up ecoinvent in your project with all 
 relevant and compatible data. 
+You can then choose the database version and system model.
 
-**... screenshot of relevant dialog**
+![project setup - ecoinvent login](./assets/project_setup_dialog_ei_login.png) 
+![project setup - ecoinvent version and system model](./assets/project_setup_dialog_ei_vsn_and_model.png)
 
 [Read more about projects...](Projects)
 
 # LCI databases
 After adding the default data, you can create or import a database with the `New` and `Import Database` buttons. 
 
-**... Screenshot of AB left pane until new/import buttons**
+![project tab until databases](./assets/project_tab_until_databases.png)
 
 ## New databases
 With `New` you can create a completely empty database with any given name and

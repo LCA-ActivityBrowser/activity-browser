@@ -39,5 +39,6 @@ ___
 - [🎰 Uncertainty](Uncertainty)
 - [📈 Flow Scenarios](Flow-Scenarios)  
 - [📈 Parameter Scenarios](Parameters)
-- [🧩 PPlugins](Plugins)
+- [🔁 Graph Explorer](Graph-Explorer)
+- [🧩 Plugins](Plugins)
 - [⚙️ Settings](Settings)
