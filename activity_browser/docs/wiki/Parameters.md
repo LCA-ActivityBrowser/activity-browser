@@ -1,6 +1,15 @@
+> [!IMPORTANT]
+> This wiki section is __incomplete__ or __outdated__.
+> 
+> Please help us improve the wiki by reading our
+> [contributing guidelines](https://github.com/LCA-ActivityBrowser/activity-browser/blob/main/CONTRIBUTING.md#wiki).
+
+# General concepts
+
 # Creating parameters
 
-Parameters are [special objects in Brightway](https://2.docs.brightway.dev/intro.html#parameterized-datasets)
+Parameters are 
+[special objects in Brightway](https://docs.brightway.dev/en/latest/content/api/bw2data/parameters/index.html)
 that allow users to create incredibly complex systems of interlocking parts.
 
 What parameters actually do is store a _value_ and allow recalculation of that
@@ -73,3 +82,5 @@ Activity parameters can be `Renamed` and `Deleted` through right-clicking the
 parameter, much the same as project parameters. Additionally, the Activity
 Detail tab can be opened for the parameterized activity by way of the
 `Open activities` option.
+
+# Scenarios

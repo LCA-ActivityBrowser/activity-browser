@@ -1,4 +1,29 @@
 <!--
+___
+Tutorial topics we should cover:
+
+General
+- tutorial for searching databases (filtering data, treeview etc)
+- tutorial for interpreting LCA results (overview, using contribution filters, sankey)
+
+Managing activities and databases
+- tutorial for relinking databases
+- tutorial for exchanges
+
+Uncertainty
+- tutorial for adding uncertainty
+- tutorial for monte carlo
+- tutorial for GSA
+
+Flow Scenarios
+- tutorial for creating scenarios
+- tutorial for running flow scenarios
+
+Parameters
+- tutorial for creating parameters
+- tutorial for running parameter scenarios
+
+___
 Tutorial writing guidelines:
 1. Use the template below
 2. Make use of Github Markdown formatting for tips, warnings etc
@@ -13,6 +38,7 @@ Tutorial writing guidelines:
 7. Link to your new tutorial in other documentation sections where relevant
 8. Update the contents section to add your tutorial
 
+___
 Tutorial template:
 
 ## Title
@@ -34,10 +60,6 @@ Write in a few sentences what reader will learn (what problem to solve) from fol
 
 - [General](#general)
   - [Your first LCA](#your-first-lca)
-- [Managing activities and databases](#managing-activities-and-databases)
-- [Uncertainty](#uncertainty)
-- [Flow Scenarios](#flow-scenarios)
-- [Parameters](#parameters)
 
 # General
 
@@ -145,33 +167,3 @@ Now you are ready to calculate results.
 > [!NOTE]
 > The activities you see in there `Reference flows` table are linked to your system, if you change your system, the changes are saved automatically.
 > Do keep in mind that you do need to re-calculate your results every time you make changes.
-
-**... tutorial for searching databases** (filtering data, treeview etc)
-
-**... tutorial for interpreting LCA results** (overview, using contribution filters, sankey)
-
-# Managing activities and databases
-
-**... tutorial for relinking databases**
-
-**... tutorial for exchanges**
-
-# Uncertainty
-
-**... tutorial for adding uncertainty**
-
-**... tutorial for monte carlo**
-
-**... tutorial for GSA**
-
-# Flow Scenarios
-
-**... tutorial for creating scenarios**
-
-**... tutorial for running flow scenarios**
-
-# Parameters
-
-**... tutorial for creating parameters**
-
-**... tutorial for running parameter scenarios**

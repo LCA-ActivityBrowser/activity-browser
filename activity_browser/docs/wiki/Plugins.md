@@ -8,7 +8,7 @@ with revisions from the Activity Browser.
 # Available plugins
 > [!CAUTION]
 > Plugins are not always developed by Activity Browser maintainers. 
-> Below are listed plugins from people we know but we do not check plugins code. 
+> Below are listed plugins from people we know but we do not verify plugins. 
 >
 > **<u>Use plugins at your own risk</u>**.
 

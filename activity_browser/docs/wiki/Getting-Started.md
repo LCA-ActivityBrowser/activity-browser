@@ -66,13 +66,10 @@ conda activate ab
 
 Then simply run `activity-browser` and the application will open.
 
-## User interface
-...
-
 ## Understanding Activity Browser terms
 Activity Browser uses [Brightway](https://docs.brightway.dev/en/latest/) for its data management and calculations. 
 Brightway has its own 'accent' of LCA terms,
-you can compare LCA terms from Brightway, [ISO 14044](https://www.iso.org/standard/38498.html) and others in the
+you can compare LCA terms from Brightway, [ISO 14044 (2006)](https://www.iso.org/standard/38498.html) and others in the
 [Brightway Glossary](https://docs.brightway.dev/en/latest/content/other/glossary.html).
 
 ## Organization of data in Brightway and Activity Browser
@@ -84,7 +81,20 @@ Data in Brightway is organized into projects
 - Calculation setups are the combinations of reference flows and impact categories that you can calculate
 - Projects also contain other data, such as parameters and plugin settings.
 
-**... Ideally some figure showing data organization visually**
+Read more about how data is organized in the 
+[Brightway documentation](https://docs.brightway.dev/en/latest/content/theory/structure.html#brightway-objects).
+
+## User interface
+Activity Browser is organized in two panels, which themselves have tabs and a menu bar. 
+The left panel has a `Project` tab and an `Impact Categories` tab.
+The right panel has the `Welcome` screen, `LCA setup` tab, `Parameters` tab and -if used- an `LCA Results` tab.
+
+The [`Project`](Projects) tab shows your current project, the databases in that project and the contents of a database if it is open.
+The [`Impact Categories`](Impact-Categories) tab shows all impact categories that are installed in the current project.
+The [`LCA Setup`](LCA-Calculation-Setups) tab allows you to define reference flows, impact categories and scenarios for calculations.
+The [`Parameters`](Parameters) tab allows you to manage your parameters.
+The [`LCA Results`](LCA-Results) tab shows the results of the calculations you do.
+Finally, the menu bar at the top allows you to manage Activity Browser, Plugins and Project settings.
 
 ## Setting up a project
 ### Installing a biosphere and impact categories

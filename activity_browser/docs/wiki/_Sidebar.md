@@ -11,11 +11,10 @@ ___
 
 <details><summary><b>🎓 Tutorials</b></summary>
 
-- [General](Tutorials#general)
-- [Managing activities and databases](Tutorials#managing-activities-and-databases)
-- [Uncertainty](Tutorials#uncertainty)
-- [Flow Scenarios](Tutorials#flow-scenarios)
-- [Parameters](Tutorials#parameters)
+<!--
+TODO: Later only keep general tutorial sections, not individual tutorials 
+-->
+- [Your First LCA](Tutorials#your-first-lca)
 </details>
 
 ___
@@ -36,12 +35,14 @@ ___
 
 <details><summary><b>📊 LCA results</b></summary>
 
-- [Overview](LCA-Results)
+- [Overview](LCA-Results#overview)
 - [Contribution Analysis](LCA-Results#contribution-analysis)
 - [Sankey](LCA-Results#sankey)
 </details>
 
 ___
+○ [**🧩 Plugins**](Plugins)
+
 <details><summary><b>🚀 Advanced topics</b></summary>
 
 - <details><summary>🎰 Uncertainty in LCA</summary>
@@ -53,7 +54,9 @@ ___
 
 - <details><summary>📈 Scenarios</summary>
 
-  - [Flow Scenarios](Flow_scenarios)  
+  - [Flow Scenarios](Flow-Scenarios)  
   - [Parameter Scenarios](Parameters)
   </details>
 </details>
+
+○ [**⚙️ Settings**](Settings) 

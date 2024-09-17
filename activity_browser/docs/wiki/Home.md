@@ -1,11 +1,10 @@
 Welcome to the Activity Browser wiki!
 
 > [!IMPORTANT]
-> This wiki is still under construction.
+> Creating this wiki is an ongoing project.
 > While we aim to have it as complete as possible, sections may be missing or incomplete.
 > If you want to contribute to the wiki, please check out our 
-> [contributing guidelines](https://github.com/LCA-ActivityBrowser/activity-browser/blob/main/CONTRIBUTING.md#github-wiki-page)
-> online.
+> [contributing guidelines](https://github.com/LCA-ActivityBrowser/activity-browser/blob/main/CONTRIBUTING.md#wiki).
 
 The wiki aims to help users get started and to document all features in Activity Browser.
 
