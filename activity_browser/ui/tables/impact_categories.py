@@ -46,9 +46,9 @@ class MethodsTable(ABFilterableDataFrameView):
         self.model.updated.connect(self.update_proxy_model)
         methods.metadata_changed.connect(self.sync)
 
-    def selected_methods(self) -> Iterable:
-        """Returns a generator which yields the 'method' for each row."""
-        return (self.model.get_method(p) for p in self.selectedIndexes())
+    def selected_methods(self) -> list:
+        """Returns a list of all the currently selected methods."""
+        return [self.model.get_method(p) for p in self.selectedIndexes()]
 
     @Slot(name="syncTable")
     def sync(self, query=None) -> None:
