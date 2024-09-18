@@ -96,7 +96,7 @@ class MenuBar(QtWidgets.QMenuBar):
             "&About Qt", lambda: QtWidgets.QMessageBox.aboutQt(self.window)
         )
         self.help_menu.addAction(
-            qicons.question, "&Get help on the wiki", self.open_wiki()
+            qicons.question, "&Get help on the wiki", self.open_wiki
         )
         self.help_menu.addAction(
             qicons.issue, "&Report an idea/issue on GitHub", self.raise_issue_github
