@@ -107,6 +107,7 @@ class DatabasesModel(EditablePandasModel):
 class ActivitiesBiosphereModel(DragPandasModel):
     def __init__(self, parent=None):
         super().__init__(parent=parent)
+        self.database_name = ""
         self._visible_columns = []
         self.technosphere = True
 
