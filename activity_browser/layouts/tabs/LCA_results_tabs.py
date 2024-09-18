@@ -176,7 +176,23 @@ class LCAResultsSubTab(QTabWidget):
                 self.tabs.sankey.new_sankey()
 
     @QtCore.Slot(name="lciaScenarioExport")
-    def generate_lcia_scenario_export(self):
+    def generate_lcia_scenario_csv(self):
+        """Create a dataframe of the impact category results for all reference flows,
+        impact categories and scenarios, then call the 'export to csv'
+        """
+        df = self.mlca.lca_scores_to_dataframe()
+        filepath, _ = QFileDialog.getSaveFileName(
+            parent=self,
+            caption="Choose location to save lca results",
+            filter="Comma Separated Values (*.csv);; All Files (*.*)",
+        )
+        if filepath:
+            if not filepath.endswith(".csv"):
+                filepath += ".csv"
+            df.to_csv(filepath)
+
+    @QtCore.Slot(name="lciaScenarioExport")
+    def generate_lcia_scenario_excel(self):
         """Create a dataframe of the impact category results for all reference flows,
         impact categories and scenarios, then call the 'export to excel'
         """
@@ -727,13 +743,23 @@ class LCAScoresTab(NewAnalysisTab):
             # Then add the additional label and export btn, plus new stretch.
             exp_layout = QHBoxLayout()
             exp_layout.addWidget(QLabel("Export all data"))
-            btn = QPushButton("Excel")
-            btn.setToolTip(
+
+            csv_btn = QPushButton(".csv")
+            csv_btn.setToolTip(
                 "Include all reference flows, impact categories and scenarios"
             )
             if self.parent:
-                btn.clicked.connect(self.parent.generate_lcia_scenario_export)
-            exp_layout.addWidget(btn)
+                csv_btn.clicked.connect(self.parent.generate_lcia_scenario_csv)
+
+            excel_btn = QPushButton("Excel")
+            excel_btn.setToolTip(
+                "Include all reference flows, impact categories and scenarios"
+            )
+            if self.parent:
+                excel_btn.clicked.connect(self.parent.generate_lcia_scenario_excel)
+
+            exp_layout.addWidget(csv_btn)
+            exp_layout.addWidget(excel_btn)
             layout.addWidget(vertical_line())
             layout.addLayout(exp_layout)
             layout.addSpacerItem(stretch)
@@ -793,13 +819,23 @@ class LCIAResultsTab(NewAnalysisTab):
             # Then add the additional label and export btn, plus new stretch.
             exp_layout = QHBoxLayout()
             exp_layout.addWidget(QLabel("Export all data"))
-            btn = QPushButton("Excel")
-            btn.setToolTip(
+
+            csv_btn = QPushButton(".csv")
+            csv_btn.setToolTip(
                 "Include all reference flows, impact categories and scenarios"
             )
             if self.parent:
-                btn.clicked.connect(self.parent.generate_lcia_scenario_export)
-            exp_layout.addWidget(btn)
+                csv_btn.clicked.connect(self.parent.generate_lcia_scenario_csv)
+
+            excel_btn = QPushButton("Excel")
+            excel_btn.setToolTip(
+                "Include all reference flows, impact categories and scenarios"
+            )
+            if self.parent:
+                excel_btn.clicked.connect(self.parent.generate_lcia_scenario_excel)
+
+            exp_layout.addWidget(csv_btn)
+            exp_layout.addWidget(excel_btn)
             layout.addWidget(vertical_line())
             layout.addLayout(exp_layout)
             layout.addSpacerItem(stretch)
