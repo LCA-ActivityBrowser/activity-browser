@@ -1,3 +1,4 @@
+import os
 from PySide2 import QtGui, QtWidgets
 from PySide2.QtCore import QSize, QUrl, Slot
 
@@ -6,6 +7,8 @@ from activity_browser.mod import bw2data as bd
 
 from ..info import __version__ as ab_version
 from .icons import qicons
+
+AB_BW25 = True if os.environ.get("AB_BW25", False) else False
 
 
 class MenuBar(QtWidgets.QMenuBar):
@@ -130,11 +133,24 @@ class ProjectsMenu(QtWidgets.QMenu):
         self.setTitle("Open project")
         self.populate()
 
+        self.aboutToShow.connect(self.populate)
+
     def populate(self):
         import bw2data as bd
 
-        for proj in bd.projects:
-            action = QtWidgets.QAction(proj.name, self)
+        self.clear()
+
+        sorted_projects = sorted(list(bd.projects))
+
+        for i, proj in enumerate(sorted_projects):
+            bw_25 = (
+                False if not isinstance(proj.data, dict) else proj.data.get("25", False)
+            )
+            name = proj.name if not bw_25 or AB_BW25 else "[BW25] " + proj.name
+
+            action = QtWidgets.QAction(name, self)
+            action.setEnabled(not bw_25 or AB_BW25)
+
             self.addAction(action)
 
         self.triggered.connect(lambda act: bd.projects.set_current(act.text()))
