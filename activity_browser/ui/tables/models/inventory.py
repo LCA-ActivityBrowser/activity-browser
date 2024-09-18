@@ -173,7 +173,10 @@ class ActivitiesBiosphereModel(DragPandasModel):
         self.parent().horizontalHeader().setSortIndicator(
             sort_field_index, Qt.AscendingOrder
         )
-        return df
+        # remove empty columns
+        df.replace("", np.nan, inplace=True)
+        df.dropna(how="all", axis=1, inplace=True)
+        return df.reset_index(drop=True)
 
     @Slot(str, name="syncModel")
     def sync(self, db_name: str, df: Optional[pd.DataFrame] = None) -> None:
@@ -190,11 +193,7 @@ class ActivitiesBiosphereModel(DragPandasModel):
 
         # Get dataframe from metadata and update column-names
         QApplication.setOverrideCursor(Qt.WaitCursor)
-        df = self.df_from_metadata(db_name)
-        # remove empty columns
-        df.replace("", np.nan, inplace=True)
-        df.dropna(how="all", axis=1, inplace=True)
-        self._dataframe = df.reset_index(drop=True)
+        self._dataframe = self.df_from_metadata(db_name)
         # Calculate visible columns after empty columns have been removed
         self._visible_columns = list(self._dataframe.columns)
         self._visible_columns.remove("key")
