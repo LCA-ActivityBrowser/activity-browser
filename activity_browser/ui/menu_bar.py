@@ -128,30 +128,41 @@ For license information please see the copyright on <a href="https://github.com/
 
 
 class ProjectsMenu(QtWidgets.QMenu):
+    """
+    Menu that lists all the projects available through bw2data.projects
+    """
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setTitle("Open project")
         self.populate()
 
         self.aboutToShow.connect(self.populate)
+        self.triggered.connect(lambda act: bd.projects.set_current(act.text()))
 
     def populate(self):
+        """
+        Populates the menu with the projects available in the database
+        """
         import bw2data as bd
 
+        # clear the menu of any already existing actions
         self.clear()
 
+        # sort projects alphabetically
         sorted_projects = sorted(list(bd.projects))
 
+        # iterate over the sorted projects and add them as actions to the menu
         for i, proj in enumerate(sorted_projects):
+            # check whether the project is BW25
             bw_25 = (
                 False if not isinstance(proj.data, dict) else proj.data.get("25", False)
             )
+
+            # add BW25 decorations if necessary
             name = proj.name if not bw_25 or AB_BW25 else "[BW25] " + proj.name
 
+            # create the action and disable it if it's BW25 and BW25 is not supported
             action = QtWidgets.QAction(name, self)
             action.setEnabled(not bw_25 or AB_BW25)
 
             self.addAction(action)
-
-        self.triggered.connect(lambda act: bd.projects.set_current(act.text()))
-
