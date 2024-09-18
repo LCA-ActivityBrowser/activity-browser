@@ -97,6 +97,15 @@ class CustomAllocationEditor(QDialog):
         self._fill_table()
         self._select_old()
 
+    @staticmethod
+    def brush_for_message_type(type: MessageType) -> QtGui.QBrush:
+            if type == MessageType.ALL_VALID:
+                return style_item.brushes["good"]
+            elif type == MessageType.NONNUMERIC_PROPERTY:
+                return style_item.brushes["critical"]
+            else:
+                return style_item.brushes["warning"]
+
     def _fill_table(self):
         """
         Add the list of of available properties and their status to the table
@@ -115,15 +124,9 @@ class CustomAllocationEditor(QDialog):
         for property, type in property_list:
             self._property_table.setItem(row, 0, QTableWidgetItem(property))
             self._property_table.setItem(row, 1, QTableWidgetItem(type.value))
-            if type == MessageType.ALL_VALID:
-                self._property_table.item(row, 0).setForeground(
-                    style_item.brushes["good"])
-            elif type == MessageType.NONNUMERIC_PROPERTY:
-                self._property_table.item(row, 0).setForeground(
-                    style_item.brushes["critical"])
-            else:
-                self._property_table.item(row, 0).setForeground(
-                    style_item.brushes["warning"])
+            self._property_table.item(row, 0).setForeground(
+                self.brush_for_message_type(type)
+            )
             row += 1
         self._property_table.setSortingEnabled(True)
 

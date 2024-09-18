@@ -2,11 +2,12 @@ from typing import List
 
 from PySide2 import QtCore, QtWidgets
 from PySide2.QtCore import Slot
-from multifunctional import allocation_strategies
+from multifunctional import allocation_strategies, list_available_properties
 
 from activity_browser import actions
 from activity_browser.mod.bw2data import databases
 from activity_browser.ui.tables.delegates.combobox import ComboBoxDelegate
+from activity_browser.ui.widgets.custom_allocation_editor import CustomAllocationEditor
 
 from ...settings import project_settings
 from ...signals import signals
@@ -34,6 +35,16 @@ class DatabasesTable(ABDataFrameView):
         # uses an up-to-date value
         def allocation_options() -> list[str]:
             options = list(allocation_strategies.keys())
+            evaluated_properties = list_available_properties(self.current_database())
+            properties_dict = {item[0]:item[1] for item in evaluated_properties}
+            # Color the combo entries according to their status
+            for i in range(len(options)):
+                if options[i] in properties_dict:
+                    brush = CustomAllocationEditor.brush_for_message_type(
+                        properties_dict[options[i]]
+                    )
+                    options[i] = (options[i], options[i], brush)
+
             # Make the unspecified value the first in the list of options
             options.insert(0, DatabasesModel.UNSPECIFIED_ALLOCATION)
             options.append(DatabasesModel.CUSTOM_ALLOCATION)
