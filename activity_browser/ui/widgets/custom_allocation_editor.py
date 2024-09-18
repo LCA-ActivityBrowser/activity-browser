@@ -1,26 +1,35 @@
-from typing import Optional
+from typing import Optional, Union
+from PySide2 import QtGui
 from PySide2.QtCore import Qt
-from PySide2.QtWidgets import (QAbstractItemView, QDialog, QHBoxLayout, QLabel,
+from PySide2.QtWidgets import (QAbstractItemView, QDialog, QHBoxLayout, QLabel, QMessageBox,
                                QPlainTextEdit, QPushButton, QSizePolicy, QSplitter,
                                QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget)
 
 from multifunctional import (add_custom_property_allocation_to_project,
                              allocation_strategies, check_property_for_allocation,
-                             list_available_properties)
+                             list_available_properties, check_property_for_process_allocation)
 from multifunctional.custom_allocation import MessageType
 
 from activity_browser.logger import log
 from activity_browser.ui.style import style_item
+from bw2data.backends import Node
 
 class CustomAllocationEditor(QDialog):
 
-    def __init__(self, old_property: str, database_label: str,
+    def __init__(self, old_property: str, target: Union[str, Node],
                  parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         self.setWindowTitle("Define custom allocation")
-        self._database_label = database_label
+        if isinstance(target, Node):
+            self._database_label = target.get("database", "")
+            self._target_node = target
+            dialog_label = target.get("name")
+        else:
+            self._database_label = target
+            self._target_node = None
+            dialog_label = target
         self._selected_property = old_property
-        title = QLabel(f"Define custom allocation for {database_label}")
+        title = QLabel(f"Define custom allocation for {dialog_label}")
         self._property_table = QTableWidget()
         self._property_table.setSortingEnabled(True)
         self._property_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
@@ -94,7 +103,7 @@ class CustomAllocationEditor(QDialog):
         (calculated using list_available_properties) and color them
         according to the status.
         """
-        property_list = list_available_properties(self._database_label)
+        property_list = list_available_properties(self._database_label, self._target_node)
         self._property_table.clearContents()
         # Disable sorting while filling the table, otherwise the
         # inserted items will move between setting the property name
@@ -147,7 +156,13 @@ class CustomAllocationEditor(QDialog):
         """
         if property := self._get_current_property():
             self._save_button.setEnabled(True)
-            messages = check_property_for_allocation(self._database_label, property)
+            if self._target_node is None:
+                messages = check_property_for_allocation(self._database_label, property)
+            else:
+                messages = check_property_for_process_allocation(
+                    self._target_node,
+                    property
+                )
             if isinstance(messages, bool):
                 if messages == True:
                     self._status_text.setPlainText("All good!")
@@ -155,7 +170,7 @@ class CustomAllocationEditor(QDialog):
                     self._status_text.setPlainText("")
                     log.error("Unexpected return from check_property_for_allocation.")
             else:
-                text = ""
+                text = f"Found {len(messages)} issues:\n\n"
                 for message in messages:
                     text += message.message
                 self._status_text.setPlainText(text)
@@ -181,13 +196,18 @@ class CustomAllocationEditor(QDialog):
         return self._selected_property
 
     @staticmethod
-    def define_custom_allocation(old_property: str, database_label: str, parent: Optional[QWidget] = None) -> str:
+    def define_custom_allocation(old_property: str, target: Union[str, Node], parent: Optional[QWidget] = None) -> str:
         """
         Open the custom allocation editor and return the new property, if the user
         selected one, or the old one if the user cancelled the dialog.
         """
-        editor = CustomAllocationEditor(old_property, database_label, parent)
-        if editor.exec_() == QDialog.DialogCode.Accepted:
-            return editor.selected_property()
-        else:
-            return old_property
+        result = old_property
+        try:
+            editor = CustomAllocationEditor(old_property, target, parent)
+            if editor.exec_() == QDialog.DialogCode.Accepted:
+                result = editor.selected_property()
+        except Exception as e:
+            log.error(f"Exception in CustomAllocationEditor: {e}")
+            QMessageBox.warning(parent, "An error occured", str(e))
+        finally:
+            return result
