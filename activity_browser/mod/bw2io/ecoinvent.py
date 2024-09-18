@@ -15,8 +15,8 @@ def ab_import_ecoinvent_release(version, system_model):
     from bw2io import migrations
     from .migrations import ab_create_core_migrations
 
-    # if not len(migrations):
-    #     ab_create_core_migrations()
+    if not len(migrations):
+        ab_create_core_migrations()
 
     # downloading a release through a AB version of ecoinvent_interface that implements a progress_slot
     release = ABEcoinventRelease(ei.Settings())

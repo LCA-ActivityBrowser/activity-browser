@@ -38,3 +38,5 @@ jobs:
         run: |
           anaconda -t ${{ secrets.CONDA_UPLOAD_TOKEN }} upload \
           /usr/share/miniconda/envs/build/conda-bld/noarch/*.tar.bz2
+      - name: Update wiki
+        run: ./.github/scripts/update_wiki.sh "Automated documentation update for $GITHUB_REF_NAME" "${{ secrets.GITHUB_TOKEN }}"

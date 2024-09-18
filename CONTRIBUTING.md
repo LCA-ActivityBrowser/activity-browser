@@ -33,14 +33,31 @@ welcome!
 If you want to include the opening graphics created for the existing youtube videos, please 
 [contact the developers](https://github.com/LCA-ActivityBrowser/activity-browser#developers).
 
-### Github wiki page
+### Wiki
 The Activity Browser has its own
-[__wiki__](https://github.com/LCA-ActivityBrowser/activity-browser/wiki) page!
-This page contains an explanation (in text) of how to get started with the AB.
+[__wiki__](https://github.com/LCA-ActivityBrowser/activity-browser/wiki).
+This page contains an explanation of how to get started with the AB.
 
-Sadly, other than this, there is still very little to be found there. If you
-want to contribute to the wiki, either by adding figures or links or by writing
-new sections, please contact the developers!
+If you want to contribute to the wiki, either by adding figures or links or by writing
+new sections, please [contact the developers](https://github.com/LCA-ActivityBrowser/activity-browser#developers)! 
+
+#### Making changes to the wiki _(for developers)_
+Any images or other assets in the documentation should be stored in `docs/wiki/assets` and linked to there instead of 
+online links (unless copyrighted material is linked that cannot be shown in any other way). 
+This way all assets are stored in the wiki git.
+
+To make changes to the wiki, open a pull request with suggested changes to 
+[`docs/wiki`](https://github.com/LCA-ActivityBrowser/activity-browser/tree/main/activity_browser/docs/wiki).
+While contributors with write access to Activity Browser can directly change the wiki, <u>changes should instead be made
+to the files in `docs/wiki`</u> 
+([#1350](https://github.com/LCA-ActivityBrowser/activity-browser/pull/1350)).
+
+The wiki can be updated in of 2 ways:
+1. Merging a pull request and then manually
+[triggering the wiki update action](https://github.com/LCA-ActivityBrowser/activity-browser/actions/workflows/manual_update_wiki.yml).
+   - e.g. for fixing typos or making existing text clearer 
+2. When a new release is made, any changes will automatically be written to the wiki.
+   - e.g. for new text related to a new feature release, which should only be visible when the feature is available
 
 ### In-software guidance
 With more and more features being included into the AB, the inclusion of
@@ -198,9 +215,12 @@ When the tests pass on a pull-request, one of the maintainers of AB will review 
 
 ### Do's and Don'ts
 - Please do document any new code you wish to include in the activity browser.
-  This means writing useful documentation in the code (please follow the 
-  [numpy style guide](https://numpydoc.readthedocs.io/en/latest/format.html)), but also writing useful tooltips, labels
-  and other things that can help users.
+  This means:
+  - Writing useful documentation in the code (please follow the 
+  [numpy style guide](https://numpydoc.readthedocs.io/en/latest/format.html)), 
+  - Writing useful tooltips, labels and other things that can help users in the software,
+  - Updating the wiki in 
+    [`./activity_browser/docs/wiki`](https://github.com/LCA-ActivityBrowser/activity-browser/tree/main/activity_browser/docs/wiki)
 - Where possible, avoid importing and using brightway2 classes and methods directly in the Qt application code. 
   If some complex data processing is needed, see if your use-case is covered by bwutils instead. 
   If bwutils does not contain any for your use-case you are welcome to add it.

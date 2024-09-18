@@ -61,6 +61,8 @@ class MenuBar(QtWidgets.QMenuBar):
         self.file_menu.addAction(self.export_db_action)
         self.file_menu.addAction(self.update_biosphere_action)
         self.file_menu.addSeparator()
+        self.file_menu.addMenu(MigrationsMenu(self))
+        self.file_menu.addSeparator()
         self.file_menu.addAction(self.manage_settings_action)
 
     def setup_view_menu(self) -> None:
@@ -94,6 +96,9 @@ class MenuBar(QtWidgets.QMenuBar):
             "&About Qt", lambda: QtWidgets.QMessageBox.aboutQt(self.window)
         )
         self.help_menu.addAction(
+            qicons.question, "&Get help on the wiki", self.open_wiki()
+        )
+        self.help_menu.addAction(
             qicons.issue, "&Report an idea/issue on GitHub", self.raise_issue_github
         )
 
@@ -112,6 +117,12 @@ For license information please see the copyright on <a href="https://github.com/
         msgBox.setWindowIcon(self.window.icon)
         msgBox.setText(text.format(ab_version))
         msgBox.exec_()
+
+    def open_wiki(self):
+        url = QUrl(
+            "https://github.com/LCA-ActivityBrowser/activity-browser/wiki"
+        )
+        QtGui.QDesktopServices.openUrl(url)
 
     def raise_issue_github(self):
         url = QUrl(
@@ -166,3 +177,14 @@ class ProjectsMenu(QtWidgets.QMenu):
             action.setEnabled(not bw_25 or AB_BW25)
 
             self.addAction(action)
+
+
+class MigrationsMenu(QtWidgets.QMenu):
+    def __init__(self, parent=None) -> None:
+        super().__init__(parent)
+
+        self.setTitle("Migrations")
+        self.install_migrations_action = actions.MigrationsInstall.get_QAction()
+
+        self.addAction(self.install_migrations_action)
+
