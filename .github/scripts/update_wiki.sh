@@ -12,7 +12,7 @@ mkdir temp
 yes | cp -rf activity-browser.wiki/.git temp
 find activity-browser.wiki -mindepth 1 -delete
 # copy the (potentially new) content from the main repo and the wiki .git folder to wiki folder and delete temp folder
-yes | cp -rf activity-browser/docs/wiki/* activity-browser.wiki/
+yes | cp -rf activity_browser/activity-browser/docs/wiki/* activity-browser.wiki/
 yes | cp -rf temp/.git activity-browser.wiki/
 rm -rf temp
 cd activity-browser.wiki
