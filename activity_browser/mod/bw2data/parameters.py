@@ -1,6 +1,16 @@
 from argparse import Namespace
 
-from bw2data.parameters import *
+from bw2data.parameters import (
+    ActivityParameter,
+    DatabaseParameter,
+    Group,
+    GroupDependency,
+    ParameterBase,
+    ParameterizedExchange,
+    ParameterManager,
+    ProjectParameter,
+    parameters,
+)
 
 from activity_browser.signals import qparameter_list, qparameters
 
