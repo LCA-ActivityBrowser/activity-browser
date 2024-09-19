@@ -1193,14 +1193,14 @@ class ProductContributionsTab(ContributionTab):
     def __init__(self, cs_name, parent=None):
         super().__init__(parent)
 
-        self.cache = {'totals': {}}  # We cache the calculated data, as it can take some time to generate.
+        self.cache = {"totals": {}}  # We cache the calculated data, as it can take some time to generate.
         # We cache the individual calculation results, as they are re-used in multiple views
         # e.g. FU1 x method1 x scenario1
         # may be seen in both 'Reference Flows' and 'Impact Categories', just with different axes.
         # we also cache totals, not for calculation speed, but to be able to easily convert for relative results
         self.caching = True  # set to False to disable caching for debug
 
-        self.layout.addLayout(get_header_layout('Product Contributions'))
+        self.layout.addLayout(get_header_layout("Product Contributions"))
         combobox = self.build_combobox(has_method=True, has_func=True)
         self.layout.addLayout(combobox)
         self.layout.addWidget(horizontal_line())
@@ -1209,15 +1209,15 @@ class ProductContributionsTab(ContributionTab):
 
         # get relevant data from calculation setup
         self.cs = cs_name
-        func_units = bw.calculation_setups[self.cs]['inv']
+        func_units = bw.calculation_setups[self.cs]["inv"]
         self.func_keys = [list(fu.keys())[0] for fu in func_units]  # extract a list of keys from the functional units
         self.func_units = [
             {bw.get_activity(k): v for k, v in fu.items()}
             for fu in func_units
         ]
-        self.methods = bw.calculation_setups[self.cs]['ia']
+        self.methods = bw.calculation_setups[self.cs]["ia"]
 
-        self.contribution_fn = 'Product contributions'
+        self.contribution_fn = "Product contributions"
         self.switches.configure(self.has_func, self.has_method)
         self.connect_signals()
         self.toggle_comparisons(self.switches.indexes.func)
@@ -1227,6 +1227,18 @@ class ProductContributionsTab(ContributionTab):
 
     def update_dataframe(self, *args, **kwargs):
         """Retrieve the product contributions."""
+
+        def get_data():
+            _data = self.calculate_contributions(demand, demand_key,
+                                                 method=method, method_index=method_index,
+                                                 scenario_lca=self.has_scenarios, scenario_index=scenario_index,
+                                                 )
+            if _data:
+                _data = self.reformat_data(_data)
+            else:
+                _data = {"Total": 0}
+            return _data
+
         # get the right data
         if self.has_scenarios:
             scenario_index = self.combobox_menu.scenario.currentIndex()
@@ -1240,7 +1252,7 @@ class ProductContributionsTab(ContributionTab):
 
         all_data = []
         compare = self.switches.currentText()
-        if compare == 'Reference Flows':
+        if compare == "Reference Flows":
             # run the analysis for every reference flow
             for demand_index, demand in enumerate(self.func_units):
                 demand_key = self.func_keys[demand_index]
@@ -1249,17 +1261,12 @@ class ProductContributionsTab(ContributionTab):
                     # this data is cached
                     all_data.append([demand_key, self.cache[cache_key]])
                     continue
-                data = self.calculate_contributions(demand, demand_key,
-                                                    method=method, method_index=method_index,
-                                                    scenario_lca=self.has_scenarios, scenario_index=scenario_index,
-                                                    )
-                if data:
-                    data = self.reformat_data(data)
-                else:
-                    data = {'Total': 0}
+
+                data = get_data()
                 all_data.append([demand_key, data])
-                self.cache[cache_key] = data
-        elif compare == 'Impact Categories':
+                if self.caching:
+                    self.cache[cache_key] = data
+        elif compare == "Impact Categories":
             # run the analysis for every method
             for method_index, method in enumerate(self.methods):
                 cache_key = (demand_index, method_index, scenario_index)
@@ -1267,17 +1274,12 @@ class ProductContributionsTab(ContributionTab):
                     # this data is cached
                     all_data.append([method, self.cache[cache_key]])
                     continue
-                data = self.calculate_contributions(demand, demand_key,
-                                                    method=method, method_index=method_index,
-                                                    scenario_lca=self.has_scenarios, scenario_index=scenario_index,
-                                                    )
-                if data:
-                    data = self.reformat_data(data)
-                else:
-                    data = {'Total': 0}
+
+                data = get_data()
                 all_data.append([method, data])
-                self.cache[cache_key] = data
-        elif compare == 'Scenarios':
+                if self.caching:
+                    self.cache[cache_key] = data
+        elif compare == "Scenarios":
             # run the analysis for every scenario
             orig_idx = self.combobox_menu.scenario.currentIndex()
             for scenario_index in range(self.combobox_menu.scenario.count()):
@@ -1289,18 +1291,17 @@ class ProductContributionsTab(ContributionTab):
                     # this data is cached
                     all_data.append([scenario, self.cache[cache_key]])
                     continue
-                data = self.calculate_contributions(demand, demand_key,
-                                                    method=method, method_index=method_index,
-                                                    scenario_lca=self.has_scenarios, scenario_index=scenario_index,
-                                                    )
-                if data:
-                    data = self.reformat_data(data)
-                else:
-                    data = {'Total': 0}
+
+                data = get_data()
                 all_data.append([scenario, data])
-                self.cache[cache_key] = data
+                if self.caching:
+                    self.cache[cache_key] = data
             self.combobox_menu.scenario.setCurrentIndex(orig_idx)
+
         df = self.data_to_df(all_data, compare)
+        # print("+++")
+        # for _, row in df.iterrows():
+        #     print([c for c in row])
         # TODO manage empty dataframe so overall calculation doesn't fail with plot generation
         return df
 
@@ -1328,7 +1329,7 @@ class ProductContributionsTab(ContributionTab):
                 else:
                     data = bw.GraphTraversal().calculate(demand, method, cutoff=0, max_calc=max_calc)
             except (ValueError, ZeroDivisionError) as e:
-                log.info('{}, no results calculated for {}'.format(e, method))
+                log.info(f"{e}, no Product Contribution results calculated for {demand} | {method}")
                 return
         return data
 
@@ -1342,59 +1343,59 @@ class ProductContributionsTab(ContributionTab):
 
         # get the impact data per key
         contributions = {
-            bw.get_activity(reverse_activity_dict[edge['from']]).key: edge['impact'] for edge in data["edges"]
+            bw.get_activity(reverse_activity_dict[edge["from"]]).key: edge["impact"] for edge in data["edges"]
             if all(i != -1 for i in (edge["from"], edge["to"]))
         }
         # get impact for the total and demand
         diff = total - sum([v for v in contributions.values()])  # for the demand process, calculate by the difference
         contributions[demand_key] = diff
-        contributions['Total'] = total
+        contributions["Total"] = total
         return contributions
 
     def data_to_df(self, all_data: List[Tuple[object, dict]], compare: str) -> pd.DataFrame:
         """Convert the provided data into a dataframe."""
         unique_keys = []
         # get all the unique keys:
-        d = {'index': ['Total'], 'reference product': [''], 'name': [''],
-             'location': [''], 'unit': [''], 'database': ['']}
+        d = {"index": ["Total"], "reference product": [""], "name": [""],
+             "location": [""], "unit": [""], "database": [""]}
         meta_cols = set(d.keys())
         for i, (item, data) in enumerate(all_data):
-            print('++ COL:', item, data)
+            print("++ COL:", item, data)
             unique_keys += list(data.keys())
             # already add the total with right column formatting depending on compares
-            if compare == 'Reference Flows':
+            if compare == "Reference Flows":
                 col_name = self.metadata_to_index(self.key_to_metadata(item))
-            elif compare == 'Impact Categories':
+            elif compare == "Impact Categories":
                 col_name = self.metadata_to_index(list(item))
-            elif compare == 'Scenarios':
+            elif compare == "Scenarios":
                 col_name = item
 
-            self.cache['totals'][col_name] = data['Total']
+            self.cache["totals"][col_name] = data["Total"]
             if self.relative:
                 d[col_name] = [1]
             else:
-                d[col_name] = [data['Total']]
+                d[col_name] = [data["Total"]]
 
             all_data[i] = item, data, col_name
         unique_keys = set(unique_keys)
 
         # convert to dict format to feed into dataframe
         for key in unique_keys:
-            if key == 'Total':
+            if key == "Total":
                 continue
             # get metadata
             metadata = self.key_to_metadata(key)
-            d['index'].append(self.metadata_to_index(metadata))
-            d['reference product'].append(metadata[0])
-            d['name'].append(metadata[1])
-            d['location'].append(metadata[2])
-            d['unit'].append(metadata[3])
-            d['database'].append(metadata[4])
+            d["index"].append(self.metadata_to_index(metadata))
+            d["reference product"].append(metadata[0])
+            d["name"].append(metadata[1])
+            d["location"].append(metadata[2])
+            d["unit"].append(metadata[3])
+            d["database"].append(metadata[4])
             # check for each dataset if we have values, otherwise add np.nan
             for item, data, col_name in all_data:
                 if val := data.get(key, False):
                     if self.relative:
-                        value = val / self.cache['totals'][col_name]
+                        value = val / self.cache["totals"][col_name]
                     else:
                         value = val
                 else:
@@ -1402,7 +1403,7 @@ class ProductContributionsTab(ContributionTab):
                 d[col_name].append(value)
         df = pd.DataFrame(d)
         check_cols = list(set(df.columns) - meta_cols)
-        df = df.dropna(subset=check_cols, how='all')
+        df = df.dropna(subset=check_cols, how="all")
         # TODO sort like https://github.com/LCA-ActivityBrowser/activity-browser/issues/887
         df.sort_values(by=col_name, ascending=False)  # temporary sorting solution, just sort on the last column.
         return df
@@ -1414,7 +1415,7 @@ class ProductContributionsTab(ContributionTab):
         [reference product, activity name, location, unit, database]
         """
         act = bw.get_activity(key)
-        return [act.get('reference product'), act.get('name'), act.get('location'), act.get('unit'), key[0]]
+        return [act.get("reference product"), act.get("name"), act.get("location"), act.get("unit"), key[0]]
 
     def metadata_to_index(self, data: list) -> str:
         """Convert list to formatted index.
@@ -1422,7 +1423,7 @@ class ProductContributionsTab(ContributionTab):
         format:
         reference product | activity name | location | unit | database
         """
-        return ' | '.join(data)
+        return " | ".join(data)
 
 
 class CorrelationsTab(NewAnalysisTab):
