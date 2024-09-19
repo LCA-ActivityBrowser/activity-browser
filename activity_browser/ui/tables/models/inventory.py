@@ -152,6 +152,12 @@ class ActivitiesBiosphereModel(DragPandasModel):
         self._dataframe = pd.DataFrame([])
         self.updated.emit()
 
+    @staticmethod
+    def _remove_empty_columns(df: pd.DataFrame) -> pd.DataFrame:
+        df.replace("", np.nan, inplace=True)
+        df.dropna(how="all", axis=1, inplace=True)
+        return df.reset_index(drop=True)
+
     def df_from_metadata(self, db_name: str) -> pd.DataFrame:
         """Take the given database name and return the complete subset
         of that database from the metadata.
@@ -173,17 +179,16 @@ class ActivitiesBiosphereModel(DragPandasModel):
         self.parent().horizontalHeader().setSortIndicator(
             sort_field_index, Qt.AscendingOrder
         )
-        # remove empty columns
-        df.replace("", np.nan, inplace=True)
-        df.dropna(how="all", axis=1, inplace=True)
-        return df.reset_index(drop=True)
+        return df
 
     @Slot(str, name="syncModel")
     def sync(self, db_name: str, df: Optional[pd.DataFrame] = None) -> None:
         if df is not None:
             # skip the rest of the sync here if a dataframe is directly supplied
             log.debug("Pandas Dataframe passed to sync.", df.shape)
-            self._dataframe = df
+            # Remove the empty columns in a separate step, so that in case of empty
+            # cells the search does not operate on str(nan) values, but empty strings
+            self._dataframe = self._remove_empty_columns(df)
             self.updated.emit()
             return
 
@@ -193,7 +198,8 @@ class ActivitiesBiosphereModel(DragPandasModel):
 
         # Get dataframe from metadata and update column-names
         QApplication.setOverrideCursor(Qt.WaitCursor)
-        self._dataframe = self.df_from_metadata(db_name)
+        df = self.df_from_metadata(db_name)
+        self._dataframe = self._remove_empty_columns(df)
         # Calculate visible columns after empty columns have been removed
         self._visible_columns = list(self._dataframe.columns)
         self._visible_columns.remove("key")
