@@ -295,8 +295,8 @@ class MethodsTreeModel(BaseTreeModel):
 
 
 class MethodCharacterizationFactorsModel(EditablePandasModel):
-    COLUMNS = ["name", "categories", "amount", "unit"]
-    HEADERS = ["Name", "Category", "Amount", "Unit", "Uncertainty"] + ["cf"]
+    COLUMNS = ["name", "categories", "database", "amount", "unit"]
+    HEADERS = ["Name", "Category", "Database", "Amount", "Unit", "Uncertainty"] + ["cf"]
     UNCERTAINTY = ["loc", "scale", "shape", "minimum", "maximum"]
 
     def __init__(self, parent=None):

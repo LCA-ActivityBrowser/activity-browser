@@ -1,10 +1,13 @@
+from logging import getLogger
+
 from bw2io.ecoinvent import *
 
 import pyprind
 
-from activity_browser import log
 from activity_browser.mod.ecoinvent_interface.release import ABEcoinventRelease
 from activity_browser.mod.bw2io.importers.ecospold2_biosphere import ABEcospold2BiosphereImporter
+
+log = getLogger(__name__)
 
 
 def ab_import_ecoinvent_release(version, system_model):
@@ -12,8 +15,8 @@ def ab_import_ecoinvent_release(version, system_model):
     from bw2io import migrations
     from .migrations import ab_create_core_migrations
 
-    # if not len(migrations):
-    #     ab_create_core_migrations()
+    if not len(migrations):
+        ab_create_core_migrations()
 
     # downloading a release through a AB version of ecoinvent_interface that implements a progress_slot
     release = ABEcoinventRelease(ei.Settings())

@@ -3,13 +3,14 @@ import json
 import os
 import time
 from typing import List
+from logging import getLogger
 
 import bw2calc as bc
 from PySide2 import QtWidgets
 from PySide2.QtCore import Slot
 from PySide2.QtWidgets import QComboBox
 
-from activity_browser import log, signals
+from activity_browser import signals
 from activity_browser.mod import bw2data as bd
 from activity_browser.mod.bw2data.backends import ActivityDataset
 
@@ -25,6 +26,8 @@ try:
 except:
     # fall back on regular bw
     from bw2calc import GraphTraversal
+
+log = getLogger(__name__)
 
 
 # TODO:

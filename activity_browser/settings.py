@@ -4,14 +4,15 @@ import os
 import shutil
 from pathlib import Path
 from typing import Optional
+from logging import getLogger
 
 import appdirs
 from PySide2.QtWidgets import QMessageBox
 
-from activity_browser import log
 from activity_browser.signals import signals
 from activity_browser.mod import bw2data as bd
 
+log = getLogger(__name__)
 
 class BaseSettings(object):
     """Base Class for handling JSON settings files."""
@@ -71,6 +72,25 @@ class ABSettings(BaseSettings):
         self.plugins = {}
 
         super().__init__(ab_dir.user_data_dir, filename)
+
+        if not self.healthy():
+            log.warn("Settings health check failed, resetting")
+            self.restore_default_settings()
+
+    def healthy(self) -> bool:
+        """
+        Checks the settings file to see if it is healthy. Returns True if all checks pass, otherwise returns False.
+        """
+        healthy = True
+
+        # check for write access to the current bw dir
+        healthy = healthy and os.access(self.settings.get("current_bw_dir"), os.W_OK)
+
+        # check for write access to the custom bw dirs
+        access = [os.access(path, os.W_OK) for path in self.settings.get("custom_bw_dirs")]
+        healthy = healthy and False not in access
+
+        return healthy
 
     @staticmethod
     def update_old_settings(directory: str, filename: str) -> None:
@@ -204,8 +224,11 @@ class ProjectSettings(BaseSettings):
             self.write_settings()
 
     def connect_signals(self):
-        """Reload the project settings whenever a project switch occurs."""
+
+        # Reload the project settings whenever a project switch occurs.
         bd.projects.current_changed.connect(self.reset_for_project_selection)
+
+        # save new plugin for this project
         signals.plugin_selected.connect(self.add_plugin)
 
     @classmethod
@@ -227,7 +250,7 @@ class ProjectSettings(BaseSettings):
         """On switching project, attempt to read the settings for the new
         project.
         """
-        log.info("Project settings directory: ", bd.projects.dir)
+        log.info(f"Project settings directory: {bd.projects.dir}")
         self.settings_file = os.path.join(bd.projects.dir, self.filename)
         self.initialize_settings()
         # create a plugins_list entry for old projects

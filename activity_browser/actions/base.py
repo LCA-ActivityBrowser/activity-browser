@@ -35,7 +35,7 @@ class ABAction:
             cls.icon,
             cls.text
         )
-        button.clicked.connect(lambda x: cls.run(*args, **kwargs))
+        button.clicked.connect(lambda x: cls.triggered(*args, **kwargs))
         return button
 
 

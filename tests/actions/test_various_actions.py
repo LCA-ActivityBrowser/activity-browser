@@ -1,6 +1,7 @@
 import os
 
 import bw2data as bd
+import bw2io as bi
 import pytest
 from PySide2 import QtWidgets
 
@@ -66,3 +67,17 @@ def test_settings_wizard_open(ab_app):
     assert application.main_window.findChild(SettingsWizard).isVisible()
 
     application.main_window.findChild(SettingsWizard).destroy()
+
+
+def test_migrations_install(ab_app, qtbot):
+    from activity_browser.actions.migrations_install import MigrationsInstallThread
+
+    project_name = "migrations_project"
+    bd.projects.set_current(project_name)
+
+    assert not len(bi.migrations)
+
+    actions.MigrationsInstall.run()
+
+    assert len(bi.migrations)
+

@@ -1,8 +1,11 @@
+from logging import getLogger
+
 from bw2io import *
 
-from activity_browser import log
 from activity_browser.info import __ei_versions__
 from activity_browser.utils import sort_semantic_versions
+
+log = getLogger(__name__)
 
 
 def ab_bw2setup(version):

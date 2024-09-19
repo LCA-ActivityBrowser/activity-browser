@@ -6,6 +6,7 @@ Each of these classes is either a parent for - or a sub-LCA results tab.
 
 from collections import namedtuple
 from typing import List, Tuple, Optional, Union
+from logging import getLogger
 
 import numpy as np
 import pandas as pd
@@ -21,7 +22,7 @@ from PySide2.QtWidgets import (QApplication, QButtonGroup, QCheckBox,
 from stats_arrays.errors import InvalidParamsError
 import brightway2 as bw
 
-from activity_browser import log, signals
+from activity_browser import signals
 from activity_browser.mod.bw2data import calculation_setups
 
 from ...bwutils import (MLCA, Contributions, GlobalSensitivityAnalysis,
@@ -36,6 +37,8 @@ from ...ui.web import SankeyNavigatorWidget
 from ...ui.widgets import CutoffMenu, SwitchComboBox
 from ...bwutils.superstructure.graph_traversal_with_scenario import GraphTraversalWithScenario
 from .base import BaseRightTab
+
+log = getLogger(__name__)
 
 
 def get_header_layout(header_text: str) -> QVBoxLayout:
@@ -180,7 +183,23 @@ class LCAResultsSubTab(QTabWidget):
                 self.tabs.sankey.new_sankey()
 
     @QtCore.Slot(name="lciaScenarioExport")
-    def generate_lcia_scenario_export(self):
+    def generate_lcia_scenario_csv(self):
+        """Create a dataframe of the impact category results for all reference flows,
+        impact categories and scenarios, then call the 'export to csv'
+        """
+        df = self.mlca.lca_scores_to_dataframe()
+        filepath, _ = QFileDialog.getSaveFileName(
+            parent=self,
+            caption="Choose location to save lca results",
+            filter="Comma Separated Values (*.csv);; All Files (*.*)",
+        )
+        if filepath:
+            if not filepath.endswith(".csv"):
+                filepath += ".csv"
+            df.to_csv(filepath)
+
+    @QtCore.Slot(name="lciaScenarioExport")
+    def generate_lcia_scenario_excel(self):
         """Create a dataframe of the impact category results for all reference flows,
         impact categories and scenarios, then call the 'export to excel'
         """
@@ -468,8 +487,6 @@ class InventoryTab(NewAnalysisTab):
         self.table.table_name = "Inventory_" + self.parent.cs_name
         self.layout.addWidget(self.table)
 
-        self.layout.addStretch(1)
-
         self.layout.addLayout(self.build_export(has_plot=False, has_table=True))
         self.connect_signals()
 
@@ -733,13 +750,23 @@ class LCAScoresTab(NewAnalysisTab):
             # Then add the additional label and export btn, plus new stretch.
             exp_layout = QHBoxLayout()
             exp_layout.addWidget(QLabel("Export all data"))
-            btn = QPushButton("Excel")
-            btn.setToolTip(
+
+            csv_btn = QPushButton(".csv")
+            csv_btn.setToolTip(
                 "Include all reference flows, impact categories and scenarios"
             )
             if self.parent:
-                btn.clicked.connect(self.parent.generate_lcia_scenario_export)
-            exp_layout.addWidget(btn)
+                csv_btn.clicked.connect(self.parent.generate_lcia_scenario_csv)
+
+            excel_btn = QPushButton("Excel")
+            excel_btn.setToolTip(
+                "Include all reference flows, impact categories and scenarios"
+            )
+            if self.parent:
+                excel_btn.clicked.connect(self.parent.generate_lcia_scenario_excel)
+
+            exp_layout.addWidget(csv_btn)
+            exp_layout.addWidget(excel_btn)
             layout.addWidget(vertical_line())
             layout.addLayout(exp_layout)
             layout.addSpacerItem(stretch)
@@ -799,13 +826,23 @@ class LCIAResultsTab(NewAnalysisTab):
             # Then add the additional label and export btn, plus new stretch.
             exp_layout = QHBoxLayout()
             exp_layout.addWidget(QLabel("Export all data"))
-            btn = QPushButton("Excel")
-            btn.setToolTip(
+
+            csv_btn = QPushButton(".csv")
+            csv_btn.setToolTip(
                 "Include all reference flows, impact categories and scenarios"
             )
             if self.parent:
-                btn.clicked.connect(self.parent.generate_lcia_scenario_export)
-            exp_layout.addWidget(btn)
+                csv_btn.clicked.connect(self.parent.generate_lcia_scenario_csv)
+
+            excel_btn = QPushButton("Excel")
+            excel_btn.setToolTip(
+                "Include all reference flows, impact categories and scenarios"
+            )
+            if self.parent:
+                excel_btn.clicked.connect(self.parent.generate_lcia_scenario_excel)
+
+            exp_layout.addWidget(csv_btn)
+            exp_layout.addWidget(excel_btn)
             layout.addWidget(vertical_line())
             layout.addLayout(exp_layout)
             layout.addSpacerItem(stretch)
@@ -1591,12 +1628,12 @@ class MonteCarloTab(NewAnalysisTab):
         iterations = int(self.iterations.text())
         seed = None
         if self.seed.text():
-            log.info("SEED: ", self.seed.text())
+            log.info(f"SEED: {self.seed.text()}")
             try:
                 seed = int(self.seed.text())
             except ValueError as e:
                 log.error(
-                    "Seed value must be an integer number or left empty.", error=e
+                    "Seed value must be an integer number or left empty.", exc_info=e
                 )
                 QMessageBox.warning(
                     self,
@@ -1621,7 +1658,7 @@ class MonteCarloTab(NewAnalysisTab):
             InvalidParamsError
         ) as e:  # This can occur if uncertainty data is missing or otherwise broken
             # print(e)
-            log.error(error=e)
+            log.error(e)
             QMessageBox.warning(
                 self, "Could not perform Monte Carlo simulation", str(e)
             )
@@ -1895,7 +1932,7 @@ class GSATab(NewAnalysisTab):
             )
             # self.update_mc()
         except Exception as e:  # Catch any error...
-            log.error(error=e)
+            log.error(e)
             message = str(e)
             message_addition = ""
             if message == "singular matrix":
@@ -1974,7 +2011,7 @@ class MonteCarloWorkerThread(QtCore.QThread):
         self.iterations = iterations
 
     def run(self):
-        log.info("Starting new Worker Thread. Iterations:", self.iterations)
+        log.info(f"Starting new Worker Thread. Iterations: {self.iterations}")
         self.mc.calculate(iterations=self.iterations)
         # res = bw.GraphTraversal().calculate(self.demand, self.method, self.cutoff, self.max_calc)
         log.info("in thread {}".format(QtCore.QThread.currentThread()))
