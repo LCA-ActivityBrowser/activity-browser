@@ -107,33 +107,37 @@ class DatabasesModel(EditablePandasModel):
 class ActivitiesBiosphereModel(DragPandasModel):
     def __init__(self, parent=None):
         super().__init__(parent=parent)
-        self.act_fields = lambda: AB_metadata.get_existing_fields(
-            ["name", "reference product", "location", "unit", "ISIC rev.4 ecoinvent", "type", "key"]
-        )
-        self.ef_fields = lambda: AB_metadata.get_existing_fields(
-            ["name", "categories", "type", "unit", "key"]
-        )
+        self.database_name = ""
+        self._visible_columns = []
         self.technosphere = True
 
     @property
-    def fields(self) -> list[str]:
-        """Constructs a list of fields relevant for the type of database."""
-        return (self.act_fields() if self.technosphere else self.ef_fields())
+    def _tentative_fields(self) -> list[str]:
+        """
+        We try to display these columns, but some might not be available, and
+        some might be empty and later filtered out.
+        """
+        return AB_metadata.get_existing_fields(
+            ["name", "reference product", "location", "unit",
+             "ISIC rev.4 ecoinvent", "type", "key"]
+        )
 
     @property
-    def visible_columns(self) -> list[str]:
-        """Return the list of column titles"""
-        # Create a local list to avoid changing AB_names_to_bw_keys
-        # Key column is hidden
-        if self.technosphere:
-            return  ["Name", "Ref. Product", "Location", "Unit", "Type"]
-        else:
-            return ["Name", "Categories", "Type", "Unit"]
-
-    @property
-    def columns(self) -> list[str]:
-        # Key column is hidden
-        return self.visible_columns + ["key"]
+    def _tentative_columns(self) -> list[str]:
+        """Return the list of titles for each tentative column"""
+        # Create a local dict to avoid changing AB_names_to_bw_keys
+        # We can not hardcode column names, because some might be filtered out
+        # by AB_metadata.get_existing_fields above.
+        column_names = {
+            "name": "Name",
+            "reference product": "reference product",
+            "location": "location",
+            "unit": "unit",
+            "ISIC rev.4 ecoinvent": "ISIC rev.4 ecoinvent",
+            "type": "Type",
+            "key": "key",
+        }
+        return  [column_names[field] for field in self._tentative_fields]
 
     def columnCount(self, parent=None, *args, **kwargs):
         # Hide the key column, but keep the data to be able to open activities
@@ -142,7 +146,7 @@ class ActivitiesBiosphereModel(DragPandasModel):
     def get_key(self, proxy: QModelIndex) -> tuple:
         """Get the key from the model using the given proxy index"""
         idx = self.proxy_to_source(proxy)
-        return self._dataframe.iat[idx.row(), self.columns.index("key")]
+        return self._dataframe.iat[idx.row(), self._dataframe.columns.get_loc("key")]
 
     def clear(self) -> None:
         self._dataframe = pd.DataFrame([])
@@ -158,8 +162,8 @@ class ActivitiesBiosphereModel(DragPandasModel):
         # New / empty database? Shortcut the sorting / structuring process
         if df.empty:
             return df
-        df = df.loc[:, self.fields]
-        df.columns = self.columns
+        df = df.loc[:, self._tentative_fields]
+        df.columns = self._tentative_columns
 
         # Sort dataframe on first column (activity name, usually)
         # while ignoring case sensitivity
@@ -169,7 +173,10 @@ class ActivitiesBiosphereModel(DragPandasModel):
         self.parent().horizontalHeader().setSortIndicator(
             sort_field_index, Qt.AscendingOrder
         )
-        return df
+        # remove empty columns
+        df.replace("", np.nan, inplace=True)
+        df.dropna(how="all", axis=1, inplace=True)
+        return df.reset_index(drop=True)
 
     @Slot(str, name="syncModel")
     def sync(self, db_name: str, df: Optional[pd.DataFrame] = None) -> None:
@@ -183,17 +190,15 @@ class ActivitiesBiosphereModel(DragPandasModel):
         if db_name not in databases:
             return
         self.database_name = db_name
-        self.technosphere = bc.is_technosphere_db(db_name)
 
         # Get dataframe from metadata and update column-names
         QApplication.setOverrideCursor(Qt.WaitCursor)
-        df = self.df_from_metadata(db_name)
-        # remove empty columns
-        df.replace("", np.nan, inplace=True)
-        df.dropna(how="all", axis=1, inplace=True)
-        self._dataframe = df.reset_index(drop=True)
+        self._dataframe = self.df_from_metadata(db_name)
+        # Calculate visible columns after empty columns have been removed
+        self._visible_columns = list(self._dataframe.columns)
+        self._visible_columns.remove("key")
         self.filterable_columns = {
-            col: i for i, col in enumerate(self.visible_columns)
+            col: i for i, col in enumerate(self._visible_columns)
         }
         QApplication.restoreOverrideCursor()
         self.updated.emit()
@@ -238,7 +243,7 @@ class ActivitiesBiosphereModel(DragPandasModel):
             np.logical_or,
             [
                 df[col].apply(lambda x: pattern.lower() in str(x).lower())
-                for col in self.visible_columns
+                for col in self._visible_columns
             ],
         )
         return mask

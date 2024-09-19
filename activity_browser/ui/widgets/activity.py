@@ -238,9 +238,8 @@ class ActivityDataGrid(QtWidgets.QWidget):
                 del self.parent.activity["default_allocation"]
                 changed = True
         elif selection == self.CUSTOM_ALLOCATION:
-            db = self.parent.activity.get("database", "")
             custom_value = CustomAllocationEditor.define_custom_allocation(
-                                current_def_alloc, db, self
+                                current_def_alloc, self.parent.activity, self
                             )
             if custom_value and custom_value != current_def_alloc:
                 self.parent.activity["default_allocation"] = custom_value
