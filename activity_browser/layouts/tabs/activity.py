@@ -320,7 +320,8 @@ class ActivityTab(QtWidgets.QWidget):
                 self.act_read_only_changed(read_only=True)
 
             # update checkbox to greyed-out or not
-            self.checkbox_edit_act.setEnabled(not self.db_read_only)
+            read_only_process = self.activity.get("type") == "readonly_process"
+            self.checkbox_edit_act.setEnabled(not self.db_read_only and not read_only_process)
             self.update_tooltips()
 
         else:  # on read-only state change for a database different to the open activity...
