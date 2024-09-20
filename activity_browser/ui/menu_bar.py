@@ -13,6 +13,9 @@ AB_BW25 = True if os.environ.get("AB_BW25", False) else False
 
 
 class MenuBar(QtWidgets.QMenuBar):
+    """
+    Main menu bar at the top of the Activity Browser window. Contains submenus for different user interaction categories
+    """
     def __init__(self, window):
         super().__init__(parent=window)
 
@@ -23,10 +26,14 @@ class MenuBar(QtWidgets.QMenuBar):
 
 
 class ProjectMenu(QtWidgets.QMenu):
+    """
+    Project menu: contains actions related to managing the project, such as project duplication, database importing etc.
+    """
+
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
 
-        self.setTitle("Project")
+        self.setTitle("&Project")
 
         self.new_proj_action = actions.ProjectNew.get_QAction()
         self.dup_proj_action = actions.ProjectDuplicate.get_QAction()
@@ -68,6 +75,10 @@ class ProjectMenu(QtWidgets.QMenu):
 
 
 class ViewMenu(QtWidgets.QMenu):
+    """
+    View menu: contains actions in regard to hiding and showing specific UI elements.
+    """
+
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
 
@@ -91,6 +102,10 @@ class ViewMenu(QtWidgets.QMenu):
 
 
 class ToolsMenu(QtWidgets.QMenu):
+    """
+    Tools Menu: contains actions in regard to special tooling aspects of the AB
+    """
+
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
         self.setTitle("&Tools")
@@ -101,6 +116,10 @@ class ToolsMenu(QtWidgets.QMenu):
 
 
 class HelpMenu(QtWidgets.QMenu):
+    """
+    Help Menu: contains actions that show info to the user or redirect them to online resources
+    """
+
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
         self.setTitle("&Help")
@@ -119,6 +138,8 @@ class HelpMenu(QtWidgets.QMenu):
         )
 
     def about(self):
+        """Displays an 'about' window to the user containing e.g. the version of the AB and copyright info"""
+        # set the window text in html format
         text = f"""
         Activity Browser - a graphical interface for Brightway2.<br><br>
         Application version: <b>{version("activity_browser")}</b><br>
@@ -130,20 +151,24 @@ class HelpMenu(QtWidgets.QMenu):
         For license information please see the copyright on <a href="https://github.com/LCA-ActivityBrowser/activity-browser/blob/main/LICENSE.txt">this page</a>.<br><br>
         """
 
+        # set up the window
         about_window = QtWidgets.QMessageBox(parent=application.main_window)
         about_window.setWindowTitle("About the Activity Browser")
         about_window.setIconPixmap(qicons.ab.pixmap(QSize(150, 150)))
         about_window.setText(text)
 
+        # execute
         about_window.exec_()
 
     def open_wiki(self):
+        """Opens the AB github wiki in the users default browser"""
         url = QUrl(
             "https://github.com/LCA-ActivityBrowser/activity-browser/wiki"
         )
         QtGui.QDesktopServices.openUrl(url)
 
     def raise_issue_github(self):
+        """Opens the github create issue page in the users default browser"""
         url = QUrl(
             "https://github.com/LCA-ActivityBrowser/activity-browser/issues/new/choose"
         )
@@ -192,6 +217,8 @@ class ProjectSelectionMenu(QtWidgets.QMenu):
 
 
 class MigrationsMenu(QtWidgets.QMenu):
+    """Menu that shows actions that regard to brightway migrations"""
+
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
 
