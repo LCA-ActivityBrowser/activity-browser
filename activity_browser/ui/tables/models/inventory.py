@@ -235,7 +235,9 @@ class ActivitiesBiosphereModel(DragPandasModel):
         self._dataframe = self._remove_empty_columns(df)
         # Calculate visible columns after empty columns have been removed
         self._visible_columns = list(self._dataframe.columns)
-        self._visible_columns.remove("key")
+        if "key" in self._visible_columns:
+            # Empty databases have no columns
+            self._visible_columns.remove("key")
         self.filterable_columns = {
             col: i for i, col in enumerate(self._visible_columns)
         }
