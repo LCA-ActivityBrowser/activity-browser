@@ -1,11 +1,12 @@
 import os
+from importlib.metadata import version
+
 from PySide2 import QtGui, QtWidgets
 from PySide2.QtCore import QSize, QUrl, Slot
 
-from activity_browser import actions, signals
+from activity_browser import actions, signals, application, info
 from activity_browser.mod import bw2data as bd
 
-from ..info import __version__ as ab_version
 from .icons import qicons
 
 AB_BW25 = True if os.environ.get("AB_BW25", False) else False
@@ -14,57 +15,11 @@ AB_BW25 = True if os.environ.get("AB_BW25", False) else False
 class MenuBar(QtWidgets.QMenuBar):
     def __init__(self, window):
         super().__init__(parent=window)
-        self.help_menu = QtWidgets.QMenu("&Help", self)
 
         self.addMenu(ProjectMenu(self))
         self.addMenu(ViewMenu(self))
         self.addMenu(ToolsMenu(self))
-        self.addMenu(self.help_menu)
-
-        self.setup_help_menu()
-
-    def setup_help_menu(self) -> None:
-        """Build the help menu for the menubar."""
-        self.help_menu.addAction(
-            self.window().icon, "&About Activity Browser", self.about
-        )
-        self.help_menu.addAction(
-            "&About Qt", lambda: QtWidgets.QMessageBox.aboutQt(self.parent())
-        )
-        self.help_menu.addAction(
-            qicons.question, "&Get help on the wiki", self.open_wiki
-        )
-        self.help_menu.addAction(
-            qicons.issue, "&Report an idea/issue on GitHub", self.raise_issue_github
-        )
-
-    def about(self):
-        text = """
-Activity Browser - a graphical interface for Brightway2.<br><br>
-Application version: <b>{}</b><br><br>
-All development happens on <a href="https://github.com/LCA-ActivityBrowser/activity-browser">github</a>.<br><br>
-For copyright information please see the copyright on <a href="https://github.com/LCA-ActivityBrowser/activity-browser/tree/main#copyright">this page</a>.<br><br>
-For license information please see the copyright on <a href="https://github.com/LCA-ActivityBrowser/activity-browser/blob/main/LICENSE.txt">this page</a>.<br><br>
-"""
-        msgBox = QtWidgets.QMessageBox(parent=self.parent())
-        msgBox.setWindowTitle("About the Activity Browser")
-        pixmap = self.parent().icon.pixmap(QSize(150, 150))
-        msgBox.setIconPixmap(pixmap)
-        msgBox.setWindowIcon(self.parent().icon)
-        msgBox.setText(text.format(ab_version))
-        msgBox.exec_()
-
-    def open_wiki(self):
-        url = QUrl(
-            "https://github.com/LCA-ActivityBrowser/activity-browser/wiki"
-        )
-        QtGui.QDesktopServices.openUrl(url)
-
-    def raise_issue_github(self):
-        url = QUrl(
-            "https://github.com/LCA-ActivityBrowser/activity-browser/issues/new/choose"
-        )
-        QtGui.QDesktopServices.openUrl(url)
+        self.addMenu(HelpMenu(self))
 
 
 class ProjectMenu(QtWidgets.QMenu):
@@ -143,6 +98,56 @@ class ToolsMenu(QtWidgets.QMenu):
         self.manage_plugins_action = actions.PluginWizardOpen.get_QAction()
 
         self.addAction(self.manage_plugins_action)
+
+
+class HelpMenu(QtWidgets.QMenu):
+    def __init__(self, parent=None) -> None:
+        super().__init__(parent)
+        self.setTitle("&Help")
+
+        self.addAction(
+            qicons.ab, "&About Activity Browser", self.about
+        )
+        self.addAction(
+            "&About Qt", lambda: QtWidgets.QMessageBox.aboutQt(application.main_window)
+        )
+        self.addAction(
+            qicons.question, "&Get help on the wiki", self.open_wiki
+        )
+        self.addAction(
+            qicons.issue, "&Report an idea/issue on GitHub", self.raise_issue_github
+        )
+
+    def about(self):
+        text = f"""
+        Activity Browser - a graphical interface for Brightway2.<br><br>
+        Application version: <b>{version("activity_browser")}</b><br>
+        bw2data version: <b>{version("bw2data")}</b><br>
+        bw2io version: <b>{version("bw2calc")}</b><br>
+        bw2calc version: <b>{version("bw2io")}</b><br><br>
+        All development happens on <a href="https://github.com/LCA-ActivityBrowser/activity-browser">github</a>.<br><br>
+        For copyright information please see the copyright on <a href="https://github.com/LCA-ActivityBrowser/activity-browser/tree/main#copyright">this page</a>.<br><br>
+        For license information please see the copyright on <a href="https://github.com/LCA-ActivityBrowser/activity-browser/blob/main/LICENSE.txt">this page</a>.<br><br>
+        """
+
+        about_window = QtWidgets.QMessageBox(parent=application.main_window)
+        about_window.setWindowTitle("About the Activity Browser")
+        about_window.setIconPixmap(qicons.ab.pixmap(QSize(150, 150)))
+        about_window.setText(text)
+
+        about_window.exec_()
+
+    def open_wiki(self):
+        url = QUrl(
+            "https://github.com/LCA-ActivityBrowser/activity-browser/wiki"
+        )
+        QtGui.QDesktopServices.openUrl(url)
+
+    def raise_issue_github(self):
+        url = QUrl(
+            "https://github.com/LCA-ActivityBrowser/activity-browser/issues/new/choose"
+        )
+        QtGui.QDesktopServices.openUrl(url)
 
 
 class ProjectSelectionMenu(QtWidgets.QMenu):
