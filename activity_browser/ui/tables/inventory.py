@@ -7,6 +7,7 @@ from multifunctional import allocation_strategies, list_available_properties
 from activity_browser import actions
 from activity_browser.mod.bw2data import databases
 from activity_browser.ui.tables.delegates.combobox import ComboBoxDelegate
+from activity_browser.ui.tables.delegates.text_button import TextButtonDelegate
 from activity_browser.ui.widgets.custom_allocation_editor import CustomAllocationEditor
 
 from ...settings import project_settings
@@ -52,7 +53,16 @@ class DatabasesTable(ABDataFrameView):
 
         combo_delegate = ComboBoxDelegate(allocation_options, self)
         combo_delegate.set_early_commit_item(DatabasesModel.CUSTOM_ALLOCATION)
-        self.setItemDelegateForColumn(4, combo_delegate)
+
+        def db_allocation() -> str:
+            allocation = databases[self.current_database()].get("default_allocation")
+            if allocation is None:
+                allocation = DatabasesModel.UNSPECIFIED_ALLOCATION
+            return allocation
+
+        button_delegate = TextButtonDelegate(db_allocation)
+        # self.setItemDelegateForColumn(4, combo_delegate)
+        self.setItemDelegateForColumn(4, button_delegate)
         self.setEditTriggers(
             QtWidgets.QAbstractItemView.EditTrigger.DoubleClicked |
             QtWidgets.QAbstractItemView.EditTrigger.SelectedClicked
@@ -73,6 +83,7 @@ class DatabasesTable(ABDataFrameView):
         )
 
         self.model = DatabasesModel(parent=self)
+        button_delegate.clicked.connect(self.model.show_custom_allocation_editor)
         self.update_proxy_model()
         # Set up an initial sort on the table
         # This is kept and applied even after the model is reset.
@@ -83,6 +94,13 @@ class DatabasesTable(ABDataFrameView):
 
     def _connect_signals(self):
         self.doubleClicked.connect(self._handle_double_click)
+        self.model.modelReset.connect(self._handle_model_reset)
+
+    def _handle_model_reset(self):
+        for i in range(self.proxy_model.rowCount()):
+            index = self.proxy_model.index(i, 4)
+            if index.flags() & QtCore.Qt.ItemIsEditable:
+                self.openPersistentEditor(index)
 
     def contextMenuEvent(self, event) -> None:
         if self.indexAt(event.pos()).row() == -1:

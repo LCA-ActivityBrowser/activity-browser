@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import datetime
 import functools
-from typing import Optional
+from typing import Any, Optional
 
 import numpy as np
 import pandas as pd
@@ -78,6 +78,17 @@ class DatabasesModel(EditablePandasModel):
             result |= Qt.ItemIsEditable
         return result
 
+    def data(self, index: QModelIndex,
+             role: int = Qt.ItemDataRole.DisplayRole) -> Any:
+        result = super().data(index, role)
+        if (result is None and index.isValid() and index.column() == 4
+                and role == Qt.ItemDataRole.DisplayRole):
+            return self.UNSPECIFIED_ALLOCATION
+            # traceback.print_stack()
+            # return None
+        else:
+            return result
+
     def _handle_data_changed(self, top_left: QModelIndex, bottom_right: QModelIndex, roles: list[Qt.ItemDataRole]):
         if top_left.isValid() and bottom_right.isValid():
             # Default allocation column
@@ -102,6 +113,21 @@ class DatabasesModel(EditablePandasModel):
                         databases[current_db]["default_allocation"] = self.data(current_alloc_idx)
                 databases.flush()
                 DatabaseRedoAllocation.run(current_db)
+
+    def show_custom_allocation_editor(self, proxy: QModelIndex):
+        if proxy.isValid() and proxy.column() == 4:
+            current_db = proxy.siblingAtColumn(0).data()
+            current_allocation = databases[current_db].get("default_allocation", "")
+            custom_value = CustomAllocationEditor.define_custom_allocation(
+                current_allocation, current_db, self.parent()
+            )
+            if custom_value != current_allocation:
+                databases[current_db]["default_allocation"] = custom_value
+                # No need to reset the "Custom..." value in the cell, because the
+                # flush below will trigger a refresh of the table from the persistent
+                # data
+            databases.flush()
+            DatabaseRedoAllocation.run(current_db)
 
 
 class ActivitiesBiosphereModel(DragPandasModel):

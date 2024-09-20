@@ -8,6 +8,7 @@ from .formula import FormulaDelegate
 from .json import JSONDelegate
 from .list import ListDelegate
 from .string import StringDelegate
+from .text_button import TextButtonDelegate
 from .uncertainty import UncertaintyDelegate
 from .viewonly import (
     ViewOnlyDelegate,
@@ -25,6 +26,7 @@ __all__ = [
     "JSONDelegate",
     "ListDelegate",
     "StringDelegate",
+    "TextButtonDelegate",
     "UncertaintyDelegate",
     "ViewOnlyDelegate",
     "ViewOnlyFloatDelegate",
