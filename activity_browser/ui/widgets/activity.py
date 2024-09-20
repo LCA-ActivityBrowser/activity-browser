@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 from PySide2 import QtCore, QtWidgets
-from multifunctional import allocation_strategies
+from multifunctional import allocation_strategies, list_available_properties
 
 from activity_browser import actions, project_settings, signals
 from activity_browser.actions.database.database_redo_allocation import DatabaseRedoAllocation
 from activity_browser.logger import log
+from activity_browser.ui.style import style_item
 from activity_browser.ui.widgets.custom_allocation_editor import CustomAllocationEditor
 
 from ...bwutils import AB_metadata
@@ -228,6 +229,24 @@ class ActivityDataGrid(QtWidgets.QWidget):
             self.def_alloc_combo.clear()
             self.def_alloc_combo.insertItems(0, allocation_options)
             self.def_alloc_combo.setCurrentIndex(index)
+            try:
+                current_db = self.parent.activity.get("database", "")
+                evaluated_properties = list_available_properties(current_db, self.parent.activity)
+                properties_dict = {item[0]:item[1] for item in evaluated_properties}
+                # Color the combo entries according to their status
+                for i in range(len(allocation_options)):
+                    brush = None
+                    if allocation_options[i] in properties_dict:
+                        brush = CustomAllocationEditor.brush_for_message_type(
+                            properties_dict[allocation_options[i]]
+                        )
+                    elif 0 < i < len(allocation_options) - 1:
+                        brush = style_item.brushes["missing"]
+                    if brush is not None:
+                        self.def_alloc_combo.setItemData(i, brush, QtCore.Qt.ForegroundRole)
+            except ValueError as e:
+                log.error(f"Error calculating the colors for the combobox. exception: {e}")
+
             self.def_alloc_combo.currentTextChanged.connect(self._handle_def_alloc_changed)
 
     def _handle_def_alloc_changed(self, selection: str):

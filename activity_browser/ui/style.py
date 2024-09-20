@@ -95,6 +95,7 @@ class TableItemStyle:
         "new": (0, 200, 0),
         "good": (0, 200, 0),
         "warning": (200, 200, 0),
+        "missing": (200, 100, 0),
         "critical": (200, 0, 0),
         "hyperlink": (0, 0, 238),
     }
