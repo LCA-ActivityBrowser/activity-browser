@@ -14,7 +14,6 @@ AB_BW25 = True if os.environ.get("AB_BW25", False) else False
 class MenuBar(QtWidgets.QMenuBar):
     def __init__(self, window):
         super().__init__(parent=window)
-        self.view_menu = QtWidgets.QMenu("&View", self)
         self.windows_menu = QtWidgets.QMenu("&Windows", self)
         self.tools_menu = QtWidgets.QMenu("&Tools", self)
         self.help_menu = QtWidgets.QMenu("&Help", self)
@@ -22,31 +21,12 @@ class MenuBar(QtWidgets.QMenuBar):
         self.manage_plugins_action = actions.PluginWizardOpen.get_QAction()
 
         self.addMenu(ProjectMenu(self))
-        self.addMenu(self.view_menu)
+        self.addMenu(ViewMenu(self))
         self.addMenu(self.tools_menu)
         self.addMenu(self.help_menu)
 
-        self.setup_view_menu()
         self.setup_tools_menu()
         self.setup_help_menu()
-
-    def setup_view_menu(self) -> None:
-        """Build the menu for viewing or hiding specific tabs"""
-        self.view_menu.addAction(
-            qicons.graph_explorer,
-            "&Graph Explorer",
-            lambda: signals.toggle_show_or_hide_tab.emit("Graph Explorer"),
-        )
-        self.view_menu.addAction(
-            qicons.history,
-            "&Activity History",
-            lambda: signals.toggle_show_or_hide_tab.emit("History"),
-        )
-        self.view_menu.addAction(
-            qicons.welcome,
-            "&Welcome screen",
-            lambda: signals.toggle_show_or_hide_tab.emit("Welcome"),
-        )
 
     def setup_tools_menu(self) -> None:
         """Build the tools menu for the menubar."""
@@ -139,6 +119,29 @@ class ProjectMenu(QtWidgets.QMenu):
         exists = True if bd.config.biosphere in bd.databases else False
         self.update_biosphere_action.setEnabled(exists)
         self.import_db_action.setEnabled(exists)
+
+
+class ViewMenu(QtWidgets.QMenu):
+    def __init__(self, parent=None) -> None:
+        super().__init__(parent)
+
+        self.setTitle("&View")
+
+        self.addAction(
+            qicons.graph_explorer,
+            "&Graph Explorer",
+            lambda: signals.toggle_show_or_hide_tab.emit("Graph Explorer"),
+        )
+        self.addAction(
+            qicons.history,
+            "&Activity History",
+            lambda: signals.toggle_show_or_hide_tab.emit("History"),
+        )
+        self.addAction(
+            qicons.welcome,
+            "&Welcome screen",
+            lambda: signals.toggle_show_or_hide_tab.emit("Welcome"),
+        )
 
 
 class ProjectSelectionMenu(QtWidgets.QMenu):
