@@ -174,7 +174,7 @@ class ActivitiesBiosphereModel(DragPandasModel):
 
     def columnCount(self, parent=None, *args, **kwargs):
         # Hide the key column, but keep the data to be able to open activities
-        return 0 if self._dataframe is None else self._dataframe.shape[1] - 1
+        return 0 if self._dataframe is None else max(0, self._dataframe.shape[1] - 1)
 
     def get_key(self, proxy: QModelIndex) -> tuple:
         """Get the key from the model using the given proxy index"""
