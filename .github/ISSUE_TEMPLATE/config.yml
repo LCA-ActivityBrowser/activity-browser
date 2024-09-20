@@ -1,9 +1,9 @@
 blank_issues_enabled: false
-read_wiki:
+contact_links:
   - name: Read the Wiki
     url: https://github.com/LCA-ActivityBrowser/activity-browser/wiki
-    about: Learn how to use Activity Browser from our wiki.
-contact_links:
-  - name: How to use AB
+    about: Learn how to use Activity Browser with the wiki.
+  - name: Ask the community
     url: https://github.com/LCA-ActivityBrowser/activity-browser/discussions
-    about: Ask the Activity Browser community for help.
+    about: Ask the Activity Browser community for help on using Activity Browser.
+  
