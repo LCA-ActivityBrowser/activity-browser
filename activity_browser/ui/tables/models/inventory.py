@@ -3,6 +3,7 @@ import datetime
 import functools
 from typing import Any, Optional
 
+from PySide2.QtGui import QFont
 import numpy as np
 import pandas as pd
 from PySide2.QtCore import QModelIndex, Qt, Slot
@@ -13,6 +14,7 @@ from activity_browser.actions.database.database_redo_allocation import DatabaseR
 from activity_browser.bwutils import AB_metadata
 from activity_browser.bwutils import commontasks as bc
 from activity_browser.mod.bw2data import databases, projects
+from activity_browser.ui.style import style_item
 from activity_browser.ui.widgets.custom_allocation_editor import CustomAllocationEditor
 
 from .base import DragPandasModel, EditablePandasModel, PandasModel
@@ -81,13 +83,18 @@ class DatabasesModel(EditablePandasModel):
     def data(self, index: QModelIndex,
              role: int = Qt.ItemDataRole.DisplayRole) -> Any:
         result = super().data(index, role)
-        if (result is None and index.isValid() and index.column() == 4
-                and role == Qt.ItemDataRole.DisplayRole):
-            return self.UNSPECIFIED_ALLOCATION
-            # traceback.print_stack()
-            # return None
-        else:
-            return result
+        if index.isValid() and index.column() == 4:
+            if role == Qt.ItemDataRole.DisplayRole and result is None:
+                return self.UNSPECIFIED_ALLOCATION
+            elif role == Qt.ItemDataRole.FontRole:
+                if index.data() != self.NOT_APPLICABLE:
+                    font = QFont()
+                    font.setUnderline(True)
+                    return font
+            elif role == Qt.ItemDataRole.ForegroundRole:
+                if index.data() != self.NOT_APPLICABLE:
+                    return style_item.brushes["hyperlink"]
+        return result
 
     def _handle_data_changed(self, top_left: QModelIndex, bottom_right: QModelIndex, roles: list[Qt.ItemDataRole]):
         if top_left.isValid() and bottom_right.isValid():

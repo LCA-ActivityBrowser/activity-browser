@@ -36,6 +36,7 @@ class DatabasesTable(ABDataFrameView):
         # uses an up-to-date value
         def allocation_options() -> list[str]:
             options = list(allocation_strategies.keys())
+            # use try except
             evaluated_properties = list_available_properties(self.current_database())
             properties_dict = {item[0]:item[1] for item in evaluated_properties}
             # Color the combo entries according to their status
@@ -61,7 +62,10 @@ class DatabasesTable(ABDataFrameView):
             return allocation
 
         button_delegate = TextButtonDelegate(db_allocation)
+
+
         # self.setItemDelegateForColumn(4, combo_delegate)
+        # Chris: Comment out below line to see the hyperlink variant
         self.setItemDelegateForColumn(4, button_delegate)
         self.setEditTriggers(
             QtWidgets.QAbstractItemView.EditTrigger.DoubleClicked |
@@ -95,6 +99,7 @@ class DatabasesTable(ABDataFrameView):
     def _connect_signals(self):
         self.doubleClicked.connect(self._handle_double_click)
         self.model.modelReset.connect(self._handle_model_reset)
+        self.clicked.connect(self._handle_click)
 
     def _handle_model_reset(self):
         for i in range(self.proxy_model.rowCount()):
@@ -158,6 +163,12 @@ class DatabasesTable(ABDataFrameView):
 
             if index.column() != 4 or not def_alloc_editable:
                 signals.database_selected.emit(self.model.get_db_name(index))
+
+    def _handle_click(self, index: QtCore.QModelIndex):
+        if (index.isValid()
+                and index.column() == 4
+                and index.data() != DatabasesModel.NOT_APPLICABLE):
+            self.model.show_custom_allocation_editor(index)
 
     def current_database(self) -> str:
         """Return the database name of the user-selected index."""

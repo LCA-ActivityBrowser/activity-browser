@@ -55,7 +55,7 @@ class ActivitiesTab:
         QTabWidget::pane {
             border-top: 0px solid rgb(128,0,0); /*red line (read-only indicator) - removed due to request */
             /*border-bottom: 3px solid rgb(128,0,0);*/
-        }        
+        }
     """
     style_sheet_editable = """
         QToolBar {
@@ -64,7 +64,7 @@ class ActivitiesTab:
         QTabWidget::pane {
             border-top: 3px solid rgb(0,128,0);
             /* border-bottom: 3px solid rgb(0,128,0);*/
-        }        
+        }
         """
 
 
@@ -96,6 +96,7 @@ class TableItemStyle:
         "good": (0, 200, 0),
         "warning": (200, 200, 0),
         "critical": (200, 0, 0),
+        "hyperlink": (0, 0, 238),
     }
 
     def __init__(self):
