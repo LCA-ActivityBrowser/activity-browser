@@ -14,23 +14,14 @@ AB_BW25 = True if os.environ.get("AB_BW25", False) else False
 class MenuBar(QtWidgets.QMenuBar):
     def __init__(self, window):
         super().__init__(parent=window)
-        self.windows_menu = QtWidgets.QMenu("&Windows", self)
-        self.tools_menu = QtWidgets.QMenu("&Tools", self)
         self.help_menu = QtWidgets.QMenu("&Help", self)
-
-        self.manage_plugins_action = actions.PluginWizardOpen.get_QAction()
 
         self.addMenu(ProjectMenu(self))
         self.addMenu(ViewMenu(self))
-        self.addMenu(self.tools_menu)
+        self.addMenu(ToolsMenu(self))
         self.addMenu(self.help_menu)
 
-        self.setup_tools_menu()
         self.setup_help_menu()
-
-    def setup_tools_menu(self) -> None:
-        """Build the tools menu for the menubar."""
-        self.tools_menu.addAction(self.manage_plugins_action)
 
     def setup_help_menu(self) -> None:
         """Build the help menu for the menubar."""
@@ -142,6 +133,16 @@ class ViewMenu(QtWidgets.QMenu):
             "&Welcome screen",
             lambda: signals.toggle_show_or_hide_tab.emit("Welcome"),
         )
+
+
+class ToolsMenu(QtWidgets.QMenu):
+    def __init__(self, parent=None) -> None:
+        super().__init__(parent)
+        self.setTitle("&Tools")
+
+        self.manage_plugins_action = actions.PluginWizardOpen.get_QAction()
+
+        self.addAction(self.manage_plugins_action)
 
 
 class ProjectSelectionMenu(QtWidgets.QMenu):
