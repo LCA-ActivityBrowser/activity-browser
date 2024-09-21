@@ -33,12 +33,8 @@ class CustomAllocationEditor(QDialog):
         self._property_table = QTableWidget()
         self._property_table.setSortingEnabled(True)
         self._property_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-        self._property_table.itemSelectionChanged.connect(
-            self._handle_table_selection_changed
-        )
         self._property_table.setColumnCount(2)
         self._property_table.setHorizontalHeaderLabels(["Property", "Eligibility"])
-
         self._property_table.setVerticalScrollMode(
             QAbstractItemView.ScrollMode.ScrollPerPixel
         )
@@ -50,13 +46,19 @@ class CustomAllocationEditor(QDialog):
         self._property_table.horizontalHeader().setStretchLastSection(True)
         self._property_table.verticalHeader().setVisible(False)
         self._property_table.sortByColumn(0, Qt.SortOrder.AscendingOrder)
-
         self._property_table.setSelectionMode(
             QAbstractItemView.SelectionMode.SingleSelection
         )
         self._property_table.setSelectionBehavior(
             QAbstractItemView.SelectionBehavior.SelectRows
         )
+        self._property_table.itemSelectionChanged.connect(
+            self._handle_table_selection_changed
+        )
+        self._property_table.doubleClicked.connect(
+            self._handle_table_double_clicked
+        )
+
         self._status_text = QPlainTextEdit()
         self._status_text.setReadOnly(True)
         if self._property_table.rowCount() == 0:
@@ -179,6 +181,10 @@ class CustomAllocationEditor(QDialog):
                 self._status_text.setPlainText(text)
         else:
             self._save_button.setEnabled(False)
+
+    def _handle_table_double_clicked(self):
+        """Shortcut for selecting a property and clicking select"""
+        self._handle_select_clicked()
 
     def _handle_select_clicked(self):
         """
