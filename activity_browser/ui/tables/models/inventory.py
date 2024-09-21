@@ -129,12 +129,11 @@ class DatabasesModel(EditablePandasModel):
                 current_allocation, current_db, self.parent()
             )
             if custom_value != current_allocation:
+                # In this approach there is no way currently to delete the
+                # default_allocation completely
                 databases[current_db]["default_allocation"] = custom_value
-                # No need to reset the "Custom..." value in the cell, because the
-                # flush below will trigger a refresh of the table from the persistent
-                # data
-            databases.flush()
-            DatabaseRedoAllocation.run(current_db)
+                databases.flush()
+                DatabaseRedoAllocation.run(current_db)
 
 
 class ActivitiesBiosphereModel(DragPandasModel):
