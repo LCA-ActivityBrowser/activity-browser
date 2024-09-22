@@ -5,6 +5,7 @@ Each of these classes is either a parent for - or a sub-LCA results tab.
 """
 
 from collections import namedtuple
+from copy import deepcopy
 from typing import List, Tuple, Optional, Union
 from logging import getLogger
 
@@ -1229,14 +1230,10 @@ class ProductContributionsTab(ContributionTab):
         """Retrieve the product contributions."""
 
         def get_data():
-            _data = self.calculate_contributions(demand, demand_key,
+            _data = self.calculate_contributions(demand, demand_key, demand_index,
                                                  method=method, method_index=method_index,
                                                  scenario_lca=self.has_scenarios, scenario_index=scenario_index,
                                                  )
-            if _data:
-                _data = self.reformat_data(_data)
-            else:
-                _data = {"Total": 0}
             return _data
 
         # get the right data
@@ -1299,58 +1296,70 @@ class ProductContributionsTab(ContributionTab):
             self.combobox_menu.scenario.setCurrentIndex(orig_idx)
 
         df = self.data_to_df(all_data, compare)
-        # print("+++")
-        # for _, row in df.iterrows():
-        #     print([c for c in row])
-        # TODO manage empty dataframe so overall calculation doesn't fail with plot generation
         return df
 
-    def calculate_contributions(self, demand, demand_key,
+    def calculate_contributions(self, demand, demand_key, demand_index,
                                 method, method_index: int = None,
                                 scenario_lca: bool = False, scenario_index: int = None) -> Optional[dict]:
-        """Calculate LCA, do graph traversal on the first level of activities."""
+        """TODO."""
+
+        # reuse LCA object from original calculation to skip 1 LCA
+        if scenario_lca:
+            # get lca object from mlca class
+            self.parent.mlca.update_lca_calculation_for_sankey(scenario_index, demand, method_index)
+            _lca = self.parent.mlca.lca
+
+            # get score
+            score = self.parent.mlca.lca_scores[demand_index, method_index, scenario_index]
+        else:
+            # get lca object + set method
+            _lca = self.parent.mlca.lca
+            _lca.switch_method(method)
+            _lca.lcia_calculation()
+
+            # get score
+            score = self.parent.mlca.lca_scores[demand_index, method_index]
+
+        if score == 0:
+            # no need to calculate contributions to '0' score
+            # technically it could be that positive and negative score of same amount negate to 0, but highly unlikely.
+            return {"Total": 0, demand_key: 0}
+
+        data = {"Total": score}
+        remainder = score  # contribution of demand_key
+
+        # get (potentially) contributing activities
         technosphere = bw.get_activity(demand_key).technosphere()
 
-        max_calc = len([exch for exch in technosphere if
-                        exch.input.key != exch.output.key])  # get the amount of exchanges that are not to self
+        keys = [exch.input.key for exch in technosphere if
+                exch.input.key != exch.output.key]
+        # find scale from production amount and demand amount
+        scale = demand[demand_key] / [p for p in bw.get_activity(demand_key).production()][0].amount
 
-        with warnings.catch_warnings():
-            # ignore the calculation count warning, as we will hit it by design
-            warnings.filterwarnings("ignore", message="Stopping traversal due to calculation count.")
-            try:
-                if scenario_lca:
-                    #TODO review
-                    # https://github.com/LCA-ActivityBrowser/activity-browser/pull/1180
-                    # https://github.com/LCA-ActivityBrowser/activity-browser/pull/1117
-                    # as there was a problem with getting the right method from the scenario object??
-                    self.parent.mlca.update_lca_calculation_for_sankey(scenario_index, demand, method_index)
-                    data = GraphTraversalWithScenario(self.parent.mlca).calculate(demand, method, cutoff=0,
-                                                                                  max_calc=max_calc)
-                else:
-                    data = bw.GraphTraversal().calculate(demand, method, cutoff=0, max_calc=max_calc)
-            except (ValueError, ZeroDivisionError) as e:
-                log.info(f"{e}, no Product Contribution results calculated for {demand} | {method}")
-                return
+        amounts = [exch.amount * scale for exch in technosphere if
+                   exch.input.key != exch.output.key]
+        new_demand = {keys[i]: amounts[i] for i, _ in enumerate(keys)}
+
+        # iterate over all activities demand_key is connected to
+        for key, amt in new_demand.items():
+            if not scenario_lca:
+                # skip zero amounts, but only if not using scenarios (zero exchange could have been overwritten)
+                if amt == 0:
+                    del demand[key]
+                    continue
+
+            # recalculate for this demand
+            _lca.redo_lci({key: amt})
+            _lca.redo_lcia()
+
+            score = _lca.score
+            if score != 0:
+                # only store non-zero results
+                data[key] = score
+                remainder -= score
+
+        data[demand_key] = remainder
         return data
-
-    def reformat_data(self, data: dict) -> dict:
-        """Reformat the data into a useable format."""
-        lca = data["lca"]
-        demand = list(lca.demand.items())[0]
-        demand_key = list(lca.demand.keys())[0].key
-        total = lca.score
-        reverse_activity_dict = {v: k for k, v in lca.activity_dict.items()}
-
-        # get the impact data per key
-        contributions = {
-            bw.get_activity(reverse_activity_dict[edge["from"]]).key: edge["impact"] for edge in data["edges"]
-            if all(i != -1 for i in (edge["from"], edge["to"]))
-        }
-        # get impact for the total and demand
-        diff = total - sum([v for v in contributions.values()])  # for the demand process, calculate by the difference
-        contributions[demand_key] = diff
-        contributions["Total"] = total
-        return contributions
 
     def data_to_df(self, all_data: List[Tuple[object, dict]], compare: str) -> pd.DataFrame:
         """Convert the provided data into a dataframe."""
