@@ -70,6 +70,7 @@ class CustomAllocationEditor(QDialog):
                 "Select a property to see a detailed analysis of eligibility")
 
         self._save_button = QPushButton("Select")
+        self._save_button.setEnabled(False)
         self._save_button.clicked.connect(self._handle_select_clicked)
         self._cancel_button = QPushButton("Cancel")
         self._cancel_button.clicked.connect(self.reject)
