@@ -19,6 +19,8 @@ section shows a table that displays a selection of the metadata for all the data
 panel is not yet visible when no databases have been installed into the project yet. Instead, a button to set up your
 project will be shown.
 
+# Basic functions
+
 ## Opening a database
 You can open a database by double-clicking its entry within the `Databases` section. This will open a tab at the bottom
 of the `Project` panel that contains a table showing all [activities](Activities) that the database contains.
@@ -36,4 +38,24 @@ sure you anticipate this.
 ## Duplicating a database
 You can duplicate a database by right-clicking on its entry withing the `Databases` section. This will prompt to enter a 
 unique name for the database, after which the newly duplicated database will open.
+
+# Importing
+Importing databases is an important aspect of project management. However, there are a myriad of different file formats 
+and standards around for LCA data. Activity Browser covers importing for the following formats:
+- Ecospold
+- .bw2data packages
+- Excels in the Brightway2 format
+
+
+## Database import wizard
+
+
+# Exporting
+
+## Database export wizard
+
+
+# Specific tooling
+
+# Database relinking
 
