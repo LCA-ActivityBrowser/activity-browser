@@ -20,6 +20,9 @@ from PySide2.QtWidgets import (QApplication, QButtonGroup, QCheckBox,
                                QPushButton, QRadioButton, QScrollArea,
                                QTableView, QTabWidget, QToolBar, QVBoxLayout,
                                QWidget)
+from activity_browser.bwutils import AB_metadata
+
+from activity_browser.bwutils.metadata import MetaDataStore
 from stats_arrays.errors import InvalidParamsError
 import brightway2 as bw
 
@@ -1202,6 +1205,8 @@ class ProductContributionsTab(ContributionTab):
         self.caching = True  # set to False to disable caching for debug
 
         self.layout.addLayout(get_header_layout("Product Contributions"))
+        self.layout.addWidget(self.cutoff_menu)
+        self.layout.addWidget(horizontal_line())
         combobox = self.build_combobox(has_method=True, has_func=True)
         self.layout.addLayout(combobox)
         self.layout.addWidget(horizontal_line())
@@ -1223,18 +1228,22 @@ class ProductContributionsTab(ContributionTab):
         self.connect_signals()
         self.toggle_comparisons(self.switches.indexes.func)
 
-        self.combobox_menu.agg_label.setVisible(False)
-        self.combobox_menu.agg.setVisible(False)
-
     def update_dataframe(self, *args, **kwargs):
         """Retrieve the product contributions."""
 
+        #TODO
+        # 0 make this work with scenarios
+        #   in case scenarios are used, we need to read the amounts from the matrix, amounts may have changed
+        # 1 refactor so this updates the df, not does calculations/cache reads etc
+        # 2 figure out how this already works with relative???
+        # 3 make this work with aggegator for data
+        # 4 make this work with cutoff menu (limit, limit_type (and normalize??)
+
         def get_data():
-            _data = self.calculate_contributions(demand, demand_key, demand_index,
-                                                 method=method, method_index=method_index,
-                                                 scenario_lca=self.has_scenarios, scenario_index=scenario_index,
-                                                 )
-            return _data
+            return self.calculate_contributions(demand, demand_key, demand_index,
+                                                method=method, method_index=method_index,
+                                                scenario_lca=self.has_scenarios, scenario_index=scenario_index,
+                                                )
 
         # get the right data
         if self.has_scenarios:
@@ -1343,7 +1352,7 @@ class ProductContributionsTab(ContributionTab):
         # iterate over all activities demand_key is connected to
         for key, amt in new_demand.items():
             if not scenario_lca:
-                # skip zero amounts, but only if not using scenarios (zero exchange could have been overwritten)
+                # skip zero amounts, but only if not using scenarios (zero exchange could have been overwritten in scen)
                 if amt == 0:
                     del demand[key]
                     continue
@@ -1356,7 +1365,7 @@ class ProductContributionsTab(ContributionTab):
             if score != 0:
                 # only store non-zero results
                 data[key] = score
-                remainder -= score
+                remainder -= score  # subtract this from remainder
 
         data[demand_key] = remainder
         return data
@@ -1369,7 +1378,6 @@ class ProductContributionsTab(ContributionTab):
              "location": [""], "unit": [""], "database": [""]}
         meta_cols = set(d.keys())
         for i, (item, data) in enumerate(all_data):
-            print("++ COL:", item, data)
             unique_keys += list(data.keys())
             # already add the total with right column formatting depending on compares
             if compare == "Reference Flows":
@@ -1423,8 +1431,7 @@ class ProductContributionsTab(ContributionTab):
         format:
         [reference product, activity name, location, unit, database]
         """
-        act = bw.get_activity(key)
-        return [act.get("reference product"), act.get("name"), act.get("location"), act.get("unit"), key[0]]
+        return list(AB_metadata.get_metadata([key], ["reference product", "name", "location", "unit"]).iloc[0]) + [key[0]]
 
     def metadata_to_index(self, data: list) -> str:
         """Convert list to formatted index.
@@ -1433,6 +1440,14 @@ class ProductContributionsTab(ContributionTab):
         reference product | activity name | location | unit | database
         """
         return " | ".join(data)
+
+    def build_combobox(
+        self, has_method: bool = True, has_func: bool = False
+    ) -> QHBoxLayout:
+        self.combobox_menu.agg.addItems(
+            self.parent.contributions.DEFAULT_ACT_AGGREGATES
+        )
+        return super().build_combobox(has_method, has_func)
 
 
 class CorrelationsTab(NewAnalysisTab):
