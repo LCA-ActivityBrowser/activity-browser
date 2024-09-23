@@ -61,13 +61,6 @@ class CustomAllocationEditor(QDialog):
 
         self._status_text = QPlainTextEdit()
         self._status_text.setReadOnly(True)
-        if self._property_table.rowCount() == 0:
-            self._status_text.setPlainText(
-                "Define properties on multifunctional processes to define the custom"
-                " allocation based on them.")
-        else:
-            self._status_text.setPlaceholderText(
-                "Select a property to see a detailed analysis of eligibility")
 
         self._save_button = QPushButton("Select")
         self._save_button.setEnabled(False)
@@ -98,6 +91,13 @@ class CustomAllocationEditor(QDialog):
         # proportions.
         splitter.setSizes([300, 100])
         self._fill_table()
+        if self._property_table.rowCount() == 0:
+            self._status_text.setPlainText(
+                "Define properties on multifunctional processes to define the custom"
+                " allocation based on them.")
+        else:
+            self._status_text.setPlaceholderText(
+                "Select a property to see a detailed analysis of eligibility")
         self._select_old()
 
     @staticmethod
