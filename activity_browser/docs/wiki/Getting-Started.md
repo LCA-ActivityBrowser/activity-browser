@@ -13,7 +13,7 @@ Then simply run `activity-browser` and the application will open.
 Activity Browser uses [Brightway](https://docs.brightway.dev/en/latest/) for its data management and calculations. 
 Brightway has its own 'accent' of LCA terms,
 you can compare LCA terms from Brightway, [ISO 14044 (2006)](https://www.iso.org/standard/38498.html) and others in the
-[Brightway Glossary](https://docs.brightway.dev/en/latest/content/other/glossary.html).
+[Brightway Glossary](https://docs.brightway.dev/en/latest/content/overview/glossary.html).
 
 ## Organization of data in Brightway and Activity Browser
 Data in Brightway is organized into projects
