@@ -45,6 +45,7 @@ Tutorial template:
 
 ## Title
 ### What will you do
+In this tutorial we will...
 Write in a few sentences what reader will _do_ -not learn- by following this tutorial. 
 
 Write the _explicit_ goal (e.g. creating a system, performing calculations etc), 
@@ -90,7 +91,7 @@ The data we use should not be used for any studies, it is just educational.
 To create a product system, we first need a place in the project where to put it.
 For this, we use databases. 
 
-- Click the `New Database` button, this will open a popup.
+- Click the `New Database...` button, this will open a popup.
 - In the window, fill in the name _'first lca tutorial'_, confirm.
 - We now see the new database in the `Databases` table on the left.
 
