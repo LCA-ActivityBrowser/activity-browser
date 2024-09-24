@@ -39,23 +39,33 @@ sure you anticipate this.
 You can duplicate a database by right-clicking on its entry withing the `Databases` section. This will prompt to enter a 
 unique name for the database, after which the newly duplicated database will open.
 
-# Importing
-Importing databases is an important aspect of project management. However, there are a myriad of different file formats 
-and standards around for LCA data. Activity Browser covers importing for the following formats:
-- Ecospold
-- .bw2data packages
-- Excels in the Brightway2 format
+[//]: # (# Importing)
 
+[//]: # (Importing databases is an important aspect of project management. However, there are a myriad of different file formats )
 
-## Database import wizard
+[//]: # (and standards around for LCA data. Activity Browser covers importing for the following formats:)
 
+[//]: # (- Ecospold)
 
-# Exporting
+[//]: # (- .bw2data packages)
 
-## Database export wizard
+[//]: # (- Excels in the Brightway2 format)
 
+[//]: # ()
+[//]: # ()
+[//]: # (## Database import wizard)
 
-# Specific tooling
+[//]: # ()
+[//]: # ()
+[//]: # (# Exporting)
 
-# Database relinking
+[//]: # ()
+[//]: # (## Database export wizard)
+
+[//]: # ()
+[//]: # ()
+[//]: # (# Specific tooling)
+
+[//]: # ()
+[//]: # (# Database relinking)
 
