@@ -8,7 +8,7 @@ Welcome to the Activity Browser wiki!
 
 The wiki aims to help users get started and to document all features in Activity Browser.
 
-# Getting started
+## Getting started
 **Check out these resources to get you started with Activity Browser**
 - [Installation guide](Installation-Guide)
 - [Updating Activity Browser](Installation-Guide#updating-activity-browser)
@@ -22,13 +22,22 @@ The wiki aims to help users get started and to document all features in Activity
 - [Need help?](Need-Help)
 
 ___
-# Tutorials
+## Tutorials
 Have a look at our [tutorials page](Tutorials) to follow along with examples.
 
 - [Follow a tutorial to do your first LCA](Tutorials#your-first-lca)
 
 ___
-# Documentation
+## Video overview of Activity Browser
+
+[![What is the Activity Browser video](https://img.youtube.com/vi/oeL_FOsNYfU/hqdefault.jpg)](https://www.youtube.com/watch?v=oeL_FOsNYfU)
+
+<sub>
+<b>Note:</b> some content of the video may be outdated. Written content should be more up-to-date.
+</sub>
+
+___
+## Documentation
 
 - [📚 Projects](Projects)
 - [📒 Databases](Databases)

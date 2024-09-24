@@ -123,6 +123,9 @@ Your `Activity Details` tab should look like below:
 > You can set these in the `Databases` table and in the top left of the `Activity Details` tab respectively.
 > This is done to avoid accidental changes.
 > 
+> Every time you close an `Activity Details` tab, the editing state will be reset, when you open the activity again you
+> need to re-enable editing to continue to make changes.
+> 
 > Your changes are saved automatically.
  
 Now, we can fill in information in the empty activity.
@@ -165,7 +168,8 @@ If you are unsure about something specific, just read back to find the informati
 
 - Create a new activity named _'coal mining'_ with as `Product` name _'coal'_ and as `Unit` _'kilogram'_.
 - Again add the _'carbon dioxide, fossil'_ biosphere flow to the activity, set the `Amount` to 0.15 kilogram.
-- Now switch back to the `Activity Details` of the process _'electricity production, coal'_.
+- Now switch back to the `Activity Details` of the activity _'electricity production, coal'_.
+  - Remember, if you have closed this activity in the mean time, you need to re-enable the `Edit Activty` toggle.
 - From the database _'first lca tutorial'_ add the _'coal mining'_ activity you just created to the 
   `Technosphere Flows` table of the _electricity production_ process.
   - Remember to show the `Technosphere Flows` table again before adding the flow.  
