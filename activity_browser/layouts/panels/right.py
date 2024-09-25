@@ -21,9 +21,16 @@ class RightPanel(ABTab):
     def __init__(self, *args):
         super(RightPanel, self).__init__(*args)
         package_dir = Path(__file__).resolve().parents[2]
-        html_file = str(package_dir.joinpath("static", "startscreen", "welcome.html"))
+
+        try:
+            file = RestrictedWebViewWidget("https://raw.githubusercontent.com/LCA-ActivityBrowser/activity-browser/refs/heads/main/activity_browser/static/startscreen/welcome.html")
+        except:
+            # use local fallback if we fail to connect
+            html_file = str(package_dir.joinpath("static", "startscreen", "welcome.html"))
+            file = RestrictedWebViewWidget(html_file=html_file)
+
         self.tabs = {
-            "Welcome": RestrictedWebViewWidget(html_file=html_file),
+            "Welcome": file,
             "Characterization Factors": CharacterizationFactorsTab(self),
             "Activity Details": ActivitiesTab(self),
             "LCA Setup": LCASetupTab(self),
