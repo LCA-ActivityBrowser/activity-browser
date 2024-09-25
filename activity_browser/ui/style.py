@@ -77,7 +77,6 @@ class TableItemStyle:
             "location": (255, 85, 255),
             "database": (200, 200, 200),
             "key": (200, 200, 200),
-
         }
     else:  # light theme default
         COLOR_CODE = {
