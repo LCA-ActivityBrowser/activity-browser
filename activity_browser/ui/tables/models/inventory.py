@@ -186,8 +186,15 @@ class ActivitiesBiosphereModel(DragPandasModel):
 
     @staticmethod
     def _remove_empty_columns(df: pd.DataFrame) -> pd.DataFrame:
-        df.replace("", np.nan, inplace=True)
-        df.dropna(how="all", axis=1, inplace=True)
+        # Iterate over all the values instead of replacing empty strings
+        # with np.nan and then dropping all empty columns. That solution has a
+        # side effect, that in columns with some empty values sorting will break.
+        # This solution is also slightly faster on the test databases.
+        remove_cols = []
+        for col in df.columns:
+            if all((x == "" or x == np.nan for x in df[col])):
+                remove_cols.append(col)
+        df.drop(remove_cols, axis=1, inplace=True)
         return df.reset_index(drop=True)
 
     def df_from_metadata(self, db_name: str) -> pd.DataFrame:
@@ -211,7 +218,7 @@ class ActivitiesBiosphereModel(DragPandasModel):
         self.parent().horizontalHeader().setSortIndicator(
             sort_field_index, Qt.AscendingOrder
         )
-        return df
+        return self._remove_empty_columns(df)
 
     @Slot(str, name="syncModel")
     def sync(self, db_name: str, df: Optional[pd.DataFrame] = None) -> None:
@@ -220,7 +227,7 @@ class ActivitiesBiosphereModel(DragPandasModel):
             log.debug("Pandas Dataframe passed to sync.", df.shape)
             # Remove the empty columns in a separate step, so that in case of empty
             # cells the search does not operate on str(nan) values, but empty strings
-            self._dataframe = self._remove_empty_columns(df)
+            self._dataframe = df
             self.updated.emit()
             return
 
@@ -230,8 +237,7 @@ class ActivitiesBiosphereModel(DragPandasModel):
 
         # Get dataframe from metadata and update column-names
         QApplication.setOverrideCursor(Qt.WaitCursor)
-        df = self.df_from_metadata(db_name)
-        self._dataframe = self._remove_empty_columns(df)
+        self._dataframe = self.df_from_metadata(db_name)
         # Calculate visible columns after empty columns have been removed
         self._visible_columns = list(self._dataframe.columns)
         if "key" in self._visible_columns:
