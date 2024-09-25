@@ -2,7 +2,6 @@
 import os
 from logging import getLogger
 
-from dill import settings
 from peewee import SqliteDatabase
 from PySide2 import QtCore, QtWidgets
 
