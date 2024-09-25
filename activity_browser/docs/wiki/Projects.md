@@ -56,19 +56,19 @@ This feature is useful if you want to test out anything that may break your data
 you ensure that your data is preserved if you want to return to it.
 
 ## Exporting a project
-You can export your entire project to a .7z archive. 
+You can export your entire project to a `.tar.gz` archive file. 
 This archive will contain all data stored within the project like
 [LCI databases](Databases), [Impact Categories](Impact-Categories), [Calculation Setups](LCA-Calculation-Setups) and any other data. 
 You can export your project through the `Project` > `Export this project` menu in the
 main menu bar.
 
-You will be asked for a location the .7z archive with your project data should be saved to. 
+You will be asked for a location the `.tar.gz` archive with your project data should be saved to. 
 
 > [!NOTE]
 > Exporting may take a while to complete, especially for large projects with many databases.
 
 ## Importing a project
-Similarly, you can also import a project that has been exported to a .7z archive. 
+Similarly, you can also import a project that has been exported to a `.tar.gz` archive. 
 You can import the project through the `Project` > `Import a project` menu in the main menu bar.
 
 You will be prompted for a unique project name, after which the project will be installed and the Activity Browser will
