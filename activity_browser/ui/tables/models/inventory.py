@@ -162,9 +162,9 @@ class ActivitiesBiosphereModel(DragPandasModel):
         # by AB_metadata.get_existing_fields above.
         column_names = {
             "name": "Name",
-            "reference product": "reference product",
-            "location": "location",
-            "unit": "unit",
+            "reference product": "Ref. product",
+            "location": "Location",
+            "unit": "Unit",
             "ISIC rev.4 ecoinvent": "ISIC rev.4 ecoinvent",
             "type": "Type",
             "key": "key",
