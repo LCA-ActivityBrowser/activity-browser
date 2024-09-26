@@ -188,6 +188,15 @@ class ABSettings(BaseSettings):
         else:
             return None
 
+    @property
+    def theme(self) -> str:
+        """Returns the current brightway directory"""
+        return self.settings.get("theme", "Light theme")
+
+    @theme.setter
+    def theme(self, new_theme: str) -> None:
+        self.settings.update({"theme": new_theme})
+
 
 class ProjectSettings(BaseSettings):
     """

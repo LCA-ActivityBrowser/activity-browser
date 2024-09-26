@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from PySide2 import QtGui, QtWidgets
+from activity_browser import ab_settings
 
 default_font = QtGui.QFont("Arial", 8)
 
@@ -68,22 +69,29 @@ class ActivitiesPanel:
 
 
 class TableItemStyle:
-    COLOR_CODE = {
-        "default": (0, 0, 0),  # black
-        # 'product': (0, 132, 130),
-        "product": (0, 0, 0),
-        # 'reference product': (0, 132, 130),
-        "reference product": (0, 0, 0),
-        "name": (0, 2, 140),
-        "activity": (0, 72, 216),
-        "amount": (0, 0, 0),
-        # 'unit': (51, 153, 255),
-        "unit": (0, 0, 0),
-        "location": (72, 0, 140),
-        "database": (96, 96, 96),
-        "categories": (0, 0, 0),
-        "key": (96, 96, 96),
-    }
+    if ab_settings.theme == "Dark theme compatibility":
+        COLOR_CODE = {
+            "default": (255, 255, 255),  # white
+            "name": (85, 170, 255),
+            "activity": (85, 170, 255),
+            "location": (255, 85, 255),
+            "database": (200, 200, 200),
+            "key": (200, 200, 200),
+        }
+    else:  # light theme default
+        COLOR_CODE = {
+            "default": (0, 0, 0),  # black
+            "product": (0, 0, 0),
+            "reference product": (0, 0, 0),
+            "name": (0, 2, 140),
+            "activity": (0, 72, 216),
+            "amount": (0, 0, 0),
+            "unit": (0, 0, 0),
+            "location": (72, 0, 140),
+            "database": (96, 96, 96),
+            "categories": (0, 0, 0),
+            "key": (96, 96, 96),
+        }
 
     def __init__(self):
         self.brushes = {}

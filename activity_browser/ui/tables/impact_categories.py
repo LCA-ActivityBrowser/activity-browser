@@ -2,7 +2,7 @@
 from typing import Iterable
 
 from PySide2 import QtWidgets
-from PySide2.QtCore import QModelIndex, Slot
+from PySide2.QtCore import QModelIndex, Slot, Qt
 
 from activity_browser import actions
 from activity_browser.mod.bw2data import methods
@@ -296,10 +296,10 @@ class MethodCharacterizationFactorsTable(ABFilterableDataFrameView):
         cell = self.selectedIndexes()[0]
         column = cell.column()
 
-        if column in [2]:
+        if self.model.headerData(column, Qt.Horizontal) == 'Amount':
             # if the column changed is 2 (Amount) --> This is a list in case of future editable columns
             new_amount = self.model.get_value(cell)
-            actions.CFAmountModify.run(self.method_name, self.selected_cfs, new_amount)
+            actions.CFAmountModify.run(self.method_name(), self.selected_cfs(), new_amount)
 
     @Slot(bool, name="toggleUncertainColumns")
     def hide_uncertain(self, hide: bool = True) -> None:
