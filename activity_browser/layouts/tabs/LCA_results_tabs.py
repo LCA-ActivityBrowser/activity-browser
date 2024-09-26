@@ -920,6 +920,7 @@ class ContributionTab(NewAnalysisTab):
             optional.get("functional_unit"),
             self.unit,
         )
+
         filename = "_".join((str(x) for x in fields if x is not None))
         self.plot.plot_name, self.table.table_name = filename, filename
 
@@ -992,12 +993,9 @@ class ContributionTab(NewAnalysisTab):
         # gather the combobox values
         method = self.parent.method_dict[self.combobox_menu.method.currentText()]
         functional_unit = self.combobox_menu.func.currentText()
-        scenario = self.combobox_menu.scenario.currentIndex()
+        scenario = max(self.combobox_menu.scenario.currentIndex(), 0)  # set scenario 0 if not initiated yet
         aggregator = self.combobox_menu.agg.currentText()
 
-        # catch uninitiated scenario combobox
-        if scenario < 0:
-            scenario = 0
         # set aggregator to None if unwanted
         if aggregator == "none":
             aggregator = None
@@ -1232,12 +1230,11 @@ class ProductContributionsTab(ContributionTab):
         """Retrieve the product contributions."""
 
         #TODO
-        # 0 make this work with scenarios
-        #   in case scenarios are used, we need to read the amounts from the matrix, amounts may have changed
         # 1 refactor so this updates the df, not does calculations/cache reads etc
         # 2 figure out how this already works with relative???
         # 3 make this work with aggegator for data
         # 4 make this work with cutoff menu (limit, limit_type (and normalize??)
+        # 5 update documentation
 
         def get_data():
             return self.calculate_contributions(demand, demand_key, demand_index,
@@ -1247,7 +1244,8 @@ class ProductContributionsTab(ContributionTab):
 
         # get the right data
         if self.has_scenarios:
-            scenario_index = self.combobox_menu.scenario.currentIndex()
+            # get the scenario index, if it is -1 (none selected), then use index 0
+            scenario_index = max(self.combobox_menu.scenario.currentIndex(), 0)
         else:
             scenario_index = None
         method_index = self.combobox_menu.method.currentIndex()
@@ -1289,9 +1287,7 @@ class ProductContributionsTab(ContributionTab):
             # run the analysis for every scenario
             orig_idx = self.combobox_menu.scenario.currentIndex()
             for scenario_index in range(self.combobox_menu.scenario.count()):
-                self.combobox_menu.scenario.setCurrentIndex(scenario_index)
-                scenario = self.combobox_menu.scenario.currentText()
-
+                scenario = self.combobox_menu.scenario.itemText(scenario_index)
                 cache_key = (demand_index, method_index, scenario_index)
                 if self.caching and self.cache.get(cache_key, False):
                     # this data is cached
@@ -1312,22 +1308,65 @@ class ProductContributionsTab(ContributionTab):
                                 scenario_lca: bool = False, scenario_index: int = None) -> Optional[dict]:
         """TODO."""
 
+        def get_default_demands() -> dict:
+            """Get the inputs to calculate contributions from the activity"""
+            # get exchange keys leading to this activity
+            technosphere = bw.get_activity(demand_key).technosphere()
+
+            keys = [exch.input.key for exch in technosphere if
+                    exch.input.key != exch.output.key]
+            # find scale from production amount and demand amount
+            scale = demand[demand_key] / [p for p in bw.get_activity(demand_key).production()][0].amount
+
+            amounts = [exch.amount * scale for exch in technosphere if
+                       exch.input.key != exch.output.key]
+            demands = {keys[i]: amounts[i] for i, _ in enumerate(keys)}
+            return demands
+
+        def get_scenario_demands() -> dict:
+            """Get the inputs to calculate contributions from the scenario matrix"""
+            # get exchange keys leading to this activity
+            technosphere = bw.get_activity(demand_key).technosphere()
+            demand_idx = _lca.product_dict[demand_key]
+
+            keys = [exch.input.key for exch in technosphere if
+                    exch.input.key != exch.output.key]
+            # find scale from production amount and demand amount
+            scale = demand[demand_key] / _lca.technosphere_matrix[_lca.activity_dict[demand_key], demand_idx] * -1
+
+            amounts = []
+
+            for exch in technosphere:
+                exch_idx = _lca.activity_dict[exch.input.key]
+                if exch.input.key != exch.output.key:
+                    amounts.append(_lca.technosphere_matrix[exch_idx, demand_idx] * scale)
+
+            # write al non-zero exchanges to demand dict
+            demands = {keys[i]: amounts[i] for i, _ in enumerate(keys) if amounts[i] != 0}
+            return demands
+
         # reuse LCA object from original calculation to skip 1 LCA
         if scenario_lca:
-            # get lca object from mlca class
-            self.parent.mlca.update_lca_calculation_for_sankey(scenario_index, demand, method_index)
-            _lca = self.parent.mlca.lca
-
-            # get score
+            # get score from the already calculated result
             score = self.parent.mlca.lca_scores[demand_index, method_index, scenario_index]
-        else:
-            # get lca object + set method
-            _lca = self.parent.mlca.lca
-            _lca.switch_method(method)
-            _lca.lcia_calculation()
 
-            # get score
+            # get lca object from mlca class
+            self.parent.mlca.current = scenario_index
+            self.parent.mlca.update_matrices()
+            _lca = self.parent.mlca.lca
+            _lca.redo_lci(demand)
+
+            # _lca.lci(factorize=True)
+        else:
+            # get score from the already calculated result
             score = self.parent.mlca.lca_scores[demand_index, method_index]
+
+            # get lca object to calculate new results
+            _lca = self.parent.mlca.lca
+
+        # set the correct method
+        _lca.switch_method(method)
+        _lca.lcia_calculation()
 
         if score == 0:
             # no need to calculate contributions to '0' score
@@ -1337,25 +1376,13 @@ class ProductContributionsTab(ContributionTab):
         data = {"Total": score}
         remainder = score  # contribution of demand_key
 
-        # get (potentially) contributing activities
-        technosphere = bw.get_activity(demand_key).technosphere()
-
-        keys = [exch.input.key for exch in technosphere if
-                exch.input.key != exch.output.key]
-        # find scale from production amount and demand amount
-        scale = demand[demand_key] / [p for p in bw.get_activity(demand_key).production()][0].amount
-
-        amounts = [exch.amount * scale for exch in technosphere if
-                   exch.input.key != exch.output.key]
-        new_demand = {keys[i]: amounts[i] for i, _ in enumerate(keys)}
+        if not scenario_lca:
+            new_demands = get_default_demands()
+        else:
+            new_demands = get_scenario_demands()
 
         # iterate over all activities demand_key is connected to
-        for key, amt in new_demand.items():
-            if not scenario_lca:
-                # skip zero amounts, but only if not using scenarios (zero exchange could have been overwritten in scen)
-                if amt == 0:
-                    del demand[key]
-                    continue
+        for key, amt in new_demands.items():
 
             # recalculate for this demand
             _lca.redo_lci({key: amt})
