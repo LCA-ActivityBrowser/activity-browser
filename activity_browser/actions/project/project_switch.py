@@ -25,4 +25,4 @@ class ProjectSwitch(ABAction):
             
         # if the project to be switched to is already the current project, do nothing
         else: 
-            log.info(f"Brightway2 already selected: {project_name}")
+            log.debug(f"Brightway2 already selected: {project_name}")
