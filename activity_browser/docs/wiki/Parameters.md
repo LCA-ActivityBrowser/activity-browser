@@ -4,9 +4,9 @@
 > Please help us improve the wiki by reading our
 > [contributing guidelines](https://github.com/LCA-ActivityBrowser/activity-browser/blob/main/CONTRIBUTING.md#wiki).
 
-# General concepts
+## General concepts
 
-# Creating parameters
+## Creating parameters
 
 Parameters are 
 [special objects in Brightway](https://docs.brightway.dev/en/latest/content/api/bw2data/parameters/index.html)
@@ -27,7 +27,7 @@ The reason for this uniqueness is that a parameter _name_ can be used in
 _formulas_ to insert the _value_ of that parameter at that specific place
 in the _formula_.
 
-## Project parameters
+### Project parameters
 
 A new project parameter can be created by clicking the `New` button next
 to the 'Project' label. A default name is assigned to this parameter which
@@ -44,7 +44,7 @@ menu. Do note however that a parameter can __only__ be deleted if it is
 not being used in any other _formula_ field, if the Activity Browser finds
 that this __is__ the case, the `Delete` option will be grayed out.
 
-## Activity Parameters
+### Activity Parameters
 
 Where project parameters can be used by any formula anywhere in the project,
 activity parameters are a lot more narrow in scope. These parameters are made
@@ -83,4 +83,4 @@ parameter, much the same as project parameters. Additionally, the Activity
 Detail tab can be opened for the parameterized activity by way of the
 `Open activities` option.
 
-# Scenarios
+## Scenarios

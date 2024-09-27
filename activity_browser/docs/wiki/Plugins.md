@@ -5,7 +5,7 @@ The plugin code has been designed and written by [Remy le Calloch](https://githu
 (supported by [G-SCOP laboratories](https://g-scop.grenoble-inp.fr/en/laboratory/g-scop-laboratory)) 
 with revisions from the Activity Browser.
 
-# Available plugins
+## Available plugins
 > [!CAUTION]
 > Plugins are not always developed by Activity Browser maintainers. 
 > Below are listed plugins from people we know but we do not verify plugins. 
@@ -19,11 +19,11 @@ with revisions from the Activity Browser.
 | [Notebook](https://github.com/Pan6ora/ab-plugin-Notebook)               | Use Jupyter notebooks from AB                                                                                                                      | [anaconda](https://anaconda.org/pan6ora/ab-plugin-template), [github](https://github.com/Pan6ora/ab-plugin-Notebook)                                                            | Rémy Le Calloch                     |
 | [template](https://github.com/Pan6ora/activity-browser-plugin-template) | An empty plugin to start from                                                                                                                      | [anaconda](https://anaconda.org/pan6ora/ab-plugin-template), [github](https://github.com/Pan6ora/activity-browser-plugin-template)                                              | Rémy Le Calloch                     |
 
-# Installation
-## Detailed instructions
+## Installation
+### Detailed instructions
 Every plugin's webpage (links are provided in the above table) should have a **Get this plugin** section with installation instructions.
 
-## General instructions
+### General instructions
 Plugins are often conda packages (like the Activity Browser). 
 To add a plugin, install it in your conda environment.
 
@@ -35,26 +35,26 @@ To add a plugin, install it in your conda environment.
 > conda install -c pan6ora -c conda-forge ab-plugin-notebook
 > ```
 
-# Usage
+## Usage
 Once a new plugin is installed restart the Activity Browser.
 
 > [!IMPORTANT]
 > If you need help using a plugin or experience problems when using a plugin,
 > contact the developers of the plugin, the Activity Browser team cannot help you.
 
-## Enabling a plugin
+### Enabling a plugin
 Plugins are enabled **per project**. 
 Simply open the plugin manager in the `Tools > Plugins` menu. 
 Select the plugins you want to use and close the plugin manager. 
 New tabs should have appeared in Activity Browser for each plugin.
 
-## Disabling a plugin
+### Disabling a plugin
 Disable a plugin the same way you activated it.
 
 > [!WARNING]
 > Keep in mind that all data created by the plugin in a project could be erased when you disable it.
 
-# Developing a plugin
+## Developing a plugin
 > [!IMPORTANT]
 > The plugin system is still in development so keep in mind that things may change at any point.
 
