@@ -1235,6 +1235,8 @@ class ProductContributionsTab(ContributionTab):
         # 3 make this work with aggegator for data
         # 4 make this work with cutoff menu (limit, limit_type (and normalize??)
         # 5 update documentation
+        # 6 only start on tab open
+        # 7 BW25 compatibility
 
         def get_data():
             return self.calculate_contributions(demand, demand_key, demand_index,
@@ -1285,7 +1287,6 @@ class ProductContributionsTab(ContributionTab):
                     self.cache[cache_key] = data
         elif compare == "Scenarios":
             # run the analysis for every scenario
-            orig_idx = self.combobox_menu.scenario.currentIndex()
             for scenario_index in range(self.combobox_menu.scenario.count()):
                 scenario = self.combobox_menu.scenario.itemText(scenario_index)
                 cache_key = (demand_index, method_index, scenario_index)
@@ -1298,7 +1299,6 @@ class ProductContributionsTab(ContributionTab):
                 all_data.append([scenario, data])
                 if self.caching:
                     self.cache[cache_key] = data
-            self.combobox_menu.scenario.setCurrentIndex(orig_idx)
 
         df = self.data_to_df(all_data, compare)
         return df
@@ -1356,7 +1356,6 @@ class ProductContributionsTab(ContributionTab):
             _lca = self.parent.mlca.lca
             _lca.redo_lci(demand)
 
-            # _lca.lci(factorize=True)
         else:
             # get score from the already calculated result
             score = self.parent.mlca.lca_scores[demand_index, method_index]
