@@ -182,7 +182,8 @@ class ContributionPlot(Plot):
         self.plot_name = "Contributions"
 
     def plot(self, df: pd.DataFrame, unit: str = None):
-        """Plot a horizontal bar chart of the process contributions."""
+        """Plot a horizontal stacked bar chart of contributions,
+        add 'total' marker if both positive and negative results are present."""
         dfp = df.copy()
         dfp.index = dfp["index"]
         dfp.drop(
@@ -190,6 +191,8 @@ class ContributionPlot(Plot):
         )  # get rid of all non-numeric columns (metadata)
         if "Total" in dfp.index:
             dfp.drop("Total", inplace=True)
+        # drop rows if all values are 0
+        dfp = dfp.loc[~(dfp == 0).all(axis=1)]
 
         self.ax.clear()
         canvas_width_inches, canvas_height_inches = self.get_canvas_size_in_inches()
@@ -204,9 +207,18 @@ class ContributionPlot(Plot):
         dfp.index = dfp.index.str.strip("_ \n\t")
         dfp.columns = dfp.columns.str.strip("_ \n\t")
 
+        # set colormap to use
+        items = dfp.shape[0]  # how many contribution items
+        # skip grey and black at start/end of cmap
+        cmap = plt.cm.nipy_spectral_r(np.linspace(0, 1, items + 2))[1:-1]
+        colors = {item: color for item, color in zip(dfp.index, cmap)}
+        # overwrite rest values to grey
+        colors["Rest (+)"] = [0.8, 0.8, 0.8, 1.]
+        colors["Rest (-)"] = [0.8, 0.8, 0.8, 1.]
+
         dfp.T.plot.barh(
             stacked=True,
-            cmap=plt.cm.nipy_spectral_r,
+            color=colors,
             ax=self.ax,
             legend=False if dfp.shape[0] >= self.MAX_LEGEND else True,
         )
@@ -224,6 +236,15 @@ class ContributionPlot(Plot):
         # grid
         self.ax.grid(which="major", axis="x", color="grey", linestyle="dashed")
         self.ax.set_axisbelow(True)  # puts gridlines behind bars
+
+        # total marker when both negative and positive results are present
+        if "Rest (+)" in dfp.index and "Rest (-)" in dfp.index:
+            marker_size = max(min(150 / dfp.shape[1], 35), 10)  # set marker size dyanmic between 10 - 35
+            for i, col in enumerate(dfp):
+                total = np.sum(dfp[col])
+                self.ax.plot(total, i,
+                             markersize=marker_size, marker="d", fillstyle="left",
+                             markerfacecolor="black", markerfacecoloralt="grey", markeredgecolor="white")
 
         # TODO review: remove or enable
 
