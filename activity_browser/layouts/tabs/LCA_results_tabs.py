@@ -9,8 +9,8 @@ from typing import List, Optional, Union
 from logging import getLogger
 
 import pandas as pd
-from PySide2 import QtCore, QtGui
-from PySide2.QtWidgets import (QApplication, QButtonGroup, QCheckBox,
+from qtpy import QtCore, QtGui
+from qtpy.QtWidgets import (QApplication, QButtonGroup, QCheckBox,
                                QComboBox, QFileDialog, QGridLayout, QGroupBox,
                                QHBoxLayout, QLabel, QLineEdit, QMessageBox,
                                QPushButton, QRadioButton, QScrollArea,

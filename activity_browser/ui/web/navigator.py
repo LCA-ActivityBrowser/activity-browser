@@ -6,8 +6,8 @@ from typing import Optional
 from logging import getLogger
 
 import networkx as nx
-from PySide2 import QtWidgets
-from PySide2.QtCore import Slot
+from qtpy import QtWidgets
+from qtpy.QtCore import Slot
 
 from activity_browser import signals
 from activity_browser.mod.bw2data import Database, get_activity

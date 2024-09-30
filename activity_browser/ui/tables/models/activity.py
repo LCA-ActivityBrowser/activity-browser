@@ -9,7 +9,7 @@ from bw2data.parameters import (ActivityParameter, DatabaseParameter, Group,
                                 ProjectParameter)
 from bw2data.proxies import ExchangeProxyBase
 from peewee import DoesNotExist
-from PySide2.QtCore import QModelIndex, Qt, Slot
+from qtpy.QtCore import QModelIndex, Qt, Slot
 
 from activity_browser import actions, signals
 from activity_browser.bwutils import PedigreeMatrix

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-from PySide2.QtCore import Qt
-from PySide2.QtWidgets import QDialogButtonBox, QMessageBox, QWidget
+from qtpy.QtCore import Qt
+from qtpy.QtWidgets import QDialogButtonBox, QMessageBox, QWidget
 
 from activity_browser.ui.widgets import (BiosphereUpdater, CutoffMenu,
                                          ForceInputDialog, SwitchComboBox,

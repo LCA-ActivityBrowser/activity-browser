@@ -2,7 +2,7 @@ import os
 import ecoinvent_interface as ei
 import bw2io as bi
 import requests
-from PySide2 import QtWidgets, QtCore
+from qtpy import QtWidgets, QtCore
 
 from activity_browser import project_settings
 from activity_browser.bwutils.ecoinvent_biosphere_versions.ecospold2biosphereimporter import create_default_biosphere3

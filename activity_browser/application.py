@@ -2,8 +2,8 @@
 import os
 from logging import getLogger
 
-from PySide2.QtCore import QCoreApplication, QObject, QSysInfo, Qt
-from PySide2.QtWidgets import QApplication
+from qtpy.QtCore import QCoreApplication, QObject, QSysInfo, Qt
+from qtpy.QtWidgets import QApplication
 
 log = getLogger(__name__)
 
