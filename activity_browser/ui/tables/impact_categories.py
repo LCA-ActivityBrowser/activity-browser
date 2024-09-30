@@ -202,7 +202,7 @@ class MethodsTree(ABDictTreeView):
             filter_on = ", ".join(tree_level[1]) + ", "
 
         methods = self.model.get_methods(filter_on)
-        return methods
+        return list(methods)
 
     def tree_level(self) -> tuple:
         """Return list of (tree level, content).
