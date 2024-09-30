@@ -69,7 +69,7 @@ we call the _from_ part of the contributions (the EFs or activities above) _enti
 There are several ways Activity Browser manipulates your results by default.
 - The results are **sorted** so that the row with the largest (absolute) average values are shown first.
 - A `cut-off` of 5% is applied, this only shows results that contribute at least 5% to the total result, 
-  all other entities are grouped into a `Rest` group.
+  all other entities are grouped into a `Rest (+)` or `Rest (-)` groups.
 - The contributions are _normalized_ to the impact of that reference flow, meaning they are show as a percentage, 
   counting up to 100% for every item you compare.
 
@@ -84,7 +84,8 @@ The `Relative` mode shows contributions _from_ entities of _x_% or higher.
 The `Top #` mode shows contributions from the _x_ entities that contribute the most (as absolute).
 You can adjust the `Cut-off level` to change how many results you see.
 
-All results that don't make the cut-off will be grouped into the `Rest` group.
+All results that don't make the cut-off will be grouped into the `Rest (+)` and `Rest (-)` groups.
+The Rest groups are only present when there are positive or negative numbers remaining for the respective rest groups. 
 
 #### Compare
 The `Compare` menu allows you to compare different dimensions of results.
