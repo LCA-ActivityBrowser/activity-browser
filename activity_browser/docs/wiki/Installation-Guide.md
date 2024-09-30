@@ -34,6 +34,10 @@ conda config --prepend channels conda-forge
 
 ## Installing Activity Browser
 You can now install Activity Browser by creating a python environment (`ab`)
+
+Depending on your computer and internet connection, it can take a while for this to complete.
+You will need to confirm that you really want to install the environment.
+
 ```bash
 conda create -n ab -c conda-forge activity-browser
 ```
@@ -53,3 +57,8 @@ These commands will update the Activity Browser and all of its dependencies in t
 conda activate ab
 conda update activity-browser
 ```
+
+> [!IMPORTANT]
+> If you currently have a version <u>below</u> `2.10.0`, please consult 
+> [this guide](https://github.com/LCA-ActivityBrowser/activity-browser/discussions/1049)
+> to update.
