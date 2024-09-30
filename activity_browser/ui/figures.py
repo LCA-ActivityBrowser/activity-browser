@@ -237,11 +237,12 @@ class ContributionPlot(Plot):
         self.ax.grid(which="major", axis="x", color="grey", linestyle="dashed")
         self.ax.set_axisbelow(True)  # puts gridlines behind bars
 
-        # total marker when both negative and positive results are present
-        if "Rest (+)" in dfp.index and "Rest (-)" in dfp.index:
-            marker_size = max(min(150 / dfp.shape[1], 35), 10)  # set marker size dyanmic between 10 - 35
-            for i, col in enumerate(dfp):
-                total = np.sum(dfp[col])
+        # total marker when both negative and positive results are present in a column
+        marker_size = max(min(150 / dfp.shape[1], 35), 10)  # set marker size dyanmic between 10 - 35
+        for i, col in enumerate(dfp):
+            total = np.sum(dfp[col])
+            abs_total = np.sum(np.abs(dfp[col]))
+            if total != abs_total:
                 self.ax.plot(total, i,
                              markersize=marker_size, marker="d", fillstyle="left",
                              markerfacecolor="black", markerfacecoloralt="grey", markeredgecolor="white")
