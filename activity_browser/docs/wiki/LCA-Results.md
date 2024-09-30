@@ -29,9 +29,9 @@ The amounts we use are:
 | electricity production | 10 kWh electricity | 10 kg coal                      | 10.808 kg CO<sub>2</sub> |
 | steel production       | 10 kg steel        | 5 kWh electricity<br/>5 kg coal | 10 kg CO<sub>2</sub>     |
 
-<sub>
+<sup>
 <b>Note:</b> These numbers are used for ease of understanding, not for realism.
-</sub>
+</sup>
 
 To produce 1 kg of steel, we get a climate change impact of 1.6 kg CO2 eq with the _'IPCC 2021'_ impact category.
 In the way Brightway (and thus Activity Browser) calculate results, a _contribution matrix_ is calculated with 
@@ -127,7 +127,7 @@ the boxes show the _direct_ (process contribution) impact of that process.
 Using the example above in the [contribution analysis](#contribution-analysis) section, we show the sankey below.
 The [process contribution](#process-contributions) results are also shown in the boxes below.
 
-![sankey example](./assets/sankey_example.png)
+![sankey example](./assets/sankey_example.svg)
 
 ## Other Results tabs
 The Monte Carlo and Senstivity Analysis tabs are explained on the [Uncertainty](Uncertainty) page.
