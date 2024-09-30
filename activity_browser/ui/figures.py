@@ -242,7 +242,7 @@ class ContributionPlot(Plot):
         for i, col in enumerate(dfp):
             total = np.sum(dfp[col])
             abs_total = np.sum(np.abs(dfp[col]))
-            if total != abs_total:
+            if abs(total) != abs_total:
                 self.ax.plot(total, i,
                              markersize=marker_size, marker="d", fillstyle="left",
                              markerfacecolor="black", markerfacecoloralt="grey", markeredgecolor="white")
