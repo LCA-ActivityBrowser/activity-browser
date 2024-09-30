@@ -104,7 +104,7 @@ class ActivitiesBiosphereTable(ABFilterableDataFrameView):
         self.model = ActivitiesBiosphereListModel(parent=self)
         self.setDragEnabled(True)
         self.setDragDropMode(QtWidgets.QTableView.DragOnly)
-        self.setSelectionBehavior(self.SelectRows)
+        self.setSelectionBehavior(QtWidgets.QTableView.SelectRows)
 
         # context-menu items
         self.open_activity_action = actions.ActivityOpen.get_QAction(self.selected_keys)
