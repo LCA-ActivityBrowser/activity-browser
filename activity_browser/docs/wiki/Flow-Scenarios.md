@@ -8,6 +8,6 @@
 
 [![Projects and Databases](https://img.youtube.com/vi/3LPcpV1G_jg/hqdefault.jpg)](https://www.youtube.com/watch?v=3LPcpV1G_jg)
 
-<sub>
+<sup>
 <b>Note:</b> some content of the video may be outdated. Written content should be more up-to-date.
-</sub>
+</sup>
