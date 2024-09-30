@@ -1226,19 +1226,23 @@ class ProductContributionsTab(ContributionTab):
         self.connect_signals()
         self.toggle_comparisons(self.switches.indexes.func)
 
-    def update_dataframe(self, *args, **kwargs):
-        """Retrieve the product contributions."""
+    def build_combobox(
+        self, has_method: bool = True, has_func: bool = False
+    ) -> QHBoxLayout:
+        self.combobox_menu.agg.addItems(
+            self.parent.contributions.DEFAULT_ACT_AGGREGATES
+        )
+        return super().build_combobox(has_method, has_func)
 
-        #TODO
-        # 1 refactor so this updates the df, not does calculations/cache reads etc
-        # 2 figure out how this already works with relative???
-        # 3 make this work with aggegator for data
-        # 4 make this work with cutoff menu (limit, limit_type (and normalize??)
-        # 5 update documentation
-        # 6 only start on tab open
-        # 7 BW25 compatibility
+    def get_data(self, compare) -> list:
+        """Get the data for analysis, either from self.cache or from calculation."""
+        def try_cache():
+            """Get data from cache if exists, otherwise return none."""
+            if self.caching:
+                return self.cache.get(cache_key, None)
 
-        def get_data():
+        def calculate():
+            """Shorthand for getting calculation results."""
             return self.calculate_contributions(demand, demand_key, demand_index,
                                                 method=method, method_index=method_index,
                                                 scenario_lca=self.has_scenarios, scenario_index=scenario_index,
@@ -1246,7 +1250,7 @@ class ProductContributionsTab(ContributionTab):
 
         # get the right data
         if self.has_scenarios:
-            # get the scenario index, if it is -1 (none selected), then use index 0
+            # get the scenario index, if it is -1 (none selected), then use index first index (0)
             scenario_index = max(self.combobox_menu.scenario.currentIndex(), 0)
         else:
             scenario_index = None
@@ -1257,56 +1261,56 @@ class ProductContributionsTab(ContributionTab):
         demand_key = self.func_keys[demand_index]
 
         all_data = []
-        compare = self.switches.currentText()
         if compare == "Reference Flows":
             # run the analysis for every reference flow
             for demand_index, demand in enumerate(self.func_units):
                 demand_key = self.func_keys[demand_index]
                 cache_key = (demand_index, method_index, scenario_index)
-                if self.caching and self.cache.get(cache_key, False):
-                    # this data is cached
-                    all_data.append([demand_key, self.cache[cache_key]])
+                # get data from cache if exists, otherwise calculate
+                if data := try_cache():
+                    all_data.append([demand_key, data])
                     continue
 
-                data = get_data()
-                all_data.append([demand_key, data])
+                data = calculate()
                 if self.caching:
                     self.cache[cache_key] = data
+                all_data.append([demand_key, data])
         elif compare == "Impact Categories":
             # run the analysis for every method
             for method_index, method in enumerate(self.methods):
                 cache_key = (demand_index, method_index, scenario_index)
-                if self.caching and self.cache.get(cache_key, False):
-                    # this data is cached
-                    all_data.append([method, self.cache[cache_key]])
+
+                # get data from cache if exists, otherwise calculate
+                if data := try_cache():
+                    all_data.append([method, data])
                     continue
 
-                data = get_data()
-                all_data.append([method, data])
+                data = calculate()
                 if self.caching:
                     self.cache[cache_key] = data
+                all_data.append([method, data])
         elif compare == "Scenarios":
             # run the analysis for every scenario
             for scenario_index in range(self.combobox_menu.scenario.count()):
                 scenario = self.combobox_menu.scenario.itemText(scenario_index)
                 cache_key = (demand_index, method_index, scenario_index)
-                if self.caching and self.cache.get(cache_key, False):
-                    # this data is cached
-                    all_data.append([scenario, self.cache[cache_key]])
+
+                # get data from cache if exists, otherwise calculate
+                if data := try_cache():
+                    all_data.append([scenario, data])
                     continue
 
-                data = get_data()
-                all_data.append([scenario, data])
+                data = calculate()
                 if self.caching:
                     self.cache[cache_key] = data
+                all_data.append([scenario, data])
 
-        df = self.data_to_df(all_data, compare)
-        return df
+        return all_data
 
     def calculate_contributions(self, demand, demand_key, demand_index,
                                 method, method_index: int = None,
                                 scenario_lca: bool = False, scenario_index: int = None) -> Optional[dict]:
-        """TODO."""
+        """Retrieve relevant activity data and calculate product contributions."""
 
         def get_default_demands() -> dict:
             """Get the inputs to calculate contributions from the activity"""
@@ -1396,6 +1400,22 @@ class ProductContributionsTab(ContributionTab):
         data[demand_key] = remainder
         return data
 
+    def key_to_metadata(self, key: tuple) -> list:
+        """Convert the key information to list with metadata.
+
+        format:
+        [reference product, activity name, location, unit, database]
+        """
+        return list(AB_metadata.get_metadata([key], ["reference product", "name", "location", "unit"]).iloc[0]) + [key[0]]
+
+    def metadata_to_index(self, data: list) -> str:
+        """Convert list to formatted index.
+
+        format:
+        reference product | activity name | location | unit | database
+        """
+        return " | ".join(data)
+
     def data_to_df(self, all_data: List[Tuple[object, dict]], compare: str) -> pd.DataFrame:
         """Convert the provided data into a dataframe."""
         unique_keys = []
@@ -1451,29 +1471,21 @@ class ProductContributionsTab(ContributionTab):
         df.sort_values(by=col_name, ascending=False)  # temporary sorting solution, just sort on the last column.
         return df
 
-    def key_to_metadata(self, key: tuple) -> list:
-        """Convert the key information to list with metadata.
+    def update_dataframe(self, *args, **kwargs):
+        """Retrieve the product contributions."""
 
-        format:
-        [reference product, activity name, location, unit, database]
-        """
-        return list(AB_metadata.get_metadata([key], ["reference product", "name", "location", "unit"]).iloc[0]) + [key[0]]
+        #TODO
+        # 2 figure out how this already works with relative???
+        # 3 make this work with aggegator for data
+        # 4 make this work with cutoff menu (limit, limit_type (and normalize??)
+        # 5 update documentation
+        # 6 only start on tab open
+        # 7 BW25 compatibility
+        compare = self.switches.currentText()
 
-    def metadata_to_index(self, data: list) -> str:
-        """Convert list to formatted index.
-
-        format:
-        reference product | activity name | location | unit | database
-        """
-        return " | ".join(data)
-
-    def build_combobox(
-        self, has_method: bool = True, has_func: bool = False
-    ) -> QHBoxLayout:
-        self.combobox_menu.agg.addItems(
-            self.parent.contributions.DEFAULT_ACT_AGGREGATES
-        )
-        return super().build_combobox(has_method, has_func)
+        all_data = self.get_data(compare)
+        df = self.data_to_df(all_data, compare)
+        return df
 
 
 class CorrelationsTab(NewAnalysisTab):
