@@ -25,10 +25,10 @@ Data in Brightway is organized into projects
 - Projects also contain other data, such as parameters and plugin settings.
 
 ![brightway organizational structure](./assets/brightway_org-scheme.png)
-<sub>
+<sup>
 _Image copied from the
 [Brightway documentation](https://docs.brightway.dev/en/latest/content/theory/structure.html#brightway-objects)._
-</sub>
+</sup>
 
 Read more about how data is organized in the 
 [Brightway documentation](https://docs.brightway.dev/en/latest/content/theory/structure.html#brightway-objects).
@@ -51,9 +51,9 @@ Finally, the menu bar at the top allows you to manage Activity Browser, Plugins 
 
 [![Projects and Databases](https://img.youtube.com/vi/qWzaQjAf8ZU/hqdefault.jpg)](https://www.youtube.com/watch?v=qWzaQjAf8ZU)
 
-<sub>
+<sup>
 <b>Note:</b> some content of the video may be outdated. Written content should be more up-to-date.
-</sub>
+</sup>
 
 ### Installing a biosphere and impact categories
 In the `Project` tab there is initially a button called `Set up your project with default data`. 
@@ -127,9 +127,9 @@ ___
 
 [![Projects and Databases](https://img.youtube.com/vi/2rmydYdscJY/hqdefault.jpg)](https://www.youtube.com/watch?v=2rmydYdscJY)
 
-<sub>
+<sup>
 <b>Note:</b> some content of the video may be outdated. Written content should be more up-to-date.
-</sub>
+</sup>
 
 [Read more about activities...](Activities)
 
@@ -141,9 +141,9 @@ to be able to calculate results.
 
 [![LCA results](https://img.youtube.com/vi/J94UehVQM-Q/hqdefault.jpg)](https://www.youtube.com/watch?v=J94UehVQM-Q)
 
-<sub>
+<sup>
 <b>Note:</b> some content of the video may be outdated. Written content should be more up-to-date.
-</sub>
+</sup>
 
 [Read more about LCA calculation setups...](LCA-Calculation-Setups)
 

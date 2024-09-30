@@ -47,6 +47,7 @@ jobs:
       - name: Setup python ${{ matrix.python-version }} conda environment
         uses: mamba-org/setup-micromamba@v1
         with:
+          micromamba-version: '1.5.9-1'
           environment-name: test
           environment-file: patched-environment.yml
           create-args: >-

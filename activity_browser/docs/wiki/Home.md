@@ -32,9 +32,9 @@ ___
 
 [![What is the Activity Browser video](https://img.youtube.com/vi/oeL_FOsNYfU/hqdefault.jpg)](https://www.youtube.com/watch?v=oeL_FOsNYfU)
 
-<sub>
+<sup>
 <b>Note:</b> some content of the video may be outdated. Written content should be more up-to-date.
-</sub>
+</sup>
 
 ___
 ## Documentation
