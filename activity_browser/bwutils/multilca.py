@@ -560,12 +560,12 @@ class Contributions(object):
 
         if special_keys:
             # replace index keys with labels
-            try:  # first put Total and Rest to the first two positions in the dataframe
+            try:  # first put Total, Rest (+) and Rest (-) to the first three positions in the dataframe
                 complete_index = special_keys + keys
                 joined = joined.reindex(complete_index, axis="index", fill_value=0.0)
             except:
                 log.error(
-                    "Could not put Total and Rest on positions 0 and 1 in the dataframe."
+                    "Could not put 'Total', 'Rest (+)' and 'Rest (-)' on positions 0, 1 and 2 in the dataframe."
                 )
         joined.index = cls.get_labels(joined.index, fields=x_fields)
         return joined
@@ -644,7 +644,7 @@ class Contributions(object):
         """Given a dataframe, adjust the unit of the table to either match the given method, or not exist."""
         if "unit" not in df.columns:
             return df
-        keys = df.index[~df["index"].isin({"Total", "Rest"})]
+        keys = df.index[~df["index"].isin({"Total", "Rest (+)", "Rest (-)"})]
         unit = bd.Method(method).metadata.get("unit") if method else "unit"
         df.loc[keys, "unit"] = unit
         return df
