@@ -893,7 +893,7 @@ class ContributionTab(NewAnalysisTab):
         )
 
         self.df = None
-        self.plot = ContributionPlot()
+        self.plot = ContributionPlot(self)
         self.table = ContributionTable(self)
         self.contribution_fn = None
         self.has_method, self.has_func = False, False
@@ -1045,7 +1045,7 @@ class ContributionTab(NewAnalysisTab):
         # name is already altered by set_filename before update_plot occurs.
         name = self.plot.plot_name
         self.plot.deleteLater()
-        self.plot = ContributionPlot()
+        self.plot = ContributionPlot(self)
         self.pt_layout.insertWidget(idx, self.plot)
         super().update_plot(self.df, unit=self.unit)
         self.plot.plot_name = name

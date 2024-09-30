@@ -34,6 +34,9 @@ class Plot(QtWidgets.QWidget):
         self.figure = Figure(constrained_layout=True)
         self.canvas = FigureCanvasQTAgg(self.figure)
         self.canvas.setMinimumHeight(0)
+
+        self.canvas.destroyed.connect(self.check)
+
         self.ax = self.figure.add_subplot(111)  # create an axis
         self.plot_name = "Figure"
 
@@ -45,6 +48,9 @@ class Plot(QtWidgets.QWidget):
             QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding
         )
         self.updateGeometry()
+
+    def check(self):
+        print("WHY DELETE")
 
     def plot(self, *args, **kwargs):
         raise NotImplementedError
@@ -177,8 +183,8 @@ class LCAResultsPlot(Plot):
 class ContributionPlot(Plot):
     MAX_LEGEND = 30
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, parent=None):
+        super().__init__(parent)
         self.plot_name = "Contributions"
 
     def plot(self, df: pd.DataFrame, unit: str = None):

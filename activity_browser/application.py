@@ -3,7 +3,7 @@ import os
 from logging import getLogger
 
 from qtpy.QtCore import QCoreApplication, QObject, QSysInfo, Qt
-from qtpy.QtWidgets import QApplication
+from qtpy.QtWidgets import QApplication, QStyleFactory
 
 log = getLogger(__name__)
 
@@ -55,3 +55,4 @@ if QSysInfo.productType() in ["arch", "nixos"]:
 QCoreApplication.setAttribute(Qt.AA_ShareOpenGLContexts, True)
 
 application = ABApplication()
+application.setStyle(QStyleFactory.create("fusion"))
