@@ -562,17 +562,6 @@
            id="path103" />
       </g>
     </clipPath>
-    <clipPath
-       clipPathUnits="userSpaceOnUse"
-       id="clipPath103">
-      <g
-         id="g104">
-        <path
-           d="m -254.42648,-422.04759 h 960 v 720 h -960 z"
-           clip-rule="nonzero"
-           id="path104" />
-      </g>
-    </clipPath>
   </defs>
   <sodipodi:namedview
      id="namedview27"
@@ -591,7 +580,7 @@
      inkscape:window-x="1912"
      inkscape:window-y="-8"
      inkscape:window-maximized="1"
-     inkscape:current-layer="g27">
+     inkscape:current-layer="g2">
     <inkscape:page
        x="0"
        y="0"
@@ -837,14 +826,6 @@ div.tooltip {
      transform="translate(41.504473,24.072594)"
      style="-webkit-tap-highlight-color:rgba(0, 0, 0, 0)"
      id="g27">
-    <path
-       fill="#cccccc"
-       d="M -77.90417,-274.41241 H 521.21399 V 57.24115 H -77.90417 Z"
-       fill-rule="evenodd"
-       id="path3-2"
-       clip-path="url(#clipPath103)"
-       transform="matrix(0.52338154,0,0,1.2903342,-5.5998876,324.21102)"
-       style="-webkit-tap-highlight-color:rgba(0, 0, 0, 0)" />
     <g
        class="clusters"
        id="g1" />
@@ -856,6 +837,14 @@ div.tooltip {
          style="opacity:1"
          stroke-width="0.192876"
          id="g2">
+        <path
+           fill="#cccccc"
+           d="M -77.90417,-274.41241 H 521.21399 V 57.24115 H -77.90417 Z"
+           fill-rule="evenodd"
+           id="path3-2"
+           clip-path="none"
+           transform="matrix(0.52338154,0,0,1.2903342,-5.599888,324.21102)"
+           style="-webkit-tap-highlight-color:rgba(0, 0, 0, 0);opacity:1" />
         <path
            class="path"
            d="m 38.527039,64 -8.08784,7.5 C 22.35136,79 6.1756798,94 -1.9121601,114.33333 -10,134.66667 -10,160.33333 -10,186 c 0,25.66667 0,51.33333 8.0878399,71.66667 C 6.1756798,278 22.35136,293 30.439199,300.5 l 8.08784,7.5"
