@@ -67,10 +67,11 @@ In this section we generalize a little bit for the different contribution approa
 we call the _from_ part of the contributions (the EFs or activities above) _entities_.
 
 There are several ways Activity Browser manipulates your results by default.
-- The results are **sorted** so that the largest (absolute) values are shown first
-- A `cut-off` of 5% is applied to group all entities with an impact below that value.
+- The results are **sorted** so that the row with the largest (absolute) average values are shown first.
+- A `cut-off` of 5% is applied, this only shows results that contribute at least 5% to the total result, 
+  all other entities are grouped into a `Rest` group.
 - The contributions are _normalized_ to the impact of that reference flow, meaning they are show as a percentage, 
-  counting up to 100%
+  counting up to 100% for every item you compare.
 
 These actions are taken to show you the most relevant results.
 
@@ -78,11 +79,12 @@ You can manually manipulate the contribution results in the next menu, which we 
 ![contributions cutoff](./assets/contribution_manipulation.png)
 
 #### Cut-off
-You can manually change the `cut-off` of the results in two ways, `Relative` or `Top #`.
-The `Relative` option shows contributions _from_ entities of _x_% or higher.
-The `Top #` options shows contributions from the _x_ entities that contribute the most (as absolute).
+You can manually change the `Cut-off type` of the results in two ways, `Relative` or `Top #`.
+The `Relative` mode shows contributions _from_ entities of _x_% or higher.
+The `Top #` mode shows contributions from the _x_ entities that contribute the most (as absolute).
+You can adjust the `Cut-off level` to change how many results you see.
 
-You can change the value of the cut-off in the menu shown below.
+All results that don't make the cut-off will be grouped into the `Rest` group.
 
 #### Compare
 The `Compare` menu allows you to compare different dimensions of results.
