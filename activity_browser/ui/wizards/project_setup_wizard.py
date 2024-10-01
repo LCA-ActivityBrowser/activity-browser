@@ -37,6 +37,7 @@ class ProjectSetupWizard(QtWidgets.QWizard):
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
         self.setWindowFlags(QtCore.Qt.Sheet)
         self.setWindowFlag(QtCore.Qt.WindowContextHelpButtonHint, False)
+        self.setWindowFlag(QtCore.Qt.WindowCloseButtonHint, False)
 
         # initializing and setting all pages
         self.setPage(self.choose_setup, ChooseSetupPage(self))
@@ -246,9 +247,6 @@ class InstallPage(QtWidgets.QWizardPage):
         self.setLayout(layout)
 
     def initializePage(self):
-        self.wizard().setWindowFlag(QtCore.Qt.WindowCloseButtonHint, False)
-        self.wizard().show()
-
         self.wizard().button(QtWidgets.QWizard.BackButton).hide()
 
         if self.wizard().type == "ecoinvent":
