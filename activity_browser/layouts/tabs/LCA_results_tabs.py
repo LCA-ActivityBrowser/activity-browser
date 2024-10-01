@@ -5,13 +5,11 @@ Each of these classes is either a parent for - or a sub-LCA results tab.
 """
 
 from collections import namedtuple
-from copy import deepcopy
 from typing import List, Tuple, Optional, Union
 from logging import getLogger
 
 import numpy as np
 import pandas as pd
-import warnings
 
 from PySide2 import QtCore, QtGui
 from PySide2.QtWidgets import (QApplication, QButtonGroup, QCheckBox,
@@ -22,9 +20,9 @@ from PySide2.QtWidgets import (QApplication, QButtonGroup, QCheckBox,
                                QWidget)
 from activity_browser.bwutils import AB_metadata
 
-from activity_browser.bwutils.metadata import MetaDataStore
 from stats_arrays.errors import InvalidParamsError
-import brightway2 as bw
+import bw2data as bd
+import bw2analyzer as ba
 
 from activity_browser import signals
 from activity_browser.mod.bw2data import calculation_setups
@@ -39,8 +37,9 @@ from ...ui.style import header, horizontal_line, vertical_line
 from ...ui.tables import ContributionTable, InventoryTable, LCAResultsTable
 from ...ui.web import SankeyNavigatorWidget
 from ...ui.widgets import CutoffMenu, SwitchComboBox
-from ...bwutils.superstructure.graph_traversal_with_scenario import GraphTraversalWithScenario
 from .base import BaseRightTab
+
+ca = ba.ContributionAnalysis()
 
 log = getLogger(__name__)
 
@@ -1213,13 +1212,13 @@ class ProductContributionsTab(ContributionTab):
 
         # get relevant data from calculation setup
         self.cs = cs_name
-        func_units = bw.calculation_setups[self.cs]["inv"]
+        func_units = bd.calculation_setups[self.cs]["inv"]
         self.func_keys = [list(fu.keys())[0] for fu in func_units]  # extract a list of keys from the functional units
         self.func_units = [
-            {bw.get_activity(k): v for k, v in fu.items()}
+            {bd.get_activity(k): v for k, v in fu.items()}
             for fu in func_units
         ]
-        self.methods = bw.calculation_setups[self.cs]["ia"]
+        self.methods = bd.calculation_setups[self.cs]["ia"]
 
         self.contribution_fn = "Product contributions"
         self.switches.configure(self.has_func, self.has_method)
@@ -1234,7 +1233,7 @@ class ProductContributionsTab(ContributionTab):
         )
         return super().build_combobox(has_method, has_func)
 
-    def get_data(self, compare) -> list:
+    def get_data(self, compare) -> List[List[Union[str, tuple], dict]]:
         """Get the data for analysis, either from self.cache or from calculation."""
         def try_cache():
             """Get data from cache if exists, otherwise return none."""
@@ -1309,18 +1308,18 @@ class ProductContributionsTab(ContributionTab):
 
     def calculate_contributions(self, demand, demand_key, demand_index,
                                 method, method_index: int = None,
-                                scenario_lca: bool = False, scenario_index: int = None) -> Optional[dict]:
+                                scenario_lca: bool = False, scenario_index: int = None) -> dict:
         """Retrieve relevant activity data and calculate product contributions."""
 
         def get_default_demands() -> dict:
             """Get the inputs to calculate contributions from the activity"""
             # get exchange keys leading to this activity
-            technosphere = bw.get_activity(demand_key).technosphere()
+            technosphere = bd.get_activity(demand_key).technosphere()
 
             keys = [exch.input.key for exch in technosphere if
                     exch.input.key != exch.output.key]
             # find scale from production amount and demand amount
-            scale = demand[demand_key] / [p for p in bw.get_activity(demand_key).production()][0].amount
+            scale = demand[demand_key] / [p for p in bd.get_activity(demand_key).production()][0].amount
 
             amounts = [exch.amount * scale for exch in technosphere if
                        exch.input.key != exch.output.key]
@@ -1330,7 +1329,7 @@ class ProductContributionsTab(ContributionTab):
         def get_scenario_demands() -> dict:
             """Get the inputs to calculate contributions from the scenario matrix"""
             # get exchange keys leading to this activity
-            technosphere = bw.get_activity(demand_key).technosphere()
+            technosphere = bd.get_activity(demand_key).technosphere()
             demand_idx = _lca.product_dict[demand_key]
 
             keys = [exch.input.key for exch in technosphere if
@@ -1416,7 +1415,7 @@ class ProductContributionsTab(ContributionTab):
         """
         return " | ".join(data)
 
-    def data_to_df(self, all_data: List[Tuple[object, dict]], compare: str) -> pd.DataFrame:
+    def data_to_df(self, all_data: List[List[Union[str, tuple], dict]], compare: str) -> pd.DataFrame:
         """Convert the provided data into a dataframe."""
         unique_keys = []
         # get all the unique keys:
@@ -1424,8 +1423,9 @@ class ProductContributionsTab(ContributionTab):
              "location": [""], "unit": [""], "database": [""]}
         meta_cols = set(d.keys())
         for i, (item, data) in enumerate(all_data):
+            # item is a key, method or scenario depending on the `compares`
             unique_keys += list(data.keys())
-            # already add the total with right column formatting depending on compares
+            # already add the total with right column formatting depending on `compares`
             if compare == "Reference Flows":
                 col_name = self.metadata_to_index(self.key_to_metadata(item))
             elif compare == "Impact Categories":
@@ -1434,6 +1434,8 @@ class ProductContributionsTab(ContributionTab):
                 col_name = item
 
             self.cache["totals"][col_name] = data["Total"]
+
+            # manage relative data
             if self.relative:
                 d[col_name] = [1]
             else:
@@ -1464,9 +1466,21 @@ class ProductContributionsTab(ContributionTab):
                 else:
                     value = np.nan
                 d[col_name].append(value)
+
         df = pd.DataFrame(d)
         check_cols = list(set(df.columns) - meta_cols)
         df = df.dropna(subset=check_cols, how="all")
+
+        # now, apply aggregation
+        # TODO pd groupby
+
+
+        # now, apply cut-off
+        # TODO ca.sort_array
+
+        # now, sort
+        # needed?
+
         # TODO sort like https://github.com/LCA-ActivityBrowser/activity-browser/issues/887
         df.sort_values(by=col_name, ascending=False)  # temporary sorting solution, just sort on the last column.
         return df
@@ -1475,9 +1489,8 @@ class ProductContributionsTab(ContributionTab):
         """Retrieve the product contributions."""
 
         #TODO
-        # 2 figure out how this already works with relative???
         # 3 make this work with aggegator for data
-        # 4 make this work with cutoff menu (limit, limit_type (and normalize??)
+        # 4 make this work with cutoff menu (limit, limit_type)
         # 5 update documentation
         # 6 only start on tab open
         # 7 BW25 compatibility
