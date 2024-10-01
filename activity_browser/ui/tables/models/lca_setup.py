@@ -3,9 +3,10 @@ from logging import getLogger
 
 import numpy as np
 import pandas as pd
+from PySide2 import QtWidgets
 from PySide2.QtCore import QModelIndex, Qt, Slot
 
-from activity_browser import signals
+from activity_browser import signals, application
 from activity_browser.bwutils import commontasks as bc
 from activity_browser.mod import bw2data as bd
 from activity_browser.mod.bw2data.backends import ActivityDataset
@@ -124,7 +125,7 @@ class CSActivityModel(CSGenericModel):
             columns=self.HEADERS,
         )
         # Drop rows where the fu key was invalid in some way.
-        self._dataframe = df.dropna().reset_index(drop=True)
+        self._dataframe = df
         self.key_col = self._dataframe.columns.get_loc("key")
         self.updated.emit()
 
@@ -145,7 +146,8 @@ class CSActivityModel(CSGenericModel):
             log.error(
                 f"Could not load key '{key}' in Calculation Setup '{self.current_cs}'"
             )
-            return {}
+
+            return {"key": key, "Amount": amount, "Activity": f"NOT FOUND: {key}", "Database": key[0]}
 
     @Slot(name="deleteRows")
     def delete_rows(self, proxies: list) -> None:
@@ -155,9 +157,12 @@ class CSActivityModel(CSGenericModel):
 
         # we can disconnect from the deleted activities
         for key in [self._dataframe.at[row, "key"] for row in rows]:
-            activity = bd.get_activity(key)
-            activity.changed.disconnect(self.sync)
-            del self._activities[activity.key]
+            try:
+                activity = bd.get_activity(key)
+                activity.changed.disconnect(self.sync)
+                del self._activities[activity.key]
+            except ActivityDataset.DoesNotExist:
+                pass
 
         self._dataframe = self._dataframe.drop(rows).reset_index(drop=True)
         self.updated.emit()
@@ -230,7 +235,6 @@ class CSMethodsModel(CSGenericModel):
         method_tuples = [
             mthd
             for mthd in bd.calculation_setups[self.current_cs].get("ia", [])
-            if mthd in bd.methods
         ]
 
         # build rows for all the collected methods and store in our dataframe
@@ -244,23 +248,30 @@ class CSMethodsModel(CSGenericModel):
         """
         Build a single row for the methods table and connect the table to the method we're building the row for.
         """
-        # gather data using the given method_tuple
-        method_metadata = bd.methods[method_tuple]
-        method = bd.Method(method_tuple)
+        try:
+            # gather data using the given method_tuple
+            method_metadata = bd.methods[method_tuple]
+            method = bd.Method(method_tuple)
 
-        # construct a row dictionary
-        row = {
-            "Name": ", ".join(method_tuple),
-            "Unit": method_metadata.get("unit", "Unknown"),
-            "# CFs": method_metadata.get("num_cfs", 0),
-            "method": method_tuple,
-        }
+            # construct a row dictionary
+            row = {
+                "Name": ", ".join(method_tuple),
+                "Unit": method_metadata.get("unit", "Unknown"),
+                "# CFs": method_metadata.get("num_cfs", 0),
+                "method": method_tuple,
+            }
 
-        # if the method changes we need to sync
-        method.changed.connect(self.sync, Qt.UniqueConnection)
-        self._methods[method.name] = method
+            # if the method changes we need to sync
+            method.changed.connect(self.sync, Qt.UniqueConnection)
+            self._methods[method.name] = method
 
-        return row
+            return row
+        except KeyError:
+            log.error(
+                f"Could not load key '{method_tuple}' in Calculation Setup '{self.current_cs}'"
+            )
+
+            return {"Name": f"NOT FOUND: {method_tuple}", "Unit": "Unknown", "# CFs": 0, "method": method_tuple}
 
     @Slot(list, name="deleteRows")
     def delete_rows(self, proxies: list) -> None:
@@ -270,6 +281,9 @@ class CSMethodsModel(CSGenericModel):
 
         # we can disconnect from the deleted methods
         for method_tuple in [self._dataframe.at[row, "method"] for row in rows]:
+            if method_tuple not in bd.methods:
+                continue
+
             method = bd.Method(method_tuple)
             method.changed.disconnect(self.sync)
             del self._methods[method.name]
