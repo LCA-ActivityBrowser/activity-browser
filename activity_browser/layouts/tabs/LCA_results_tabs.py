@@ -1233,7 +1233,7 @@ class ProductContributionsTab(ContributionTab):
         )
         return super().build_combobox(has_method, has_func)
 
-    def get_data(self, compare) -> List[List[Union[str, tuple], dict]]:
+    def get_data(self, compare) -> List[list]:
         """Get the data for analysis, either from self.cache or from calculation."""
         def try_cache():
             """Get data from cache if exists, otherwise return none."""
@@ -1415,16 +1415,16 @@ class ProductContributionsTab(ContributionTab):
         """
         return " | ".join(data)
 
-    def data_to_df(self, all_data: List[List[Union[str, tuple], dict]], compare: str) -> pd.DataFrame:
+    def data_to_df(self, all_data: List[list], compare: str) -> pd.DataFrame:
         """Convert the provided data into a dataframe."""
-        unique_keys = []
+        unique_keys = set()
         # get all the unique keys:
-        d = {"index": ["Total"], "reference product": [""], "name": [""],
-             "location": [""], "unit": [""], "database": [""]}
+        d = {"index": [], "reference product": [], "name": [],
+             "location": [], "unit": [], "database": [], "key": []}
         meta_cols = set(d.keys())
         for i, (item, data) in enumerate(all_data):
             # item is a key, method or scenario depending on the `compares`
-            unique_keys += list(data.keys())
+            unique_keys.update(data.keys())
             # already add the total with right column formatting depending on `compares`
             if compare == "Reference Flows":
                 col_name = self.metadata_to_index(self.key_to_metadata(item))
@@ -1434,15 +1434,9 @@ class ProductContributionsTab(ContributionTab):
                 col_name = item
 
             self.cache["totals"][col_name] = data["Total"]
-
-            # manage relative data
-            if self.relative:
-                d[col_name] = [1]
-            else:
-                d[col_name] = [data["Total"]]
+            d[col_name] = []
 
             all_data[i] = item, data, col_name
-        unique_keys = set(unique_keys)
 
         # convert to dict format to feed into dataframe
         for key in unique_keys:
@@ -1456,30 +1450,38 @@ class ProductContributionsTab(ContributionTab):
             d["location"].append(metadata[2])
             d["unit"].append(metadata[3])
             d["database"].append(metadata[4])
+            d["key"].append(key)
             # check for each dataset if we have values, otherwise add np.nan
             for item, data, col_name in all_data:
                 if val := data.get(key, False):
-                    if self.relative:
-                        value = val / self.cache["totals"][col_name]
-                    else:
-                        value = val
+                    value = val
                 else:
                     value = np.nan
                 d[col_name].append(value)
 
         df = pd.DataFrame(d)
-        check_cols = list(set(df.columns) - meta_cols)
-        df = df.dropna(subset=check_cols, how="all")
+        data_cols = list(set(df.columns) - meta_cols)
+        df = df.dropna(subset=data_cols, how="all")
 
         # now, apply aggregation
-        # TODO pd groupby
+        group_on = self.combobox_menu.agg.currentText()
+        if group_on != "none":
+            df = df.groupby(by=group_on, as_index=False).sum()
+            df["index"] = df[group_on]
+            df = df[["index"] + data_cols]
 
+        # now, normalize
+        if self.relative:
+            totals = [self.cache["totals"][col] for col in data_cols]
+            df[data_cols] = df[data_cols] / totals
 
         # now, apply cut-off
         # TODO ca.sort_array
 
         # now, sort
         # needed?
+
+        # now, add the total and rest values
 
         # TODO sort like https://github.com/LCA-ActivityBrowser/activity-browser/issues/887
         df.sort_values(by=col_name, ascending=False)  # temporary sorting solution, just sort on the last column.
@@ -1489,7 +1491,6 @@ class ProductContributionsTab(ContributionTab):
         """Retrieve the product contributions."""
 
         #TODO
-        # 3 make this work with aggegator for data
         # 4 make this work with cutoff menu (limit, limit_type)
         # 5 update documentation
         # 6 only start on tab open
