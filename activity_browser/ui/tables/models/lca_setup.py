@@ -147,7 +147,7 @@ class CSActivityModel(CSGenericModel):
                 f"Could not load key '{key}' in Calculation Setup '{self.current_cs}'"
             )
 
-            return {"key": key, "Amount": amount, "Activity": "NOT FOUND", "Database": key[0]}
+            return {"key": key, "Amount": amount, "Activity": f"NOT FOUND: {key}", "Database": key[0]}
 
     @Slot(name="deleteRows")
     def delete_rows(self, proxies: list) -> None:
@@ -271,7 +271,7 @@ class CSMethodsModel(CSGenericModel):
                 f"Could not load key '{method_tuple}' in Calculation Setup '{self.current_cs}'"
             )
 
-            return {"Name": "NOT FOUND", "Unit": "Unknown", "# CFs": 0, "method": method_tuple}
+            return {"Name": f"NOT FOUND: {method_tuple}", "Unit": "Unknown", "# CFs": 0, "method": method_tuple}
 
     @Slot(list, name="deleteRows")
     def delete_rows(self, proxies: list) -> None:
