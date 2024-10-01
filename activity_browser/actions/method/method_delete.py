@@ -23,7 +23,7 @@ class MethodDelete(ABAction):
 
     @staticmethod
     @exception_dialogs
-    def run(methods: List[tuple], level: str):
+    def run(methods: List[tuple]):
         # check whether we're dealing with a leaf or node. If it's a node, select all underlying methods for deletion
         all_methods = [bd.Method(method) for method in methods]
 
