@@ -1469,29 +1469,63 @@ class ProductContributionsTab(ContributionTab):
             df = df.groupby(by=group_on, as_index=False).sum()
             df["index"] = df[group_on]
             df = df[["index"] + data_cols]
+            meta_cols = ["index"]
 
-        # now, normalize
+        # now, apply cut-off
+        limit_type = self.cutoff_menu.limit_type
+        limit = self.cutoff_menu.cutoff_value
+
+        # iterate over the columns to get contributors, then replace cutoff flows with nan
+        # nested for is slow, but this should rarely have to deal with >50 rows
+        contributors = df[data_cols].shape[0]
+        for col_num, col in enumerate(df[data_cols].T.values):
+            col = np.nan_to_num(col)  # replace nan with 0
+            cont = ca.sort_array(col, limit=limit, limit_type=limit_type)
+            # write nans to values not present in cont
+            for row_num in range(contributors):
+                if row_num not in cont[:, 1]:
+                    df.iloc[row_num, col_num + len(meta_cols)] = np.nan
+
+        # drop any rows not contributing to anything
+        df = df.dropna(subset=data_cols, how="all")
+
+        # sort by absolute mean
+        func = lambda row: np.nanmean(np.abs(row))
+
+        df["_sort_me_"] = df[data_cols].apply(func, axis=1)
+        df.sort_values(by="_sort_me_", ascending=False, inplace=True)
+        del df["_sort_me_"]
+
+        # add the total and rest values
+        total_and_rest = {col: [] for col in df}
+        for col in df:
+            if col == "index":
+                total_and_rest[col].append("Total")
+                total_and_rest[col].append("Rest")
+            elif col in data_cols:
+                # total
+                total = self.cache["totals"][col]
+                total_and_rest[col].append(total)
+                # rest
+                total_and_rest[col].append(total - np.sum(df[col].values))
+            else:
+                total_and_rest[col].append("")
+                total_and_rest[col].append("")
+
+        # add the two df together
+        df = pd.concat([pd.DataFrame(total_and_rest), df], axis=0)
+
+        # normalize
         if self.relative:
             totals = [self.cache["totals"][col] for col in data_cols]
             df[data_cols] = df[data_cols] / totals
 
-        # now, apply cut-off
-        # TODO ca.sort_array
-
-        # now, sort
-        # needed?
-
-        # now, add the total and rest values
-
-        # TODO sort like https://github.com/LCA-ActivityBrowser/activity-browser/issues/887
-        df.sort_values(by=col_name, ascending=False)  # temporary sorting solution, just sort on the last column.
         return df
 
     def update_dataframe(self, *args, **kwargs):
         """Retrieve the product contributions."""
 
         #TODO
-        # 4 make this work with cutoff menu (limit, limit_type)
         # 5 update documentation
         # 6 only start on tab open
         # 7 BW25 compatibility
