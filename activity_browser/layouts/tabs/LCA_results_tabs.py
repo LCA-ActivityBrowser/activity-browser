@@ -6,7 +6,7 @@ Each of these classes is either a parent for - or a sub-LCA results tab.
 
 from collections import namedtuple
 from copy import deepcopy
-from typing import List, Tuple, Optional, Union
+from typing import List, Optional, Union
 from logging import getLogger
 
 import numpy as np
@@ -71,7 +71,7 @@ def get_unit(method: tuple, relative: bool = False) -> str:
 
 # Special namedtuple for the LCAResults TabWidget.
 Tabs = namedtuple(
-    "tabs", ("inventory", "results", "ef", "process", "product", "sankey", "mc", "gsa")
+    "tabs", ("inventory", "results", "ef", "process", "ft", "sankey", "mc", "gsa")
 )
 Relativity = namedtuple("relativity", ("relative", "absolute"))
 ExportTable = namedtuple("export_table", ("label", "copy", "csv", "excel"))
@@ -130,7 +130,7 @@ class LCAResultsSubTab(QTabWidget):
             results=LCAResultsTab(self),
             ef=ElementaryFlowContributionTab(self),
             process=ProcessContributionsTab(self),
-            product=ProductContributionsTab(self.cs_name, self),
+            ft=FirstTierContributionsTab(self.cs_name, parent=self),
             sankey=SankeyNavigatorWidget(self.cs_name, parent=self),
             mc=MonteCarloTab(
                 self
@@ -142,7 +142,7 @@ class LCAResultsSubTab(QTabWidget):
             results="LCA Results",
             ef="EF Contributions",
             process="Process Contributions",
-            product="Product Contributions",
+            ft="FT Contributions",
             sankey="Sankey",
             mc="Monte Carlo",
             gsa="Sensitivity Analysis",
@@ -185,6 +185,11 @@ class LCAResultsSubTab(QTabWidget):
             if not self.tabs.sankey.has_sankey:
                 log.info("Generating Sankey Tab")
                 self.tabs.sankey.new_sankey()
+        elif index == self.indexOf(self.tabs.ft):
+            if not self.tabs.ft.has_been_opened:
+                log.info("Generating First Tier results")
+                self.tabs.ft.has_been_opened = True
+                self.tabs.ft.update_tab()
 
     @QtCore.Slot(name="lciaScenarioExport")
     def generate_lcia_scenario_csv(self):
@@ -910,6 +915,8 @@ class ContributionTab(NewAnalysisTab):
         self.has_method, self.has_func = False, False
         self.unit = None
 
+        self.has_been_opened = False
+
     def set_filename(self, optional_fields: dict = None):
         """Given a dictionary of fields, put together a usable filename for the plot and table."""
         optional = optional_fields or {}
@@ -1168,10 +1175,10 @@ class ProcessContributionsTab(ContributionTab):
         )
 
 
-class ProductContributionsTab(ContributionTab):
-    """Class for the 'Product Contributions' sub-tab.
+class FirstTierContributionsTab(ContributionTab):
+    """Class for the 'First Tier Contributions' sub-tab.
 
-    This tab allows for analysis of first-level product contributions.
+    This tab allows for analysis of first-tier (product) contributions.
     The direct impact (from biosphere exchanges from the FU)
     and cumulative impacts from all exchange inputs to the FU (first level) are calculated.
 
@@ -1202,7 +1209,7 @@ class ProductContributionsTab(ContributionTab):
         # we also cache totals, not for calculation speed, but to be able to easily convert for relative results
         self.caching = True  # set to False to disable caching for debug
 
-        self.layout.addLayout(get_header_layout("Product Contributions"))
+        self.layout.addLayout(get_header_layout("First Tier Contributions"))
         self.layout.addWidget(self.cutoff_menu)
         self.layout.addWidget(horizontal_line())
         combobox = self.build_combobox(has_method=True, has_func=True)
@@ -1221,10 +1228,16 @@ class ProductContributionsTab(ContributionTab):
         ]
         self.methods = bd.calculation_setups[self.cs]["ia"]
 
-        self.contribution_fn = "Product contributions"
+        self.contribution_fn = "First Tier contributions"
         self.switches.configure(self.has_func, self.has_method)
         self.connect_signals()
         self.toggle_comparisons(self.switches.indexes.func)
+
+    def update_tab(self):
+        """Update the tab."""
+        if self.has_been_opened:
+            self.set_combobox_changes()
+            super().update_tab()
 
     def build_combobox(
         self, has_method: bool = True, has_func: bool = False
@@ -1310,7 +1323,7 @@ class ProductContributionsTab(ContributionTab):
     def calculate_contributions(self, demand, demand_key, demand_index,
                                 method, method_index: int = None,
                                 scenario_lca: bool = False, scenario_index: int = None) -> dict:
-        """Retrieve relevant activity data and calculate product contributions."""
+        """Retrieve relevant activity data and calculate first tier contributions."""
 
         def get_default_demands() -> dict:
             """Get the inputs to calculate contributions from the activity"""
@@ -1421,8 +1434,9 @@ class ProductContributionsTab(ContributionTab):
         unique_keys = set()
         # get all the unique keys:
         d = {"index": [], "reference product": [], "name": [],
-             "location": [], "unit": [], "database": [], "key": []}
+             "location": [], "unit": [], "database": []}
         meta_cols = set(d.keys())
+
         for i, (item, data) in enumerate(all_data):
             # item is a key, method or scenario depending on the `compares`
             unique_keys.update(data.keys())
@@ -1439,6 +1453,8 @@ class ProductContributionsTab(ContributionTab):
 
             all_data[i] = item, data, col_name
 
+        self.unit = get_unit(self.parent.method_dict[self.combobox_menu.method.currentText()], self.relative)
+
         # convert to dict format to feed into dataframe
         for key in unique_keys:
             if key == "Total":
@@ -1449,9 +1465,8 @@ class ProductContributionsTab(ContributionTab):
             d["reference product"].append(metadata[0])
             d["name"].append(metadata[1])
             d["location"].append(metadata[2])
-            d["unit"].append(metadata[3])
+            d["unit"].append(self.unit)
             d["database"].append(metadata[4])
-            d["key"].append(key)
             # check for each dataset if we have values, otherwise add np.nan
             for item, data, col_name in all_data:
                 if val := data.get(key, False):
@@ -1530,10 +1545,6 @@ class ProductContributionsTab(ContributionTab):
     def update_dataframe(self, *args, **kwargs):
         """Retrieve the product contributions."""
 
-        #TODO
-        # 5 update documentation
-        # 6 only start on tab open
-        # 7 BW25 compatibility
         compare = self.switches.currentText()
 
         all_data = self.get_data(compare)
