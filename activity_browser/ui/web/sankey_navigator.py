@@ -111,10 +111,10 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
         grid_lay.addWidget(self.method_cb, 2, 1)
 
         # cut-off
-        grid_lay.addWidget(QtWidgets.QLabel("cutoff: "), 2, 2)
+        grid_lay.addWidget(QtWidgets.QLabel("Cutoff: "), 2, 2)
         self.cutoff_sb.setRange(0.0, 1.0)
-        self.cutoff_sb.setSingleStep(0.001)
-        self.cutoff_sb.setDecimals(4)
+        self.cutoff_sb.setSingleStep(0.01)
+        self.cutoff_sb.setDecimals(3)
         self.cutoff_sb.setValue(0.05)
         self.cutoff_sb.setKeyboardTracking(False)
         grid_lay.addWidget(self.cutoff_sb, 2, 3)
