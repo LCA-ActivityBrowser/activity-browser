@@ -5,6 +5,7 @@ Each of these classes is either a parent for - or a sub-LCA results tab.
 """
 
 from collections import namedtuple
+from copy import deepcopy
 from typing import List, Tuple, Optional, Union
 from logging import getLogger
 
@@ -1460,7 +1461,7 @@ class ProductContributionsTab(ContributionTab):
                 d[col_name].append(value)
 
         df = pd.DataFrame(d)
-        data_cols = list(set(df.columns) - meta_cols)
+        data_cols = [col for col in df if col not in meta_cols]
         df = df.dropna(subset=data_cols, how="all")
 
         # now, apply aggregation
@@ -1470,6 +1471,8 @@ class ProductContributionsTab(ContributionTab):
             df["index"] = df[group_on]
             df = df[["index"] + data_cols]
             meta_cols = ["index"]
+
+        all_contributions = deepcopy(df)
 
         # now, apply cut-off
         limit_type = self.cutoff_menu.limit_type
@@ -1491,26 +1494,28 @@ class ProductContributionsTab(ContributionTab):
 
         # sort by absolute mean
         func = lambda row: np.nanmean(np.abs(row))
-
-        df["_sort_me_"] = df[data_cols].apply(func, axis=1)
-        df.sort_values(by="_sort_me_", ascending=False, inplace=True)
-        del df["_sort_me_"]
+        if len(df) > 1:  # but only sort if there is something to sort
+            df["_sort_me_"] = df[data_cols].apply(func, axis=1)
+            df.sort_values(by="_sort_me_", ascending=False, inplace=True)
+            del df["_sort_me_"]
 
         # add the total and rest values
         total_and_rest = {col: [] for col in df}
         for col in df:
             if col == "index":
-                total_and_rest[col].append("Total")
-                total_and_rest[col].append("Rest")
+                total_and_rest[col].extend(["Total", "Rest (+)", "Rest (-)"])
             elif col in data_cols:
                 # total
                 total = self.cache["totals"][col]
-                total_and_rest[col].append(total)
-                # rest
-                total_and_rest[col].append(total - np.sum(df[col].values))
+                # positive and negative rest values
+                pos_rest = (np.sum((all_contributions[col].values)[all_contributions[col].values > 0])
+                            - np.sum((df[col].values)[df[col].values > 0]))
+                neg_rest = (np.sum((all_contributions[col].values)[all_contributions[col].values < 0])
+                            - np.sum((df[col].values)[df[col].values < 0]))
+
+                total_and_rest[col].extend([total, pos_rest, neg_rest])
             else:
-                total_and_rest[col].append("")
-                total_and_rest[col].append("")
+                total_and_rest[col].extend(["", "", ""])
 
         # add the two df together
         df = pd.concat([pd.DataFrame(total_and_rest), df], axis=0)

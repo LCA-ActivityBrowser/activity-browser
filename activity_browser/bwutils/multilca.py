@@ -616,10 +616,10 @@ class Contributions(object):
         df_bot = deepcopy(df.iloc[3:, :])
 
         func = lambda row: np.nanmean(np.abs(row))
-
-        df_bot["_sort_me_"] = (df_bot.select_dtypes(include=np.number)).apply(func, axis=1)
-        df_bot.sort_values(by="_sort_me_", ascending=False, inplace=True)
-        del df_bot["_sort_me_"]
+        if len(df_bot) > 1:  # but only sort if there is something to sort
+            df_bot["_sort_me_"] = (df_bot.select_dtypes(include=np.number)).apply(func, axis=1)
+            df_bot.sort_values(by="_sort_me_", ascending=False, inplace=True)
+            del df_bot["_sort_me_"]
 
         df = pd.concat([df.iloc[:3, :], df_bot], axis=0)
 
