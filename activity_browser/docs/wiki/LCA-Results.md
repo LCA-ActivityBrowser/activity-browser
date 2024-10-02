@@ -69,7 +69,7 @@ we call the _from_ part of the contributions (the EFs or activities above) _enti
 There are several ways Activity Browser manipulates your results by default.
 - The results are **sorted** so that the row with the largest (absolute) average values are shown first.
 - A `cut-off` of 5% is applied, this only shows results that contribute at least 5% to the total result, 
-  all other entities are grouped into a `Rest` group.
+  all other entities are grouped into a `Rest (+)` or `Rest (-)` groups.
 - The contributions are _normalized_ to the impact of that reference flow, meaning they are show as a percentage, 
   counting up to 100% for every item you compare.
 
@@ -84,7 +84,8 @@ The `Relative` mode shows contributions _from_ entities of _x_% or higher.
 The `Top #` mode shows contributions from the _x_ entities that contribute the most (as absolute).
 You can adjust the `Cut-off level` to change how many results you see.
 
-All results that don't make the cut-off will be grouped into the `Rest` group.
+All results that don't make the cut-off will be grouped into the `Rest (+)` and `Rest (-)` groups.
+The Rest groups are only present when there are positive or negative numbers remaining for the respective rest groups. 
 
 #### Compare
 The `Compare` menu allows you to compare different dimensions of results.
@@ -107,7 +108,28 @@ You can disable one of them if you want to focus on one of them.
 
 #### Relative and Absolute
 Finally, you can choose between `Relative` and `Absolute` results.
-The `Relative` results will sum to 100%, the `Absolute` results will sum to the impact score.
+The `Relative` results will sum to 100% (the total score), the `Absolute` results will sum to the impact score.
+
+### Positive and negative numbers in contribution results
+It can happen in LCA that you get both positive and negative numbers in your contribution results.
+Some of these reasons could be negative characterization factors, flows with negative numbers or using substitution flows.
+
+When there are both positive and negative numbers in the result, Activity Browser will show a marker to indicate 
+where the total score is, and show positive and negative contributions to the impact separately.
+
+Below is a simple example (with unrealistic values) to demonstrate this:
+
+![CA example with positive and negative results](./assets/ca_positive_negative_example.png)
+
+Other softwares (e.g. [Brightway2-Analyzer](https://github.com/brightway-lca/brightway2-analyzer)) 
+may use a different 'total', meaning the contributions may look different.
+For example, Brightway2-Analyzer uses the total of absolute values 
+(so the range of numbers from the lowest negative number to the highest positive number) as 100% of the score.
+
+> [!IMPORTANT]
+> Due to Activity Browser using 100% as the 'total' when you sum all positive contributions, 
+> positive results will sum to over 100% when there are also negative numbers, which will sum together to 100%.
+> Even single contributions may be over 100%. 
 
 ## Sankey
 The `Sankey` tab shows results from [graph traversal](https://docs.brightway.dev/projects/graphtools/en/latest/index.html).
