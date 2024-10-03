@@ -66,7 +66,7 @@ class DatabasesTable(ABDataFrameView):
 
         # self.setItemDelegateForColumn(4, combo_delegate)
         # Chris: Comment out below line to see the hyperlink variant
-        self.setItemDelegateForColumn(4, button_delegate)
+        # self.setItemDelegateForColumn(4, button_delegate)
         self.setEditTriggers(
             QtWidgets.QAbstractItemView.EditTrigger.DoubleClicked |
             QtWidgets.QAbstractItemView.EditTrigger.SelectedClicked
