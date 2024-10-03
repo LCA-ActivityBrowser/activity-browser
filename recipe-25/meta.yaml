@@ -22,16 +22,16 @@ requirements:
   run:
     - arrow
     - bw2analyzer >=0.11.5
-    - bw2calc >=2.0.dev20
-    - bw2data >=4.0.dev52
+    - bw2calc >=2.0.dev23
+    - bw2data >=4.0.dev57
     - bw2io >=0.9.dev37
     - bw_graph_tools >=0.5
     - bw_processing >=1.0
-    - bw_simapro_csv >=0.2.4
+    - bw_simapro_csv >=0.2.6
     - ecoinvent_interface
     - libxml2 <=2.10.4
     - matrix_utils >=0.5
-    - multifunctional >=0.7.1
+    - multifunctional >=0.8.1
     - networkx
     - numpy >=1.23.5,<2
     - pandas <=2.1.4
@@ -41,11 +41,9 @@ requirements:
     - python =3.11
     - qt-webengine
     - randonneur >=0.4
-    - randonneur_data >=0.2.1
+    - randonneur_data >=0.3
     - salib >=1.4
     - seaborn
-    # Only needed for Windows but I don't want to set up a build farm...
-    - sqlite-fts4
 
 about:
   home: https://github.com/LCA-ActivityBrowser/activity-browser
