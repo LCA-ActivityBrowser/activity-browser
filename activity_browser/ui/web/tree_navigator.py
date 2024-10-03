@@ -95,47 +95,47 @@ class TreeNavigatorWidget(BaseNavigatorWidget):
 
         grid_lay.addWidget(self.scenario_label, 1, 0)
         grid_lay.addWidget(QtWidgets.QLabel("Impact indicator: "), 2, 0)
-        grid_lay.addWidget(QtWidgets.QLabel("Tag System: "), 3, 0)
+        grid_lay.addWidget(QtWidgets.QLabel("Tag System: "), 2, 2)
 
         self.update_calculation_setup()
 
-        grid_lay.addWidget(self.func_unit_cb, 0, 1)
+        grid_lay.addWidget(self.func_unit_cb, 0, 1, 1, 3)
         grid_lay.addWidget(self.scenario_cb, 1, 1)
         grid_lay.addWidget(self.method_cb, 2, 1)
-        grid_lay.addWidget(self.tag_cb, 3, 1)
+        grid_lay.addWidget(self.tag_cb, 2, 3)
 
         # cut-off
-        grid_lay.addWidget(QtWidgets.QLabel("cutoff: "), 2, 2)
+        grid_lay.addWidget(QtWidgets.QLabel("Cutoff: "), 2, 4)
         self.cutoff_sb.setRange(0.0, 1.0)
-        self.cutoff_sb.setSingleStep(0.001)
-        self.cutoff_sb.setDecimals(4)
+        self.cutoff_sb.setSingleStep(0.01)
+        self.cutoff_sb.setDecimals(3)
         self.cutoff_sb.setValue(0.05)
         self.cutoff_sb.setKeyboardTracking(False)
-        grid_lay.addWidget(self.cutoff_sb, 2, 3)
+        grid_lay.addWidget(self.cutoff_sb, 2, 5)
 
         # max-iterations of graph traversal
-        grid_lay.addWidget(QtWidgets.QLabel("Calculation depth: "), 2, 4)
+        grid_lay.addWidget(QtWidgets.QLabel("Calculation depth: "), 2, 6)
         self.max_calc_sb.setRange(1, 2000)
         self.max_calc_sb.setSingleStep(50)
         self.max_calc_sb.setDecimals(0)
         self.max_calc_sb.setValue(250)
         self.max_calc_sb.setKeyboardTracking(False)
-        grid_lay.addWidget(self.max_calc_sb, 2, 5)
+        grid_lay.addWidget(self.max_calc_sb, 2, 7)
 
         grid_lay.setColumnStretch(6, 1)
         hlay = QtWidgets.QHBoxLayout()
         hlay.addLayout(grid_lay)
 
         # Controls Layout
-        hl_controls = QtWidgets.QHBoxLayout()
-        hl_controls.addWidget(self.button_calculate)
-        hl_controls.addWidget(self.button_refresh)
-        hl_controls.addWidget(self.button_toggle_help)
-        hl_controls.addStretch(1)
+        # hl_controls = QtWidgets.QHBoxLayout()
+        grid_lay.addWidget(self.button_calculate, 0, 5)
+        grid_lay.addWidget(self.button_refresh, 0, 6)
+        grid_lay.addWidget(self.button_toggle_help, 0, 7)
+        # hl_controls.addStretch(1)
 
         # Layout
         self.layout.addLayout(hlay)
-        self.layout.addLayout(hl_controls)
+        # self.layout.addLayout(hl_controls)
         self.layout.addWidget(self.label_help)
         self.layout.addWidget(self.view)
         self.setLayout(self.layout)
@@ -243,25 +243,28 @@ class TreeNavigatorWidget(BaseNavigatorWidget):
 
         start = time.time()
         log.debug(f"CALCULATE tree for: {demand}, {method}, key: {cache_key}")
+
         try:
             if scenario_lca:
                 self.parent.mlca.update_lca_calculation_for_sankey(
                     scenario_index, demand, method_index
                 )
-            fu, data_objs, _ = bd.prepare_lca_inputs(demand=demand, method=method)
-            lca = bc.LCA(demand=fu, data_objs=data_objs)
-            lca.lci(factorize=True)
-            lca.lcia()
+
+            if not hasattr(self, "cached_lca"):
+                fu, data_objs, _ = bd.prepare_lca_inputs(demand=demand, method=method)
+                self.cached_lca = bc.LCA(demand=fu, data_objs=data_objs)
+                self.cached_lca.lci(factorize=True)
+                self.cached_lca.lcia()
             if tags:
                 data = SameNodeEachVisitTaggedGraphTraversal(
-                    lca=lca,
+                    lca=self.cached_lca,
                     settings=TaggedGraphTraversalSettings(
                         tags=tags, cutoff=cut_off, max_calc=max_calc
                     ),
                 )
             else:
                 data = SameNodeEachVisitGraphTraversal(
-                    lca=lca,
+                    lca=self.cached_lca,
                     settings=GraphTraversalSettings(
                         cutoff=cut_off, max_calc=max_calc
                     ),
@@ -482,7 +485,7 @@ class Graph(BaseGraph):
                 for edge in state_graph.edges
                 if edge.producer_index != -1 and edge.consumer_index != -1
             ],
-            "title": "Tree graph result",
+            "title": None,
         }
 
         return json.dumps(json_data)

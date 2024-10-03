@@ -48,8 +48,8 @@ function getWindowSize() {
 
     //preventing the svg canvas to be 0x0, as page is loaded in the background with dimensions 0x0
     if (x, y == 0) {
-        x = 600;
-        y = 500;
+        x = 800;
+        y = 600;
     }
 
     globalWidth = x;
@@ -691,7 +691,7 @@ const cartographer = function () {
     cartographer.update_graph = function (json_data) {
         console.log("Updating Graph");
         data = JSON.parse(json_data);
-        heading.innerHTML = data.title;
+        if (data.title) {heading.innerHTML = data.title};
         // Reset graph to empty
         graph = new dagre.graphlib.Graph({multigraph: true}).setGraph(getGraphConfig());
         console.log(JSON.stringify(graph))
