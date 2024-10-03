@@ -30,7 +30,6 @@ class DatabasesModel(EditablePandasModel):
         super().__init__(parent=parent)
         projects.current_changed.connect(self.sync)
         databases.metadata_changed.connect(self.sync)
-        self.dataChanged.connect(self._handle_data_changed)
 
     def get_db_name(self, proxy: QModelIndex) -> str:
         idx = self.proxy_to_source(proxy)
@@ -72,11 +71,10 @@ class DatabasesModel(EditablePandasModel):
         if not index.isValid():
             return Qt.ItemFlag.NoItemFlags
         read_only = self._dataframe.iat[index.row(), 2]
-        multifunctional = self._dataframe.iat[index.row(), 4] != self.NOT_APPLICABLE
         # Skip the EditablePandasModel.flags() because it always returns the editable
         # flag
         result = PandasModel.flags(self, index)
-        if not read_only and multifunctional:
+        if not read_only:
             result |= Qt.ItemIsEditable
         return result
 
@@ -96,30 +94,6 @@ class DatabasesModel(EditablePandasModel):
                     return style_item.brushes["hyperlink"]
         return result
 
-    def _handle_data_changed(self, top_left: QModelIndex, bottom_right: QModelIndex, roles: list[Qt.ItemDataRole]):
-        if top_left.isValid() and bottom_right.isValid():
-            # Default allocation column
-            if top_left.column() <= 4 <= bottom_right.column():
-                for row in range(top_left.row(), bottom_right.row() + 1):
-                    current_alloc_idx = self.index(row, 4)
-                    current_db = self.data(self.index(row, 0))
-                    if self.data(current_alloc_idx) == self.UNSPECIFIED_ALLOCATION:
-                        if databases[current_db].get("default_allocation") is not None:
-                            del databases[current_db]["default_allocation"]
-                    elif self.data(current_alloc_idx) == self.CUSTOM_ALLOCATION:
-                        current = databases[current_db].get("default_allocation", "")
-                        custom_value = CustomAllocationEditor.define_custom_allocation(
-                            current, current_db, self.parent()
-                        )
-                        if custom_value != current:
-                            databases[current_db]["default_allocation"] = custom_value
-                        # No need to reset the "Custom..." value in the cell, because the
-                        # flush below will trigger a refresh of the table from the persistent
-                        # data
-                    else:
-                        databases[current_db]["default_allocation"] = self.data(current_alloc_idx)
-                databases.flush()
-                DatabaseRedoAllocation.run(current_db)
 
     def show_custom_allocation_editor(self, proxy: QModelIndex):
         if proxy.isValid() and proxy.column() == 4:
