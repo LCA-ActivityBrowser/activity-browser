@@ -3,7 +3,7 @@ from PySide2 import QtCore, QtWidgets
 from multifunctional import allocation_strategies, list_available_properties
 
 from activity_browser import actions, project_settings, signals
-from activity_browser.actions.database.database_redo_allocation import DatabaseRedoAllocation
+from activity_browser.actions.activity.activity_redo_allocation import MultifunctionalProcessRedoAllocation
 from activity_browser.logger import log
 from activity_browser.ui.style import style_item
 from activity_browser.ui.widgets.custom_allocation_editor import CustomAllocationEditor
@@ -275,5 +275,5 @@ class ActivityDataGrid(QtWidgets.QWidget):
             changed = True
         if changed:
             self.parent.activity.save()
-            DatabaseRedoAllocation.run(self.parent.activity.get("database", ""))
+            MultifunctionalProcessRedoAllocation.run(self.parent.activity)
 

@@ -1,5 +1,7 @@
 from PySide2 import QtGui
 
+from multifunctional.database import SIMAPRO_ATTRIBUTES
+
 from activity_browser import signals
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.logger import log
@@ -20,7 +22,14 @@ class DatabaseRedoAllocation(ABAction):
     def run(db_name: str):
         if bd.databases[db_name].get("backend") == "multifunctional":
             try:
-                bd.Database(db_name).process()
+                db = bd.Database(db_name)
+                is_simapro = any(
+                    key in db.metadata for key in SIMAPRO_ATTRIBUTES
+                ) or db.metadata.get("products_as_process")
+
+                for node in filter(lambda x: x.multifunctional, db):
+                    node.allocate(products_as_process=is_simapro)
+
                 signals.new_statusbar_message.emit(f"Allocation values for database {db_name} updated.")
             except KeyError as exc:
                 signals.new_statusbar_message.emit("A property for the allocation calculation was not found!")

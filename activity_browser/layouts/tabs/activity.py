@@ -4,7 +4,7 @@ from PySide2 import QtCore, QtWidgets
 from PySide2.QtCore import Slot
 
 from activity_browser import ab_settings, project_settings, signals
-from activity_browser.actions.database.database_redo_allocation import DatabaseRedoAllocation
+from activity_browser.actions.activity.activity_redo_allocation import MultifunctionalProcessRedoAllocation
 from activity_browser.bwutils import commontasks as bc
 from activity_browser.mod import bw2data as bd
 from activity_browser.ui.widgets.property_editor import PropertyEditor
@@ -363,7 +363,7 @@ class ActivityTab(QtWidgets.QWidget):
         if PropertyEditor.edit_properties(self.activity, self.read_only, self):
             self.activity.save()
             # Properties changed, redo allocations, the values might have changed
-            DatabaseRedoAllocation.run(self.db_name)
+            MultifunctionalProcessRedoAllocation.run(self.activity)
 
     def open_tag_editor(self):
         """Opens the tag editor for the current"""

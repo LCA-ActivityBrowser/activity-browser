@@ -15,7 +15,7 @@ from peewee import DoesNotExist
 from PySide2.QtCore import QModelIndex, Qt, Slot
 
 from activity_browser import actions, log, signals
-from activity_browser.actions.database.database_redo_allocation import DatabaseRedoAllocation
+from activity_browser.actions.activity.activity_redo_allocation import MultifunctionalProcessRedoAllocation
 from activity_browser.bwutils import PedigreeMatrix
 from activity_browser.bwutils import commontasks as bc
 
@@ -269,7 +269,7 @@ class ProductExchangeModel(BaseExchangeModel):
                 # It is enough to handle one of the changed items, as all
                 # exchanges in the product table have the same activity as output
                 exc = self.get_exchange(top_left)
-                DatabaseRedoAllocation.run(exc.output.key[0])
+                MultifunctionalProcessRedoAllocation.run(exc.output)
 
 
 class TechnosphereExchangeModel(BaseExchangeModel):
