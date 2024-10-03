@@ -22,9 +22,9 @@ from .base import DragPandasModel, EditablePandasModel, PandasModel
 
 class DatabasesModel(EditablePandasModel):
     HEADERS = ["Name", "Records", "Read-only", "Depends", "Def. Alloc.", "Modified"]
-    UNSPECIFIED_ALLOCATION = "(unspecified)"
+    UNSPECIFIED_ALLOCATION = "unspecified"
     CUSTOM_ALLOCATION = "Custom..."
-    NOT_APPLICABLE = "Not applicable"
+    NOT_APPLICABLE = "N/A"
 
     def __init__(self, parent=None):
         super().__init__(parent=parent)
@@ -53,7 +53,7 @@ class DatabasesModel(EditablePandasModel):
                     "Modified": dt,
                     "Records": bc.count_database_records(name),
                     "Read-only": database_read_only,
-                    "Def. Alloc.": self._get_alloc_value(name),
+                    "Default Alloc.": self._get_alloc_value(name),
                 }
             )
 
