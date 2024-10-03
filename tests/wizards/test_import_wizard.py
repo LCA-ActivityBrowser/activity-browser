@@ -24,11 +24,11 @@ from activity_browser.ui.wizards.db_import_wizard import DatabaseImportWizard
 
 def test_open_db_wizard(ab_app, qtbot):
     """Open the wizard itself."""
-    qtbot.waitForWindowShown(ab_app.main_window)
-    wizard = DatabaseImportWizard(ab_app.main_window)
-    qtbot.addWidget(wizard)
-    wizard.show()
+    with qtbot.waitExposed(ab_app.main_window):
+        wizard = DatabaseImportWizard(ab_app.main_window)
+        qtbot.addWidget(wizard)
+        wizard.show()
 
-    qtbot.mouseClick(
-        wizard.button(QtWidgets.QWizard.CancelButton), QtCore.Qt.LeftButton
-    )
+        qtbot.mouseClick(
+            wizard.button(QtWidgets.QWizard.CancelButton), QtCore.Qt.LeftButton
+        )
