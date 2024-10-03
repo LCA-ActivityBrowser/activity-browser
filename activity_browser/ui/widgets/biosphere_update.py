@@ -23,11 +23,13 @@ class BiosphereUpdater(QtWidgets.QProgressDialog):
         self.thread.start()
 
     def thread_finished(self, result: int = None) -> None:
+        log.info(f"BiosphereUpdater Thread finished")
         # outcome = result or 0
         # self.thread.exit(outcome)
         self.setMaximum(1)
         self.setValue(1)
         self.done(result or 0)
+        log.info(f"BiosphereUpdater dialog done")
 
     @Slot(int)
     def update_progress(self, current: int):
@@ -54,11 +56,13 @@ class UpdateBiosphereThread(ABThread):
 
     def run_safely(self):
         try:
+            log.info(f"Patches to apply {self.PATCHES}")
             for i, patch in enumerate(self.PATCHES):
                 self.progress.emit(i)
-                log.debug(f"Applying biosphere patch: {patch}")
+                log.info(f"Applying biosphere patch: {patch}")
                 update_bio = getattr(data, patch)
                 update_bio()
+                log.info(f"Patch applied.")
         except bd.errors.ValidityError as e:
             log.error(f"Could not patch biosphere: {str(e)}")
             self.exit(1)

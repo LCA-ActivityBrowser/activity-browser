@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
@@ -73,10 +74,6 @@ def test_context_menu(tag_table, read_only, on_element, qtbot: QtBot):
     index = tag_table.proxy_model.index(0, 0)
     tag_table.setCurrentIndex(index)
 
-    # Simulate a right-click to open the context menu
-    pos = tag_table.viewport().rect().center()
-    QTest.mouseClick(tag_table.viewport(), QtCore.Qt.RightButton, pos=pos)
-
     if on_element:
         position = tag_table.visualRect(index).center()
         expected_actions = [tag_table.remove_tag_button, tag_table.add_tag_button]
@@ -87,14 +84,32 @@ def test_context_menu(tag_table, read_only, on_element, qtbot: QtBot):
         expected_actions = list(
             filter(lambda x: x is not tag_table.add_tag_button, expected_actions)
         )
+    # The context menu is shown using QtWidgets.QMenu.exec_, and this method
+    # does not return, so the test gets blocked. Patching it did not work,
+    # probably due to the same named static method.
+    def hide_menu():
+        menu = None
+        def check_menu():
+            nonlocal menu
+            assert (menu := tag_table.findChild(QtWidgets.QMenu)) is not None
+        qtbot.waitUntil(check_menu)
+        # close the menu before the assertions, as a failing assertion will
+        # prevent the menu from closing, thus failing further test execution
+        menu.close()
+        assert isinstance(menu, QtWidgets.QMenu)
+        actions = menu.actions()
+        assert set(actions) == set(expected_actions)
+
+    # Use a timer to execute code after the menu is shown
+    QtCore.QTimer.singleShot(200, hide_menu)
+
+    # Simulate a right-click to open the context menu
     tag_table.contextMenuEvent(
         QtGui.QContextMenuEvent(QtGui.QContextMenuEvent.Reason.Mouse, position)
     )
-    menu: QtWidgets.QMenu = tag_table.findChild(QtWidgets.QMenu)
-    actions = menu.actions()
-    assert set(actions) == set(expected_actions)
 
-    menu.close()
+    # Checks are done in the hide_menu, which will block until the menu
+    # is created
 
 
 def test_update_proxy_model(tag_table):
