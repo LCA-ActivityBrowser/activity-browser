@@ -181,8 +181,8 @@ class ActivityTab(QtWidgets.QWidget):
         self.downstream = DownstreamExchangeTable(self)
 
         self.exchange_groups = [
-            DetailsGroupBox("Products:", self.production),
-            DetailsGroupBox("Technosphere Flows:", self.technosphere),
+            DetailsGroupBox("Outputs:", self.production),
+            DetailsGroupBox("Inputs:", self.technosphere),
             DetailsGroupBox("Biosphere Flows:", self.biosphere),
             DetailsGroupBox("Downstream Consumers:", self.downstream),
         ]
