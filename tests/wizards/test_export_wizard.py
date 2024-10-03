@@ -22,16 +22,16 @@ from activity_browser.ui.wizards.db_export_wizard import DatabaseExportWizard
 
 def test_open_export_wizard(ab_app, qtbot):
     """Actually open the export wizard."""
-    qtbot.waitForWindowShown(ab_app.main_window)
-    wizard = DatabaseExportWizard(ab_app.main_window)
-    qtbot.addWidget(wizard)
-    wizard.show()
+    with qtbot.waitExposed(ab_app.main_window):
+        wizard = DatabaseExportWizard(ab_app.main_window)
+        qtbot.addWidget(wizard)
+        wizard.show()
 
-    # The initial field for the database does not allow 'finish'
-    assert wizard.field("database_choice") == "-----"
-    assert not wizard.button(DatabaseExportWizard.FinishButton).isEnabled()
+        # The initial field for the database does not allow 'finish'
+        assert wizard.field("database_choice") == "-----"
+        assert not wizard.button(DatabaseExportWizard.FinishButton).isEnabled()
 
-    # And close it down
-    qtbot.mouseClick(
-        wizard.button(QtWidgets.QWizard.CancelButton), QtCore.Qt.LeftButton
-    )
+        # And close it down
+        qtbot.mouseClick(
+            wizard.button(QtWidgets.QWizard.CancelButton), QtCore.Qt.LeftButton
+        )

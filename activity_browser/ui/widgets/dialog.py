@@ -5,7 +5,7 @@ import bw2io as bi
 from PySide2 import QtGui, QtWidgets
 from PySide2.QtCore import Qt, Signal, Slot
 
-from activity_browser import project_settings, signals
+from activity_browser import project_settings, signals, log
 from activity_browser.bwutils.superstructure import get_sheet_names
 from activity_browser.mod import bw2data as bd
 
@@ -621,11 +621,13 @@ class DefaultBiosphereDialog(QtWidgets.QProgressDialog):
         self.setLabelText(text)
 
     def thread_finished(self, result: int = None) -> None:
+        log.info(f"DefaultBiosphereThread thread finished")
         # self.biosphere_thread.exit(result or 0)
         self.setValue(3)
         if self._check_patches:
             self.check_patches()
         self.done(result or 0)
+        log.info(f"DefaultBiosphereDialog dialog done")
 
     def check_patches(self):
         """Apply any relevant biosphere patches if available."""
@@ -648,6 +650,7 @@ class DefaultBiosphereThread(ABThread):
         self.version = version
 
     def run_safely(self):
+        log.info(f"DefaultBiosphereThread start")
         project = f"<b>{bd.projects.current}</b>"
         if "biosphere3" not in bd.databases:
             self.update.emit(0, "Creating default biosphere for {}".format(project))
@@ -659,6 +662,7 @@ class DefaultBiosphereThread(ABThread):
         if not len(bi.migrations):
             self.update.emit(2, "Creating core data migrations for {}".format(project))
             bi.create_core_migrations()
+        log.info(f"DefaultBiosphereThread exiting")
 
 
 class FilterManagerDialog(QtWidgets.QDialog):

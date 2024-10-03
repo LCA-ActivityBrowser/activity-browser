@@ -9,19 +9,19 @@ from activity_browser.settings import ABSettings, BaseSettings, ProjectSettings
 @pytest.fixture()
 def ab_settings(qtbot, ab_app):
     """Remove the test settings file after finishing the tests."""
-    qtbot.waitForWindowShown(ab_app.main_window)
-    settings = ABSettings("test_ab.json")
-    yield settings
-    if os.path.isfile(settings.settings_file):
-        os.remove(settings.settings_file)
+    with qtbot.waitExposed(ab_app.main_window):
+        settings = ABSettings("test_ab.json")
+        yield settings
+        if os.path.isfile(settings.settings_file):
+            os.remove(settings.settings_file)
 
 
 @pytest.fixture()
 def project_settings(qtbot, ab_app):
     """No cleanup needed as the entire project is removed after testing."""
-    qtbot.waitForWindowShown(ab_app.main_window)
-    settings = ProjectSettings("test_project.json")
-    yield settings
+    with qtbot.waitExposed(ab_app.main_window):
+        settings = ProjectSettings("test_project.json")
+        yield settings
 
 
 def test_base_class():
