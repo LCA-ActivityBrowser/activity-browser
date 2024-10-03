@@ -24,8 +24,8 @@ class MultifunctionalProcessRedoAllocation(ABAction):
             return
         try:
             is_simapro = any(
-                key in bd.databases[node['database']].metadata for key in SIMAPRO_ATTRIBUTES
-            ) or bd.databases[node['database']].metadata.get("products_as_process")
+                key in bd.databases[node['database']] for key in SIMAPRO_ATTRIBUTES
+            ) or bd.databases[node['database']].get("products_as_process")
 
             node.allocate(products_as_process=is_simapro)
 
