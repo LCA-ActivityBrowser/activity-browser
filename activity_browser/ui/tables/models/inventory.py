@@ -21,7 +21,7 @@ from .base import DragPandasModel, EditablePandasModel, PandasModel
 
 
 class DatabasesModel(EditablePandasModel):
-    HEADERS = ["Name", "Records", "Read-only", "Depends", "Def. Alloc.", "Modified"]
+    HEADERS = ["Name", "Records", "Read-only", "Depends", "Default Alloc.", "Modified"]
     UNSPECIFIED_ALLOCATION = "unspecified"
     CUSTOM_ALLOCATION = "Custom..."
     NOT_APPLICABLE = "N/A"
