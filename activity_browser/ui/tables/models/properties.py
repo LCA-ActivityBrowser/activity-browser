@@ -2,6 +2,7 @@
 from copy import copy
 from dataclasses import dataclass
 from math import nan
+from numbers import Number
 from typing import Any, Optional, Union
 from PySide2 import QtCore, QtGui
 
@@ -18,6 +19,8 @@ class PropertyModel(QtCore.QAbstractTableModel):
         - to be deleted - if this flag is set, the property will not be reported in 
             get_properties
     """
+    # Reports the property and the offending type and value
+    value_error = QtCore.Signal(str, str, str)
 
     @dataclass
     class PropertyData:
@@ -65,7 +68,11 @@ class PropertyModel(QtCore.QAbstractTableModel):
         if data is not None:
             self._original_data = copy(data)
             for key in data:
-                self._data.append(PropertyModel.PropertyData(key, data[key]))
+                value = data[key]
+                if not isinstance(data[key], Number) or isinstance(data[key], bool):
+                    self.value_error.emit(key, str(type(value)), str(value))
+                    value = 0
+                self._data.append(PropertyModel.PropertyData(key, value))
         else:
             self._original_data = dict()
         self._data.append(PropertyModel.PropertyData())
@@ -212,8 +219,8 @@ class PropertyModel(QtCore.QAbstractTableModel):
         """Marks items to be deleted."""
         if index.isValid() and self._data[index.row()].key != "":
             self._data[index.row()].to_be_deleted = not self._data[index.row()].to_be_deleted
-            start_index = self.createIndex(index.row(), 0)
-            end_index = self.createIndex(index.row(), 1)
+            start_index = self.index(index.row(), 0)
+            end_index = self.index(index.row(), 1)
             self.dataChanged.emit(start_index, end_index, [])
 
     def is_modified(self) -> bool:

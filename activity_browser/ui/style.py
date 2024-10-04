@@ -55,7 +55,7 @@ class ActivitiesTab:
         QTabWidget::pane {
             border-top: 0px solid rgb(128,0,0); /*red line (read-only indicator) - removed due to request */
             /*border-bottom: 3px solid rgb(128,0,0);*/
-        }        
+        }
     """
     style_sheet_editable = """
         QToolBar {
@@ -64,7 +64,7 @@ class ActivitiesTab:
         QTabWidget::pane {
             border-top: 3px solid rgb(0,128,0);
             /* border-bottom: 3px solid rgb(0,128,0);*/
-        }        
+        }
         """
 
 
@@ -93,10 +93,17 @@ class TableItemStyle:
         "duplicate": (200, 0, 0),
         "deleted": (180, 180, 180),
         "new": (0, 200, 0),
+        # Colorblind friendly colors based on the Wong palette from https://davidmathlogic.com/colorblind:
+        # https://davidmathlogic.com/colorblind/#%23000000-%23C7C7C7-%23009E73-%23EBC120-%23D55E00
+        "good": (0, 0x9E, 0x73),
+        "missing": (0xC7, 0xC7, 0xC7),
+        "warning": (0xEB, 0xC1, 0x20),
+        "critical": (0xD5, 0x5E, 0),
+        "hyperlink": (0, 0, 238),
     }
 
     def __init__(self):
-        self.brushes = {}
+        self.brushes: dict[str, QtGui.QBrush] = {}
         for key, values in self.COLOR_CODE.items():
             self.brushes.update({key: QtGui.QBrush(QtGui.QColor(*values))})
 

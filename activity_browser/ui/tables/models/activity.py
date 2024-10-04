@@ -15,6 +15,7 @@ from peewee import DoesNotExist
 from PySide2.QtCore import QModelIndex, Qt, Slot
 
 from activity_browser import actions, log, signals
+from activity_browser.actions.activity.activity_redo_allocation import MultifunctionalProcessRedoAllocation
 from activity_browser.bwutils import PedigreeMatrix
 from activity_browser.bwutils import commontasks as bc
 
@@ -202,6 +203,10 @@ def as_number(o) -> str:
 class ProductExchangeModel(BaseExchangeModel):
     COLUMNS = ["Amount", "Unit", "Product", "Functional", "Allocation factor", "Formula"]
 
+    def __init__(self, key=None, parent=None):
+        super().__init__(key, parent)
+        self.dataChanged.connect(self._handle_data_changed)
+
     def create_row(self, exchange) -> dict:
         row = super().create_row(exchange)
         act = exchange.input
@@ -213,16 +218,20 @@ class ProductExchangeModel(BaseExchangeModel):
             "Formula": exchange.get("formula")
         })
         return row
-    
+
     def flags(self, index: QModelIndex):
         result = super().flags(index)
-        if index.column() == 3 and not self.is_read_only():
-            # Remove the editable flag, so that the user can not change the 
-            # "True" and "False" values, only check the checkbox
-            result &= ~Qt.ItemFlag.ItemIsEditable
-            result |= Qt.ItemIsUserCheckable
+        if not self.is_read_only():
+            if index.column() in [3, 4]:
+                # Remove the editable flag, so that the user can not change the
+                # "True" and "False" values for functional or the value of
+                # the allocation factor
+                result &= ~Qt.ItemFlag.ItemIsEditable
+            if index.column() == 3:
+                # Make functional column checkable
+                result |= Qt.ItemIsUserCheckable
         return result
-    
+
     def data(self, index: QModelIndex,
              role: int = Qt.ItemDataRole.DisplayRole) -> Any:
         check_state_role = False
@@ -236,7 +245,7 @@ class ProductExchangeModel(BaseExchangeModel):
             # Convert the data to an appropriate value for the checkbox
             return Qt.CheckState.Checked if result == "True" else Qt.CheckState.Unchecked
         return result
-        
+
     def setData(self, index: QModelIndex, value: Any,
              role: int = Qt.ItemDataRole.DisplayRole) -> bool:
         check_state_role = False
@@ -252,6 +261,15 @@ class ProductExchangeModel(BaseExchangeModel):
             # Notify the view that the checkbox roles has also changed
             self.dataChanged.emit(index, index, [Qt.ItemDataRole.CheckStateRole])
         return result
+
+    def _handle_data_changed(self, top_left: QModelIndex, bottom_right: QModelIndex):
+        if top_left.isValid() and bottom_right.isValid():
+            # If the amount column is in the changed columns
+            if top_left.column() <= 0 <= bottom_right.column():
+                # It is enough to handle one of the changed items, as all
+                # exchanges in the product table have the same activity as output
+                exc = self.get_exchange(top_left)
+                MultifunctionalProcessRedoAllocation.run(exc.output)
 
 
 class TechnosphereExchangeModel(BaseExchangeModel):

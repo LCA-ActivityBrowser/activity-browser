@@ -1,7 +1,12 @@
 # -*- coding: utf-8 -*-
 from PySide2 import QtCore, QtWidgets
+from multifunctional import allocation_strategies, list_available_properties
 
 from activity_browser import actions, project_settings, signals
+from activity_browser.actions.activity.activity_redo_allocation import MultifunctionalProcessRedoAllocation
+from activity_browser.logger import log
+from activity_browser.ui.style import style_item
+from activity_browser.ui.widgets.custom_allocation_editor import CustomAllocationEditor
 
 from ...bwutils import AB_metadata
 from ..icons import qicons
@@ -47,6 +52,9 @@ class ActivityDataGrid(QtWidgets.QWidget):
     Includes the read-only checkbox which enables or disables user-editing of some activity and exchange data
     Exchange data is displayed separately, below this grid, in tables.
     """
+    DATABASE_DEFINED_ALLOCATION = "(database default)"
+    CUSTOM_ALLOCATION = "Custom..."
+
 
     def __init__(self, parent, read_only=True):
         super(ActivityDataGrid, self).__init__(parent)
@@ -92,6 +100,18 @@ class ActivityDataGrid(QtWidgets.QWidget):
             "Use dropdown menu to duplicate activity to another database"
         )
 
+        is_multifunctional = parent.activity.get("type") == "multifunctional"
+        if is_multifunctional:
+            # Default allocation combobox
+            self.def_alloc_combo = QtWidgets.QComboBox()
+            self.def_alloc_combo.currentTextChanged.connect(self._handle_def_alloc_changed)
+            self._refresh_def_alloc_combo_values()
+            self.def_alloc_combo.setToolTip(
+                "Use dropdown menu to change the default allocation"
+            )
+        else:
+            self.def_alloc_combo = None
+
         # arrange widgets for display as a grid
         self.grid = QtWidgets.QGridLayout()
 
@@ -106,6 +126,9 @@ class ActivityDataGrid(QtWidgets.QWidget):
         self.grid.addWidget(self.location_combo, 2, 2, 1, -1)
         self.grid.addWidget(self.database_combo, 3, 2, 1, -1)
         self.grid.addWidget(self.database_label, 3, 1)
+        if self.def_alloc_combo:
+            self.grid.addWidget(QtWidgets.QLabel("Default Allocation"), 4, 1)
+            self.grid.addWidget(self.def_alloc_combo, 4, 2, 1, -1)
 
         self.setLayout(self.grid)
 
@@ -185,3 +208,74 @@ class ActivityDataGrid(QtWidgets.QWidget):
         self.read_only = read_only
         self.name_box.setReadOnly(self.read_only)
         self.location_combo.setEnabled(not self.read_only)
+        if self.def_alloc_combo:
+            self.def_alloc_combo.setEnabled(not self.read_only)
+
+    def _refresh_def_alloc_combo_values(self):
+        if self.def_alloc_combo:
+            allocation_options = sorted(list(allocation_strategies.keys()))
+            # Make the unspecified value the first in the list of options
+            allocation_options.insert(0, self.DATABASE_DEFINED_ALLOCATION)
+            index = 0
+            if (process_alloc := self.parent.activity.get("default_allocation")) is not None:
+                try:
+                    index = allocation_options.index(process_alloc)
+                except ValueError:
+                    log.error(f"Invalid Default allocation value '{process_alloc}'"
+                              f" for process {self.parent.key}")
+            # Append custom option after the index has been calculated
+            allocation_options.append(self.CUSTOM_ALLOCATION)
+            self.def_alloc_combo.currentTextChanged.disconnect()
+            self.def_alloc_combo.clear()
+            self.def_alloc_combo.insertItems(0, allocation_options)
+            self.def_alloc_combo.setCurrentIndex(index)
+            try:
+                current_db = self.parent.activity.get("database", "")
+                evaluated_properties = list_available_properties(current_db, self.parent.activity)
+                properties_dict = {item[0]:item[1] for item in evaluated_properties}
+                # Color the combo entries according to their status
+                for i in range(len(allocation_options)):
+                    brush = None
+                    if allocation_options[i] == "equal":
+                        brush = style_item.brushes["good"]
+                    elif allocation_options[i] in properties_dict:
+                        brush = CustomAllocationEditor.brush_for_message_type(
+                            properties_dict[allocation_options[i]]
+                        )
+                    elif 0 < i < len(allocation_options) - 1:
+                        brush = style_item.brushes["missing"]
+                    if brush is not None:
+                        self.def_alloc_combo.setItemData(i, brush, QtCore.Qt.ForegroundRole)
+            except ValueError as e:
+                log.error(f"Error calculating the colors for the combobox. exception: {e}")
+
+            self.def_alloc_combo.currentTextChanged.connect(self._handle_def_alloc_changed)
+
+    def _handle_def_alloc_changed(self, selection: str):
+        changed = False
+        current_def_alloc = self.parent.activity.get("default_allocation", "")
+        if selection == self.DATABASE_DEFINED_ALLOCATION:
+            if current_def_alloc != "":
+                del self.parent.activity["default_allocation"]
+                changed = True
+        elif selection == self.CUSTOM_ALLOCATION:
+            custom_value = CustomAllocationEditor.define_custom_allocation(
+                                current_def_alloc, self.parent.activity, self
+                            )
+            if custom_value and custom_value != current_def_alloc:
+                self.parent.activity["default_allocation"] = custom_value
+                self._refresh_def_alloc_combo_values()
+                changed = True
+            # Update the selected text of the combo in both cases, so it is not
+            # stuck on "Custom..."
+            if custom_value:
+                self.def_alloc_combo.setCurrentText(custom_value)
+            else:
+                self.def_alloc_combo.setCurrentIndex(0)
+        elif current_def_alloc != selection:
+            self.parent.activity["default_allocation"] = selection
+            changed = True
+        if changed:
+            self.parent.activity.save()
+            MultifunctionalProcessRedoAllocation.run(self.parent.activity)
+

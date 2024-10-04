@@ -4,6 +4,7 @@ from PySide2 import QtCore, QtWidgets
 from PySide2.QtCore import Slot
 
 from activity_browser import ab_settings, project_settings, signals
+from activity_browser.actions.activity.activity_redo_allocation import MultifunctionalProcessRedoAllocation
 from activity_browser.bwutils import commontasks as bc
 from activity_browser.mod import bw2data as bd
 from activity_browser.ui.widgets.property_editor import PropertyEditor
@@ -180,8 +181,8 @@ class ActivityTab(QtWidgets.QWidget):
         self.downstream = DownstreamExchangeTable(self)
 
         self.exchange_groups = [
-            DetailsGroupBox("Products:", self.production),
-            DetailsGroupBox("Technosphere Flows:", self.technosphere),
+            DetailsGroupBox("Outputs:", self.production),
+            DetailsGroupBox("Inputs:", self.technosphere),
             DetailsGroupBox("Biosphere Flows:", self.biosphere),
             DetailsGroupBox("Downstream Consumers:", self.downstream),
         ]
@@ -296,7 +297,7 @@ class ActivityTab(QtWidgets.QWidget):
     def exchange_tables_read_only_changed(self) -> None:
         """The user should not be able to edit the exchange tables when read_only
 
-        EditTriggers turned off to prevent DoubleClick-selection editing.
+        Read-only flag set to True in models to prevent DoubleClick-selection editing.
         DragDropMode set to NoDragDrop prevents exchanges dropped on the table to add.
         """
         for table in [
@@ -319,7 +320,8 @@ class ActivityTab(QtWidgets.QWidget):
                 self.act_read_only_changed(read_only=True)
 
             # update checkbox to greyed-out or not
-            self.checkbox_edit_act.setEnabled(not self.db_read_only)
+            read_only_process = self.activity.get("type") == "readonly_process"
+            self.checkbox_edit_act.setEnabled(not self.db_read_only and not read_only_process)
             self.update_tooltips()
 
         else:  # on read-only state change for a database different to the open activity...
@@ -360,6 +362,8 @@ class ActivityTab(QtWidgets.QWidget):
         # Do not save the changes if nothing changed
         if PropertyEditor.edit_properties(self.activity, self.read_only, self):
             self.activity.save()
+            # Properties changed, redo allocations, the values might have changed
+            MultifunctionalProcessRedoAllocation.run(self.activity)
 
     def open_tag_editor(self):
         """Opens the tag editor for the current"""

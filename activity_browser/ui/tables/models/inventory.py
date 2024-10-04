@@ -1,22 +1,30 @@
 # -*- coding: utf-8 -*-
 import datetime
 import functools
+from typing import Any, Optional
 
+from PySide2.QtGui import QFont
 import numpy as np
 import pandas as pd
 from PySide2.QtCore import QModelIndex, Qt, Slot
 from PySide2.QtWidgets import QApplication
 
 from activity_browser import log, project_settings
+from activity_browser.actions.database.database_redo_allocation import DatabaseRedoAllocation
 from activity_browser.bwutils import AB_metadata
 from activity_browser.bwutils import commontasks as bc
-from activity_browser.mod.bw2data import databases, projects, utils
+from activity_browser.mod.bw2data import databases, projects
+from activity_browser.ui.style import style_item
+from activity_browser.ui.widgets.custom_allocation_editor import CustomAllocationEditor
 
-from .base import DragPandasModel, PandasModel
+from .base import DragPandasModel, EditablePandasModel, PandasModel
 
 
-class DatabasesModel(PandasModel):
-    HEADERS = ["Name", "Records", "Read-only", "Depends", "Def. Alloc.", "Modified"]
+class DatabasesModel(EditablePandasModel):
+    HEADERS = ["Name", "Records", "Read-only", "Depends", "Default Alloc.", "Modified"]
+    UNSPECIFIED_ALLOCATION = "unspecified"
+    CUSTOM_ALLOCATION = "Custom..."
+    NOT_APPLICABLE = "N/A"
 
     def __init__(self, parent=None):
         super().__init__(parent=parent)
@@ -28,8 +36,9 @@ class DatabasesModel(PandasModel):
         return self._dataframe.iat[idx.row(), 0]
 
     def sync(self):
+        self.beginResetModel()
         data = []
-        for name in utils.natural_sort(databases):
+        for name in databases:
             # get the modified time, in case it doesn't exist, just write 'now' in the correct format
             dt = databases[name].get("modified", datetime.datetime.now().isoformat())
             dt = datetime.datetime.strptime(dt, "%Y-%m-%dT%H:%M:%S.%f")
@@ -43,29 +52,102 @@ class DatabasesModel(PandasModel):
                     "Modified": dt,
                     "Records": bc.count_database_records(name),
                     "Read-only": database_read_only,
-                    "Def. Alloc.": databases[name].get("default_allocation", "(unspecified)")
+                    "Default Alloc.": self._get_alloc_value(name),
                 }
             )
 
         self._dataframe = pd.DataFrame(data, columns=self.HEADERS)
-        self.updated.emit()
+        self.endResetModel()
+
+    @staticmethod
+    def _get_alloc_value(db_name: str) -> str:
+        if databases[db_name].get("backend") != "multifunctional":
+            return DatabasesModel.NOT_APPLICABLE
+        return databases[db_name].get("default_allocation",
+                                      DatabasesModel.UNSPECIFIED_ALLOCATION)
+
+    def flags(self, index: QModelIndex) -> Qt.ItemFlags:
+        """Only allow editing of rows where the read-only flag is not set."""
+        if not index.isValid():
+            return Qt.ItemFlag.NoItemFlags
+        read_only = self._dataframe.iat[index.row(), 2]
+        # Skip the EditablePandasModel.flags() because it always returns the editable
+        # flag
+        result = PandasModel.flags(self, index)
+        if not read_only:
+            result |= Qt.ItemIsEditable
+        return result
+
+    def data(self, index: QModelIndex,
+             role: int = Qt.ItemDataRole.DisplayRole) -> Any:
+        result = super().data(index, role)
+        if index.isValid() and index.column() == 4:
+            if role == Qt.ItemDataRole.DisplayRole and result is None:
+                return self.UNSPECIFIED_ALLOCATION
+            elif role == Qt.ItemDataRole.FontRole:
+                if index.data() != self.NOT_APPLICABLE:
+                    font = QFont()
+                    font.setUnderline(True)
+                    return font
+            elif role == Qt.ItemDataRole.ForegroundRole:
+                if index.data() != self.NOT_APPLICABLE:
+                    return style_item.brushes["hyperlink"]
+        return result
+
+
+    def show_custom_allocation_editor(self, proxy: QModelIndex):
+        if proxy.isValid() and proxy.column() == 4:
+            current_db = proxy.siblingAtColumn(0).data()
+            current_allocation = databases[current_db].get("default_allocation", "")
+            custom_value = CustomAllocationEditor.define_custom_allocation(
+                current_allocation, current_db, self.parent()
+            )
+            if custom_value != current_allocation:
+                # In this approach there is no way currently to delete the
+                # default_allocation completely
+                databases[current_db]["default_allocation"] = custom_value
+                databases.flush()
+                DatabaseRedoAllocation.run(current_db)
 
 
 class ActivitiesBiosphereModel(DragPandasModel):
     def __init__(self, parent=None):
         super().__init__(parent=parent)
-        self.act_fields = lambda: AB_metadata.get_existing_fields(
-            ["reference product", "name", "location", "unit", "ISIC rev.4 ecoinvent"]
-        )
-        self.ef_fields = lambda: AB_metadata.get_existing_fields(
-            ["name", "categories", "type", "unit"]
-        )
+        self.database_name = ""
+        self._visible_columns = []
         self.technosphere = True
 
     @property
-    def fields(self) -> list:
-        """Constructs a list of fields relevant for the type of database."""
-        return self.act_fields() if self.technosphere else self.ef_fields()
+    def _tentative_fields(self) -> list[str]:
+        """
+        We try to display these columns, but some might not be available, and
+        some might be empty and later filtered out.
+        """
+        return AB_metadata.get_existing_fields(
+            ["name", "reference product", "location", "unit",
+             "ISIC rev.4 ecoinvent", "type", "key"]
+        )
+
+    @property
+    def _tentative_columns(self) -> list[str]:
+        """Return the list of titles for each tentative column"""
+        # Create a local dict to avoid changing AB_names_to_bw_keys
+        # We can not hardcode column names, because some might be filtered out
+        # by AB_metadata.get_existing_fields above.
+        column_names = {
+            "name": "Name",
+            "reference product": "Ref. product",
+            "location": "Location",
+            "unit": "Unit",
+            "ISIC rev.4 ecoinvent": "ISIC rev.4 ecoinvent",
+            "type": "Type",
+            "key": "key",
+        }
+        return  [column_names[field] for field in self._tentative_fields]
+
+    def columnCount(self, parent=None, *args, **kwargs):
+        # Hide the key column, but keep the data to be able to open activities
+        return 0 if self._dataframe is None else max(0, self._dataframe.shape[1] - 1)
 
     def get_key(self, proxy: QModelIndex) -> tuple:
         """Get the key from the model using the given proxy index"""
@@ -75,6 +157,19 @@ class ActivitiesBiosphereModel(DragPandasModel):
     def clear(self) -> None:
         self._dataframe = pd.DataFrame([])
         self.updated.emit()
+
+    @staticmethod
+    def _remove_empty_columns(df: pd.DataFrame) -> pd.DataFrame:
+        # Iterate over all the values instead of replacing empty strings
+        # with np.nan and then dropping all empty columns. That solution has a
+        # side effect, that in columns with some empty values sorting will break.
+        # This solution is also slightly faster on the test databases.
+        remove_cols = []
+        for col in df.columns:
+            if all((x == "" or x == np.nan for x in df[col])):
+                remove_cols.append(col)
+        df.drop(remove_cols, axis=1, inplace=True)
+        return df.reset_index(drop=True)
 
     def df_from_metadata(self, db_name: str) -> pd.DataFrame:
         """Take the given database name and return the complete subset
@@ -86,8 +181,8 @@ class ActivitiesBiosphereModel(DragPandasModel):
         # New / empty database? Shortcut the sorting / structuring process
         if df.empty:
             return df
-        df = df.loc[:, self.fields + ["key"]]
-        df.columns = [bc.bw_keys_to_AB_names.get(c, c) for c in self.fields] + ["key"]
+        df = df.loc[:, self._tentative_fields]
+        df.columns = self._tentative_columns
 
         # Sort dataframe on first column (activity name, usually)
         # while ignoring case sensitivity
@@ -97,13 +192,15 @@ class ActivitiesBiosphereModel(DragPandasModel):
         self.parent().horizontalHeader().setSortIndicator(
             sort_field_index, Qt.AscendingOrder
         )
-        return df
+        return self._remove_empty_columns(df)
 
     @Slot(str, name="syncModel")
-    def sync(self, db_name: str, df: pd.DataFrame = None) -> None:
+    def sync(self, db_name: str, df: Optional[pd.DataFrame] = None) -> None:
         if df is not None:
             # skip the rest of the sync here if a dataframe is directly supplied
             log.debug("Pandas Dataframe passed to sync.", df.shape)
+            # Remove the empty columns in a separate step, so that in case of empty
+            # cells the search does not operate on str(nan) values, but empty strings
             self._dataframe = df
             self.updated.emit()
             return
@@ -111,17 +208,17 @@ class ActivitiesBiosphereModel(DragPandasModel):
         if db_name not in databases:
             return
         self.database_name = db_name
-        self.technosphere = bc.is_technosphere_db(db_name)
 
         # Get dataframe from metadata and update column-names
         QApplication.setOverrideCursor(Qt.WaitCursor)
-        df = self.df_from_metadata(db_name)
-        # remove empty columns
-        df.replace("", np.nan, inplace=True)
-        df.dropna(how="all", axis=1, inplace=True)
-        self._dataframe = df.reset_index(drop=True)
+        self._dataframe = self.df_from_metadata(db_name)
+        # Calculate visible columns after empty columns have been removed
+        self._visible_columns = list(self._dataframe.columns)
+        if "key" in self._visible_columns:
+            # Empty databases have no columns
+            self._visible_columns.remove("key")
         self.filterable_columns = {
-            col: i for i, col in enumerate(self._dataframe.columns.to_list())
+            col: i for i, col in enumerate(self._visible_columns)
         }
         QApplication.restoreOverrideCursor()
         self.updated.emit()
@@ -162,12 +259,11 @@ class ActivitiesBiosphereModel(DragPandasModel):
         An alternative solution would be to use .str.contains, but this does
         not work for columns containing tuples (https://stackoverflow.com/a/29463757)
         """
-        search_columns = (bc.bw_keys_to_AB_names.get(c, c) for c in self.fields)
         mask = functools.reduce(
             np.logical_or,
             [
                 df[col].apply(lambda x: pattern.lower() in str(x).lower())
-                for col in search_columns
+                for col in self._visible_columns
             ],
         )
         return mask

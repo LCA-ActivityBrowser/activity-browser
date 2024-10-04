@@ -4,6 +4,7 @@ from PySide2 import QtCore, QtWidgets
 from PySide2.QtCore import Slot
 
 from activity_browser import actions
+from activity_browser.mod.bw2data import databases
 
 from ...settings import project_settings
 from ...signals import signals
@@ -28,6 +29,11 @@ class DatabasesTable(ABDataFrameView):
         self.setSelectionMode(QtWidgets.QTableView.SingleSelection)
         self.setItemDelegateForColumn(2, CheckboxDelegate(self))
 
+        self.setEditTriggers(
+            QtWidgets.QAbstractItemView.EditTrigger.DoubleClicked |
+            QtWidgets.QAbstractItemView.EditTrigger.SelectedClicked
+        )
+
         self.relink_action = actions.DatabaseRelink.get_QAction(self.current_database)
         self.new_activity_action = actions.ActivityNew.get_QAction(
             self.current_database
@@ -38,15 +44,22 @@ class DatabasesTable(ABDataFrameView):
         self.duplicate_db_action = actions.DatabaseDuplicate.get_QAction(
             self.current_database
         )
+        self.re_allocate_action = actions.DatabaseRedoAllocation.get_QAction(
+            self.current_database
+        )
 
         self.model = DatabasesModel(parent=self)
+        self.update_proxy_model()
+        # Set up an initial sort on the table
+        # This is kept and applied even after the model is reset.
+        # Without this the list of databases does not match the sorting
+        # of the table and the first click on the header does nothing
+        self.sortByColumn(0, QtCore.Qt.SortOrder.AscendingOrder)
         self._connect_signals()
 
     def _connect_signals(self):
-        self.doubleClicked.connect(
-            lambda p: signals.database_selected.emit(self.model.get_db_name(p))
-        )
-        self.model.updated.connect(self.update_proxy_model)
+        self.doubleClicked.connect(self._handle_double_click)
+        self.clicked.connect(self._handle_click)
 
     def contextMenuEvent(self, event) -> None:
         if self.indexAt(event.pos()).row() == -1:
@@ -57,13 +70,15 @@ class DatabasesTable(ABDataFrameView):
         menu.addAction(self.relink_action)
         menu.addAction(self.duplicate_db_action)
         menu.addAction(self.new_activity_action)
+        if databases[self.current_database()].get("backend") == "multifunctional":
+            menu.addAction(self.re_allocate_action)
         proxy = self.indexAt(event.pos())
         if proxy.isValid():
             db_name = self.model.get_db_name(proxy)
-            self.relink_action.setEnabled(not project_settings.db_is_readonly(db_name))
-            self.new_activity_action.setEnabled(
-                not project_settings.db_is_readonly(db_name)
-            )
+            db_read_only = project_settings.db_is_readonly(db_name)
+            self.relink_action.setEnabled(not db_read_only)
+            self.re_allocate_action.setEnabled(not db_read_only)
+            self.new_activity_action.setEnabled(not db_read_only)
         menu.exec_(event.globalPos())
 
     def mousePressEvent(self, e):
@@ -83,8 +98,31 @@ class DatabasesTable(ABDataFrameView):
                 db_name = self.model.get_db_name(proxy)
                 project_settings.modify_db(db_name, new_value)
                 signals.database_read_only_changed.emit(db_name, new_value)
-                self.model.sync()
+                self.proxy_model.setData(proxy, new_value)
+
         super().mousePressEvent(e)
+
+    def _handle_double_click(self, index: QtCore.QModelIndex):
+        # No double click on the checkboxes
+        if index.isValid() and index.column() != 2:
+            # No double click on editable default allocation column,
+            # because this should open the item editor
+            read_only_idx = self.proxy_model.index(index.row(), 2)
+            rd_only = self.proxy_model.data(read_only_idx)
+
+            def_alloc_idx = self.proxy_model.index(index.row(), 4)
+            def_alloc_editable = bool(
+                self.proxy_model.flags(def_alloc_idx) & QtCore.Qt.ItemIsEditable
+            )
+
+            if index.column() != 4 or not def_alloc_editable:
+                signals.database_selected.emit(self.model.get_db_name(index))
+
+    def _handle_click(self, index: QtCore.QModelIndex):
+        if (index.isValid()
+                and index.column() == 4
+                and index.data() != DatabasesModel.NOT_APPLICABLE):
+            self.model.show_custom_allocation_editor(index)
 
     def current_database(self) -> str:
         """Return the database name of the user-selected index."""
@@ -241,7 +279,8 @@ class ActivitiesBiosphereTable(ABFilterableDataFrameView):
 
     @Slot(name="resetSearch")
     def reset_search(self) -> None:
-        self.model.sync(self.model.current_database)
+        self.model.sync(self.current_database())
+        self.apply_filters()
 
     @Slot(str, bool, name="updateReadOnly")
     def update_activity_table_read_only(self, db_name: str, db_read_only: bool) -> None:

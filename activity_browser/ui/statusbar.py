@@ -27,7 +27,8 @@ class Statusbar(QStatusBar):
     def left(self, message: str) -> None:
         log.info(message)  # for console output
         if isinstance(message, str):
-            self.status_message_left.setText(message)
+            # Only show the message for 20 seconds
+            self.showMessage(message, 20 * 1000)
 
     @Slot(str, name="statusCenter")
     def center(self, message):

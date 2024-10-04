@@ -45,8 +45,8 @@ class PropertyTable(QtWidgets.QTableView):
             self.horizontalHeader().resizeSection(2, 40)
 
     def _show_delete_button_for_row(self, row: int):
-        key_index = self._model.createIndex(row, 0)
-        index = self._model.createIndex(row, 2)
+        key_index = self._model.index(row, 0)
+        index = self._model.index(row, 2)
         # No delete button for the last empty row
         if self.model().data(key_index) != "":
             self.openPersistentEditor(index)

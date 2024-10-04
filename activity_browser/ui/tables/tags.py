@@ -48,6 +48,7 @@ class TagTable(ABDataFrameView):
                 ),
             )
         self.model = TagsModel(TagsModel.dataframe_from_tags(tags), parent=self)
+        self.model.set_read_only(read_only)
         self.add_tag_button = QAction(qicons.add, "Add Tag", self)
         self.add_tag_button.setStatusTip("Add new tag to the table")
         self.remove_tag_button = QAction(qicons.delete, "Remove Tag", self)
