@@ -2,7 +2,7 @@
 # https://anaconda.org/bsteubing/activity-browser-dev
 package:
   name: "activity-browser-dev25"
-  version: "3.0.dev8"
+  version: "3.0.dev10"
 
 source:
   path: ..
@@ -26,6 +26,7 @@ requirements:
     - bw2data >=4.0.dev57
     - bw2io >=0.9.dev37
     - bw_graph_tools >=0.5
+    - bw2parameters >=1.1
     - bw_processing >=1.0
     - bw_simapro_csv >=0.2.6
     - ecoinvent_interface

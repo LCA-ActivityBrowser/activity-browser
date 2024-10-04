@@ -36,6 +36,7 @@ dependencies = [
     "bw2analyzer>=0.11.5",
     "bw2calc>=2.0.dev23",
     "bw2data>=4.0.dev57",
+    "bw2parameters>=1.1",
     "bw2io>=0.9.dev37",
     "bw_graph_tools>=0.5",
     "bw_processing>=1.0",
