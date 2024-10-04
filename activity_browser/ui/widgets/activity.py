@@ -213,7 +213,7 @@ class ActivityDataGrid(QtWidgets.QWidget):
 
     def _refresh_def_alloc_combo_values(self):
         if self.def_alloc_combo:
-            allocation_options = list(allocation_strategies.keys())
+            allocation_options = sorted(list(allocation_strategies.keys()))
             # Make the unspecified value the first in the list of options
             allocation_options.insert(0, self.DATABASE_DEFINED_ALLOCATION)
             index = 0
