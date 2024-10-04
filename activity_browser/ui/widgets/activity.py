@@ -236,7 +236,9 @@ class ActivityDataGrid(QtWidgets.QWidget):
                 # Color the combo entries according to their status
                 for i in range(len(allocation_options)):
                     brush = None
-                    if allocation_options[i] in properties_dict:
+                    if allocation_options[i] == "equal":
+                        brush = style_item.brushes["good"]
+                    elif allocation_options[i] in properties_dict:
                         brush = CustomAllocationEditor.brush_for_message_type(
                             properties_dict[allocation_options[i]]
                         )
