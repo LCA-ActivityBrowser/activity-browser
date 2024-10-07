@@ -17,7 +17,7 @@ class ActivityNew(ABAction):
     """
 
     icon = qicons.add
-    text = "New activity"
+    text = "New process"
 
     @staticmethod
     @exception_dialogs

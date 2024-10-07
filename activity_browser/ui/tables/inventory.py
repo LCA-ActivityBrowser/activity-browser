@@ -181,15 +181,15 @@ class ActivitiesBiosphereTable(ABFilterableDataFrameView):
 
         if len(self.selected_keys()) > 1:
             # more than 1 activity is selected
-            act = "activities"
+            act = "nodes"
             self.dup_activity_new_loc_action.setEnabled(False)
             self.relink_activity_exch_action.setEnabled(False)
         elif len(self.selected_keys()) == 1 and self.db_read_only:
-            act = "activity"
+            act = "node"
             self.dup_activity_new_loc_action.setEnabled(False)
             self.relink_activity_exch_action.setEnabled(False)
         else:
-            act = "activity"
+            act = "node"
             self.dup_activity_new_loc_action.setEnabled(True)
             self.relink_activity_exch_action.setEnabled(True)
 
