@@ -62,6 +62,7 @@ class BaseExchangeTable(ABDataFrameView):
             QtWidgets.QAbstractItemView.NoEditTriggers
             | QtWidgets.QAbstractItemView.DoubleClicked
         )
+        self._new_exchange_type = ""
         self._connect_signals()
 
     def _connect_signals(self):
@@ -94,7 +95,7 @@ class BaseExchangeTable(ABDataFrameView):
         source_table = event.source()
         keys = source_table.selected_keys()
         event.accept()
-        actions.ExchangeNew.run(keys, self.key)
+        actions.ExchangeNew.run(keys, self.key, self._new_exchange_type)
 
     def get_usable_parameters(self):
         return self.model.get_usable_parameters()
@@ -109,7 +110,7 @@ class BaseExchangeTable(ABDataFrameView):
             return [self.model.get_exchange(index) for index in self.selectedIndexes()]
         else:
             return [self.model.get_exchange(self.currentIndex())]
-    
+
     def set_read_only_flag(self, read_only: bool):
         self._read_only = read_only
 
@@ -141,6 +142,7 @@ class ProductExchangeTable(BaseExchangeTable):
 
         self.setDragDropMode(QtWidgets.QTableView.DragDrop)
         self.table_name = "product"
+        self._new_exchange_type = "production"
 
     def contextMenuEvent(self, event) -> None:
         if self.indexAt(event.pos()).row() == -1:
@@ -180,6 +182,7 @@ class TechnosphereExchangeTable(BaseExchangeTable):
         self.setItemDelegateForColumn(14, StringDelegate(self))
         self.setDragDropMode(QtWidgets.QTableView.DragDrop)
         self.table_name = "technosphere"
+        self._new_exchange_type = "technosphere"
 
     def show_uncertainty(self, show: bool = False) -> None:
         """Show or hide the uncertainty columns, 'Uncertainty Type' is always shown."""
@@ -235,6 +238,7 @@ class BiosphereExchangeTable(BaseExchangeTable):
         self.setItemDelegateForColumn(13, StringDelegate(self))
         self.setDragDropMode(QtWidgets.QTableView.DropOnly)
         self.table_name = "biosphere"
+        self._new_exchange_type = "biosphere"
 
     def show_uncertainty(self, show: bool = False) -> None:
         """Show or hide the uncertainty columns, 'Uncertainty Type' is always shown."""
