@@ -4,7 +4,8 @@ from .activity.activity_duplicate_to_db import ActivityDuplicateToDB
 from .activity.activity_duplicate_to_loc import ActivityDuplicateToLoc
 from .activity.activity_graph import ActivityGraph
 from .activity.activity_modify import ActivityModify
-from .activity.activity_new import ActivityNew
+from .activity.activity_new_process import ActivityNewProcess
+from .activity.activity_new_product import ActivityNewProduct
 from .activity.activity_open import ActivityOpen
 from .activity.activity_relink import ActivityRelink
 from .activity.node_properties import NodeProperties

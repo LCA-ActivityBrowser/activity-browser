@@ -6,12 +6,12 @@ from activity_browser import application
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.mod.bw2data import Database, labels
 from activity_browser.ui.icons import qicons
-from activity_browser.ui.widgets.new_process_dialog import NewProcessDialog
+from activity_browser.ui.widgets.new_node_dialog import NewNodeDialog
 
 from .activity_open import ActivityOpen
 
 
-class ActivityNew(ABAction):
+class ActivityNewProcess(ABAction):
     """
     ABAction to create a new activity. Prompts the user to supply a name. Returns if no name is supplied or if the user
     cancels. Otherwise, instructs the ActivityController to create a new activity.
@@ -24,7 +24,7 @@ class ActivityNew(ABAction):
     @exception_dialogs
     def run(database_name: str):
         # ask the user to provide a name for the new activity
-        dialog = NewProcessDialog(application.main_window)
+        dialog = NewNodeDialog(application.main_window)
         # if the user cancels, return
         if dialog.exec_() != QDialog.Accepted:
             return

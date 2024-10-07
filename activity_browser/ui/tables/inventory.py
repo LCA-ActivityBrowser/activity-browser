@@ -35,7 +35,10 @@ class DatabasesTable(ABDataFrameView):
         )
 
         self.relink_action = actions.DatabaseRelink.get_QAction(self.current_database)
-        self.new_activity_action = actions.ActivityNew.get_QAction(
+        self.new_process_action = actions.ActivityNewProcess.get_QAction(
+            self.current_database
+        )
+        self.new_product_action = actions.ActivityNewProduct.get_QAction(
             self.current_database
         )
         self.delete_db_action = actions.DatabaseDelete.get_QAction(
@@ -69,7 +72,8 @@ class DatabasesTable(ABDataFrameView):
         menu.addAction(self.delete_db_action)
         menu.addAction(self.relink_action)
         menu.addAction(self.duplicate_db_action)
-        menu.addAction(self.new_activity_action)
+        menu.addAction(self.new_process_action)
+        menu.addAction(self.new_product_action)
         if databases[self.current_database()].get("backend") == "multifunctional":
             menu.addAction(self.re_allocate_action)
         proxy = self.indexAt(event.pos())
@@ -78,7 +82,8 @@ class DatabasesTable(ABDataFrameView):
             db_read_only = project_settings.db_is_readonly(db_name)
             self.relink_action.setEnabled(not db_read_only)
             self.re_allocate_action.setEnabled(not db_read_only)
-            self.new_activity_action.setEnabled(not db_read_only)
+            self.new_process_action.setEnabled(not db_read_only)
+            self.new_product_action.setEnabled(not db_read_only)
         menu.exec_(event.globalPos())
 
     def mousePressEvent(self, e):
@@ -144,7 +149,10 @@ class ActivitiesBiosphereTable(ABFilterableDataFrameView):
         self.open_activity_graph_action = actions.ActivityGraph.get_QAction(
             self.selected_keys
         )
-        self.new_activity_action = actions.ActivityNew.get_QAction(
+        self.new_process_action = actions.ActivityNewProcess.get_QAction(
+            self.current_database
+        )
+        self.new_product_action = actions.ActivityNewProduct.get_QAction(
             self.current_database
         )
         self.dup_activity_action = actions.ActivityDuplicate.get_QAction(
@@ -202,7 +210,8 @@ class ActivitiesBiosphereTable(ABFilterableDataFrameView):
 
         if len(self.model._dataframe) == 0:
             # if the database is empty, only add the 'new' activity option and return
-            menu.addAction(self.new_activity_action)
+            menu.addAction(self.new_process_action)
+            menu.addAction(self.new_product_action)
             menu.exec_(event.globalPos())
             return
 
@@ -221,7 +230,8 @@ class ActivitiesBiosphereTable(ABFilterableDataFrameView):
 
         menu.addAction(self.open_activity_action)
         menu.addAction(self.open_activity_graph_action)
-        menu.addAction(self.new_activity_action)
+        menu.addAction(self.new_process_action)
+        menu.addAction(self.new_product_action)
         menu.addMenu(submenu_dupl)
         menu.addAction(self.delete_activity_action)
         menu.addAction(self.relink_activity_exch_action)
@@ -292,7 +302,8 @@ class ActivitiesBiosphereTable(ABFilterableDataFrameView):
         """
         if self.current_database() == db_name:
             self.db_read_only = db_read_only
-            self.new_activity_action.setEnabled(not self.db_read_only)
+            self.new_process_action.setEnabled(not self.db_read_only)
+            self.new_product_action.setEnabled(not self.db_read_only)
             self.dup_activity_action.setEnabled(not self.db_read_only)
             self.delete_activity_action.setEnabled(not self.db_read_only)
             self.dup_activity_new_loc_action.setEnabled(not self.db_read_only)
