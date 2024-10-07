@@ -177,6 +177,7 @@ class TechnosphereExchangeTable(BaseExchangeTable):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setItemDelegateForColumn(0, FloatDelegate(self))
+        # builtin checkbox delegate for column 3
         self.setItemDelegateForColumn(6, ViewOnlyUncertaintyDelegate(self))
         self.setItemDelegateForColumn(13, FormulaDelegate(self))
         self.setItemDelegateForColumn(14, StringDelegate(self))

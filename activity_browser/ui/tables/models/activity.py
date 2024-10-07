@@ -277,6 +277,7 @@ class TechnosphereExchangeModel(BaseExchangeModel):
         "Amount",
         "Unit",
         "Product",
+        "Functional",
         "Activity",
         "Location",
         "Database",
@@ -300,6 +301,7 @@ class TechnosphereExchangeModel(BaseExchangeModel):
             row.update(
                 {
                     "Product": act.get("reference product", act.get("name")),
+                    "Functional": str(exchange.get("functional", "False")),
                     "Activity": act.get("name"),
                     "Location": act.get("location", "Unknown"),
                     "Database": act.get("database"),
@@ -320,6 +322,49 @@ class TechnosphereExchangeModel(BaseExchangeModel):
         except DoesNotExist as e:
             log.info("Exchange was deleted, continue.")
             return {}
+
+    def flags(self, index: QModelIndex):
+        result = super().flags(index)
+        if not self.is_read_only():
+            if index.column() in [3, 4]:
+                # Remove the editable flag, so that the user can not change the
+                # "True" and "False" values for functional or the value of
+                # the allocation factor
+                result &= ~Qt.ItemFlag.ItemIsEditable
+            if index.column() == 3:
+                # Make functional column checkable
+                result |= Qt.ItemIsUserCheckable
+        return result
+
+    def data(self, index: QModelIndex,
+             role: int = Qt.ItemDataRole.DisplayRole) -> Any:
+        check_state_role = False
+        if index.isValid() and index.column() == 3 and role == Qt.ItemDataRole.CheckStateRole:
+            # Checkboxes produce queries with CheckStateRole, but the base model
+            # only suports DisplayRole queries
+            role = Qt.ItemDataRole.DisplayRole
+            check_state_role = True
+        result = super().data(index, role)
+        if check_state_role:
+            # Convert the data to an appropriate value for the checkbox
+            return Qt.CheckState.Checked if result == "True" else Qt.CheckState.Unchecked
+        return result
+
+    def setData(self, index: QModelIndex, value: Any,
+             role: int = Qt.ItemDataRole.DisplayRole) -> bool:
+        check_state_role = False
+        if index.isValid() and index.column() == 3 and role == Qt.ItemDataRole.CheckStateRole:
+            # Checkbox values will be Checked or Unchecked, convert these to the
+            # value expected by the database
+            value = "True" if value == Qt.CheckState.Checked else "False"
+            # The base model handles only the EditRole
+            role = Qt.ItemDataRole.EditRole
+            check_state_role = True
+        result = super().setData(index, value, role)
+        if result and check_state_role:
+            # Notify the view that the checkbox roles has also changed
+            self.dataChanged.emit(index, index, [Qt.ItemDataRole.CheckStateRole])
+        return result
 
 
 class BiosphereExchangeModel(BaseExchangeModel):
