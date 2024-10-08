@@ -28,6 +28,7 @@ class DatabasesModel(EditablePandasModel):
 
     def __init__(self, parent=None):
         super().__init__(parent=parent)
+        self.set_read_only(False)
         projects.current_changed.connect(self.sync)
         databases.metadata_changed.connect(self.sync)
 

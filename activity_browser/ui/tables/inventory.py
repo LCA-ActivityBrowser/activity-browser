@@ -2,6 +2,7 @@ from typing import List
 
 from PySide2 import QtCore, QtWidgets
 from PySide2.QtCore import Slot
+from PySide2.QtGui import Qt
 
 from activity_browser import actions
 from activity_browser.mod.bw2data import databases
@@ -9,7 +10,6 @@ from activity_browser.mod.bw2data import databases
 from ...settings import project_settings
 from ...signals import signals
 from ..icons import qicons
-from .delegates import CheckboxDelegate
 from .models import ActivitiesBiosphereModel, DatabasesModel
 from .views import ABDataFrameView, ABFilterableDataFrameView
 
@@ -27,7 +27,6 @@ class DatabasesTable(ABDataFrameView):
         super().__init__(parent)
         self.verticalHeader().setVisible(False)
         self.setSelectionMode(QtWidgets.QTableView.SingleSelection)
-        self.setItemDelegateForColumn(2, CheckboxDelegate(self))
 
         self.setEditTriggers(
             QtWidgets.QAbstractItemView.EditTrigger.DoubleClicked |
@@ -52,6 +51,7 @@ class DatabasesTable(ABDataFrameView):
         )
 
         self.model = DatabasesModel(parent=self)
+        self.model.set_builtin_checkbox_delegate(2, False, True, False)
         self.update_proxy_model()
         # Set up an initial sort on the table
         # This is kept and applied even after the model is reset.
@@ -63,6 +63,7 @@ class DatabasesTable(ABDataFrameView):
     def _connect_signals(self):
         self.doubleClicked.connect(self._handle_double_click)
         self.clicked.connect(self._handle_click)
+        self.model.dataChanged.connect(self._handle_data_changed)
 
     def contextMenuEvent(self, event) -> None:
         if self.indexAt(event.pos()).row() == -1:
@@ -86,35 +87,11 @@ class DatabasesTable(ABDataFrameView):
             self.new_product_action.setEnabled(not db_read_only)
         menu.exec_(event.globalPos())
 
-    def mousePressEvent(self, e):
-        """A single mouseclick should trigger the 'read-only' column to alter
-        its value.
-
-        NOTE: This is kind of hacky as we are deliberately sidestepping
-        the 'delegate' system that should handle this.
-        If this is important in the future: call self.edit(index)
-        (inspired by: https://stackoverflow.com/a/11778012)
-        """
-        if e.button() == QtCore.Qt.LeftButton:
-            proxy = self.indexAt(e.pos())
-            if proxy.column() == 2:
-                # Flip the read-only value for the database
-                new_value = not bool(proxy.data())
-                db_name = self.model.get_db_name(proxy)
-                project_settings.modify_db(db_name, new_value)
-                signals.database_read_only_changed.emit(db_name, new_value)
-                self.proxy_model.setData(proxy, new_value)
-
-        super().mousePressEvent(e)
-
     def _handle_double_click(self, index: QtCore.QModelIndex):
         # No double click on the checkboxes
         if index.isValid() and index.column() != 2:
             # No double click on editable default allocation column,
             # because this should open the item editor
-            read_only_idx = self.proxy_model.index(index.row(), 2)
-            rd_only = self.proxy_model.data(read_only_idx)
-
             def_alloc_idx = self.proxy_model.index(index.row(), 4)
             def_alloc_editable = bool(
                 self.proxy_model.flags(def_alloc_idx) & QtCore.Qt.ItemIsEditable
@@ -127,11 +104,27 @@ class DatabasesTable(ABDataFrameView):
         if (index.isValid()
                 and index.column() == 4
                 and index.data() != DatabasesModel.NOT_APPLICABLE):
-            self.model.show_custom_allocation_editor(index)
+            read_only_idx = self.proxy_model.index(index.row(), 2)
+            rd_only = self.proxy_model.data(read_only_idx)
+            if not rd_only:
+                self.model.show_custom_allocation_editor(index)
 
     def current_database(self) -> str:
         """Return the database name of the user-selected index."""
         return self.model.get_db_name(self.currentIndex())
+
+    def _handle_data_changed(self, top_left: QtCore.QModelIndex,
+            bottom_right: QtCore.QModelIndex):
+        """Handle the change of the read-only state"""
+        if (top_left.isValid() and bottom_right.isValid() and
+                top_left.column() <= 2 <= bottom_right.column()):
+            for i in range(top_left.row(), bottom_right.row() + 1):
+                index = self.model.index(i, 2)
+                # Flip the read-only value for the database
+                read_only = index.data(Qt.ItemDataRole.CheckStateRole) == Qt.CheckState.Checked
+                db_name = self.model.get_db_name(index)
+                project_settings.modify_db(db_name, read_only)
+                signals.database_read_only_changed.emit(db_name, read_only)
 
 
 class ActivitiesBiosphereTable(ABFilterableDataFrameView):
