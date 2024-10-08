@@ -111,7 +111,7 @@ class ActivityTab(QtWidgets.QWidget):
         # Edit Activity checkbox
         self.checkbox_edit_act = QtWidgets.QCheckBox("Edit Activity")
         self.checkbox_edit_act.setChecked(not self.read_only)
-        self.checkbox_edit_act.toggled.connect(self.act_read_only_changed)
+        self.checkbox_edit_act.toggled.connect(lambda checked: self.act_read_only_changed(not checked))
 
         # Activity Description
         self.activity_description = SignalledPlainTextEdit(
@@ -214,7 +214,7 @@ class ActivityTab(QtWidgets.QWidget):
 
         # Make the activity tab editable in case it's new
         if not self.read_only:
-            self.act_read_only_changed(True)
+            self.act_read_only_changed(False)
 
     def connect_signals(self):
         signals.database_read_only_changed.connect(self.db_read_only_changed)
@@ -279,7 +279,7 @@ class ActivityTab(QtWidgets.QWidget):
     def act_read_only_changed(self, read_only: bool) -> None:
         """When read_only=False specific data fields in the tables below become user-editable
         When read_only=True these same fields become read-only"""
-        self.read_only = not read_only
+        self.read_only = read_only
         self.activity_description.setReadOnly(self.read_only)
 
         if (
