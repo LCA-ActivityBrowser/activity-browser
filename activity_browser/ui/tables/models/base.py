@@ -56,7 +56,7 @@ class PandasModel(QAbstractTableModel):
             if isinstance(value, np.float64):
                 value = float(value)
             elif isinstance(value, bool):
-                value = value.item()
+                value = str(value)
             elif isinstance(value, np.int64):
                 value = value.item()
             elif isinstance(value, tuple):
