@@ -136,8 +136,7 @@ class ProductExchangeTable(BaseExchangeTable):
         self.setItemDelegateForColumn(0, FloatDelegate(self))
         self.setItemDelegateForColumn(1, StringDelegate(self))
         self.setItemDelegateForColumn(2, StringDelegate(self))
-        # builtin checkbox delegate for column 3
-        self.setItemDelegateForColumn(4, StringDelegate(self))
+        # columns 3 and 4 are set up in the model
         self.setItemDelegateForColumn(5, FormulaDelegate(self))
 
         self.setDragDropMode(QtWidgets.QTableView.DragDrop)
@@ -177,7 +176,7 @@ class TechnosphereExchangeTable(BaseExchangeTable):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setItemDelegateForColumn(0, FloatDelegate(self))
-        # builtin checkbox delegate for column 3
+        # builtin checkbox delegate for column 3 set up in the model
         self.setItemDelegateForColumn(6, ViewOnlyUncertaintyDelegate(self))
         self.setItemDelegateForColumn(13, FormulaDelegate(self))
         self.setItemDelegateForColumn(14, StringDelegate(self))
