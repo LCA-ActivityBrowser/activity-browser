@@ -124,7 +124,7 @@ class BaseExchangeModel(EditablePandasModel):
                 if field in self.VALID_FIELDS:
                     actions.ExchangeModify.run(exchange, {field: value})
                 else:
-                    act_key = exchange.output.key
+                    act_key = exchange.input.key
                     actions.ActivityModify.run(act_key, field, value)
 
         return False

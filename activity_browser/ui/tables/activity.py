@@ -135,8 +135,8 @@ class ProductExchangeTable(BaseExchangeTable):
         super().__init__(parent)
         self.setItemDelegateForColumn(0, FloatDelegate(self))
         # Removed temporarily, because the editing is buggy
-        # self.setItemDelegateForColumn(1, StringDelegate(self))
-        # self.setItemDelegateForColumn(2, StringDelegate(self))
+        self.setItemDelegateForColumn(1, StringDelegate(self))
+        self.setItemDelegateForColumn(2, StringDelegate(self))
         # columns 3 and 4 are set up in the model
         self.setItemDelegateForColumn(5, FormulaDelegate(self))
 
@@ -177,6 +177,8 @@ class TechnosphereExchangeTable(BaseExchangeTable):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setItemDelegateForColumn(0, FloatDelegate(self))
+        self.setItemDelegateForColumn(1, StringDelegate(self))
+        self.setItemDelegateForColumn(2, StringDelegate(self))
         # builtin checkbox delegate for column 3 set up in the model
         self.setItemDelegateForColumn(6, ViewOnlyUncertaintyDelegate(self))
         self.setItemDelegateForColumn(13, FormulaDelegate(self))
