@@ -134,8 +134,9 @@ class ProductExchangeTable(BaseExchangeTable):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setItemDelegateForColumn(0, FloatDelegate(self))
-        self.setItemDelegateForColumn(1, StringDelegate(self))
-        self.setItemDelegateForColumn(2, StringDelegate(self))
+        # Removed temporarily, because the editing is buggy
+        # self.setItemDelegateForColumn(1, StringDelegate(self))
+        # self.setItemDelegateForColumn(2, StringDelegate(self))
         # columns 3 and 4 are set up in the model
         self.setItemDelegateForColumn(5, FormulaDelegate(self))
 
