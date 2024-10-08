@@ -66,18 +66,6 @@ class DatabasesModel(EditablePandasModel):
         return databases[db_name].get("default_allocation",
                                       DatabasesModel.UNSPECIFIED_ALLOCATION)
 
-    def flags(self, index: QModelIndex) -> Qt.ItemFlags:
-        """Only allow editing of rows where the read-only flag is not set."""
-        if not index.isValid():
-            return Qt.ItemFlag.NoItemFlags
-        read_only = self._dataframe.iat[index.row(), 2]
-        # Skip the EditablePandasModel.flags() because it always returns the editable
-        # flag
-        result = PandasModel.flags(self, index)
-        if not read_only:
-            result |= Qt.ItemIsEditable
-        return result
-
     def data(self, index: QModelIndex,
              role: int = Qt.ItemDataRole.DisplayRole) -> Any:
         result = super().data(index, role)
@@ -93,7 +81,6 @@ class DatabasesModel(EditablePandasModel):
                 if index.data() != self.NOT_APPLICABLE:
                     return style_item.brushes["hyperlink"]
         return result
-
 
     def show_custom_allocation_editor(self, proxy: QModelIndex):
         if proxy.isValid() and proxy.column() == 4:
