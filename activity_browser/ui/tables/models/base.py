@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import datetime
-from typing import Optional
+from typing import Any, Optional
 
 import arrow
 import numpy as np
@@ -33,6 +33,9 @@ class PandasModel(QAbstractTableModel):
         self._dataframe: Optional[pd.DataFrame] = df
         self.filterable_columns = None
         self.different_column_types = {}
+        # The list of columns which should be editable by the builtin checkbox editor
+        # The value of the dict holds whether the value should also be displayed as text
+        self._checkbox_editors: dict[int, tuple[bool, Any, Any]] = {}
 
     def rowCount(self, parent=None, *args, **kwargs):
         return 0 if self._dataframe is None else self._dataframe.shape[0]
@@ -75,6 +78,20 @@ class PandasModel(QAbstractTableModel):
                     tt_date_flag = True
                 elif role == Qt.DisplayRole:
                     value = arrow.get(value).shift(seconds=time_shift).humanize()
+
+        # Handle checkbox editors
+        # Checkbox editors can return two values for one cell: the usual display value
+        # and a checked / not checked enum. It is useful to return both, when the
+        # underlying data is not bool, but text to visualize eventual errors.
+        if index.column() in self._checkbox_editors:
+            if role == Qt.ItemDataRole.CheckStateRole:
+                value = self._dataframe.iat[index.row(), index.column()]
+                true_value = self._checkbox_editors[index.column()][1]
+                # Convert the data to an appropriate value for the checkbox
+                return Qt.CheckState.Checked if value == true_value else Qt.CheckState.Unchecked
+            display_value = self._checkbox_editors[index.column()][0]
+            if role == Qt.ItemDataRole.DisplayRole and not display_value:
+                return None
 
         # immediately return value in case of DisplayRole or sorting
         if role == Qt.DisplayRole or role == "sorting":
@@ -252,28 +269,59 @@ class PandasModel(QAbstractTableModel):
         """Interface function, to support editable models"""
         return True
 
+    def set_builtin_checkbox_delegate(self, column: int, show_text_value: bool,
+                                      true_value: Any = True, false_value: Any = False):
+        """
+        Enables the builtin checkbox delegate for columns.
+        Can be used on bool values only.
+        As the underlying data can be bool or string, we provide the values to be
+        stored as parameters.
+        """
+        self._checkbox_editors[column] = (show_text_value, true_value, false_value)
+
 class EditablePandasModel(PandasModel):
     """Allows underlying dataframe to be edited through Delegate classes."""
 
     def __init__(self, df: pd.DataFrame = None, parent=None):
         super().__init__(df, parent)
         self._read_only = True
+        # The list of columns which should always be read-only
+        self._read_only_columns: list[int] = []
 
-    def flags(self, index):
+    def flags(self, index: QModelIndex) -> Qt.ItemFlags:
         """Returns ItemIsEditable flag only if the model is not read only
         This prevents editing of data on QAbstractTableModel level.
         """
-        result = super().flags(index)
-        if not self._read_only:
-            result |= Qt.ItemIsEditable
-        return result
+        if index.isValid():
+            result = super().flags(index)
+            if not self._read_only and not index.column() in self._read_only_columns:
+                result |= Qt.ItemIsEditable
+                # Qt.ItemIsUserCheckable is also editable, it allows the clicking
+                # of the checkbox
+                if index.column() in self._checkbox_editors:
+                    result |= Qt.ItemIsUserCheckable
+            return result
+        return Qt.ItemFlag.NoItemFlags
+
+    def prepare_set_value(self, index: QModelIndex, value: Any,
+                          role: int = Qt.EditRole) -> tuple[Any, bool]:
+        check_ok = False
+        if index.isValid():
+            if role == Qt.CheckStateRole and index.column() in self._checkbox_editors:
+                true_value = self._checkbox_editors[index.column()][1]
+                false_value = self._checkbox_editors[index.column()][2]
+                value = true_value if value == Qt.CheckState.Checked else false_value
+                check_ok = True
+        return (value, check_ok)
 
     def setData(self, index, value, role=Qt.EditRole):
         """Inserts the given validated data into the given index"""
-        if index.isValid() and role == Qt.EditRole:
-            self._dataframe.iat[index.row(), index.column()] = value
-            self.dataChanged.emit(index, index, [role])
-            return True
+        if index.isValid():
+            value, check_ok = self.prepare_set_value(index, value, role)
+            if role == Qt.EditRole or check_ok:
+                self._dataframe.iat[index.row(), index.column()] = value
+                self.dataChanged.emit(index, index, [role])
+                return True
         return False
 
     def set_read_only(self, read_only: bool):
@@ -304,6 +352,10 @@ class EditablePandasModel(PandasModel):
         ).reset_index(drop=True)
         self.endRemoveRows()
         return True
+
+    def set_readonly_column(self, column: int):
+        if column not in self._read_only_columns:
+            self._read_only_columns.append(column)
 
 
 # Take the classes defined above and add the ItemIsDragEnabled flag
