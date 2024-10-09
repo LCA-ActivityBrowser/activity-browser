@@ -211,7 +211,7 @@ class ProductExchangeModel(BaseExchangeModel):
         super().__init__(key, parent)
         self.dataChanged.connect(self._handle_data_changed)
         self.set_readonly_column(4)
-        self.set_builtin_checkbox_delegate(3, True, "True", "False")
+        self.set_builtin_checkbox_delegate(3, show_text_value = False)
 
     def create_row(self, exchange) -> dict:
         row = super().create_row(exchange)
@@ -219,7 +219,7 @@ class ProductExchangeModel(BaseExchangeModel):
         product = act.get("reference product", act.get("name"))
         row.update({
             "Product": product,
-            "Functional": str(exchange.get("functional", "False")),
+            "Functional": exchange.get("functional", False),
             "Allocation factor": as_number(exchange.get('mf_allocation_factor')),
             "Formula": exchange.get("formula")
         })
@@ -253,7 +253,7 @@ class TechnosphereExchangeModel(BaseExchangeModel):
     def __init__(self, key=None, parent=None):
         super().__init__(key, parent)
         # self.set_readonly_column(4)
-        self.set_builtin_checkbox_delegate(3, True, "True", "False")
+        self.set_builtin_checkbox_delegate(3, show_text_value = False)
 
     @property
     def columns(self) -> list:
@@ -269,7 +269,7 @@ class TechnosphereExchangeModel(BaseExchangeModel):
             row.update(
                 {
                     "Product": act.get("reference product", act.get("name")),
-                    "Functional": str(exchange.get("functional", "False")),
+                    "Functional": exchange.get("functional", False),
                     "Activity": act.get("name"),
                     "Location": act.get("location", "Unknown"),
                     "Database": act.get("database"),

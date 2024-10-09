@@ -24,7 +24,7 @@ class ExchangeModify(ABAction):
     @exception_dialogs
     def run(cls, exchange: ExchangeProxyBase, data: dict):
         for key, value in data.items():
-            if key == "functional" and value == "True":
+            if key == "functional" and value == True:
                 if not cls.check_can_set_functional(exchange):
                     signals.new_statusbar_message.emit(
                         "Can not set exchange to functional, "
@@ -64,11 +64,10 @@ class ExchangeModify(ABAction):
     @staticmethod
     def check_can_set_functional(target_exc: ExchangeProxyBase) -> bool:
         activity = target_exc.output
-        all_other_exchanges: list[ExchangeProxyBase] = list(activity.technosphere())
-        all_other_exchanges.extend(activity.production())
+        all_other_exchanges: list[ExchangeProxyBase] = list(activity.exchanges())
         all_other_exchanges.remove(target_exc)
         for exc in all_other_exchanges:
-            if exc["functional"] == "True" and exc.input == target_exc.input:
+            if exc.get("functional", False) and exc.input == target_exc.input:
                 return False
         return True
 
