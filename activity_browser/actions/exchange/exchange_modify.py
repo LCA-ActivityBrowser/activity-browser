@@ -62,15 +62,13 @@ class ExchangeModify(ABAction):
             ActivityParameter.recalculate_exchanges(group)
 
     @staticmethod
-    def check_can_set_functional(exchange: ExchangeProxyBase) -> bool:
-        def check_functional_edge(target: Node, exchanges: Iterable[ExchangeProxyBase]) -> bool:
-            for exc in exchanges:
-                if exc["functional"] == "True" and exc.input == target:
-                    return True
-            return False
-        activity = exchange.output
-        if exchange in activity.production():
-            return not check_functional_edge(exchange.input, activity.technosphere())
-        if exchange in activity.technosphere():
-            return not check_functional_edge(exchange.input, activity.production())
+    def check_can_set_functional(target_exc: ExchangeProxyBase) -> bool:
+        activity = target_exc.output
+        all_other_exchanges: list[ExchangeProxyBase] = list(activity.technosphere())
+        all_other_exchanges.extend(activity.production())
+        all_other_exchanges.remove(target_exc)
+        for exc in all_other_exchanges:
+            if exc["functional"] == "True" and exc.input == target_exc.input:
+                return False
         return True
+
