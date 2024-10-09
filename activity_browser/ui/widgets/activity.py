@@ -100,17 +100,13 @@ class ActivityDataGrid(QtWidgets.QWidget):
             "Use dropdown menu to duplicate activity to another database"
         )
 
-        is_multifunctional = parent.activity.get("type") == "multifunctional"
-        if is_multifunctional:
-            # Default allocation combobox
-            self.def_alloc_combo = QtWidgets.QComboBox()
-            self.def_alloc_combo.currentTextChanged.connect(self._handle_def_alloc_changed)
-            self._refresh_def_alloc_combo_values()
-            self.def_alloc_combo.setToolTip(
-                "Use dropdown menu to change the default allocation"
-            )
-        else:
-            self.def_alloc_combo = None
+        # Default allocation combobox
+        self._def_alloc_label = QtWidgets.QLabel("Default Allocation")
+        self._def_alloc_combo = QtWidgets.QComboBox()
+        self._def_alloc_combo.currentTextChanged.connect(self._handle_def_alloc_changed)
+        self._def_alloc_combo.setToolTip(
+            "Use dropdown menu to change the default allocation"
+        )
 
         # arrange widgets for display as a grid
         self.grid = QtWidgets.QGridLayout()
@@ -126,9 +122,9 @@ class ActivityDataGrid(QtWidgets.QWidget):
         self.grid.addWidget(self.location_combo, 2, 2, 1, -1)
         self.grid.addWidget(self.database_combo, 3, 2, 1, -1)
         self.grid.addWidget(self.database_label, 3, 1)
-        if self.def_alloc_combo:
-            self.grid.addWidget(QtWidgets.QLabel("Default Allocation"), 4, 1)
-            self.grid.addWidget(self.def_alloc_combo, 4, 2, 1, -1)
+
+        self.grid.addWidget(self._def_alloc_label, 4, 1)
+        self.grid.addWidget(self._def_alloc_combo, 4, 2, 1, -1)
 
         self.setLayout(self.grid)
 
@@ -148,6 +144,7 @@ class ActivityDataGrid(QtWidgets.QWidget):
 
         self.populate_location_combo()
         self.populate_database_combo()
+        self.populate_def_alloc_combo()
 
     def populate_location_combo(self):
         """acts as both of: a label to show current location of act, and
@@ -193,6 +190,14 @@ class ActivityDataGrid(QtWidgets.QWidget):
             self.database_combo.addItem(qicons.duplicate_activity, db_name)
         self.database_combo.blockSignals(False)
 
+    def is_multifunctional(self) -> bool:
+        return self.parent.activity.get("type") == "multifunctional"
+
+    def populate_def_alloc_combo(self):
+        self._def_alloc_label.setVisible(self.is_multifunctional())
+        self._def_alloc_combo.setVisible(self.is_multifunctional())
+        self._refresh_def_alloc_combo_values()
+
     def duplicate_confirm_dialog(self, target_db):
         actions.ActivityDuplicateToDB.run([self.parent.activity], target_db)
         # change selected database item back to original (index=0), to avoid confusing user
@@ -208,11 +213,10 @@ class ActivityDataGrid(QtWidgets.QWidget):
         self.read_only = read_only
         self.name_box.setReadOnly(self.read_only)
         self.location_combo.setEnabled(not self.read_only)
-        if self.def_alloc_combo:
-            self.def_alloc_combo.setEnabled(not self.read_only)
+        self._def_alloc_combo.setEnabled(not self.read_only)
 
     def _refresh_def_alloc_combo_values(self):
-        if self.def_alloc_combo:
+        if self.is_multifunctional():
             allocation_options = sorted(list(allocation_strategies.keys()))
             # Make the unspecified value the first in the list of options
             allocation_options.insert(0, self.DATABASE_DEFINED_ALLOCATION)
@@ -225,10 +229,10 @@ class ActivityDataGrid(QtWidgets.QWidget):
                               f" for process {self.parent.key}")
             # Append custom option after the index has been calculated
             allocation_options.append(self.CUSTOM_ALLOCATION)
-            self.def_alloc_combo.currentTextChanged.disconnect()
-            self.def_alloc_combo.clear()
-            self.def_alloc_combo.insertItems(0, allocation_options)
-            self.def_alloc_combo.setCurrentIndex(index)
+            self._def_alloc_combo.currentTextChanged.disconnect()
+            self._def_alloc_combo.clear()
+            self._def_alloc_combo.insertItems(0, allocation_options)
+            self._def_alloc_combo.setCurrentIndex(index)
             try:
                 current_db = self.parent.activity.get("database", "")
                 evaluated_properties = list_available_properties(current_db, self.parent.activity)
@@ -245,11 +249,11 @@ class ActivityDataGrid(QtWidgets.QWidget):
                     elif 0 < i < len(allocation_options) - 1:
                         brush = style_item.brushes["missing"]
                     if brush is not None:
-                        self.def_alloc_combo.setItemData(i, brush, QtCore.Qt.ForegroundRole)
+                        self._def_alloc_combo.setItemData(i, brush, QtCore.Qt.ForegroundRole)
             except ValueError as e:
                 log.error(f"Error calculating the colors for the combobox. exception: {e}")
 
-            self.def_alloc_combo.currentTextChanged.connect(self._handle_def_alloc_changed)
+            self._def_alloc_combo.currentTextChanged.connect(self._handle_def_alloc_changed)
 
     def _handle_def_alloc_changed(self, selection: str):
         changed = False
@@ -269,9 +273,9 @@ class ActivityDataGrid(QtWidgets.QWidget):
             # Update the selected text of the combo in both cases, so it is not
             # stuck on "Custom..."
             if custom_value:
-                self.def_alloc_combo.setCurrentText(custom_value)
+                self._def_alloc_combo.setCurrentText(custom_value)
             else:
-                self.def_alloc_combo.setCurrentIndex(0)
+                self._def_alloc_combo.setCurrentIndex(0)
         elif current_def_alloc != selection:
             self.parent.activity["default_allocation"] = selection
             changed = True

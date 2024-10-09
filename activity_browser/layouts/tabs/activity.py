@@ -252,6 +252,7 @@ class ActivityTab(QtWidgets.QWidget):
 
         self.show_exchange_uncertainty(self.checkbox_uncertainty.isChecked())
         self.show_comments(self.checkbox_comment.isChecked())
+        self.activity_data_grid.populate()
 
     def populate_description_box(self):
         """Populate the activity description."""
