@@ -1,12 +1,15 @@
 # -*- coding: utf-8 -*-
+from bw2data import databases
+from bw2data.proxies import ExchangeProxyBase
 from peewee import DoesNotExist
 from PySide2 import QtCore, QtWidgets
-from PySide2.QtCore import Slot
+from PySide2.QtCore import Qt, Slot
 
 from activity_browser import ab_settings, project_settings, signals
 from activity_browser.actions.activity.activity_redo_allocation import MultifunctionalProcessRedoAllocation
 from activity_browser.bwutils import commontasks as bc
 from activity_browser.mod import bw2data as bd
+from activity_browser.ui.widgets.custom_allocation_editor import CustomAllocationEditor
 from activity_browser.ui.widgets.property_editor import PropertyEditor
 
 from ...ui.icons import qicons
@@ -24,7 +27,7 @@ from ...ui.widgets import (
     TagEditor,
 )
 from ..panels.panel import ABTab
-
+from activity_browser.logger import log
 
 class ActivitiesTab(ABTab):
     """Tab that contains sub-tabs describing activity information."""
@@ -249,6 +252,10 @@ class ActivityTab(QtWidgets.QWidget):
         self.technosphere.model.load(self.activity.technosphere())
         self.biosphere.model.load(self.activity.biosphere())
         self.downstream.model.load(self.activity.upstream())
+        self.production.model.exchange_changed.connect(self._handle_exchange_changed,
+                                                  Qt.ConnectionType.UniqueConnection)
+        self.technosphere.model.exchange_changed.connect(self._handle_exchange_changed,
+                                                    Qt.ConnectionType.UniqueConnection)
 
         self.show_exchange_uncertainty(self.checkbox_uncertainty.isChecked())
         self.show_comments(self.checkbox_comment.isChecked())
@@ -371,3 +378,36 @@ class ActivityTab(QtWidgets.QWidget):
         # Do not save the changes if nothing changed
         if TagEditor.edit(self.activity, self.read_only, self):
             self.activity.save()
+
+    def _handle_exchange_changed(self, exc: ExchangeProxyBase):
+        # Count functional exchanges
+        functional_count = sum(
+            (1 for exc in self.activity.exchanges() if exc.get("functional", False))
+        )
+        # Change process to multifunctional, if there are more than one functional
+        # exchanges
+        if self.activity["type"] == "process" and functional_count > 1:
+            # change process and database type to `multifunctional`
+            log.info(f"{functional_count} functional exchanges detected. "
+                     f"Changing process type to multifunctional for {self.activity}")
+            self.activity["type"] = "multifunctional"
+            self.activity.save()
+            # Change database to multifunctional, if it is not already
+            if databases[self.db_name]["backend"] != "multifunctional":
+                log.info(f"Changing database type to multifunctional for {self.db_name}")
+                databases[self.db_name]["backend"] = "multifunctional"
+                # Make the user choose a default allocation, even if there are errors
+                current_allocation = databases[self.db_name].get("default_allocation", "")
+                default_allocation = CustomAllocationEditor.define_custom_allocation(
+                                    current_allocation, self.db_name, self
+                                )
+                if default_allocation:
+                    databases[self.db_name]["default_allocation"] = default_allocation
+                databases.flush()
+
+        # Change process type to `process`, if there is maximum one functional
+        # exchange. Do not change back database type.
+        if self.activity["type"] == "multifunctional" and functional_count <= 1:
+            self.activity["type"] = "process"
+            self.activity.save()
+

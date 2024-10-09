@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 import itertools
-from typing import Any, Iterable
+from typing import Iterable
 
+from PySide2 import QtCore
 import pandas as pd
 from asteval import Interpreter
 from bw2data.parameters import (
@@ -37,12 +38,14 @@ class BaseExchangeModel(EditablePandasModel):
         "comment",
         "functional",
     }
+    exchange_changed = QtCore.Signal(ExchangeProxyBase)
 
     def __init__(self, key=None, parent=None):
         super().__init__(parent=parent)
         self.key = key
         self.exchanges = []
         self.exchange_column = 0
+        self.dataChanged.connect(self._handle_data_changed)
 
     def load(self, exchanges: Iterable):
         self.exchanges = exchanges
@@ -126,6 +129,10 @@ class BaseExchangeModel(EditablePandasModel):
                 else:
                     act_key = exchange.input.key
                     actions.ActivityModify.run(act_key, field, value)
+                # This is actually, not entirely correct. The data in the table
+                # has not been changed yet, it will be when the updates from
+                # above changes trigger. But the underlying data has been changed.
+                self.dataChanged.emit(index, index, [role])
 
         return False
 
@@ -197,6 +204,13 @@ class BaseExchangeModel(EditablePandasModel):
             interpreter.symtable.update(DatabaseParameter.static(self.key[0]))
         return interpreter
 
+    def _handle_data_changed(self, top_left: QModelIndex, bottom_right: QModelIndex):
+        if top_left.isValid() and bottom_right.isValid():
+            for i in range(top_left.row(), bottom_right.row() + 1):
+                index = self.index(i, 3)
+                exc = self.get_exchange(index)
+                self.exchange_changed.emit(exc)
+
 
 def as_number(o) -> str:
     if o is None:
@@ -209,7 +223,6 @@ class ProductExchangeModel(BaseExchangeModel):
 
     def __init__(self, key=None, parent=None):
         super().__init__(key, parent)
-        self.dataChanged.connect(self._handle_data_changed)
         self.set_readonly_column(4)
         self.set_builtin_checkbox_delegate(3, show_text_value = False)
 
@@ -226,6 +239,7 @@ class ProductExchangeModel(BaseExchangeModel):
         return row
 
     def _handle_data_changed(self, top_left: QModelIndex, bottom_right: QModelIndex):
+        super()._handle_data_changed(top_left, bottom_right)
         if top_left.isValid() and bottom_right.isValid():
             # If the amount column is in the changed columns
             if top_left.column() <= 0 <= bottom_right.column():
@@ -252,7 +266,6 @@ class TechnosphereExchangeModel(BaseExchangeModel):
 
     def __init__(self, key=None, parent=None):
         super().__init__(key, parent)
-        # self.set_readonly_column(4)
         self.set_builtin_checkbox_delegate(3, show_text_value = False)
 
     @property
