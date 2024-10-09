@@ -1,6 +1,10 @@
-from typing import Any
+from typing import Iterable
+from bw2data import Node
+from bw2data.proxies import ExchangeProxyBase
 
+from activity_browser import signals
 from activity_browser.actions.base import ABAction, exception_dialogs
+from activity_browser.logger import log
 from activity_browser.mod import bw2data as bd
 from activity_browser.mod.bw2data.parameters import ActivityParameter
 from activity_browser.ui.icons import qicons
@@ -18,8 +22,17 @@ class ExchangeModify(ABAction):
 
     @classmethod
     @exception_dialogs
-    def run(cls, exchange: Any, data: dict):
+    def run(cls, exchange: ExchangeProxyBase, data: dict):
         for key, value in data.items():
+            if key == "functional" and value == "True":
+                if not cls.check_can_set_functional(exchange):
+                    signals.new_statusbar_message.emit(
+                        "Can not set exchange to functional, "
+                        "product already referenced through a functional exchange."
+                    )
+                    log.error(f"Can not set exchange {exchange} to functional, "
+                              "there is already a functional exchange.")
+                    return
             exchange[key] = value
 
         exchange.save()
@@ -47,3 +60,17 @@ class ExchangeModify(ABAction):
             bd.parameters.remove_exchanges_from_group(group, act)
             bd.parameters.add_exchanges_to_group(group, act)
             ActivityParameter.recalculate_exchanges(group)
+
+    @staticmethod
+    def check_can_set_functional(exchange: ExchangeProxyBase) -> bool:
+        def check_functional_edge(target: Node, exchanges: Iterable[ExchangeProxyBase]) -> bool:
+            for exc in exchanges:
+                if exc["functional"] == "True" and exc.input == target:
+                    return True
+            return False
+        activity = exchange.output
+        if exchange in activity.production():
+            return not check_functional_edge(exchange.input, activity.technosphere())
+        if exchange in activity.technosphere():
+            return not check_functional_edge(exchange.input, activity.production())
+        return True
