@@ -65,6 +65,26 @@ class BaseExchangeTable(ABDataFrameView):
         self._new_exchange_type = ""
         self._connect_signals()
 
+        if self.model:
+            self.setItemDelegateForColumn(self.model.columns.index("Amount"),
+                                        FloatDelegate(self))
+            self.setItemDelegateForColumn(self.model.columns.index("Unit"),
+                                        StringDelegate(self))
+            if "Product" in self.model.columns:
+                self.setItemDelegateForColumn(self.model.columns.index("Product"),
+                                            StringDelegate(self))
+            # columns Functional and Allocation factor are set up in the model
+            if "Formula" in self.model.columns:
+                self.setItemDelegateForColumn(self.model.columns.index("Formula"),
+                                            FormulaDelegate(self))
+            if "Comment" in self.model.columns:
+                self.setItemDelegateForColumn(self.model.columns.index("Comment"),
+                                            StringDelegate(self))
+            if "Uncertainty" in self.model.columns:
+                self.setItemDelegateForColumn(self.model.columns.index("Uncertainty"),
+                                            ViewOnlyUncertaintyDelegate(self))
+
+
     def _connect_signals(self):
         self.doubleClicked.connect(lambda: self.model.edit_cell(self.currentIndex()))
         self.model.updated.connect(self.update_proxy_model)
@@ -77,12 +97,28 @@ class BaseExchangeTable(ABDataFrameView):
     def open_activities(self) -> None:
         self.model.open_activities(self.selectedIndexes())
 
-    def contextMenuEvent(self, event) -> None:
+    def contextMenuEvent(self, event, show_uncertainty: bool = True) -> None:
         if self.indexAt(event.pos()).row() == -1:
             return
         menu = QtWidgets.QMenu()
+
+        menu.addAction(qicons.right, "Open activities", self.open_activities)
+        if show_uncertainty:
+            menu.addAction(self.modify_uncertainty_action)
+        menu.addAction(self.edge_properties_action)
+        menu.addAction(self.node_properties_action)
+        # Submenu copy to clipboard
+        submenu_copy = QtWidgets.QMenu(menu)
+        submenu_copy.setTitle("Copy to clipboard")
+        submenu_copy.setIcon(qicons.copy_to_clipboard)
+        submenu_copy.addAction(self.copy_exchanges_for_SDF_action)
+        menu.addMenu(submenu_copy)
+        menu.addSeparator()
         menu.addAction(self.delete_exchange_action)
         menu.addAction(self.remove_formula_action)
+        if show_uncertainty:
+            menu.addAction(self.remove_uncertainty_action)
+
         menu.exec_(event.globalPos())
 
     def dragMoveEvent(self, event) -> None:
@@ -127,37 +163,30 @@ class BaseExchangeTable(ABDataFrameView):
             ):  # downstream consumers table never accepts drops
                 self.setAcceptDrops(True)
 
+    def show_uncertainty(self, show: bool = False) -> None:
+        """Show or hide the uncertainty columns."""
+        if self.model and "Uncertainty" in self.model.columns:
+            cols = self.model.columns
+            self.setColumnHidden(cols.index("Uncertainty"), not show)
+            self.setColumnHidden(cols.index("pedigree"), not show)
+            for c in self.model.UNCERTAINTY_ITEMS:
+                self.setColumnHidden(cols.index(c), not show)
+
+    def show_comments(self, show: bool = False) -> None:
+        """Show or hide the comment column."""
+        if self.model and "Comment" in self.model.columns:
+            cols = self.model.columns
+            self.setColumnHidden(cols.index("Comment"), not show)
+
 
 class ProductExchangeTable(BaseExchangeTable):
     MODEL = ProductExchangeModel
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setItemDelegateForColumn(0, FloatDelegate(self))
-        # Removed temporarily, because the editing is buggy
-        self.setItemDelegateForColumn(1, StringDelegate(self))
-        self.setItemDelegateForColumn(2, StringDelegate(self))
-        # columns 3 and 4 are set up in the model
-        self.setItemDelegateForColumn(5, FormulaDelegate(self))
-
         self.setDragDropMode(QtWidgets.QTableView.DragDrop)
         self.table_name = "product"
         self._new_exchange_type = "production"
-
-    def contextMenuEvent(self, event) -> None:
-        if self.indexAt(event.pos()).row() == -1:
-            return
-        menu = QtWidgets.QMenu()
-        menu.addAction(self.remove_formula_action)
-        # Submenu copy to clipboard
-        submenu_copy = QtWidgets.QMenu(menu)
-        submenu_copy.setTitle("Copy to clipboard")
-        submenu_copy.setIcon(qicons.copy_to_clipboard)
-        submenu_copy.addAction(self.copy_exchanges_for_SDF_action)
-        menu.addMenu(submenu_copy)
-        menu.addAction(self.edge_properties_action)
-        menu.addAction(self.node_properties_action)
-        menu.exec_(event.globalPos())
 
     def dragEnterEvent(self, event):
         """Accept exchanges from a technosphere database table, and the
@@ -176,48 +205,9 @@ class TechnosphereExchangeTable(BaseExchangeTable):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setItemDelegateForColumn(0, FloatDelegate(self))
-        self.setItemDelegateForColumn(1, StringDelegate(self))
-        self.setItemDelegateForColumn(2, StringDelegate(self))
-        # builtin checkbox delegate for column 3 set up in the model
-        self.setItemDelegateForColumn(7, ViewOnlyUncertaintyDelegate(self))
-        self.setItemDelegateForColumn(14, FormulaDelegate(self))
-        self.setItemDelegateForColumn(15, StringDelegate(self))
         self.setDragDropMode(QtWidgets.QTableView.DragDrop)
         self.table_name = "technosphere"
         self._new_exchange_type = "technosphere"
-
-    def show_uncertainty(self, show: bool = False) -> None:
-        """Show or hide the uncertainty columns, 'Uncertainty Type' is always shown."""
-        cols = self.model.columns
-        self.setColumnHidden(cols.index("Uncertainty"), not show)
-        self.setColumnHidden(cols.index("pedigree"), not show)
-        for c in self.model.UNCERTAINTY:
-            self.setColumnHidden(cols.index(c), not show)
-
-    def show_comments(self, show: bool = False) -> None:
-        """Show or hide the comment column."""
-        cols = self.model.columns
-        self.setColumnHidden(cols.index("Comment"), not show)
-
-    def contextMenuEvent(self, event) -> None:
-        if self.indexAt(event.pos()).row() == -1:
-            return
-        menu = QtWidgets.QMenu()
-        menu.addAction(qicons.right, "Open activities", self.open_activities)
-        menu.addAction(self.modify_uncertainty_action)
-        menu.addSeparator()
-        menu.addAction(self.delete_exchange_action)
-        menu.addAction(self.remove_formula_action)
-        menu.addAction(self.remove_uncertainty_action)
-        # Submenu copy to clipboard
-        submenu_copy = QtWidgets.QMenu(menu)
-        submenu_copy.setTitle("Copy to clipboard")
-        submenu_copy.setIcon(qicons.copy_to_clipboard)
-        submenu_copy.addAction(self.copy_exchanges_for_SDF_action)
-        menu.addMenu(submenu_copy)
-
-        menu.exec_(event.globalPos())
 
     def dragEnterEvent(self, event):
         """Accept exchanges from a technosphere database table, and the
@@ -235,45 +225,9 @@ class BiosphereExchangeTable(BaseExchangeTable):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setItemDelegateForColumn(0, FloatDelegate(self))
-        self.setItemDelegateForColumn(5, ViewOnlyUncertaintyDelegate(self))
-        self.setItemDelegateForColumn(12, FormulaDelegate(self))
-        self.setItemDelegateForColumn(13, StringDelegate(self))
         self.setDragDropMode(QtWidgets.QTableView.DropOnly)
         self.table_name = "biosphere"
         self._new_exchange_type = "biosphere"
-
-    def show_uncertainty(self, show: bool = False) -> None:
-        """Show or hide the uncertainty columns, 'Uncertainty Type' is always shown."""
-        cols = self.model.columns
-        self.setColumnHidden(cols.index("Uncertainty"), not show)
-        self.setColumnHidden(cols.index("pedigree"), not show)
-        for c in self.model.UNCERTAINTY:
-            self.setColumnHidden(cols.index(c), not show)
-
-    def show_comments(self, show: bool = False) -> None:
-        """Show or hide the comment column."""
-        cols = self.model.columns
-        self.setColumnHidden(cols.index("Comment"), not show)
-
-    def contextMenuEvent(self, event) -> None:
-        if self.indexAt(event.pos()).row() == -1:
-            return
-        menu = QtWidgets.QMenu()
-        menu.addAction(self.modify_uncertainty_action)
-        menu.addSeparator()
-        menu.addAction(self.delete_exchange_action)
-        menu.addAction(self.remove_formula_action)
-        menu.addAction(self.remove_uncertainty_action)
-
-        # Submenu copy to clipboard
-        submenu_copy = QtWidgets.QMenu(menu)
-        submenu_copy.setTitle("Copy to clipboard")
-        submenu_copy.setIcon(qicons.copy_to_clipboard)
-        submenu_copy.addAction(self.copy_exchanges_for_SDF_action)
-        menu.addMenu(submenu_copy)
-
-        menu.exec_(event.globalPos())
 
     def dragEnterEvent(self, event):
         """Only accept exchanges from a technosphere database table"""
@@ -295,8 +249,4 @@ class DownstreamExchangeTable(BaseExchangeTable):
         self.table_name = "downstream"
 
     def contextMenuEvent(self, event) -> None:
-        if self.indexAt(event.pos()).row() == -1:
-            return
-        menu = QtWidgets.QMenu()
-        menu.addAction(qicons.right, "Open activities", self.open_activities)
-        menu.exec_(event.globalPos())
+        super().contextMenuEvent(event, show_uncertainty = False)

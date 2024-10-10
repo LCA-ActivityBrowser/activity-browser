@@ -275,11 +275,13 @@ class ActivityTab(QtWidgets.QWidget):
 
     @Slot(bool, name="toggleUncertaintyColumns")
     def show_exchange_uncertainty(self, toggled: bool) -> None:
+        self.production.show_uncertainty(toggled)
         self.technosphere.show_uncertainty(toggled)
         self.biosphere.show_uncertainty(toggled)
 
     @Slot(bool, name="toggleCommentColumn")
     def show_comments(self, toggled: bool) -> None:
+        self.production.show_comments(toggled)
         self.technosphere.show_comments(toggled)
         self.biosphere.show_comments(toggled)
 

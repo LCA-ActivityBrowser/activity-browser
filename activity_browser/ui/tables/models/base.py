@@ -36,6 +36,13 @@ class PandasModel(QAbstractTableModel):
         # The list of columns which should be editable by the builtin checkbox editor
         # The value of the dict holds whether the value should also be displayed as text
         self._checkbox_editors: dict[int, tuple[bool, Any, Any]] = {}
+        self._columns: list[str] = []
+
+    @property
+    def columns(self) -> list[str]:
+        if self._dataframe is not None:
+            return self._dataframe.columns
+        return []
 
     def rowCount(self, parent=None, *args, **kwargs):
         return 0 if self._dataframe is None else self._dataframe.shape[0]
@@ -86,6 +93,8 @@ class PandasModel(QAbstractTableModel):
         if index.column() in self._checkbox_editors:
             if role == Qt.ItemDataRole.CheckStateRole:
                 value = self._dataframe.iat[index.row(), index.column()]
+                if isinstance(value, str):
+                    log.error(f"Expected bool, received str: {value}!!")
                 true_value = self._checkbox_editors[index.column()][1]
                 # Convert the data to an appropriate value for the checkbox
                 return Qt.CheckState.Checked if value == true_value else Qt.CheckState.Unchecked
