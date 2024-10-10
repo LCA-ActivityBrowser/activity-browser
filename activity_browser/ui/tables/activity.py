@@ -115,10 +115,10 @@ class BaseExchangeTable(ABDataFrameView):
         self._read_only = read_only
 
         self.model.set_read_only(read_only)
-        self.delete_exchange_action.setEnabled(self._read_only)
-        self.remove_formula_action.setEnabled(self._read_only)
-        self.modify_uncertainty_action.setEnabled(self._read_only)
-        self.remove_uncertainty_action.setEnabled(self._read_only)
+        self.delete_exchange_action.setEnabled(not self._read_only)
+        self.remove_formula_action.setEnabled(not self._read_only)
+        self.modify_uncertainty_action.setEnabled(not self._read_only)
+        self.remove_uncertainty_action.setEnabled(not self._read_only)
         if self._read_only:
             self.setAcceptDrops(False)
         else:
