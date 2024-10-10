@@ -180,9 +180,9 @@ class TechnosphereExchangeTable(BaseExchangeTable):
         self.setItemDelegateForColumn(1, StringDelegate(self))
         self.setItemDelegateForColumn(2, StringDelegate(self))
         # builtin checkbox delegate for column 3 set up in the model
-        self.setItemDelegateForColumn(6, ViewOnlyUncertaintyDelegate(self))
-        self.setItemDelegateForColumn(13, FormulaDelegate(self))
-        self.setItemDelegateForColumn(14, StringDelegate(self))
+        self.setItemDelegateForColumn(7, ViewOnlyUncertaintyDelegate(self))
+        self.setItemDelegateForColumn(14, FormulaDelegate(self))
+        self.setItemDelegateForColumn(15, StringDelegate(self))
         self.setDragDropMode(QtWidgets.QTableView.DragDrop)
         self.table_name = "technosphere"
         self._new_exchange_type = "technosphere"

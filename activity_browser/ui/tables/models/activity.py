@@ -251,17 +251,20 @@ class ProductExchangeModel(BaseExchangeModel):
 
 class TechnosphereExchangeModel(BaseExchangeModel):
     COLUMNS = [
-        "Amount",
-        "Unit",
-        "Product",
-        "Functional",
-        "Activity",
-        "Location",
-        "Database",
-        "Uncertainty",
-        "Formula",
-        "Comment",
+        "Amount",       # 0
+        "Unit",         # 1
+        "Product",      # 2
+        "Functional",   # 3
+        "Activity",     # 4
+        "Location",     # 5
+        "Database",     # 6
+        "Uncertainty",  # 7
+        "Formula",      # 14
+        "Comment",      # 15
     ]
+    # Column indices
+    # 8             9      10       11       12         13
+    # pedigree (added below)
     UNCERTAINTY = ["loc", "scale", "shape", "minimum", "maximum"]
 
     def __init__(self, key=None, parent=None):
