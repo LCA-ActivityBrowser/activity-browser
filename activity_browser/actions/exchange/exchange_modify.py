@@ -1,8 +1,7 @@
-from typing import Iterable
-from bw2data import Node
+from PySide2.QtWidgets import QMessageBox
 from bw2data.proxies import ExchangeProxyBase
 
-from activity_browser import signals
+from activity_browser import application
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.logger import log
 from activity_browser.mod import bw2data as bd
@@ -25,16 +24,18 @@ class ExchangeModify(ABAction):
     def run(cls, exchange: ExchangeProxyBase, data: dict):
         for key, value in data.items():
             if key == "functional" and value == True:
-                if not cls.check_can_set_functional(exchange):
-                    signals.new_statusbar_message.emit(
-                        "Can not set exchange to functional, "
-                        "product already referenced through a functional exchange."
+                if (existing_func_edges := cls.get_functional_edges_to_same(exchange)):
+                    log.info(f"Can not set exchange {exchange} to functional, "
+                              f"there is already a functional exchange: {existing_func_edges[0]}")
+                    QMessageBox.information(
+                        application.main_window,
+                        f"Cannot change edge to functional",
+                        "Products can only be functional in one edge.\n"
+                        f"This product is already functional in:\n{existing_func_edges[0]}",
+                        QMessageBox.Ok,
                     )
-                    log.error(f"Can not set exchange {exchange} to functional, "
-                              "there is already a functional exchange.")
                     return
             exchange[key] = value
-
         exchange.save()
 
         if "formula" in data:
@@ -62,8 +63,8 @@ class ExchangeModify(ABAction):
             ActivityParameter.recalculate_exchanges(group)
 
     @staticmethod
-    def check_can_set_functional(target_exc: ExchangeProxyBase) -> bool:
+    def get_functional_edges_to_same(target_exc: ExchangeProxyBase) -> list[ExchangeProxyBase]:
         activity = target_exc.output
-        return not any(exc for exc in activity.exchanges()
-                    if exc.input == target_exc.input and exc.get("functional", False))
+        return [exc for exc in activity.exchanges()
+                    if exc.input == target_exc.input and exc.get("functional", False)]
 
