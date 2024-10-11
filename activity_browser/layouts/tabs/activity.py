@@ -401,7 +401,8 @@ class ActivityTab(QtWidgets.QWidget):
                 # Make the user choose a default allocation, even if there are errors
                 current_allocation = databases[self.db_name].get("default_allocation", "")
                 default_allocation = CustomAllocationEditor.define_custom_allocation(
-                                    current_allocation, self.db_name, self
+                                    current_allocation, self.db_name,
+                                    first_open=True, parent=self
                                 )
                 if default_allocation:
                     databases[self.db_name]["default_allocation"] = default_allocation

@@ -264,7 +264,8 @@ class ActivityDataGrid(QtWidgets.QWidget):
                 changed = True
         elif selection == self.CUSTOM_ALLOCATION:
             custom_value = CustomAllocationEditor.define_custom_allocation(
-                                current_def_alloc, self.parent.activity, self
+                                current_def_alloc, self.parent.activity,
+                                first_open=False, parent=self
                             )
             if custom_value and custom_value != current_def_alloc:
                 self.parent.activity["default_allocation"] = custom_value

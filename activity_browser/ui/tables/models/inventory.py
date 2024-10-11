@@ -88,7 +88,7 @@ class DatabasesModel(EditablePandasModel):
             current_db = proxy.siblingAtColumn(0).data()
             current_allocation = databases[current_db].get("default_allocation", "")
             custom_value = CustomAllocationEditor.define_custom_allocation(
-                current_allocation, current_db, self.parent()
+                current_allocation, current_db, first_open=False, parent=self.parent()
             )
             if custom_value != current_allocation:
                 # In this approach there is no way currently to delete the
