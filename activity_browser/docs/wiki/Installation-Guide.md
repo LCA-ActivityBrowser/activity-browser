@@ -68,12 +68,12 @@ The line above means:
 - `-c conda-forge`: from the **c**hannel (`-c`) `conda-forge`
 - `activity-browser`: install the package `activity-browser`
 
-> [!NOTE]
-> You can have as many environments as you like, you can also install different versions of Activity Browser 
-> in different environments, for example for different [plugins](Plugins), or just for using different version of 
-> Activity Browser. 
-> 
-> All environments will have access to the same projects and databases in Activity Browser. 
+You can have as many environments as you like, you can also install different versions of Activity Browser 
+in different environments, for example for different [plugins](Plugins), or just for using different version of 
+Activity Browser. 
+
+All environments will have access to the same projects and databases in Activity Browser. 
+
 </details>
 
 ## Activating and running Activity Browser
