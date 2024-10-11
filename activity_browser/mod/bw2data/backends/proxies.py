@@ -4,7 +4,7 @@ except ModuleNotFoundError:
     # we're running bw25
     from bw2data.backends.proxies import *
 
-from bw2data import Database
+from bw2data import Database, get_activity
 
 from activity_browser.mod.patching import patch_superclass, patched
 from activity_browser.signals import qactivity_list, qdatabase_list, qexchange_list
