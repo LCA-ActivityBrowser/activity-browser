@@ -62,7 +62,8 @@ class ActivityNewProcess(ABAction):
         new_exchange = new_process.new_edge(
             input = new_ref_prod,
             type = labels.production_edge_default,
-            amount = 1
+            amount = 1,
+            functional = True
         )
         new_exchange.save()
 
