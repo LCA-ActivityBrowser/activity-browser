@@ -3,7 +3,7 @@ import os
 from logging import getLogger
 
 from peewee import SqliteDatabase
-from PySide2 import QtCore, QtWidgets
+from PySide6 import QtCore, QtWidgets
 
 from activity_browser import ab_settings
 from activity_browser.mod.bw2data import projects

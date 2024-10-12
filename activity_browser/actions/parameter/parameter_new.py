@@ -1,6 +1,6 @@
 from typing import Tuple
 
-from PySide2 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
 from activity_browser import actions, application
 from activity_browser.actions.base import ABAction, exception_dialogs

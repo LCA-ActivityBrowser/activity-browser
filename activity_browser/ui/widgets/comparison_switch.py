@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from collections import namedtuple
 
-from PySide2 import QtWidgets
+from PySide6 import QtWidgets
 
 Switches = namedtuple("switches", ("func", "method", "scenario"))
 

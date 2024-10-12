@@ -3,7 +3,7 @@ import json
 import tarfile
 from logging import getLogger
 
-from PySide2 import QtWidgets, QtCore
+from PySide6 import QtWidgets, QtCore
 from bw2io import backup
 
 from activity_browser import application

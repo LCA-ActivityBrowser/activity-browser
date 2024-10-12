@@ -8,7 +8,7 @@ import pandas as pd
 import seaborn as sns
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
-from PySide2 import QtWidgets
+from PySide6 import QtWidgets
 
 from activity_browser.mod.bw2data import methods
 from activity_browser.utils import savefilepath

@@ -6,8 +6,8 @@ from logging import getLogger
 import pandas as pd
 from asteval import Interpreter
 from peewee import DoesNotExist
-from PySide2 import QtWidgets
-from PySide2.QtCore import QModelIndex, Slot
+from PySide6 import QtWidgets
+from PySide6.QtCore import QModelIndex, Slot
 
 from activity_browser import actions, application
 from activity_browser.mod import bw2data as bd

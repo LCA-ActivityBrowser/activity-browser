@@ -1,8 +1,8 @@
 from logging import getLogger
 
 import bw2io.data as data
-from PySide2 import QtWidgets
-from PySide2.QtCore import Signal, Slot
+from PySide6 import QtWidgets
+from PySide6.QtCore import Signal, Slot
 
 from activity_browser.mod import bw2data as bd
 

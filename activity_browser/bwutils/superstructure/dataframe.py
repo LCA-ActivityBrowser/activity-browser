@@ -5,8 +5,8 @@ from typing import List, Tuple
 
 import numpy as np
 import pandas as pd
-from PySide2.QtCore import Qt
-from PySide2.QtWidgets import QApplication, QPushButton
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QApplication, QPushButton
 
 from ..errors import ScenarioDatabaseNotFoundError
 from ..metadata import AB_metadata

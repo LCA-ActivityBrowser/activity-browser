@@ -2,8 +2,8 @@
 from pathlib import Path
 
 import pandas as pd
-from PySide2.QtCore import QSize, Qt, Slot
-from PySide2.QtWidgets import (QAbstractButton, QCheckBox, QFileDialog,
+from PySide6.QtCore import QSize, Qt, Slot
+from PySide6.QtWidgets import (QAbstractButton, QCheckBox, QFileDialog,
                                QHBoxLayout, QMessageBox, QPushButton,
                                QSplitter, QStyle, QTabWidget, QToolBar,
                                QVBoxLayout, QWidget)

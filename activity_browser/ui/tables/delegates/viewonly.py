@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import math
 
-from PySide2.QtWidgets import QStyledItemDelegate
+from PySide6.QtWidgets import QStyledItemDelegate
 
 from .float import FloatDelegate
 from .uncertainty import UncertaintyDelegate

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from pathlib import Path
 
-from PySide2.QtGui import QIcon
+from PySide6.QtGui import QIcon
 
 PACKAGE_DIR = Path(__file__).resolve().parents[1]
 

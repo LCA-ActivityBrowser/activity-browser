@@ -1,6 +1,6 @@
 from uuid import uuid4
 
-from PySide2 import QtWidgets
+from PySide6 import QtWidgets
 
 from activity_browser import application
 from activity_browser.actions.base import ABAction, exception_dialogs

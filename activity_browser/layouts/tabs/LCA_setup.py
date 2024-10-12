@@ -2,8 +2,8 @@
 from logging import getLogger
 
 import pandas as pd
-from PySide2 import QtWidgets
-from PySide2.QtCore import Qt, Slot
+from PySide6 import QtWidgets
+from PySide6.QtCore import Qt, Slot
 
 from activity_browser import actions, signals
 from activity_browser.mod import bw2data as bd

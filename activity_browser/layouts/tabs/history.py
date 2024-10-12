@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from PySide2 import QtCore, QtWidgets
+from PySide6 import QtCore, QtWidgets
 
 from ...ui.style import header, horizontal_line
 from ...ui.tables import ActivitiesHistoryTable

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from bw2data import databases
-from PySide2 import QtCore, QtWidgets
+from PySide6 import QtCore, QtWidgets
 
 
 class DatabaseDelegate(QtWidgets.QStyledItemDelegate):

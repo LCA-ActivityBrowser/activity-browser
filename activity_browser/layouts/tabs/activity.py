@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from peewee import DoesNotExist
-from PySide2 import QtCore, QtWidgets
-from PySide2.QtCore import Slot
+from PySide6 import QtCore, QtWidgets
+from PySide6.QtCore import Slot
 
 from activity_browser import ab_settings, project_settings, signals
 from activity_browser.bwutils import commontasks as bc

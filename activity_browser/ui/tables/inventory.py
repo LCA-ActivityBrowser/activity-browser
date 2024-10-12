@@ -1,7 +1,7 @@
 from typing import List, Iterable
 
-from PySide2 import QtCore, QtWidgets
-from PySide2.QtCore import Slot
+from PySide6 import QtCore, QtWidgets, QtGui
+from PySide6.QtCore import Slot
 
 from activity_browser import actions
 
@@ -104,7 +104,7 @@ class ActivitiesBiosphereTable(ABFilterableDataFrameView):
         self.model = ActivitiesBiosphereListModel(parent=self)
         self.setDragEnabled(True)
         self.setDragDropMode(QtWidgets.QTableView.DragOnly)
-        self.setSelectionBehavior(self.SelectRows)
+        self.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
 
         # context-menu items
         self.open_activity_action = actions.ActivityOpen.get_QAction(self.selected_keys)
@@ -129,7 +129,7 @@ class ActivitiesBiosphereTable(ABFilterableDataFrameView):
         self.dup_other_db_action = actions.ActivityDuplicateToDB.get_QAction(
             self.selected_keys
         )
-        self.copy_exchanges_for_SDF_action = QtWidgets.QAction(
+        self.copy_exchanges_for_SDF_action = QtGui.QAction(
             qicons.superstructure, "Exchanges for scenario difference file", None
         )
         self.connect_signals()
@@ -316,7 +316,7 @@ class ActivitiesBiosphereTree(ABDictTreeView):
         self.dup_other_db_action = actions.ActivityDuplicateToDB.get_QAction(
             self.selected_keys
         )
-        self.copy_exchanges_for_SDF_action = QtWidgets.QAction(
+        self.copy_exchanges_for_SDF_action = QtGui.QAction(
             qicons.superstructure, "Exchanges for scenario difference file", None
         )
 

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from PySide2 import QtCore, QtWidgets
+from PySide6 import QtCore, QtWidgets
 
 from activity_browser.ui.wizards.db_import_wizard import DatabaseImportWizard
 

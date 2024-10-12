@@ -3,7 +3,7 @@ from typing import Iterable, Optional
 
 import numpy as np
 import pandas as pd
-from PySide2.QtWidgets import QPushButton
+from PySide6.QtWidgets import QPushButton
 
 from activity_browser.mod import bw2data as bd
 

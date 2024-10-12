@@ -2,7 +2,7 @@ import platform
 
 import bw2data as bd
 import pytest
-from PySide2 import QtGui
+from PySide6 import QtGui
 from stats_arrays.distributions import NormalUncertainty, UndefinedUncertainty
 
 from activity_browser import actions, application

@@ -1,8 +1,8 @@
 import os
 from importlib.metadata import version
 
-from PySide2 import QtGui, QtWidgets
-from PySide2.QtCore import QSize, QUrl, Slot
+from PySide6 import QtGui, QtWidgets
+from PySide6.QtCore import QSize, QUrl, Slot
 
 from activity_browser import actions, signals, application, info
 from activity_browser.mod import bw2data as bd
@@ -210,7 +210,7 @@ class ProjectSelectionMenu(QtWidgets.QMenu):
             name = proj.name if not bw_25 or AB_BW25 else "[BW25] " + proj.name
 
             # create the action and disable it if it's BW25 and BW25 is not supported
-            action = QtWidgets.QAction(name, self)
+            action = QtGui.QAction(name, self)
             action.setEnabled(not bw_25 or AB_BW25)
 
             self.addAction(action)

@@ -1,6 +1,6 @@
 import ecoinvent_interface as ei
 import requests
-from PySide2 import QtWidgets, QtCore
+from PySide6 import QtWidgets, QtCore
 
 from activity_browser.ui.threading import ABThread
 from activity_browser.mod.bw2io import ab_bw2setup

@@ -1,6 +1,6 @@
 from typing import Iterable, Tuple
 
-from PySide2.QtCore import Slot
+from PySide6.QtCore import Slot
 
 from activity_browser.mod import bw2data as bd
 
