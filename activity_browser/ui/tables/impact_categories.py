@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 from typing import Iterable
 
-from PySide2 import QtWidgets
-from PySide2.QtCore import QModelIndex, Slot, Qt
+from PySide6 import QtWidgets
+from PySide6.QtCore import QModelIndex, Slot, Qt
 
 from activity_browser import actions
 from activity_browser.mod.bw2data import methods

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from PySide2 import QtCore, QtWidgets
+from PySide6 import QtCore, QtWidgets
 from stats_arrays import uncertainty_choices as uc
 
 from ....signals import signals

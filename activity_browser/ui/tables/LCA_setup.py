@@ -1,7 +1,7 @@
 from logging import getLogger
 
-from PySide2 import QtWidgets
-from PySide2.QtCore import Qt, Slot
+from PySide6 import QtWidgets
+from PySide6.QtCore import Qt, Slot
 
 from activity_browser import signals, actions
 from activity_browser.mod.bw2data import calculation_setups
@@ -20,7 +20,7 @@ class CSList(QtWidgets.QComboBox):
     def __init__(self, parent=None):
         super(CSList, self).__init__(parent)
         # Runs even if selection doesn't change
-        self.activated["QString"].connect(self.set_cs)
+        self.activated[int].connect(self.set_cs)
         signals.calculation_setup_selected.connect(self.sync)
 
     def sync(self, name):

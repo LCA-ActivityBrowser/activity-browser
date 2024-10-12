@@ -3,8 +3,8 @@ import traceback
 from logging import getLogger
 
 from bw2calc.errors import BW2CalcError
-from PySide2.QtCore import Qt, Slot
-from PySide2.QtWidgets import QApplication, QMessageBox, QVBoxLayout
+from PySide6.QtCore import Qt, Slot
+from PySide6.QtWidgets import QApplication, QMessageBox, QVBoxLayout
 
 from activity_browser import signals
 from activity_browser.mod import bw2data as bd

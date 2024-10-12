@@ -5,7 +5,7 @@ import logging
 from activity_browser.mod import bw2data as bd
 from activity_browser.logger import exception_hook
 
-from PySide2.QtCore import QThread, SignalInstance, Signal
+from PySide6.QtCore import QThread, SignalInstance, Signal
 
 
 class ABThread(QThread):

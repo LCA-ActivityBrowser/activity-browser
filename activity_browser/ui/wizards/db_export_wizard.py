@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 import os
 
-from PySide2 import QtWidgets
-from PySide2.QtCore import Slot
+from PySide6 import QtWidgets
+from PySide6.QtCore import Slot
 
 from activity_browser.bwutils import exporters as exp
 from activity_browser.mod import bw2data as bd

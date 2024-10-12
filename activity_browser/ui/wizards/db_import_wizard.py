@@ -14,8 +14,8 @@ import ecoinvent_interface as ei
 import requests
 from bw2io import BW2Package, SingleOutputEcospold2Importer
 from bw2io.extractors import Ecospold2DataExtractor
-from PySide2 import QtCore, QtWidgets
-from PySide2.QtCore import Signal, Slot
+from PySide6 import QtCore, QtWidgets
+from PySide6.QtCore import Signal, Slot
 from py7zr import py7zr
 
 from activity_browser.bwutils import errors

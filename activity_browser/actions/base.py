@@ -1,4 +1,4 @@
-from PySide2 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
 from activity_browser import application
 
@@ -20,8 +20,8 @@ class ABAction:
         cls.run(*args, **kwargs)
 
     @classmethod
-    def get_QAction(cls, *args, **kwargs) -> QtWidgets.QAction:
-        action = QtWidgets.QAction(cls.icon, cls.text, None)
+    def get_QAction(cls, *args, **kwargs) -> QtGui.QAction:
+        action = QtGui.QAction(cls.icon, cls.text, None)
         action.setToolTip(cls.tooltip)
 
         action.triggered.connect(lambda: cls.triggered(*args, **kwargs))

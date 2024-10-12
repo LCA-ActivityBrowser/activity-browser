@@ -6,8 +6,8 @@ from logging import getLogger
 import numpy as np
 import pandas as pd
 from pandas.api.types import is_numeric_dtype
-from PySide2.QtCore import Qt
-from PySide2.QtWidgets import QApplication, QPushButton
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QApplication, QPushButton
 
 from activity_browser.mod import bw2data as bd
 

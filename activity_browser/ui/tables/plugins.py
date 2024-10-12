@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import pandas
-from PySide2 import QtCore, QtWidgets
-from PySide2.QtWidgets import QMessageBox
+from PySide6 import QtCore, QtWidgets
+from PySide6.QtWidgets import QMessageBox
 
 from ...signals import signals
 from .delegates import CheckboxDelegate

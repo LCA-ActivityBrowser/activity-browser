@@ -5,7 +5,7 @@ import sys
 import numpy as np
 import pytest
 from bw2data.parameters import ProjectParameter
-from PySide2.QtWidgets import QMessageBox, QWizard
+from PySide6.QtWidgets import QMessageBox, QWizard
 from stats_arrays.distributions import (LognormalUncertainty,
                                         TriangularUncertainty,
                                         UndefinedUncertainty,

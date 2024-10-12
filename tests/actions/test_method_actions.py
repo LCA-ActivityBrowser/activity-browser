@@ -1,5 +1,5 @@
 import bw2data as bd
-from PySide2 import QtWidgets
+from PySide6 import QtWidgets
 from stats_arrays.distributions import (NormalUncertainty,
                                         UndefinedUncertainty,
                                         UniformUncertainty)

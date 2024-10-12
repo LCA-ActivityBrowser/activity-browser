@@ -2,7 +2,7 @@
 from importlib import metadata
 
 import pandas as pd
-from PySide2.QtCore import QModelIndex
+from PySide6.QtCore import QModelIndex
 
 from activity_browser.settings import ab_settings, project_settings
 from activity_browser.signals import qparameters, qprojects

@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 from asteval import Interpreter
-from PySide2.QtCore import Slot
-from PySide2.QtGui import QContextMenuEvent, QDragMoveEvent, QDropEvent
-from PySide2.QtWidgets import QAction, QMenu, QMessageBox
+from PySide6.QtCore import Slot
+from PySide6.QtGui import QAction, QContextMenuEvent, QDragMoveEvent, QDropEvent
+from PySide6.QtWidgets import QMenu, QMessageBox
 
 from activity_browser import actions, project_settings, signals
 

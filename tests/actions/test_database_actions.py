@@ -1,5 +1,5 @@
 import bw2data as bd
-from PySide2 import QtWidgets
+from PySide6 import QtWidgets
 
 from activity_browser import actions, application
 from activity_browser.actions.database.database_duplicate import \

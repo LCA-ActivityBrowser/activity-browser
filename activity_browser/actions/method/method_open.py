@@ -1,6 +1,6 @@
 from typing import List
 
-from PySide2 import QtWidgets, QtCore
+from PySide6 import QtWidgets, QtCore
 
 from activity_browser import signals
 from activity_browser.actions.base import ABAction, exception_dialogs

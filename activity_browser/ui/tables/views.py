@@ -2,9 +2,9 @@ import os
 from typing import Optional
 from logging import getLogger
 
-from PySide2 import QtGui, QtWidgets
-from PySide2.QtCore import QPoint, QRect, QSize, Qt, QTimer, Signal, Slot
-from PySide2.QtWidgets import QApplication, QSizePolicy, QTableView
+from PySide6 import QtGui, QtWidgets
+from PySide6.QtCore import QPoint, QRect, QSize, Qt, QTimer, Signal, Slot
+from PySide6.QtWidgets import QApplication, QSizePolicy, QTableView
 
 from activity_browser import ab_settings
 from activity_browser.mod import bw2data as bd
@@ -250,7 +250,7 @@ class ABFilterableDataFrameView(ABDataFrameView):
         mf_menu.setTitle("More filters")
         filter_actions = []
         for i, f in enumerate(self.FILTER_TYPES[col_type]):
-            fa = QtWidgets.QAction(text=f)
+            fa = QtGui.QAction(text=f)
             fa.setToolTip(self.FILTER_TYPES[col_type + "_tt"][i])
             fa.triggered.connect(self.simple_filter_dialog)
             filter_actions.append(fa)
@@ -258,12 +258,12 @@ class ABFilterableDataFrameView(ABDataFrameView):
             mf_menu.addAction(fa)
         menu.addMenu(mf_menu)
         # edit filters main menu
-        filter_man = QtWidgets.QAction(qicons.edit, "Manage filters")
+        filter_man = QtGui.QAction(qicons.edit, "Manage filters")
         filter_man.triggered.connect(self.filter_manager_dialog)
         filter_man.setToolTip("Open the filter management menu")
         menu.addAction(filter_man)
         # delete column filters option
-        col_del = QtWidgets.QAction(qicons.delete, "Remove column filters")
+        col_del = QtGui.QAction(qicons.delete, "Remove column filters")
         col_del.triggered.connect(self.reset_column_filters)
         col_del.setToolTip("Remove all filters on this column")
         menu.addAction(col_del)
@@ -273,7 +273,7 @@ class ABFilterableDataFrameView(ABDataFrameView):
         ):
             col_del.setEnabled(True)
         # delete all filters option
-        all_del = QtWidgets.QAction(qicons.delete, "Remove all filters")
+        all_del = QtGui.QAction(qicons.delete, "Remove all filters")
         all_del.triggered.connect(self.reset_filters)
         all_del.setToolTip("Remove all filters in this table")
         menu.addAction(all_del)
@@ -286,7 +286,7 @@ class ABFilterableDataFrameView(ABDataFrameView):
             self.selected_column, False
         ):
             menu.addSeparator()
-            active_filters_label = QtWidgets.QAction(
+            active_filters_label = QtGui.QAction(
                 qicons.filter, "Active column filters:"
             )
             active_filters_label.setEnabled(False)
@@ -298,7 +298,7 @@ class ABFilterableDataFrameView(ABDataFrameView):
                 else:
                     q = filter_data[1]
                 filter_str = ": ".join([filter_data[0], q])
-                f = QtWidgets.QAction(text=filter_str)
+                f = QtGui.QAction(text=filter_str)
                 f.setEnabled(False)
                 active_filters.append(f)
             for f in active_filters:

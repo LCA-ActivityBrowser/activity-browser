@@ -6,9 +6,9 @@ from typing import List
 from logging import getLogger
 
 import bw2calc as bc
-from PySide2 import QtWidgets
-from PySide2.QtCore import Slot
-from PySide2.QtWidgets import QComboBox
+from PySide6 import QtWidgets
+from PySide6.QtCore import Slot
+from PySide6.QtWidgets import QComboBox
 
 from activity_browser import signals
 from activity_browser.mod import bw2data as bd

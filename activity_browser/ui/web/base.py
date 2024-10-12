@@ -5,8 +5,8 @@ from copy import deepcopy
 from typing import Type
 from logging import getLogger
 
-from PySide2 import QtWebChannel, QtWebEngineWidgets, QtWidgets
-from PySide2.QtCore import QObject, Qt, QUrl, Signal, Slot
+from PySide6 import QtWebChannel, QtWebEngineWidgets, QtWidgets
+from PySide6.QtCore import QObject, Qt, QUrl, Signal, Slot
 
 from activity_browser import ab_settings, signals
 from activity_browser.mod import bw2data as bd

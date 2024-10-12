@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-from PySide2.QtCore import Slot
-from PySide2.QtWidgets import QAbstractItemView, QMenu
+from PySide6.QtCore import Slot
+from PySide6.QtWidgets import QAbstractItemView, QMenu
 
 from ..icons import qicons
 from .models import ActivitiesHistoryModel

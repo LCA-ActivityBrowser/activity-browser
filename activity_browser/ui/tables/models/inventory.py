@@ -9,8 +9,8 @@ from logging import getLogger
 
 import numpy as np
 import pandas as pd
-from PySide2.QtCore import QModelIndex, Qt, Slot
-from PySide2.QtWidgets import QApplication
+from PySide6.QtCore import QModelIndex, Qt, Slot
+from PySide6.QtWidgets import QApplication
 
 import activity_browser
 from activity_browser import project_settings
