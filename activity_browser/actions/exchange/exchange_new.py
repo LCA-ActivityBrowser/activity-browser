@@ -16,17 +16,8 @@ class ExchangeNew(ABAction):
 
     @staticmethod
     @exception_dialogs
-    def run(from_keys: List[tuple], to_key: tuple):
+    def run(from_keys: List[tuple], to_key: tuple, type: str):
         to_activity = bd.get_activity(to_key)
         for from_key in from_keys:
-            exchange = to_activity.new_exchange(input=from_key, amount=1)
-
-            technosphere_db = commontasks.is_technosphere_db(from_key[0])
-            if technosphere_db is True:
-                exchange["type"] = "technosphere"
-            elif technosphere_db is False:
-                exchange["type"] = "biosphere"
-            else:
-                exchange["type"] = "unknown"
-
+            exchange = to_activity.new_exchange(input=from_key, type=type, amount=1)
             exchange.save()

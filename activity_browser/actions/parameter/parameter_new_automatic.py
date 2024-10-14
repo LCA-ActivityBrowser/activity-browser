@@ -26,7 +26,7 @@ class ParameterNewAutomatic(ABAction):
     def run(activity_keys: List[Tuple]):
         for key in activity_keys:
             act = bd.get_activity(key)
-            if act.get("type", "process") != "process":
+            if act.get("type", "process") not in bd.labels.lci_node_types:
                 issue = f"Activity must be 'process' type, '{act.get('name')}' is type '{act.get('type')}'."
                 QtWidgets.QMessageBox.warning(
                     application.main_window,

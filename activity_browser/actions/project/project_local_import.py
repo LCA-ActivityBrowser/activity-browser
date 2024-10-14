@@ -58,6 +58,7 @@ class ProjectLocalImportWindow(QtWidgets.QDialog):
         layout.addWidget(self._overwrite_checkbox)
 
         self._activate_project_checkbox = QtWidgets.QCheckBox("Activate project after import")
+        self._activate_project_checkbox.setChecked(True)
         layout.addWidget(self._activate_project_checkbox)
 
         import_button_layout = QtWidgets.QHBoxLayout()

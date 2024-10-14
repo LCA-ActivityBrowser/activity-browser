@@ -1,12 +1,15 @@
 # -*- coding: utf-8 -*-
+from bw2data import databases, get_node
+from bw2data.proxies import ExchangeProxyBase
 from peewee import DoesNotExist
 from PySide2 import QtCore, QtWidgets
-from PySide2.QtCore import Slot
+from PySide2.QtCore import Qt, Slot
 
 from activity_browser import ab_settings, project_settings, signals
 from activity_browser.actions.activity.activity_redo_allocation import MultifunctionalProcessRedoAllocation
 from activity_browser.bwutils import commontasks as bc
 from activity_browser.mod import bw2data as bd
+from activity_browser.ui.widgets.custom_allocation_editor import CustomAllocationEditor
 from activity_browser.ui.widgets.property_editor import PropertyEditor
 
 from ...ui.icons import qicons
@@ -24,7 +27,7 @@ from ...ui.widgets import (
     TagEditor,
 )
 from ..panels.panel import ABTab
-
+from activity_browser.logger import log
 
 class ActivitiesTab(ABTab):
     """Tab that contains sub-tabs describing activity information."""
@@ -111,7 +114,7 @@ class ActivityTab(QtWidgets.QWidget):
         # Edit Activity checkbox
         self.checkbox_edit_act = QtWidgets.QCheckBox("Edit Activity")
         self.checkbox_edit_act.setChecked(not self.read_only)
-        self.checkbox_edit_act.toggled.connect(self.act_read_only_changed)
+        self.checkbox_edit_act.toggled.connect(lambda checked: self.act_read_only_changed(not checked))
 
         # Activity Description
         self.activity_description = SignalledPlainTextEdit(
@@ -214,7 +217,7 @@ class ActivityTab(QtWidgets.QWidget):
 
         # Make the activity tab editable in case it's new
         if not self.read_only:
-            self.act_read_only_changed(True)
+            self.act_read_only_changed(False)
 
     def connect_signals(self):
         signals.database_read_only_changed.connect(self.db_read_only_changed)
@@ -249,9 +252,14 @@ class ActivityTab(QtWidgets.QWidget):
         self.technosphere.model.load(self.activity.technosphere())
         self.biosphere.model.load(self.activity.biosphere())
         self.downstream.model.load(self.activity.upstream())
+        self.production.model.exchange_changed.connect(self._handle_exchange_changed,
+                                                  Qt.ConnectionType.UniqueConnection)
+        self.technosphere.model.exchange_changed.connect(self._handle_exchange_changed,
+                                                    Qt.ConnectionType.UniqueConnection)
 
         self.show_exchange_uncertainty(self.checkbox_uncertainty.isChecked())
         self.show_comments(self.checkbox_comment.isChecked())
+        self.activity_data_grid.populate()
 
     def populate_description_box(self):
         """Populate the activity description."""
@@ -267,11 +275,13 @@ class ActivityTab(QtWidgets.QWidget):
 
     @Slot(bool, name="toggleUncertaintyColumns")
     def show_exchange_uncertainty(self, toggled: bool) -> None:
+        self.production.show_uncertainty(toggled)
         self.technosphere.show_uncertainty(toggled)
         self.biosphere.show_uncertainty(toggled)
 
     @Slot(bool, name="toggleCommentColumn")
     def show_comments(self, toggled: bool) -> None:
+        self.production.show_comments(toggled)
         self.technosphere.show_comments(toggled)
         self.biosphere.show_comments(toggled)
 
@@ -279,7 +289,7 @@ class ActivityTab(QtWidgets.QWidget):
     def act_read_only_changed(self, read_only: bool) -> None:
         """When read_only=False specific data fields in the tables below become user-editable
         When read_only=True these same fields become read-only"""
-        self.read_only = not read_only
+        self.read_only = read_only
         self.activity_description.setReadOnly(self.read_only)
 
         if (
@@ -369,4 +379,41 @@ class ActivityTab(QtWidgets.QWidget):
         """Opens the tag editor for the current"""
         # Do not save the changes if nothing changed
         if TagEditor.edit(self.activity, self.read_only, self):
+            self.activity.save()
+
+    def _handle_exchange_changed(self, exc: ExchangeProxyBase):
+        # Count functional exchanges
+        functional_count = sum(
+            (1 for exc in self.activity.exchanges() if exc.get("functional", False))
+        )
+        # Change process to multifunctional, if there are more than one functional
+        # exchanges
+        if self.activity["type"] == "process" and functional_count > 1:
+            # change process and database type to `multifunctional`
+            log.info(f"{functional_count} functional exchanges detected. "
+                     f"Changing process type to multifunctional for {self.activity}")
+            # Change database to multifunctional, if it is not already
+            if databases[self.db_name]["backend"] != "multifunctional":
+                log.info(f"Changing database type to multifunctional for {self.db_name}")
+                databases[self.db_name]["backend"] = "multifunctional"
+                # Make the user choose a default allocation, even if there are errors
+                current_allocation = databases[self.db_name].get("default_allocation", "")
+                default_allocation = CustomAllocationEditor.define_custom_allocation(
+                                    current_allocation, self.db_name,
+                                    first_open=True, parent=self
+                                )
+                if default_allocation:
+                    databases[self.db_name]["default_allocation"] = default_allocation
+                databases.flush()
+
+            # Might need a new activity base class if database backend changed
+            self.activity = get_node(id=self.activity.id)
+            self.activity["type"] = "multifunctional"
+            self.activity.save()
+
+        # Change process type to `process`, if there is maximum one functional
+        # exchange. Do not change back database type.
+        if self.activity["type"] == "multifunctional" and functional_count <= 1:
+            self.activity = get_node(id=self.activity.id)
+            self.activity["type"] = "process"
             self.activity.save()

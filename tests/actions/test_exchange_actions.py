@@ -110,7 +110,7 @@ def test_exchange_new(ab_app):
         if exchange.input.key == from_key
     ]
 
-    actions.ExchangeNew.run([from_key], key)
+    actions.ExchangeNew.run([from_key], key, "production")
 
     assert (
         len(

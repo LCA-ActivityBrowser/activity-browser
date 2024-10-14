@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 import os
 
-from PySide2.QtCore import QCoreApplication, QObject, QSysInfo, Qt
-from PySide2.QtWidgets import QApplication
+from PySide2.QtCore import QCoreApplication, QSysInfo, Qt
+from PySide2.QtWidgets import QApplication, QWidget
 
 from activity_browser import log
 
@@ -12,7 +12,7 @@ class ABApplication(QApplication):
     _controllers = None
 
     @property
-    def main_window(self) -> QObject:
+    def main_window(self) -> QWidget:
         """Returns the main_window widget of the Activity Browser"""
         if self._main_window:
             return self._main_window
@@ -21,7 +21,7 @@ class ABApplication(QApplication):
         )
 
     @main_window.setter
-    def main_window(self, widget):
+    def main_window(self, widget: QWidget):
         self._main_window = widget
 
     def show(self):

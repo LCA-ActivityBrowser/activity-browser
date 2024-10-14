@@ -2,6 +2,7 @@ from typing import List
 
 from PySide2 import QtCore, QtWidgets
 from PySide2.QtCore import Slot
+from PySide2.QtGui import Qt
 
 from activity_browser import actions
 from activity_browser.mod.bw2data import databases
@@ -9,7 +10,6 @@ from activity_browser.mod.bw2data import databases
 from ...settings import project_settings
 from ...signals import signals
 from ..icons import qicons
-from .delegates import CheckboxDelegate
 from .models import ActivitiesBiosphereModel, DatabasesModel
 from .views import ABDataFrameView, ABFilterableDataFrameView
 
@@ -27,7 +27,6 @@ class DatabasesTable(ABDataFrameView):
         super().__init__(parent)
         self.verticalHeader().setVisible(False)
         self.setSelectionMode(QtWidgets.QTableView.SingleSelection)
-        self.setItemDelegateForColumn(2, CheckboxDelegate(self))
 
         self.setEditTriggers(
             QtWidgets.QAbstractItemView.EditTrigger.DoubleClicked |
@@ -35,7 +34,10 @@ class DatabasesTable(ABDataFrameView):
         )
 
         self.relink_action = actions.DatabaseRelink.get_QAction(self.current_database)
-        self.new_activity_action = actions.ActivityNew.get_QAction(
+        self.new_process_action = actions.ActivityNewProcess.get_QAction(
+            self.current_database
+        )
+        self.new_product_action = actions.ActivityNewProduct.get_QAction(
             self.current_database
         )
         self.delete_db_action = actions.DatabaseDelete.get_QAction(
@@ -49,6 +51,7 @@ class DatabasesTable(ABDataFrameView):
         )
 
         self.model = DatabasesModel(parent=self)
+        self.model.set_builtin_checkbox_delegate(2, False, True, False)
         self.update_proxy_model()
         # Set up an initial sort on the table
         # This is kept and applied even after the model is reset.
@@ -60,6 +63,7 @@ class DatabasesTable(ABDataFrameView):
     def _connect_signals(self):
         self.doubleClicked.connect(self._handle_double_click)
         self.clicked.connect(self._handle_click)
+        self.model.dataChanged.connect(self._handle_data_changed)
 
     def contextMenuEvent(self, event) -> None:
         if self.indexAt(event.pos()).row() == -1:
@@ -69,7 +73,8 @@ class DatabasesTable(ABDataFrameView):
         menu.addAction(self.delete_db_action)
         menu.addAction(self.relink_action)
         menu.addAction(self.duplicate_db_action)
-        menu.addAction(self.new_activity_action)
+        menu.addAction(self.new_process_action)
+        menu.addAction(self.new_product_action)
         if databases[self.current_database()].get("backend") == "multifunctional":
             menu.addAction(self.re_allocate_action)
         proxy = self.indexAt(event.pos())
@@ -78,38 +83,15 @@ class DatabasesTable(ABDataFrameView):
             db_read_only = project_settings.db_is_readonly(db_name)
             self.relink_action.setEnabled(not db_read_only)
             self.re_allocate_action.setEnabled(not db_read_only)
-            self.new_activity_action.setEnabled(not db_read_only)
+            self.new_process_action.setEnabled(not db_read_only)
+            self.new_product_action.setEnabled(not db_read_only)
         menu.exec_(event.globalPos())
-
-    def mousePressEvent(self, e):
-        """A single mouseclick should trigger the 'read-only' column to alter
-        its value.
-
-        NOTE: This is kind of hacky as we are deliberately sidestepping
-        the 'delegate' system that should handle this.
-        If this is important in the future: call self.edit(index)
-        (inspired by: https://stackoverflow.com/a/11778012)
-        """
-        if e.button() == QtCore.Qt.LeftButton:
-            proxy = self.indexAt(e.pos())
-            if proxy.column() == 2:
-                # Flip the read-only value for the database
-                new_value = not bool(proxy.data())
-                db_name = self.model.get_db_name(proxy)
-                project_settings.modify_db(db_name, new_value)
-                signals.database_read_only_changed.emit(db_name, new_value)
-                self.proxy_model.setData(proxy, new_value)
-
-        super().mousePressEvent(e)
 
     def _handle_double_click(self, index: QtCore.QModelIndex):
         # No double click on the checkboxes
         if index.isValid() and index.column() != 2:
             # No double click on editable default allocation column,
             # because this should open the item editor
-            read_only_idx = self.proxy_model.index(index.row(), 2)
-            rd_only = self.proxy_model.data(read_only_idx)
-
             def_alloc_idx = self.proxy_model.index(index.row(), 4)
             def_alloc_editable = bool(
                 self.proxy_model.flags(def_alloc_idx) & QtCore.Qt.ItemIsEditable
@@ -122,11 +104,27 @@ class DatabasesTable(ABDataFrameView):
         if (index.isValid()
                 and index.column() == 4
                 and index.data() != DatabasesModel.NOT_APPLICABLE):
-            self.model.show_custom_allocation_editor(index)
+            read_only_idx = self.proxy_model.index(index.row(), 2)
+            rd_only = self.proxy_model.data(read_only_idx)
+            if not rd_only:
+                self.model.show_custom_allocation_editor(index)
 
     def current_database(self) -> str:
         """Return the database name of the user-selected index."""
         return self.model.get_db_name(self.currentIndex())
+
+    def _handle_data_changed(self, top_left: QtCore.QModelIndex,
+            bottom_right: QtCore.QModelIndex):
+        """Handle the change of the read-only state"""
+        if (top_left.isValid() and bottom_right.isValid() and
+                top_left.column() <= 2 <= bottom_right.column()):
+            for i in range(top_left.row(), bottom_right.row() + 1):
+                index = self.model.index(i, 2)
+                # Flip the read-only value for the database
+                read_only = index.data(Qt.ItemDataRole.CheckStateRole) == Qt.CheckState.Checked
+                db_name = self.model.get_db_name(index)
+                project_settings.modify_db(db_name, read_only)
+                signals.database_read_only_changed.emit(db_name, read_only)
 
 
 class ActivitiesBiosphereTable(ABFilterableDataFrameView):
@@ -144,7 +142,10 @@ class ActivitiesBiosphereTable(ABFilterableDataFrameView):
         self.open_activity_graph_action = actions.ActivityGraph.get_QAction(
             self.selected_keys
         )
-        self.new_activity_action = actions.ActivityNew.get_QAction(
+        self.new_process_action = actions.ActivityNewProcess.get_QAction(
+            self.current_database
+        )
+        self.new_product_action = actions.ActivityNewProduct.get_QAction(
             self.current_database
         )
         self.dup_activity_action = actions.ActivityDuplicate.get_QAction(
@@ -181,15 +182,15 @@ class ActivitiesBiosphereTable(ABFilterableDataFrameView):
 
         if len(self.selected_keys()) > 1:
             # more than 1 activity is selected
-            act = "activities"
+            act = "nodes"
             self.dup_activity_new_loc_action.setEnabled(False)
             self.relink_activity_exch_action.setEnabled(False)
         elif len(self.selected_keys()) == 1 and self.db_read_only:
-            act = "activity"
+            act = "node"
             self.dup_activity_new_loc_action.setEnabled(False)
             self.relink_activity_exch_action.setEnabled(False)
         else:
-            act = "activity"
+            act = "node"
             self.dup_activity_new_loc_action.setEnabled(True)
             self.relink_activity_exch_action.setEnabled(True)
 
@@ -202,7 +203,8 @@ class ActivitiesBiosphereTable(ABFilterableDataFrameView):
 
         if len(self.model._dataframe) == 0:
             # if the database is empty, only add the 'new' activity option and return
-            menu.addAction(self.new_activity_action)
+            menu.addAction(self.new_process_action)
+            menu.addAction(self.new_product_action)
             menu.exec_(event.globalPos())
             return
 
@@ -221,7 +223,8 @@ class ActivitiesBiosphereTable(ABFilterableDataFrameView):
 
         menu.addAction(self.open_activity_action)
         menu.addAction(self.open_activity_graph_action)
-        menu.addAction(self.new_activity_action)
+        menu.addAction(self.new_process_action)
+        menu.addAction(self.new_product_action)
         menu.addMenu(submenu_dupl)
         menu.addAction(self.delete_activity_action)
         menu.addAction(self.relink_activity_exch_action)
@@ -292,7 +295,8 @@ class ActivitiesBiosphereTable(ABFilterableDataFrameView):
         """
         if self.current_database() == db_name:
             self.db_read_only = db_read_only
-            self.new_activity_action.setEnabled(not self.db_read_only)
+            self.new_process_action.setEnabled(not self.db_read_only)
+            self.new_product_action.setEnabled(not self.db_read_only)
             self.dup_activity_action.setEnabled(not self.db_read_only)
             self.delete_activity_action.setEnabled(not self.db_read_only)
             self.dup_activity_new_loc_action.setEnabled(not self.db_read_only)

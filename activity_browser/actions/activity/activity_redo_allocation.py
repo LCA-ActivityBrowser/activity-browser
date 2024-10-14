@@ -20,7 +20,7 @@ class MultifunctionalProcessRedoAllocation(ABAction):
     @staticmethod
     @exception_dialogs
     def run(node: bd.Node):
-        if not getattr(node, "multifunctional"):
+        if not getattr(node, "multifunctional", None):
             return
         try:
             is_simapro = any(

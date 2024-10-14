@@ -17,6 +17,7 @@ from bw2data.backends import Node
 class CustomAllocationEditor(QDialog):
 
     def __init__(self, old_property: str, target: Union[str, Node],
+                 first_open: bool = False,
                  parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         self.setWindowTitle("Define custom allocation")
@@ -29,7 +30,16 @@ class CustomAllocationEditor(QDialog):
             self._target_node = None
             dialog_label = target
         self._selected_property = old_property
-        title = QLabel(f"Define custom allocation for {dialog_label}")
+        self._first_open = first_open
+        self._can_reject = True
+        if self._first_open:
+            title_text = ("This database now has a multifunctional process. "
+                "In order to do calculations correctly, we need to define a default "
+                "allocation for this database. Please choose from the following possibilities:")
+        else:
+            title_text = f"Define custom allocation for {dialog_label}"
+        self._title_label = QLabel(title_text)
+        self._title_label.setWordWrap(True)
         self._property_table = QTableWidget()
         self._property_table.setSortingEnabled(True)
         self._property_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
@@ -69,7 +79,7 @@ class CustomAllocationEditor(QDialog):
         self._cancel_button.clicked.connect(self.reject)
 
         layout = QVBoxLayout()
-        layout.addWidget(title)
+        layout.addWidget(self._title_label)
         splitter = QSplitter(Qt.Orientation.Vertical)
         splitter.addWidget(self._property_table)
         splitter.addWidget(self._status_text)
@@ -100,6 +110,14 @@ class CustomAllocationEditor(QDialog):
                 "Select a property to see a detailed analysis of eligibility")
         self._select_old()
 
+    def reject(self) -> None:
+        """
+        Overrride the Qt method, to prevent the user from closing the
+        dialog using Escape or the close button.
+        """
+        if self._can_reject:
+            super().reject()
+
     @staticmethod
     def brush_for_message_type(type: MessageType) -> QtGui.QBrush:
             if type == MessageType.ALL_VALID:
@@ -116,12 +134,32 @@ class CustomAllocationEditor(QDialog):
         according to the status.
         """
         property_list = list_available_properties(self._database_label, self._target_node)
+        if len(property_list) == 0 and self._first_open:
+            # There are no properties defined, give a detailed description on first open
+            self._title_label.setText(
+                "This database now has a multifunctional process. In order to do "
+                "calculations correctly, we need to define a default allocation; "
+                "however, there are no properties defined for the available products. "
+                "Defaulting to 'equal' allocation, please add product properties and "
+                "then select a different allocation method."
+            )
+            self._property_table.hide()
+            self._status_text.hide()
+            self._save_button.setEnabled(True)
+            self._save_button.setText("Ok")
+            self._cancel_button.setEnabled(False)
+            self._can_reject = False
+            self._selected_property = "equal"
+            self.adjustSize()
+            return
         self._property_table.clearContents()
         # Disable sorting while filling the table, otherwise the
         # inserted items will move between setting the property name
         # and status.
         self._property_table.setSortingEnabled(False)
 
+        # Inject the "equal" allocation as a property also
+        property_list.append(("equal", MessageType.ALL_VALID))
         self._property_table.setRowCount(len(property_list))
         row = 0
         for property, type in property_list:
@@ -162,24 +200,27 @@ class CustomAllocationEditor(QDialog):
         """
         if property := self._get_current_property():
             self._save_button.setEnabled(True)
-            if self._target_node is None:
-                messages = check_property_for_allocation(self._database_label, property)
+            if property == "equal":
+                self._status_text.setPlainText("All good!")
             else:
-                messages = check_property_for_process_allocation(
-                    self._target_node,
-                    property
-                )
-            if isinstance(messages, bool):
-                if messages == True:
-                    self._status_text.setPlainText("All good!")
+                if self._target_node is None:
+                    messages = check_property_for_allocation(self._database_label, property)
                 else:
-                    self._status_text.setPlainText("")
-                    log.error("Unexpected return from check_property_for_allocation.")
-            else:
-                text = f"Found {len(messages)} issues:\n\n"
-                for message in messages:
-                    text += message.message
-                self._status_text.setPlainText(text)
+                    messages = check_property_for_process_allocation(
+                        self._target_node,
+                        property
+                    )
+                if isinstance(messages, bool):
+                    if messages == True:
+                        self._status_text.setPlainText("All good!")
+                    else:
+                        self._status_text.setPlainText("")
+                        log.error("Unexpected return from check_property_for_allocation.")
+                else:
+                    text = f"Found {len(messages)} issues:\n\n"
+                    for message in messages:
+                        text += message.message
+                    self._status_text.setPlainText(text)
         else:
             self._save_button.setEnabled(False)
 
@@ -192,7 +233,9 @@ class CustomAllocationEditor(QDialog):
         Create a custom allocation based on the selected property using
         add_custom_property_allocation_to_project.
         """
-        if selected_property := self._get_current_property():
+        if not self._can_reject:
+            self.accept()
+        elif selected_property := self._get_current_property():
             self._selected_property = selected_property
             if not self._selected_property in allocation_strategies:
                 add_custom_property_allocation_to_project(self._selected_property)
@@ -206,14 +249,17 @@ class CustomAllocationEditor(QDialog):
         return self._selected_property
 
     @staticmethod
-    def define_custom_allocation(old_property: str, target: Union[str, Node], parent: Optional[QWidget] = None) -> str:
+    def define_custom_allocation(old_property: str,
+                                 target: Union[str, Node],
+                                 first_open: bool = False,
+                                 parent: Optional[QWidget] = None) -> str:
         """
         Open the custom allocation editor and return the new property, if the user
         selected one, or the old one if the user cancelled the dialog.
         """
         result = old_property
         try:
-            editor = CustomAllocationEditor(old_property, target, parent)
+            editor = CustomAllocationEditor(old_property, target, first_open, parent)
             if editor.exec_() == QDialog.DialogCode.Accepted:
                 result = editor.selected_property()
         except Exception as e:

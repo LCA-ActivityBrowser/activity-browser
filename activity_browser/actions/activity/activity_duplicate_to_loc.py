@@ -18,7 +18,7 @@ class ActivityDuplicateToLoc(ABAction):
     """
 
     icon = qicons.copy
-    text = "Duplicate activity to new location"
+    text = "Duplicate node to new location"
 
     @classmethod
     @exception_dialogs

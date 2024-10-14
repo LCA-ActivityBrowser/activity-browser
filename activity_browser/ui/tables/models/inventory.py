@@ -28,6 +28,7 @@ class DatabasesModel(EditablePandasModel):
 
     def __init__(self, parent=None):
         super().__init__(parent=parent)
+        self.set_read_only(False)
         projects.current_changed.connect(self.sync)
         databases.metadata_changed.connect(self.sync)
 
@@ -66,18 +67,6 @@ class DatabasesModel(EditablePandasModel):
         return databases[db_name].get("default_allocation",
                                       DatabasesModel.UNSPECIFIED_ALLOCATION)
 
-    def flags(self, index: QModelIndex) -> Qt.ItemFlags:
-        """Only allow editing of rows where the read-only flag is not set."""
-        if not index.isValid():
-            return Qt.ItemFlag.NoItemFlags
-        read_only = self._dataframe.iat[index.row(), 2]
-        # Skip the EditablePandasModel.flags() because it always returns the editable
-        # flag
-        result = PandasModel.flags(self, index)
-        if not read_only:
-            result |= Qt.ItemIsEditable
-        return result
-
     def data(self, index: QModelIndex,
              role: int = Qt.ItemDataRole.DisplayRole) -> Any:
         result = super().data(index, role)
@@ -94,13 +83,12 @@ class DatabasesModel(EditablePandasModel):
                     return style_item.brushes["hyperlink"]
         return result
 
-
     def show_custom_allocation_editor(self, proxy: QModelIndex):
         if proxy.isValid() and proxy.column() == 4:
             current_db = proxy.siblingAtColumn(0).data()
             current_allocation = databases[current_db].get("default_allocation", "")
             custom_value = CustomAllocationEditor.define_custom_allocation(
-                current_allocation, current_db, self.parent()
+                current_allocation, current_db, first_open=False, parent=self.parent()
             )
             if custom_value != current_allocation:
                 # In this approach there is no way currently to delete the

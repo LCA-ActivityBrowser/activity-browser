@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 import itertools
-from typing import Any, Iterable
+from typing import Any, Iterable, Optional
 
+from PySide2 import QtCore
 import pandas as pd
 from asteval import Interpreter
 from bw2data.parameters import (
@@ -37,12 +38,18 @@ class BaseExchangeModel(EditablePandasModel):
         "comment",
         "functional",
     }
+    UNCERTAINTY_ITEMS = ["loc", "scale", "shape", "minimum", "maximum"]
+
+    exchange_changed = QtCore.Signal(ExchangeProxyBase)
 
     def __init__(self, key=None, parent=None):
         super().__init__(parent=parent)
         self.key = key
         self.exchanges = []
         self.exchange_column = 0
+        self.dataChanged.connect(self._handle_data_changed)
+        # Query column names
+        self._columns = list(self.create_row(None).keys())
 
     def load(self, exchanges: Iterable):
         self.exchanges = exchanges
@@ -58,27 +65,176 @@ class BaseExchangeModel(EditablePandasModel):
         self.updated.emit()
 
     @property
-    def columns(self) -> list:
-        return self.COLUMNS + ["exchange"]
+    def columns(self) -> list[str]:
+        # return self.COLUMNS + ["exchange"]
+        return self._columns
 
-    def create_row(self, exchange) -> dict:
+    def create_row(self, exchange: Optional[ExchangeProxyBase]) -> dict[str, Any]:
         """Take the given Exchange object and extract a number of attributes."""
         try:
-            row = {
-                "Amount": float(exchange.get("amount", 1)),
-                "Unit": exchange.input.get("unit", "Unknown"),
-                "exchange": exchange,
-            }
+            row = {}
+            self.update_row_with_common_columns(row, exchange)
+            #     "Amount": float(exchange.get("amount", 1)),
+            #     "Unit": exchange.input.get("unit", "Unknown"),
+            #     "exchange": exchange,
+            # }
 
             # sync when the exchange input or output changes
-            exchange.input.changed.connect(self.sync, Qt.UniqueConnection)
-            exchange.output.changed.connect(self.sync, Qt.UniqueConnection)
+            if exchange is not None:
+                exchange.input.changed.connect(self.sync, Qt.UniqueConnection)
+                exchange.output.changed.connect(self.sync, Qt.UniqueConnection)
 
             return row
         except DoesNotExist as e:
             # The input activity does not exist. remove the exchange.
             log.warning(f"Broken exchange: {e}, removing.")
             actions.ExchangeDelete.run([exchange])
+
+    @staticmethod
+    def update_row_with_common_columns(row: dict[str, Any],
+                                       exchange: Optional[ExchangeProxyBase]):
+        if exchange is not None:
+            row.update({
+                "Amount": float(exchange.get("amount", 1)),
+                "Unit": exchange.input.get("unit", "Unknown"),
+                "exchange": exchange,
+            })
+        else:
+            row.update({
+                "Amount": "",
+                "Unit": "",
+                "exchange": None,
+            })
+
+    @staticmethod
+    def update_row_with_node_name(row: dict[str, Any], col_name: str,
+                                  exchange: Optional[ExchangeProxyBase]):
+        if exchange is not None:
+            act = exchange.input
+            row.update({
+                col_name: act.get("name"),
+            })
+        else:
+            row.update({
+                col_name: "",
+            })
+
+    @staticmethod
+    def update_row_with_product_name(row: dict[str, Any], exchange: Optional[ExchangeProxyBase]):
+        if exchange is not None:
+            act = exchange.input
+            product = act.get("reference product", act.get("name"))
+            row.update({
+                "Product": product,
+            })
+        else:
+            row.update({
+                "Product": "",
+            })
+
+    @staticmethod
+    def update_row_with_functional(row: dict[str, Any], exchange: Optional[ExchangeProxyBase]):
+        if exchange is not None:
+            row.update({
+                "Functional": exchange.get("functional", False),
+                "Allocation factor": as_number(exchange.get('mf_allocation_factor')),
+            })
+        else:
+            row.update({
+                "Functional": "",
+                "Allocation factor": "",
+            })
+
+    @staticmethod
+    def update_row_with_categories(row: dict[str, Any], exchange: Optional[ExchangeProxyBase]):
+        if exchange is not None:
+            act = exchange.input
+            row.update({
+                "Compartments": " - ".join(act.get("categories", [])),
+            })
+        else:
+            row.update({
+                "Compartments": "",
+            })
+
+    @staticmethod
+    def update_row_with_location(row: dict[str, Any], exchange: Optional[ExchangeProxyBase]):
+        if exchange is not None:
+            act = exchange.input
+            row.update({
+                "Location": act.get("location", "Unknown"),
+            })
+        else:
+            row.update({
+                "Location": "",
+            })
+
+    @staticmethod
+    def update_row_with_database(row: dict[str, Any], exchange: Optional[ExchangeProxyBase]):
+        if exchange is not None:
+            act = exchange.input
+            row.update({
+                "Database": act.get("database"),
+            })
+        else:
+            row.update({
+                "Database": "",
+            })
+
+    @staticmethod
+    def update_row_with_uncertainty_type(row: dict[str, Any], exchange: Optional[ExchangeProxyBase]):
+        if exchange is not None:
+            row.update({
+                "Uncertainty": exchange.get("uncertainty type", 0),
+            })
+        else:
+            row.update({
+                "Uncertainty": "",
+            })
+
+    @staticmethod
+    def update_row_with_pedigree(row: dict[str, Any], exchange: Optional[ExchangeProxyBase]):
+        if exchange is not None:
+            try:
+                matrix = PedigreeMatrix.from_dict(exchange.get("pedigree", {}))
+                row.update({"pedigree": matrix.factors_as_tuple()})
+            except AssertionError:
+                row.update({"pedigree": None})
+        else:
+            row.update({"pedigree": ""})
+
+    @staticmethod
+    def update_row_with_uncertainty_items(row: dict[str, Any], exchange: Optional[ExchangeProxyBase]):
+        if exchange is not None:
+            row.update(
+                {k: v for k, v in exchange.uncertainty.items() if k in BaseExchangeModel.UNCERTAINTY_ITEMS}
+            )
+        else:
+            row.update(
+                {k: "" for k in BaseExchangeModel.UNCERTAINTY_ITEMS}
+            )
+
+    @staticmethod
+    def update_row_with_formula(row: dict[str, Any], exchange: Optional[ExchangeProxyBase]):
+        if exchange is not None:
+            row.update({
+                "Formula": exchange.get("formula"),
+            })
+        else:
+            row.update({
+                "Formula": "",
+            })
+
+    @staticmethod
+    def update_row_with_comment(row: dict[str, Any], exchange: Optional[ExchangeProxyBase]):
+        if exchange is not None:
+            row.update({
+                "Comment": exchange.get("comment"),
+            })
+        else:
+            row.update({
+                "Comment": "",
+            })
 
     def get_exchange(self, proxy: QModelIndex) -> ExchangeProxyBase:
         idx = self.proxy_to_source(proxy)
@@ -115,15 +271,23 @@ class BaseExchangeModel(EditablePandasModel):
         """Whenever data is changed, call an update to the relevant exchange
         or activity.
         """
-        header = self._dataframe.columns[index.column()]
-        field = bc.AB_names_to_bw_keys.get(header, header)
-        exchange = self._dataframe.iat[index.row(), self.exchange_column]
-        if field in self.VALID_FIELDS:
-            actions.ExchangeModify.run(exchange, {field: value})
-        else:
-            act_key = exchange.output.key
-            actions.ActivityModify.run(act_key, field, value)
-        return super().setData(index, value, role)
+        if index.isValid() and not self._read_only:
+            value, check_ok = self.prepare_set_value(index, value, role)
+            if role == Qt.EditRole or check_ok:
+                header = self._dataframe.columns[index.column()]
+                field = bc.AB_names_to_bw_keys.get(header, header)
+                exchange = self._dataframe.iat[index.row(), self.exchange_column]
+                if field in self.VALID_FIELDS:
+                    actions.ExchangeModify.run(exchange, {field: value})
+                else:
+                    act_key = exchange.input.key
+                    actions.ActivityModify.run(act_key, field, value)
+                # This is actually, not entirely correct. The data in the table
+                # has not been changed yet, it will be when the updates from
+                # above changes trigger. But the underlying data has been changed.
+                self.dataChanged.emit(index, index, [role])
+
+        return False
 
     def get_usable_parameters(self):
         """Use the `key` set for the table to determine the database and
@@ -193,6 +357,13 @@ class BaseExchangeModel(EditablePandasModel):
             interpreter.symtable.update(DatabaseParameter.static(self.key[0]))
         return interpreter
 
+    def _handle_data_changed(self, top_left: QModelIndex, bottom_right: QModelIndex):
+        if top_left.isValid() and bottom_right.isValid():
+            for i in range(top_left.row(), bottom_right.row() + 1):
+                index = self.index(i, 3)
+                exc = self.get_exchange(index)
+                self.exchange_changed.emit(exc)
+
 
 def as_number(o) -> str:
     if o is None:
@@ -201,68 +372,27 @@ def as_number(o) -> str:
 
 
 class ProductExchangeModel(BaseExchangeModel):
-    COLUMNS = ["Amount", "Unit", "Product", "Functional", "Allocation factor", "Formula"]
 
     def __init__(self, key=None, parent=None):
         super().__init__(key, parent)
-        self.dataChanged.connect(self._handle_data_changed)
+        self.set_readonly_column(self.columns.index("Allocation factor"))
+        self.set_builtin_checkbox_delegate(self.columns.index("Functional"), show_text_value = False)
 
     def create_row(self, exchange) -> dict:
         row = super().create_row(exchange)
-        act = exchange.input
-        product = act.get("reference product", act.get("name"))
-        row.update({
-            "Product": product,
-            "Functional": str(exchange.get("functional", "False")),
-            "Allocation factor": as_number(exchange.get('mf_allocation_factor')),
-            "Formula": exchange.get("formula")
-        })
+        self.update_row_with_product_name(row, exchange)
+        self.update_row_with_functional(row, exchange)
+        self.update_row_with_location(row, exchange) # new
+        self.update_row_with_database(row, exchange) # new
+        self.update_row_with_uncertainty_type(row, exchange) # new
+        self.update_row_with_pedigree(row, exchange) # new
+        self.update_row_with_uncertainty_items(row, exchange) # new
+        self.update_row_with_formula(row, exchange)
+        self.update_row_with_comment(row, exchange) # new
         return row
 
-    def flags(self, index: QModelIndex):
-        result = super().flags(index)
-        if not self.is_read_only():
-            if index.column() in [3, 4]:
-                # Remove the editable flag, so that the user can not change the
-                # "True" and "False" values for functional or the value of
-                # the allocation factor
-                result &= ~Qt.ItemFlag.ItemIsEditable
-            if index.column() == 3:
-                # Make functional column checkable
-                result |= Qt.ItemIsUserCheckable
-        return result
-
-    def data(self, index: QModelIndex,
-             role: int = Qt.ItemDataRole.DisplayRole) -> Any:
-        check_state_role = False
-        if index.isValid() and index.column() == 3 and role == Qt.ItemDataRole.CheckStateRole:
-            # Checkboxes produce queries with CheckStateRole, but the base model
-            # only suports DisplayRole queries
-            role = Qt.ItemDataRole.DisplayRole
-            check_state_role = True
-        result = super().data(index, role)
-        if check_state_role:
-            # Convert the data to an appropriate value for the checkbox
-            return Qt.CheckState.Checked if result == "True" else Qt.CheckState.Unchecked
-        return result
-
-    def setData(self, index: QModelIndex, value: Any,
-             role: int = Qt.ItemDataRole.DisplayRole) -> bool:
-        check_state_role = False
-        if index.isValid() and index.column() == 3 and role == Qt.ItemDataRole.CheckStateRole:
-            # Checkbox values will be Checked or Unchecked, convert these to the
-            # value expected by the database
-            value = "True" if value == Qt.CheckState.Checked else "False"
-            # The base model handles only the EditRole
-            role = Qt.ItemDataRole.EditRole
-            check_state_role = True
-        result = super().setData(index, value, role)
-        if result and check_state_role:
-            # Notify the view that the checkbox roles has also changed
-            self.dataChanged.emit(index, index, [Qt.ItemDataRole.CheckStateRole])
-        return result
-
     def _handle_data_changed(self, top_left: QModelIndex, bottom_right: QModelIndex):
+        super()._handle_data_changed(top_left, bottom_right)
         if top_left.isValid() and bottom_right.isValid():
             # If the amount column is in the changed columns
             if top_left.column() <= 0 <= bottom_right.column():
@@ -273,101 +403,42 @@ class ProductExchangeModel(BaseExchangeModel):
 
 
 class TechnosphereExchangeModel(BaseExchangeModel):
-    COLUMNS = [
-        "Amount",
-        "Unit",
-        "Product",
-        "Activity",
-        "Location",
-        "Database",
-        "Uncertainty",
-        "Formula",
-        "Comment",
-    ]
-    UNCERTAINTY = ["loc", "scale", "shape", "minimum", "maximum"]
 
-    @property
-    def columns(self) -> list:
-        columns = super().columns
-        start = columns[: columns.index("Formula")]
-        end = columns[columns.index("Formula") :]
-        return start + ["pedigree"] + self.UNCERTAINTY + end
+    def __init__(self, key=None, parent=None):
+        super().__init__(key, parent)
+        self.set_readonly_column(self.columns.index("Allocation factor"))
+        self.set_builtin_checkbox_delegate(self.columns.index("Functional"), show_text_value = False)
 
     def create_row(self, exchange: ExchangeProxyBase) -> dict:
         row = super().create_row(exchange)
-        try:
-            act = exchange.input
-            row.update(
-                {
-                    "Product": act.get("reference product", act.get("name")),
-                    "Activity": act.get("name"),
-                    "Location": act.get("location", "Unknown"),
-                    "Database": act.get("database"),
-                    "Uncertainty": exchange.get("uncertainty type", 0),
-                    "Formula": exchange.get("formula"),
-                    "Comment": exchange.get("comment"),
-                }
-            )
-            try:
-                matrix = PedigreeMatrix.from_dict(exchange.get("pedigree", {}))
-                row.update({"pedigree": matrix.factors_as_tuple()})
-            except AssertionError:
-                row.update({"pedigree": None})
-            row.update(
-                {k: v for k, v in exchange.uncertainty.items() if k in self.UNCERTAINTY}
-            )
-            return row
-        except DoesNotExist as e:
-            log.info("Exchange was deleted, continue.")
-            return {}
+        self.update_row_with_product_name(row, exchange)
+        self.update_row_with_functional(row, exchange)
+        self.update_row_with_node_name(row, "Activity", exchange) # diff from first
+        self.update_row_with_location(row, exchange)
+        self.update_row_with_database(row, exchange)
+        self.update_row_with_uncertainty_type(row, exchange)
+        self.update_row_with_pedigree(row, exchange)
+        self.update_row_with_uncertainty_items(row, exchange)
+        self.update_row_with_formula(row, exchange)
+        self.update_row_with_comment(row, exchange)
+        return row
 
 
 class BiosphereExchangeModel(BaseExchangeModel):
-    COLUMNS = [
-        "Amount",
-        "Unit",
-        "Flow Name",
-        "Compartments",
-        "Database",
-        "Uncertainty",
-        "Formula",
-        "Comment",
-    ]
-    UNCERTAINTY = ["loc", "scale", "shape", "minimum", "maximum"]
-
-    @property
-    def columns(self) -> list:
-        columns = super().columns
-        start = columns[: columns.index("Formula")]
-        end = columns[columns.index("Formula") :]
-        return start + ["pedigree"] + self.UNCERTAINTY + end
 
     def create_row(self, exchange) -> dict:
         row = super().create_row(exchange)
-        try:
-            act = exchange.input
-            row.update(
-                {
-                    "Flow Name": act.get("name"),
-                    "Compartments": " - ".join(act.get("categories", [])),
-                    "Database": act.get("database"),
-                    "Uncertainty": exchange.get("uncertainty type", 0),
-                    "Formula": exchange.get("formula"),
-                    "Comment": exchange.get("comment"),
-                }
-            )
-            try:
-                matrix = PedigreeMatrix.from_dict(exchange.get("pedigree", {}))
-                row.update({"pedigree": matrix.factors_as_tuple()})
-            except AssertionError:
-                row.update({"pedigree": None})
-            row.update(
-                {k: v for k, v in exchange.uncertainty.items() if k in self.UNCERTAINTY}
-            )
-            return row
-        except DoesNotExist as e:
-            log.info("Exchange was deleted, continue.")
-            return {}
+        self.update_row_with_node_name(row, "Flow Name", exchange)
+        self.update_row_with_categories(row, exchange)
+        self.update_row_with_location(row, exchange) # new
+        self.update_row_with_database(row, exchange)
+        self.update_row_with_uncertainty_type(row, exchange)
+        self.update_row_with_pedigree(row, exchange)
+        self.update_row_with_uncertainty_items(row, exchange) # new
+        self.update_row_with_formula(row, exchange)
+        self.update_row_with_comment(row, exchange)
+
+        return row
 
 
 class DownstreamExchangeModel(BaseExchangeModel):
@@ -375,19 +446,12 @@ class DownstreamExchangeModel(BaseExchangeModel):
     restricted.
     """
 
-    COLUMNS = ["Amount", "Unit", "Product", "Activity", "Location", "Database"]
-
     def create_row(self, exchange) -> dict:
         row = super().create_row(exchange)
-        act = exchange.output
-        row.update(
-            {
-                "Product": act.get("reference product", act.get("name")),
-                "Activity": act.get("name"),
-                "Location": act.get("location", "Unknown"),
-                "Database": act.get("database"),
-            }
-        )
+        self.update_row_with_product_name(row, exchange)
+        self.update_row_with_node_name(row, "Activity", exchange) # diff from first
+        self.update_row_with_location(row, exchange)
+        self.update_row_with_database(row, exchange)
         return row
 
     def get_key(self, proxy: QModelIndex) -> tuple:

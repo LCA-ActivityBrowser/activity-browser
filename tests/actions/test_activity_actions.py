@@ -111,7 +111,7 @@ def test_activity_new(ab_app, monkeypatch):
         staticmethod(lambda *args, **kwargs: ("activity_that_is_new", True)),
     )
 
-    actions.ActivityNew.run(database_name)
+    actions.ActivityNewProcess.run(database_name)
 
     assert records < len(Database(database_name))
 
