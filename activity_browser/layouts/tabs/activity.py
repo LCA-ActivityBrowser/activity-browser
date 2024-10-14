@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from bw2data import databases
+from bw2data import databases, get_node
 from bw2data.proxies import ExchangeProxyBase
 from peewee import DoesNotExist
 from PySide2 import QtCore, QtWidgets
@@ -392,8 +392,6 @@ class ActivityTab(QtWidgets.QWidget):
             # change process and database type to `multifunctional`
             log.info(f"{functional_count} functional exchanges detected. "
                      f"Changing process type to multifunctional for {self.activity}")
-            self.activity["type"] = "multifunctional"
-            self.activity.save()
             # Change database to multifunctional, if it is not already
             if databases[self.db_name]["backend"] != "multifunctional":
                 log.info(f"Changing database type to multifunctional for {self.db_name}")
@@ -408,9 +406,14 @@ class ActivityTab(QtWidgets.QWidget):
                     databases[self.db_name]["default_allocation"] = default_allocation
                 databases.flush()
 
+            # Might need a new activity base class if database backend changed
+            self.activity = get_node(id=self.activity.id)
+            self.activity["type"] = "multifunctional"
+            self.activity.save()
+
         # Change process type to `process`, if there is maximum one functional
         # exchange. Do not change back database type.
         if self.activity["type"] == "multifunctional" and functional_count <= 1:
+            self.activity = get_node(id=self.activity.id)
             self.activity["type"] = "process"
             self.activity.save()
-
