@@ -613,6 +613,10 @@ class ScenarioImportWidget(QtWidgets.QWidget):
                     log.info(
                         "Superstructure: Attempting to read as parameter scenario file."
                     )
+
+                    if not df["Group"].dtype == object:
+                        df["Group"] = df["Group"].astype(str)
+
                     include_default = True
                     if "default" not in df.columns:
                         query = QtWidgets.QMessageBox.question(
