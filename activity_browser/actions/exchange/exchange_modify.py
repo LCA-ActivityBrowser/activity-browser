@@ -23,7 +23,7 @@ class ExchangeModify(ABAction):
     @exception_dialogs
     def run(cls, exchange: ExchangeProxyBase, data: dict):
         for key, value in data.items():
-            if key == "functional" and value == True:
+            if key == "functional" and value:
                 if (existing_func_edges := cls.get_functional_edges_to_same(exchange)):
                     log.info(f"Can not set exchange {exchange} to functional, "
                               f"there is already a functional exchange: {existing_func_edges[0]}")
@@ -38,7 +38,8 @@ class ExchangeModify(ABAction):
             exchange[key] = value
         exchange.save()
         if "functional" in data or exchange.output.get("type") == "multifunctional":
-            exchange.output.allocate()
+            if hasattr(exchange.output, "allocate"):
+                exchange.output.allocate()
             exchange.output.save()
 
         if "formula" in data:
