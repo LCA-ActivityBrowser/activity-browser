@@ -74,7 +74,7 @@ class ActivityDataGrid(QtWidgets.QWidget):
             key=parent.key,
             field="location",
             parent=self,
-            contents=parent.activity.get("location", ""),
+            contents=self._get_location(),
         )
         self.location_combo.setToolTip(
             "Select an existing location from the current activity database."
@@ -146,26 +146,37 @@ class ActivityDataGrid(QtWidgets.QWidget):
         self.populate_database_combo()
         self.populate_def_alloc_combo()
 
+
+    def _get_location(self) -> str:
+        location = str(self.parent.activity.get("location", "unknown"))
+        if location == "":
+            location = "unknown"
+        return location
+
     def populate_location_combo(self):
         """acts as both of: a label to show current location of act, and
         auto-completes with all other locations in the database, to enable selection"""
         self.location_combo.blockSignals(True)
-        location = str(self.parent.activity.get("location", ""))
-        self.location_combo.addItem(location)
+        location = self._get_location()
+        # If the entry is not yet added
+        if self.location_combo.findText(location) < 0:
+            self.location_combo.addItem(location)
         self.location_combo.setCurrentText(location)
         self.location_combo.blockSignals(False)
 
     def update_location_combo(self):
         """Update when in edit mode"""
         self.location_combo.blockSignals(True)
-        location = str(self.parent.activity.get("location", "unknown"))
+        location = self._get_location()
         self.location_combo._before = location
 
         # get all locations in db
         self.location_combo.clear()
         db = self.parent.activity.get("database", "")
         locations = sorted(AB_metadata.get_locations(db))
-        locations.append("unknown")
+        if "unknown" not in locations:
+            locations.append("unknown")
+        self.location_combo.clear()
         self.location_combo.insertItems(0, locations)
         self.location_combo.setCurrentIndex(locations.index(location))
         self.location_combo.blockSignals(False)
