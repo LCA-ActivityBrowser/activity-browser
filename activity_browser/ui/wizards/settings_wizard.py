@@ -60,13 +60,7 @@ class SettingsPage(QtWidgets.QWizardPage):
         self.wizard = parent
         self.complete = False
 
-        self.startup_project_combobox = QtWidgets.QComboBox()
-        self.update_project_combo()
-
-        self.registerField(
-            "startup_project", self.startup_project_combobox, "currentText"
-        )
-
+        # bw dir
         self.bwdir_variables = set()
         self.bwdir = QtWidgets.QComboBox()
 
@@ -77,6 +71,25 @@ class SettingsPage(QtWidgets.QWizardPage):
         self.bwdir_name = QtWidgets.QLineEdit(self.bwdir.currentText())
         self.registerField("current_bw_dir", self.bwdir_name)
 
+        # startup project
+        self.startup_project_combobox = QtWidgets.QComboBox()
+        self.update_project_combo()
+
+        self.registerField(
+            "startup_project", self.startup_project_combobox, "currentText"
+        )
+
+        # light/dark theme
+        self.theme_combo = QtWidgets.QComboBox()
+        self.theme_combo.addItems([
+            "Light theme",
+            "Dark theme compatibility"
+        ])
+        self.theme_combo.setCurrentText(ab_settings.theme)
+        self.registerField(
+            "theme_cbox", self.theme_combo, "currentText"
+        )
+
         # Startup options
         self.startup_groupbox = QtWidgets.QGroupBox("Startup Options")
         self.startup_layout = QtWidgets.QGridLayout()
@@ -86,6 +99,9 @@ class SettingsPage(QtWidgets.QWizardPage):
         self.startup_layout.addWidget(self.bwdir_remove_button, 0, 3)
         self.startup_layout.addWidget(QtWidgets.QLabel("Startup Project: "), 1, 0)
         self.startup_layout.addWidget(self.startup_project_combobox, 1, 1)
+        self.startup_layout.addWidget(QtWidgets.QLabel("Theme: "), 2, 0)
+        self.startup_layout.addWidget(self.theme_combo, 2, 1)
+        self.startup_layout.addWidget(QtWidgets.QLabel("(Requires restart)"), 2, 2)
 
         self.startup_groupbox.setLayout(self.startup_layout)
 
@@ -102,6 +118,7 @@ class SettingsPage(QtWidgets.QWizardPage):
         self.bwdir_browse_button.clicked.connect(self.bwdir_browse)
         self.bwdir_remove_button.clicked.connect(self.bwdir_remove)
         self.bwdir.currentTextChanged.connect(self.bwdir_change)
+        self.theme_combo.currentTextChanged.connect(self.theme_change)
         self.restore_defaults_button.clicked.connect(self.restore_defaults)
 
     def bw_projects(self, path: str):
@@ -155,6 +172,12 @@ class SettingsPage(QtWidgets.QWizardPage):
             settings::ABSettings - uses but doesn't set bw2 variables, sets variables in the settings file
         """
         self.change_bw_dir(path)
+
+    def theme_change(self, theme: str):
+        """Change the theme."""
+        if ab_settings.theme != theme:
+            ab_settings.theme = theme
+            self.changed()
 
     def bwdir_browse(self):
         """

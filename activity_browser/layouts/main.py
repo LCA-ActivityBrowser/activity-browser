@@ -1,10 +1,7 @@
 # -*- coding: utf-8 -*-
-import importlib.util
-import shutil
-import sys
-import traceback
+from PySide2 import QtCore, QtWidgets
 
-from PySide2 import QtCore, QtGui, QtWidgets
+import activity_browser.mod.bw2data as bd
 
 from ..signals import signals
 from ..ui.icons import qicons
@@ -76,6 +73,11 @@ class MainWindow(QtWidgets.QMainWindow):
     def connect_signals(self):
         # Keyboard shortcuts
         signals.restore_cursor.connect(self.restore_user_control)
+
+        bd.projects.current_changed.connect(self.set_titlebar)
+
+    def set_titlebar(self):
+        self.setWindowTitle(f"Activity Browser - {bd.projects.current}")
 
     def add_tab_to_panel(self, obj, label, side):
         panel = self.left_panel if side == "left" else self.right_panel

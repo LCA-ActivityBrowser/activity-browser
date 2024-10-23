@@ -116,8 +116,8 @@ def test_cf_uncertainty_remove(ab_app):
 
 def test_method_delete(ab_app, monkeypatch):
     method = ("A_methods", "methods", "method_to_delete")
-    branch = ("A_methods", "methods_to_delete")
-    branched_method = ("A_methods", "methods_to_delete", "method_to_delete")
+    dual_method_1 = ("A_methods", "methods_to_delete", "method_to_delete_one")
+    dual_method_2 = ("A_methods", "methods_to_delete", "method_to_delete_two")
 
     monkeypatch.setattr(
         QtWidgets.QMessageBox,
@@ -127,13 +127,15 @@ def test_method_delete(ab_app, monkeypatch):
 
     assert bd.projects.current == "default"
     assert method in bd.methods
-    assert branched_method in bd.methods
+    assert dual_method_1 in bd.methods
+    assert dual_method_2 in bd.methods
 
-    actions.MethodDelete.run([method], "leaf")
-    actions.MethodDelete.run([branch], "branch")
+    actions.MethodDelete.run([method])
+    actions.MethodDelete.run([dual_method_1, dual_method_2])
 
     assert method not in bd.methods
-    assert branched_method not in bd.methods
+    assert dual_method_1 not in bd.methods
+    assert dual_method_2 not in bd.methods
 
 
 def test_method_duplicate(ab_app, monkeypatch):
