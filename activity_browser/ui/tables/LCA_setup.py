@@ -128,41 +128,14 @@ class CSActivityTable(CSGenericTable):
         menu.exec_(event.globalPos())
 
     def dragEnterEvent(self, event):
-        if (
-            (
-                isinstance(event.source(), ActivitiesBiosphereTable)
-                and getattr(event.source(), "technosphere", False)
-            )
-            or isinstance(event.source(), ActivitiesBiosphereTree)
-            or event.source() is self
-        ):
+        if event.mimeData().hasFormat("application/bw-nodekeylist"):
             event.accept()
 
     def dropEvent(self, event) -> None:
         event.accept()
-        source = event.source()
-        if isinstance(event.source(), ActivitiesBiosphereTable):
-            # get the key from the TABLE for every selected index and convert it to dict
-            log.debug("Dropevent from:", source)
-            self.model.include_activities(
-                ({key: 1.0} for key in source.selected_keys())
-            )
-        elif isinstance(event.source(), ActivitiesBiosphereTree):
-            # get a list of keys from the TREE for the selected tree level (respecting search) and convert to dict
-            log.debug("Dropevent from:", source)
-            self.model.include_activities(
-                ({key: 1.0} for key in source.selected_keys())
-            )
-        elif event.source() is self:
-            selection = self.selectedIndexes()
-            from_index = selection[0].row() if selection else -1
-            to_index = self.indexAt(event.pos()).row()
-            if (
-                0 <= from_index < self.model.rowCount()
-                and 0 <= to_index < self.model.rowCount()
-                and from_index != to_index
-            ):
-                self.model.relocateRow(from_index, to_index)
+        keys = event.mimeData().retrievePickleData("application/bw-nodekeylist")
+        log.debug("Dropevent from:", event.source())
+        self.model.include_activities(({key: 1.0} for key in keys))
 
 
 class CSMethodsTable(CSGenericTable):

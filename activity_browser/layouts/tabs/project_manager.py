@@ -3,6 +3,9 @@ from PySide2 import QtCore, QtWidgets
 from activity_browser import actions, signals
 from activity_browser.mod import bw2data as bd
 from activity_browser.layouts.panels import ABTab
+from activity_browser.layouts import panes
+from activity_browser.ui import widgets as ABWidgets
+from activity_browser.bwutils import AB_metadata
 
 from ...ui.style import header
 from ...ui.icons import qicons
@@ -160,7 +163,7 @@ class ActivityBiosphereTabs(ABTab):
         """Put focus on tab, if not open yet, open it."""
         # create the tab if it doesn't exist yet
         if not self.tabs.get(db_name, False):
-            widget = ActivityBiosphereWidget(parent=self, db_name=db_name)
+            widget = panes.DatabaseExplorer(parent=self, db_name=db_name)
             self.add_tab(widget, db_name)
 
             widget.destroyed.connect(
@@ -177,152 +180,3 @@ class ActivityBiosphereTabs(ABTab):
         db_name = self.get_tab_name_from_index(current_index)
         signals.database_tab_open.emit(db_name)
 
-
-class ActivityBiosphereWidget(QtWidgets.QWidget):
-    def __init__(self, parent, db_name: str):
-        super(ActivityBiosphereWidget, self).__init__(parent)
-        self.database = bd.Database(db_name)
-        self.table = ActivitiesBiosphereTable(self)
-        self.tree = None
-
-        self.database.changed.connect(self.database_changed)
-        self.database.deleted.connect(self.deleteLater)
-
-        # Header widget
-        self.header_widget = QtWidgets.QWidget()
-        self.header_layout = QtWidgets.QHBoxLayout()
-        self.header_layout.setAlignment(QtCore.Qt.AlignLeft)
-        self.header_widget.setLayout(self.header_layout)
-
-        # auto-search
-        self.debounce_search = QtCore.QTimer()
-        self.debounce_search.setInterval(300)
-        self.debounce_search.setSingleShot(True)
-        self.debounce_search.timeout.connect(self.set_search_term)
-
-        self.setup_search()
-        self.search_active = False
-
-        self.mode_radio_list = QtWidgets.QRadioButton("List view")
-        self.mode_radio_list.setChecked(True)
-        self.mode_radio_list.setToolTip("List view of the database")
-        self.mode_radio_list.hide()
-        self.mode_radio_tree = QtWidgets.QRadioButton("Tree view")
-        self.mode_radio_tree.setToolTip("Tree view of the database")
-        self.mode_radio_tree.hide()
-        self.mode_radio_tree.toggled.connect(self.update_view)
-
-        self.header_layout.addWidget(self.mode_radio_list)
-        self.header_layout.addWidget(self.mode_radio_tree)
-
-        # Overall Layout
-        self.v_layout = QtWidgets.QVBoxLayout()
-        self.v_layout.setAlignment(QtCore.Qt.AlignTop)
-        self.v_layout.addWidget(self.header_widget)
-        self.v_layout.addWidget(self.table)
-        self.setLayout(self.v_layout)
-
-        # load data
-        self.database_changed(self.database)
-
-    def create_tree(self):
-        self.tree = ActivitiesBiosphereTree(self, self.database.name)
-
-        # check if search was active, if so, apply to tree
-        if self.search_active:
-            self.tree.search(self.search_active)
-
-        self.v_layout.addWidget(self.tree)
-        self.reset_search_button.clicked.connect(self.tree.reset_search)
-
-    def connect_signals(self):
-        self.mode_radio_tree.toggled.connect(self.update_view)
-
-    def reset_widget(self):
-        self.hide()
-        self.table.model.clear()
-        self.tree = None
-
-    def setup_search(self):
-        # 1st search box
-        self.search_box = QtWidgets.QLineEdit()
-        self.search_box.setPlaceholderText("Search")
-        self.search_box.textChanged.connect(self.debounce_search.start)
-        self.search_box.returnPressed.connect(self.set_search_term)
-
-        # search
-        self.search_button = QtWidgets.QToolButton()
-        self.search_button.setIcon(qicons.search)
-        self.search_button.setToolTip("Filter activities")
-        self.search_button.clicked.connect(self.set_search_term)
-
-        # reset search
-        self.reset_search_button = QtWidgets.QToolButton()
-        self.reset_search_button.setIcon(qicons.delete)
-        self.reset_search_button.setToolTip("Clear the search")
-        self.reset_search_button.clicked.connect(self.table.reset_search)
-        self.reset_search_button.clicked.connect(self.search_box.clear)
-
-        bd.projects.current_changed.connect(self.search_box.clear)
-        self.header_layout.addWidget(self.search_box)
-        self.header_layout.addWidget(self.search_button)
-        self.header_layout.addWidget(self.reset_search_button)
-
-    def set_search_term(self):
-        search_term = self.search_box.text().strip()
-        self.search_active = search_term
-        self.table.search(search_term)
-        if isinstance(self.tree, ActivitiesBiosphereTree):
-            self.tree.search(search_term)
-
-    def reset_search(self):
-        self.search_active = False
-        self.search_box.clear()
-
-    @QtCore.Slot(bool, name="isListToggled")
-    def update_view(self, toggled: bool):
-        self.table.setVisible(not toggled)
-
-        if not isinstance(self.tree, ActivitiesBiosphereTree):
-            self.create_tree()
-        self.tree.setVisible(toggled)
-
-    def database_changed(self, database: bd.Database) -> None:
-        if (
-            database.name != self.database.name
-        ):  # only update if the database changed is the one shown by this widget
-            return
-
-        self.table.model.sync(self.database.name, query=self.table.model.query)
-
-        if (
-            "ISIC rev.4 ecoinvent" in self.table.model._dataframe.columns
-            and not isinstance(self.tree, ActivitiesBiosphereTree)
-        ):
-            # a treeview does not exist and should be able to navigate to
-
-            # set the view to list and show the radio buttons
-            self.mode_radio_list.setChecked(True)
-            self.mode_radio_tree.setChecked(False)
-            self.mode_radio_list.show()
-            self.mode_radio_tree.show()
-        elif "ISIC rev.4 ecoinvent" in self.table.model._dataframe.columns:
-            # a treeview exists, update it
-            self.tree.get_expand_state()
-            self.tree.model.setup_and_sync()
-            self.tree.set_expand_state()
-
-            # make sure that the radio buttons are available
-            self.mode_radio_list.show()
-            self.mode_radio_tree.show()
-        else:
-            # a treeview does not need to be shown
-
-            # delete the tree if it exists
-            if self.tree:
-                self.tree.hide()
-                self.tree = None
-            # set the view to list and hide radio buttons
-            self.mode_radio_list.hide()
-            self.mode_radio_tree.hide()
-            self.table.show()
