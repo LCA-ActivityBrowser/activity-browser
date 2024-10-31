@@ -105,11 +105,11 @@ class Activity(Activity):
         """
         return qactivity_list.get_or_create(self).deleted
 
-    def save(self) -> None:
+    def save(self, signal = True) -> None:
         from activity_browser.bwutils.metadata import AB_metadata
 
         # execute the patched function for standard functionality
-        patched[Activity]["save"](self)
+        patched[Activity]["save"](self, signal)
 
         # this is called already within the patched function, but needs to be recalled now the data is actually updated
         databases.set_modified(self["database"])
