@@ -1,7 +1,7 @@
 from pathlib import Path
 from logging import getLogger
 
-from PySide2.QtWidgets import QVBoxLayout
+from qtpy.QtWidgets import QVBoxLayout
 
 from activity_browser import signals
 from activity_browser.mod import bw2data as bd

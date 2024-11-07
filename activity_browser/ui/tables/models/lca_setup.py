@@ -3,8 +3,8 @@ from logging import getLogger
 
 import numpy as np
 import pandas as pd
-from PySide2 import QtWidgets
-from PySide2.QtCore import QModelIndex, Qt, Slot
+from qtpy import QtWidgets
+from qtpy.QtCore import QModelIndex, Qt, Slot
 
 from activity_browser import signals, application
 from activity_browser.bwutils import commontasks as bc
