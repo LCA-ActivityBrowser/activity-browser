@@ -1,13 +1,8 @@
-import os
 import ecoinvent_interface as ei
-import bw2io as bi
 import requests
 from qtpy import QtWidgets, QtCore
 
-from activity_browser import project_settings
-from activity_browser.bwutils.ecoinvent_biosphere_versions.ecospold2biosphereimporter import create_default_biosphere3
 from activity_browser.ui.threading import ABThread
-from activity_browser.mod import bw2data as bd
 from activity_browser.mod.bw2io import ab_bw2setup
 from activity_browser.mod.bw2io.ecoinvent import ab_import_ecoinvent_release
 from activity_browser.utils import sort_semantic_versions
@@ -28,6 +23,7 @@ class ProjectSetupWizard(QtWidgets.QWizard):
         self.setWizardStyle(self.ModernStyle)
         self.setOption(self.NoCancelButtonOnLastPage)
         self.setOption(self.NoBackButtonOnLastPage)
+        self.setOption(self.NoCancelButton, False)
 
         # setting window options
         self.setWindowTitle("Project Setup")
@@ -35,6 +31,7 @@ class ProjectSetupWizard(QtWidgets.QWizard):
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
         self.setWindowFlags(QtCore.Qt.Sheet)
         self.setWindowFlag(QtCore.Qt.WindowContextHelpButtonHint, False)
+        self.setWindowFlag(QtCore.Qt.WindowCloseButtonHint, False)
 
         # initializing and setting all pages
         self.setPage(self.choose_setup, ChooseSetupPage(self))
@@ -244,9 +241,6 @@ class InstallPage(QtWidgets.QWizardPage):
         self.setLayout(layout)
 
     def initializePage(self):
-        self.wizard().setWindowFlag(QtCore.Qt.WindowCloseButtonHint, False)
-        self.wizard().show()
-
         self.wizard().button(QtWidgets.QWizard.BackButton).hide()
 
         if self.wizard().type == "ecoinvent":

@@ -33,9 +33,7 @@ class MethodsTable(ABFilterableDataFrameView):
         self.duplicate_method_action = actions.MethodDuplicate.get_QAction(
             self.selected_methods, None
         )
-        self.delete_method_action = actions.MethodDelete.get_QAction(
-            self.selected_methods, None
-        )
+        self.delete_method_action = actions.MethodDelete.get_QAction(self.selected_methods)
 
         self.connect_signals()
 
@@ -113,9 +111,7 @@ class MethodsTree(ABDictTreeView):
         self.duplicate_method_action = actions.MethodDuplicate.get_QAction(
             self.selected_methods, self.tree_level
         )
-        self.delete_method_action = actions.MethodDelete.get_QAction(
-            self.selected_methods, self.tree_level
-        )
+        self.delete_method_action = actions.MethodDelete.get_QAction(self.selected_methods)
 
         self._connect_signals()
 
@@ -202,7 +198,7 @@ class MethodsTree(ABDictTreeView):
             filter_on = ", ".join(tree_level[1]) + ", "
 
         methods = self.model.get_methods(filter_on)
-        return methods
+        return list(methods)
 
     def tree_level(self) -> tuple:
         """Return list of (tree level, content).

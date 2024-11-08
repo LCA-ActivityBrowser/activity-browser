@@ -25,10 +25,10 @@ Data in Brightway is organized into projects
 - Projects also contain other data, such as parameters and plugin settings.
 
 ![brightway organizational structure](./assets/brightway_org-scheme.png)
-<sub>
+<sup>
 _Image copied from the
 [Brightway documentation](https://docs.brightway.dev/en/latest/content/theory/structure.html#brightway-objects)._
-</sub>
+</sup>
 
 Read more about how data is organized in the 
 [Brightway documentation](https://docs.brightway.dev/en/latest/content/theory/structure.html#brightway-objects).
@@ -51,24 +51,29 @@ Finally, the menu bar at the top allows you to manage Activity Browser, Plugins 
 
 [![Projects and Databases](https://img.youtube.com/vi/qWzaQjAf8ZU/hqdefault.jpg)](https://www.youtube.com/watch?v=qWzaQjAf8ZU)
 
-<sub>
+<sup>
 <b>Note:</b> some content of the video may be outdated. Written content should be more up-to-date.
-</sub>
+</sup>
 
 ### Installing a biosphere and impact categories
 In the `Project` tab there is initially a button called `Set up your project with default data`. 
 Click this button to add the default data. 
-This adds a `biosphere` database which contains a number of standardized biosphere flows.
-
-> [!NOTE]
-> Once a project is set up, you cannot reset it.
+This adds a `biosphere` database which contains a number of standardized biosphere flows 
+and compatible impact categories.
 
 ![project setup - choose type](./assets/project_setup_dialog_choose_type.png)
 
 #### Setting up with Biosphere3 data
-You can choose a biosphere version, this biosphere version will be compatible with that version of ecoinvent, 
-if you choose to import that later.
-If you don't use ecoinvent, don't worry about this and choose the highest version.
+You can choose a biosphere version, which will install a biosphere database and compatible impact categories.
+
+> [!IMPORTANT]
+> In case you want to install ecoinvent later, choosing a biosphere version will make your project compatible with 
+> **only** the version of biosphere you install.
+> e.g. installing biosphere `3.6` will make your project only compatible with ecoinvent `3.6` databases.
+> 
+> Setting the biosphere version is **permanent** for a project, you cannot change this version later.
+> 
+> If you do not plan on using ecoinvent in this project, don't worry about this and choose the highest version.
 
 ![project setup - choose biosphere version](./assets/project_setup_dialog_bio_vsn.png)
 
@@ -127,9 +132,9 @@ ___
 
 [![Projects and Databases](https://img.youtube.com/vi/2rmydYdscJY/hqdefault.jpg)](https://www.youtube.com/watch?v=2rmydYdscJY)
 
-<sub>
+<sup>
 <b>Note:</b> some content of the video may be outdated. Written content should be more up-to-date.
-</sub>
+</sup>
 
 [Read more about activities...](Activities)
 
@@ -141,9 +146,9 @@ to be able to calculate results.
 
 [![LCA results](https://img.youtube.com/vi/J94UehVQM-Q/hqdefault.jpg)](https://www.youtube.com/watch?v=J94UehVQM-Q)
 
-<sub>
+<sup>
 <b>Note:</b> some content of the video may be outdated. Written content should be more up-to-date.
-</sub>
+</sup>
 
 [Read more about LCA calculation setups...](LCA-Calculation-Setups)
 
