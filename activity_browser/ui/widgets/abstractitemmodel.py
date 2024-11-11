@@ -1,8 +1,6 @@
-
-
 import pandas as pd
-from PySide2 import QtCore, QtGui
-from PySide2.QtCore import Qt, Signal, SignalInstance
+from qtpy import QtCore, QtGui
+from qtpy.QtCore import Qt, Signal, SignalInstance
 
 
 class ABAbstractItemModel(QtCore.QAbstractItemModel):
@@ -21,12 +19,13 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
             self.entries.put(i, [i])
 
     def index(self, row: int, column: int, parent: QtCore.QModelIndex = ...) -> QtCore.QModelIndex:
-        if not self.hasIndex(row, column, parent):
-            return QtCore.QModelIndex()
-
         parent = parent.internalPointer() if parent.isValid() else self.entries
         child = parent.ranked_child(row)
         return self.createIndex(row, column, child)
+
+    def indexFromPath(self, path: [str]) -> QtCore.QModelIndex:
+        child = self.entries.get(path)
+        return self.createIndex(child.rank, 0, child)
 
     def parent(self, child: QtCore.QModelIndex) -> QtCore.QModelIndex:
         if not child.isValid():
@@ -44,11 +43,12 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
 
     def rowCount(self, parent: QtCore.QModelIndex = ...) -> int:
         if not parent.isValid():
-            return len(self.entries.children)
+            value = len(self.entries.children)
         elif isinstance(parent.internalPointer(), Entry):
-            return len(parent.internalPointer().children)
+            value = len(parent.internalPointer().children)
         else:
-            return 0
+            value = 0
+        return value
 
     def columnCount(self, parent: QtCore.QModelIndex = ...) -> int:
         return len(self.dataframe.columns)
@@ -185,19 +185,16 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
 
 
 class Entry:
-    def __init__(self, name, value=None, parent=None, type=None):
+    def __init__(self, name, value=None, parent: "Entry" = None, entry_type=None):
         self.children = {}
         self.index = []
 
         self.name = name
         self.value = value
         self.parent = parent
-        self.type = type
+        self.type = entry_type
 
         self.sorted = True
-
-    def __repr__(self):
-        return f"Entry({self.name}, {self.value})"
 
     def sort(self):
         branches = []
@@ -209,6 +206,10 @@ class Entry:
                 other.append(i)
         self.index = branches + other
         self.sorted = True
+
+    @property
+    def path(self) -> [str]:
+        return self.parent.path + [self.name] if self.parent else []
 
     @property
     def rank(self) -> int:
@@ -228,6 +229,12 @@ class Entry:
         if not self.sorted:
             self.sort()
         return self.index.index(name)
+
+    def get(self, path: [str]):
+        if not path:
+            return self
+        name = path.pop(0)
+        return self.children[name].get(path)
 
     def sub(self, name, value=None, type=None):
         if name in self.children:

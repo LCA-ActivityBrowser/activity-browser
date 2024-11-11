@@ -1,4 +1,4 @@
-from PySide2 import QtWidgets, QtCore, QtGui
+from qtpy import QtWidgets, QtCore, QtGui
 
 from .abstractitemmodel import ABAbstractItemModel
 
@@ -13,6 +13,10 @@ class ABTreeView(QtWidgets.QTreeView):
         header.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         header.customContextMenuRequested.connect(self.header_popup)
 
+        self.expanded_paths = set()
+        self.expanded.connect(lambda index: self.expanded_paths.add(tuple(index.internalPointer().path)))
+        self.collapsed.connect(lambda index: self.expanded_paths.discard(tuple(index.internalPointer().path)))
+
     def setModel(self, model):
         if not isinstance(model, ABAbstractItemModel):
             raise TypeError("Model must be an instance of ABAbstractItemModel")
@@ -20,6 +24,12 @@ class ABTreeView(QtWidgets.QTreeView):
 
         self.setColumnHidden(0, True)
         model.grouped.connect(lambda groups: self.setColumnHidden(0, not groups))
+        model.modelReset.connect(self.expand_after_reset)
+
+    def expand_after_reset(self):
+        indices = [self.model().indexFromPath(list(path)) for path in self.expanded_paths]
+        for index in indices:
+            self.expand(index)
 
     def header_popup(self, pos: QtCore.QPoint):
         col = self.columnAt(pos.x())
@@ -34,6 +44,8 @@ class ABTreeView(QtWidgets.QTreeView):
 
         search_box = QtWidgets.QLineEdit(menu)
         search_box.setText(self.model().filters.get(self.model().headerData(column), ""))
+        search_box.setPlaceholderText("Search")
+
         search_box.textChanged.connect(lambda q: self.model().filter(q, column))
         widget_action = QtWidgets.QWidgetAction(menu)
         widget_action.setDefaultWidget(search_box)

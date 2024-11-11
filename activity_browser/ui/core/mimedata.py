@@ -1,6 +1,6 @@
 import pickle
 
-from PySide2 import QtCore
+from qtpy import QtCore
 
 
 class ABMimeData(QtCore.QMimeData):

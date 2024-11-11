@@ -1,8 +1,9 @@
 import pickle
 
-from PySide2 import QtWidgets, QtCore, QtGui
+from qtpy import QtWidgets, QtCore, QtGui
 
 from activity_browser import actions, ui
+from activity_browser.ui import core
 from activity_browser.bwutils import AB_metadata
 from activity_browser.mod import bw2data as bd
 
@@ -19,6 +20,7 @@ class DatabaseExplorer(QtWidgets.QWidget):
 
         self.search = QtWidgets.QLineEdit(self)
         self.search.setMaximumHeight(30)
+        self.search.setPlaceholderText("Quick Search")
 
         self.search.textChanged.connect(self.model.filter)
 
@@ -46,7 +48,7 @@ class NodeView(ui.widgets.ABTreeView):
         self.setSortingEnabled(True)
         self.setDragEnabled(True)
         self.setDragDropMode(QtWidgets.QTableView.DragOnly)
-        self.setSelectionBehavior(self.SelectRows)
+        self.setSelectionBehavior(ui.widgets.ABTreeView.SelectRows)
 
     def contextMenuEvent(self, event) -> None:
         """Construct and present a menu."""
@@ -147,7 +149,7 @@ class NodeViewContextMenu(QtWidgets.QMenu):
 class NodeModel(ui.widgets.ABAbstractItemModel):
 
     def mimeData(self, indices: [QtCore.QModelIndex]):
-        data = ui.core.ABMimeData()
+        data = core.ABMimeData()
         data.setPickleData("application/bw-nodekeylist", self.get_keys(indices))
         return data
 
