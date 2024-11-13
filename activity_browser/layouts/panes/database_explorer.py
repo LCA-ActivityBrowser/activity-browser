@@ -7,6 +7,8 @@ from activity_browser.ui import core
 from activity_browser.bwutils import AB_metadata
 from activity_browser.mod import bw2data as bd
 
+DEFAULT_COLUMNS = ["name", "code", "type", "unit"]
+
 
 class DatabaseExplorer(QtWidgets.QWidget):
     def __init__(self, parent, db_name: str):
@@ -17,6 +19,7 @@ class DatabaseExplorer(QtWidgets.QWidget):
         # Create the QTableView and set the model
         self.table_view = NodeView(self)
         self.table_view.setModel(self.model)
+        self.model.setReady()
 
         self.search = QtWidgets.QLineEdit(self)
         self.search.setMaximumHeight(30)
@@ -35,6 +38,7 @@ class DatabaseExplorer(QtWidgets.QWidget):
         self.database.changed.connect(self.database_changed)
         self.database.deleted.connect(self.deleteLater)
 
+
     def database_changed(self, database: bd.Database) -> None:
         if database.name != self.database.name:  # only update if the database changed is the one shown by this widget
             return
@@ -49,6 +53,13 @@ class NodeView(ui.widgets.ABTreeView):
         self.setDragEnabled(True)
         self.setDragDropMode(QtWidgets.QTableView.DragOnly)
         self.setSelectionBehavior(ui.widgets.ABTreeView.SelectRows)
+
+    def setModel(self, model):
+        super().setModel(model)
+        columns = [model.headerData(col, QtCore.Qt.Horizontal) for col in range(model.columnCount())]
+        for column_name in columns:
+            if column_name not in DEFAULT_COLUMNS:
+                self.hideColumn(columns.index(column_name))
 
     def contextMenuEvent(self, event) -> None:
         """Construct and present a menu."""

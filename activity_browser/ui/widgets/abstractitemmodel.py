@@ -14,6 +14,7 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
         self.entries = Entry("root")
         self.grouped_columns = []
         self.filters = {}
+        self.ready = False
 
         for i in range(len(self.dataframe)):
             self.entries.put(i, [i])
@@ -41,8 +42,16 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
 
         return self.createIndex(parent.rank, 0, parent)
 
+    def setReady(self):
+        self.beginResetModel()
+        self.ready = True
+        self.endResetModel()
+
     def rowCount(self, parent: QtCore.QModelIndex = ...) -> int:
+        if not self.ready:
+            return 0
         if not parent.isValid():
+            #value = 1000 if len(self.entries.children) > 1000 else len(self.entries.children)
             value = len(self.entries.children)
         elif isinstance(parent.internalPointer(), Entry):
             value = len(parent.internalPointer().children)
