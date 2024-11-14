@@ -12,7 +12,7 @@ from activity_browser.signals import qactivity_list, qdatabase_list, qexchange_l
 
 @patch_superclass
 class Exchanges(Exchanges):
-    def delete(self):
+    def delete(self, allow_in_sourced_project: bool = False):
         # find only the exchanges that have qexchange counterparts within ourselves
         exc_query = ExchangeDataset.id << [qexc["id"] for qexc in qexchange_list]
         exc_args = self._args + [exc_query]
@@ -55,7 +55,7 @@ class Exchanges(Exchanges):
         dbs = set([act["database"] for act in acts])
 
         # execute the patched function for standard functionality
-        patched[Exchanges]["delete"](self)
+        patched[Exchanges]["delete"](self, allow_in_sourced_project)
 
         # emitting change through any existing exchange QUpdaters
         for exc in excs:
@@ -105,11 +105,12 @@ class Activity(Activity):
         """
         return qactivity_list.get_or_create(self).deleted
 
-    def save(self) -> None:
+    def save(self, signal: bool = True, data_already_set: bool = False,
+             force_insert: bool = False) -> None:
         from activity_browser.bwutils.metadata import AB_metadata
 
         # execute the patched function for standard functionality
-        patched[Activity]["save"](self)
+        patched[Activity]["save"](self, signal, data_already_set, force_insert)
 
         # this is called already within the patched function, but needs to be recalled now the data is actually updated
         databases.set_modified(self["database"])
@@ -134,11 +135,11 @@ class Activity(Activity):
             if qdb["name"] == self["database"]
         ]
 
-    def delete(self) -> None:
+    def delete(self, signal: bool = True):
         from activity_browser.bwutils.metadata import AB_metadata
 
         # execute the patched function for standard functionality
-        patched[Activity]["delete"](self)
+        patched[Activity]["delete"](self, signal)
 
         databases.set_modified(self["database"])
 
@@ -194,9 +195,10 @@ class Exchange(Exchange):
         """
         return qexchange_list.get_or_create(self).deleted
 
-    def save(self) -> None:
+    def save(self, signal: bool = True, data_already_set: bool = False,
+             force_insert: bool = False):
         # execute the patched function for standard functionality
-        patched[Exchange]["save"](self)
+        patched[Exchange]["save"](self, signal, data_already_set, force_insert)
 
         # emitting change through any existing qexchanges (should be 1 or None)
         [
@@ -233,9 +235,9 @@ class Exchange(Exchange):
 
         self.moved_IO.clear()
 
-    def delete(self) -> None:
+    def delete(self, signal: bool = True):
         # execute the patched function for standard functionality
-        patched[Exchange]["delete"](self)
+        patched[Exchange]["delete"](self, signal)
 
         # emitting change and deletion through any existing qexchanges (should be 1 or None)
         [

@@ -164,6 +164,7 @@ class ABSignals(QObject):
     # update_windows = Signal()  # Update the windows
     new_statusbar_message = Signal(str)  # Update the statusbar this message | message
     restore_cursor = Signal()  # Restore the cursor to normal
+    project_updates_available = Signal(str, int)  # Project name and number of updates available
 
     # Tabs
     toggle_show_or_hide_tab = Signal(
