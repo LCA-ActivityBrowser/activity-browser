@@ -52,7 +52,7 @@ class DatabaseImportWizard(QtWidgets.QWizard):
         self.setWindowModality(QtCore.Qt.ApplicationModal)
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
         self.setWindowFlags(QtCore.Qt.Sheet)
-        self.setOption(self.NoCancelButton, False)
+        self.setOption(QtWidgets.QWizard.NoCancelButton, False)
 
         # Construct and bind pages.
         self.import_type_page = ImportTypePage(self)
@@ -708,7 +708,7 @@ class ImportPage(QtWidgets.QWizardPage):
 
         options = [(db, list(bd.databases)) for db in missing]
         linker = DatabaseLinkingDialog.relink_bw2package(options, self)
-        if linker.exec_() == DatabaseLinkingDialog.Accepted:
+        if linker.exec_() == QtWidgets.QDialog.Accepted:
             self.relink_data = linker.links
         else:
             # If the user at any point did not accept their choice, fail.
@@ -736,7 +736,7 @@ class ImportPage(QtWidgets.QWizardPage):
         # Iterate through the missing databases, asking user input.
         options = [(db, list(bd.databases)) for db in missing]
         linker = DatabaseLinkingDialog.relink_excel(options, self)
-        if linker.exec_() == DatabaseLinkingDialog.Accepted:
+        if linker.exec_() == QtWidgets.QDialog.Accepted:
             self.relink_data = linker.links
         else:
             error = (

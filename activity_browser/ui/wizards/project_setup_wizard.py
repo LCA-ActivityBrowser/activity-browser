@@ -20,10 +20,10 @@ class ProjectSetupWizard(QtWidgets.QWizard):
         super().__init__(parent)
 
         # setting wizard options
-        self.setWizardStyle(self.ModernStyle)
-        self.setOption(self.NoCancelButtonOnLastPage)
-        self.setOption(self.NoBackButtonOnLastPage)
-        self.setOption(self.NoCancelButton, False)
+        self.setWizardStyle(QtWidgets.QWizard.ModernStyle)
+        self.setOption(QtWidgets.QWizard.NoCancelButtonOnLastPage)
+        self.setOption(QtWidgets.QWizard.NoBackButtonOnLastPage)
+        self.setOption(QtWidgets.QWizard.NoCancelButton, False)
 
         # setting window options
         self.setWindowTitle("Project Setup")
