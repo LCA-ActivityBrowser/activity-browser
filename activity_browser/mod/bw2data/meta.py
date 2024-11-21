@@ -21,12 +21,12 @@ class Databases(Databases):
         """
         return qdatabases.metadata_changed
 
-    def flush(self):
+    def flush(self, signal: bool = True):
         """
         Emit that the databases have changed when it's data is flushed to disk a.k.a. saved.
         """
         # execute the patched function for standard functionality
-        patched[Databases]["flush"](self)
+        patched[Databases]["flush"](self, signal)
         # emit that the databases metadata have changed through the qUpdater
         qdatabases.emitLater("metadata_changed")
 
@@ -41,12 +41,12 @@ class CalculationSetups(CalculationSetups):
         """
         return qcalculation_setups.metadata_changed
 
-    def flush(self):
+    def flush(self, signal: bool = True):
         """
         Emit that the calculation setups have changed when it's data is flushed to disk a.k.a. saved.
         """
         # execute the patched function for standard functionality
-        patched[CalculationSetups]["flush"](self)
+        patched[CalculationSetups]["flush"](self, signal)
         # emit that the calculation setups metadata have changed through the qUpdater
         qcalculation_setups.emitLater("metadata_changed")
 
@@ -61,12 +61,12 @@ class Methods(Methods):
         """
         return qmethods.metadata_changed
 
-    def flush(self):
+    def flush(self, signal: bool = True):
         """
         Emit that the methods have changed when it's data is flushed to disk a.k.a. saved.
         """
         # execute the patched function for standard functionality
-        patched[Methods]["flush"](self)
+        patched[Methods]["flush"](self, signal)
         # emit that the methods metadata have changed through the qUpdater
         qmethods.emitLater("metadata_changed")
 
