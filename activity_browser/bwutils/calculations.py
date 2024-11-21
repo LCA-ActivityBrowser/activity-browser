@@ -3,6 +3,7 @@ from bw2calc.errors import BW2CalcError
 from PySide2.QtWidgets import QApplication
 
 from activity_browser import log
+from simple_regional import OneSpatialScaleLCA
 
 from ..bwutils import (
     MLCA,
@@ -22,6 +23,12 @@ def do_LCA_calculations(data: dict):
     if calculation_type == "simple":
         try:
             mlca = MLCA(cs_name)
+            contributions = Contributions(mlca)
+        except KeyError as e:
+            raise BW2CalcError("LCA Failed", str(e)).with_traceback(e.__traceback__)
+    elif calculation_type == "regional":
+        try:
+            mlca = MLCA(cs_name, lca_class=OneSpatialScaleLCA)
             contributions = Contributions(mlca)
         except KeyError as e:
             raise BW2CalcError("LCA Failed", str(e)).with_traceback(e.__traceback__)

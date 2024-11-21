@@ -108,7 +108,7 @@ class MLCA(object):
 
     """
 
-    def __init__(self, cs_name: str):
+    def __init__(self, cs_name: str, lca_class: bc.LCA = bc.LCA):
         try:
             cs = bd.calculation_setups[cs_name]
         except KeyError:
@@ -141,7 +141,7 @@ class MLCA(object):
         self.rev_method_index = {v: k for k, v in self.method_index.items()}
 
         # initial LCA and prepare method matrices
-        self.lca = self._construct_lca()
+        self.lca = self._construct_lca(lca_class=lca_class)
         self.lca.lci(factorize=True)
         self.method_matrices = []
         for method in self.methods:
@@ -204,8 +204,8 @@ class MLCA(object):
         }
         self.func_key_list = list(self.func_unit_translation_dict.keys())
 
-    def _construct_lca(self):
-        return bc.LCA(demand=self.func_units_dict, method=self.methods[0])
+    def _construct_lca(self, lca_class: bc.LCA):
+        return lca_class(demand=self.func_units_dict, method=self.methods[0])
 
     def _perform_calculations(self):
         """Isolates the code which performs calculations to allow subclasses
