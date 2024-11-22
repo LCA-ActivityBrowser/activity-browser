@@ -93,6 +93,7 @@ The currently selected calculation setup is retrieved by getting the currently s
 class LCASetupTab(QtWidgets.QWidget):
     DEFAULT = 0
     SCENARIOS = 1
+    REGIONAL = 2
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -119,7 +120,7 @@ class LCASetupTab(QtWidgets.QWidget):
 
         self.calculate_button = QtWidgets.QPushButton(qicons.calculate, "Calculate")
         self.calculation_type = QtWidgets.QComboBox()
-        self.calculation_type.addItems(["Standard LCA", "Scenario LCA"])
+        self.calculation_type.addItems(["Standard LCA", "Scenario LCA", "Regional LCA"])
 
         name_row = QtWidgets.QHBoxLayout()
         name_row.addWidget(header("Calculation Setup:"))
@@ -206,6 +207,12 @@ class LCASetupTab(QtWidgets.QWidget):
                 "cs_name": self.list_widget.name,
                 "calculation_type": "simple",
             }
+        elif calc_type == self.REGIONAL:
+            # Standard LCA
+            data = {
+                "cs_name": self.list_widget.name,
+                "calculation_type": "regional",
+            }
         elif calc_type == self.SCENARIOS:
             # Scenario LCA
             data = {
@@ -247,7 +254,7 @@ class LCASetupTab(QtWidgets.QWidget):
 
     @Slot(int, name="changeCalculationType")
     def select_calculation_type(self, index: int):
-        if index == self.DEFAULT:
+        if index in (self.DEFAULT, self.REGIONAL):
             # Standard LCA
             self.scenario_panel.hide()
         elif index == self.SCENARIOS:

@@ -118,10 +118,11 @@ class LCAResultsSubTab(QTabWidget):
 
     def __init__(self, data: dict, parent=None):
         super().__init__(parent)
+        log.info("Starting calculation")
         self.data = data
         self.cs_name = self.data.get("cs_name")
         self.cs = calculation_setups[self.cs_name]
-        self.has_scenarios = False if data.get("calculation_type") == "simple" else True
+        self.has_scenarios: bool = data.get("calculation_type") not in ("simple", "regional")
         self.mlca: Optional[Union[MLCA, SuperstructureMLCA]] = None
         self.contributions: Optional[Contributions] = None
         self.mc: Optional[MonteCarloLCA] = None
@@ -136,8 +137,8 @@ class LCAResultsSubTab(QTabWidget):
         QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
         self.mlca, self.contributions, self.mc = calculations.do_LCA_calculations(data)
         self.method_dict = bc.get_LCIA_method_name_dict(self.mlca.methods)
-        self.single_func_unit = True if len(self.mlca.func_units) == 1 else False
-        self.single_method = True if len(self.mlca.methods) == 1 else False
+        self.single_func_unit = len(self.mlca.func_units) == 1
+        self.single_method = len(self.mlca.methods) == 1
 
         self.tabs = Tabs(
             inventory=InventoryTab(self),
