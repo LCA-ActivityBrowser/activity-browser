@@ -62,7 +62,6 @@ class PySideUpgradeThread(threading.ABThread):
 
     def run_safely(self):
         self.pip_installation()
-        self.set_conda_env_var()
         self.restart()
 
     def pip_installation(self):
@@ -85,15 +84,6 @@ class PySideUpgradeThread(threading.ABThread):
             self.status.emit(0, line)
 
         assert process.returncode == 0, "Failed to install PySide6"
-
-    def set_conda_env_var(self):
-        """
-        Set the QT_API QtPy environment variable persistently for this conda environment
-        """
-        self.status.emit(0, "Setting QT_API environment variable")
-
-        subprocess.run(["conda", "env", "config", "vars", "set", "QT_API=pyside6"])
-        os.environ["QT_API"] = "pyside6"  # also set for the env directly for the restart
 
     def restart(self):
         """
