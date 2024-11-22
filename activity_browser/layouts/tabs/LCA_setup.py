@@ -613,6 +613,10 @@ class ScenarioImportWidget(QtWidgets.QWidget):
                     log.info(
                         "Superstructure: Attempting to read as parameter scenario file."
                     )
+
+                    if not df["Group"].dtype == object:
+                        df["Group"] = df["Group"].astype(str)
+
                     include_default = True
                     if "default" not in df.columns:
                         query = QtWidgets.QMessageBox.question(
@@ -703,7 +707,7 @@ class ScenarioImportWidget(QtWidgets.QWidget):
         # check for databases in the scenario dataframe that cannot be linked to
         if unlinkable:
             dialog = ScenarioDatabaseDialog.construct_dialog(self._parent, relink)
-            if dialog.exec_() == dialog.Accepted:
+            if dialog.exec_() == QtWidgets.QDialog.Accepted:
                 # TODO On update to bw2.5 this should be changed to use the bw2data.utils.get_node method
                 return scenario_replace_databases(df, dialog.relink)
                 # generate the required dialog
