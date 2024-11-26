@@ -148,7 +148,6 @@ class EcoInventLoginPage(QtWidgets.QWizardPage):
             release = ei.EcoinventRelease(settings)
             release.list_versions()
 
-        # logon was unsuccesful
         except requests.exceptions.HTTPError as e:
             QtWidgets.QApplication.restoreOverrideCursor()
 
@@ -160,6 +159,16 @@ class EcoInventLoginPage(QtWidgets.QWizardPage):
             else:
                 self.message.setText("Unknown connection error, try again later.")
                 raise e
+
+        except requests.exceptions.ConnectionError:
+            QtWidgets.QApplication.restoreOverrideCursor()
+            self.message.setText("Cannot connect to the internet, please try again later.")
+            return False
+
+        except Exception as e:
+            # restore cursor on all exceptions
+            QtWidgets.QApplication.restoreOverrideCursor()
+            raise e
 
         # in case of success, set the settings for permanent use
         ei.permanent_setting("username", self.username.text())
