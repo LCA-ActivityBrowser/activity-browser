@@ -1,7 +1,7 @@
 from typing import Callable, Optional, Union
 
 import pandas as pd
-from PySide2 import QtCore
+from qtpy import QtCore
 
 from activity_browser import application, signals
 from activity_browser.actions.base import ABAction, exception_dialogs

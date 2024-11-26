@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 from typing import List
 
-from PySide2 import QtWidgets
-from PySide2.QtCore import Slot
+from qtpy import QtWidgets
+from qtpy.QtCore import Slot
 
 from activity_browser import actions
 

@@ -2,8 +2,9 @@
 import os
 from logging import getLogger
 
-from PySide2.QtCore import QCoreApplication, QObject, QSysInfo, Qt
-from PySide2.QtWidgets import QApplication
+import qtpy
+from qtpy.QtCore import QCoreApplication, QObject, QSysInfo, Qt
+from qtpy.QtWidgets import QApplication, QStyleFactory
 
 log = getLogger(__name__)
 
@@ -55,3 +56,6 @@ if QSysInfo.productType() in ["arch", "nixos"]:
 QCoreApplication.setAttribute(Qt.AA_ShareOpenGLContexts, True)
 
 application = ABApplication()
+
+if qtpy.PYSIDE6:
+    application.setStyle(QStyleFactory().create("fusion"))

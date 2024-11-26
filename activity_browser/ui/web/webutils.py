@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
 
-from PySide2 import QtCore, QtGui, QtWebEngineWidgets, QtWidgets
+from qtpy import QtCore, QtGui, QtWebEngineWidgets, QtWidgets
 
 # type "localhost:3999" in Chrome for DevTools of AB web content
 from activity_browser.utils import get_base_path

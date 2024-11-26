@@ -6,7 +6,7 @@ import bw2analyzer as ba
 import bw2calc as bc
 import numpy as np
 import pandas as pd
-from PySide2.QtWidgets import QApplication, QMessageBox
+from qtpy.QtWidgets import QApplication, QMessageBox
 
 from activity_browser.mod import bw2data as bd
 

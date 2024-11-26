@@ -2,8 +2,8 @@
 from os import devnull
 
 from asteval import Interpreter
-from PySide2 import QtCore, QtGui, QtWidgets
-from PySide2.QtCore import Signal, Slot
+from qtpy import QtCore, QtGui, QtWidgets
+from qtpy.QtCore import Signal, Slot
 
 from activity_browser import actions, signals
 

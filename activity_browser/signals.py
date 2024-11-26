@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from bw2data import Method, get_activity
 from bw2data.parameters import ParameterBase
-from PySide2.QtCore import QObject, Qt, QThread, Signal, SignalInstance
+from qtpy.QtCore import QObject, Qt, QThread, Signal, SignalInstance
 
 from .application import application
 

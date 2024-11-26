@@ -1,8 +1,8 @@
 from logging import getLogger
 
 import numpy as np
-from PySide2 import QtCore, QtGui, QtWidgets
-from PySide2.QtCore import Signal, Slot
+from qtpy import QtCore, QtGui, QtWidgets
+from qtpy.QtCore import Signal, Slot
 from stats_arrays import uncertainty_choices as uncertainty
 from stats_arrays.distributions import *
 

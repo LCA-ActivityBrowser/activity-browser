@@ -33,6 +33,7 @@ requirements:
     - pint <=0.21
     - pyperclip
     - pyside2 >=5.15.5
+    - qtpy
     - qt-webengine
     - salib >=1.4
     - seaborn

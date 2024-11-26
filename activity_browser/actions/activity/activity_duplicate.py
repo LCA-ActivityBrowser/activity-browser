@@ -1,6 +1,6 @@
 from typing import Callable, List, Union
 
-from PySide2 import QtCore
+from qtpy import QtCore
 
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.bwutils import commontasks

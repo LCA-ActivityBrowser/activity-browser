@@ -2,7 +2,7 @@
 from logging import getLogger
 
 from bw2calc.errors import BW2CalcError
-from PySide2.QtWidgets import QApplication
+from qtpy.QtWidgets import QApplication
 
 from ..bwutils import (MLCA, Contributions, MonteCarloLCA,
                        SuperstructureContributions, SuperstructureMLCA)

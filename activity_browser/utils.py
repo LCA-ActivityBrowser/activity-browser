@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Iterable, Tuple
 
 import requests
-from PySide2 import QtWidgets
+from qtpy import QtWidgets
 
 from activity_browser.mod import bw2data as bd
 

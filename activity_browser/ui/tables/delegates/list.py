@@ -2,7 +2,7 @@
 from itertools import zip_longest
 from typing import List
 
-from PySide2 import QtCore, QtGui, QtWidgets
+from qtpy import QtCore, QtGui, QtWidgets
 
 
 class OrderedListInputDialog(QtWidgets.QDialog):

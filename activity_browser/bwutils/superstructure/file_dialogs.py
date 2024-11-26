@@ -1,5 +1,5 @@
 import pandas as pd
-from PySide2 import QtCore, QtWidgets
+from qtpy import QtCore, QtWidgets
 
 from ...ui.icons import qicons
 

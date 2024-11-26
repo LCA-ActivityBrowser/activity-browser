@@ -1,7 +1,7 @@
 from typing import List, Iterable
 
-from PySide2 import QtCore, QtWidgets
-from PySide2.QtCore import Slot
+from qtpy import QtCore, QtWidgets
+from qtpy.QtCore import Slot
 
 from activity_browser import actions
 
@@ -104,7 +104,7 @@ class ActivitiesBiosphereTable(ABFilterableDataFrameView):
         self.model = ActivitiesBiosphereListModel(parent=self)
         self.setDragEnabled(True)
         self.setDragDropMode(QtWidgets.QTableView.DragOnly)
-        self.setSelectionBehavior(self.SelectRows)
+        self.setSelectionBehavior(QtWidgets.QTableView.SelectRows)
 
         # context-menu items
         self.open_activity_action = actions.ActivityOpen.get_QAction(self.selected_keys)

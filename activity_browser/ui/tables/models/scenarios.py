@@ -3,7 +3,7 @@ from typing import Iterable, Tuple
 
 import numpy as np
 import pandas as pd
-from PySide2.QtCore import Slot
+from qtpy.QtCore import Slot
 
 from activity_browser.bwutils.utils import Parameters
 from activity_browser.mod.bw2data import parameters, projects

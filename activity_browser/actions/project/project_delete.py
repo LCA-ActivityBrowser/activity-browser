@@ -1,4 +1,4 @@
-from PySide2 import QtWidgets
+from qtpy import QtWidgets
 
 from activity_browser import ab_settings, application
 from activity_browser.actions.base import ABAction, exception_dialogs

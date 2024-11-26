@@ -1,6 +1,6 @@
 import ecoinvent_interface as ei
 import requests
-from PySide2 import QtWidgets, QtCore
+from qtpy import QtWidgets, QtCore
 
 from activity_browser.ui.threading import ABThread
 from activity_browser.mod.bw2io import ab_bw2setup
@@ -20,10 +20,10 @@ class ProjectSetupWizard(QtWidgets.QWizard):
         super().__init__(parent)
 
         # setting wizard options
-        self.setWizardStyle(self.ModernStyle)
-        self.setOption(self.NoCancelButtonOnLastPage)
-        self.setOption(self.NoBackButtonOnLastPage)
-        self.setOption(self.NoCancelButton, False)
+        self.setWizardStyle(QtWidgets.QWizard.ModernStyle)
+        self.setOption(QtWidgets.QWizard.NoCancelButtonOnLastPage)
+        self.setOption(QtWidgets.QWizard.NoBackButtonOnLastPage)
+        self.setOption(QtWidgets.QWizard.NoCancelButton, False)
 
         # setting window options
         self.setWindowTitle("Project Setup")
