@@ -58,17 +58,22 @@ Finally, the menu bar at the top allows you to manage Activity Browser, Plugins 
 ### Installing a biosphere and impact categories
 In the `Project` tab there is initially a button called `Set up your project with default data`. 
 Click this button to add the default data. 
-This adds a `biosphere` database which contains a number of standardized biosphere flows.
-
-> [!NOTE]
-> Once a project is set up, you cannot reset it.
+This adds a `biosphere` database which contains a number of standardized biosphere flows 
+and compatible impact categories.
 
 ![project setup - choose type](./assets/project_setup_dialog_choose_type.png)
 
 #### Setting up with Biosphere3 data
-You can choose a biosphere version, this biosphere version will be compatible with that version of ecoinvent, 
-if you choose to import that later.
-If you don't use ecoinvent, don't worry about this and choose the highest version.
+You can choose a biosphere version, which will install a biosphere database and compatible impact categories.
+
+> [!IMPORTANT]
+> In case you want to install ecoinvent later, choosing a biosphere version will make your project compatible with 
+> **only** the version of biosphere you install.
+> e.g. installing biosphere `3.6` will make your project only compatible with ecoinvent `3.6` databases.
+> 
+> Setting the biosphere version is **permanent** for a project, you cannot change this version later.
+> 
+> If you do not plan on using ecoinvent in this project, don't worry about this and choose the highest version.
 
 ![project setup - choose biosphere version](./assets/project_setup_dialog_bio_vsn.png)
 
