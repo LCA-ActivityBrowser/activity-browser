@@ -6,7 +6,8 @@ from activity_browser.bwutils import AB_metadata
 from activity_browser.mod import bw2data as bd
 
 DEFAULT_STATE = {
-    "columns": ["", "name", "activity", "activity type", "location", "unit"]
+    "columns": ["", "name", "activity", "activity type", "location", "unit"],
+    "visible_columns": ["name", "activity", "activity type", "location", "unit"],
 }
 
 
@@ -57,7 +58,7 @@ class DatabaseExplorer(QtWidgets.QWidget):
         project_settings.write_settings()
 
     def get_state_from_settings(self):
-        return project_settings.settings.get("database_explorer", {}).get(self.database.name, {})
+        return project_settings.settings.get("database_explorer", {}).get(self.database.name, DEFAULT_STATE)
 
 
 class NodeView(ui.widgets.ABTreeView):
