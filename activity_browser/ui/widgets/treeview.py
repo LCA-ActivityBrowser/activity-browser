@@ -37,7 +37,7 @@ class ABTreeView(QtWidgets.QTreeView):
         return {
             "columns": self.model().columns,
             "expanded_paths": list(self.expanded_paths),
-            "hidden_columns": [self.model().columns[i] for i in range(len(self.model().columns)) if self.isColumnHidden(i)],
+            "visible_columns": [self.model().columns[i] for i in range(len(self.model().columns)) if not self.isColumnHidden(i)],
             "filters": self.model().filters,
             "grouped_columns": [self.model().columns[i] for i in self.model().grouped_columns],
             "header_state": bytearray(self.header().saveState()).hex()
@@ -52,7 +52,7 @@ class ABTreeView(QtWidgets.QTreeView):
 
         self.model().columns = columns
 
-        for col_name in state.get("hidden_columns", []):
+        for col_name in [col for col in columns if col not in state.get("visible_columns", columns)]:
             self.setColumnHidden(columns.index(col_name), True)
 
         self.model().filters = state.get("filters", {})

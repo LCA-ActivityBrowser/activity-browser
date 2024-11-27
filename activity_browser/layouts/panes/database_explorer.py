@@ -5,9 +5,9 @@ from activity_browser.ui import core
 from activity_browser.bwutils import AB_metadata
 from activity_browser.mod import bw2data as bd
 
-DEFAULT_COLUMNS = ["name", "code", "type", "unit"]
-
-TEST_STATE = {'expanded_paths': set(), 'hidden_columns': [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 18], 'filters': {}, 'grouped_columns': [16]}
+DEFAULT_STATE = {
+    "columns": ["", "name", "activity", "activity type", "location", "unit"]
+}
 
 
 class DatabaseExplorer(QtWidgets.QWidget):
