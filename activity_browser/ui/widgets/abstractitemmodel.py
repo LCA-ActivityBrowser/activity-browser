@@ -8,13 +8,13 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
 
     def __init__(self, dataframe, parent=None):
         super().__init__(parent)
-        dataframe.insert(loc=0, column="", value=None)
         self.dataframe = dataframe
         self.dataframe_ = dataframe
         self.entries = Entry("root")
         self.grouped_columns = []
         self.filters = {}
         self.ready = False
+        self.columns = [""] + list(self.dataframe.columns)
 
         for i in range(len(self.dataframe)):
             self.entries.put(i, [i])
@@ -60,7 +60,7 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
         return value
 
     def columnCount(self, parent: QtCore.QModelIndex = ...) -> int:
-        return len(self.dataframe.columns)
+        return len(self.columns)
 
     def data(self, index: QtCore.QModelIndex, role=Qt.DisplayRole):
         if not index.isValid() or not isinstance(index.internalPointer(), Entry):
@@ -81,7 +81,7 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
         if index.column() == 0 and entry.children:
             display = str(entry.name)
         if not index.column() == 0 and isinstance(entry.value, int):
-            display = str(self.dataframe.iloc[entry.value, index.column()]).replace("\n", " ")
+            display = str(self.dataframe.loc[entry.value, self.columns[index.column()]]).replace("\n", " ")
         if display == "nan":
             display = "Undefined"
 
@@ -101,10 +101,10 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
 
         if role == Qt.DisplayRole:
             if section == 0:
-                return str([self.dataframe.columns[column] for column in self.grouped_columns])
-            return self.dataframe.columns[section]
+                return str([self.columns[column] for column in self.grouped_columns])
+            return self.columns[section]
 
-        if role == Qt.FontRole and self.filters.get(self.dataframe.columns[section], False):
+        if role == Qt.FontRole and self.filters.get(self.columns[section], False):
             font = QtGui.QFont()
             font.setUnderline(True)
             return font
@@ -154,7 +154,7 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
 
         self.entries = Entry("root")
 
-        column_names = [self.dataframe.columns[column] for column in self.grouped_columns]
+        column_names = [self.columns[column] for column in self.grouped_columns]
 
         for i, *paths in self.dataframe[column_names].itertuples():
             joined_path = []
@@ -174,8 +174,8 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
         for i in range(len(self.dataframe)):
             self.entries.put(i, [i])
         self.grouped_columns = []
-        self.endResetModel()
         self.grouped.emit(self.grouped_columns)
+        self.endResetModel()
 
     def filter(self, query: str, column: int = 0):
         column_name = self.dataframe.columns[column] if column else "name"
@@ -189,7 +189,6 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
         # Apply the combined filter condition to the DataFrame
         self.dataframe = self.dataframe_[filter_condition].reset_index(drop=True)
 
-        # self.dataframe = self.dataframe_[self.dataframe_[column_name].str.contains(query, case=False)].reset_index(drop=True)
         self.regroup()
 
 

@@ -24,7 +24,46 @@ class ABTreeView(QtWidgets.QTreeView):
 
         self.setColumnHidden(0, True)
         model.grouped.connect(lambda groups: self.setColumnHidden(0, not groups))
+        model.grouped.connect(lambda: self.expanded_paths.clear())
         model.modelReset.connect(self.expand_after_reset)
+
+    def model(self) -> ABAbstractItemModel:
+        return super().model()
+
+    def saveState(self) -> dict:
+        if not self.model():
+            return {}
+
+        return {
+            "columns": self.model().columns,
+            "expanded_paths": list(self.expanded_paths),
+            "hidden_columns": [self.model().columns[i] for i in range(len(self.model().columns)) if self.isColumnHidden(i)],
+            "filters": self.model().filters,
+            "grouped_columns": [self.model().columns[i] for i in self.model().grouped_columns],
+            "header_state": bytearray(self.header().saveState()).hex()
+        }
+
+    def restoreSate(self, state: dict) -> bool:
+        if not self.model():
+            return False
+
+        columns = state.get("columns", [])
+        columns = columns + [col for col in self.model().columns if col not in columns]
+
+        self.model().columns = columns
+
+        self.expanded_paths = set(tuple(p) for p in state.get("expanded_paths", []))
+
+        for col_name in state.get("hidden_columns", []):
+            self.setColumnHidden(columns.index(col_name), True)
+
+        self.model().filters = state.get("filters", {})
+        self.model().grouped_columns = [columns.index(name) for name in state.get("grouped_columns", [])]
+        self.model().regroup()
+
+        self.header().restoreState(bytearray.fromhex(state.get("header_state", "")))
+
+        return True
 
     def expand_after_reset(self):
         indices = [self.model().indexFromPath(list(path)) for path in self.expanded_paths]

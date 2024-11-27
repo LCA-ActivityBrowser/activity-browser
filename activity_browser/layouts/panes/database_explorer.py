@@ -1,13 +1,13 @@
-import pickle
+from qtpy import QtWidgets, QtCore
 
-from qtpy import QtWidgets, QtCore, QtGui
-
-from activity_browser import actions, ui
+from activity_browser import actions, ui, project_settings
 from activity_browser.ui import core
 from activity_browser.bwutils import AB_metadata
 from activity_browser.mod import bw2data as bd
 
 DEFAULT_COLUMNS = ["name", "code", "type", "unit"]
+
+TEST_STATE = {'expanded_paths': set(), 'hidden_columns': [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 18], 'filters': {}, 'grouped_columns': [16]}
 
 
 class DatabaseExplorer(QtWidgets.QWidget):
@@ -20,6 +20,7 @@ class DatabaseExplorer(QtWidgets.QWidget):
         self.table_view = NodeView(self)
         self.table_view.setModel(self.model)
         self.model.setReady()
+        self.table_view.restoreSate(self.get_state_from_settings())
 
         self.search = QtWidgets.QLineEdit(self)
         self.search.setMaximumHeight(30)
@@ -38,12 +39,25 @@ class DatabaseExplorer(QtWidgets.QWidget):
         self.database.changed.connect(self.database_changed)
         self.database.deleted.connect(self.deleteLater)
 
-
     def database_changed(self, database: bd.Database) -> None:
         if database.name != self.database.name:  # only update if the database changed is the one shown by this widget
             return
 
         print("Database changed signal not yet implemented for Database Explorer")
+
+    def event(self, event):
+        if event.type() == QtCore.QEvent.DeferredDelete:
+            self.save_state_to_settings()
+
+        return super().event(event)
+
+    def save_state_to_settings(self):
+        project_settings.settings["database_explorer"] = project_settings.settings.get("database_explorer", {})
+        project_settings.settings["database_explorer"][self.database.name] = self.table_view.saveState()
+        project_settings.write_settings()
+
+    def get_state_from_settings(self):
+        return project_settings.settings.get("database_explorer", {}).get(self.database.name, {})
 
 
 class NodeView(ui.widgets.ABTreeView):
@@ -53,13 +67,6 @@ class NodeView(ui.widgets.ABTreeView):
         self.setDragEnabled(True)
         self.setDragDropMode(QtWidgets.QTableView.DragOnly)
         self.setSelectionBehavior(ui.widgets.ABTreeView.SelectRows)
-
-    def setModel(self, model):
-        super().setModel(model)
-        columns = [model.headerData(col, QtCore.Qt.Horizontal) for col in range(model.columnCount())]
-        for column_name in columns:
-            if column_name not in DEFAULT_COLUMNS:
-                self.hideColumn(columns.index(column_name))
 
     def contextMenuEvent(self, event) -> None:
         """Construct and present a menu."""
