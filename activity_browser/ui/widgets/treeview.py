@@ -52,16 +52,15 @@ class ABTreeView(QtWidgets.QTreeView):
 
         self.model().columns = columns
 
-        self.expanded_paths = set(tuple(p) for p in state.get("expanded_paths", []))
-
         for col_name in state.get("hidden_columns", []):
             self.setColumnHidden(columns.index(col_name), True)
 
         self.model().filters = state.get("filters", {})
-        self.model().filter()
+
+        self.expanded_paths = set(tuple(p) for p in state.get("expanded_paths", []))
 
         self.model().grouped_columns = [columns.index(name) for name in state.get("grouped_columns", [])]
-        self.model().regroup()
+        self.model().filter()  # this will also regroup
 
         self.header().restoreState(bytearray.fromhex(state.get("header_state", "")))
 
