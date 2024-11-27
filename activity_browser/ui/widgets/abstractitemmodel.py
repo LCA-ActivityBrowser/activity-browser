@@ -177,9 +177,13 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
         self.grouped.emit(self.grouped_columns)
         self.endResetModel()
 
-    def filter(self, query: str, column: int = 0):
-        column_name = self.dataframe.columns[column] if column else "name"
-        self.filters[column_name] = query
+    def filter(self, query: str = None, column: int = None):
+        if query is not None:
+            column_name = self.columns[column] if column else "name"
+            if query:
+                self.filters[column_name] = query
+            else:
+                del self.filters[column_name]
 
         # Create a filter for each column and combine them with OR
         filter_condition = pd.Series([True] * len(self.dataframe_))  # Start with all False

@@ -47,7 +47,7 @@ class ABTreeView(QtWidgets.QTreeView):
         if not self.model():
             return False
 
-        columns = state.get("columns", [])
+        columns = [col for col in state.get("columns", []) if col in self.model().columns]
         columns = columns + [col for col in self.model().columns if col not in columns]
 
         self.model().columns = columns
@@ -58,6 +58,8 @@ class ABTreeView(QtWidgets.QTreeView):
             self.setColumnHidden(columns.index(col_name), True)
 
         self.model().filters = state.get("filters", {})
+        self.model().filter()
+
         self.model().grouped_columns = [columns.index(name) for name in state.get("grouped_columns", [])]
         self.model().regroup()
 
