@@ -121,8 +121,8 @@ class ABTreeView(QtWidgets.QTreeView):
         menu.setTitle("View")
         self.view_actions = []
 
-        for i in range(1, len(self.model().dataframe.columns)):
-            action = QtWidgets.QAction(self.model().headerData(i))
+        for i in range(1, len(self.model().columns)):
+            action = QtWidgets.QAction(self.model().columns[i])
             action.setCheckable(True)
             action.setChecked(not self.isColumnHidden(i))
             action.setData(i)
