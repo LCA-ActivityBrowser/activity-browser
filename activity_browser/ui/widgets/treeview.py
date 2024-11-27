@@ -24,7 +24,7 @@ class ABTreeView(QtWidgets.QTreeView):
 
         self.setColumnHidden(0, True)
         model.grouped.connect(lambda groups: self.setColumnHidden(0, not groups))
-        model.grouped.connect(lambda: self.expanded_paths.clear())
+        model.grouped.connect(lambda groups: self.expanded_paths.clear() if not groups else None)
         model.modelReset.connect(self.expand_after_reset)
 
     def model(self) -> ABAbstractItemModel:
@@ -68,7 +68,13 @@ class ABTreeView(QtWidgets.QTreeView):
         return True
 
     def expand_after_reset(self):
-        indices = [self.model().indexFromPath(list(path)) for path in self.expanded_paths]
+        indices = []
+        for path in self.expanded_paths:
+            try:
+                indices.append(self.model().indexFromPath(list(path)))
+            except KeyError:
+                continue
+
         for index in indices:
             self.expand(index)
 
