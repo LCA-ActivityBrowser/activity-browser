@@ -20,76 +20,138 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
             self.entries.put(i, [i])
 
     def index(self, row: int, column: int, parent: QtCore.QModelIndex = ...) -> QtCore.QModelIndex:
+        """
+        Create a QModelIndex based on a specific row, column and parent. Sets the associated Entry as
+        internalPointer. This will be the root Entry if the parent is invalid.
+        """
+        # get the parent Entry, or the root Entry if the parent is invalid
         parent = parent.internalPointer() if parent.isValid() else self.entries
+
+        # get the child Entry from the parent with the same rank as the specified row
         child = parent.ranked_child(row)
+
+        # create and return a QModelIndex
         return self.createIndex(row, column, child)
 
     def indexFromPath(self, path: [str]) -> QtCore.QModelIndex:
+        """
+        Create a QModelIndex based on a specific path for the Entry tree. The index column will be 0.
+        """
+        # get the Entry for that specific path
         child = self.entries.get(path)
+
+        # create and return a QModelIndex with the child's rank as row and 0 as column
         return self.createIndex(child.rank, 0, child)
 
     def parent(self, child: QtCore.QModelIndex) -> QtCore.QModelIndex:
+        """
+        Return the parent of a QModelIndex.
+        """
         if not child.isValid():
             return QtCore.QModelIndex()
 
+        # get the Entry from the QModelIndex
         child = child.internalPointer()
+
+        # try to get the parent Entry from the child
         try:
             parent = child.parent
+        # return an invalid/empty QModelIndex if this fails
         except:
             return QtCore.QModelIndex()
+
+        # if the parent is the root Entry return an invalid/empty QModelIndex
         if parent == self.entries:
             return QtCore.QModelIndex()
 
+        # create and return a QModelIndex with the child's rank as row and 0 as column
         return self.createIndex(parent.rank, 0, parent)
 
     def setReady(self):
+        """
+        Flag the model as ready, which means that it will display it's true data instead of showing up as empty
+
+        Compatibility for a bug in Qt where it iterates over all the indexes on first initiation in a QTabWidget
+        """
         self.beginResetModel()
         self.ready = True
         self.endResetModel()
 
     def rowCount(self, parent: QtCore.QModelIndex = ...) -> int:
+        """
+        Return the number of rows within the model
+        """
+        # return 0 if the ready flag is not set to True, compatibility for a Qt bug
         if not self.ready:
             return 0
+        # if the parent is the top of the table, the rowCount is the number of children for the root Entry
         if not parent.isValid():
-            #value = 1000 if len(self.entries.children) > 1000 else len(self.entries.children)
             value = len(self.entries.children)
+        # else it's the number of children within the Entry saved within the internalPointer
         elif isinstance(parent.internalPointer(), Entry):
             value = len(parent.internalPointer().children)
+        # this shouldn't happen, but a failsafe
         else:
             value = 0
         return value
 
     def columnCount(self, parent: QtCore.QModelIndex = ...) -> int:
+        """
+        Return the number of columns within the model
+        """
         return len(self.columns)
 
     def data(self, index: QtCore.QModelIndex, role=Qt.DisplayRole):
+        """
+        Get the data associated with a specific index and role
+        """
         if not index.isValid() or not isinstance(index.internalPointer(), Entry):
             return None
 
+        # redirect to the displayData method
         if role == Qt.DisplayRole:
             return self.displayData(index)
 
+        # redirect to the fontData method
         if role == Qt.FontRole:
             return self.fontData(index)
 
+        # else return None
         return None
 
     def displayData(self, index):
+        """
+        Return the display data for a specific index
+        """
         entry: Entry = index.internalPointer()
         display = None
 
+        # return the entry name if the column is 0, meaning the branch of the tree
         if index.column() == 0 and entry.children:
             display = str(entry.name)
+
+        # if we're not in the tree column and the Entry.value is an integer get the data from the dataframe
         if not index.column() == 0 and isinstance(entry.value, int):
-            display = str(self.dataframe.loc[entry.value, self.columns[index.column()]]).replace("\n", " ")
+            # Entry.value corresponds with the row number in the dataframe, the index column can be used to get the
+            # column name from self.columns.
+            data = self.dataframe.loc[entry.value, self.columns[index.column()]]
+
+            # clean up the data to a table-readable format
+            display = str(data).replace("\n", " ")
+
+        # if the display is nan, change to the user-friendlier Undefined
         if display == "nan":
             display = "Undefined"
 
         return display
 
     def fontData(self, index):
+        """
+        Return the font data for a specific index
+        """
         font = QtGui.QFont()
 
+        # set the font to italic if the display value is Undefined
         if self.displayData(index) == "Undefined":
             font.setItalic(True)
 
