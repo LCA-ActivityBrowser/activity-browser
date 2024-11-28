@@ -58,7 +58,8 @@ class DatabaseDelete(ABAction):
         QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
 
         # delete upstream exchanges
-        excs.delete()
+        for edge in excs:
+            edge.delete()
 
         # instruct the DatabaseController to delete the database from the project.
         del bd.databases[db_name]
