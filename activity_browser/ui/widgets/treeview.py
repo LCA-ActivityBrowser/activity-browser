@@ -1,3 +1,4 @@
+import re
 from qtpy import QtWidgets, QtCore, QtGui
 
 from .abstractitemmodel import ABAbstractItemModel
@@ -39,9 +40,14 @@ class ABTreeView(QtWidgets.QTreeView):
             del self.filters[column_name]
         self.applyFilter()
 
-    def applyFilter(self):
-        pandas_query = " & ".join([f"({col}.str.contains('{q}'))" for col, q in self.filters.items()])
-        self.model().query(pandas_query)
+    def applyFilter(self, extended_query: str = ""):
+        pandas_query = " & ".join([f"({col}.astype('str').str.contains('{self.format_query(q)}'))" for col, q in self.filters.items()])
+        pandas_query = "(index == index)" if not pandas_query else pandas_query
+        self.model().query(pandas_query + extended_query)
+
+    @staticmethod
+    def format_query(query: str) -> str:
+        return query.translate(str.maketrans({'(': '\\(', ')': '\\)', "'": "\\'"}))
 
     def saveState(self) -> dict:
         if not self.model():

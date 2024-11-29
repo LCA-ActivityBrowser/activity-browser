@@ -1,3 +1,5 @@
+import re
+
 from qtpy import QtWidgets, QtCore
 
 from activity_browser import actions, ui, project_settings
@@ -27,7 +29,7 @@ class DatabaseExplorer(QtWidgets.QWidget):
         self.search.setMaximumHeight(30)
         self.search.setPlaceholderText("Quick Search")
 
-        #self.search.textChanged.connect(self.model.filter)
+        self.search.textChanged.connect(self.table_view.filter_all)
 
         layout = QtWidgets.QVBoxLayout(self)
         layout.addWidget(self.search)
@@ -80,6 +82,13 @@ class NodeView(ui.widgets.ABTreeView):
     def mouseDoubleClickEvent(self, event) -> None:
         if self.selected_keys:
             actions.ActivityOpen.run(self.selected_keys)
+
+    def filter_all(self, query: str):
+        col_names = self.model().columns[1:]
+
+        pandas_query = " | ".join([f"({col}.astype('str').str.contains('{self.format_query(query)}'))" for col in col_names])
+        pandas_query = " & " + pandas_query if pandas_query else ""
+        self.applyFilter(pandas_query)
 
     @property
     def selected_keys(self) -> [tuple]:
