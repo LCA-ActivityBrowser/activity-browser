@@ -71,7 +71,7 @@ class ActivityDelete(ABAction):
                     .where(ActivityParameter.group == group_name)
                     .exists()
                 ):
-                    Group.delete().where(Group.name == group_name).execute()
+                    Group.get(Group.name == group_name).delete_instance()
                     GroupDependency.delete().where(
                         GroupDependency.group == group_name
                     ).execute()
@@ -79,6 +79,7 @@ class ActivityDelete(ABAction):
                 # no parameters found for this activity
                 pass
 
-            act.upstream().delete()
+            # Included in bw2data as of 4.1
+            # act.upstream().delete()
 
             act.delete()
