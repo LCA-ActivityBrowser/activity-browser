@@ -84,9 +84,9 @@ class NodeView(ui.widgets.ABTreeView):
             actions.ActivityOpen.run(self.selected_keys)
 
     def filter_all(self, query: str):
-        col_names = self.model().columns[1:]
+        col_names = [self.model().columns[i] for i in range(1, len(self.model().columns)) if not self.isColumnHidden(i)]
 
-        pandas_query = " | ".join([f"({col}.astype('str').str.contains('{self.format_query(query)}'))" for col in col_names])
+        pandas_query = " | ".join([f"(`{col}`.astype('str').str.contains('{self.format_query(query)}'))" for col in col_names])
         pandas_query = " & " + pandas_query if pandas_query else ""
         self.applyFilter(pandas_query)
 
