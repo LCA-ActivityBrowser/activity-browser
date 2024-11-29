@@ -6,18 +6,35 @@ from qtpy.QtCore import Qt, Signal, SignalInstance
 class ABAbstractItemModel(QtCore.QAbstractItemModel):
     grouped: SignalInstance = Signal(list)
 
-    def __init__(self, dataframe, parent=None):
+    columns = [""]
+
+    def __init__(self, parent=None, dataframe=None):
         super().__init__(parent)
+
+        self.dataframe: pd.DataFrame | None = None  # DataFrame containing the visible data
+        self.dataframe_: pd.DataFrame | None = None  # DataFrame containing the original (unfiltered) data
+        self.entries: Entry | None = None  # root Entry for the object tree
+        self.grouped_columns: [int] = []  # list of all columns that are currently being grouped
+        self.filters: dict[str, str] = {}  # dict[column_name, query] for filtering the dataframe
+
+        # if a dataframe is set as kwarg set it up
+        if dataframe is not None:
+            self.setDataFrame(dataframe)
+
+    def setDataFrame(self, dataframe: pd.DataFrame):
+        self.beginResetModel()
+
+        # set the index to a RangeIndex
+        # todo: research whether this is totally necessary
+        dataframe.index = pd.RangeIndex(len(dataframe))
+
         self.dataframe = dataframe
         self.dataframe_ = dataframe
-        self.entries = Entry("root")
-        self.grouped_columns = []
-        self.filters = {}
-        self.ready = False
-        self.columns = [""] + list(self.dataframe.columns)
 
-        for i in range(len(self.dataframe)):
-            self.entries.put(i, [i])
+        # extend the columns
+        self.columns = self.columns + [col for col in self.dataframe.columns if col not in self.columns]
+
+        self.endResetModel()
 
     def index(self, row: int, column: int, parent: QtCore.QModelIndex = ...) -> QtCore.QModelIndex:
         """
@@ -67,22 +84,12 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
         # create and return a QModelIndex with the child's rank as row and 0 as column
         return self.createIndex(parent.rank, 0, parent)
 
-    def setReady(self):
-        """
-        Flag the model as ready, which means that it will display it's true data instead of showing up as empty
-
-        Compatibility for a bug in Qt where it iterates over all the indexes on first initiation in a QTabWidget
-        """
-        self.beginResetModel()
-        self.ready = True
-        self.endResetModel()
-
     def rowCount(self, parent: QtCore.QModelIndex = ...) -> int:
         """
         Return the number of rows within the model
         """
-        # return 0 if the ready flag is not set to True, compatibility for a Qt bug
-        if not self.ready:
+        # return 0 if there is no DataFrame
+        if self.dataframe is None:
             return 0
         # if the parent is the top of the table, the rowCount is the number of children for the root Entry
         if not parent.isValid():
@@ -99,6 +106,9 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
         """
         Return the number of columns within the model
         """
+        # return 0 if there is no DataFrame
+        if self.dataframe is None:
+            return 0
         return len(self.columns)
 
     def data(self, index: QtCore.QModelIndex, role=Qt.DisplayRole):
@@ -197,56 +207,71 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
         return self.dataframe.iloc[df_indices]
 
     def sort(self, column: int, order=Qt.AscendingOrder):
-        self.layoutAboutToBeChanged.emit()
+        if column == 0:
+            return
 
-        column_name = self.dataframe.columns[column]
-        self.dataframe.sort_values(by=column_name, ascending=order == Qt.AscendingOrder, inplace=True, ignore_index=True)
-
-        if self.grouped_columns:
-            self.regroup()
-
-        self.layoutChanged.emit()
-
-    def group(self, column: int):
-        self.grouped_columns.append(column)
-        self.regroup()
-
-    def regroup(self):
         self.beginResetModel()
 
-        self.entries = Entry("root")
+        column_name = self.columns[column]
+        self.dataframe.sort_values(by=column_name, ascending=order == Qt.AscendingOrder, inplace=True, ignore_index=True)
 
-        column_names = [self.columns[column] for column in self.grouped_columns]
+        self.endResetModel()
 
-        for i, *paths in self.dataframe[column_names].itertuples():
-            joined_path = []
-
-            for path in paths:
-                joined_path.extend(path) if isinstance(path, (list, tuple)) else joined_path.append(path)
-
-            joined_path.append(i)
-            self.entries.put(i, joined_path)
-
+    def group(self, column: int):
+        self.beginResetModel()
+        self.grouped_columns.append(column)
         self.endResetModel()
         self.grouped.emit(self.grouped_columns)
 
     def ungroup(self):
         self.beginResetModel()
-        self.entries = Entry("root")
-        for i in range(len(self.dataframe)):
-            self.entries.put(i, [i])
-        self.grouped_columns = []
+        self.grouped_columns.clear()
+        self.endResetModel()
         self.grouped.emit(self.grouped_columns)
+
+    def endResetModel(self):
+        """Reset the model based on dataframe, grouped columns and filters"""
+
+        self._apply_filters()
+
+        self.entries = Entry("root")
+
+        # if no grouping of Entry's, just append everything as a direct child of the root Entry
+        if not self.grouped_columns:
+            for i in range(len(self.dataframe)):
+                self.entries.put(i, [i])
+        # else build paths based on the grouped columns and create an entry tree
+        else:
+            column_names = [self.columns[column] for column in self.grouped_columns]
+
+            for i, *paths in self.dataframe[column_names].itertuples():
+                joined_path = []
+
+                for path in paths:
+                    joined_path.extend(path) if isinstance(path, (list, tuple)) else joined_path.append(path)
+
+                joined_path.append(i)
+                self.entries.put(i, joined_path)
+
+        super().endResetModel()
+
+    def filter(self, query: str, column: int):
+        """
+        Extend self.filters with the column: query combination. And apply the changes to the model.
+        """
+        self.beginResetModel()
+        column_name = self.columns[column] if column else "name"
+        if query:
+            self.filters[column_name] = query
+        else:
+            del self.filters[column_name]
         self.endResetModel()
 
-    def filter(self, query: str = None, column: int = None):
-        if query is not None:
-            column_name = self.columns[column] if column else "name"
-            if query:
-                self.filters[column_name] = query
-            else:
-                del self.filters[column_name]
-
+    def _apply_filters(self) -> None:
+        """
+        Apply the filters specified in self.filters to self.dataframe based on the original dataframe stored in
+        self.dataframe_
+        """
         # Create a filter for each column and combine them with OR
         filter_condition = pd.Series([True] * len(self.dataframe_))  # Start with all False
         for col, query in self.filters.items():
@@ -254,8 +279,6 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
 
         # Apply the combined filter condition to the DataFrame
         self.dataframe = self.dataframe_[filter_condition].reset_index(drop=True)
-
-        self.regroup()
 
 
 class Entry:

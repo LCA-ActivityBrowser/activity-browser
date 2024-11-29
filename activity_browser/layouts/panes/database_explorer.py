@@ -15,12 +15,12 @@ class DatabaseExplorer(QtWidgets.QWidget):
     def __init__(self, parent, db_name: str):
         super().__init__(parent)
         self.database = bd.Database(db_name)
-        self.model = NodeModel(AB_metadata.get_database_metadata(db_name), self)
+        self.model = NodeModel(self)
 
         # Create the QTableView and set the model
         self.table_view = NodeView(self)
         self.table_view.setModel(self.model)
-        self.model.setReady()
+        self.model.setDataFrame(AB_metadata.get_database_metadata(db_name))
         self.table_view.restoreSate(self.get_state_from_settings())
 
         self.search = QtWidgets.QLineEdit(self)
@@ -44,7 +44,7 @@ class DatabaseExplorer(QtWidgets.QWidget):
         if database.name != self.database.name:  # only update if the database changed is the one shown by this widget
             return
 
-        print("Database changed signal not yet implemented for Database Explorer")
+        self.model.setDataFrame(AB_metadata.get_database_metadata(database.name))
 
     def event(self, event):
         if event.type() == QtCore.QEvent.DeferredDelete:
