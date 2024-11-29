@@ -3,6 +3,7 @@ from time import time
 from typing import Optional, Union
 
 import bw2calc as bc
+import bw2data as bd
 import numpy as np
 import pandas as pd
 from stats_arrays import MCRandomNumberGenerator
@@ -27,18 +28,20 @@ class MonteCarloLCA(object):
         self.CF_rng_vectors = {}
         self.include_technosphere = True
         self.include_biosphere = True
-        self.include_cfs = True
-        self.include_parameters = True
-        self.param_rng = None
+        self.include_cfs = False
+        # Needs substantial rework for BW 2.5
+        self.include_parameters = False
+        # self.param_rng = None
         self.param_cols = ["row", "col", "type"]
 
-        self.tech_rng: Optional[Union[MCRandomNumberGenerator, np.ndarray]] = None
-        self.bio_rng: Optional[Union[MCRandomNumberGenerator, np.ndarray]] = None
-        self.cf_rng: Optional[Union[MCRandomNumberGenerator, np.ndarray]] = None
+        # self.tech_rng: Optional[Union[MCRandomNumberGenerator, np.ndarray]] = None
+        # self.bio_rng: Optional[Union[MCRandomNumberGenerator, np.ndarray]] = None
+        # self.cf_rng: Optional[Union[MCRandomNumberGenerator, np.ndarray]] = None
 
         # reference flows
         self.func_units = self.cs["inv"]
         self.rev_fu_index = {i: fu for i, fu in enumerate(self.func_units)}
+        self.func_units_multilca = {str(i): fu for i, fu in enumerate(self.func_units)}
 
         # activities
         self.activity_keys = [list(fu.keys())[0] for fu in self.func_units]
@@ -50,7 +53,7 @@ class MonteCarloLCA(object):
         }
 
         # methods
-        self.methods = self.cs["ia"]
+        self.methods = list(self.cs["ia"])
         self.method_index = {m: i for i, m in enumerate(self.methods)}
         self.rev_method_index = {i: m for i, m in enumerate(self.methods)}
 
@@ -64,80 +67,118 @@ class MonteCarloLCA(object):
 
         self.results = list()
 
-        self.lca = bc.LCA(demand=self.func_units_dict, method=self.methods[0])
+        # Not needed - always call .calculate?
+        # self.lca = self.construct_lca(
+        #     demands=self.func_units,
+        #     method_config={"impact_categories": self.methods},
+        #     technosphere=self.include_technosphere,
+        #     biosphere=self.include_biosphere,
+        #     characterization=self.include_cfs,
+        # )
 
-    def unify_param_exchanges(self, data: np.ndarray) -> np.ndarray:
-        """Convert an array of parameterized exchanges from input/output keys
-        into row/col values using dicts generated in bw.LCA object.
-
-        If any given exchange does not exist in the current LCA matrix,
-        it will be dropped from the returned array.
-        """
-
-        def key_to_rowcol(x) -> Optional[tuple]:
-            if x["type"] in [0, 1]:
-                row = self.lca.activity_dict.get(x["input"], None)
-                col = self.lca.product_dict.get(x["output"], None)
-            else:
-                row = self.lca.biosphere_dict.get(x["input"], None)
-                col = self.lca.activity_dict.get(x["output"], None)
-            # if either the row or the column is None, return np.NaN.
-            if row is None or col is None:
-                return None
-            return row, col, x["type"], x["amount"]
-
-        # Convert the data and store in a new array, dropping Nones.
-        converted = (key_to_rowcol(d) for d in data)
-        unified = np.array(
-            [x for x in converted if x is not None],
-            dtype=[("row", "<u4"), ("col", "<u4"), ("type", "u1"), ("amount", "<f4")],
+    def construct_lca(
+        self,
+        demands: dict,
+        method_config: dict,
+        technosphere: bool = True,
+        biosphere: bool = True,
+        characterization: bool = True,
+        seed_override: Optional[int] = None,
+    ) -> bc.MultiLCA:
+        log.info(f"Monte Carlo demands: {demands}")
+        log.info(f"Monte Carlo impact categories: {method_config}")
+        demands = {
+            index: {bd.get_activity(k).id: v for k, v in fu.items()}
+            for index, fu in demands.items()
+        }
+        data_objs = bd.get_multilca_data_objs(
+            functional_units=demands,
+            method_config=method_config
         )
-        return unified
-
-    def load_data(self) -> None:
-        """Constructs the random number generators for all of the matrices that
-        can be altered by uncertainty.
-
-        If any of these uncertain calculations are not included, the initial
-        amounts of the 'params' matrices are used in place of generating
-        a vector
-        """
-        self.lca.load_lci_data()
-
-        self.tech_rng = (
-            MCRandomNumberGenerator(self.lca.tech_params, seed=self.seed)
-            if self.include_technosphere
-            else self.lca.tech_params["amount"].copy()
-        )
-        self.bio_rng = (
-            MCRandomNumberGenerator(self.lca.bio_params, seed=self.seed)
-            if self.include_biosphere
-            else self.lca.bio_params["amount"].copy()
+        return bc.MultiLCA(
+            demands=demands,
+            method_config=method_config,
+            data_objs=data_objs,
+            selective_use={
+                "technosphere_matrix": {"use_distributions": technosphere},
+                "biosphere_matrix": {"use_distributions": biosphere},
+                "characterization_matrix": {"use_distributions": characterization},
+            },
+            seed_override=seed_override,
         )
 
-        if self.lca.lcia:
-            self.cf_rngs = (
-                {}
-            )  # we need as many cf_rng as impact categories, because they are of different size
-            for m in self.methods:
-                self.lca.switch_method(m)
-                self.lca.load_lcia_data()
-                self.cf_rngs[m] = (
-                    MCRandomNumberGenerator(self.lca.cf_params, seed=self.seed)
-                    if self.include_cfs
-                    else self.lca.cf_params["amount"].copy()
-                )
-        # Construct the MC parameter manager
-        if self.include_parameters:
-            self.param_rng = MonteCarloParameterManager(seed=self.seed)
+    # def unify_param_exchanges(self, data: np.ndarray) -> np.ndarray:
+    #     """Convert an array of parameterized exchanges from input/output keys
+    #     into row/col values using dicts generated in bw.LCA object.
 
-        (
-            self.lca.activity_dict_rev,
-            self.lca.product_dict_rev,
-            self.lca.biosphere_dict_rev,
-        ) = self.lca.reverse_dict()
+    #     If any given exchange does not exist in the current LCA matrix,
+    #     it will be dropped from the returned array.
+    #     """
 
-    def calculate(self, iterations=10, seed: int = None, **kwargs):
+    #     def key_to_rowcol(x) -> Optional[tuple]:
+    #         if x["type"] in [0, 1]:
+    #             row = self.lca.activity_dict.get(x["input"], None)
+    #             col = self.lca.product_dict.get(x["output"], None)
+    #         else:
+    #             row = self.lca.biosphere_dict.get(x["input"], None)
+    #             col = self.lca.activity_dict.get(x["output"], None)
+    #         # if either the row or the column is None, return np.NaN.
+    #         if row is None or col is None:
+    #             return None
+    #         return row, col, x["type"], x["amount"]
+
+    #     # Convert the data and store in a new array, dropping Nones.
+    #     converted = (key_to_rowcol(d) for d in data)
+    #     unified = np.array(
+    #         [x for x in converted if x is not None],
+    #         dtype=[("row", "<u4"), ("col", "<u4"), ("type", "u1"), ("amount", "<f4")],
+    #     )
+    #     return unified
+
+    # def load_data(self) -> None:
+    #     """Constructs the random number generators for all of the matrices that
+    #     can be altered by uncertainty.
+
+    #     If any of these uncertain calculations are not included, the initial
+    #     amounts of the 'params' matrices are used in place of generating
+    #     a vector
+    #     """
+    #     self.lca.load_lci_data()
+
+    #     self.tech_rng = (
+    #         MCRandomNumberGenerator(self.lca.tech_params, seed=self.seed)
+    #         if self.include_technosphere
+    #         else self.lca.tech_params["amount"].copy()
+    #     )
+    #     self.bio_rng = (
+    #         MCRandomNumberGenerator(self.lca.bio_params, seed=self.seed)
+    #         if self.include_biosphere
+    #         else self.lca.bio_params["amount"].copy()
+    #     )
+
+    #     if self.lca.lcia:
+    #         self.cf_rngs = (
+    #             {}
+    #         )  # we need as many cf_rng as impact categories, because they are of different size
+    #         for m in self.methods:
+    #             self.lca.switch_method(m)
+    #             self.lca.load_lcia_data()
+    #             self.cf_rngs[m] = (
+    #                 MCRandomNumberGenerator(self.lca.cf_params, seed=self.seed)
+    #                 if self.include_cfs
+    #                 else self.lca.cf_params["amount"].copy()
+    #             )
+    #     # Construct the MC parameter manager
+    #     if self.include_parameters:
+    #         self.param_rng = MonteCarloParameterManager(seed=self.seed)
+
+    #     (
+    #         self.lca.activity_dict_rev,
+    #         self.lca.product_dict_rev,
+    #         self.lca.biosphere_dict_rev,
+    #     ) = self.lca.reverse_dict()
+
+    def calculate(self, iterations: int = 10, seed: Optional[int] = None, **kwargs):
         """Main calculate method for the MC LCA class, allows fine-grained control
         over which uncertainties are included when running MC sampling.
         """
@@ -149,7 +190,16 @@ class MonteCarloLCA(object):
         self.include_cfs = kwargs.get("cf", True)
         self.include_parameters = kwargs.get("parameters", True)
 
-        self.load_data()
+        self.lca = self.construct_lca(
+            demands=self.func_units_multilca,
+            method_config={"impact_categories": self.methods},
+            technosphere=self.include_technosphere,
+            biosphere=self.include_biosphere,
+            characterization=self.include_cfs,
+        )
+        self.lca.lci()
+        self.lca.lcia()
+        self.lca.keep_first_iteration_flag = True
 
         self.results = np.zeros((iterations, len(self.func_units), len(self.methods)))
 
@@ -162,85 +212,97 @@ class MonteCarloLCA(object):
 
         # Prepare GSA parameter schema:
         if self.include_parameters:
-            self.parameter_data = self.param_rng.extract_active_parameters(self.lca)
-            # Add a values field to handle all the sampled parameter values.
-            for k in self.parameter_data:
-                self.parameter_data[k]["values"] = []
+            raise ValueError("Parameter sampling not currently supported")
+            # self.parameter_data = self.param_rng.extract_active_parameters(self.lca)
+            # # Add a values field to handle all the sampled parameter values.
+            # for k in self.parameter_data:
+            #     self.parameter_data[k]["values"] = []
 
         for iteration in range(iterations):
-            tech_vector = (
-                self.tech_rng.next() if self.include_technosphere else self.tech_rng
-            )
-            bio_vector = self.bio_rng.next() if self.include_biosphere else self.bio_rng
-            if self.include_parameters:
-                # Convert the input/output keys into row/col keys, and then match them against
-                # the tech_ and bio_params
-                data = self.param_rng.next()
-                param_exchanges = self.unify_param_exchanges(data)
+            next(self.lca)
+            # tech_vector = (
+            #     self.tech_rng.next() if self.include_technosphere else self.tech_rng
+            # )
+            # bio_vector = self.bio_rng.next() if self.include_biosphere else self.bio_rng
+            # if self.include_parameters:
+            #     # Convert the input/output keys into row/col keys, and then match them against
+            #     # the tech_ and bio_params
+            #     data = self.param_rng.next()
+            #     param_exchanges = self.unify_param_exchanges(data)
 
-                # Select technosphere subset from param_exchanges.
-                subset = param_exchanges[np.isin(param_exchanges["type"], [0, 1])]
-                # Create index of where to insert new values from tech_params array.
-                idx = np.argwhere(
-                    np.isin(
-                        self.lca.tech_params[self.param_cols], subset[self.param_cols]
-                    )
-                ).flatten()
-                # Construct unique array of row+col+type combinations
-                uniq = np.unique(self.lca.tech_params[idx][self.param_cols])
-                # Use the unique array to sort the subset (ensures values
-                # are inserted at the correct index)
-                sort_idx = np.searchsorted(uniq, subset[self.param_cols])
-                # Finally, insert the sorted subset amounts into the tech_vector
-                # at the correct indexes.
-                tech_vector[idx] = subset[sort_idx]["amount"]
-                # Repeat the above, but for the biosphere array.
-                subset = param_exchanges[param_exchanges["type"] == 2]
-                idx = np.argwhere(
-                    np.isin(
-                        self.lca.bio_params[self.param_cols], subset[self.param_cols]
-                    )
-                ).flatten()
-                uniq = np.unique(self.lca.bio_params[idx][self.param_cols])
-                sort_idx = np.searchsorted(uniq, subset[self.param_cols])
-                bio_vector[idx] = subset[sort_idx]["amount"]
+            #     # Select technosphere subset from param_exchanges.
+            #     subset = param_exchanges[np.isin(param_exchanges["type"], [0, 1])]
+            #     # Create index of where to insert new values from tech_params array.
+            #     idx = np.argwhere(
+            #         np.isin(
+            #             self.lca.tech_params[self.param_cols], subset[self.param_cols]
+            #         )
+            #     ).flatten()
+            #     # Construct unique array of row+col+type combinations
+            #     uniq = np.unique(self.lca.tech_params[idx][self.param_cols])
+            #     # Use the unique array to sort the subset (ensures values
+            #     # are inserted at the correct index)
+            #     sort_idx = np.searchsorted(uniq, subset[self.param_cols])
+            #     # Finally, insert the sorted subset amounts into the tech_vector
+            #     # at the correct indexes.
+            #     tech_vector[idx] = subset[sort_idx]["amount"]
+            #     # Repeat the above, but for the biosphere array.
+            #     subset = param_exchanges[param_exchanges["type"] == 2]
+            #     idx = np.argwhere(
+            #         np.isin(
+            #             self.lca.bio_params[self.param_cols], subset[self.param_cols]
+            #         )
+            #     ).flatten()
+            #     uniq = np.unique(self.lca.bio_params[idx][self.param_cols])
+            #     sort_idx = np.searchsorted(uniq, subset[self.param_cols])
+            #     bio_vector[idx] = subset[sort_idx]["amount"]
 
-                # Store parameter data for GSA
-                self.parameter_exchanges.append(param_exchanges)
-                self.parameters.append(self.param_rng.parameters.to_gsa())
-                # Extract sampled values for parameters, store.
-                self.param_rng.retrieve_sampled_values(self.parameter_data)
+            #     # Store parameter data for GSA
+            #     self.parameter_exchanges.append(param_exchanges)
+            #     self.parameters.append(self.param_rng.parameters.to_gsa())
+            #     # Extract sampled values for parameters, store.
+            #     self.param_rng.retrieve_sampled_values(self.parameter_data)
 
-            self.lca.rebuild_technosphere_matrix(tech_vector)
-            self.lca.rebuild_biosphere_matrix(bio_vector)
+            # self.lca.rebuild_technosphere_matrix(tech_vector)
+            # self.lca.rebuild_biosphere_matrix(bio_vector)
 
             # store matrices for GSA
             self.A_matrices.append(self.lca.technosphere_matrix)
             self.B_matrices.append(self.lca.biosphere_matrix)
 
-            if not hasattr(self.lca, "demand_array"):
-                self.lca.build_demand_array()
-            self.lca.lci_calculation()
+            # if not hasattr(self.lca, "demand_array"):
+            #     self.lca.build_demand_array()
+            # self.lca.lci_calculation()
 
             # pre-calculating CF vectors enables the use of the SAME CF vector for each FU in a given run
-            cf_vectors = {}
-            for m in self.methods:
-                cf_vectors[m] = (
-                    self.cf_rngs[m].next() if self.include_cfs else self.cf_rngs[m]
-                )
-                # store CFs for GSA (in a list defaultdict)
-                self.CF_dict[m].append(cf_vectors[m])
+            # cf_vectors = {}
+            # for m in self.methods:
+            #     cf_vectors[m] = (
+            #         self.cf_rngs[m].next() if self.include_cfs else self.cf_rngs[m]
+            #     )
+            #     # store CFs for GSA (in a list defaultdict)
+            #     self.CF_dict[m].append(cf_vectors[m])
 
             # iterate over FUs
-            for row, func_unit in self.rev_fu_index.items():
-                self.lca.redo_lci(func_unit)  # lca calculation
+            # for row, func_unit in self.rev_fu_index.items():
+            #     self.lca.redo_lci(func_unit)  # lca calculation
+
+            #     # iterate over methods
+            #     for col, m in self.rev_method_index.items():
+            #         self.lca.switch_method(m)
+            #         self.lca.rebuild_characterization_matrix(cf_vectors[m])
+            #         self.lca.lcia_calculation()
+            #         self.results[iteration, row, col] = self.lca.score
+
+            for row, func_unit in self.func_units_multilca.items():
+                # self.lca.redo_lci(func_unit)  # lca calculation
 
                 # iterate over methods
-                for col, m in self.rev_method_index.items():
-                    self.lca.switch_method(m)
-                    self.lca.rebuild_characterization_matrix(cf_vectors[m])
-                    self.lca.lcia_calculation()
-                    self.results[iteration, row, col] = self.lca.score
+                for col, m in enumerate(self.methods):
+                    # self.lca.switch_method(m)
+                    # self.lca.rebuild_characterization_matrix(cf_vectors[m])
+                    # self.lca.lcia_calculation()
+                    self.results[iteration, int(row), col] = self.lca.scores[(m, row)]
 
         log.info(
             "Monte Carlo LCA: finished {} iterations for {} reference flows and {} methods in {} seconds.".format(
