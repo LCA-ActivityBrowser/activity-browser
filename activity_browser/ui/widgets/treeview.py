@@ -17,6 +17,8 @@ class ABTreeView(QtWidgets.QTreeView):
         self.expanded.connect(lambda index: self.expanded_paths.add(tuple(index.internalPointer().path)))
         self.collapsed.connect(lambda index: self.expanded_paths.discard(tuple(index.internalPointer().path)))
 
+        self.filters: dict[str, str] = {}  # dict[column_name, query] for filtering the dataframe
+
     def setModel(self, model):
         if not isinstance(model, ABAbstractItemModel):
             raise TypeError("Model must be an instance of ABAbstractItemModel")
@@ -29,6 +31,17 @@ class ABTreeView(QtWidgets.QTreeView):
 
     def model(self) -> ABAbstractItemModel:
         return super().model()
+
+    def filter(self, column_name: str, query: str):
+        if query:
+            self.filters[column_name] = query
+        else:
+            del self.filters[column_name]
+        self.applyFilter()
+
+    def applyFilter(self):
+        pandas_query = " & ".join([f"({col}.str.contains('{q}'))" for col, q in self.filters.items()])
+        self.model().query(pandas_query)
 
     def saveState(self) -> dict:
         if not self.model():
@@ -86,12 +99,13 @@ class ABTreeView(QtWidgets.QTreeView):
 
     def col_menu(self, column: int):
         menu = QtWidgets.QMenu(self)
+        col_name = self.model().columns[column]
 
         search_box = QtWidgets.QLineEdit(menu)
-        search_box.setText(self.model().filters.get(self.model().headerData(column), ""))
+        search_box.setText(self.filters.get(col_name, ""))
         search_box.setPlaceholderText("Search")
 
-        search_box.textChanged.connect(lambda q: self.model().filter(q, column))
+        search_box.textChanged.connect(lambda query: self.filter(col_name, query))
         widget_action = QtWidgets.QWidgetAction(menu)
         widget_action.setDefaultWidget(search_box)
         menu.addAction(widget_action)

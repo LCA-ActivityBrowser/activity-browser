@@ -15,7 +15,7 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
         self.dataframe_: pd.DataFrame | None = None  # DataFrame containing the original (unfiltered) data
         self.entries: Entry | None = None  # root Entry for the object tree
         self.grouped_columns: [int] = []  # list of all columns that are currently being grouped
-        self.filters: dict[str, str] = {}  # dict[column_name, query] for filtering the dataframe
+        self.current_query = ""  # Pandas query currently applied to the dataframe
 
         # if a dataframe is set as kwarg set it up
         if dataframe is not None:
@@ -206,6 +206,39 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
         df_indices = self.dataframeIndices(index)
         return self.dataframe.iloc[df_indices]
 
+    def endResetModel(self):
+        """
+        Reset the model based on dataframe, query and grouped columns. Should be called to reflect the changes of
+        changing the dataframe, grouped columns or query string.
+        """
+        # apply any existing queries to the dataframe
+        if self.current_query:
+            self.dataframe = self.dataframe_.query(self.current_query).reset_index(drop=True)
+        else:
+            self.dataframe = self.dataframe_
+
+        # rebuild the entry tree
+        self.entries = Entry("root")
+
+        # if no grouping of Entries, just append everything as a direct child of the root Entry
+        if not self.grouped_columns:
+            for i in range(len(self.dataframe)):
+                self.entries.put(i, [i])
+        # else build paths based on the grouped columns and create an entry tree
+        else:
+            column_names = [self.columns[column] for column in self.grouped_columns]
+
+            for i, *paths in self.dataframe[column_names].itertuples():
+                joined_path = []
+
+                for path in paths:
+                    joined_path.extend(path) if isinstance(path, (list, tuple)) else joined_path.append(path)
+
+                joined_path.append(i)
+                self.entries.put(i, joined_path)
+
+        super().endResetModel()
+
     def sort(self, column: int, order=Qt.AscendingOrder):
         if column == 0:
             return
@@ -229,56 +262,11 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
         self.endResetModel()
         self.grouped.emit(self.grouped_columns)
 
-    def endResetModel(self):
-        """Reset the model based on dataframe, grouped columns and filters"""
-
-        self._apply_filters()
-
-        self.entries = Entry("root")
-
-        # if no grouping of Entry's, just append everything as a direct child of the root Entry
-        if not self.grouped_columns:
-            for i in range(len(self.dataframe)):
-                self.entries.put(i, [i])
-        # else build paths based on the grouped columns and create an entry tree
-        else:
-            column_names = [self.columns[column] for column in self.grouped_columns]
-
-            for i, *paths in self.dataframe[column_names].itertuples():
-                joined_path = []
-
-                for path in paths:
-                    joined_path.extend(path) if isinstance(path, (list, tuple)) else joined_path.append(path)
-
-                joined_path.append(i)
-                self.entries.put(i, joined_path)
-
-        super().endResetModel()
-
-    def filter(self, query: str, column: int):
-        """
-        Extend self.filters with the column: query combination. And apply the changes to the model.
-        """
+    def query(self, query: str):
+        """Apply the query string to the dataframe and rebuild the model"""
         self.beginResetModel()
-        column_name = self.columns[column] if column else "name"
-        if query:
-            self.filters[column_name] = query
-        else:
-            del self.filters[column_name]
+        self.current_query = query
         self.endResetModel()
-
-    def _apply_filters(self) -> None:
-        """
-        Apply the filters specified in self.filters to self.dataframe based on the original dataframe stored in
-        self.dataframe_
-        """
-        # Create a filter for each column and combine them with OR
-        filter_condition = pd.Series([True] * len(self.dataframe_))  # Start with all False
-        for col, query in self.filters.items():
-            filter_condition = filter_condition & self.dataframe_[col].astype(str).str.contains(query, case=False)
-
-        # Apply the combined filter condition to the DataFrame
-        self.dataframe = self.dataframe_[filter_condition].reset_index(drop=True)
 
 
 class Entry:

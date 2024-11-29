@@ -27,7 +27,7 @@ class DatabaseExplorer(QtWidgets.QWidget):
         self.search.setMaximumHeight(30)
         self.search.setPlaceholderText("Quick Search")
 
-        self.search.textChanged.connect(self.model.filter)
+        #self.search.textChanged.connect(self.model.filter)
 
         layout = QtWidgets.QVBoxLayout(self)
         layout.addWidget(self.search)
