@@ -346,11 +346,11 @@ class NewAnalysisTab(BaseRightTab):
 
     def update_tab(self):
         """Update the plot and table if they are present."""
-        if self.plot:
+        if self.plot and self.plot.isVisible:
             self.update_plot()
-        if self.table:
+        if self.table and self.table.isVisible:
             self.update_table()
-        if self.plot and self.table:
+        if self.plot and self.plot.isVisible and self.table and self.table.isVisible:
             self.space_check()
 
     def update_table(self, *args, **kwargs):
