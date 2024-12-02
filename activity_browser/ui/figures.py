@@ -185,6 +185,8 @@ class ContributionPlot(Plot):
         """Plot a horizontal stacked bar chart of contributions,
         add 'total' marker if both positive and negative results are present."""
         dfp = df.copy()
+        dfp = dfp.iloc[:, ::-1]  # reverse column names so they align with calculation setup and rest of results
+
         dfp.index = dfp["index"]
         dfp.drop(
             dfp.select_dtypes(["object"]), axis=1, inplace=True
