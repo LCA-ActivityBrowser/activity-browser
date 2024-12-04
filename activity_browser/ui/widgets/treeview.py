@@ -89,6 +89,7 @@ class ABTreeView(QtWidgets.QTreeView):
             self.setColumnHidden(columns.index(col_name), True)
 
         self.header().restoreState(bytearray.fromhex(state.get("header_state", "")))
+        self.expand_after_reset()
 
         return True
 
