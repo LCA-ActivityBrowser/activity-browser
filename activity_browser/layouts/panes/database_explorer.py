@@ -1,8 +1,9 @@
 import re
 
-from qtpy import QtWidgets, QtCore
+from qtpy import QtWidgets, QtCore, QtGui
+from qtpy.QtCore import Signal, SignalInstance
 
-from activity_browser import actions, ui, project_settings
+from activity_browser import actions, ui, project_settings, application
 from activity_browser.ui import core
 from activity_browser.bwutils import AB_metadata
 from activity_browser.mod import bw2data as bd
@@ -41,6 +42,7 @@ class DatabaseExplorer(QtWidgets.QWidget):
         # connect signals
         self.database.changed.connect(self.database_changed)
         self.database.deleted.connect(self.deleteLater)
+        self.table_view.query_changed.connect(self.search_error)
 
     def database_changed(self, database: bd.Database) -> None:
         if database.name != self.database.name:  # only update if the database changed is the one shown by this widget
@@ -62,8 +64,19 @@ class DatabaseExplorer(QtWidgets.QWidget):
     def get_state_from_settings(self):
         return project_settings.settings.get("database_explorer", {}).get(self.database.name, DEFAULT_STATE)
 
+    def search_error(self, reset=False):
+        if reset:
+            self.search.setPalette(application.palette())
+            return
+
+        palette = self.search.palette()
+        palette.setColor(QtGui.QPalette.ColorRole.Base, QtGui.QColor(255, 128, 128))
+        self.search.setPalette(palette)
+
 
 class NodeView(ui.widgets.ABTreeView):
+    query_changed: SignalInstance = Signal(bool)
+
     def __init__(self, parent: DatabaseExplorer):
         super().__init__(parent)
         self.setSortingEnabled(True)
@@ -84,11 +97,24 @@ class NodeView(ui.widgets.ABTreeView):
             actions.ActivityOpen.run(self.selected_keys)
 
     def filter_all(self, query: str):
+        # go to advanced querying if the query starts with the equal sign
+        if query.startswith('='):
+            return self.query_filter(query[1:])
+
         col_names = [self.model().columns[i] for i in range(1, len(self.model().columns)) if not self.isColumnHidden(i)]
 
         pandas_query = " | ".join([f"(`{col}`.astype('str').str.contains('{self.format_query(query)}'))" for col in col_names])
         pandas_query = " & " + pandas_query if pandas_query else ""
         self.applyFilter(pandas_query)
+        self.query_changed.emit(True)
+
+    def query_filter(self, query: str) -> bool:
+        try:
+            self.applyFilter(f" & ({query})")
+            self.query_changed.emit(True)
+        except Exception as e:
+            print(f"Error in query: {type(e).__name__}: {e}")
+            self.query_changed.emit(False)
 
     @property
     def selected_keys(self) -> [tuple]:
