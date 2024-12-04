@@ -241,10 +241,11 @@ class ContributionPlot(Plot):
         # make the zero line more present
         grid = self.ax.get_xgridlines()
         # get the 0 line from all gridlines
-        zero_idx = [i for i, label in enumerate(self.ax.get_xticklabels()) if label.get_text() == "0.0"][0]
-        zero_line = grid[zero_idx]
-        zero_line.set_color("black")
-        zero_line.set_linestyle("solid")
+        label_pos = [i for i, label in enumerate(self.ax.get_xticklabels()) if label.get_position()[0] == 0.0]
+        if len(label_pos) > 0:
+            zero_line = grid[label_pos[0]]
+            zero_line.set_color("black")
+            zero_line.set_linestyle("solid")
 
         # total marker when both negative and positive results are present in a column
         marker_size = max(min(150 / dfp.shape[1], 35), 10)  # set marker size dynamic between 10 - 35
