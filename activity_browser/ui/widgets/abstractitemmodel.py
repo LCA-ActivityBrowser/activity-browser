@@ -246,7 +246,7 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
         self.beginResetModel()
 
         column_name = self.columns[column]
-        self.dataframe.sort_values(by=column_name, ascending=order == Qt.AscendingOrder, inplace=True, ignore_index=True)
+        self.dataframe_.sort_values(by=column_name, ascending=order == Qt.AscendingOrder, inplace=True, ignore_index=True)
 
         self.endResetModel()
 
