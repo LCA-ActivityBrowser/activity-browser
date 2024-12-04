@@ -37,7 +37,7 @@ class ABTreeView(QtWidgets.QTreeView):
         if query:
             self.filters[column_name] = query
             self.model().filtered_columns.add(self.model().columns.index(column_name))
-        else:
+        elif column_name in self.filters:
             del self.filters[column_name]
             self.model().filtered_columns.discard(self.model().columns.index(column_name))
         self.applyFilter()
@@ -129,6 +129,11 @@ class ABTreeView(QtWidgets.QTreeView):
             QtGui.QIcon(),
             "Group by column",
             lambda: self.model().group(column),
+        )
+        menu.addAction(
+            QtGui.QIcon(),
+            "Clear column filter",
+            lambda: self.filter(col_name, ""),
         )
         menu.addSeparator()
         menu.addMenu(self.view_menu())
