@@ -118,6 +118,7 @@ class ABTreeView(QtWidgets.QTreeView):
         search_box = QtWidgets.QLineEdit(menu)
         search_box.setText(self.filters.get(col_name, ""))
         search_box.setPlaceholderText("Search")
+        search_box.selectAll()
 
         search_box.textChanged.connect(lambda query: self.filter(col_name, query))
         widget_action = QtWidgets.QWidgetAction(menu)
@@ -131,6 +132,8 @@ class ABTreeView(QtWidgets.QTreeView):
         )
         menu.addSeparator()
         menu.addMenu(self.view_menu())
+
+        search_box.setFocus()
         return menu
 
     def group_col_menu(self):
