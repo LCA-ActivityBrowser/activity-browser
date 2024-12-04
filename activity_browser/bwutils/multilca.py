@@ -600,20 +600,11 @@ class Contributions(object):
         if all(isinstance(k, tuple) for k in cont_dict.keys()):
             df.columns = pd.MultiIndex.from_tuples(df.columns)
         special_keys = [("Total", ""), ("Rest (+)", ""), ("Rest (-)", "")]
-
         # replace all 0 values with NaN and drop all rows with only NaNs
-        # EXCEPT for the special keys
-        df.index = ids_to_keys(df.index)
-        index = (
-            df.loc[df.index.difference(special_keys)]
-            .replace(0, np.nan)
-            .dropna(how="all")
-            .index.union(special_keys)
-        )
-        df = df.loc[index]
+        df = df.replace(0, np.nan).dropna(how="all")
 
         # sort on absolute mean of a row
-        df_bot = deepcopy(df.iloc[3:, :])
+        df_bot = deepcopy(df.loc[df.index.difference(special_keys)])
 
         func = lambda row: np.nanmean(np.abs(row))
         if len(df_bot) > 1:  # but only sort if there is something to sort
