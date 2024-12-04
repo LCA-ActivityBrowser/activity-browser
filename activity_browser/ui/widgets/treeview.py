@@ -135,6 +135,11 @@ class ABTreeView(QtWidgets.QTreeView):
             "Clear column filter",
             lambda: self.filter(col_name, ""),
         )
+        menu.addAction(
+            QtGui.QIcon(),
+            "Clear all filters",
+            lambda: [self.filter(name, "") for name in list(self.filters.keys())],
+        )
         menu.addSeparator()
         menu.addMenu(self.view_menu())
 
