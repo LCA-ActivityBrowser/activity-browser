@@ -36,8 +36,10 @@ class ABTreeView(QtWidgets.QTreeView):
     def filter(self, column_name: str, query: str):
         if query:
             self.filters[column_name] = query
+            self.model().filtered_columns.add(self.model().columns.index(column_name))
         else:
             del self.filters[column_name]
+            self.model().filtered_columns.discard(self.model().columns.index(column_name))
         self.applyFilter()
 
     def applyFilter(self, extended_query: str = ""):
@@ -55,10 +57,13 @@ class ABTreeView(QtWidgets.QTreeView):
 
         return {
             "columns": self.model().columns,
+            "grouped_columns": [self.model().columns[i] for i in self.model().grouped_columns],
+            "current_query": self.model().current_query,
+
             "expanded_paths": list(self.expanded_paths),
             "visible_columns": [self.model().columns[i] for i in range(len(self.model().columns)) if not self.isColumnHidden(i)],
-            "filters": self.model().filters,
-            "grouped_columns": [self.model().columns[i] for i in self.model().grouped_columns],
+            "filters": self.filters,
+
             "header_state": bytearray(self.header().saveState()).hex()
         }
 
@@ -71,11 +76,14 @@ class ABTreeView(QtWidgets.QTreeView):
 
         self.model().beginResetModel()
         self.model().columns = columns
-        self.model().filters = state.get("filters", {})
         self.model().grouped_columns = [columns.index(name) for name in state.get("grouped_columns", [])]
+        self.model().current_query = state.get("current_query", "")
         self.model().endResetModel()
 
         self.expanded_paths = set(tuple(p) for p in state.get("expanded_paths", []))
+        self.filters = state.get("filters", {})
+        for column_name in self.filters:
+            self.model().filtered_columns.add(self.model().columns.index(column_name))
 
         for col_name in [col for col in columns if col not in state.get("visible_columns", columns)]:
             self.setColumnHidden(columns.index(col_name), True)

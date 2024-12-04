@@ -2,6 +2,8 @@ import pandas as pd
 from qtpy import QtCore, QtGui
 from qtpy.QtCore import Qt, Signal, SignalInstance
 
+from activity_browser.ui.icons import qicons
+
 
 class ABAbstractItemModel(QtCore.QAbstractItemModel):
     grouped: SignalInstance = Signal(list)
@@ -15,6 +17,7 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
         self.dataframe_: pd.DataFrame | None = None  # DataFrame containing the original (unfiltered) data
         self.entries: Entry | None = None  # root Entry for the object tree
         self.grouped_columns: [int] = []  # list of all columns that are currently being grouped
+        self.filtered_columns: [int] = set()  # set of all columns that have filters applied
         self.current_query = ""  # Pandas query currently applied to the dataframe
 
         # if a dataframe is set as kwarg set it up
@@ -176,10 +179,13 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
                 return str([self.columns[column] for column in self.grouped_columns])
             return self.columns[section]
 
-        if role == Qt.FontRole and self.filters.get(self.columns[section], False):
+        if role == Qt.FontRole and section in self.filtered_columns:
             font = QtGui.QFont()
             font.setUnderline(True)
             return font
+
+        if role == Qt.DecorationRole and section in self.filtered_columns:
+            return qicons.filter
 
     def flags(self, index):
         return super().flags(index) | Qt.ItemIsDragEnabled
