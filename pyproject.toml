@@ -50,6 +50,7 @@ dependencies = [
     "pint<=0.21",
     "pyperclip",
     "pyside2>=5.15",
+    "pypardiso ; platform_system == 'Windows'",
     "randonneur>=0.4",
     "randonneur_data>=0.3",
     "salib>=1.4",
