@@ -14,8 +14,8 @@
 
 ## Contribution Analysis
 ### Differences between approaches
-Activity Browser has two contribution analysis approaches available to assess results, 
-`Elementary Flow (EF) Contributions` and `Process contributions`.
+Activity Browser has three contribution analysis approaches available to assess results, 
+`Elementary Flow (EF) Contributions`, `Process contributions` and `First Tier (FT) Contributions`.
 
 Before we discuss the different approaches, we introduce a small example for the production of _'steel'_:
 
@@ -45,9 +45,10 @@ For the system and functional unit above, this would be:
 
 The _contribution matrix_ show the dis-aggregated results for each individual biosphere flow for each activity.
 
-#### EF contributions
+#### Elementary Flow (EF) contributions
 If we take sum the _rows_ to one row, we get the EF contributions 
 (the contribution of all CO<sub>2</sub> and CH<sub>4</sub> impacts together).
+
 In the case above, the EF contributions are:
 - CO<sub>2</sub>: 1.5404... (96.3%)
 - CH<sub>4</sub>: 0.0596... (3.7%)
@@ -55,21 +56,52 @@ In the case above, the EF contributions are:
 #### Process contributions
 If we take the sum of the _columns_ to one column, we get the process contributions
 (the contribution of all coal, electricity and steel production impacts together).
+
 In the case above, the process contributions are:
 - coal production: 0.0596... (3.7%)
-- electricity production: 0.5404... (62.5%)
-- steel production: 1 (33.8%)
+- electricity production: 0.5404... (33.8%)
+- steel production: 1 (62.5%)
 
 To summarize, the difference between EF and process contributions is the direction the contribution matrix is summed.
 
+#### First Tier (FT) contributions
+The FT contributions take a very different approach, instead of calculating the impact of processes anywhere in the 
+system, FT contributions are the process of the functional unit and all its inputs.
+By calculating the impact of the inputs to the functional unit, the impacts are accumulated.
+In the example above this would mean that the impact of _'coal'_ is calculated from only the coal needed directly by 
+_'steel production'_, the impact from coal produced for _'electricity production'_ would be included in the 
+_'electricty'_. 
+Together with the _direct_ impact from _'steel production'_, this is the _first tier_.
+
+This approach becomes more useful when using large systems to accumulate impacts into relevant parts of your foreground 
+system.
+
+Activity Browser calculates these impacts by applying _partial LCAs_ (LCA on part of the functional unit) on the inputs,
+scaled to the functional unit.
+
+In the case above, the FT contributions are:
+- coal: 0.0298... (1.9%)
+- electricity: 0.5702... (35.6%)
+- steel production: 1 (62.5%)
+
+Note that we now use the names of the products _'coal'_ and _'electricity'_ as we now assess the impacts of these inputs, 
+not the processes.
+
+Note also how the impact of _'steel production'_ is unchanged, as this still shows the _direct_ impact, but that the 
+impact of _'electricity'_ is higher than _'electricity production'_ in the process contributions. 
+This is due to the fact that we include all impacts in the production of electricity, not just the _direct_ impacts.
+However, these results are compensated by a lower impact of _'coal'_ (compared to process contributions of 
+_'coal production'_).
+The total impact is still 1.6.
+
 ### Manipulating results
 In this section we generalize a little bit for the different contribution approaches,
-we call the _from_ part of the contributions (the EFs or activities above) _entities_.
+we call the _from_ part of the contributions (the EFs or activities or FT above) _entities_.
 
 There are several ways Activity Browser manipulates your results by default.
 - The results are **sorted** so that the row with the largest (absolute) average values are shown first.
 - A `cut-off` of 5% is applied, this only shows results that contribute at least 5% to the total result, 
-  all other entities are grouped into a `Rest` group.
+  all other entities are grouped into a `Rest (+)` or `Rest (-)` groups.
 - The contributions are _normalized_ to the impact of that reference flow, meaning they are show as a percentage, 
   counting up to 100% for every item you compare.
 
@@ -84,7 +116,8 @@ The `Relative` mode shows contributions _from_ entities of _x_% or higher.
 The `Top #` mode shows contributions from the _x_ entities that contribute the most (as absolute).
 You can adjust the `Cut-off level` to change how many results you see.
 
-All results that don't make the cut-off will be grouped into the `Rest` group.
+All results that don't make the cut-off will be grouped into the `Rest (+)` and `Rest (-)` groups.
+The Rest groups are only present when there are positive or negative numbers remaining for the respective rest groups. 
 
 #### Compare
 The `Compare` menu allows you to compare different dimensions of results.
@@ -107,7 +140,28 @@ You can disable one of them if you want to focus on one of them.
 
 #### Relative and Absolute
 Finally, you can choose between `Relative` and `Absolute` results.
-The `Relative` results will sum to 100%, the `Absolute` results will sum to the impact score.
+The `Relative` results will sum to 100% (the total score), the `Absolute` results will sum to the impact score.
+
+### Positive and negative numbers in contribution results
+It can happen in LCA that you get both positive and negative numbers in your contribution results.
+Some of these reasons could be negative characterization factors, flows with negative numbers or using substitution flows.
+
+When there are both positive and negative numbers in the result, Activity Browser will show a marker to indicate 
+where the total score is, and show positive and negative contributions to the impact separately.
+
+Below is a simple example (with unrealistic values) to demonstrate this:
+
+![CA example with positive and negative results](./assets/ca_positive_negative_example.png)
+
+Other softwares (e.g. [Brightway2-Analyzer](https://github.com/brightway-lca/brightway2-analyzer)) 
+may use a different 'total', meaning the contributions may look different.
+For example, Brightway2-Analyzer uses the total of absolute values 
+(so the range of numbers from the lowest negative number to the highest positive number) as 100% of the score.
+
+> [!IMPORTANT]
+> Due to Activity Browser using 100% as the 'total' when you sum all positive contributions, 
+> positive results will sum to over 100% when there are also negative numbers, which will sum together to 100%.
+> Even single contributions may be over 100%. 
 
 ## Sankey
 The `Sankey` tab shows results from [graph traversal](https://docs.brightway.dev/projects/graphtools/en/latest/index.html).
@@ -125,6 +179,8 @@ The `calculation depth` will stop traversing the supply chain once that number o
 In the Sankey, the red arrows show the _cumulative_ impact of the _product_ flow 
 (_direct_ from that process and _indirect_ from all upstream processes involved in producing that product), 
 the boxes show the _direct_ (process contribution) impact of that process.
+Effectively, the sankey graph is the First Tier contribution analysis, repeated for every activity you see in the graph,
+making it _n-tier_ contributions.
 
 Using the example above in the [contribution analysis](#contribution-analysis) section, we show the sankey below.
 The [process contribution](#process-contributions) results are also shown in the boxes below.
