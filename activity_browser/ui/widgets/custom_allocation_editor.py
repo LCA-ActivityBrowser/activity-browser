@@ -1,4 +1,5 @@
 from typing import Optional, Union
+from logging import getLogger
 from PySide2 import QtGui
 from PySide2.QtCore import Qt
 from PySide2.QtWidgets import (QAbstractItemView, QDialog, QHBoxLayout, QLabel, QMessageBox,
@@ -10,9 +11,11 @@ from multifunctional import (add_custom_property_allocation_to_project,
                              list_available_properties, check_property_for_process_allocation)
 from multifunctional.custom_allocation import MessageType
 
-from activity_browser.logger import log
 from activity_browser.ui.style import style_item
 from bw2data.backends import Node
+
+log = getLogger(__name__)
+
 
 class CustomAllocationEditor(QDialog):
 

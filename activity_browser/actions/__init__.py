@@ -1,5 +1,4 @@
 from .activity.activity_relink import ActivityRelink
-from .activity.activity_new import ActivityNew
 from .activity.activity_duplicate import ActivityDuplicate
 from .activity.activity_open import ActivityOpen
 from .activity.activity_graph import ActivityGraph

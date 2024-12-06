@@ -4,7 +4,6 @@ from logging import getLogger
 from bw2calc.errors import BW2CalcError
 from PySide2.QtWidgets import QApplication
 
-from activity_browser import log
 from simple_regional import OneSpatialScaleLCA
 
 from ..bwutils import (

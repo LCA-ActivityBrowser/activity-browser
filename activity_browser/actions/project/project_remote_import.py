@@ -1,15 +1,18 @@
 from typing import Any
 from urllib.parse import urljoin
+from logging import getLogger
+
 from PySide2 import QtWidgets, QtCore
 
 from bw2io import install_project
 import requests
 
 from activity_browser.actions.base import ABAction, exception_dialogs
-from activity_browser.logger import log
 from activity_browser.mod import bw2data as bd
 from activity_browser.ui.icons import qicons
 from activity_browser.ui.style import header
+
+log = getLogger(__name__)
 
 
 class CatalogueModel(QtCore.QAbstractTableModel):

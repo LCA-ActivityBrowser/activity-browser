@@ -1,12 +1,13 @@
 from PySide2 import QtGui
+from logging import getLogger
 
 from multifunctional.database import SIMAPRO_ATTRIBUTES
 
 from activity_browser import signals
 from activity_browser.actions.base import ABAction, exception_dialogs
-from activity_browser.logger import log
 from activity_browser.mod import bw2data as bd
 
+log = getLogger(__name__)
 
 class MultifunctionalProcessRedoAllocation(ABAction):
     """

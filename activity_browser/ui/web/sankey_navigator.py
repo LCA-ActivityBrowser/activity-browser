@@ -24,14 +24,6 @@ from ...bwutils.superstructure.graph_traversal_with_scenario import \
     GraphTraversalWithScenario
 from .base import BaseGraph, BaseNavigatorWidget
 
-try:
-    # test whether we're running bw25
-    from bw2calc.graph_traversal import \
-        AssumedDiagonalGraphTraversal as GraphTraversal
-except:
-    # fall back on regular bw
-    from bw2calc import GraphTraversal
-
 log = getLogger(__name__)
 
 

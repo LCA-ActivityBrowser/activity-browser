@@ -1,14 +1,16 @@
 import json
 from tarfile import open as tar_open, TarFile, TarError
-from PySide2 import QtWidgets, QtCore
+from logging import getLogger
 
+from PySide2 import QtWidgets, QtCore
 from bw2io import restore_project_directory
 
 from activity_browser.actions.base import ABAction, exception_dialogs
-from activity_browser.logger import log
 from activity_browser.mod import bw2data as bd
 from activity_browser.ui.icons import qicons
 from activity_browser.ui.style import header
+
+log = getLogger(__name__)
 
 
 class ProjectLocalImportWindow(QtWidgets.QDialog):
@@ -257,7 +259,6 @@ class ProjectLocalImportWindow(QtWidgets.QDialog):
                 f"Project name ({new_name}) or "
                 f"import name ({original_name}) is not valid."
             )
-
 
 
 class ProjectLocalImport(ABAction):

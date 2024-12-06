@@ -4,10 +4,13 @@ from dataclasses import dataclass
 from math import nan
 from numbers import Number
 from typing import Any, Optional, Union
+from logging import getLogger
+
 from PySide2 import QtCore, QtGui
 
-from activity_browser.logger import log
 from activity_browser.ui.style import style_item
+
+log = getLogger(__name__)
 
 
 class PropertyModel(QtCore.QAbstractTableModel):

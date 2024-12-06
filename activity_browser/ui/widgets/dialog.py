@@ -1,11 +1,12 @@
 from pathlib import Path
 from typing import List, Tuple
+from logging import getLogger
 
 import bw2io as bi
 from PySide2 import QtGui, QtWidgets
 from PySide2.QtCore import Qt, Signal, Slot
 
-from activity_browser import project_settings, signals, log
+from activity_browser import project_settings, signals
 from activity_browser.bwutils.superstructure import get_sheet_names
 from activity_browser.mod import bw2data as bd
 
@@ -18,6 +19,7 @@ from ...utils import sort_semantic_versions
 from ..style import style_group_box, vertical_line
 from ..threading import ABThread
 
+log = getLogger(__name__)
 
 class ForceInputDialog(QtWidgets.QDialog):
     """Due to QInputDialog not allowing 'ok' button to be disabled when

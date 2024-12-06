@@ -1,16 +1,18 @@
 # -*- coding: utf-8 -*-
 from PySide2 import QtCore, QtWidgets
 from multifunctional import allocation_strategies, list_available_properties
+from logging import getLogger
 
 from activity_browser import actions, project_settings, signals
 from activity_browser.actions.activity.activity_redo_allocation import MultifunctionalProcessRedoAllocation
-from activity_browser.logger import log
 from activity_browser.ui.style import style_item
 from activity_browser.ui.widgets.custom_allocation_editor import CustomAllocationEditor
 
 from ...bwutils import AB_metadata
 from ..icons import qicons
 from .line_edit import SignalledComboEdit, SignalledLineEdit
+
+log = getLogger(__name__)
 
 
 class DetailsGroupBox(QtWidgets.QGroupBox):

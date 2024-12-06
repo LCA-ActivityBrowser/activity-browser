@@ -1,9 +1,11 @@
 """Custom page for debugging javascript code. Without this code,
     only console.error messages are printed to python output.
     This code will not tell you the javascript file that the error is in."""
+from logging import getLogger
+
 from PySide2.QtWebEngineWidgets import QWebEnginePage
 
-from activity_browser.logger import log
+log = getLogger(__name__)
 
 
 class Page(QWebEnginePage):

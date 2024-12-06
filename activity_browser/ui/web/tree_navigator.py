@@ -1,6 +1,7 @@
 import json
 import time
 from typing import List, Optional
+from logging import getLogger
 
 import bw2calc as bc
 import bw2data as bd
@@ -19,7 +20,7 @@ from bw_graph_tools.graph_traversal.graph_objects import (
     GroupedNodes as GraphGroupedNodes,
 )
 
-from activity_browser import log, signals
+from activity_browser import signals
 from activity_browser.mod import bw2data as bd
 from activity_browser.mod.bw2data.backends import ActivityDataset
 from activity_browser.utils import get_base_path
@@ -27,6 +28,8 @@ from .base import BaseGraph, BaseNavigatorWidget
 from ..widgets.combobox import CheckableComboBox
 from ...bwutils import AB_metadata
 from ...bwutils.commontasks import identify_activity_type
+
+log = getLogger(__name__)
 
 
 class TreeNavigatorWidget(BaseNavigatorWidget):
