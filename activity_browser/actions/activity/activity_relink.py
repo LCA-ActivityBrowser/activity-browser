@@ -7,10 +7,8 @@ from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.bwutils.strategies import relink_activity_exchanges
 from activity_browser.mod import bw2data as bd
 from activity_browser.ui.icons import qicons
-from activity_browser.ui.widgets import (
-    ActivityLinkingDialog,
-    ActivityLinkingResultsDialog,
-)
+from activity_browser.ui.widgets import (ActivityLinkingDialog,
+                                         ActivityLinkingResultsDialog)
 
 
 class ActivityRelink(ABAction):

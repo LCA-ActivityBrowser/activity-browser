@@ -1,20 +1,18 @@
 from pathlib import Path
+from logging import getLogger
 
 from PySide2.QtWidgets import QVBoxLayout
 
-from activity_browser import log, signals
+from activity_browser import signals
 from activity_browser.mod import bw2data as bd
 
 from ...bwutils.commontasks import get_activity_name
 from ...ui.web import GraphNavigatorWidget, RestrictedWebViewWidget
-from ..tabs import (
-    ActivitiesTab,
-    CharacterizationFactorsTab,
-    LCAResultsTab,
-    LCASetupTab,
-    ParametersTab,
-)
+from ..tabs import (ActivitiesTab, CharacterizationFactorsTab, LCAResultsTab,
+                    LCASetupTab, ParametersTab)
 from .panel import ABTab
+
+log = getLogger(__name__)
 
 
 class RightPanel(ABTab):
@@ -54,7 +52,7 @@ class RightPanel(ABTab):
         """
         if tab_name in self.tabs:
             tab = self.tabs[tab_name]
-            log.info("+showing tab:", tab_name)
+            log.info(f"+showing tab: {tab_name}")
             tab.setVisible(True)
             self.insertTab(self.tab_order[tab_name], tab, tab_name)
             self.select_tab(tab)

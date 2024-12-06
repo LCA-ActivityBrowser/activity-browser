@@ -2,14 +2,10 @@
 from PySide2.QtCore import Qt
 from PySide2.QtWidgets import QDialogButtonBox, QMessageBox, QWidget
 
-from activity_browser.ui.widgets import (
-    BiosphereUpdater,
-    CutoffMenu,
-    ForceInputDialog,
-    SwitchComboBox,
-    parameter_save_errorbox,
-    simple_warning_box,
-)
+from activity_browser.ui.widgets import (BiosphereUpdater, CutoffMenu,
+                                         ForceInputDialog, SwitchComboBox,
+                                         parameter_save_errorbox,
+                                         simple_warning_box)
 
 # NOTE: No way of testing the BiosphereUpdater class without causing the
 #  ab_app fixture to flip its lid and fail to clean itself up.

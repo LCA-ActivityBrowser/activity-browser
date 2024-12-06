@@ -1,13 +1,15 @@
 import hashlib
 import textwrap
+from logging import getLogger
 
 import arrow
 
-from activity_browser import log
 from activity_browser.mod import bw2data as bd
 from functools import lru_cache
 
 from .metadata import AB_metadata
+
+log = getLogger(__name__)
 
 """
 bwutils is a collection of methods that build upon brightway2 and are generic enough to provide here so that we avoid
@@ -95,7 +97,7 @@ def cleanup_deleted_bw_projects() -> None:
     NOTE: This cannot be done from within the AB.
     """
     n_dir = bd.projects.purge_deleted_directories()
-    log.info("Deleted {} unused project directories!".format(n_dir))
+    log.info(f"Deleted {n_dir} unused project directories!")
 
 
 # Database

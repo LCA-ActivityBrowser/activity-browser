@@ -1,5 +1,6 @@
 from collections import OrderedDict
 from typing import Iterable, Optional, Union
+from logging import getLogger
 
 import bw2analyzer as ba
 import bw2calc as bc
@@ -7,14 +8,13 @@ import numpy as np
 import pandas as pd
 from PySide2.QtWidgets import QApplication, QMessageBox
 
-from activity_browser import log
 from activity_browser.mod import bw2data as bd
-from activity_browser.mod.bw2data.backends import ActivityDataset
 
 from .commontasks import wrap_text
 from .errors import ReferenceFlowValueError
 from .metadata import AB_metadata
 
+log = getLogger(__name__)
 ca = ba.ContributionAnalysis()
 
 
@@ -151,11 +151,9 @@ class MLCA(object):
         self.lca_scores = np.zeros((len(self.func_units), len(self.methods)))
 
         # data to be stored
-        (
-            self.rev_activity_dict,
-            self.rev_product_dict,
-            self.rev_biosphere_dict,
-        ) = self.lca.reverse_dict()
+        (self.rev_activity_dict, self.rev_product_dict, self.rev_biosphere_dict) = (
+            self.lca.reverse_dict()
+        )
 
         # Scaling
         self.scaling_factors = dict()
@@ -244,15 +242,15 @@ class MLCA(object):
                 self.lca.characterization_matrix = cf_matrix
                 self.lca.lcia_calculation()
                 self.lca_scores[row, col] = self.lca.score
-                self.characterized_inventories[
-                    row, col
-                ] = self.lca.characterized_inventory.copy()
+                self.characterized_inventories[row, col] = (
+                    self.lca.characterized_inventory.copy()
+                )
                 self.elementary_flow_contributions[row, col] = np.array(
                     self.lca.characterized_inventory.sum(axis=1)
                 ).ravel()
-                self.process_contributions[
-                    row, col
-                ] = self.lca.characterized_inventory.sum(axis=0)
+                self.process_contributions[row, col] = (
+                    self.lca.characterized_inventory.sum(axis=0)
+                )
 
     def calculate(self):
         self._perform_calculations()

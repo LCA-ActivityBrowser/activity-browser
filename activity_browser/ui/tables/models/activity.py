@@ -1,26 +1,26 @@
 # -*- coding: utf-8 -*-
 import itertools
 from typing import Any, Iterable, Optional
+from logging import getLogger
 
 from PySide2 import QtCore
 import pandas as pd
 from asteval import Interpreter
-from bw2data.parameters import (
-    ActivityParameter,
-    DatabaseParameter,
-    Group,
-    ProjectParameter,
-)
+from bw2data.parameters import (ActivityParameter, DatabaseParameter, Group,
+                                ProjectParameter)
 from bw2data.proxies import ExchangeProxyBase
 from peewee import DoesNotExist
 from PySide2.QtCore import QModelIndex, Qt, Slot
 
-from activity_browser import actions, log, signals
+from activity_browser import actions, signals
 from activity_browser.actions.activity.activity_redo_allocation import MultifunctionalProcessRedoAllocation
+#todo: fix actions import
 from activity_browser.bwutils import PedigreeMatrix
 from activity_browser.bwutils import commontasks as bc
 
 from .base import EditablePandasModel
+
+log = getLogger(__name__)
 
 
 class BaseExchangeModel(EditablePandasModel):
@@ -87,7 +87,7 @@ class BaseExchangeModel(EditablePandasModel):
             return row
         except DoesNotExist as e:
             # The input activity does not exist. remove the exchange.
-            log.warning(f"Broken exchange: {e}, removing.")
+            log.warning(f"Broken exchange: {exchange}, removing.")
             actions.ExchangeDelete.run([exchange])
 
     @staticmethod

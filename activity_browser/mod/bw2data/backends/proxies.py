@@ -7,11 +7,13 @@ except ModuleNotFoundError:
 from bw2data import Database, get_activity
 
 from activity_browser.mod.patching import patch_superclass, patched
-from activity_browser.signals import qactivity_list, qdatabase_list, qexchange_list
+from activity_browser.signals import (qactivity_list, qdatabase_list,
+                                      qexchange_list)
 
 
 @patch_superclass
 class Exchanges(Exchanges):
+
     def delete(self, allow_in_sourced_project: bool = False):
         # find only the exchanges that have qexchange counterparts within ourselves
         exc_query = ExchangeDataset.id << [qexc["id"] for qexc in qexchange_list]
@@ -89,6 +91,7 @@ class Exchanges(Exchanges):
 
 @patch_superclass
 class Activity(Activity):
+
     @property
     def changed(self):
         """
@@ -171,6 +174,7 @@ class Activity(Activity):
 
 @patch_superclass
 class Exchange(Exchange):
+
     def __init__(self, document=None, **kwargs):
         # execute the patched function for standard functionality
         patched[Exchange]["__init__"](self, document, **kwargs)

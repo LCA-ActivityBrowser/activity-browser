@@ -3,6 +3,7 @@ import json
 import os
 import time
 from typing import List
+from logging import getLogger
 
 import bw2calc as bc
 import bw2data as bd
@@ -14,15 +15,25 @@ from PySide2 import QtWidgets
 from PySide2.QtCore import Slot
 from PySide2.QtWidgets import QComboBox
 
-from activity_browser import log, signals
+from activity_browser import signals
 from activity_browser.mod import bw2data as bd
 from activity_browser.mod.bw2data.backends import ActivityDataset
 
 from ...bwutils.commontasks import identify_activity_type
-from ...bwutils.superstructure.graph_traversal_with_scenario import (
-    GraphTraversalWithScenario,
-)
+from ...bwutils.superstructure.graph_traversal_with_scenario import \
+    GraphTraversalWithScenario
 from .base import BaseGraph, BaseNavigatorWidget
+
+try:
+    # test whether we're running bw25
+    from bw2calc.graph_traversal import \
+        AssumedDiagonalGraphTraversal as GraphTraversal
+except:
+    # fall back on regular bw
+    from bw2calc import GraphTraversal
+
+log = getLogger(__name__)
+
 
 # TODO:
 # switch between percent and absolute values

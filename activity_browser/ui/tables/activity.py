@@ -8,6 +8,7 @@ from activity_browser import actions
 
 from ..icons import qicons
 from .delegates import *
+from .inventory import ActivitiesBiosphereTable, ActivitiesBiosphereTree
 from .models import (
     BaseExchangeModel,
     BiosphereExchangeModel,
@@ -128,8 +129,11 @@ class BaseExchangeTable(ABDataFrameView):
         pass
 
     def dropEvent(self, event):
-        source_table = event.source()
-        keys = source_table.selected_keys()
+        if isinstance(event.source(), ActivitiesBiosphereTable):
+            source_table = event.source()
+            keys = source_table.selected_keys()
+        elif isinstance(event.source(), ActivitiesBiosphereTree):
+            keys = event.source().selected_keys()
         event.accept()
         actions.ExchangeNew.run(keys, self.key, self._new_exchange_type)
 
@@ -194,8 +198,8 @@ class ProductExchangeTable(BaseExchangeTable):
         """
         source = event.source()
         if (
-            getattr(source, "table_name", "") == "technosphere"
-            or getattr(source, "technosphere", False) is True
+                getattr(source, "table_name", "") == "technosphere"
+                or getattr(source, "technosphere", False) is True
         ):
             event.accept()
 
@@ -214,8 +218,9 @@ class TechnosphereExchangeTable(BaseExchangeTable):
         downstream exchanges table.
         """
         source = event.source()
-        if getattr(source, "table_name", "") == "downstream" or hasattr(
-            source, "technosphere"
+        if (getattr(source, "table_name", "") == "downstream"
+                or hasattr(source, "technosphere")
+                or getattr(source, "table_name", "") == "technosphere"
         ):
             event.accept()
 

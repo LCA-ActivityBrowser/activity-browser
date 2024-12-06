@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from ..tabs import HistoryTab, MethodsTab, ProjectTab
 from .panel import ABTab
 
 

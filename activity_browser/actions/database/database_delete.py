@@ -4,7 +4,8 @@ from PySide2 import QtCore, QtWidgets
 from activity_browser import application, project_settings
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.mod import bw2data as bd
-from activity_browser.mod.bw2data.backends.proxies import ExchangeDataset, Exchanges
+from activity_browser.mod.bw2data.backends.proxies import (ExchangeDataset,
+                                                           Exchanges)
 from activity_browser.ui.icons import qicons
 
 

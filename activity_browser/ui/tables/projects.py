@@ -1,9 +1,12 @@
-# -*- coding: utf-8 -*-
+import os
+
 from PySide2.QtCore import Qt
 from PySide2.QtWidgets import QComboBox, QSizePolicy
 
 from activity_browser import actions
 from activity_browser.mod import bw2data as bd
+
+AB_BW25 = True if os.environ.get("AB_BW25", False) else False
 
 
 class ProjectListWidget(QComboBox):
@@ -23,9 +26,10 @@ class ProjectListWidget(QComboBox):
         self.clear()
         self.project_names.clear()
 
+        sorted_projects = sorted(list(bd.projects))
         alternative_default = None
 
-        for i, proj in enumerate(sorted(bd.projects, key=lambda x: x.name)):
+        for i, proj in enumerate(sorted_projects):
             bw_25 = (
                 False if not isinstance(proj.data, dict) else proj.data.get("25", False)
             )
@@ -36,7 +40,7 @@ class ProjectListWidget(QComboBox):
             self.addItem(name)
             self.project_names.append(name)
             self.setItemData(i, name, Qt.ToolTipRole)
-            self.model().item(i).setEnabled(bw_25)
+            self.model().item(i).setEnabled(not bw_25 or AB_BW25)
 
         try:
             index = self.project_names.index(bd.projects.current)

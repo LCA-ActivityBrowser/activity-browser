@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import itertools
 from typing import List, Optional, Union
+from logging import getLogger
 
 import numpy as np
 import pandas as pd
@@ -8,21 +9,19 @@ from pandas.api.types import is_numeric_dtype
 from PySide2.QtCore import Qt
 from PySide2.QtWidgets import QApplication, QPushButton
 
-from activity_browser import log
 from activity_browser.mod import bw2data as bd
 
-from ..errors import (
-    CriticalScenarioExtensionError,
-    ImportCanceledError,
-    ScenarioExchangeDataNonNumericError,
-    ScenarioExchangeDataNotFoundError,
-    ScenarioExchangeNotFoundError,
-    UnalignableScenarioColumnsWarning,
-)
+from ..errors import (CriticalScenarioExtensionError, ImportCanceledError,
+                      ScenarioExchangeDataNonNumericError,
+                      ScenarioExchangeDataNotFoundError,
+                      ScenarioExchangeNotFoundError,
+                      UnalignableScenarioColumnsWarning)
 from .activities import fill_df_keys_with_fields, get_activities_from_keys
 from .dataframe import scenario_columns
 from .file_dialogs import ABPopup
 from .utils import SUPERSTRUCTURE, _time_it_, guess_flow_type
+
+log = getLogger(__name__)
 
 EXCHANGE_KEYS = pd.Index(["from key", "to key"])
 INDEX_KEYS = pd.Index(["from key", "to key", "flow type"])
@@ -279,9 +278,11 @@ class SuperstructureManager(object):
         """
         self_referential_production_flows = df.loc[
             df.apply(
-                lambda x: True
-                if x["from key"] == x["to key"] and x["flow type"] == "technosphere"
-                else False,
+                lambda x: (
+                    True
+                    if x["from key"] == x["to key"] and x["flow type"] == "technosphere"
+                    else False
+                ),
                 axis=1,
             ),
             :,
@@ -309,6 +310,7 @@ class SuperstructureManager(object):
         for idx in self_referential_production_flows.loc[
             ~self_referential_production_flows.index.isin(df.index)
         ].index:
+
             # this flow to self does not have a similar 'production' flow to self.
             # find the default production value and add it as a 'production' flow
 
@@ -319,7 +321,7 @@ class SuperstructureManager(object):
             prod_amt = list(bd.get_activity(idx[0]).production())[0].get("amount", 1)
             # make a new df to edit the production, add the correct values/indices where needed
             # and concat to the main df
-            self_referential_production_flows.loc[idx, "flow type"] = "production"
+            self_referential_production_flows.loc[idx, ["flow type"]] = "production"
             self_referential_production_flows.loc[idx, scenario_cols] = prod_amt
         if len(self_referential_production_flows) > 0:
             tech_idxs = [
@@ -335,10 +337,10 @@ class SuperstructureManager(object):
                 self_referential_production_flows.loc[:, scenario_cols] / denominator
             )
             # if we did divide by 0 then replace these nans by 0
-            self_referential_production_flows.loc[
-                :, scenario_cols
-            ] = self_referential_production_flows.loc[:, scenario_cols].where(
-                ~denominator.isin([0]), 0
+            self_referential_production_flows.loc[:, scenario_cols] = (
+                self_referential_production_flows.loc[:, scenario_cols].where(
+                    ~denominator.isin([0]), 0
+                )
             )
 
             # drop the 'technosphere' flows

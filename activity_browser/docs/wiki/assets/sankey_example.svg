@@ -1,0 +1,481 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   width="610.8827514648438"
+   height="508.20001220703125"
+   version="1.1"
+   id="svg27"
+   sodipodi:docname="svg_export.svg"
+   xml:space="preserve"
+   inkscape:version="1.3.2 (091e20e, 2023-11-25, custom)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg"><defs
+     id="defs27" /><sodipodi:namedview
+     id="namedview27"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:zoom="1.1312039"
+     inkscape:cx="144.53628"
+     inkscape:cy="232.05366"
+     inkscape:window-width="1920"
+     inkscape:window-height="1009"
+     inkscape:window-x="1912"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg27" /><style
+     id="style1">
+
+
+/*to make the svg resizable*/ /*
+.svg-container {
+    display: inline-block;
+    position: relative;
+    width: 100%;
+    /*padding-bottom: 100%; /* aspect ratio */ /*
+    vertical-align: top;
+    /*overflow: hidden;*/ /*
+}
+
+.svg-content-responsive {
+    display: inline-block;
+    position: absolute;
+    top: 10px;
+    left: 0;
+} */ /*
+
+svg {
+  border: 1px solid #999;
+  /*overflow: hidden;*/ /*
+} */
+
+.canvas {
+  overflow: visible;
+}
+.canvas .wrapper.outer &gt; .background {
+  fill: #FFFFFF;
+}
+.canvas .wrapper.inner &gt; .background {
+  fill: #FFFFFF;
+  cursor: move;
+}
+.canvas .background {
+  fill: #FFFFFF;
+  stroke: #333333;
+  cursor: move;
+}
+.canvas .panCanvas {
+  cursor: click;
+}
+
+.canvas .minimap {
+  stroke: #000000; /* #111111 */
+  stroke-width: 1px;
+}
+
+.canvas .minimap .frame {
+  pointer-events: all;
+}
+
+.canvas .minimap .container {
+  stroke: #000000; /* #111111 */
+  /*stroke-width: 1px;*/
+  /*border: 1px solid #999;*/
+}
+
+.canvas .minimap .frame .background {
+  stroke: #FF0000; /* #111111 */
+  stroke-width: 10px;
+  fill-opacity: 0.1;   /*grey shade of mini-map*/
+  fill: #FFFFFF; /* #FF0000 */
+  /*fill: url(#minimapGradient_qwpyza); */
+  filter: url(#minimapDropShadow_qwpyza);
+  cursor: move;
+  border: 1px solid #999;
+}
+
+/*
+.cluster rect {
+  stroke: #333;
+  fill: #000;
+  fill-opacity: 0.1;
+  stroke-width: 1.5px;
+}*/
+
+h1, h2 {
+  color: #333;
+}
+
+/*textarea {
+  width: 800px;
+}*/
+
+text {
+  font-family: sans-serif;
+  font-size: 14px;
+  /* no effect:
+  text-align: center;
+  word-wrap: break-word;
+  width: 50px;
+  max-width: 60px;
+  */
+}
+
+.activityNameText {
+    color:black;
+    text-align: center;
+}
+.locationText {
+    color: grey;
+    text-align: center;
+    /*font-weight:bold;*/
+}
+.edgeText {
+    color:darkblue;
+    text-align: center;
+}
+
+.node {
+    fill: black;  /* text color of nodes*/
+    /* no effect:
+    white-space: nowrap;
+    */
+}
+
+.node rect {
+  stroke: #333;
+  fill: #fff;
+  stroke-width: 3px;
+}
+
+.node.demand {
+  /*stroke: #333;  */
+  font-weight: bold
+}
+
+.node.demand rect {
+  stroke: darkblue;
+  fill: #fff;
+  stroke-width: 4px;
+}
+
+.node.market rect {
+  stroke: #ed9736;
+  fill: #fff;
+  stroke-width: 3px;
+}
+
+.node.marketgroup rect {
+  stroke: #ffc34c;
+  fill: #fff;
+  stroke-width: 3px;
+}
+
+.node.treatment rect {
+  stroke: #f4425c;
+  fill: #fff;
+  stroke-width: 3px;
+}
+
+/* Edges */
+/*.edgePath path.path {
+  stroke: red;
+  /*fill: darkred; /* Arrow head */
+  /*lineInterpolate: basis;*/
+/*}*/
+
+.edgePath.impact path.path {
+  stroke: red;
+  opacity: 0.7;
+}
+
+.edgePath.benefit path.path {
+  stroke: green;
+  opacity: 0.7;
+}
+
+/* Arrowhead */
+.edgePath path {
+  stroke: none;
+  /*fill: black;*/
+  opacity: 0.3;
+}
+/*.edgePath marker {
+  fill: darkgrey; /* Arrow head */
+  /*opacity: 1;
+}*/
+
+.edgeLabel {
+    fill: darkblue;  /* text color of edges*/
+}
+
+
+
+
+/*.label {
+   /* text color*/
+  /* no effect:
+  margin-top: 30em;
+fill: red;
+  display: block;
+  text-align: right;
+  font: 20px sans-serif;
+  background: #fffce2;
+  padding: 200px; */
+/*}
+
+.edgeLabel {
+   /* text color*/
+  /* no effect:
+  fill: red;
+  margin-top: 30em;
+  display: block;
+  text-align: right;
+  font: 20px sans-serif;
+  background: #fffce2;
+  padding: 200px; */
+/*}*/
+
+.error {
+  color: red;
+}
+
+div.tooltip {
+    position: absolute;
+    text-align: left;
+    width: auto;
+    height: auto;
+    padding: 2px;
+    font: 12px sans-serif;
+    background: #fffce2;
+    border: 0px;
+    border-radius: 8px;
+    pointer-events: none;
+    /*color: red;*/
+}</style><g
+     class="wrapper inner"
+     clip-path="url(#wrapperClipPath_qwpyza)"
+     transform="translate(193.62693,62.875397)"
+     style="-webkit-tap-highlight-color:rgba(0, 0, 0, 0)"
+     id="g27"><g
+       class="panCanvas"
+       id="g26"><g
+         class="output"
+         id="g25"><rect
+           style="fill:#cccccc;fill-opacity:1;stroke-width:0.973217"
+           id="rect27"
+           width="616.15778"
+           height="513.61212"
+           x="-194.51094"
+           y="-64.643425" /><g
+           class="clusters"
+           id="g1" /><g
+           class="edgePaths"
+           id="g7"><g
+             class="edgePath impact"
+             style="opacity:1"
+             stroke-width="0.745"
+             id="g2"><path
+               class="path"
+               d="M 36.248732,64 28.54061,71.5 C 20.832488,79 5.4162439,94 -2.291878,114.33333 -10,134.66667 -10,160.33333 -10,186 c 0,25.66667 0,51.33333 7.708122,71.66667 C 5.4162439,278 20.832488,293 28.54061,300.5 l 7.708122,7.5"
+               marker-end="url(#arrowhead54)"
+               style="fill:none"
+               id="path1" /><defs
+               id="defs2"><marker
+                 id="arrowhead54"
+                 viewBox="0 0 60 60"
+                 refX="9"
+                 refY="5"
+                 markerUnits="strokeWidth"
+                 markerWidth="8"
+                 markerHeight="6"
+                 orient="auto"><path
+                   d="M 0,0 10,5 0,10 Z"
+                   style="stroke-width:1;stroke-dasharray:1, 0"
+                   id="path2" /></marker></defs></g><g
+             class="edgePath impact"
+             style="opacity:1"
+             stroke-width="14.255"
+             id="g4"><path
+               class="path"
+               d="m 148.27344,218 v 7.5 c 0,7.5 0,22.5 -7.70812,37.5 -7.70813,15 -23.12437,30 -30.83249,37.5 l -7.70812,7.5"
+               marker-end="url(#arrowhead55)"
+               style="fill:none"
+               id="path3" /><defs
+               id="defs4"><marker
+                 id="arrowhead55"
+                 viewBox="0 0 60 60"
+                 refX="9"
+                 refY="5"
+                 markerUnits="strokeWidth"
+                 markerWidth="8"
+                 markerHeight="6"
+                 orient="auto"><path
+                   d="M 0,0 10,5 0,10 Z"
+                   style="stroke-width:1;stroke-dasharray:1, 0"
+                   id="path4" /></marker></defs></g><g
+             class="edgePath impact"
+             style="opacity:1"
+             stroke-width="0.745"
+             id="g6"><path
+               class="path"
+               d="m 102.02471,64 7.70812,7.5 c 7.70812,7.5 23.12436,22.5 30.83249,37.5 7.70812,15 7.70812,30 7.70812,37.5 v 7.5"
+               marker-end="url(#arrowhead56)"
+               style="fill:none"
+               id="path5" /><defs
+               id="defs6"><marker
+                 id="arrowhead56"
+                 viewBox="0 0 60 60"
+                 refX="9"
+                 refY="5"
+                 markerUnits="strokeWidth"
+                 markerWidth="8"
+                 markerHeight="6"
+                 orient="auto"><path
+                   d="M 0,0 10,5 0,10 Z"
+                   style="stroke-width:1;stroke-dasharray:1, 0"
+                   id="path6" /></marker></defs></g></g><g
+           class="edgeLabels"
+           id="g14"><g
+             class="edgeLabel"
+             transform="translate(19.679687,186)"
+             style="opacity:1"
+             id="g9"><g
+               transform="translate(-24.679687,-15)"
+               class="label"
+               id="g8"><text
+                 id="text8"><tspan
+                   xml:space="preserve"
+                   dy="1em"
+                   x="1"
+                   id="tspan7">coal</tspan><tspan
+                   xml:space="preserve"
+                   dy="1em"
+                   x="1"
+                   id="tspan8">(1.86%)</tspan></text></g></g><g
+             class="edgeLabel"
+             transform="translate(182.45312,263)"
+             style="opacity:1"
+             id="g11"><g
+               transform="translate(-29.179687,-15)"
+               class="label"
+               id="g10"><text
+                 id="text10"><tspan
+                   xml:space="preserve"
+                   dy="1em"
+                   x="1"
+                   id="tspan9">electricity</tspan><tspan
+                   xml:space="preserve"
+                   dy="1em"
+                   x="1"
+                   id="tspan10">(35.6%)</tspan></text></g></g><g
+             class="edgeLabel"
+             transform="translate(177.95312,109)"
+             style="opacity:1"
+             id="g13"><g
+               transform="translate(-24.679687,-15)"
+               class="label"
+               id="g12"><text
+                 id="text12"><tspan
+                   xml:space="preserve"
+                   dy="1em"
+                   x="1"
+                   id="tspan11">coal</tspan><tspan
+                   xml:space="preserve"
+                   dy="1em"
+                   x="1"
+                   id="tspan12">(1.86%)</tspan></text></g></g></g><g
+           class="nodes"
+           id="g24"><g
+             class="node demand"
+             id="8b34eeb571464e5dbbf4feb6ae52b25a"
+             transform="translate(69.136719,340)"
+             style="opacity:1"><rect
+               rx="0"
+               ry="0"
+               x="-64.453125"
+               y="-32"
+               width="128.90625"
+               height="64"
+               style="fill:#ff6060"
+               id="rect14" /><g
+               class="label"
+               id="g17"><g
+                 transform="translate(-54.453125,-22)"
+                 id="g16"><text
+                   id="text16"><tspan
+                     xml:space="preserve"
+                     dy="1em"
+                     x="1"
+                     id="tspan14">steel production</tspan><tspan
+                     xml:space="preserve"
+                     dy="1em"
+                     x="1"
+                     id="tspan15">GLO</tspan><tspan
+                     xml:space="preserve"
+                     dy="1em"
+                     x="1"
+                     id="tspan16">(63%)</tspan></text></g></g></g><g
+             class="node production"
+             id="2b8ca2d17ee246cb87e9fb2528db2ff9"
+             transform="translate(69.136719,32)"
+             style="opacity:1"><rect
+               rx="0"
+               ry="0"
+               x="-57.585938"
+               y="-32"
+               width="115.17188"
+               height="64"
+               style="fill:#fff6f6"
+               id="rect17" /><g
+               class="label"
+               id="g20"><g
+                 transform="translate(-47.585937,-22)"
+                 id="g19"><text
+                   id="text19"><tspan
+                     xml:space="preserve"
+                     dy="1em"
+                     x="1"
+                     id="tspan17">coal production</tspan><tspan
+                     xml:space="preserve"
+                     dy="1em"
+                     x="1"
+                     id="tspan18">GLO</tspan><tspan
+                     xml:space="preserve"
+                     dy="1em"
+                     x="1"
+                     id="tspan19">(4%)</tspan></text></g></g></g><g
+             class="node production"
+             id="fe0db8ce95304a708b9f06a9bb7cca62"
+             transform="translate(148.27344,186)"
+             style="opacity:1"><rect
+               rx="0"
+               ry="0"
+               x="-73.914062"
+               y="-32"
+               width="147.82812"
+               height="64"
+               style="fill:#ffa9a9"
+               id="rect20" /><g
+               class="label"
+               id="g23"><g
+                 transform="translate(-63.914062,-22)"
+                 id="g22"><text
+                   id="text22"><tspan
+                     xml:space="preserve"
+                     dy="1em"
+                     x="1"
+                     id="tspan20">electricity production</tspan><tspan
+                     xml:space="preserve"
+                     dy="1em"
+                     x="1"
+                     id="tspan21">GLO</tspan><tspan
+                     xml:space="preserve"
+                     dy="1em"
+                     x="1"
+                     id="tspan22">(34%)</tspan></text></g></g></g></g></g></g></g></svg>

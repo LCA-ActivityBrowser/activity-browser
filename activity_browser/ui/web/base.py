@@ -3,17 +3,20 @@ import os
 from abc import abstractmethod
 from copy import deepcopy
 from typing import Type
+from logging import getLogger
 
-from bw_processing import safe_filename
 from PySide2 import QtWebChannel, QtWebEngineWidgets, QtWidgets
 from PySide2.QtCore import QObject, Qt, QUrl, Signal, Slot
 
-from activity_browser import ab_settings, log, signals
+from activity_browser import ab_settings, signals
+from activity_browser.mod import bw2data as bd
 
 from ... import utils
 from ...ui.icons import qicons
 from . import webutils
 from .webengine_page import Page
+
+log = getLogger(__name__)
 
 
 class BaseNavigatorWidget(QtWidgets.QWidget):
@@ -108,7 +111,7 @@ ALL_FILTER = "All Files (*.*)"
 
 def savefilepath(default_file_name: str, file_filter: str = ALL_FILTER):
     default = default_file_name or "Graph SVG Export"
-    safe_name = safe_filename(default, add_hash=False)
+    safe_name = bd.utils.safe_filename(default, add_hash=False)
     filepath, _ = QtWidgets.QFileDialog.getSaveFileName(
         caption="Choose location to save svg",
         dir=os.path.join(ab_settings.data_dir, safe_name),
@@ -147,7 +150,7 @@ class Bridge(QObject):
             click_dict["database"],
             click_dict["id"],
         )  # since JSON does not know tuples
-        log.info("Click information: ", click_dict)  # TODO click_dict needs correcting
+        log.info(f"Click information: {click_dict}")  # TODO click_dict needs correcting
         self.update_graph.emit(click_dict)
 
     @Slot(str, name="download_triggered")

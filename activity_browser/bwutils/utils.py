@@ -5,13 +5,12 @@ from typing import Iterable, List, NamedTuple, Optional
 import numpy as np
 
 from activity_browser.mod import bw2data as bd
-from activity_browser.mod.bw2data.backends import ActivityDataset, ExchangeDataset
-from activity_browser.mod.bw2data.parameters import (
-    ActivityParameter,
-    DatabaseParameter,
-    ParameterizedExchange,
-    ProjectParameter,
-)
+from activity_browser.mod.bw2data.backends import (ActivityDataset,
+                                                   ExchangeDataset)
+from activity_browser.mod.bw2data.parameters import (ActivityParameter,
+                                                     DatabaseParameter,
+                                                     ParameterizedExchange,
+                                                     ProjectParameter)
 
 """
 This script is a collection of simple NamedTuple classes as well as Iterators

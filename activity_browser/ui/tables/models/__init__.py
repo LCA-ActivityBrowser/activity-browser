@@ -18,8 +18,12 @@ from .impact_categories import (
     MethodsListModel,
     MethodsTreeModel,
 )
-from .inventory import ActivitiesBiosphereModel, DatabasesModel
-from .lca_results import ContributionModel, InventoryModel, LCAResultsModel
+from .inventory import (
+    DatabasesModel,
+    ActivitiesBiosphereListModel,
+    ActivitiesBiosphereTreeModel,
+)
+from .lca_results import LCAResultsModel, InventoryModel, ContributionModel
 from .lca_setup import CSActivityModel, CSMethodsModel, ScenarioImportModel
 from .parameters import (
     ActivityParameterModel,

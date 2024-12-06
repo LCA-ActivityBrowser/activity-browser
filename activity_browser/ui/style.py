@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from PySide2 import QtGui, QtWidgets
+from activity_browser import ab_settings
 
 default_font = QtGui.QFont("Arial", 8)
 
@@ -74,33 +75,43 @@ class ActivitiesPanel:
 
 
 class TableItemStyle:
-    COLOR_CODE = {
-        "default": (0, 0, 0),  # black
-        # 'product': (0, 132, 130),
-        "product": (0, 0, 0),
-        # 'reference product': (0, 132, 130),
-        "reference product": (0, 0, 0),
-        "name": (0, 2, 140),
-        "activity": (0, 72, 216),
-        "amount": (0, 0, 0),
-        # 'unit': (51, 153, 255),
-        "unit": (0, 0, 0),
-        "location": (72, 0, 140),
-        "database": (96, 96, 96),
-        "categories": (0, 0, 0),
-        "key": (96, 96, 96),
-        "modified": (0, 0, 200),
-        "duplicate": (200, 0, 0),
-        "deleted": (180, 180, 180),
-        "new": (0, 200, 0),
-        # Colorblind friendly colors based on the Wong palette from https://davidmathlogic.com/colorblind:
-        # https://davidmathlogic.com/colorblind/#%23000000-%23C7C7C7-%23009E73-%23EBC120-%23D55E00
-        "good": (0, 0x9E, 0x73),
-        "missing": (0xC7, 0xC7, 0xC7),
-        "warning": (0xEB, 0xC1, 0x20),
-        "critical": (0xD5, 0x5E, 0),
-        "hyperlink": (0, 0, 238),
-    }
+    if ab_settings.theme == "Dark theme compatibility":
+        COLOR_CODE = {
+            "default": (255, 255, 255),  # white
+            "name": (85, 170, 255),
+            "activity": (85, 170, 255),
+            "location": (255, 85, 255),
+            "database": (200, 200, 200),
+            "key": (200, 200, 200),
+        }
+    else:  # light theme default
+        COLOR_CODE = {
+            "default": (0, 0, 0),  # black
+            # 'product': (0, 132, 130),
+            "product": (0, 0, 0),
+            # 'reference product': (0, 132, 130),
+            "reference product": (0, 0, 0),
+            "name": (0, 2, 140),
+            "activity": (0, 72, 216),
+            "amount": (0, 0, 0),
+            # 'unit': (51, 153, 255),
+            "unit": (0, 0, 0),
+            "location": (72, 0, 140),
+            "database": (96, 96, 96),
+            "categories": (0, 0, 0),
+            "key": (96, 96, 96),
+            "modified": (0, 0, 200),
+            "duplicate": (200, 0, 0),
+            "deleted": (180, 180, 180),
+            "new": (0, 200, 0),
+            # Colorblind friendly colors based on the Wong palette from https://davidmathlogic.com/colorblind:
+            # https://davidmathlogic.com/colorblind/#%23000000-%23C7C7C7-%23009E73-%23EBC120-%23D55E00
+            "good": (0, 0x9E, 0x73),
+            "missing": (0xC7, 0xC7, 0xC7),
+            "warning": (0xEB, 0xC1, 0x20),
+            "critical": (0xD5, 0x5E, 0),
+            "hyperlink": (0, 0, 238),
+        }
 
     def __init__(self):
         self.brushes: dict[str, QtGui.QBrush] = {}

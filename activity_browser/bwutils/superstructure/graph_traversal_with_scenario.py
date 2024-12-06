@@ -5,11 +5,16 @@ from typing import Optional, Union
 
 from activity_browser.bwutils import MLCA, SuperstructureMLCA
 
-from bw_graph_tools.graph_traversal import NewNodeEachVisitGraphTraversal
+try:
+    # try bw25 import
+    from bw_graph_tools.graph_traversal import NewNodeEachVisitGraphTraversal as GraphTraversal
+except ImportError:
+    from bw2calc import GraphTraversal
 
 
 # TODO: This wont be required after migrating to brightway 2.5
-class GraphTraversalWithScenario(NewNodeEachVisitGraphTraversal):
+class GraphTraversalWithScenario(GraphTraversal):
+
     def __init__(self, mlca: Optional[Union[MLCA, SuperstructureMLCA]] = None):
         self.mlca = mlca
 

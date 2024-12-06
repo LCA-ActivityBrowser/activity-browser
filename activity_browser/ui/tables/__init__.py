@@ -11,7 +11,7 @@ from .impact_categories import (
     MethodsTable,
     MethodsTree,
 )
-from .inventory import ActivitiesBiosphereTable, DatabasesTable
+from .inventory import ActivitiesBiosphereTable, ActivitiesBiosphereTree, DatabasesTable
 from .lca_results import ContributionTable, InventoryTable, LCAResultsTable
 from .LCA_setup import CSActivityTable, CSList, CSMethodsTable, ScenarioImportTable
 from .parameters import (

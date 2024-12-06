@@ -1,23 +1,19 @@
 # -*- coding: utf-8 -*-
 import datetime
-from typing import Any, Optional
+from typing import Optional, Any
+from logging import getLogger
 
 import arrow
 import numpy as np
 import pandas as pd
-from PySide2.QtCore import (
-    QAbstractItemModel,
-    QAbstractTableModel,
-    QModelIndex,
-    QSortFilterProxyModel,
-    Qt,
-    Signal,
-)
+from PySide2.QtCore import (QAbstractItemModel, QAbstractTableModel,
+                            QModelIndex, QSortFilterProxyModel, Qt, Signal)
 from PySide2.QtGui import QBrush
 
-from activity_browser import log
 from activity_browser.bwutils import commontasks as bc
 from activity_browser.ui.style import style_item
+
+log = getLogger(__name__)
 
 
 class PandasModel(QAbstractTableModel):
@@ -449,7 +445,7 @@ class BaseTreeModel(QAbstractItemModel):
 
         if role == Qt.DisplayRole:
             item = index.internalPointer()
-            return item.data(index.column())
+            return str(item.data(index.column()))
 
         if role == Qt.ForegroundRole:
             col_name = self.HEADERS[index.column()]
@@ -537,7 +533,39 @@ class ABSortProxyModel(QSortFilterProxyModel):
     See this for context: https://github.com/LCA-ActivityBrowser/activity-browser/pull/1151
     """
 
-    def lessThan(self, left, right):
+    def lessThan(self, left: QModelIndex, right: QModelIndex) -> bool:
+        """Override to sort actual data, expects `left` and `right` are comparable.
+
+        If `left` and `right` are not the same type, we check if numerical and empty string are compared, if that is the
+        case, we assume empty string == 0.
+        Added this case for: https://github.com/LCA-ActivityBrowser/activity-browser/issues/1215
+        """
         left_data = self.sourceModel().data(left, "sorting")
         right_data = self.sourceModel().data(right, "sorting")
-        return left_data < right_data
+
+        if not left_data and not right_data:
+            return True
+        if type(left_data) is type(right_data):
+            return left_data < right_data
+
+        # comparing Falsys with types
+        if (isinstance(left_data, (int, float))
+                and not right_data
+        ):  # comparing left number with nothing, compare against '0' instead
+            return left_data < 0
+        if (isinstance(left_data, str)
+                and not right_data
+        ):  # comparing left str with nothing, compare against "" instead
+            return left_data < ""  # note we use '>' instead of '<', content should be above empty fields
+        if (isinstance(right_data, (int, float))
+                and not left_data
+        ):  # comparing right number with nothing, compare against '0' instead
+            return 0 < right_data
+        if (isinstance(right_data, str)
+                and not left_data
+        ):  # comparing right str with nothing, compare against "" instead
+            return right_data < ""  # note we use '>' instead of '<', content should be above empty fields
+
+        raise ValueError(
+            f"Cannot compare {left_data} and {right_data}, incompatible types."
+        )

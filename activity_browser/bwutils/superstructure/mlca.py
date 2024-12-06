@@ -11,11 +11,9 @@ from ..commontasks import format_activity_label
 from ..errors import ScenarioExchangeNotFoundError
 from ..multilca import MLCA, Contributions
 from ..utils import Index
-from .dataframe import (
-    arrays_from_indexed_superstructure,
-    filter_databases_indexed_superstructure,
-    scenario_names_from_df,
-)
+from .dataframe import (arrays_from_indexed_superstructure,
+                        filter_databases_indexed_superstructure,
+                        scenario_names_from_df)
 from .file_dialogs import ABPopup
 
 try:
@@ -247,15 +245,15 @@ class SuperstructureMLCA(MLCA):
                     self.lca.characterization_matrix = cf_matrix
                     self.lca.lcia_calculation()
                     self.lca_scores[row, col, ps_col] = self.lca.score
-                    self.characterized_inventories[
-                        (row, col, ps_col)
-                    ] = self.lca.characterized_inventory.copy()
+                    self.characterized_inventories[(row, col, ps_col)] = (
+                        self.lca.characterized_inventory.copy()
+                    )
                     self.elementary_flow_contributions[row, col, ps_col] = np.array(
                         self.lca.characterized_inventory.sum(axis=1)
                     ).ravel()
-                    self.process_contributions[
-                        row, col, ps_col
-                    ] = self.lca.characterized_inventory.sum(axis=0)
+                    self.process_contributions[row, col, ps_col] = (
+                        self.lca.characterized_inventory.sum(axis=0)
+                    )
 
     def update_lca_calculation_for_sankey(
         self, scenario_index: int, func_unit: str, method_index: int

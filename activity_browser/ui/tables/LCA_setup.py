@@ -1,14 +1,19 @@
+from logging import getLogger
+
 from PySide2 import QtWidgets
 from PySide2.QtCore import Qt, Slot
 
-from activity_browser import log, signals
+from activity_browser import signals, actions
 from activity_browser.mod.bw2data import calculation_setups
 
 from ..icons import qicons
 from .delegates import FloatDelegate
 from .impact_categories import MethodsTable, MethodsTree
-from .models import CSActivityModel, CSMethodsModel, ScenarioImportModel
+from .inventory import ActivitiesBiosphereTable, ActivitiesBiosphereTree
+from .models import CSMethodsModel, CSActivityModel, ScenarioImportModel
 from .views import ABDataFrameView
+
+log = getLogger(__name__)
 
 
 class CSList(QtWidgets.QComboBox):
@@ -123,15 +128,31 @@ class CSActivityTable(CSGenericTable):
         menu.exec_(event.globalPos())
 
     def dragEnterEvent(self, event):
-        if getattr(event.source(), "technosphere", False) or event.source() is self:
+        if (
+            (
+                isinstance(event.source(), ActivitiesBiosphereTable)
+                and getattr(event.source(), "technosphere", False)
+            )
+            or isinstance(event.source(), ActivitiesBiosphereTree)
+            or event.source() is self
+        ):
             event.accept()
 
-    def dropEvent(self, event):
+    def dropEvent(self, event) -> None:
         event.accept()
         source = event.source()
-        if getattr(event.source(), "technosphere", False):
-            log.info("Dropevent from:", source)
-            self.model.include_activities({key: 1.0} for key in source.selected_keys())
+        if isinstance(event.source(), ActivitiesBiosphereTable):
+            # get the key from the TABLE for every selected index and convert it to dict
+            log.debug("Dropevent from:", source)
+            self.model.include_activities(
+                ({key: 1.0} for key in source.selected_keys())
+            )
+        elif isinstance(event.source(), ActivitiesBiosphereTree):
+            # get a list of keys from the TREE for the selected tree level (respecting search) and convert to dict
+            log.debug("Dropevent from:", source)
+            self.model.include_activities(
+                ({key: 1.0} for key in source.selected_keys())
+            )
         elif event.source() is self:
             selection = self.selectedIndexes()
             from_index = selection[0].row() if selection else -1
@@ -157,6 +178,8 @@ class CSMethodsTable(CSGenericTable):
             "Hold CTRL and click to select multiple rows to open or delete them."
         )
 
+        self.open_method_action = actions.MethodOpen.get_QAction(self.selected_methods)
+
     def to_python(self):
         return self.model.methods
 
@@ -178,11 +201,14 @@ class CSMethodsTable(CSGenericTable):
         if self.indexAt(event.pos()).row() == -1:
             return
         menu = QtWidgets.QMenu()
+
+        menu.addAction(self.open_method_action)
         menu.addAction(
             qicons.delete,
-            "Remove row",
+            "Remove rows",
             lambda: self.model.delete_rows(self.selectedIndexes()),
         )
+
         menu.exec_(event.globalPos())
 
     def dragEnterEvent(self, event):
@@ -207,6 +233,9 @@ class CSMethodsTable(CSGenericTable):
                 and from_index != to_index
             ):
                 self.model.relocateRow(from_index, to_index)
+
+    def selected_methods(self):
+        return [self.model.get_method(p) for p in self.selectedIndexes() if p.column() == 0]
 
 
 class ScenarioImportTable(ABDataFrameView):

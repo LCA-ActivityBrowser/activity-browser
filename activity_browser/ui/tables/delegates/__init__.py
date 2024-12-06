@@ -9,11 +9,8 @@ from .json import JSONDelegate
 from .list import ListDelegate
 from .string import StringDelegate
 from .uncertainty import UncertaintyDelegate
-from .viewonly import (
-    ViewOnlyDelegate,
-    ViewOnlyFloatDelegate,
-    ViewOnlyUncertaintyDelegate,
-)
+from .viewonly import (ViewOnlyDelegate, ViewOnlyFloatDelegate,
+                       ViewOnlyUncertaintyDelegate)
 
 __all__ = [
     "CheckboxDelegate",

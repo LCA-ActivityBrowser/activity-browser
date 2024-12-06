@@ -1,0 +1,12 @@
+name: manual update of wiki
+
+on:
+  workflow_dispatch:
+
+jobs:
+  update_wiki:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: update wiki
+        run: ./.github/scripts/update_wiki.sh "Manual wiki update for $GITHUB_REF_NAME" "${{ secrets.GITHUB_TOKEN }}"

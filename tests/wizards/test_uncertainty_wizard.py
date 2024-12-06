@@ -6,12 +6,10 @@ import numpy as np
 import pytest
 from bw2data.parameters import ProjectParameter
 from PySide2.QtWidgets import QMessageBox, QWizard
-from stats_arrays.distributions import (
-    LognormalUncertainty,
-    TriangularUncertainty,
-    UndefinedUncertainty,
-    UniformUncertainty,
-)
+from stats_arrays.distributions import (LognormalUncertainty,
+                                        TriangularUncertainty,
+                                        UndefinedUncertainty,
+                                        UniformUncertainty)
 
 from activity_browser.signals import qparameters
 from activity_browser.ui.wizards import UncertaintyWizard

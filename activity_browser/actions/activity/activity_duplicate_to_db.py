@@ -24,7 +24,7 @@ class ActivityDuplicateToDB(ABAction):
     @classmethod
     @exception_dialogs
     def run(cls, activity_keys: List[tuple], to_db: str = None):
-        # get bw activity objects from keys
+        # from activity_browser.bwutils.metadata import AB_metadata
         activities = [bd.get_activity(key) for key in activity_keys]
 
         if to_db and not cls.confirm_db(to_db):

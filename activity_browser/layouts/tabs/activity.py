@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from logging import getLogger
+
 from bw2data import databases, get_node
 from bw2data.proxies import ExchangeProxyBase
 from peewee import DoesNotExist
@@ -27,7 +29,9 @@ from ...ui.widgets import (
     TagEditor,
 )
 from ..panels.panel import ABTab
-from activity_browser.logger import log
+
+log = getLogger(__name__)
+
 
 class ActivitiesTab(ABTab):
     """Tab that contains sub-tabs describing activity information."""
@@ -71,7 +75,7 @@ class ActivitiesTab(ABTab):
             )
             new_tab.destroyed.connect(signals.hide_when_empty.emit)
             new_tab.objectNameChanged.connect(
-                lambda name: self.setTabText(tab_index, name)
+                lambda name: self.setTabText(self.indexOf(new_tab), name)
             )
 
         self.select_tab(self.tabs[key])
@@ -196,6 +200,7 @@ class ActivityTab(QtWidgets.QWidget):
             self.group_splitter.addWidget(group)
         if state := ab_settings.settings.get("activity_table_layout", None):
             self.group_splitter.restoreState(bytearray.fromhex(state))
+        self.group_splitter.setChildrenCollapsible(False)
 
         # Full layout
         layout = QtWidgets.QVBoxLayout()

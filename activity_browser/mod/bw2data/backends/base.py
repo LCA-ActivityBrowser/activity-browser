@@ -5,13 +5,15 @@ except ModuleNotFoundError:
     from bw2data.backends.base import *
 
 from activity_browser.mod.patching import patch_superclass, patched
-from activity_browser.signals import qactivity_list, qdatabase_list, qexchange_list
+from activity_browser.signals import (qactivity_list, qdatabase_list,
+                                      qexchange_list)
 
 from .proxies import Activity, ActivityDataset, Exchange, ExchangeDataset
 
 
 @patch_superclass
 class SQLiteBackend(SQLiteBackend):
+
     @property
     def changed(self):
         """
@@ -31,13 +33,13 @@ class SQLiteBackend(SQLiteBackend):
     def delete(self, *args, **kwargs) -> None:
         # get all affected activities and exchanges that have QUpdater counterparts (i.e. have signals attached to them)
         acts = [
-            (Activity(ActivityDataset.get_by_id(qact.id)), qact)
+            (Activity(ActivityDataset.get_by_id(qact["id"])), qact)
             for qact in qactivity_list
             if qact["database"] == self.name
         ]
 
         excs = [
-            (Exchange(ExchangeDataset.get_by_id(qexc.id)), qexc)
+            (Exchange(ExchangeDataset.get_by_id(qexc["id"])), qexc)
             for qexc in qexchange_list
             if qexc["input_database"] == self.name
             or qexc["output_database"] == self.name

@@ -9,9 +9,8 @@ from activity_browser import project_settings, signals, log
 from activity_browser.bwutils.superstructure import get_sheet_names
 from activity_browser.mod import bw2data as bd
 
-from ...bwutils.ecoinvent_biosphere_versions.ecospold2biosphereimporter import (
-    create_default_biosphere3,
-)
+from ...bwutils.ecoinvent_biosphere_versions.ecospold2biosphereimporter import \
+    create_default_biosphere3
 from ...info import __ei_versions__
 from ...ui.icons import qicons
 from ...ui.widgets import BiosphereUpdater
@@ -1032,6 +1031,7 @@ class StrFilterRow(FilterRow):
         preset_type: str = None,
         parent=None,
     ):
+
         self.column_type = "str"
         super().__init__(idx, filter_types, remove_option, preset_type, parent)
 
@@ -1101,6 +1101,7 @@ class NumFilterRow(FilterRow):
         preset_type: str = None,
         parent=None,
     ):
+
         self.column_type = "num"
         super().__init__(idx, filter_types, remove_option, preset_type, parent)
 
@@ -1229,6 +1230,7 @@ class AndOrRadioButtons(QtWidgets.QWidget):
 
 
 class ProjectDeletionDialog(QtWidgets.QDialog):
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.title = "Confirm project deletion"

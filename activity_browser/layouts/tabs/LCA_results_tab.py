@@ -1,16 +1,19 @@
 # -*- coding: utf-8 -*-
 import traceback
+from logging import getLogger
 
 from bw2calc.errors import BW2CalcError
 from PySide2.QtCore import Qt, Slot
 from PySide2.QtWidgets import QApplication, QMessageBox, QVBoxLayout
 
-from activity_browser import log, signals
+from activity_browser import signals
 from activity_browser.mod import bw2data as bd
 
 from ...bwutils.errors import ABError
 from ..panels.panel import ABTab
 from .LCA_results_tabs import LCAResultsSubTab
+
+log = getLogger(__name__)
 
 
 class LCAResultsTab(ABTab):
@@ -61,9 +64,11 @@ class LCAResultsTab(ABTab):
             self.select_tab(self.tabs[name])
 
             new_tab.destroyed.connect(
-                lambda: self.tabs.pop(name)
-                if id(self.tabs.get(name, None)) == id(new_tab)
-                else None
+                lambda: (
+                    self.tabs.pop(name)
+                    if id(self.tabs.get(name, None)) == id(new_tab)
+                    else None
+                )
             )
             new_tab.destroyed.connect(signals.hide_when_empty.emit)
 

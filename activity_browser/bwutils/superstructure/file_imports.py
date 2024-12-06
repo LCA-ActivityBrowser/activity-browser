@@ -2,12 +2,13 @@ import ast
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Optional, Union
+from logging import getLogger
 
 import pandas as pd
 
-from activity_browser import log
-
 from ..errors import *
+
+log = getLogger(__name__)
 
 
 class ABFileImporter(ABC):

@@ -5,10 +5,8 @@ from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.bwutils.strategies import relink_exchanges_existing_db
 from activity_browser.mod import bw2data as bd
 from activity_browser.ui.icons import qicons
-from activity_browser.ui.widgets import (
-    DatabaseLinkingDialog,
-    DatabaseLinkingResultsDialog,
-)
+from activity_browser.ui.widgets import (DatabaseLinkingDialog,
+                                         DatabaseLinkingResultsDialog)
 
 
 class DatabaseRelink(ABAction):

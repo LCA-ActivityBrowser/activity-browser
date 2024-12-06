@@ -5,8 +5,9 @@ from activity_browser.mod import bw2data as bd
 
 from ...ui.icons import qicons
 from ...ui.style import header, horizontal_line
-from ...ui.tables import MethodCharacterizationFactorsTable, MethodsTable, MethodsTree
-from ..panels.panel import ABTab
+from ...ui.tables import (MethodCharacterizationFactorsTable, MethodsTable,
+                          MethodsTree)
+from ..panels import ABTab
 
 
 class MethodCharacterizationFactorsTab(QtWidgets.QWidget):

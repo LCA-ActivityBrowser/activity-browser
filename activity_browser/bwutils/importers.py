@@ -5,37 +5,27 @@ from pathlib import Path
 
 from bw2io import BW2Package, ExcelImporter
 from bw2io.errors import InvalidPackage, StrategyError
-from bw2io.strategies import (
-    assign_only_product_as_production,
-    convert_activity_parameters_to_list,
-    convert_uncertainty_types_to_integers,
-    csv_add_missing_exchanges_section,
-    csv_drop_unknown,
-    csv_numerize,
-    csv_restore_booleans,
-    csv_restore_tuples,
-    drop_falsey_uncertainty_fields_but_keep_zeros,
-    link_iterable_by_fields,
-    link_technosphere_by_activity_hash,
-    normalize_biosphere_categories,
-    normalize_biosphere_names,
-    normalize_units,
-    set_code_by_activity_hash,
-    strip_biosphere_exc_locations,
-)
+from bw2io.strategies import (assign_only_product_as_production,
+                              convert_activity_parameters_to_list,
+                              convert_uncertainty_types_to_integers,
+                              csv_add_missing_exchanges_section,
+                              csv_drop_unknown, csv_numerize,
+                              csv_restore_booleans, csv_restore_tuples,
+                              drop_falsey_uncertainty_fields_but_keep_zeros,
+                              link_iterable_by_fields,
+                              link_technosphere_by_activity_hash,
+                              normalize_biosphere_categories,
+                              normalize_biosphere_names, normalize_units,
+                              set_code_by_activity_hash,
+                              strip_biosphere_exc_locations)
 
 from activity_browser.mod import bw2data as bd
 
 from .errors import LinkingFailed
-from .strategies import (
-    alter_database_name,
-    csv_rewrite_product_key,
-    hash_parameter_group,
-    link_exchanges_without_db,
-    relink_exchanges_bw2package,
-    relink_exchanges_with_db,
-    rename_db_bw2package,
-)
+from .strategies import (alter_database_name, csv_rewrite_product_key,
+                         hash_parameter_group, link_exchanges_without_db,
+                         relink_exchanges_bw2package, relink_exchanges_with_db,
+                         rename_db_bw2package)
 
 
 class ABExcelImporter(ExcelImporter):

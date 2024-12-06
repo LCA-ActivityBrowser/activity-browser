@@ -1,4 +1,11 @@
 # -*- coding: utf-8 -*-
-from .left import LeftPanel
-from .panel import ABTab
-from .right import RightPanel
+from activity_browser.layouts.panels.panel import ABTab
+from activity_browser.layouts.panels.left import LeftPanel
+from activity_browser.layouts.panels.right import RightPanel
+
+
+__all__ = [
+    "ABTab",
+    "LeftPanel",
+    "RightPanel",
+]

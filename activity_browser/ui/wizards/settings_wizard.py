@@ -1,15 +1,17 @@
 # -*- coding: utf-8 -*-
 import os
 from pathlib import Path
+from logging import getLogger
 
 import peewee
 from PySide2 import QtWidgets
 from PySide2.QtCore import Qt
 from peewee import SqliteDatabase
 
-from activity_browser import ab_settings, log
+from activity_browser import ab_settings
 from activity_browser.mod.bw2data import projects
 
+log = getLogger(__name__)
 
 class SettingsWizard(QtWidgets.QWizard):
     def __init__(self, parent=None):
@@ -32,7 +34,7 @@ class SettingsWizard(QtWidgets.QWizard):
         if field and field != current_bw_dir:
             ab_settings.custom_bw_dir = field
             ab_settings.current_bw_dir = field
-            log.info("Saved startup brightway directory as: ", field)
+            log.info(f"Saved startup brightway directory as: {field}")
 
         # project
         field_project = self.field("startup_project")
@@ -40,7 +42,7 @@ class SettingsWizard(QtWidgets.QWizard):
         if field_project and field_project != current_startup_project:
             new_startup_project = field_project
             ab_settings.startup_project = new_startup_project
-            log.info("Saved startup project as: ", new_startup_project)
+            log.info(f"Saved startup project as: {new_startup_project}")
 
         ab_settings.write_settings()
         projects.change_base_directories(Path(field))
@@ -76,6 +78,25 @@ class SettingsPage(QtWidgets.QWizardPage):
         self.registerField("current_bw_dir", self.bwdir_name)
         self.message_label = QtWidgets.QLabel("")
 
+        # startup project
+        self.startup_project_combobox = QtWidgets.QComboBox()
+        self.update_project_combo()
+
+        self.registerField(
+            "startup_project", self.startup_project_combobox, "currentText"
+        )
+
+        # light/dark theme
+        self.theme_combo = QtWidgets.QComboBox()
+        self.theme_combo.addItems([
+            "Light theme",
+            "Dark theme compatibility"
+        ])
+        self.theme_combo.setCurrentText(ab_settings.theme)
+        self.registerField(
+            "theme_cbox", self.theme_combo, "currentText"
+        )
+
         # Startup options
         self.startup_groupbox = QtWidgets.QGroupBox("Startup Options")
         self.startup_layout = QtWidgets.QGridLayout()
@@ -85,6 +106,9 @@ class SettingsPage(QtWidgets.QWizardPage):
         self.startup_layout.addWidget(self.bwdir_remove_button, 0, 3)
         self.startup_layout.addWidget(QtWidgets.QLabel("Startup Project: "), 1, 0)
         self.startup_layout.addWidget(self.startup_project_combobox, 1, 1)
+        self.startup_layout.addWidget(QtWidgets.QLabel("Theme: "), 2, 0)
+        self.startup_layout.addWidget(self.theme_combo, 2, 1)
+        self.startup_layout.addWidget(QtWidgets.QLabel("(Requires restart)"), 2, 2)
         self.startup_layout.addWidget(self.message_label, 2, 0, 1, 3)
 
         self.startup_groupbox.setLayout(self.startup_layout)
@@ -102,6 +126,7 @@ class SettingsPage(QtWidgets.QWizardPage):
         self.bwdir_browse_button.clicked.connect(self.bwdir_browse)
         self.bwdir_remove_button.clicked.connect(self.bwdir_remove)
         self.bwdir.currentTextChanged.connect(self.bwdir_change)
+        self.theme_combo.currentTextChanged.connect(self.theme_change)
         self.restore_defaults_button.clicked.connect(self.restore_defaults)
 
     def bw_projects(self, path: str):
@@ -162,6 +187,12 @@ class SettingsPage(QtWidgets.QWizardPage):
             settings::ABSettings - uses but doesn't set bw2 variables, sets variables in the settings file
         """
         self.change_bw_dir(path)
+
+    def theme_change(self, theme: str):
+        """Change the theme."""
+        if ab_settings.theme != theme:
+            ab_settings.theme = theme
+            self.changed()
 
     def bwdir_browse(self):
         """

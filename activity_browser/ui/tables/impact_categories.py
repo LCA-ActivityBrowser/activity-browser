@@ -2,7 +2,7 @@
 from typing import Iterable
 
 from PySide2 import QtWidgets
-from PySide2.QtCore import QModelIndex, Slot
+from PySide2.QtCore import QModelIndex, Slot, Qt
 
 from activity_browser import actions
 from activity_browser.mod.bw2data import methods
@@ -16,7 +16,7 @@ from .models import (
     MethodsListModel,
     MethodsTreeModel,
 )
-from .views import ABDataFrameView, ABDictTreeView, ABFilterableDataFrameView
+from .views import ABDictTreeView, ABFilterableDataFrameView
 
 
 class MethodsTable(ABFilterableDataFrameView):
@@ -33,9 +33,7 @@ class MethodsTable(ABFilterableDataFrameView):
         self.duplicate_method_action = actions.MethodDuplicate.get_QAction(
             self.selected_methods, None
         )
-        self.delete_method_action = actions.MethodDelete.get_QAction(
-            self.selected_methods, None
-        )
+        self.delete_method_action = actions.MethodDelete.get_QAction(self.selected_methods)
 
         self.connect_signals()
 
@@ -46,9 +44,9 @@ class MethodsTable(ABFilterableDataFrameView):
         self.model.updated.connect(self.update_proxy_model)
         methods.metadata_changed.connect(self.sync)
 
-    def selected_methods(self) -> Iterable:
-        """Returns a generator which yields the 'method' for each row."""
-        return (self.model.get_method(p) for p in self.selectedIndexes())
+    def selected_methods(self) -> list:
+        """Returns a list of all the currently selected methods."""
+        return [self.model.get_method(p) for p in self.selectedIndexes()]
 
     @Slot(name="syncTable")
     def sync(self, query=None) -> None:
@@ -72,10 +70,6 @@ class MethodsTable(ABFilterableDataFrameView):
 
 
 class MethodsTree(ABDictTreeView):
-    # TODO Current approach uses a complete regeneration of the tree including
-    # TODO the root and all branch and leaf nodes. This conflicts with the fundamental
-    # TODO structure of these models using links between parent and child nodes as new
-    # TODO addresses are provided, invalidating provided indexes
     """
     The TreeView object for the Tree model of the AB used for the impact categories:
 
@@ -95,6 +89,7 @@ class MethodsTree(ABDictTreeView):
 
 
     """
+
     HEADERS = ["Name", "Unit", "# CFs", "method"]
 
     def __init__(self, parent=None):
@@ -116,9 +111,7 @@ class MethodsTree(ABDictTreeView):
         self.duplicate_method_action = actions.MethodDuplicate.get_QAction(
             self.selected_methods, self.tree_level
         )
-        self.delete_method_action = actions.MethodDelete.get_QAction(
-            self.selected_methods, self.tree_level
-        )
+        self.delete_method_action = actions.MethodDelete.get_QAction(self.selected_methods)
 
         self._connect_signals()
 
@@ -128,7 +121,7 @@ class MethodsTree(ABDictTreeView):
 
     @Slot(name="syncTree")
     def sync(self, query=None) -> None:
-        self.model.sync()
+        self.model.sync(query)
 
     @Slot(name="optionalExpandAll")
     def optional_expand(self) -> None:
@@ -205,7 +198,7 @@ class MethodsTree(ABDictTreeView):
             filter_on = ", ".join(tree_level[1]) + ", "
 
         methods = self.model.get_methods(filter_on)
-        return methods
+        return list(methods)
 
     def tree_level(self) -> tuple:
         """Return list of (tree level, content).
@@ -258,17 +251,17 @@ class MethodCharacterizationFactorsTable(ABFilterableDataFrameView):
         super().__init__(parent)
         self.model = MethodCharacterizationFactorsModel(parent=self)
         self.setVisible(False)
-        self.setItemDelegateForColumn(2, FloatDelegate(self))
-        self.setItemDelegateForColumn(4, UncertaintyDelegate(self))
-        self.setItemDelegateForColumn(6, FloatDelegate(self))
+        self.setItemDelegateForColumn(3, FloatDelegate(self))
+        self.setItemDelegateForColumn(5, UncertaintyDelegate(self))
         self.setItemDelegateForColumn(7, FloatDelegate(self))
         self.setItemDelegateForColumn(8, FloatDelegate(self))
         self.setItemDelegateForColumn(9, FloatDelegate(self))
         self.setItemDelegateForColumn(10, FloatDelegate(self))
+        self.setItemDelegateForColumn(11, FloatDelegate(self))
 
         self.model.updated.connect(self.update_proxy_model)
         self.model.updated.connect(self.set_filter_data)
-        self.model.updated.connect(lambda: self.setColumnHidden(5, True))
+        self.model.updated.connect(lambda: self.setColumnHidden(6, True))
 
         self.read_only = True
         self.setAcceptDrops(not self.read_only)
@@ -299,10 +292,10 @@ class MethodCharacterizationFactorsTable(ABFilterableDataFrameView):
         cell = self.selectedIndexes()[0]
         column = cell.column()
 
-        if column in [2]:
+        if self.model.headerData(column, Qt.Horizontal) == 'Amount':
             # if the column changed is 2 (Amount) --> This is a list in case of future editable columns
             new_amount = self.model.get_value(cell)
-            actions.CFAmountModify.run(self.method_name, self.selected_cfs, new_amount)
+            actions.CFAmountModify.run(self.method_name(), self.selected_cfs(), new_amount)
 
     @Slot(bool, name="toggleUncertainColumns")
     def hide_uncertain(self, hide: bool = True) -> None:

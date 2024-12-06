@@ -12,9 +12,6 @@ from .multilca import MLCA, Contributions
 from .pedigree import PedigreeMatrix
 from .sensitivity_analysis import GlobalSensitivityAnalysis
 from .superstructure import SuperstructureContributions, SuperstructureMLCA
-from .uncertainty import (
-    CFUncertaintyInterface,
-    ExchangeUncertaintyInterface,
-    ParameterUncertaintyInterface,
-    get_uncertainty_interface,
-)
+from .uncertainty import (CFUncertaintyInterface, ExchangeUncertaintyInterface,
+                          ParameterUncertaintyInterface,
+                          get_uncertainty_interface)

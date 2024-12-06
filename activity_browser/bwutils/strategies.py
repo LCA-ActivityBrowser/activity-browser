@@ -1,17 +1,21 @@
 # -*- coding: utf-8 -*-
 import hashlib
 from typing import Collection
+from logging import getLogger
 
 from bw2io.errors import StrategyError
-from bw2io.strategies.generic import format_nonunique_key_error, link_iterable_by_fields
+from bw2io.strategies.generic import (format_nonunique_key_error,
+                                      link_iterable_by_fields)
 from bw2io.utils import DEFAULT_FIELDS, activity_hash
 
-from activity_browser import log
 from activity_browser.mod import bw2data as bd
-from activity_browser.mod.bw2data.backends import ActivityDataset, sqlite3_lci_db
+from activity_browser.mod.bw2data.backends import (ActivityDataset,
+                                                   sqlite3_lci_db)
 
 from ..bwutils.errors import ExchangeErrorValues
 from .commontasks import clean_activity_name
+
+log = getLogger(__name__)
 
 TECHNOSPHERE_TYPES = {"technosphere", "substitution", "production"}
 BIOSPHERE_TYPES = {"economic", "emission", "natural resource", "social"}

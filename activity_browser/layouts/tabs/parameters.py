@@ -3,20 +3,10 @@ from pathlib import Path
 
 import pandas as pd
 from PySide2.QtCore import QSize, Qt, Slot
-from PySide2.QtWidgets import (
-    QAbstractButton,
-    QCheckBox,
-    QFileDialog,
-    QHBoxLayout,
-    QMessageBox,
-    QPushButton,
-    QSplitter,
-    QStyle,
-    QTabWidget,
-    QToolBar,
-    QVBoxLayout,
-    QWidget,
-)
+from PySide2.QtWidgets import (QAbstractButton, QCheckBox, QFileDialog,
+                               QHBoxLayout, QMessageBox, QPushButton,
+                               QSplitter, QStyle, QTabWidget, QToolBar,
+                               QVBoxLayout, QWidget)
 from xlsxwriter.exceptions import FileCreateError
 
 from activity_browser import actions, signals
@@ -26,14 +16,9 @@ from activity_browser.signals import qparameters, qprojects
 from ...bwutils.manager import ParameterManager
 from ...ui.icons import qicons
 from ...ui.style import header, horizontal_line
-from ...ui.tables import (
-    ActivityParameterTable,
-    BaseParameterTable,
-    DataBaseParameterTable,
-    ExchangesTable,
-    ProjectParameterTable,
-    ScenarioTable,
-)
+from ...ui.tables import (ActivityParameterTable, BaseParameterTable,
+                          DataBaseParameterTable, ExchangesTable,
+                          ProjectParameterTable, ScenarioTable)
 from .base import BaseRightTab
 
 

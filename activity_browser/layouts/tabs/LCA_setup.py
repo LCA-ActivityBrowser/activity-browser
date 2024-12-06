@@ -1,29 +1,29 @@
 # -*- coding: utf-8 -*-
+from logging import getLogger
+
 import pandas as pd
 from PySide2 import QtWidgets
 from PySide2.QtCore import Qt, Slot
 
-from activity_browser import actions, log, signals
+from activity_browser import actions, signals
 from activity_browser.mod import bw2data as bd
 
 from ...bwutils.errors import *
-from ...bwutils.superstructure import (
-    SUPERSTRUCTURE,
-    ABCSVImporter,
-    ABFeatherImporter,
-    ABPopup,
-    SuperstructureManager,
-    _time_it_,
-    edit_superstructure_for_string,
-    import_from_excel,
-    scenario_names_from_df,
-    scenario_replace_databases,
-)
+from ...bwutils.superstructure import (SUPERSTRUCTURE, ABCSVImporter,
+                                       ABFeatherImporter, ABPopup,
+                                       SuperstructureManager, _time_it_,
+                                       edit_superstructure_for_string,
+                                       import_from_excel,
+                                       scenario_names_from_df,
+                                       scenario_replace_databases)
 from ...ui.icons import qicons
 from ...ui.style import header, horizontal_line, style_group_box
-from ...ui.tables import CSActivityTable, CSList, CSMethodsTable, ScenarioImportTable
+from ...ui.tables import (CSActivityTable, CSList, CSMethodsTable,
+                          ScenarioImportTable)
 from ...ui.widgets import ExcelReadDialog, ScenarioDatabaseDialog
 from .base import BaseRightTab
+
+log = getLogger(__name__)
 
 """
 Lifecycle of a calculation setup
@@ -591,6 +591,7 @@ class ScenarioImportWidget(QtWidgets.QWidget):
     def load_action(self) -> None:
         dialog = ExcelReadDialog(self)
         if dialog.exec_() == ExcelReadDialog.Accepted:
+
             try:
                 path = dialog.path
                 idx = dialog.import_sheet.currentIndex()
@@ -619,6 +620,10 @@ class ScenarioImportWidget(QtWidgets.QWidget):
                     log.info(
                         "Superstructure: Attempting to read as parameter scenario file."
                     )
+
+                    if not df["Group"].dtype == object:
+                        df["Group"] = df["Group"].astype(str)
+
                     include_default = True
                     if "default" not in df.columns:
                         query = QtWidgets.QMessageBox.question(

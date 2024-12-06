@@ -7,10 +7,8 @@ from PySide2 import QtWidgets
 
 from activity_browser import actions
 from activity_browser.mod.bw2data import Database
-from activity_browser.ui.widgets.dialog import (
-    ActivityLinkingDialog,
-    LocationLinkingDialog,
-)
+from activity_browser.ui.widgets.dialog import (ActivityLinkingDialog,
+                                                LocationLinkingDialog)
 
 
 def test_activity_delete(ab_app, monkeypatch):
