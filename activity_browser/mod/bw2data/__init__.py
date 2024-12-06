@@ -1,4 +1,5 @@
 import bw2data.errors as errors
+import bw2data.configuration as configuration
 from bw2data import *
 
 from .backends import Edge, Node

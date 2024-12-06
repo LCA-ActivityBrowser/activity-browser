@@ -254,8 +254,9 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
                 self.parent.mlca.update_lca_calculation_for_sankey(
                     scenario_index, demand, method_index
                 )
-                data = GraphTraversalWithScenario(self.parent.mlca).calculate(
-                    demand, method, cutoff=cut_off, max_calc=int(max_calc)
+                lca = self.parent.mlca.lca
+                data = NewNodeEachVisitGraphTraversal.calculate(
+                    lca, cutoff=cut_off, max_calc=int(max_calc)
                 )
             else:
                 fu, data_objs, _ = bd.prepare_lca_inputs(demand=demand, method=method)

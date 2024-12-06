@@ -107,19 +107,18 @@ class Index(NamedTuple):
 
     @property
     def exchange_type(self) -> int:
-        if self.flow_type:
-            return bd.utils.TYPE_DICTIONARY.get(self.flow_type, -1)
-        exc_type = ExchangeDataset.get(
-            ExchangeDataset.input_code == self.input.code,
-            ExchangeDataset.input_database == self.input.database,
-            ExchangeDataset.output_code == self.output.code,
-            ExchangeDataset.output_database == self.output.database,
-        ).type
-        return bd.utils.TYPE_DICTIONARY.get(exc_type, -1)
+        raise NotImplementedError("Not available in Brightway25")
 
     @property
-    def ids_exc_type(self) -> (int, int, int):
-        return self.input_document_id, self.output_document_id, self.exchange_type
+    def flip(self) -> bool:
+        if not self.flow_type:
+            self.flow_type = ExchangeDataset.get(
+                ExchangeDataset.input_code == self.input.code,
+                ExchangeDataset.input_database == self.input.database,
+                ExchangeDataset.output_code == self.output.code,
+                ExchangeDataset.output_database == self.output.database,
+            ).type
+        return self.flow_type in bd.configuration.labels.technosphere_negative_edge_types
 
 
 class Parameters(UserList):

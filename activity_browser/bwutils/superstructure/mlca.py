@@ -74,7 +74,7 @@ class SuperstructureMLCA(MLCA):
             dtype=[
                 ("row", np.uint32),
                 ("col", np.uint32),
-                ("type", np.uint8),
+                ("flip", np.bool_),
             ],
         )
         self.indices_to_matrix()
@@ -131,19 +131,11 @@ class SuperstructureMLCA(MLCA):
                 if idx.flow_type == "biosphere"
                 else self.lca.product_dict
             )
-            try:
-                return (
-                    in_dict.get(idx.input),
-                    self.lca.activity_dict.get(idx.output),
-                    idx.exchange_type,
-                )
-            except:
-                # bw25 compatibility
-                return (
-                    in_dict.get(bd.get_activity(idx.input).id),
-                    self.lca.activity_dict.get(bd.get_activity(idx.output).id),
-                    idx.exchange_type,
-                )
+            return (
+                in_dict.get(bd.mapping[idx.input]),
+                self.lca.activity_dict.get(bd.mapping[idx.output]),
+                idx.flip,
+            )
 
         for i, index in enumerate(self.indices):
             try:
@@ -157,8 +149,6 @@ class SuperstructureMLCA(MLCA):
                 )
                 critical.exec_()
                 raise ScenarioExchangeNotFoundError
-            except Exception as e:
-                continue
 
     def update_matrices(self) -> None:
         """A Simplified version of the `PackagesDataLoader.update_matrices` method.
@@ -195,15 +185,9 @@ class SuperstructureMLCA(MLCA):
                 if hasattr(self.lca, "solver"):
                     delattr(self.lca, "solver")
 
-            # TODO: Check if this doesnt break stuff
-            # TODO: Update: It does..
-            try:
-                if kind == "technosphere":
-                    MB.fix_supply_use(idx, sample)
-            except:
-                # removed in BW25
-                mask = np.where(idx["type"] == 1)
-                sample[mask] = -1 * sample[mask]
+            mask = np.where(idx["flip"] == True)
+            sample[mask] = -1 * sample[mask]
+
             matrix[
                 idx["row"],
                 idx["col"],
