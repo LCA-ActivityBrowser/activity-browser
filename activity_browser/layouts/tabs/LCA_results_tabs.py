@@ -1109,6 +1109,7 @@ class ContributionTab(NewAnalysisTab):
 
     def update_tab(self):
         """Update the tab."""
+        QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
         self.set_combobox_changes()
 
         if self.cutoff_menu.limit_type == "percent":
@@ -1118,6 +1119,7 @@ class ContributionTab(NewAnalysisTab):
             self.total_menu.range.setEnabled(False)
             self.total_menu.score.setEnabled(False)
         super().update_tab()
+        QApplication.restoreOverrideCursor()
 
     def update_dataframe(self, *args, **kwargs):
         """Update the underlying dataframe.
@@ -1315,7 +1317,6 @@ class FirstTierContributionsTab(ContributionTab):
     def update_tab(self):
         """Update the tab."""
         if self.has_been_opened:
-            self.set_combobox_changes()
             super().update_tab()
 
     def build_combobox(
