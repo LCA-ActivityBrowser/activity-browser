@@ -57,6 +57,7 @@ class MethodCharacterizationFactorsTab(QtWidgets.QWidget):
         """When read_only=False specific data fields in the tables below become user-editable
         When read_only=True these same fields become read-only"""
         self.cf_table.read_only = self.read_only = not editable
+        self.cf_table.model.set_read_only(not editable)
         self.cf_table.setAcceptDrops(
             editable
         )  # also re-evaluated when dragging something over the table

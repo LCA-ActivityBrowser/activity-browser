@@ -331,7 +331,7 @@ class MethodCharacterizationFactorsModel(EditablePandasModel):
     @classmethod
     def build_row(cls, method_cf: tuple) -> dict:
         key, amount = method_cf[:2]
-        flow = bd.get_activity(tuple(key))
+        flow = bd.get_activity(key)
         row = {cls.HEADERS[i]: flow.get(c) for i, c in enumerate(cls.COLUMNS)}
         # If uncertain, unpack the uncertainty dictionary
         uncertain = not isinstance(amount, numbers.Number)
