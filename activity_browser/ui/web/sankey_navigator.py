@@ -20,8 +20,6 @@ from activity_browser.mod import bw2data as bd
 from activity_browser.mod.bw2data.backends import ActivityDataset
 
 from ...bwutils.commontasks import identify_activity_type
-from ...bwutils.superstructure.graph_traversal_with_scenario import \
-    GraphTraversalWithScenario
 from .base import BaseGraph, BaseNavigatorWidget
 
 log = getLogger(__name__)
