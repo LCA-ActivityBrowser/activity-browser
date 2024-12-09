@@ -416,6 +416,7 @@ class Contributions(object):
         rev_dict: dict,
         limit: int,
         limit_type: str,
+        total_range: bool,
     ) -> dict:
         """Sort the given contribution array on method or reference flow column.
 
@@ -434,9 +435,11 @@ class Contributions(object):
         """
         topcontribution_dict = dict()
         for fu_or_method, col in FU_M_index.items():
-
             contribution_col = contributions[col, :]
-            total = contribution_col.sum()
+            if total_range:  # total is based on the range
+                total = np.abs(contribution_col).sum()
+            else:  # total is based on the score
+                total = contribution_col.sum()
 
             top_contribution = ca.sort_array(
                 contribution_col, limit=limit, limit_type=limit_type, total=total
@@ -809,6 +812,7 @@ class Contributions(object):
         limit: int = 5,
         normalize: bool = False,
         limit_type: str = "number",
+        total_range: bool = True,
         **kwargs,
     ) -> pd.DataFrame:
         """Return top EF contributions for either functional_unit or method.
@@ -825,6 +829,7 @@ class Contributions(object):
         limit : The number of top contributions to consider
         normalize : Determines whether or not to normalize the contribution values
         limit_type : The type of limit, either 'number' or 'percent'
+        total_range : Whether to consider the total for contributions the range (True) or the score (False)
 
         Returns
         -------
@@ -848,7 +853,7 @@ class Contributions(object):
             contributions = self.normalize(contributions)
 
         top_cont_dict = self._build_dict(
-            contributions, index, rev_index, limit, limit_type
+            contributions, index, rev_index, limit, limit_type, total_range
         )
         labelled_df = self.get_labelled_contribution_dict(
             top_cont_dict, x_fields=x_fields, y_fields=y_fields, mask=mask
@@ -864,6 +869,7 @@ class Contributions(object):
         limit: int = 5,
         normalize: bool = False,
         limit_type: str = "number",
+        total_range: bool = True,
         **kwargs,
     ) -> pd.DataFrame:
         """Return top process contributions for functional_unit or method.
@@ -903,7 +909,7 @@ class Contributions(object):
             contributions = self.normalize(contributions)
 
         top_cont_dict = self._build_dict(
-            contributions, index, rev_index, limit, limit_type
+            contributions, index, rev_index, limit, limit_type, total_range
         )
         labelled_df = self.get_labelled_contribution_dict(
             top_cont_dict, x_fields=x_fields, y_fields=y_fields, mask=mask

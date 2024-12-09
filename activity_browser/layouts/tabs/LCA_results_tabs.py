@@ -19,6 +19,8 @@ from PySide2.QtWidgets import (QApplication, QButtonGroup, QCheckBox,
                                QPushButton, QRadioButton, QScrollArea,
                                QTableView, QTabWidget, QToolBar, QVBoxLayout,
                                QWidget)
+from openpyxl.styles.builtins import percent
+
 from activity_browser.bwutils import AB_metadata
 
 from stats_arrays.errors import InvalidParamsError
@@ -74,6 +76,7 @@ Tabs = namedtuple(
     "tabs", ("inventory", "results", "ef", "process", "ft", "sankey", "mc", "gsa")
 )
 Relativity = namedtuple("relativity", ("relative", "absolute"))
+TotalMenu = namedtuple("total_menu", ("range", "score"))
 ExportTable = namedtuple("export_table", ("label", "copy", "csv", "excel"))
 ExportPlot = namedtuple("export_plot", ("label", "png", "svg"))
 PlotTableCheck = namedtuple("plot_table_space", ("plot", "table", "invert"))
@@ -242,6 +245,8 @@ class NewAnalysisTab(BaseRightTab):
         self.plot_table: Optional[PlotTableCheck] = None
         self.relativity: Optional[Relativity] = None
         self.relative: Optional[bool] = None
+        self.total_menu: Optional[TotalMenu] = None
+        self.total_range: Optional[bool] = None
         self.export_plot: Optional[ExportPlot] = None
         self.export_table: Optional[ExportTable] = None
 
@@ -283,6 +288,11 @@ class NewAnalysisTab(BaseRightTab):
             row.addWidget(self.relativity.relative)
             row.addWidget(self.relativity.absolute)
             self.relativity.relative.toggled.connect(self.relativity_check)
+        if self.total_menu:
+            row.addWidget(vertical_line())
+            row.addWidget(self.total_menu.range)
+            row.addWidget(self.total_menu.score)
+            self.total_menu.range.toggled.connect(self.total_check)
         row.addStretch()
 
         # Assemble Table and Plot area
@@ -314,6 +324,12 @@ class NewAnalysisTab(BaseRightTab):
     def relativity_check(self, checked: bool):
         """Check if the relative or absolute option is selected."""
         self.relative = checked
+        self.update_tab()
+
+    @QtCore.Slot(bool, name="isTotalToggled")
+    def total_check(self, checked: bool):
+        """Check if the relative or absolute option is selected."""
+        self.total_range = checked
         self.update_tab()
 
     def get_scenario_labels(self) -> List[str]:
@@ -907,6 +923,27 @@ class ContributionTab(NewAnalysisTab):
         self.relativity.absolute.setToolTip(
             "Show absolute values (compare magnitudes of each contribution)"
         )
+        self.relativity_group = QButtonGroup(self)
+        self.relativity_group.addButton(self.relativity.relative)
+        self.relativity_group.addButton(self.relativity.absolute)
+
+        self.total_menu = TotalMenu(
+            QRadioButton("Range"),
+            QRadioButton("Score"),
+        )
+        self.total_menu.range.setChecked(True)
+        self.total_range = True
+        self.total_menu.range.setToolTip(
+            "Show the contribution relative to the total <i>range</i> of results.\n"
+            "e.g. total negative results is -2 and total positive results is 10, then range is 12 (-2 * -1 + 10)"
+        )
+        self.total_menu.score.setToolTip(
+            "Show the contributions relative to the <i>total</i> impact score.\n"
+            "e.g. total negative results is -2 and total positive results is 10, then score is 8 (-2 + 10)"
+        )
+        self.total_group = QButtonGroup(self)
+        self.total_group.addButton(self.total_menu.range)
+        self.total_group.addButton(self.total_menu.score)
 
         self.df = None
         self.plot = ContributionPlot()
@@ -1043,6 +1080,13 @@ class ContributionTab(NewAnalysisTab):
     def update_tab(self):
         """Update the tab."""
         self.set_combobox_changes()
+
+        if self.cutoff_menu.limit_type == "percent":
+            self.total_menu.range.setEnabled(True)
+            self.total_menu.score.setEnabled(True)
+        else:
+            self.total_menu.range.setEnabled(False)
+            self.total_menu.score.setEnabled(False)
         super().update_tab()
 
     def update_dataframe(self, *args, **kwargs):
@@ -1117,7 +1161,8 @@ class ElementaryFlowContributionTab(ContributionTab):
             **kwargs,
             limit=self.cutoff_menu.cutoff_value,
             limit_type=self.cutoff_menu.limit_type,
-            normalize=self.relative
+            normalize=self.relative,
+            total_range=self.total_range,
         )
 
 
@@ -1171,7 +1216,8 @@ class ProcessContributionsTab(ContributionTab):
             **kwargs,
             limit=self.cutoff_menu.cutoff_value,
             limit_type=self.cutoff_menu.limit_type,
-            normalize=self.relative
+            normalize=self.relative,
+            total_range=self.total_range,
         )
 
 
@@ -1494,11 +1540,17 @@ class FirstTierContributionsTab(ContributionTab):
         limit = self.cutoff_menu.cutoff_value
 
         # iterate over the columns to get contributors, then replace cutoff flows with nan
-        # nested for is slow, but this should rarely have to deal with >50 rows
+        # nested for is slow, but this should rarely have to deal with >>50 rows (rows == technosphere exchanges)
         contributors = df[data_cols].shape[0]
         for col_num, col in enumerate(df[data_cols].T.values):
+            # now, get total:
+            if self.total_range:  # total is based on the range
+                total = np.nansum(np.abs(col))
+            else:  # total is based on the score
+                total = np.nansum(col)
+
             col = np.nan_to_num(col)  # replace nan with 0
-            cont = ca.sort_array(col, limit=limit, limit_type=limit_type)
+            cont = ca.sort_array(col, limit=limit, limit_type=limit_type, total=total)
             # write nans to values not present in cont
             for row_num in range(contributors):
                 if row_num not in cont[:, 1]:
