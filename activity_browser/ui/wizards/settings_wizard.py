@@ -13,6 +13,7 @@ from activity_browser.mod.bw2data import projects
 
 log = getLogger(__name__)
 
+
 class SettingsWizard(QtWidgets.QWizard):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -60,7 +61,7 @@ class SettingsPage(QtWidgets.QWizardPage):
         self.wizard = parent
         self.complete = False
 
-        self.startup_project_combobox = QtWidgets.QComboBox()
+        self.startup_project_combobox = QtWidgets.QComboBox(self)
         self.update_project_combo()
 
         self.registerField(
@@ -68,18 +69,18 @@ class SettingsPage(QtWidgets.QWizardPage):
         )
 
         self.bwdir_variables = set(ab_settings.custom_bw_dir)
-        self.bwdir = QtWidgets.QComboBox()
+        self.bwdir = QtWidgets.QComboBox(self)
 
-        self.bwdir_browse_button = QtWidgets.QPushButton("Browse")
-        self.bwdir_remove_button = QtWidgets.QPushButton("Remove")
+        self.bwdir_browse_button = QtWidgets.QPushButton("Browse", self)
+        self.bwdir_remove_button = QtWidgets.QPushButton("Remove", self)
         self.update_combobox(self.bwdir, ab_settings.custom_bw_dir)
-        self.restore_defaults_button = QtWidgets.QPushButton("Restore defaults")
-        self.bwdir_name = QtWidgets.QLineEdit(self.bwdir.currentText())
+        self.restore_defaults_button = QtWidgets.QPushButton("Restore defaults", self)
+        self.bwdir_name = QtWidgets.QLineEdit(self.bwdir.currentText(), self)
         self.registerField("current_bw_dir", self.bwdir_name)
-        self.message_label = QtWidgets.QLabel("")
+        self.message_label = QtWidgets.QLabel("", self)
 
         # startup project
-        self.startup_project_combobox = QtWidgets.QComboBox()
+        self.startup_project_combobox = QtWidgets.QComboBox(self)
         self.update_project_combo()
 
         self.registerField(
@@ -87,7 +88,7 @@ class SettingsPage(QtWidgets.QWizardPage):
         )
 
         # light/dark theme
-        self.theme_combo = QtWidgets.QComboBox()
+        self.theme_combo = QtWidgets.QComboBox(self)
         self.theme_combo.addItems([
             "Light theme",
             "Dark theme compatibility"
@@ -98,22 +99,22 @@ class SettingsPage(QtWidgets.QWizardPage):
         )
 
         # Startup options
-        self.startup_groupbox = QtWidgets.QGroupBox("Startup Options")
-        self.startup_layout = QtWidgets.QGridLayout()
-        self.startup_layout.addWidget(QtWidgets.QLabel("Brightway Dir: "), 0, 0)
+        self.startup_groupbox = QtWidgets.QGroupBox("Startup Options", self)
+        self.startup_layout = QtWidgets.QGridLayout(self)
+        self.startup_layout.addWidget(QtWidgets.QLabel("Brightway Dir: ", self), 0, 0)
         self.startup_layout.addWidget(self.bwdir, 0, 1)
         self.startup_layout.addWidget(self.bwdir_browse_button, 0, 2)
         self.startup_layout.addWidget(self.bwdir_remove_button, 0, 3)
-        self.startup_layout.addWidget(QtWidgets.QLabel("Startup Project: "), 1, 0)
+        self.startup_layout.addWidget(QtWidgets.QLabel("Startup Project: ", self), 1, 0)
         self.startup_layout.addWidget(self.startup_project_combobox, 1, 1)
-        self.startup_layout.addWidget(QtWidgets.QLabel("Theme: "), 2, 0)
+        self.startup_layout.addWidget(QtWidgets.QLabel("Theme: ", self), 2, 0)
         self.startup_layout.addWidget(self.theme_combo, 2, 1)
-        self.startup_layout.addWidget(QtWidgets.QLabel("(Requires restart)"), 2, 2)
+        self.startup_layout.addWidget(QtWidgets.QLabel("(Requires restart)", self), 2, 2)
         self.startup_layout.addWidget(self.message_label, 2, 0, 1, 3)
 
         self.startup_groupbox.setLayout(self.startup_layout)
 
-        self.layout = QtWidgets.QVBoxLayout()
+        self.layout = QtWidgets.QVBoxLayout(self)
         self.layout.addWidget(self.startup_groupbox)
         self.layout.addStretch()
         self.layout.addWidget(self.restore_defaults_button)
