@@ -100,14 +100,15 @@ we call the _from_ part of the contributions (the EFs or activities or FT above)
 
 There are several ways Activity Browser manipulates your results by default.
 - The results are **sorted** so that the row with the largest (absolute) average values are shown first.
-- A `cut-off` of 5% is applied, this only shows results that contribute at least 5% to the total result, 
+- A `cut-off` of 5% is applied, this only shows results that contribute at least 5% to the total range of results, 
   all other entities are grouped into a `Rest (+)` or `Rest (-)` groups.
 - The contributions are _normalized_ to the impact of that reference flow, meaning they are show as a percentage, 
   counting up to 100% for every item you compare.
 
 These actions are taken to show you the most relevant results.
 
-You can manually manipulate the contribution results in the next menu, which we explain bit by bit below.
+You can manually manipulate the contribution results in the menu shown below, which we will explain bit by bit 
+in the next sections.
 ![contributions cutoff](./assets/contribution_manipulation.png)
 
 #### Cut-off
@@ -139,8 +140,18 @@ By default, Activity Browser shows a plot and a table.
 You can disable one of them if you want to focus on one of them.
 
 #### Relative and Absolute
-Finally, you can choose between `Relative` and `Absolute` results.
+You can choose between `Relative` and `Absolute` results.
 The `Relative` results will sum to 100% (the total score), the `Absolute` results will sum to the impact score.
+
+#### Range and Score
+If the Cut-off type is `Relative`, you can choose between `Range` and `Score`.
+This determines what you use as the _total_ to which the relative contributions are counted. 
+For `Range`, this is the full _range_ of results, for example, if all your negative results together have a score of -2
+and all your positive results together have a score of 10, the _range_ is 12 (-2 * -1 + 10).
+For `Score`, this is the total score (sum) of the results, for example, if all your negative results together have a 
+score of -2 and all your positive results together have a score of 10, the _score_ is 8 (-2 + 10).
+The `Range` or `Score` setting are only used when 1) your Cut-off type is `Relative` 
+and 2) your results contain both positive and negative results.
 
 ### Positive and negative numbers in contribution results
 It can happen in LCA that you get both positive and negative numbers in your contribution results.
@@ -152,16 +163,6 @@ where the total score is, and show positive and negative contributions to the im
 Below is a simple example (with unrealistic values) to demonstrate this:
 
 ![CA example with positive and negative results](./assets/ca_positive_negative_example.png)
-
-Other softwares (e.g. [Brightway2-Analyzer](https://github.com/brightway-lca/brightway2-analyzer)) 
-may use a different 'total', meaning the contributions may look different.
-For example, Brightway2-Analyzer uses the total of absolute values 
-(so the range of numbers from the lowest negative number to the highest positive number) as 100% of the score.
-
-> [!IMPORTANT]
-> Due to Activity Browser using 100% as the 'total' when you sum all positive contributions, 
-> positive results will sum to over 100% when there are also negative numbers, which will sum together to 100%.
-> Even single contributions may be over 100%. 
 
 ## Sankey
 The `Sankey` tab shows results from [graph traversal](https://docs.brightway.dev/projects/graphtools/en/latest/index.html).

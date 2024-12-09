@@ -6,6 +6,7 @@ Each of these classes is either a parent for - or a sub-LCA results tab.
 
 from collections import namedtuple
 from copy import deepcopy
+from termios import VLNEXT
 from typing import List, Optional, Union
 from logging import getLogger
 
@@ -19,7 +20,6 @@ from PySide2.QtWidgets import (QApplication, QButtonGroup, QCheckBox,
                                QPushButton, QRadioButton, QScrollArea,
                                QTableView, QTabWidget, QToolBar, QVBoxLayout,
                                QWidget)
-from openpyxl.styles.builtins import percent
 
 from activity_browser.bwutils import AB_metadata
 
@@ -53,6 +53,16 @@ def get_header_layout(header_text: str) -> QVBoxLayout:
     vlayout.addWidget(horizontal_line())
     return vlayout
 
+def get_header_layout_w_help(header_text: str, help_widget) -> QVBoxLayout:
+    hlayout = QHBoxLayout()
+    hlayout.addWidget(header(header_text))
+    hlayout.addWidget(help_widget)
+    hlayout.setStretch(0, 1)
+
+    vlayout = QVBoxLayout()
+    vlayout.addLayout(hlayout)
+    vlayout.addWidget(horizontal_line())
+    return vlayout
 
 def get_unit(method: tuple, relative: bool = False) -> str:
     """Get the unit for plot axis naming.
@@ -236,6 +246,9 @@ class NewAnalysisTab(BaseRightTab):
 
     def __init__(self, parent=None):
         super().__init__(parent)
+
+        self.help_button: Optional[QToolBar] = None
+
         self.parent = parent
         self.has_scenarios = self.parent.has_scenarios
 
@@ -954,6 +967,24 @@ class ContributionTab(NewAnalysisTab):
 
         self.has_been_opened = False
 
+        # set-up the help button
+        self.explain_text = """
+                <p>There are three ways of doing Contribtion Analysis in Activity Browser:</h4>
+                <p>- <b>Elementary Flow (EF) Contributions</b></p>
+                <p>- <b>Process Contributions</b></p>
+                <p>- <b>First Tier (FT) Contributions</b></p>
+                
+                Detailed information on the different approaches provided in this <a href="https://github.com/LCA-ActivityBrowser/activity-browser/wiki/LCA-Results#contribution-analysis">wiki page</a> about the different approaches. 
+
+                <p>You can manipulate the results in many ways with Activity Browser, read more on this <a href="https://github.com/LCA-ActivityBrowser/activity-browser/wiki/LCA-Results#manipulating-results">wiki page</a>
+                about manipulating results. 
+                """
+
+        self.help_button = QToolBar(self)
+        self.help_button.addAction(
+            qicons.question, "Left click for help on Contribution Analysis Functions", self.explanation
+        )
+
     def set_filename(self, optional_fields: dict = None):
         """Given a dictionary of fields, put together a usable filename for the plot and table."""
         optional = optional_fields or {}
@@ -1135,7 +1166,8 @@ class ElementaryFlowContributionTab(ContributionTab):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        self.layout.addLayout(get_header_layout("Elementary Flow Contributions"))
+        header = get_header_layout_w_help("Elementary Flow Contributions", self.help_button)
+        self.layout.addLayout(header)
         self.layout.addWidget(self.cutoff_menu)
         self.layout.addWidget(horizontal_line())
         combobox = self.build_combobox(has_method=True, has_func=True)
@@ -1188,7 +1220,8 @@ class ProcessContributionsTab(ContributionTab):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        self.layout.addLayout(get_header_layout("Process Contributions"))
+        header = get_header_layout_w_help("Process Contributions", self.help_button)
+        self.layout.addLayout(header)
         self.layout.addWidget(self.cutoff_menu)
         self.layout.addWidget(horizontal_line())
         combobox = self.build_combobox(has_method=True, has_func=True)
@@ -1255,7 +1288,8 @@ class FirstTierContributionsTab(ContributionTab):
         # we also cache totals, not for calculation speed, but to be able to easily convert for relative results
         self.caching = True  # set to False to disable caching for debug
 
-        self.layout.addLayout(get_header_layout("First Tier Contributions"))
+        header = get_header_layout_w_help("First Tier Contributions", self.help_button)
+        self.layout.addLayout(header)
         self.layout.addWidget(self.cutoff_menu)
         self.layout.addWidget(horizontal_line())
         combobox = self.build_combobox(has_method=True, has_func=True)
