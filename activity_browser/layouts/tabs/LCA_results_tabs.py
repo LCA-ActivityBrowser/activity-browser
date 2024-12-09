@@ -1052,7 +1052,7 @@ class ContributionTab(NewAnalysisTab):
         raise NotImplementedError
 
     def update_table(self):
-        super().update_table(self.df, relative=self.relative)
+        super().update_table(self.df, unit=self.unit)
 
     def update_plot(self):
         """Update the plot."""

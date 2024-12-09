@@ -27,11 +27,10 @@ class InventoryModel(PandasModel):
 
 
 class ContributionModel(PandasModel):
-    def sync(self, df, relative=False):
+    def sync(self, df, unit="relative share"):
 
         # overwrite the unit col with 'relative share' if looking at relative results (except 3 'total' and 'rest' rows)
-        if relative:
-            df["unit"] = [""] * 3 + ["relative share"] * (len(df) - 3)
+        df["unit"] = [""] * 3 + [unit] * (len(df) - 3)
 
         # drop any rows where all numbers are 0
         self._dataframe = df.loc[~(df.select_dtypes(include=np.number) == 0).all(axis=1)]
