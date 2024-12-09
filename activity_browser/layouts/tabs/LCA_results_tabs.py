@@ -6,7 +6,6 @@ Each of these classes is either a parent for - or a sub-LCA results tab.
 
 from collections import namedtuple
 from copy import deepcopy
-from termios import VLNEXT
 from typing import List, Optional, Union
 from logging import getLogger
 
