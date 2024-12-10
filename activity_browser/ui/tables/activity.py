@@ -29,7 +29,7 @@ class BaseExchangeTable(ABDataFrameView):
         super().__init__(parent)
         self.setDragEnabled(True)
         self.setAcceptDrops(False)
-        self.setSelectionMode(self.SingleSelection)
+        self.setSelectionMode(BaseExchangeTable.SingleSelection)
 
         self.delete_exchange_action = actions.ExchangeDelete.get_QAction(
             self.selected_exchanges
