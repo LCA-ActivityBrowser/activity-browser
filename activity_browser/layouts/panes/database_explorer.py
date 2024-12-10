@@ -83,6 +83,7 @@ class NodeView(ui.widgets.ABTreeView):
         self.setDragEnabled(True)
         self.setDragDropMode(QtWidgets.QTableView.DragOnly)
         self.setSelectionBehavior(ui.widgets.ABTreeView.SelectRows)
+        self.setSelectionMode(ui.widgets.ABTreeView.ExtendedSelection)
 
     def contextMenuEvent(self, event) -> None:
         """Construct and present a menu."""
