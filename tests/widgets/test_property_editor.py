@@ -2,7 +2,7 @@ from enum import Enum
 from math import isnan, nan
 from pytest import mark
 from pytestqt.qtbot import QtBot
-from PySide2 import QtCore
+from qtpy import QtCore
 
 from activity_browser.ui.widgets.property_editor import PropertyEditor
 from activity_browser.ui.style import style_item

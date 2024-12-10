@@ -2,8 +2,8 @@ from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
-from PySide2 import QtWidgets, QtCore, QtGui
-from PySide2.QtTest import QTest
+from qtpy import QtWidgets, QtCore, QtGui
+from qtpy.QtTest import QTest
 from pytestqt.qtbot import QtBot
 
 from activity_browser.ui.tables.delegates import JSONDelegate, ComboBoxDelegate

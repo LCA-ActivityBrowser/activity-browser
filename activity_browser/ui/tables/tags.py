@@ -1,6 +1,6 @@
-from PySide2 import QtWidgets
-from PySide2.QtCore import Slot, Qt, QSortFilterProxyModel
-from PySide2.QtWidgets import QAction
+from qtpy import QtWidgets
+from qtpy.QtCore import Slot, Qt, QSortFilterProxyModel
+from qtpy.QtWidgets import QAction
 
 from activity_browser.bwutils import AB_metadata
 from activity_browser.ui.icons import qicons

@@ -1,6 +1,6 @@
-from PySide2.QtCore import QEvent, Qt, Signal
-from PySide2.QtGui import QFontMetrics, QStandardItem, QPalette
-from PySide2.QtWidgets import QComboBox, QStyledItemDelegate, QApplication
+from qtpy.QtCore import QEvent, Qt, Signal
+from qtpy.QtGui import QFontMetrics, QStandardItem, QPalette
+from qtpy.QtWidgets import QComboBox, QStyledItemDelegate, QApplication
 
 
 class CheckableComboBox(QComboBox):

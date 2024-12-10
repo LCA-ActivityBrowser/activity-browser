@@ -2,7 +2,7 @@ import json
 from tarfile import open as tar_open, TarFile, TarError
 from logging import getLogger
 
-from PySide2 import QtWidgets, QtCore
+from qtpy import QtWidgets, QtCore
 from bw2io import restore_project_directory
 
 from activity_browser.actions.base import ABAction, exception_dialogs

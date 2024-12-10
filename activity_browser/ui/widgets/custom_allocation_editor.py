@@ -1,8 +1,8 @@
 from typing import Optional, Union
 from logging import getLogger
-from PySide2 import QtGui
-from PySide2.QtCore import Qt
-from PySide2.QtWidgets import (QAbstractItemView, QDialog, QHBoxLayout, QLabel, QMessageBox,
+from qtpy import QtGui
+from qtpy.QtCore import Qt
+from qtpy.QtWidgets import (QAbstractItemView, QDialog, QHBoxLayout, QLabel, QMessageBox,
                                QPlainTextEdit, QPushButton, QSizePolicy, QSplitter,
                                QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget)
 

@@ -5,7 +5,7 @@ from logging import getLogger
 try:
     import PySide6
 except ImportError:
-    import PySide2
+    import qtpy
 
 from .logger import log_file_location, setup_ab_logging
 from .mod import bw2data

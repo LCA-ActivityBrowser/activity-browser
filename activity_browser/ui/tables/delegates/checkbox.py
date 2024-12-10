@@ -17,7 +17,7 @@ class CheckboxDelegate(QtWidgets.QStyledItemDelegate):
         https://stackoverflow.com/q/15235273
 
         NOTE: PyQt 5.9.2 needs to treat OSX different from others.
-         PySide2 5.13.1 and higher no longer has this issue.
+         qtpy 5.13.1 and higher no longer has this issue.
         """
         painter.save()
         value = bool(index.data(QtCore.Qt.DisplayRole))

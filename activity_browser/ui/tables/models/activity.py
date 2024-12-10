@@ -3,7 +3,7 @@ import itertools
 from typing import Any, Iterable, Optional
 from logging import getLogger
 
-from PySide2 import QtCore
+from qtpy import QtCore
 import pandas as pd
 from asteval import Interpreter
 from bw2data.parameters import (ActivityParameter, DatabaseParameter, Group,

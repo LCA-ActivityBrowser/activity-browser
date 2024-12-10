@@ -1,6 +1,6 @@
 from typing import Any, List
 
-from PySide2 import QtWidgets, QtGui
+from qtpy import QtWidgets, QtGui
 
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.actions.activity.activity_redo_allocation import MultifunctionalProcessRedoAllocation

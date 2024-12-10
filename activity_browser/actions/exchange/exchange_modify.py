@@ -1,6 +1,6 @@
 from logging import getLogger
 
-from PySide2.QtWidgets import QMessageBox
+from qtpy.QtWidgets import QMessageBox
 from bw2data.proxies import ExchangeProxyBase
 
 from activity_browser import application

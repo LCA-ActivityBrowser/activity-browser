@@ -1,9 +1,9 @@
 from typing import Optional
 
-from PySide2 import QtWidgets, QtCore
-from PySide2.QtCore import Qt, QDate
-from PySide2.QtGui import QIntValidator, QDoubleValidator
-from PySide2.QtWidgets import QLineEdit, QDateEdit
+from qtpy import QtWidgets, QtCore
+from qtpy.QtCore import Qt, QDate
+from qtpy.QtGui import QIntValidator, QDoubleValidator
+from qtpy.QtWidgets import QLineEdit, QDateEdit
 
 
 class JSONDelegate(QtWidgets.QStyledItemDelegate):

@@ -1,6 +1,6 @@
 
 from typing import Optional, Tuple
-from PySide2.QtWidgets import QDialog, QGridLayout, QLabel, QLineEdit, QPushButton, QWidget
+from qtpy.QtWidgets import QDialog, QGridLayout, QLabel, QLineEdit, QPushButton, QWidget
 
 
 class NewNodeDialog(QDialog):

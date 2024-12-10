@@ -16,7 +16,7 @@
     This will make it easier to debug problems with the controller.
 - ([#506](https://github.com/LCA-ActivityBrowser/activity-browser/pull/506))
     Refactor the AB code to increase the separation between brightway code,
-    PySide2 code and Javascript/HTML/CSS code.
+    qtpy code and Javascript/HTML/CSS code.
 - ([#519](https://github.com/LCA-ActivityBrowser/activity-browser/pull/519),
   [#520](https://github.com/LCA-ActivityBrowser/activity-browser/pull/520))
     Small fixes to the look of the AB for large database names and small
@@ -270,7 +270,7 @@
     Slight changes to the main drop-down menu's, adding relevant icons to
     functionality.
 - ([#315](https://github.com/LCA-ActivityBrowser/activity-browser/pull/315))
-    Refactor code to use PySide2, use LGPL license.
+    Refactor code to use qtpy, use LGPL license.
 
 ### Fixed
 

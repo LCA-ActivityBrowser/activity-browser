@@ -3,7 +3,7 @@ from unittest.mock import patch
 from uuid import uuid4
 from pytestqt.qtbot import QtBot
 from pytest import fixture, mark
-from PySide2.QtCore import Qt
+from qtpy.QtCore import Qt
 
 from activity_browser.ui.widgets.custom_allocation_editor import CustomAllocationEditor
 from activity_browser.mod import bw2data as bd

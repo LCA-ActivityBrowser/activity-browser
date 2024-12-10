@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from typing import Any, MutableMapping, Optional
-from PySide2 import QtWidgets
+from qtpy import QtWidgets
 
 from activity_browser.ui.tables.models.properties import PropertyModel
 from activity_browser.ui.tables.properties import PropertyTable

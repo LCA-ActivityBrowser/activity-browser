@@ -6,7 +6,7 @@ from copy import deepcopy
 from typing import Any, Optional, Tuple
 from logging import getLogger
 
-from PySide2.QtGui import QFont
+from qtpy.QtGui import QFont
 import numpy as np
 import pandas as pd
 from qtpy.QtCore import QModelIndex, Qt, Slot

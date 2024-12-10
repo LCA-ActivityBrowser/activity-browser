@@ -3,7 +3,7 @@
     This code will not tell you the javascript file that the error is in."""
 from logging import getLogger
 
-from PySide2.QtWebEngineWidgets import QWebEnginePage
+from qtpy.QtWebEngineWidgets import QWebEnginePage
 
 log = getLogger(__name__)
 

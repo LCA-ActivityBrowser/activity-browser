@@ -2,7 +2,7 @@ from typing import Any
 from urllib.parse import urljoin
 from logging import getLogger
 
-from PySide2 import QtWidgets, QtCore
+from qtpy import QtWidgets, QtCore
 
 from bw2io import install_project
 import requests

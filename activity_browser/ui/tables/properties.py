@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from typing import Optional
-from PySide2 import QtCore, QtWidgets
+from qtpy import QtCore, QtWidgets
 
 from .delegates import DeleteButtonDelegate, StringDelegate, FloatDelegate
 from .models.properties import PropertyModel

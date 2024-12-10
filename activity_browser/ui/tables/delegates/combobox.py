@@ -1,9 +1,9 @@
 from typing import Callable, Union, List, Tuple
 
-from PySide2 import QtWidgets
-from PySide2 import QtCore
-from PySide2.QtCore import Qt
-from PySide2.QtGui import QBrush
+from qtpy import QtWidgets
+from qtpy import QtCore
+from qtpy.QtCore import Qt
+from qtpy.QtGui import QBrush
 
 ComboBoxItem = Union[str, Tuple[str, str], Tuple[str, str, QBrush]]
 

@@ -5,9 +5,9 @@ from logging import getLogger
 
 import bw2calc as bc
 import bw2data as bd
-from PySide2 import QtWidgets
-from PySide2.QtCore import Slot
-from PySide2.QtWidgets import QComboBox
+from qtpy import QtWidgets
+from qtpy.QtCore import Slot
+from qtpy.QtWidgets import QComboBox
 from bw_graph_tools.graph_traversal import (
     SameNodeEachVisitGraphTraversal,
     SameNodeEachVisitTaggedGraphTraversal,

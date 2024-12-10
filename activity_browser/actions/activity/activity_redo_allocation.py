@@ -1,4 +1,4 @@
-from PySide2 import QtGui
+from qtpy import QtGui
 from logging import getLogger
 
 from multifunctional.database import SIMAPRO_ATTRIBUTES
