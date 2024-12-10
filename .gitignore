@@ -21,3 +21,4 @@ activity_browser/ABSettings.json
 test/.logs
 .venv*
 *.prof
+/venv/
