@@ -2,9 +2,9 @@ import os
 from typing import Optional
 from logging import getLogger
 
-from PySide2 import QtGui, QtWidgets
-from PySide2.QtCore import QPoint, QRect, QSize, Qt, QTimer, Signal, Slot
-from PySide2.QtWidgets import QApplication, QSizePolicy, QTableView
+from qtpy import QtGui, QtWidgets
+from qtpy.QtCore import QPoint, QRect, QSize, Qt, QTimer, Signal, Slot
+from qtpy.QtWidgets import QApplication, QSizePolicy, QTableView
 
 from activity_browser import ab_settings
 from activity_browser.mod import bw2data as bd

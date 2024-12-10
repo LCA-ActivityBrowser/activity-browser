@@ -3,7 +3,7 @@ from bw2data.project import projects
 from bw2data.utils import get_activity
 
 import pytest
-from PySide2 import QtWidgets
+from qtpy import QtWidgets
 
 from activity_browser import actions
 from activity_browser.mod.bw2data import Database

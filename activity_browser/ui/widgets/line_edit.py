@@ -1,7 +1,7 @@
-from PySide2 import QtWidgets
-from PySide2.QtCore import Slot
-from PySide2.QtGui import QTextFormat
-from PySide2.QtWidgets import QCompleter
+from qtpy import QtWidgets
+from qtpy.QtCore import Slot
+from qtpy.QtGui import QTextFormat
+from qtpy.QtWidgets import QCompleter
 
 from activity_browser import actions
 

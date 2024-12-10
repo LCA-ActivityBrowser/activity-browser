@@ -4,8 +4,8 @@ from logging import getLogger
 from bw2data import databases, get_node
 from bw2data.proxies import ExchangeProxyBase
 from peewee import DoesNotExist
-from PySide2 import QtCore, QtWidgets
-from PySide2.QtCore import Qt, Slot
+from qtpy import QtCore, QtWidgets
+from qtpy.QtCore import Slot, Qt
 
 from activity_browser import ab_settings, project_settings, signals
 from activity_browser.actions.activity.activity_redo_allocation import MultifunctionalProcessRedoAllocation

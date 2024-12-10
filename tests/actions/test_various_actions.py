@@ -4,7 +4,7 @@ from bw2data.meta import databases, methods
 from bw2data.project import projects
 
 import pytest
-from PySide2 import QtWidgets
+from qtpy import QtWidgets
 
 from activity_browser import actions, application
 from activity_browser.bwutils import AB_metadata

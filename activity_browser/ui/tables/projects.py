@@ -1,7 +1,7 @@
 import os
 
-from PySide2.QtCore import Qt
-from PySide2.QtWidgets import QComboBox, QSizePolicy
+from qtpy.QtCore import Qt
+from qtpy.QtWidgets import QComboBox, QSizePolicy
 
 from activity_browser import actions
 from activity_browser.mod import bw2data as bd

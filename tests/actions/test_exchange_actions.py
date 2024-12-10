@@ -4,7 +4,7 @@ from bw2data.utils import get_activity
 from bw2data.project import projects
 
 import pytest
-from PySide2 import QtGui
+from qtpy import QtGui
 from stats_arrays.distributions import NormalUncertainty, UndefinedUncertainty
 
 from activity_browser import actions, application

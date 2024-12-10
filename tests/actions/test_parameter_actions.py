@@ -2,7 +2,7 @@ from bw2data.project import projects
 from bw2data.utils import get_activity
 
 from bw2data.parameters import ActivityParameter, DatabaseParameter, ProjectParameter
-from PySide2 import QtWidgets
+from qtpy import QtWidgets
 
 from activity_browser import actions
 from activity_browser.actions.parameter.parameter_new import ParameterWizard

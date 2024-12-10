@@ -9,8 +9,8 @@ from typing import List, Optional, Union
 from logging import getLogger
 
 import pandas as pd
-from PySide2 import QtCore, QtGui
-from PySide2.QtWidgets import (QApplication, QButtonGroup, QCheckBox,
+from qtpy import QtCore, QtGui
+from qtpy.QtWidgets import (QApplication, QButtonGroup, QCheckBox,
                                QComboBox, QFileDialog, QGridLayout, QGroupBox,
                                QHBoxLayout, QLabel, QLineEdit, QMessageBox,
                                QPushButton, QRadioButton, QScrollArea,
@@ -901,7 +901,7 @@ class ContributionTab(NewAnalysisTab):
         )
 
         self.df = None
-        self.plot = ContributionPlot()
+        self.plot = ContributionPlot(self)
         self.table = ContributionTable(self)
         self.contribution_fn = None
         self.has_method, self.has_func = False, False
@@ -1053,7 +1053,7 @@ class ContributionTab(NewAnalysisTab):
         # name is already altered by set_filename before update_plot occurs.
         name = self.plot.plot_name
         self.plot.deleteLater()
-        self.plot = ContributionPlot()
+        self.plot = ContributionPlot(self)
         self.pt_layout.insertWidget(idx, self.plot)
         super().update_plot(self.df, unit=self.unit)
         self.plot.plot_name = name

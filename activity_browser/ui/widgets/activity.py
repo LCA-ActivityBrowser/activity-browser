@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from PySide2 import QtCore, QtWidgets
+from qtpy import QtCore, QtWidgets
 from multifunctional import allocation_strategies, list_available_properties
 from logging import getLogger
 

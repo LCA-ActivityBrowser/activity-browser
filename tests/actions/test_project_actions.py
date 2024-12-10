@@ -1,6 +1,6 @@
 from bw2data.project import projects
 
-from PySide2 import QtWidgets
+from qtpy import QtWidgets
 
 from activity_browser import ab_settings, actions
 from activity_browser.ui.widgets import ProjectDeletionDialog

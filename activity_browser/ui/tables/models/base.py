@@ -6,9 +6,9 @@ from logging import getLogger
 import arrow
 import numpy as np
 import pandas as pd
-from PySide2.QtCore import (QAbstractItemModel, QAbstractTableModel,
+from qtpy.QtCore import (QAbstractItemModel, QAbstractTableModel,
                             QModelIndex, QSortFilterProxyModel, Qt, Signal)
-from PySide2.QtGui import QBrush
+from qtpy.QtGui import QBrush
 
 from activity_browser.bwutils import commontasks as bc
 from activity_browser.ui.style import style_item

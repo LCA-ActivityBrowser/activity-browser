@@ -1,7 +1,7 @@
 from bw2data.project import projects
 from bw2data.meta import calculation_setups
 
-from PySide2 import QtWidgets
+from qtpy import QtWidgets
 
 from activity_browser import actions
 

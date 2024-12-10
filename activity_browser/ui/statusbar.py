@@ -1,7 +1,7 @@
 from logging import getLogger
 
-from PySide2.QtCore import Slot
-from PySide2.QtWidgets import QHBoxLayout, QLabel, QStatusBar, QWidget
+from qtpy.QtCore import Slot
+from qtpy.QtWidgets import QHBoxLayout, QLabel, QStatusBar, QWidget
 
 from activity_browser import signals
 from activity_browser.mod import bw2data as bd

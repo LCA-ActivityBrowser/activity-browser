@@ -1,5 +1,5 @@
 import pandas as pd
-from PySide2.QtCore import QModelIndex, Slot
+from qtpy.QtCore import QModelIndex, Slot
 
 from activity_browser import signals
 from activity_browser.bwutils import commontasks as bc

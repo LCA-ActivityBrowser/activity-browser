@@ -2,7 +2,7 @@ from bw2data.meta import databases
 from bw2data.project import projects
 from bw2data.database import Database
 
-from PySide2 import QtWidgets
+from qtpy import QtWidgets
 
 from activity_browser import actions, application
 from activity_browser.actions.database.database_duplicate import DuplicateDatabaseDialog

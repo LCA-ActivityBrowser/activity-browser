@@ -7,7 +7,7 @@ from typing import Optional, Any
 from logging import getLogger
 
 import platformdirs
-from PySide2.QtWidgets import QMessageBox
+from qtpy.QtWidgets import QMessageBox
 
 from activity_browser.signals import signals
 from activity_browser.mod import bw2data as bd

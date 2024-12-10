@@ -1,4 +1,4 @@
-from PySide2 import QtCore, QtWidgets
+from qtpy import QtCore, QtWidgets
 
 from activity_browser import signals
 from activity_browser.mod import bw2data as bd

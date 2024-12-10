@@ -2,7 +2,7 @@ from bw2data import methods
 from bw2data.method import Method
 from bw2data.project import projects
 
-from PySide2 import QtWidgets
+from qtpy import QtWidgets
 from stats_arrays.distributions import (
     NormalUncertainty,
     UndefinedUncertainty,

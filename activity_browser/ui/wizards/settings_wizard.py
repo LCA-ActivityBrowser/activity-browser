@@ -4,11 +4,11 @@ from pathlib import Path
 from logging import getLogger
 
 import peewee
-from PySide2 import QtWidgets
-from PySide2.QtCore import Qt
 from peewee import SqliteDatabase
+from qtpy import QtCore, QtWidgets, PYSIDE6
+from qtpy.QtCore import Qt
 
-from activity_browser import ab_settings
+from activity_browser import ab_settings, actions
 from activity_browser.mod.bw2data import projects
 
 log = getLogger(__name__)
@@ -116,6 +116,10 @@ class SettingsPage(QtWidgets.QWizardPage):
 
         self.layout = QtWidgets.QVBoxLayout(self)
         self.layout.addWidget(self.startup_groupbox)
+
+        if not PYSIDE6:
+            self.layout.addWidget(PySide6Switch(self))
+
         self.layout.addStretch()
         self.layout.addWidget(self.restore_defaults_button)
         self.setLayout(self.layout)
@@ -291,3 +295,14 @@ class SettingsPage(QtWidgets.QWizardPage):
 
     def isComplete(self):
         return self.complete
+
+
+class PySide6Switch(QtWidgets.QGroupBox):
+    def __init__(self, parent=None):
+        super().__init__("Upgrade GUI back-end", parent)
+        self.upgrade_button = actions.PysideUpgrade.get_QButton()
+
+        layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(self.upgrade_button)
+        self.setLayout(layout)
+

@@ -1,8 +1,8 @@
 import os
 from importlib.metadata import version
 
-from PySide2 import QtGui, QtWidgets
-from PySide2.QtCore import QSize, QUrl, Slot
+from qtpy import QtGui, QtWidgets
+from qtpy.QtCore import QSize, QUrl, Slot
 
 from activity_browser import actions, signals, application, info
 from activity_browser.mod import bw2data as bd

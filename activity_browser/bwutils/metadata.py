@@ -107,9 +107,9 @@ class MetaDataStore(object):
 
         # add this metadata to already existing metadata
         self.dataframe = pd.concat(dfs, sort=False)
-        self.dataframe.replace(
-            np.nan, "", regex=True, inplace=True
-        )  # replace 'nan' values with emtpy string
+        # self.dataframe.replace(
+        #     np.nan, "", regex=True, inplace=True
+        # )  # replace 'nan' values with emtpy string
         # print('Dimensions of the Metadata:', self.dataframe.shape)
 
     def update_metadata(self, key: tuple) -> None:
@@ -211,7 +211,7 @@ class MetaDataStore(object):
             if bc.count_database_records(db_name) == 0:
                 return pd.DataFrame()
             self.add_metadata([db_name])
-        return self.dataframe.loc[self.dataframe["database"] == db_name].copy(deep=True)
+        return self.dataframe.loc[self.dataframe["database"] == db_name].copy(deep=True).dropna(how='all', axis=1)
 
     @property
     def index(self):

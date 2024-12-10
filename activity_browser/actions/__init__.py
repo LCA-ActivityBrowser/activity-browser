@@ -72,3 +72,4 @@ from .biosphere_update import BiosphereUpdate
 from .plugin_wizard_open import PluginWizardOpen
 from .settings_wizard_open import SettingsWizardOpen
 from .migrations_install import MigrationsInstall
+from .pyside_upgrade import PysideUpgrade

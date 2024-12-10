@@ -1,4 +1,4 @@
-from PySide2 import QtCore, QtWidgets
+from qtpy import QtCore, QtWidgets
 
 from activity_browser.ui.wizards.db_export_wizard import DatabaseExportWizard
 

@@ -1,7 +1,7 @@
 from logging import getLogger
 
-from PySide2 import QtWidgets
-from PySide2.QtCore import Qt, Slot
+from qtpy import QtWidgets
+from qtpy.QtCore import Qt, Slot
 
 from activity_browser import signals, actions
 from activity_browser.mod.bw2data import calculation_setups
@@ -20,7 +20,7 @@ class CSList(QtWidgets.QComboBox):
     def __init__(self, parent=None):
         super(CSList, self).__init__(parent)
         # Runs even if selection doesn't change
-        self.activated["QString"].connect(self.set_cs)
+        self.activated.connect(self.set_cs)
         signals.calculation_setup_selected.connect(self.sync)
 
     def sync(self, name):
@@ -33,8 +33,8 @@ class CSList(QtWidgets.QComboBox):
         self.blockSignals(False)
         self.setCurrentIndex(keys.index(name))
 
-    @staticmethod
-    def set_cs(name: str):
+    def set_cs(self, index: int):
+        name = self.itemText(index)
         signals.calculation_setup_selected.emit(name)
 
     @property
@@ -128,41 +128,14 @@ class CSActivityTable(CSGenericTable):
         menu.exec_(event.globalPos())
 
     def dragEnterEvent(self, event):
-        if (
-            (
-                isinstance(event.source(), ActivitiesBiosphereTable)
-                and getattr(event.source(), "technosphere", False)
-            )
-            or isinstance(event.source(), ActivitiesBiosphereTree)
-            or event.source() is self
-        ):
+        if event.mimeData().hasFormat("application/bw-nodekeylist"):
             event.accept()
 
     def dropEvent(self, event) -> None:
         event.accept()
-        source = event.source()
-        if isinstance(event.source(), ActivitiesBiosphereTable):
-            # get the key from the TABLE for every selected index and convert it to dict
-            log.debug("Dropevent from:", source)
-            self.model.include_activities(
-                ({key: 1.0} for key in source.selected_keys())
-            )
-        elif isinstance(event.source(), ActivitiesBiosphereTree):
-            # get a list of keys from the TREE for the selected tree level (respecting search) and convert to dict
-            log.debug("Dropevent from:", source)
-            self.model.include_activities(
-                ({key: 1.0} for key in source.selected_keys())
-            )
-        elif event.source() is self:
-            selection = self.selectedIndexes()
-            from_index = selection[0].row() if selection else -1
-            to_index = self.indexAt(event.pos()).row()
-            if (
-                0 <= from_index < self.model.rowCount()
-                and 0 <= to_index < self.model.rowCount()
-                and from_index != to_index
-            ):
-                self.model.relocateRow(from_index, to_index)
+        keys = event.mimeData().retrievePickleData("application/bw-nodekeylist")
+        log.debug("Dropevent from:", event.source())
+        self.model.include_activities(({key: 1.0} for key in keys))
 
 
 class CSMethodsTable(CSGenericTable):

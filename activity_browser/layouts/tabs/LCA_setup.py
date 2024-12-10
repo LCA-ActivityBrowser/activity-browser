@@ -2,8 +2,8 @@
 from logging import getLogger
 
 import pandas as pd
-from PySide2 import QtWidgets
-from PySide2.QtCore import Qt, Slot
+from qtpy import QtWidgets
+from qtpy.QtCore import Qt, Slot
 
 from activity_browser import actions, signals
 from activity_browser.mod import bw2data as bd
@@ -714,7 +714,7 @@ class ScenarioImportWidget(QtWidgets.QWidget):
         # check for databases in the scenario dataframe that cannot be linked to
         if unlinkable:
             dialog = ScenarioDatabaseDialog.construct_dialog(self._parent, relink)
-            if dialog.exec_() == dialog.Accepted:
+            if dialog.exec_() == QtWidgets.QDialog.Accepted:
                 # TODO On update to bw2.5 this should be changed to use the bw2data.utils.get_node method
                 return scenario_replace_databases(df, dialog.relink)
                 # generate the required dialog

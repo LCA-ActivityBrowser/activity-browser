@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 from typing import List
+from logging import getLogger
 
-from PySide2 import QtWidgets
-from PySide2.QtCore import Slot
+from qtpy import QtWidgets
+from qtpy.QtCore import Slot
 
 from activity_browser import actions
 
@@ -17,6 +18,8 @@ from .models import (
     TechnosphereExchangeModel,
 )
 from .views import ABDataFrameView
+
+log = getLogger(__name__)
 
 
 class BaseExchangeTable(ABDataFrameView):
@@ -123,18 +126,16 @@ class BaseExchangeTable(ABDataFrameView):
         menu.exec_(event.globalPos())
 
     def dragMoveEvent(self, event) -> None:
-        """For some reason, this method existing is required for allowing
-        dropEvent to occur _everywhere_ in the table.
-        """
         pass
 
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasFormat("application/bw-nodekeylist"):
+            event.accept()
+
     def dropEvent(self, event):
-        if isinstance(event.source(), ActivitiesBiosphereTable):
-            source_table = event.source()
-            keys = source_table.selected_keys()
-        elif isinstance(event.source(), ActivitiesBiosphereTree):
-            keys = event.source().selected_keys()
         event.accept()
+        keys = event.mimeData().retrievePickleData("application/bw-nodekeylist")
+        log.debug(f"Dropevent from: {event.source} to: {self.__class__.__name__}")
         actions.ExchangeNew.run(keys, self.key, self._new_exchange_type)
 
     def get_usable_parameters(self):
@@ -192,17 +193,6 @@ class ProductExchangeTable(BaseExchangeTable):
         self.table_name = "product"
         self._new_exchange_type = "production"
 
-    def dragEnterEvent(self, event):
-        """Accept exchanges from a technosphere database table, and the
-        technosphere exchanges table.
-        """
-        source = event.source()
-        if (
-                getattr(source, "table_name", "") == "technosphere"
-                or getattr(source, "technosphere", False) is True
-        ):
-            event.accept()
-
 
 class TechnosphereExchangeTable(BaseExchangeTable):
     MODEL = TechnosphereExchangeModel
@@ -213,17 +203,6 @@ class TechnosphereExchangeTable(BaseExchangeTable):
         self.table_name = "technosphere"
         self._new_exchange_type = "technosphere"
 
-    def dragEnterEvent(self, event):
-        """Accept exchanges from a technosphere database table, and the
-        downstream exchanges table.
-        """
-        source = event.source()
-        if (getattr(source, "table_name", "") == "downstream"
-                or hasattr(source, "technosphere")
-                or getattr(source, "table_name", "") == "technosphere"
-        ):
-            event.accept()
-
 
 class BiosphereExchangeTable(BaseExchangeTable):
     MODEL = BiosphereExchangeModel
@@ -233,11 +212,6 @@ class BiosphereExchangeTable(BaseExchangeTable):
         self.setDragDropMode(QtWidgets.QTableView.DropOnly)
         self.table_name = "biosphere"
         self._new_exchange_type = "biosphere"
-
-    def dragEnterEvent(self, event):
-        """Only accept exchanges from a technosphere database table"""
-        if hasattr(event.source(), "technosphere"):
-            event.accept()
 
 
 class DownstreamExchangeTable(BaseExchangeTable):

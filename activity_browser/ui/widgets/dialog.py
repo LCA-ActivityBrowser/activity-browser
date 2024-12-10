@@ -3,8 +3,8 @@ from typing import List, Tuple
 from logging import getLogger
 
 import bw2io as bi
-from PySide2 import QtGui, QtWidgets
-from PySide2.QtCore import Qt, Signal, Slot
+from qtpy import QtGui, QtWidgets
+from qtpy.QtCore import Qt, Signal, Slot
 
 from activity_browser import project_settings, signals
 from activity_browser.bwutils.superstructure import get_sheet_names
