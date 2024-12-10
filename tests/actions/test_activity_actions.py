@@ -9,6 +9,7 @@ from activity_browser import actions
 from activity_browser.mod.bw2data import Database
 from activity_browser.ui.widgets.dialog import (ActivityLinkingDialog,
                                                 LocationLinkingDialog)
+from activity_browser.ui.widgets.new_node_dialog import NewNodeDialog
 
 
 def test_activity_delete(ab_app, monkeypatch):
@@ -104,9 +105,13 @@ def test_activity_new(ab_app, monkeypatch):
     records = len(Database(database_name))
 
     monkeypatch.setattr(
-        QtWidgets.QInputDialog,
-        "getText",
-        staticmethod(lambda *args, **kwargs: ("activity_that_is_new", True)),
+        NewNodeDialog, "exec_", staticmethod(lambda *args, **kwargs: True)
+    )
+
+    monkeypatch.setattr(
+        NewNodeDialog,
+        "get_new_process_data",
+        staticmethod(lambda *args, **kwargs: ("check", "check", "check", "check"))
     )
 
     actions.ActivityNewProcess.run(database_name)
