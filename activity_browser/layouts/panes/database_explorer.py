@@ -30,7 +30,7 @@ class DatabaseExplorer(QtWidgets.QWidget):
         self.search.setMaximumHeight(30)
         self.search.setPlaceholderText("Quick Search")
 
-        self.search.textChanged.connect(self.table_view.filter_all)
+        self.search.textChanged.connect(self.table_view.setAllFilter)
 
         layout = QtWidgets.QVBoxLayout(self)
         layout.addWidget(self.search)
@@ -74,8 +74,20 @@ class DatabaseExplorer(QtWidgets.QWidget):
         self.search.setPalette(palette)
 
 
+class NodeViewMenuFactory(ui.widgets.ABTreeView.menuFactoryClass):
+
+    def createMenu(self, pos: QtCore.QPoint):
+        """Designed to be passed to customContextMenuRequested.connect"""
+        if self.view.indexAt(pos).row() == -1:
+            menu = NodeViewContextMenu.init_none(self.view)
+        else:
+            menu = NodeViewContextMenu.init_single(self.view)
+        menu.exec_(self.view.mapToGlobal(pos))
+
+
 class NodeView(ui.widgets.ABTreeView):
     query_changed: SignalInstance = Signal(bool)
+    menuFactoryClass = NodeViewMenuFactory
 
     def __init__(self, parent: DatabaseExplorer):
         super().__init__(parent)
@@ -85,37 +97,29 @@ class NodeView(ui.widgets.ABTreeView):
         self.setSelectionBehavior(ui.widgets.ABTreeView.SelectRows)
         self.setSelectionMode(ui.widgets.ABTreeView.ExtendedSelection)
 
-    def contextMenuEvent(self, event) -> None:
-        """Construct and present a menu."""
-        if self.indexAt(event.pos()).row() == -1:
-            menu = NodeViewContextMenu.init_none(self)
-        else:
-            menu = NodeViewContextMenu.init_single(self)
-        menu.exec_(event.globalPos())
+        self.allFilter = ""
 
     def mouseDoubleClickEvent(self, event) -> None:
         if self.selected_keys:
             actions.ActivityOpen.run(self.selected_keys)
 
-    def filter_all(self, query: str):
-        # go to advanced querying if the query starts with the equal sign
-        if query.startswith('='):
-            return self.query_filter(query[1:])
-
-        col_names = [self.model().columns[i] for i in range(1, len(self.model().columns)) if not self.isColumnHidden(i)]
-
-        pandas_query = " | ".join([f"(`{col}`.astype('str').str.contains('{self.format_query(query)}'))" for col in col_names])
-        pandas_query = " & " + pandas_query if pandas_query else ""
-        self.applyFilter(pandas_query)
-        self.query_changed.emit(True)
-
-    def query_filter(self, query: str) -> bool:
+    def setAllFilter(self, query: str):
+        self.allFilter = query
         try:
-            self.applyFilter(f" & ({query})")
+            self.applyFilter()
             self.query_changed.emit(True)
         except Exception as e:
             print(f"Error in query: {type(e).__name__}: {e}")
             self.query_changed.emit(False)
+
+    def buildQuery(self) -> str:
+        if self.allFilter.startswith('='):
+            return super().buildQuery() + f" & ({self.allFilter[1:]})"
+
+        col_names = [self.model().columns[i] for i in range(1, len(self.model().columns)) if not self.isColumnHidden(i)]
+
+        q = " | ".join([f"(`{col}`.astype('str').str.contains('{self.format_query(self.allFilter)}'))" for col in col_names])
+        return super().buildQuery() + " & " + q if q else super().buildQuery()
 
     @property
     def selected_keys(self) -> [tuple]:
@@ -128,7 +132,7 @@ class NodeViewContextMenu(QtWidgets.QMenu):
 
         self.activity_open = actions.ActivityOpen.get_QAction(parent.selected_keys)
         self.activity_graph = actions.ActivityGraph.get_QAction(parent.selected_keys)
-        self.activity_new = actions.ActivityNew.get_QAction(parent.parent().database.name)
+        self.process_new = actions.ActivityNewProcess.get_QAction(parent.parent().database.name)
         self.activity_delete = actions.ActivityDelete.get_QAction(parent.selected_keys)
         self.activity_relink = actions.ActivityRelink.get_QAction(parent.selected_keys)
 
@@ -140,7 +144,7 @@ class NodeViewContextMenu(QtWidgets.QMenu):
 
         self.addAction(self.activity_open)
         self.addAction(self.activity_graph)
-        self.addAction(self.activity_new)
+        self.addAction(self.process_new)
         self.addMenu(self.duplicates_menu())
         self.addAction(self.activity_delete)
         self.addAction(self.activity_relink)
@@ -151,7 +155,7 @@ class NodeViewContextMenu(QtWidgets.QMenu):
         menu = cls(parent)
 
         menu.clear()
-        menu.addAction(menu.activity_new)
+        menu.addAction(menu.process_new)
 
         return menu
 

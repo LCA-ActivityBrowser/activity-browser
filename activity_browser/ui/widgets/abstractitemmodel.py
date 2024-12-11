@@ -18,7 +18,7 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
         self.entries: Entry | None = None  # root Entry for the object tree
         self.grouped_columns: [int] = []  # list of all columns that are currently being grouped
         self.filtered_columns: [int] = set()  # set of all columns that have filters applied
-        self.current_query = ""  # Pandas query currently applied to the dataframe
+        self._query = ""  # Pandas query currently applied to the dataframe
 
         # if a dataframe is set as kwarg set it up
         if dataframe is not None:
@@ -218,8 +218,8 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
         changing the dataframe, grouped columns or query string.
         """
         # apply any existing queries to the dataframe
-        if self.current_query:
-            self.dataframe = self.dataframe_.query(self.current_query).reset_index(drop=True)
+        if q := self.query():
+            self.dataframe = self.dataframe_.query(q).reset_index(drop=True)
         else:
             self.dataframe = self.dataframe_
 
@@ -268,10 +268,13 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
         self.endResetModel()
         self.grouped.emit(self.grouped_columns)
 
-    def query(self, query: str):
+    def query(self) -> str:
+        return self._query
+
+    def setQuery(self, query: str):
         """Apply the query string to the dataframe and rebuild the model"""
         self.beginResetModel()
-        self.current_query = query
+        self._query = query
         self.endResetModel()
 
 
