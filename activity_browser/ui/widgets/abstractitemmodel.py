@@ -15,7 +15,7 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
 
         self.dataframe: pd.DataFrame | None = None  # DataFrame containing the visible data
         self.dataframe_: pd.DataFrame | None = None  # DataFrame containing the original (unfiltered) data
-        self.entries: Entry | None = None  # root Entry for the object tree
+        self.root: Entry | None = None  # root Entry for the object tree
         self.grouped_columns: [int] = []  # list of all columns that are currently being grouped
         self.filtered_columns: [int] = set()  # set of all columns that have filters applied
         self._query = ""  # Pandas query currently applied to the dataframe
@@ -45,7 +45,7 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
         internalPointer. This will be the root Entry if the parent is invalid.
         """
         # get the parent Entry, or the root Entry if the parent is invalid
-        parent = parent.internalPointer() if parent.isValid() else self.entries
+        parent = parent.internalPointer() if parent.isValid() else self.root
 
         # get the child Entry from the parent with the same rank as the specified row
         child = parent.ranked_child(row)
@@ -58,7 +58,7 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
         Create a QModelIndex based on a specific path for the Entry tree. The index column will be 0.
         """
         # get the Entry for that specific path
-        child = self.entries.get(path)
+        child = self.root.get(path)
 
         # create and return a QModelIndex with the child's rank as row and 0 as column
         return self.createIndex(child.rank, 0, child)
@@ -81,7 +81,7 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
             return QtCore.QModelIndex()
 
         # if the parent is the root Entry return an invalid/empty QModelIndex
-        if parent == self.entries:
+        if parent == self.root:
             return QtCore.QModelIndex()
 
         # create and return a QModelIndex with the child's rank as row and 0 as column
@@ -96,7 +96,7 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
             return 0
         # if the parent is the top of the table, the rowCount is the number of children for the root Entry
         if not parent.isValid():
-            value = len(self.entries.children)
+            value = len(self.root.children)
         # else it's the number of children within the Entry saved within the internalPointer
         elif isinstance(parent.internalPointer(), Entry):
             value = len(parent.internalPointer().children)
@@ -224,12 +224,13 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
             self.dataframe = self.dataframe_
 
         # rebuild the entry tree
-        self.entries = Entry("root")
+        self.root = Entry("root")
+        entries = self.createEntries()
 
         # if no grouping of Entries, just append everything as a direct child of the root Entry
         if not self.grouped_columns:
-            for i in range(len(self.dataframe)):
-                self.entries.put(i, [i])
+            for i, entry in enumerate(entries):
+                self.root.put(entry, [i])
         # else build paths based on the grouped columns and create an entry tree
         else:
             column_names = [self.columns[column] for column in self.grouped_columns]
@@ -241,9 +242,12 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
                     joined_path.extend(path) if isinstance(path, (list, tuple)) else joined_path.append(path)
 
                 joined_path.append(i)
-                self.entries.put(i, joined_path)
+                self.root.put(entries[i], joined_path)
 
         super().endResetModel()
+
+    def createEntries(self) -> list["Entry"]:
+        return [Entry(i, value=i) for i in range(len(self.dataframe))]
 
     def sort(self, column: int, order=Qt.AscendingOrder):
         if column == 0:
@@ -335,18 +339,18 @@ class Entry:
             return self.children[name]
 
         sub = self.__class__(name, value, self, type)
-        self.children[name] = sub
-        self.index.append(name)
-
-        self.sorted = False
-
+        self.put(sub, [name])
         return sub
 
-    def put(self, value, path):
+    def put(self, entry: "Entry", path):
         name = path.pop(0)
         if path:
             sub = self.sub(name, type="branch")
-            sub.put(value, path)
+            sub.put(entry, path)
         else:
-            self.sub(name, value)
+            self.children[name] = entry
+            self.index.append(name)
+            self.sorted = False
+
+            entry.parent = self
 
