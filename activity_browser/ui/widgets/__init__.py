@@ -14,4 +14,4 @@ from .line_edit import (SignalledComboEdit, SignalledLineEdit,
 from .message import parameter_save_errorbox, simple_warning_box
 from .tag_editor import TagEditor
 from .treeview import ABTreeView
-from .abstractitemmodel import ABAbstractItemModel, Entry
+from .abstractitemmodel import ABAbstractItemModel, ABItem

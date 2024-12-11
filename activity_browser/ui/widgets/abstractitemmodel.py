@@ -15,7 +15,7 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
 
         self.dataframe: pd.DataFrame | None = None  # DataFrame containing the visible data
         self.dataframe_: pd.DataFrame | None = None  # DataFrame containing the original (unfiltered) data
-        self.root: Entry | None = None  # root Entry for the object tree
+        self.root: ABItem | None = None  # root ABItem for the object tree
         self.grouped_columns: [int] = []  # list of all columns that are currently being grouped
         self.filtered_columns: [int] = set()  # set of all columns that have filters applied
         self._query = ""  # Pandas query currently applied to the dataframe
@@ -41,13 +41,13 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
 
     def index(self, row: int, column: int, parent: QtCore.QModelIndex = ...) -> QtCore.QModelIndex:
         """
-        Create a QModelIndex based on a specific row, column and parent. Sets the associated Entry as
-        internalPointer. This will be the root Entry if the parent is invalid.
+        Create a QModelIndex based on a specific row, column and parent. Sets the associated ABItem as
+        internalPointer. This will be the root ABItem if the parent is invalid.
         """
-        # get the parent Entry, or the root Entry if the parent is invalid
+        # get the parent ABItem, or the root ABItem if the parent is invalid
         parent = parent.internalPointer() if parent.isValid() else self.root
 
-        # get the child Entry from the parent with the same rank as the specified row
+        # get the child ABItem from the parent with the same rank as the specified row
         child = parent.ranked_child(row)
 
         # create and return a QModelIndex
@@ -55,9 +55,9 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
 
     def indexFromPath(self, path: [str]) -> QtCore.QModelIndex:
         """
-        Create a QModelIndex based on a specific path for the Entry tree. The index column will be 0.
+        Create a QModelIndex based on a specific path for the ABItem tree. The index column will be 0.
         """
-        # get the Entry for that specific path
+        # get the ABItem for that specific path
         child = self.root.get(path)
 
         # create and return a QModelIndex with the child's rank as row and 0 as column
@@ -70,17 +70,17 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
         if not child.isValid():
             return QtCore.QModelIndex()
 
-        # get the Entry from the QModelIndex
+        # get the ABItem from the QModelIndex
         child = child.internalPointer()
 
-        # try to get the parent Entry from the child
+        # try to get the parent ABItem from the child
         try:
             parent = child.parent
         # return an invalid/empty QModelIndex if this fails
         except:
             return QtCore.QModelIndex()
 
-        # if the parent is the root Entry return an invalid/empty QModelIndex
+        # if the parent is the root ABItem return an invalid/empty QModelIndex
         if parent == self.root:
             return QtCore.QModelIndex()
 
@@ -94,11 +94,11 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
         # return 0 if there is no DataFrame
         if self.dataframe is None:
             return 0
-        # if the parent is the top of the table, the rowCount is the number of children for the root Entry
+        # if the parent is the top of the table, the rowCount is the number of children for the root ABItem
         if not parent.isValid():
             value = len(self.root.children)
-        # else it's the number of children within the Entry saved within the internalPointer
-        elif isinstance(parent.internalPointer(), Entry):
+        # else it's the number of children within the ABItem saved within the internalPointer
+        elif isinstance(parent.internalPointer(), ABItem):
             value = len(parent.internalPointer().children)
         # this shouldn't happen, but a failsafe
         else:
@@ -118,7 +118,7 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
         """
         Get the data associated with a specific index and role
         """
-        if not index.isValid() or not isinstance(index.internalPointer(), Entry):
+        if not index.isValid() or not isinstance(index.internalPointer(), ABItem):
             return None
 
         # redirect to the displayData method
@@ -136,7 +136,7 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
         """
         Return the display data for a specific index
         """
-        entry: Entry = index.internalPointer()
+        entry: ABItem = index.internalPointer()
         display = None
 
         # return the entry name if the column is 0, meaning the branch of the tree
@@ -190,20 +190,20 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
     def flags(self, index):
         return super().flags(index) | Qt.ItemIsDragEnabled
 
-    def dataframeIndices(self, entry: QtCore.QModelIndex, recursive=True) -> [int]:
-        if isinstance(entry, QtCore.QModelIndex):
-            entry = entry.internalPointer()
-        if not isinstance(entry, Entry):
-            raise ValueError("Invalid entry")
+    def dataframeIndices(self, ABItem: QtCore.QModelIndex, recursive=True) -> [int]:
+        if isinstance(ABItem, QtCore.QModelIndex):
+            ABItem = ABItem.internalPointer()
+        if not isinstance(ABItem, ABItem):
+            raise ValueError("Invalid ABItem")
 
         df_indices = []
 
         # add own pandas index
-        if isinstance(entry.value, int):
-            df_indices.append(entry.value)
+        if isinstance(ABItem.value, int):
+            df_indices.append(ABItem.value)
 
         if recursive:
-            for child in entry.children.values():
+            for child in ABItem.children.values():
                 df_indices.extend(self.dataframeIndices(child))
 
         return df_indices
@@ -223,15 +223,15 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
         else:
             self.dataframe = self.dataframe_
 
-        # rebuild the entry tree
-        self.root = Entry("root")
-        entries = self.createEntries()
+        # rebuild the ABItem tree
+        self.root = ABItem("root")
+        items = self.createItems()
 
-        # if no grouping of Entries, just append everything as a direct child of the root Entry
+        # if no grouping of Entries, just append everything as a direct child of the root ABItem
         if not self.grouped_columns:
-            for i, entry in enumerate(entries):
-                self.root.put(entry, [i])
-        # else build paths based on the grouped columns and create an entry tree
+            for i, item in enumerate(items):
+                self.root.put(item, [i])
+        # else build paths based on the grouped columns and create an ABItem tree
         else:
             column_names = [self.columns[column] for column in self.grouped_columns]
 
@@ -242,12 +242,12 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
                     joined_path.extend(path) if isinstance(path, (list, tuple)) else joined_path.append(path)
 
                 joined_path.append(i)
-                self.root.put(entries[i], joined_path)
+                self.root.put(items[i], joined_path)
 
         super().endResetModel()
 
-    def createEntries(self) -> list["Entry"]:
-        return [Entry(i, value=i) for i in range(len(self.dataframe))]
+    def createItems(self) -> list["ABItem"]:
+        return [ABItem(i, value=i) for i in range(len(self.dataframe))]
 
     def sort(self, column: int, order=Qt.AscendingOrder):
         if column == 0:
@@ -282,15 +282,15 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
         self.endResetModel()
 
 
-class Entry:
-    def __init__(self, name, value=None, parent: "Entry" = None, entry_type=None):
+class ABItem:
+    def __init__(self, name, value=None, parent: "ABItem" = None, ABItem_type=None):
         self.children = {}
         self.index = []
 
         self.name = name
         self.value = value
         self.parent = parent
-        self.type = entry_type
+        self.type = ABItem_type
 
         self.sorted = True
 
@@ -311,12 +311,12 @@ class Entry:
 
     @property
     def rank(self) -> int:
-        """Return the rank of the entry within the parent. Returns -1 if there is no parent."""
+        """Return the rank of the ABItem within the parent. Returns -1 if there is no parent."""
         if self.parent is None:
             return -1
         return self.parent.child_rank(self.name)
 
-    def ranked_child(self, rank: int) -> "Entry":
+    def ranked_child(self, rank: int) -> "ABItem":
         """Return the child with the given rank"""
         if not self.sorted:
             self.sort()
@@ -342,15 +342,15 @@ class Entry:
         self.put(sub, [name])
         return sub
 
-    def put(self, entry: "Entry", path):
+    def put(self, ABItem: "ABItem", path):
         name = path.pop(0)
         if path:
             sub = self.sub(name, type="branch")
-            sub.put(entry, path)
+            sub.put(ABItem, path)
         else:
-            self.children[name] = entry
+            self.children[name] = ABItem
             self.index.append(name)
             self.sorted = False
 
-            entry.parent = self
+            ABItem.parent = self
 
