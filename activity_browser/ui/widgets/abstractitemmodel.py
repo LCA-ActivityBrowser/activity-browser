@@ -1,5 +1,5 @@
 import pandas as pd
-from qtpy import QtCore, QtGui
+from qtpy import QtCore, QtGui, QtWidgets
 from qtpy.QtCore import Qt, Signal, SignalInstance
 
 from activity_browser.ui.icons import qicons
@@ -15,7 +15,7 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
 
         self.dataframe: pd.DataFrame | None = None  # DataFrame containing the visible data
         self.dataframe_: pd.DataFrame | None = None  # DataFrame containing the original (unfiltered) data
-        self.root: ABItem | None = None  # root ABItem for the object tree
+        self.root: ABBranchItem | None = None  # root ABItem for the object tree
         self.grouped_columns: [int] = []  # list of all columns that are currently being grouped
         self.filtered_columns: [int] = set()  # set of all columns that have filters applied
         self._query = ""  # Pandas query currently applied to the dataframe
@@ -48,7 +48,7 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
         parent = parent.internalPointer() if parent.isValid() else self.root
 
         # get the child ABItem from the parent with the same rank as the specified row
-        child = parent.ranked_child(row)
+        child = parent.iloc(row)
 
         # create and return a QModelIndex
         return self.createIndex(row, column, child)
@@ -58,7 +58,9 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
         Create a QModelIndex based on a specific path for the ABItem tree. The index column will be 0.
         """
         # get the ABItem for that specific path
-        child = self.root.get(path)
+        child = self.root.loc(path)
+        if child is None:
+            return QtCore.QModelIndex()
 
         # create and return a QModelIndex with the child's rank as row and 0 as column
         return self.createIndex(child.rank, 0, child)
@@ -96,10 +98,10 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
             return 0
         # if the parent is the top of the table, the rowCount is the number of children for the root ABItem
         if not parent.isValid():
-            value = len(self.root.children)
+            value = len(self.root.child_items)
         # else it's the number of children within the ABItem saved within the internalPointer
-        elif isinstance(parent.internalPointer(), ABItem):
-            value = len(parent.internalPointer().children)
+        elif isinstance(parent.internalPointer(), ABAbstractItem):
+            value = len(parent.internalPointer().child_items)
         # this shouldn't happen, but a failsafe
         else:
             value = 0
@@ -118,7 +120,7 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
         """
         Get the data associated with a specific index and role
         """
-        if not index.isValid() or not isinstance(index.internalPointer(), ABItem):
+        if not index.isValid() or not isinstance(index.internalPointer(), ABAbstractItem):
             return None
 
         # redirect to the displayData method
@@ -136,18 +138,21 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
         """
         Return the display data for a specific index
         """
-        entry: ABItem = index.internalPointer()
+        entry: ABAbstractItem = index.internalPointer()
         display = None
 
         # return the entry name if the column is 0, meaning the branch of the tree
-        if index.column() == 0 and entry.children:
-            display = str(entry.name)
+        if index.column() == 0 and entry.child_keys:
+            display = str(entry.key)
 
         # if we're not in the tree column and the Entry.value is an integer get the data from the dataframe
-        if not index.column() == 0 and isinstance(entry.value, int):
+        if not index.column() == 0:
             # Entry.value corresponds with the row number in the dataframe, the index column can be used to get the
             # column name from self.columns.
-            data = self.dataframe.loc[entry.value, self.columns[index.column()]]
+            data = entry[self.columns[index.column()]]
+
+            if data is None:
+                return None
 
             # clean up the data to a table-readable format
             display = str(data).replace("\n", " ")
@@ -224,13 +229,13 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
             self.dataframe = self.dataframe_
 
         # rebuild the ABItem tree
-        self.root = ABItem("root")
+        self.root = ABBranchItem("root")
         items = self.createItems()
 
         # if no grouping of Entries, just append everything as a direct child of the root ABItem
         if not self.grouped_columns:
             for i, item in enumerate(items):
-                self.root.put(item, [i])
+                item.set_parent(self.root)
         # else build paths based on the grouped columns and create an ABItem tree
         else:
             column_names = [self.columns[column] for column in self.grouped_columns]
@@ -247,7 +252,7 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
         super().endResetModel()
 
     def createItems(self) -> list["ABItem"]:
-        return [ABItem(i, value=i) for i in range(len(self.dataframe))]
+        return [ABDataItem(index, data) for index, data in self.dataframe.to_dict(orient="index").items()]
 
     def sort(self, column: int, order=Qt.AscendingOrder):
         if column == 0:
@@ -282,7 +287,7 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
         self.endResetModel()
 
 
-class ABItem:
+class ABItem2:
     def __init__(self, name, value=None, parent: "ABItem" = None, ABItem_type=None):
         self.children = {}
         self.index = []
@@ -353,4 +358,94 @@ class ABItem:
             self.sorted = False
 
             ABItem.parent = self
+
+
+class ABAbstractItem:
+
+    def __init__(self, key, parent=None):
+        self.key = key
+        self.child_keys = []
+        self.child_items = {}
+        self.parent = None
+
+        if parent:
+            self.set_parent(parent)
+
+    def __getitem__(self, item):
+        raise NotImplementedError
+
+    @property
+    def path(self) -> [str]:
+        return self.parent.path + [self.key] if self.parent else []
+
+    @property
+    def rank(self) -> int:
+        """Return the rank of the ABItem within the parent. Returns -1 if there is no parent."""
+        if self.parent is None:
+            return -1
+        return self.parent.child_keys.index(self.key)
+
+    def set_parent(self, parent: "ABAbstractItem"):
+        if self.key in parent.child_items:
+            raise KeyError(f"Item {self.key} is already a child of {parent.key}")
+
+        if self.parent:
+            self.parent.child_keys.remove(self.key)
+            del self.parent.child_items[self.key]
+
+        parent.child_items[self.key] = self
+        parent.child_keys.append(self.key)
+        self.parent = parent
+
+    def loc(self, key_or_path: object | list[object], default=None):
+        key = key_or_path.pop(0) if isinstance(key_or_path, list) else key_or_path
+
+        if isinstance(key_or_path, list) and len(key_or_path) > 0:
+            return self.child_items.get(key, default).loc(key_or_path, default)
+
+        return self.child_items.get(key, default)
+
+    def iloc(self, index: int, default=None):
+        return self.loc(self.child_keys[index], default)
+
+
+class ABBranchItem(ABAbstractItem):
+
+    def __getitem__(self, item):
+        return None
+
+    def put(self, item: ABAbstractItem, path):
+        key = path.pop(0)
+        if path:
+            sub = self.loc(key)
+            sub = sub if sub else self.__class__(key, self)
+            sub.put(item, path)
+        else:
+            item.set_parent(self)
+
+    def set_parent(self, parent: "ABAbstractItem"):
+        if self.key in parent.child_items:
+            twin = parent.loc(self.key)
+            for child in twin.child_items.values():
+                child.set_parent(self)
+
+        if self.parent:
+            self.parent.child_keys.remove(self.key)
+            del self.parent.child_items[self.key]
+
+        parent.child_items[self.key] = self
+
+        branches = [isinstance(parent.child_items[key], ABBranchItem) for key in parent.child_keys]
+        i = branches.index(False) if False in branches else len(branches)
+        parent.child_keys.insert(i, self.key)
+        self.parent = parent
+
+
+class ABDataItem(ABAbstractItem):
+    def __init__(self, key, data, parent=None):
+        super().__init__(key, parent)
+        self.data = data
+
+    def __getitem__(self, item):
+        return self.data.get(item)
 

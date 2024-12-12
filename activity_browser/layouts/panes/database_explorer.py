@@ -119,7 +119,7 @@ class NodeView(ui.widgets.ABTreeView):
         col_names = [self.model().columns[i] for i in range(1, len(self.model().columns)) if not self.isColumnHidden(i)]
 
         q = " | ".join([f"(`{col}`.astype('str').str.contains('{self.format_query(self.allFilter)}'))" for col in col_names])
-        return super().buildQuery() + " & " + q if q else super().buildQuery()
+        return super().buildQuery() + f" & ({q})" if q else super().buildQuery()
 
     @property
     def selected_keys(self) -> [tuple]:

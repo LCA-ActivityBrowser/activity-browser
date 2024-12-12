@@ -139,7 +139,7 @@ class ABTreeView(QtWidgets.QTreeView):
 
     def buildQuery(self) -> str:
         q = " & ".join([f"({col}.astype('str').str.contains('{self.format_query(q)}'))" for col, q in self.columnFilters.items()])
-        return "(index == index)" if not q else q
+        return "(index == index)" if not q else f"({q})"
 
     def applyFilter(self):
         self.model().setQuery(self.buildQuery())
