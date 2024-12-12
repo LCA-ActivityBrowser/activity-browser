@@ -142,7 +142,7 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
         display = None
 
         # return the entry name if the column is 0, meaning the branch of the tree
-        if index.column() == 0 and entry.child_keys:
+        if index.column() == 0 and entry.has_children:
             display = str(entry.key)
 
         # if we're not in the tree column and the Entry.value is an integer get the data from the dataframe
@@ -195,20 +195,20 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
     def flags(self, index):
         return super().flags(index) | Qt.ItemIsDragEnabled
 
-    def dataframeIndices(self, ABItem: QtCore.QModelIndex, recursive=True) -> [int]:
-        if isinstance(ABItem, QtCore.QModelIndex):
-            ABItem = ABItem.internalPointer()
-        if not isinstance(ABItem, ABItem):
+    def dataframeIndices(self, index: QtCore.QModelIndex, recursive=True) -> [int]:
+        if isinstance(index, QtCore.QModelIndex):
+            item = index.internalPointer()
+        if not isinstance(item, ABAbstractItem):
             raise ValueError("Invalid ABItem")
 
         df_indices = []
 
         # add own pandas index
-        if isinstance(ABItem.value, int):
-            df_indices.append(ABItem.value)
+        if isinstance(item.value, int):
+            df_indices.append(item.value)
 
         if recursive:
-            for child in ABItem.children.values():
+            for child in item.children.values():
                 df_indices.extend(self.dataframeIndices(child))
 
         return df_indices
@@ -285,6 +285,13 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
         self.beginResetModel()
         self._query = query
         self.endResetModel()
+
+    def hasChildren(self, parent: QtCore.QModelIndex):
+        item = parent.internalPointer()
+        if isinstance(item, ABAbstractItem):
+            return item.has_children
+        return super().hasChildren(parent)
+
 
 
 class ABItem2:
@@ -384,6 +391,10 @@ class ABAbstractItem:
         if self.parent is None:
             return -1
         return self.parent.child_keys.index(self.key)
+
+    @property
+    def has_children(self) -> bool:
+        return bool(self.child_keys)
 
     def set_parent(self, parent: "ABAbstractItem"):
         if self.key in parent.child_items:

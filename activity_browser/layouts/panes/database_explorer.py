@@ -218,3 +218,56 @@ class NodeModel(ui.widgets.ABAbstractItemModel):
             df = self.resolveIndex(index)
             keys.extend(df["key"])
         return list(set(keys))
+
+    def createItems(self) -> list[ui.widgets.ABDataItem]:
+        items = []
+        for index, data in self.dataframe.to_dict(orient="index").items():
+            if data["type"] in ["process", "multifunctional"]:
+                items.append(ProcessItem(index, data))
+            else:
+                items.append(ui.widgets.ABDataItem(index, data))
+        return items
+
+
+class ProcessItem(ui.widgets.ABDataItem):
+
+    def __init__(self, index, data):
+        super().__init__(index, data)
+        self.deferred_child_keys = []
+        self.deferred_child_values = {}
+        self.loaded = False
+
+    @property
+    def has_children(self) -> bool:
+        return True
+
+    @property
+    def child_keys(self):
+        if self.loaded:
+            return self.deferred_child_keys
+        self.deferred_load()
+        return self.deferred_child_keys
+
+    @child_keys.setter
+    def child_keys(self, keys):
+        return
+
+    @property
+    def child_values(self):
+        if self.loaded:
+            return self.deferred_child_values
+        self.deferred_load()
+        return self.deferred_child_values
+
+    @child_values.setter
+    def child_values(self, values):
+        return
+
+    def deferred_load(self):
+        import bw2data as bd
+        act = bd.get_activity(key=self.data["key"])
+        products = [x.input for x in act.production()]
+        for product in products:
+            item = ui.widgets.ABDataItem(product.id, product)
+            item.set_parent(self)
+        self.loaded = True
