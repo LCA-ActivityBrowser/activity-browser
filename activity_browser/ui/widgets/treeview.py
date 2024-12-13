@@ -120,9 +120,9 @@ class ABTreeView(QtWidgets.QTreeView):
             raise TypeError("Model must be an instance of ABAbstractItemModel")
         super().setModel(model)
 
-        self.setColumnHidden(0, True)
-        model.grouped.connect(lambda groups: self.setColumnHidden(0, not groups))
-        model.grouped.connect(lambda groups: self.expanded_paths.clear() if not groups else None)
+        # self.setColumnHidden(0, True)
+        # model.grouped.connect(lambda groups: self.setColumnHidden(0, not groups))
+        # model.grouped.connect(lambda groups: self.expanded_paths.clear() if not groups else None)
         model.modelReset.connect(self.expand_after_reset)
 
     def model(self) -> ABAbstractItemModel:

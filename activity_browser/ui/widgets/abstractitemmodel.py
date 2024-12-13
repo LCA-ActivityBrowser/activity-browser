@@ -8,8 +8,6 @@ from activity_browser.ui.icons import qicons
 class ABAbstractItemModel(QtCore.QAbstractItemModel):
     grouped: SignalInstance = Signal(list)
 
-    columns = [""]
-
     def __init__(self, parent=None, dataframe=None):
         super().__init__(parent)
 
@@ -19,6 +17,7 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
         self.grouped_columns: [int] = []  # list of all columns that are currently being grouped
         self.filtered_columns: [int] = set()  # set of all columns that have filters applied
         self._query = ""  # Pandas query currently applied to the dataframe
+        self.columns = []
 
         # if a dataframe is set as kwarg set it up
         if dataframe is not None:
@@ -35,7 +34,7 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
         self.dataframe_ = dataframe
 
         # extend the columns
-        self.columns = self.columns + [col for col in self.dataframe.columns if col not in self.columns]
+        self.columns = [col for col in self.dataframe.columns if col not in self.columns]
 
         self.endResetModel()
 
@@ -139,23 +138,17 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
         Return the display data for a specific index
         """
         entry: ABAbstractItem = index.internalPointer()
-        display = None
 
-        # return the entry name if the column is 0, meaning the branch of the tree
-        if index.column() == 0 and entry.has_children():
-            display = str(entry.key())
+        data = entry[self.columns[index.column()]]
 
-        # if we're not in the tree column and the Entry.value is an integer get the data from the dataframe
-        if not index.column() == 0:
-            # Entry.value corresponds with the row number in the dataframe, the index column can be used to get the
-            # column name from self.columns.
-            data = entry[self.columns[index.column()]]
+        if data is None and index.column() == 0:
+            data = entry.key()
 
-            if data is None:
-                return None
+        if data is None:
+            return None
 
-            # clean up the data to a table-readable format
-            display = str(data).replace("\n", " ")
+        # clean up the data to a table-readable format
+        display = str(data).replace("\n", " ")
 
         # if the display is nan, change to the user-friendlier Undefined
         if display == "nan":
@@ -180,8 +173,8 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
             return None
 
         if role == Qt.DisplayRole:
-            if section == 0:
-                return str([self.columns[column] for column in self.grouped_columns])
+            if section == 0 and self.grouped_columns:
+                return " > ".join([self.columns[column] for column in self.grouped_columns] + [self.columns[0]])
             return self.columns[section]
 
         if role == Qt.FontRole and section in self.filtered_columns:

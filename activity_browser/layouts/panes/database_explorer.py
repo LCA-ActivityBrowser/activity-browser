@@ -9,7 +9,7 @@ from activity_browser.bwutils import AB_metadata
 from activity_browser.mod import bw2data as bd
 
 DEFAULT_STATE = {
-    "columns": ["", "name", "activity", "activity type", "location", "unit"],
+    "columns": ["name", "activity", "activity type", "location", "unit"],
     "visible_columns": ["name", "activity", "activity type", "location", "unit"],
 }
 
