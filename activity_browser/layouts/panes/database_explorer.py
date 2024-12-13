@@ -216,7 +216,9 @@ class NodeModel(ui.widgets.ABAbstractItemModel):
         keys = []
         for index in indices:
             item = index.internalPointer()
-            keys.extend(item["key"])
+            if not item:
+                continue
+            keys.append(item["key"])
         return list(set(keys))
 
     def createItems(self) -> list[ui.widgets.ABDataItem]:
@@ -257,5 +259,7 @@ class ProcessItem(ui.widgets.ABDataItem):
         act = bd.get_activity(key=self.data["key"])
         products = [x.input for x in act.production()]
         for product in products:
-            item = ui.widgets.ABDataItem(product.id, product)
+            data = dict(product)
+            data["key"] = product.key
+            item = ui.widgets.ABDataItem(product.id, data)
             item.set_parent(self)

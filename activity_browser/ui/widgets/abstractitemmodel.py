@@ -34,7 +34,7 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
         self.dataframe_ = dataframe
 
         # extend the columns
-        self.columns = [col for col in self.dataframe.columns if col not in self.columns]
+        self.columns = self.columns + [col for col in self.dataframe.columns if col not in self.columns]
 
         self.endResetModel()
 
