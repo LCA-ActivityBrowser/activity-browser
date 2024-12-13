@@ -212,11 +212,11 @@ class NodeModel(ui.widgets.ABAbstractItemModel):
         data.setPickleData("application/bw-nodekeylist", self.get_keys(indices))
         return data
 
-    def get_keys(self, indices: [QtCore.QModelIndex]):
+    def get_keys(self, indices: list[QtCore.QModelIndex]):
         keys = []
         for index in indices:
-            df = self.resolveIndex(index)
-            keys.extend(df["key"])
+            item = index.internalPointer()
+            keys.extend(item["key"])
         return list(set(keys))
 
     def createItems(self) -> list[ui.widgets.ABDataItem]:
@@ -237,37 +237,25 @@ class ProcessItem(ui.widgets.ABDataItem):
         self.deferred_child_values = {}
         self.loaded = False
 
-    @property
     def has_children(self) -> bool:
         return True
 
-    @property
-    def child_keys(self):
-        if self.loaded:
-            return self.deferred_child_keys
-        self.deferred_load()
-        return self.deferred_child_keys
+    def key(self):
+        return self.data["name"]
 
-    @child_keys.setter
-    def child_keys(self, keys):
-        return
+    def children(self):
+        if not self.loaded:
+            self.deferred_load()
 
-    @property
-    def child_values(self):
-        if self.loaded:
-            return self.deferred_child_values
-        self.deferred_load()
-        return self.deferred_child_values
-
-    @child_values.setter
-    def child_values(self, values):
-        return
+        return self._child_items
 
     def deferred_load(self):
         import bw2data as bd
+
+        self.loaded = True
+
         act = bd.get_activity(key=self.data["key"])
         products = [x.input for x in act.production()]
         for product in products:
             item = ui.widgets.ABDataItem(product.id, product)
             item.set_parent(self)
-        self.loaded = True

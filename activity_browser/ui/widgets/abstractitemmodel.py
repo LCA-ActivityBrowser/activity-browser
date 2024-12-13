@@ -63,7 +63,7 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
             return QtCore.QModelIndex()
 
         # create and return a QModelIndex with the child's rank as row and 0 as column
-        return self.createIndex(child.rank, 0, child)
+        return self.createIndex(child.rank(), 0, child)
 
     def parent(self, child: QtCore.QModelIndex) -> QtCore.QModelIndex:
         """
@@ -77,7 +77,7 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
 
         # try to get the parent ABItem from the child
         try:
-            parent = child.parent
+            parent = child.parent()
         # return an invalid/empty QModelIndex if this fails
         except:
             return QtCore.QModelIndex()
@@ -87,7 +87,7 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
             return QtCore.QModelIndex()
 
         # create and return a QModelIndex with the child's rank as row and 0 as column
-        return self.createIndex(parent.rank, 0, parent)
+        return self.createIndex(parent.rank(), 0, parent)
 
     def rowCount(self, parent: QtCore.QModelIndex = ...) -> int:
         """
@@ -98,10 +98,10 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
             return 0
         # if the parent is the top of the table, the rowCount is the number of children for the root ABItem
         if not parent.isValid():
-            value = len(self.root.child_items)
+            value = len(self.root.children())
         # else it's the number of children within the ABItem saved within the internalPointer
         elif isinstance(parent.internalPointer(), ABAbstractItem):
-            value = len(parent.internalPointer().child_items)
+            value = len(parent.internalPointer().children())
         # this shouldn't happen, but a failsafe
         else:
             value = 0
@@ -142,8 +142,8 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
         display = None
 
         # return the entry name if the column is 0, meaning the branch of the tree
-        if index.column() == 0 and entry.has_children:
-            display = str(entry.key)
+        if index.column() == 0 and entry.has_children():
+            display = str(entry.key())
 
         # if we're not in the tree column and the Entry.value is an integer get the data from the dataframe
         if not index.column() == 0:
@@ -195,28 +195,6 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
     def flags(self, index):
         return super().flags(index) | Qt.ItemIsDragEnabled
 
-    def dataframeIndices(self, index: QtCore.QModelIndex, recursive=True) -> [int]:
-        if isinstance(index, QtCore.QModelIndex):
-            item = index.internalPointer()
-        if not isinstance(item, ABAbstractItem):
-            raise ValueError("Invalid ABItem")
-
-        df_indices = []
-
-        # add own pandas index
-        if isinstance(item.value, int):
-            df_indices.append(item.value)
-
-        if recursive:
-            for child in item.children.values():
-                df_indices.extend(self.dataframeIndices(child))
-
-        return df_indices
-
-    def resolveIndex(self, index: QtCore.QModelIndex) -> pd.DataFrame:
-        df_indices = self.dataframeIndices(index)
-        return self.dataframe.iloc[df_indices]
-
     def endResetModel(self):
         """
         Reset the model based on dataframe, query and grouped columns. Should be called to reflect the changes of
@@ -251,7 +229,7 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
 
         super().endResetModel()
 
-    def createItems(self) -> list["ABItem"]:
+    def createItems(self) -> list["ABAbstractItem"]:
         return [ABDataItem(index, data) for index, data in self.dataframe.to_dict(orient="index").items()]
 
     def sort(self, column: int, order=Qt.AscendingOrder):
@@ -289,91 +267,17 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
     def hasChildren(self, parent: QtCore.QModelIndex):
         item = parent.internalPointer()
         if isinstance(item, ABAbstractItem):
-            return item.has_children
+            return item.has_children()
         return super().hasChildren(parent)
-
-
-
-class ABItem2:
-    def __init__(self, name, value=None, parent: "ABItem" = None, ABItem_type=None):
-        self.children = {}
-        self.index = []
-
-        self.name = name
-        self.value = value
-        self.parent = parent
-        self.type = ABItem_type
-
-        self.sorted = True
-
-    def sort(self):
-        branches = []
-        other = []
-        for i in self.index:
-            if self.children[i].type == "branch":
-                branches.append(i)
-            else:
-                other.append(i)
-        self.index = branches + other
-        self.sorted = True
-
-    @property
-    def path(self) -> [str]:
-        return self.parent.path + [self.name] if self.parent else []
-
-    @property
-    def rank(self) -> int:
-        """Return the rank of the ABItem within the parent. Returns -1 if there is no parent."""
-        if self.parent is None:
-            return -1
-        return self.parent.child_rank(self.name)
-
-    def ranked_child(self, rank: int) -> "ABItem":
-        """Return the child with the given rank"""
-        if not self.sorted:
-            self.sort()
-        return self.children[self.index[rank]]
-
-    def child_rank(self, name) -> int:
-        """Return the rank of a child with the given name"""
-        if not self.sorted:
-            self.sort()
-        return self.index.index(name)
-
-    def get(self, path: [str]):
-        if not path:
-            return self
-        name = path.pop(0)
-        return self.children[name].get(path)
-
-    def sub(self, name, value=None, type=None):
-        if name in self.children:
-            return self.children[name]
-
-        sub = self.__class__(name, value, self, type)
-        self.put(sub, [name])
-        return sub
-
-    def put(self, ABItem: "ABItem", path):
-        name = path.pop(0)
-        if path:
-            sub = self.sub(name, type="branch")
-            sub.put(ABItem, path)
-        else:
-            self.children[name] = ABItem
-            self.index.append(name)
-            self.sorted = False
-
-            ABItem.parent = self
 
 
 class ABAbstractItem:
 
     def __init__(self, key, parent=None):
-        self.key = key
-        self.child_keys = []
-        self.child_items = {}
-        self.parent = None
+        self._key = key
+        self._child_keys = []
+        self._child_items = {}
+        self._parent = None
 
         if parent:
             self.set_parent(parent)
@@ -381,43 +285,49 @@ class ABAbstractItem:
     def __getitem__(self, item):
         raise NotImplementedError
 
-    @property
-    def path(self) -> [str]:
-        return self.parent.path + [self.key] if self.parent else []
+    def parent(self) -> "ABAbstractItem":
+        return self._parent
 
-    @property
+    def key(self):
+        return self._key
+
+    def children(self):
+        return self._child_items
+
+    def path(self) -> [str]:
+        return self.parent().path() + [self.key()] if self.parent() else []
+
     def rank(self) -> int:
         """Return the rank of the ABItem within the parent. Returns -1 if there is no parent."""
         if self.parent is None:
             return -1
-        return self.parent.child_keys.index(self.key)
+        return self.parent()._child_keys.index(self.key())
 
-    @property
     def has_children(self) -> bool:
-        return bool(self.child_keys)
+        return bool(self._child_keys)
 
     def set_parent(self, parent: "ABAbstractItem"):
-        if self.key in parent.child_items:
-            raise KeyError(f"Item {self.key} is already a child of {parent.key}")
+        if self.key() in parent.children():
+            raise KeyError(f"Item {self.key()} is already a child of {parent.key()}")
 
-        if self.parent:
-            self.parent.child_keys.remove(self.key)
-            del self.parent.child_items[self.key]
+        if self.parent():
+            self.parent()._child_keys.remove(self.key())
+            del self.parent()._child_items[self.key()]
 
-        parent.child_items[self.key] = self
-        parent.child_keys.append(self.key)
-        self.parent = parent
+        parent._child_items[self.key()] = self
+        parent._child_keys.append(self.key())
+        self._parent = parent
 
     def loc(self, key_or_path: object | list[object], default=None):
         key = key_or_path.pop(0) if isinstance(key_or_path, list) else key_or_path
 
         if isinstance(key_or_path, list) and len(key_or_path) > 0:
-            return self.child_items.get(key, default).loc(key_or_path, default)
+            return self._child_items[key].loc(key_or_path, default)
 
-        return self.child_items.get(key, default)
+        return self._child_items.get(key, default)
 
     def iloc(self, index: int, default=None):
-        return self.loc(self.child_keys[index], default)
+        return self.loc(self._child_keys[index], default)
 
 
 class ABBranchItem(ABAbstractItem):
@@ -435,21 +345,21 @@ class ABBranchItem(ABAbstractItem):
             item.set_parent(self)
 
     def set_parent(self, parent: "ABAbstractItem"):
-        if self.key in parent.child_items:
-            twin = parent.loc(self.key)
+        if self.key() in parent._child_items:
+            twin = parent.loc(self.key())
             for child in twin.child_items.values():
                 child.set_parent(self)
 
-        if self.parent:
-            self.parent.child_keys.remove(self.key)
-            del self.parent.child_items[self.key]
+        if self.parent():
+            self.parent()._child_keys.remove(self.key())
+            del self.parent()._child_items[self.key()]
 
-        parent.child_items[self.key] = self
+        parent._child_items[self.key()] = self
 
-        branches = [isinstance(parent.child_items[key], ABBranchItem) for key in parent.child_keys]
+        branches = [isinstance(parent._child_items[key], ABBranchItem) for key in parent._child_keys]
         i = branches.index(False) if False in branches else len(branches)
-        parent.child_keys.insert(i, self.key)
-        self.parent = parent
+        parent._child_keys.insert(i, self.key())
+        self._parent = parent
 
 
 class ABDataItem(ABAbstractItem):

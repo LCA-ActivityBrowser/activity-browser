@@ -110,8 +110,8 @@ class ABTreeView(QtWidgets.QTreeView):
         header.customContextMenuRequested.connect(self.menuFactory.createHeaderMenu)
 
         self.expanded_paths = set()
-        self.expanded.connect(lambda index: self.expanded_paths.add(tuple(index.internalPointer().path)))
-        self.collapsed.connect(lambda index: self.expanded_paths.discard(tuple(index.internalPointer().path)))
+        self.expanded.connect(lambda index: self.expanded_paths.add(tuple(index.internalPointer().path())))
+        self.collapsed.connect(lambda index: self.expanded_paths.discard(tuple(index.internalPointer().path())))
 
         self.columnFilters: dict[str, str] = {}  # dict[column_name, query] for filtering the dataframe
 
