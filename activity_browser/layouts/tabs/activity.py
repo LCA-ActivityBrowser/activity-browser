@@ -54,7 +54,7 @@ class ActivitiesTab(ABTab):
             )
             new_tab.destroyed.connect(signals.hide_when_empty.emit)
             new_tab.objectNameChanged.connect(
-                lambda name: self.setTabText(tab_index, name)
+                lambda name: self.setTabText(self.indexOf(new_tab), name)
             )
 
         self.select_tab(self.tabs[key])
