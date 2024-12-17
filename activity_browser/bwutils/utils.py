@@ -163,8 +163,8 @@ class Parameters(UserList):
         """Replace parameters in the list if their linked value is not
         NaN.
         """
-        param_by_name = {p.name: p for p in self.data}
-        index_by_name = {p.name: i for i, p in enumerate(self.data)}
+        param_by_name = {(p.group, p.name): p for p in self.data}
+        index_by_name = {(p.group, p.name): i for i, p in enumerate(self.data)}
 
         for name, value in new_values.items():
             if not np.isnan(value):
