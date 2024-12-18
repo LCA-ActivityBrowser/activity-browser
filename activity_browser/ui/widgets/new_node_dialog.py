@@ -24,7 +24,7 @@ class NewNodeDialog(QDialog):
         row += 1
         self._ref_product_name_edit = QLineEdit()
         if process:
-            layout.addWidget(QLabel("Reference product name"), row, 0)
+            layout.addWidget(QLabel("Product name"), row, 0)
             layout.addWidget(self._ref_product_name_edit, row, 1)
             row += 1
         layout.addWidget(QLabel("Unit"), row, 0)
