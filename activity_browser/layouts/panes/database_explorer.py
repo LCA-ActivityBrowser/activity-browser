@@ -264,11 +264,14 @@ class NodeModel(ui.widgets.ABAbstractItemModel):
         return list(set(keys))
 
     def createItems(self) -> list[ui.widgets.ABDataItem]:
-        return super().createItems()
         items = []
         for index, data in self.dataframe.to_dict(orient="index").items():
             if data["type"] in ["process", "multifunctional"]:
                 items.append(ProcessItem(index, data))
+            elif data["type"] in NODETYPES["products"]:
+                items.append(ProductItem(index, data))
+            elif data["type"] in NODETYPES["biosphere"]:
+                items.append(BiosphereItem(index, data))
             else:
                 items.append(ui.widgets.ABDataItem(index, data))
         return items
@@ -294,6 +297,9 @@ class ProcessItem(ui.widgets.ABDataItem):
 
         return self._child_items
 
+    def decorationData(self, key):
+        return ui.icons.qicons.process if key == "name" else None
+
     def deferred_load(self):
         import bw2data as bd
 
@@ -304,5 +310,24 @@ class ProcessItem(ui.widgets.ABDataItem):
         for product in products:
             data = dict(product)
             data["key"] = product.key
-            item = ui.widgets.ABDataItem(product.id, data)
+            item = ProductItem(product.id, data)
             item.set_parent(self)
+
+
+class ProductItem(ui.widgets.ABDataItem):
+    def decorationData(self, key):
+        if key != "name":
+            return
+        if self["type"] == "product":
+            return ui.icons.qicons.product
+        elif self["type"] == "processwithreferenceproduct":
+            return ui.icons.qicons.processproduct
+
+
+class BiosphereItem(ui.widgets.ABDataItem):
+    def decorationData(self, key):
+        if key != "name":
+            return
+        return ui.icons.qicons.biosphere
+
+

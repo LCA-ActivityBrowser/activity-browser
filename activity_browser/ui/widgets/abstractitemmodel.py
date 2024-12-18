@@ -130,6 +130,10 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
         if role == Qt.FontRole:
             return self.fontData(index)
 
+        if role == Qt.DecorationRole:
+            key = self.columns[index.column()]
+            return index.internalPointer().decorationData(key)
+
         # else return None
         return None
 
@@ -321,6 +325,9 @@ class ABAbstractItem:
 
     def iloc(self, index: int, default=None):
         return self.loc(self._child_keys[index], default)
+
+    def decorationData(self, key: str):
+        return None
 
 
 class ABBranchItem(ABAbstractItem):

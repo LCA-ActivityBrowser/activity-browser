@@ -75,6 +75,12 @@ class Icons(object):
     # plugins
     plugin = create_path("main", "plugin.png")
 
+    # nodes
+    process = create_path("nodes", "process.png")
+    product = create_path("nodes", "product.png")
+    processproduct = create_path("nodes", "processproduct.png")
+    biosphere = create_path("nodes", "biosphere.png")
+
     # other
     superstructure = create_path("main", "superstructure.png")
     copy_to_clipboard = create_path("main", "copy_to_clipboard.png")
