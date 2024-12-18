@@ -193,6 +193,16 @@ class ProductExchangeTable(BaseExchangeTable):
         self.table_name = "product"
         self._new_exchange_type = "production"
 
+    def contextMenuEvent(self, event, show_uncertainty: bool = True) -> None:
+        if self.indexAt(event.pos()).row() != -1:
+            return super().contextMenuEvent(event, show_uncertainty)
+
+        menu = QtWidgets.QMenu(self)
+        product_action = actions.ActivityNewProduct.get_QAction(self.key)
+        menu.addAction(product_action)
+
+        menu.exec_(event.globalPos())
+
 
 class TechnosphereExchangeTable(BaseExchangeTable):
     MODEL = TechnosphereExchangeModel
