@@ -20,10 +20,7 @@ class ABTreeViewMenuFactory:
     def createHeaderMenu(self, pos: QtCore.QPoint):
         """Designed to be passed to customContextMenuRequested.connect"""
         col = self.view.columnAt(pos.x())
-        if col == 0:
-            menu = self._header_menu_grouped()
-        else:
-            menu = self._header_menu_standard(col)
+        menu = self._header_menu_standard(col)
         menu.exec_(self.view.mapToGlobal(pos))
 
     def _header_menu_standard(self, column: int):
@@ -44,6 +41,11 @@ class ABTreeViewMenuFactory:
             QtGui.QIcon(),
             "Group by column",
             lambda: self.model.group(column),
+        )
+        menu.addAction(
+            QtGui.QIcon(),
+            "Ungroup",
+            self.model.ungroup,
         )
         menu.addAction(
             QtGui.QIcon(),
@@ -83,15 +85,6 @@ class ABTreeViewMenuFactory:
 
         return menu
 
-    def _header_menu_grouped(self):
-        menu = QtWidgets.QMenu(self.view)
-        menu.addAction(
-            QtGui.QIcon(),
-            "Ungroup",
-            self.model.ungroup,
-        )
-        return menu
-
 
 class ABTreeView(QtWidgets.QTreeView):
     menuFactoryClass = ABTreeViewMenuFactory
@@ -120,9 +113,6 @@ class ABTreeView(QtWidgets.QTreeView):
             raise TypeError("Model must be an instance of ABAbstractItemModel")
         super().setModel(model)
 
-        # self.setColumnHidden(0, True)
-        # model.grouped.connect(lambda groups: self.setColumnHidden(0, not groups))
-        # model.grouped.connect(lambda groups: self.expanded_paths.clear() if not groups else None)
         model.modelReset.connect(self.expand_after_reset)
 
     def model(self) -> ABAbstractItemModel:
