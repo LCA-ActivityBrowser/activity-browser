@@ -209,7 +209,7 @@ class MetaDataStore(object):
     def _parse_df(self, raw_df: pd.DataFrame) -> pd.DataFrame:
         data_df = pd.DataFrame([pickle.loads(x) for x in raw_df["data"]])
 
-        df = raw_df.merge(data_df, 'left')
+        df = raw_df.combine_first(data_df)
         df.drop(columns=["data"], inplace=True)
 
         df["key"] = df.loc[:, ["database", "code"]].apply(tuple, axis=1)
