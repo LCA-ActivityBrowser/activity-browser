@@ -53,7 +53,7 @@ class ActivitiesTab(ABTab):
         """Opens new tab or focuses on already open one."""
         if key not in self.tabs:
             act = bd.get_activity(key)
-            if act.get("type") not in bd.labels.node_types:
+            if act._document.type not in bd.labels.node_types:
                 QtWidgets.QMessageBox.information(self,
                     "Node can't be displayed",
                     "Node can't be displayed because it isn't a process or a product",

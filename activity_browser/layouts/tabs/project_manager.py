@@ -21,7 +21,7 @@ class ProjectTab(QtWidgets.QWidget):
     def __init__(self, parent):
         super(ProjectTab, self).__init__(parent)
         # main widgets
-        self.projects_widget = ProjectsWidget(self)
+        #self.projects_widget = ProjectsWidget(self)
         self.databases_widget = DatabaseWidget(self)
         self.activity_biosphere_tabs = ActivityBiosphereTabs(self)
 
@@ -33,7 +33,7 @@ class ProjectTab(QtWidgets.QWidget):
 
         self.overall_layout = QtWidgets.QVBoxLayout()
         self.overall_layout.setAlignment(QtCore.Qt.AlignTop)
-        self.overall_layout.addWidget(self.projects_widget)
+        #self.overall_layout.addWidget(self.projects_widget)
         self.overall_layout.addWidget(self.splitter)
         self.setLayout(self.overall_layout)
 

@@ -1,4 +1,4 @@
-import re
+import enum
 
 from qtpy import QtWidgets, QtCore, QtGui
 from qtpy.QtCore import Signal, SignalInstance
@@ -14,7 +14,16 @@ DEFAULT_STATE = {
 }
 
 
+NODETYPES = {
+    "all_nodes": [],
+    "processes": ["process", "multifunctional", "processwithreferenceproduct"],
+    "products": ["product", "processwithreferenceproduct"],
+    "biosphere": ["natural resource", "emission"],
+}
+
+
 class DatabaseExplorer(QtWidgets.QWidget):
+
     def __init__(self, parent, db_name: str):
         super().__init__(parent)
         self.database = bd.Database(db_name)
@@ -32,9 +41,25 @@ class DatabaseExplorer(QtWidgets.QWidget):
 
         self.search.textChanged.connect(self.table_view.setAllFilter)
 
+        self.tab_bar = QtWidgets.QTabBar(self)
+        self.tab_bar.setShape(QtWidgets.QTabBar.RoundedEast)
+
+        self.tab_bar.addTab("All Nodes")
+        self.tab_bar.addTab("Processes")
+        self.tab_bar.addTab("Products")
+        self.tab_bar.addTab("Biosphere")
+
+        self.tab_bar.tabBarClicked.connect(self.switch_types)
+
+        table_layout = QtWidgets.QHBoxLayout()
+        table_layout.setSpacing(0)
+        table_layout.addWidget(self.table_view)
+        table_layout.addWidget(self.tab_bar)
+        table_layout.setAlignment(self.tab_bar, QtCore.Qt.AlignmentFlag.AlignTop)
+
         layout = QtWidgets.QVBoxLayout(self)
         layout.addWidget(self.search)
-        layout.addWidget(self.table_view)
+        layout.addLayout(table_layout)
 
         # Set the table view as the central widget of the window
         self.setLayout(layout)
@@ -49,6 +74,12 @@ class DatabaseExplorer(QtWidgets.QWidget):
             return
 
         self.model.setDataFrame(AB_metadata.get_database_metadata(database.name))
+
+    def switch_types(self, index) -> None:
+        node_map = ["all_nodes", "processes", "products", "biosphere"]
+        key = node_map[index]
+        self.table_view.setNodeTypes(NODETYPES[key])
+        return
 
     def event(self, event):
         if event.type() == QtCore.QEvent.DeferredDelete:
@@ -98,6 +129,7 @@ class NodeView(ui.widgets.ABTreeView):
         self.setSelectionMode(ui.widgets.ABTreeView.ExtendedSelection)
 
         self.allFilter = ""
+        self.nodeTypes = []
 
     def mouseDoubleClickEvent(self, event) -> None:
         if self.selected_keys:
@@ -112,14 +144,24 @@ class NodeView(ui.widgets.ABTreeView):
             print(f"Error in query: {type(e).__name__}: {e}")
             self.query_changed.emit(False)
 
+    def setNodeTypes(self, node_types: list):
+        self.nodeTypes = node_types
+        self.applyFilter()
+
     def buildQuery(self) -> str:
+        if self.nodeTypes:
+            node_query = " | ".join([f"(type.astype('str').str.contains('{node_type}'))" for node_type in self.nodeTypes])
+            node_query = f" & ({node_query})"
+        else:
+            node_query = ""
+
         if self.allFilter.startswith('='):
-            return super().buildQuery() + f" & ({self.allFilter[1:]})"
+            return super().buildQuery() + f" & ({self.allFilter[1:]})" + node_query
 
         col_names = [self.model().columns[i] for i in range(1, len(self.model().columns)) if not self.isColumnHidden(i)]
 
         q = " | ".join([f"(`{col}`.astype('str').str.contains('{self.format_query(self.allFilter)}'))" for col in col_names])
-        return super().buildQuery() + f" & ({q})" if q else super().buildQuery()
+        return super().buildQuery() + f" & ({q})" + node_query if q else super().buildQuery() + node_query
 
     @property
     def selected_keys(self) -> [tuple]:
@@ -222,6 +264,7 @@ class NodeModel(ui.widgets.ABAbstractItemModel):
         return list(set(keys))
 
     def createItems(self) -> list[ui.widgets.ABDataItem]:
+        return super().createItems()
         items = []
         for index, data in self.dataframe.to_dict(orient="index").items():
             if data["type"] in ["process", "multifunctional"]:

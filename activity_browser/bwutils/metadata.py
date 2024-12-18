@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 import itertools
+import sqlite3
+import pickle
 from functools import lru_cache
 from typing import Set
 from logging import getLogger
@@ -7,6 +9,7 @@ from logging import getLogger
 import numpy as np
 import pandas as pd
 from bw2data.errors import UnknownObject
+from bw2data.backends import sqlite3_lci_db
 
 import activity_browser.bwutils.commontasks as bc
 from activity_browser.mod import bw2data as bd
@@ -126,56 +129,93 @@ class MetaDataStore(object):
         key : tuple
             The specific activity to update in the MetaDataStore
         """
+        data = self._get_node(key)
+        if data is None:  # the activity has been deleted
+            self.dataframe.drop(key, inplace=True)
+        elif key in self.dataframe.index:  # the activity has been modified
+            self.dataframe.loc[key] = data.loc[key]
+        else:  # an activity has been added
+            self.dataframe = pd.concat([self.dataframe, data], join="outer")
+        self.databases = set(self.dataframe["database"].unique())
+
+        # try:
+        #     act = bd.get_activity(
+        #         key
+        #     )  # if this does not work, it has been deleted (see except:).
+        # except (UnknownObject, ActivityDataset.DoesNotExist):
+        #     # Situation 1: activity has been deleted (metadata needs to be deleted)
+        #     log.debug(f"Deleting activity from metadata: {key}")
+        #     self.dataframe.drop(key, inplace=True, errors="ignore")
+        #     # print('Dimensions of the Metadata:', self.dataframe.shape)
+        #     return
+        #
+        # db = key[0]
+        # if db not in self.databases:
+        #     # print('Database has not been added to metadata.')
+        #     self.add_metadata([db])
+        # else:
+        #     if (
+        #         key in self.dataframe.index
+        #     ):  # Situation 2: activity has been modified (metadata needs to be updated)
+        #         log.debug(f"Updating activity in metadata: {key}")
+        #         for col in self.dataframe.columns:
+        #             if col in self.CLASSIFICATION_SYSTEMS:
+        #                 # update classification data
+        #                 classification = self._unpacker(
+        #                     classifications=[act.get('classifications', '')],
+        #                     system=col)
+        #                 self.dataframe.at[key, col] = classification[0]
+        #             else:
+        #                 self.dataframe.at[key, col] = act.get(col, '')
+        #         self.dataframe.at[key, 'key'] = act.key
+        #
+        #     else:  # Situation 3: Activity has been added to database (metadata needs to be generated)
+        #         log.debug(f'Adding activity to metadata: {key}')
+        #         df_new = pd.DataFrame([act.as_dict()], index=pd.MultiIndex.from_tuples([act.key]))
+        #         df_new['key'] = [act.key]
+        #         if act.get('classifications', False):  # add classification data if present
+        #             df_new = self.unpack_classifications(df_new, self.CLASSIFICATION_SYSTEMS)
+        #         self.dataframe = pd.concat([self.dataframe, df_new], sort=False)
+        #         self.dataframe.replace(
+        #             np.nan, "", regex=True, inplace=True
+        #         )  # replace 'nan' values with emtpy string
+        #     # print('Dimensions of the Metadata:', self.dataframe.shape)
+        # AB_metadata.get_tag_names_for_db.cache_clear()
+
+    def _get_node(self, key: tuple):
         try:
-            act = bd.get_activity(
-                key
-            )  # if this does not work, it has been deleted (see except:).
+            id = bd.mapping[key]
         except (UnknownObject, ActivityDataset.DoesNotExist):
-            # Situation 1: activity has been deleted (metadata needs to be deleted)
-            log.debug(f"Deleting activity from metadata: {key}")
-            self.dataframe.drop(key, inplace=True, errors="ignore")
-            # print('Dimensions of the Metadata:', self.dataframe.shape)
-            return
+            return None
 
-        db = key[0]
-        if db not in self.databases:
-            # print('Database has not been added to metadata.')
-            self.add_metadata([db])
-        else:
-            if (
-                key in self.dataframe.index
-            ):  # Situation 2: activity has been modified (metadata needs to be updated)
-                log.debug(f"Updating activity in metadata: {key}")
-                for col in self.dataframe.columns:
-                    if col in self.CLASSIFICATION_SYSTEMS:
-                        # update classification data
-                        classification = self._unpacker(
-                            classifications=[act.get('classifications', '')],
-                            system=col)
-                        self.dataframe.at[key, col] = classification[0]
-                    else:
-                        self.dataframe.at[key, col] = act.get(col, '')
-                self.dataframe.at[key, 'key'] = act.key
+        con = sqlite3.connect(sqlite3_lci_db._filepath)
+        node_df = pd.read_sql(f"SELECT * FROM activitydataset WHERE id = {id}", con)
+        con.close()
 
-            else:  # Situation 3: Activity has been added to database (metadata needs to be generated)
-                log.debug(f'Adding activity to metadata: {key}')
-                df_new = pd.DataFrame([act.as_dict()], index=pd.MultiIndex.from_tuples([act.key]))
-                df_new['key'] = [act.key]
-                if act.get('classifications', False):  # add classification data if present
-                    df_new = self.unpack_classifications(df_new, self.CLASSIFICATION_SYSTEMS)
-                self.dataframe = pd.concat([self.dataframe, df_new], sort=False)
-                self.dataframe.replace(
-                    np.nan, "", regex=True, inplace=True
-                )  # replace 'nan' values with emtpy string
-            # print('Dimensions of the Metadata:', self.dataframe.shape)
-        AB_metadata.get_tag_names_for_db.cache_clear()
+        return self._parse_df(node_df)
 
     def reset_metadata(self) -> None:
         """Deletes metadata when the project is changed."""
-        # todo: metadata could be collected across projects...
         log.debug("Reset metadata.")
-        self.dataframe = pd.DataFrame()
-        self.databases = set()
+
+        con = sqlite3.connect(sqlite3_lci_db._filepath)
+        node_df = pd.read_sql("SELECT * FROM activitydataset", con)
+        con.close()
+
+        self.dataframe = self._parse_df(node_df)
+
+        self.databases = set(self.dataframe["database"].unique())
+
+    def _parse_df(self, raw_df: pd.DataFrame) -> pd.DataFrame:
+        data_df = pd.DataFrame([pickle.loads(x) for x in raw_df["data"]])
+
+        df = raw_df.merge(data_df, 'left')
+        df.drop(columns=["data"], inplace=True)
+
+        df["key"] = df.loc[:, ["database", "code"]].apply(tuple, axis=1)
+        df.index = pd.MultiIndex.from_tuples(df["key"])
+        return df
+
 
     def get_existing_fields(self, field_list: list) -> list:
         """Return a list of fieldnames that exist in the current dataframe."""
@@ -208,9 +248,7 @@ class MetaDataStore(object):
 
         """
         if db_name not in self.databases:
-            if bc.count_database_records(db_name) == 0:
-                return pd.DataFrame()
-            self.add_metadata([db_name])
+            return pd.DataFrame(columns=["name", "type", "location", "database", "code", "key", ])
         return self.dataframe.loc[self.dataframe["database"] == db_name].copy(deep=True).dropna(how='all', axis=1)
 
     @property

@@ -226,7 +226,7 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
         return [ABDataItem(index, data) for index, data in self.dataframe.to_dict(orient="index").items()]
 
     def sort(self, column: int, order=Qt.AscendingOrder):
-        if column == 0:
+        if column + 1 > len(self.columns):
             return
 
         self.beginResetModel()
