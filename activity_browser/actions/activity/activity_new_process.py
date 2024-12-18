@@ -38,8 +38,6 @@ class ActivityNewProcess(ABAction):
         # create process
         new_proc_data = {
             "name": name,
-            "reference product": ref_product,
-            "unit": unit,
             "location": location,
             "type": "process",
         }
@@ -60,10 +58,10 @@ class ActivityNewProcess(ABAction):
 
         # create new exchange
         new_exchange = new_process.new_edge(
-            input = new_ref_prod,
-            type = labels.production_edge_default,
-            amount = 1,
-            functional = True
+            input=new_ref_prod,
+            type=labels.production_edge_default,
+            amount=1,
+            functional=True
         )
         new_exchange.save()
 
