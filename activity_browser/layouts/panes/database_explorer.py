@@ -150,7 +150,7 @@ class NodeView(ui.widgets.ABTreeView):
 
     def buildQuery(self) -> str:
         if self.nodeTypes:
-            node_query = " | ".join([f"(type.astype('str').str.contains('{node_type}'))" for node_type in self.nodeTypes])
+            node_query = " | ".join([f"(type == '{node_type}')" for node_type in self.nodeTypes])
             node_query = f" & ({node_query})"
         else:
             node_query = ""
@@ -266,7 +266,7 @@ class NodeModel(ui.widgets.ABAbstractItemModel):
     def createItems(self) -> list[ui.widgets.ABDataItem]:
         items = []
         for index, data in self.dataframe.to_dict(orient="index").items():
-            if data["type"] in ["process", "multifunctional"]:
+            if data["type"] in ["process", "multifunctional", "readonly_process"]:
                 items.append(ProcessItem(index, data))
             elif data["type"] in NODETYPES["products"]:
                 items.append(ProductItem(index, data))
@@ -288,9 +288,6 @@ class ProcessItem(ui.widgets.ABDataItem):
     def has_children(self) -> bool:
         return True
 
-    def key(self):
-        return self.data["name"]
-
     def children(self):
         if not self.loaded:
             self.deferred_load()
@@ -298,7 +295,12 @@ class ProcessItem(ui.widgets.ABDataItem):
         return self._child_items
 
     def decorationData(self, key):
-        return ui.icons.qicons.process if key == "name" else None
+        if key != "name":
+            return
+        if self["type"] in ["process", "multifunctional"]:
+            return ui.icons.qicons.process
+        elif self["type"] == "readonly_process":
+            return ui.icons.qicons.readonly_process
 
     def deferred_load(self):
         import bw2data as bd
