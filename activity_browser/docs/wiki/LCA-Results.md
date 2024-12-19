@@ -150,8 +150,7 @@ For `Range`, this is the full _range_ of results, for example, if all your negat
 and all your positive results together have a score of 10, the _range_ is 12 (-2 * -1 + 10).
 For `Score`, this is the total score (sum) of the results, for example, if all your negative results together have a 
 score of -2 and all your positive results together have a score of 10, the _score_ is 8 (-2 + 10).
-The `Range` or `Score` setting are only used when 1) your Cut-off type is `Relative` 
-and 2) your results contain both positive and negative results.
+The `Range` or `Score` setting are only used when your results contain both positive and negative results.
 
 ### Positive and negative numbers in contribution results
 It can happen in LCA that you get both positive and negative numbers in your contribution results.

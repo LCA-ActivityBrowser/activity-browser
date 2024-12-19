@@ -1112,12 +1112,6 @@ class ContributionTab(NewAnalysisTab):
         QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
         self.set_combobox_changes()
 
-        if self.cutoff_menu.limit_type == "percent":
-            self.total_menu.range.setEnabled(True)
-            self.total_menu.score.setEnabled(True)
-        else:
-            self.total_menu.range.setEnabled(False)
-            self.total_menu.score.setEnabled(False)
         super().update_tab()
         QApplication.restoreOverrideCursor()
 
