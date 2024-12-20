@@ -16,8 +16,8 @@ class EdgeSignals(QObject):
 
 
 class MethodSignals(QObject):
-    changed: SignalInstance = Signal(object, object)
-    deleted: SignalInstance = Signal(object, object)
+    changed: SignalInstance = Signal(object)
+    deleted: SignalInstance = Signal(object)
 
 
 class DatabaseSignals(QObject):
@@ -86,7 +86,7 @@ class ABSignals(QObject):
         self._connect_bw_signals()
 
     def _connect_bw_signals(self):
-        from bw2data import signals
+        from bw2data import signals, Method
         from bw2data.meta import databases, methods
 
         signals.signaleddataset_on_save.connect(self._on_signaleddataset_on_save)
@@ -104,6 +104,9 @@ class ABSignals(QObject):
         databases._save_signal.connect(self._on_database_metadata_change)
         setattr(methods, "_save_signal", blinker_signal("ab.patched_methods"))
         methods._save_signal.connect(self._on_methods_metadata_change)
+
+        Method._write_signal.connect(self._on_method_write)
+        Method._deregister_signal.connect(self._on_method_deregister)
 
     def _on_signaleddataset_on_save(self, sender, old, new):
         from bw2data.backends import ActivityDataset, ExchangeDataset
@@ -152,5 +155,34 @@ class ABSignals(QObject):
     def _on_methods_metadata_change(self, sender, old, new):
         self.meta.methods_changed.emit(old, new)
 
+    def _on_method_write(self, sender):
+        self.method.changed.emit(sender)
+
+    def _on_method_deregister(self, sender):
+        self.method.deleted.emit(sender)
+
+
+def patch_methods_datastore():
+    from bw2data import Method
+
+    def write(self, data, process=True):
+        original_write(self, data, process)
+        self._write_signal.send(self)
+
+    def deregister(self):
+        original_deregister(self)
+        self._deregister_signal.send(self)
+
+    original_write = Method.write
+    original_deregister = Method.deregister
+
+    setattr(Method, "write", write)
+    setattr(Method, "deregister", deregister)
+
+    setattr(Method, "_write_signal", blinker_signal("ab.patched_method_write"))
+    setattr(Method, "_deregister_signal", blinker_signal("ab.patched_method_deregister"))
+
+
+patch_methods_datastore()
 
 signals = ABSignals()
