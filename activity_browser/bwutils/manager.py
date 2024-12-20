@@ -3,11 +3,11 @@ from collections.abc import Iterator
 from typing import Iterable, List, Optional, Tuple
 
 import numpy as np
-from bw2calc import LCA
 from stats_arrays import MCRandomNumberGenerator, UncertaintyBase
 
-from activity_browser.mod.bw2data.backends import ExchangeDataset
-from activity_browser.mod.bw2data.parameters import *
+from bw2data.backends import ExchangeDataset
+from bw2data.parameters import *
+from bw2calc import LCA
 
 from .utils import Index, Indices, Parameters, StaticParameters
 

@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 from qtpy import QtCore, QtWidgets
 
-import activity_browser.mod.bw2data as bd
+import bw2data as bd
 
-from ..signals import signals
+from activity_browser import signals
+
 from ..ui.icons import qicons
 from ..ui.menu_bar import MenuBar
 from ..ui.statusbar import Statusbar
-from ..ui.style import header
 from .panels import LeftPanel, RightPanel
 
 

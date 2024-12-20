@@ -19,7 +19,7 @@ from qtpy.QtWidgets import (QApplication, QButtonGroup, QCheckBox,
 from stats_arrays.errors import InvalidParamsError
 
 from activity_browser import signals
-from activity_browser.mod.bw2data import calculation_setups
+from bw2data import calculation_setups
 
 from ...bwutils import (MLCA, Contributions, GlobalSensitivityAnalysis,
                         MonteCarloLCA, SuperstructureMLCA, calculations)

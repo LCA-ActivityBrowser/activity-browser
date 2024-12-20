@@ -3,7 +3,7 @@ from qtpy.QtCore import QModelIndex, Slot
 
 from activity_browser import signals
 from activity_browser.bwutils import commontasks as bc
-from activity_browser.mod.bw2data import get_activity, projects
+from bw2data import get_activity, projects
 
 from .base import PandasModel
 

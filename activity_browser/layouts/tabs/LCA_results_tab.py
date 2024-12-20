@@ -35,7 +35,7 @@ class LCAResultsTab(ABTab):
         signals.lca_calculation.connect(self.generate_setup)
         self.tabCloseRequested.connect(self.close_tab)
         signals.project.changed.connect(self.close_all)
-        bd.parameters.parameters_changed.connect(self.close_all)
+        # bd.parameters.parameters_changed.connect(self.close_all) PARAMETER_SIGNAL
 
     @Slot(str, name="removeSetup")
     def remove_setup(self, name: str):

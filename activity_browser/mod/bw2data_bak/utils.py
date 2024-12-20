@@ -1,6 +1,6 @@
 from bw2data.utils import *
 
-from activity_browser.mod.bw2data.backends import Activity
+from bw2data.backends import Activity
 
 
 def get_activity(key) -> Activity:

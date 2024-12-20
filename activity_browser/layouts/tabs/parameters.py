@@ -10,7 +10,7 @@ from qtpy.QtWidgets import (QAbstractButton, QCheckBox, QFileDialog,
 from xlsxwriter.exceptions import FileCreateError
 
 from activity_browser import actions, signals
-from activity_browser.mod.bw2data import databases
+from bw2data import databases
 from activity_browser.signals import qparameters, qprojects
 
 from ...bwutils.manager import ParameterManager

@@ -6,17 +6,13 @@ from functools import lru_cache
 from typing import Set
 from logging import getLogger
 
-import numpy as np
 import pandas as pd
+
+import bw2data as bd
 from bw2data.errors import UnknownObject
-from bw2data.backends import sqlite3_lci_db
+from bw2data.backends import sqlite3_lci_db, ActivityDataset
 
 from activity_browser import signals
-from activity_browser.mod import bw2data as bd
-from activity_browser.mod.bw2data.backends import ActivityDataset
-
-
-# todo: extend store over several projects
 
 log = getLogger(__name__)
 

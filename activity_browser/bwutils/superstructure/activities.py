@@ -1,8 +1,9 @@
 import numpy as np
 import pandas as pd
 
-from activity_browser.mod import bw2data as bd
-from activity_browser.mod.bw2data.backends import ActivityDataset
+import bw2data as bd
+from bw2data.backends import ActivityDataset
+
 
 FROM_ACT = pd.Index(
     ["from activity name", "from reference product", "from location", "from database"]

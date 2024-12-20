@@ -9,7 +9,7 @@ from qtpy import QtCore, QtWidgets, PYSIDE6
 from qtpy.QtCore import Qt
 
 from activity_browser import ab_settings, actions
-from activity_browser.mod.bw2data import projects
+from bw2data import projects
 
 log = getLogger(__name__)
 

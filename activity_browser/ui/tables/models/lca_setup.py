@@ -9,7 +9,7 @@ from qtpy.QtCore import QModelIndex, Qt, Slot
 from activity_browser import signals, application
 from activity_browser.bwutils import commontasks as bc
 from activity_browser.mod import bw2data as bd
-from activity_browser.mod.bw2data.backends import ActivityDataset
+from bw2data.backends import ActivityDataset
 
 from .base import EditablePandasModel, PandasModel
 

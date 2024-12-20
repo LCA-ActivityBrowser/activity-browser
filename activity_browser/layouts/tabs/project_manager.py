@@ -41,7 +41,7 @@ class ProjectTab(QtWidgets.QWidget):
 
     def connect_signals(self):
         signals.project.changed.connect(self.change_project)
-        bd.databases.metadata_changed.connect(self.update_widgets)
+        signals.meta.databases_changed.connect(self.update_widgets)
 
         signals.database_selected.connect(self.update_widgets)
 
@@ -130,7 +130,7 @@ class DatabaseWidget(QtWidgets.QWidget):
         self._construct_layout()
 
         # Signals
-        bd.databases.metadata_changed.connect(self.update_widget)
+        signals.meta.databases_changed.connect(self.update_widget)
         signals.project.changed.connect(self.update_widget)
 
     def _construct_layout(self):

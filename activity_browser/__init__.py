@@ -22,9 +22,10 @@ log = getLogger(__name__)
 
 def load_settings() -> None:
     if ab_settings.settings:
-        bw2data.projects.switch_dir(ab_settings.current_bw_dir)
+        from pathlib import Path
+        bw2data.projects.change_base_directories(Path(ab_settings.current_bw_dir))
         bw2data.projects.set_current(ab_settings.startup_project)
-    log.info(f"Brightway2 data directory: {bw2data.projects.base_dir}")
+    log.info(f"Brightway2 data directory: {bw2data.projects._base_data_dir}")
     log.info(f"Brightway2 current project: {bw2data.projects.current}")
 
 

@@ -18,7 +18,7 @@ from activity_browser import project_settings, signals
 from activity_browser.actions.database.database_redo_allocation import DatabaseRedoAllocation
 from activity_browser.bwutils import AB_metadata
 from activity_browser.bwutils import commontasks as bc
-from activity_browser.mod.bw2data import databases, projects
+from bw2data import databases, projects
 from activity_browser.ui.style import style_item
 from activity_browser.ui.widgets.custom_allocation_editor import CustomAllocationEditor
 
@@ -37,7 +37,7 @@ class DatabasesModel(EditablePandasModel):
         super().__init__(parent=parent)
         self.set_read_only(False)
         signals.project.changed.connect(self.sync)
-        databases.metadata_changed.connect(self.sync)
+        signals.meta.databases_changed.connect(self.sync)
 
     def get_db_name(self, proxy: QModelIndex) -> str:
         idx = self.proxy_to_source(proxy)

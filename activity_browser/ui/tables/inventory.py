@@ -3,8 +3,9 @@ from typing import List, Iterable
 from qtpy import QtCore, QtWidgets
 from qtpy.QtCore import Slot, Qt
 
+import bw2data as bd
+
 from activity_browser import actions
-from activity_browser.mod.bw2data import databases
 
 from ...bwutils import AB_metadata
 from ...settings import project_settings
@@ -80,7 +81,7 @@ class DatabasesTable(ABDataFrameView):
         menu.addAction(self.duplicate_db_action)
         menu.addAction(self.new_process_action)
         menu.addAction(self.new_product_action)
-        if databases[self.current_database()].get("backend") == "multifunctional":
+        if bd.databases[self.current_database()].get("backend") == "multifunctional":
             menu.addAction(self.re_allocate_action)
         proxy = self.indexAt(event.pos())
         if proxy.isValid():

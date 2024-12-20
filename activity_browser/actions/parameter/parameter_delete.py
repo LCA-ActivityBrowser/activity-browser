@@ -1,8 +1,8 @@
 from typing import Any
 
 from activity_browser.actions.base import ABAction, exception_dialogs
-from activity_browser.mod.bw2data import get_activity
-from activity_browser.mod.bw2data.parameters import (ActivityParameter, Group,
+from bw2data import get_activity
+from bw2data.parameters import (ActivityParameter, Group,
                                                      GroupDependency,
                                                      parameters)
 from activity_browser.ui.icons import qicons

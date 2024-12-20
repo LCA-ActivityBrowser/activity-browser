@@ -8,9 +8,8 @@ from bw2io.strategies.generic import (format_nonunique_key_error,
                                       link_iterable_by_fields)
 from bw2io.utils import DEFAULT_FIELDS, activity_hash
 
-from activity_browser.mod import bw2data as bd
-from activity_browser.mod.bw2data.backends import (ActivityDataset,
-                                                   sqlite3_lci_db)
+import bw2data as bd
+from bw2data.backends import ActivityDataset, sqlite3_lci_db
 
 from ..bwutils.errors import ExchangeErrorValues
 from .commontasks import clean_activity_name

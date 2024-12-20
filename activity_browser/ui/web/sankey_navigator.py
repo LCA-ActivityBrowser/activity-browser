@@ -17,7 +17,7 @@ from qtpy.QtWidgets import QComboBox
 
 from activity_browser import signals
 from activity_browser.mod import bw2data as bd
-from activity_browser.mod.bw2data.backends import ActivityDataset
+from bw2data.backends import ActivityDataset
 
 from ...bwutils.commontasks import identify_activity_type
 from .base import BaseGraph, BaseNavigatorWidget

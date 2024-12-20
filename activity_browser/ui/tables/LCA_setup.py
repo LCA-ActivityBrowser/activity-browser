@@ -4,7 +4,7 @@ from qtpy import QtWidgets
 from qtpy.QtCore import Qt, Slot
 
 from activity_browser import signals, actions
-from activity_browser.mod.bw2data import calculation_setups
+from bw2data import calculation_setups
 
 from ..icons import qicons
 from .delegates import FloatDelegate

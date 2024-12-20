@@ -5,7 +5,7 @@ from qtpy import QtWidgets
 from qtpy.QtCore import QModelIndex, Slot, Qt
 
 from activity_browser import actions
-from activity_browser.mod.bw2data import methods
+from bw2data import methods
 
 from ...signals import signals
 from ..icons import qicons
@@ -42,7 +42,8 @@ class MethodsTable(ABFilterableDataFrameView):
             lambda p: signals.method_selected.emit(self.model.get_method(p))
         )
         self.model.updated.connect(self.update_proxy_model)
-        methods.metadata_changed.connect(self.sync)
+
+        signals.meta.methods_changed.connect(self.sync)
 
     def selected_methods(self) -> list:
         """Returns a list of all the currently selected methods."""
@@ -117,7 +118,7 @@ class MethodsTree(ABDictTreeView):
 
     def _connect_signals(self):
         self.doubleClicked.connect(self.method_selected)
-        methods.metadata_changed.connect(self.open_method)
+        signals.meta.methods_changed.connect(self.open_method)
 
     @Slot(name="syncTree")
     def sync(self, query=None) -> None:

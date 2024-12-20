@@ -10,7 +10,7 @@ from qtpy import QtWidgets
 from qtpy.QtCore import Slot
 
 from activity_browser import signals
-from activity_browser.mod.bw2data import Database, get_activity
+from bw2data import Database, get_activity
 
 from ...bwutils.commontasks import identify_activity_type
 from .base import BaseGraph, BaseNavigatorWidget

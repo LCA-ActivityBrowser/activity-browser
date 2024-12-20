@@ -11,7 +11,7 @@ from qtpy.QtCore import QModelIndex, Slot
 
 from activity_browser import actions, application, signals
 from activity_browser.mod import bw2data as bd
-from activity_browser.mod.bw2data.parameters import (ActivityParameter,
+from bw2data.parameters import (ActivityParameter,
                                                      DatabaseParameter, Group,
                                                      ProjectParameter)
 from activity_browser.ui.wizards import UncertaintyWizard
@@ -32,7 +32,7 @@ class BaseParameterModel(EditablePandasModel):
         self.dataChanged.connect(self.edit_single_parameter)
 
         signals.project.changed.connect(self.sync)
-        bd.parameters.parameters_changed.connect(self.sync)
+        # bd.parameters.parameters_changed.connect(self.sync) PARAMETER_SIGNAL
 
     def get_parameter(self, proxy: QModelIndex) -> object:
         idx = self.proxy_to_source(proxy)

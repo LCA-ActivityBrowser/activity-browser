@@ -64,7 +64,7 @@ class ProjectMenu(QtWidgets.QMenu):
         self.addAction(self.manage_settings_action)
 
         signals.project.changed.connect(self.biosphere_exists)
-        bd.databases.metadata_changed.connect(self.biosphere_exists)
+        signals.meta.databases_changed.connect(self.biosphere_exists)
 
     def biosphere_exists(self) -> None:
         """Test if the default biosphere exists as a database in the project"""

@@ -10,7 +10,7 @@ from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 from qtpy import QtWidgets
 
-from activity_browser.mod.bw2data import methods
+from bw2data import methods
 from activity_browser.utils import savefilepath
 
 from ..bwutils.commontasks import wrap_text

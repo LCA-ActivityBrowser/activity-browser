@@ -4,7 +4,7 @@ from qtpy.QtWidgets import QDialog
 
 from activity_browser import application
 from activity_browser.actions.base import ABAction, exception_dialogs
-from activity_browser.mod.bw2data import Database, labels
+from bw2data import Database, labels
 from activity_browser.ui.icons import qicons
 from activity_browser.ui.widgets.new_node_dialog import NewNodeDialog
 

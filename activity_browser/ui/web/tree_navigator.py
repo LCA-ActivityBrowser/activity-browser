@@ -22,7 +22,7 @@ from bw_graph_tools.graph_traversal.graph_objects import (
 
 from activity_browser import signals
 from activity_browser.mod import bw2data as bd
-from activity_browser.mod.bw2data.backends import ActivityDataset
+from bw2data.backends import ActivityDataset
 from activity_browser.utils import get_base_path
 from .base import BaseGraph, BaseNavigatorWidget
 from ..widgets.combobox import CheckableComboBox

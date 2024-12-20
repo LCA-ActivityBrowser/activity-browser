@@ -4,7 +4,7 @@ from qtpy import QtCore
 
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.bwutils import commontasks
-from activity_browser.mod.bw2data import get_activity
+from bw2data import get_activity
 from activity_browser.ui.icons import qicons
 
 
