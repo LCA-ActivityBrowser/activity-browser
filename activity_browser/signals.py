@@ -27,8 +27,8 @@ class DatabaseSignals(QObject):
 
 
 class ProjectSignals(QObject):
-    changed: SignalInstance = Signal(dict)
-    created: SignalInstance = Signal(dict)
+    changed: SignalInstance = Signal()
+    created: SignalInstance = Signal()
 
 
 class MetaSignals(QObject):
@@ -141,10 +141,10 @@ class ABSignals(QObject):
         self.database.written.emit(Database(name))
 
     def _on_project_changed(self, ds):
-        self.project.changed.emit(ds)
+        self.project.changed.emit()
 
     def _on_project_created(self, ds):
-        self.project.created.emit(ds)
+        self.project.created.emit()
 
     def _on_database_metadata_change(self, sender, old, new):
         self.meta.databases_changed.emit(old, new)
