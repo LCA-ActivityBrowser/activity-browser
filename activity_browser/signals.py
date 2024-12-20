@@ -10,26 +10,34 @@ from bw2data.backends import Activity, Exchange
 
 
 class NodeSignals(QObject):
-    changed = blinker_signal("ab.node.changed")
-    deleted = blinker_signal("ab.node.deleted")
-    database_change = blinker_signal("ab.node.database_change")
-    code_change = blinker_signal("ab.node.code_change")
+    from bw2data.backends import ActivityDataset
+
+    changed: SignalInstance = Signal(ActivityDataset, ActivityDataset)
+    deleted: SignalInstance = Signal(ActivityDataset, ActivityDataset)
+    database_change: SignalInstance = Signal(ActivityDataset, ActivityDataset)
+    code_change: SignalInstance = Signal(ActivityDataset, ActivityDataset)
 
 
 class EdgeSignals(QObject):
-    changed = blinker_signal("ab.edge.changed")
-    deleted = blinker_signal("ab.edge.deleted")
+    from bw2data.backends import ExchangeDataset
+
+    changed: SignalInstance = Signal(ExchangeDataset, ExchangeDataset)
+    deleted: SignalInstance = Signal(ExchangeDataset, ExchangeDataset)
 
 
 class MethodSignals(QObject):
-    changed = blinker_signal("ab.method.changed")
-    deleted = blinker_signal("ab.method.deleted")
+    from bw2data import Method
+
+    changed: SignalInstance = Signal(Method, Method)
+    deleted: SignalInstance = Signal(Method, Method)
 
 
 class DatabaseSignals(QObject):
-    written = blinker_signal("ab.database.written")
-    reset = blinker_signal("ab.database.reset")
-    delete = blinker_signal("ab.database.delete")
+    from bw2data.backends import SQLiteBackend
+
+    written: SignalInstance = Signal(SQLiteBackend)
+    reset: SignalInstance = Signal(SQLiteBackend)
+    delete: SignalInstance = Signal(str)
 
 
 class ProjectSignals(QObject):
@@ -38,8 +46,10 @@ class ProjectSignals(QObject):
 
 
 class MetaSignals(QObject):
-    databases_changed = blinker_signal("ab.meta.databases_changed")
-    methods_changed = blinker_signal("ab.meta.methods_changed")
+    from bw2data.serialization import SerializedDict
+
+    databases_changed: SignalInstance = Signal(SerializedDict, SerializedDict)
+    methods_changed: SignalInstance = Signal(SerializedDict, SerializedDict)
 
 
 class ABSignals(QObject):
@@ -114,37 +124,37 @@ class ABSignals(QObject):
     def _on_signaleddataset_on_save(self, sender, old, new):
         from bw2data.backends import ActivityDataset, ExchangeDataset
         if isinstance(new, ActivityDataset):
-            self.node.changed.send(new, old=old, new=new)
+            self.node.changed.emit(old, new)
         elif isinstance(new, ExchangeDataset):
-            self.edge.changed.send(new,  old=old, new=new)
+            self.edge.changed.emit(old, new)
         else:
             print(f"Unknown dataset type changed: {type(new)}")
 
     def _on_signaleddataset_on_delete(self, sender, old, new):
         from bw2data.backends import ActivityDataset, ExchangeDataset
         if isinstance(new, ActivityDataset):
-            self.node.deleted.send(new, old=old, new=new)
+            self.node.deleted.emit(old, new)
         elif isinstance(new, ExchangeDataset):
-            self.edge.deleted.send(new,  old=old, new=new)
+            self.edge.deleted.emit(old, new)
         else:
             print(f"Unknown dataset type deleted: {type(new)}")
 
     def _on_activity_database_change(self, sender, old, new):
-        self.node.database_change.send(new, old=old, new=new)
+        self.node.database_change.emit(old, new)
 
     def _on_activity_code_change(self, sender, old, new):
-        self.node.code_change.send(new, old=old, new=new)
+        self.node.code_change.emit(old, new)
 
     def _on_database_delete(self, sender, name):
-        self.database.delete.send(None, database_name=name)
+        self.database.delete.emit(name)
 
     def _on_database_reset(self, sender, name):
         from bw2data import Database
-        self.database.reset.send(Database(name), name=name)
+        self.database.reset.emit(Database(name))
 
     def _on_database_write(self, sender, name):
         from bw2data import Database
-        self.database.written.send(Database(name), name=name)
+        self.database.written.emit(Database(name))
 
     def _on_project_changed(self, ds):
         self.project.changed.emit(ds)
@@ -153,12 +163,10 @@ class ABSignals(QObject):
         self.project.created.emit(ds)
 
     def _on_database_metadata_change(self, sender, old, new):
-        from bw2data import databases
-        self.meta.databases_changed.send(databases, old=old, new=new)
+        self.meta.databases_changed.emit(old, new)
 
     def _on_methods_metadata_change(self, sender, old, new):
-        from bw2data import methods
-        self.meta.methods_changed.send(methods, old=old, new=new)
+        self.meta.methods_changed.emit(old, new)
 
 
 class QUpdater(QObject):
