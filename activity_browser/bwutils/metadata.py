@@ -8,6 +8,8 @@ from logging import getLogger
 
 import pandas as pd
 
+from qtpy.QtCore import QObject, Signal, SignalInstance
+
 import bw2data as bd
 from bw2data.errors import UnknownObject
 from bw2data.backends import sqlite3_lci_db, ActivityDataset
@@ -21,7 +23,7 @@ def list_to_tuple(x) -> tuple:
     return tuple(x) if isinstance(x, list) else x
 
 
-class MetaDataStore(object):
+class MetaDataStore(QObject):
     """A container for technosphere and biosphere metadata during an AB session.
 
     This is to prevent multiple time-expensive repetitions such as the code
@@ -50,68 +52,27 @@ class MetaDataStore(object):
     # add them to `self.act_fields` there and `CLASSIFICATION_SYSTEMS` below
     CLASSIFICATION_SYSTEMS = ["ISIC rev.4 ecoinvent"]
 
-    def __init__(self):
+    synced: SignalInstance = Signal()
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
         self.dataframe = pd.DataFrame()
-        self.databases = set()
 
-        signals.project.changed.connect(self.reset_metadata)
+        signals.project.changed.connect(self.sync)
+        signals.node.changed.connect(lambda _, ds: self.sync_node(ds.key))
+        signals.node.deleted.connect(self.on_node_deleted)
+        signals.database.delete.connect(lambda name: self.sync_database(name))
+        signals.database.written.connect(lambda name: self.sync_database(name))
 
-    def add_metadata(self, db_names_list: list) -> None:
-        """Include data from the brightway databases.
+    def on_node_deleted(self, ds):
+        self.dataframe.drop(ds.key, inplace=True)
+        self.synced.emit()
 
-        Get metadata in form of a Pandas DataFrame for biosphere and
-        technosphere databases for tables and additional aggregation.
+    @property
+    def databases(self):
+        return set(self.dataframe["database"].unique())
 
-        Parameters
-        ----------
-        db_names_list : list
-            Contains the names of all databases to add to the MetaDataStore
-
-        Raises
-        ------
-        ValueError
-            If a database name does not exist in `brightway.databases`
-
-        """
-        new = set(db_names_list).difference(self.databases)
-        if not new:
-            return
-
-        dfs = list()
-        dfs.append(self.dataframe)
-        log.debug(
-            f"Current shape and databases in the MetaDataStore: {self.dataframe.shape} {self.databases}"
-        )
-        for db_name in new:
-            if db_name not in bd.databases:
-                raise ValueError("This database does not exist:", db_name)
-
-            log.debug(f"Adding: {db_name}")
-            self.databases.add(db_name)
-
-            # make a temporary DataFrame and index it by ('database', 'code') (like all brightway activities)
-            df = pd.DataFrame(bd.Database(db_name))
-            df["key"] = df.loc[:, ["database", "code"]].apply(tuple, axis=1)
-            df.index = pd.MultiIndex.from_tuples(df["key"])
-
-            # add unpacked classifications columns if classifications are present
-            if "classifications" in df.columns:
-                df = self.unpack_classifications(df, self.CLASSIFICATION_SYSTEMS)
-
-            # In a new 'biosphere3' database, some categories values are lists
-            if "categories" in df.columns:
-                df["categories"] = df.loc[:, "categories"].apply(list_to_tuple)
-
-            dfs.append(df)
-
-        # add this metadata to already existing metadata
-        self.dataframe = pd.concat(dfs, sort=False)
-        # self.dataframe.replace(
-        #     np.nan, "", regex=True, inplace=True
-        # )  # replace 'nan' values with emtpy string
-        # print('Dimensions of the Metadata:', self.dataframe.shape)
-
-    def update_metadata(self, key: tuple) -> None:
+    def sync_node(self, key: tuple) -> None:
         """Update metadata when an activity has changed.
 
         Three situations:
@@ -132,51 +93,8 @@ class MetaDataStore(object):
             self.dataframe.loc[key] = data.loc[key]
         else:  # an activity has been added
             self.dataframe = pd.concat([self.dataframe, data], join="outer")
-        self.databases = set(self.dataframe["database"].unique())
 
-        # try:
-        #     act = bd.get_activity(
-        #         key
-        #     )  # if this does not work, it has been deleted (see except:).
-        # except (UnknownObject, ActivityDataset.DoesNotExist):
-        #     # Situation 1: activity has been deleted (metadata needs to be deleted)
-        #     log.debug(f"Deleting activity from metadata: {key}")
-        #     self.dataframe.drop(key, inplace=True, errors="ignore")
-        #     # print('Dimensions of the Metadata:', self.dataframe.shape)
-        #     return
-        #
-        # db = key[0]
-        # if db not in self.databases:
-        #     # print('Database has not been added to metadata.')
-        #     self.add_metadata([db])
-        # else:
-        #     if (
-        #         key in self.dataframe.index
-        #     ):  # Situation 2: activity has been modified (metadata needs to be updated)
-        #         log.debug(f"Updating activity in metadata: {key}")
-        #         for col in self.dataframe.columns:
-        #             if col in self.CLASSIFICATION_SYSTEMS:
-        #                 # update classification data
-        #                 classification = self._unpacker(
-        #                     classifications=[act.get('classifications', '')],
-        #                     system=col)
-        #                 self.dataframe.at[key, col] = classification[0]
-        #             else:
-        #                 self.dataframe.at[key, col] = act.get(col, '')
-        #         self.dataframe.at[key, 'key'] = act.key
-        #
-        #     else:  # Situation 3: Activity has been added to database (metadata needs to be generated)
-        #         log.debug(f'Adding activity to metadata: {key}')
-        #         df_new = pd.DataFrame([act.as_dict()], index=pd.MultiIndex.from_tuples([act.key]))
-        #         df_new['key'] = [act.key]
-        #         if act.get('classifications', False):  # add classification data if present
-        #             df_new = self.unpack_classifications(df_new, self.CLASSIFICATION_SYSTEMS)
-        #         self.dataframe = pd.concat([self.dataframe, df_new], sort=False)
-        #         self.dataframe.replace(
-        #             np.nan, "", regex=True, inplace=True
-        #         )  # replace 'nan' values with emtpy string
-        #     # print('Dimensions of the Metadata:', self.dataframe.shape)
-        # AB_metadata.get_tag_names_for_db.cache_clear()
+        self.synced.emit()
 
     def _get_node(self, key: tuple):
         try:
@@ -190,9 +108,29 @@ class MetaDataStore(object):
 
         return self._parse_df(node_df)
 
-    def reset_metadata(self) -> None:
+    def sync_database(self, db_name: str) -> None:
+        if db_name in self.databases:
+            self.dataframe.drop(db_name, level=0)
+
+        data = self._get_database(db_name)
+        if data is None:
+            return
+
+        self.dataframe = pd.concat([self.dataframe, data], join="outer")
+
+        self.synced.emit()
+
+    def _get_database(self, db_name: str) -> pd.DataFrame | None:
+        con = sqlite3.connect(sqlite3_lci_db._filepath)
+        node_df = pd.read_sql(f"SELECT * FROM activitydataset WHERE database = '{db_name}'", con)
+        con.close()
+        if node_df.empty:
+            return None
+        return self._parse_df(node_df)
+
+    def sync(self) -> None:
         """Deletes metadata when the project is changed."""
-        log.debug("Reset metadata.")
+        log.debug("Synchronizing MetaDataStore")
 
         con = sqlite3.connect(sqlite3_lci_db._filepath)
         node_df = pd.read_sql("SELECT * FROM activitydataset", con)
@@ -200,7 +138,7 @@ class MetaDataStore(object):
 
         self.dataframe = self._parse_df(node_df)
 
-        self.databases = set(self.dataframe["database"].unique())
+        self.synced.emit()
 
     def _parse_df(self, raw_df: pd.DataFrame) -> pd.DataFrame:
         data_df = pd.DataFrame([pickle.loads(x) for x in raw_df["data"]])

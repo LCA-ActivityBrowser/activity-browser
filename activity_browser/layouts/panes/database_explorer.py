@@ -3,7 +3,9 @@ import enum
 from qtpy import QtWidgets, QtCore, QtGui
 from qtpy.QtCore import Signal, SignalInstance
 
-from activity_browser import actions, ui, project_settings, application
+from bw2data.backends import ActivityDataset
+
+from activity_browser import actions, ui, project_settings, application, signals
 from activity_browser.ui import core
 from activity_browser.bwutils import AB_metadata
 from activity_browser.mod import bw2data as bd
@@ -65,15 +67,12 @@ class DatabaseExplorer(QtWidgets.QWidget):
         self.setLayout(layout)
 
         # connect signals
-        self.database.changed.connect(self.database_changed)
-        self.database.deleted.connect(self.deleteLater)
+        signals.database.delete.connect(self.deleteLater)
+        AB_metadata.synced.connect(self.sync)
         self.table_view.query_changed.connect(self.search_error)
 
-    def database_changed(self, database: bd.Database) -> None:
-        if database.name != self.database.name:  # only update if the database changed is the one shown by this widget
-            return
-
-        self.model.setDataFrame(AB_metadata.get_database_metadata(database.name))
+    def sync(self):
+        self.model.setDataFrame(AB_metadata.get_database_metadata(self.database.name))
 
     def switch_types(self, index) -> None:
         node_map = ["all_nodes", "processes", "products", "biosphere"]

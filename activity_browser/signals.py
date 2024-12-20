@@ -5,14 +5,14 @@ from blinker import signal as blinker_signal
 
 class NodeSignals(QObject):
     changed: SignalInstance = Signal(object, object)
-    deleted: SignalInstance = Signal(object, object)
+    deleted: SignalInstance = Signal(object)
     database_change: SignalInstance = Signal(object, object)
     code_change: SignalInstance = Signal(object, object)
 
 
 class EdgeSignals(QObject):
     changed: SignalInstance = Signal(object, object)
-    deleted: SignalInstance = Signal(object, object)
+    deleted: SignalInstance = Signal(object)
 
 
 class MethodSignals(QObject):
