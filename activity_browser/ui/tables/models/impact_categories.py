@@ -33,7 +33,6 @@ class MethodsListModel(DragPandasModel):
         query = ", ".join(method)
         self.sync(query)
 
-    @Slot(name="syncTable")
     def sync(self, query=None) -> None:
         sorted_names = sorted([(", ".join(method), method) for method in bd.methods])
         if query:
@@ -306,6 +305,8 @@ class MethodCharacterizationFactorsModel(EditablePandasModel):
         self.different_column_types = {k: "num" for k in self.UNCERTAINTY + ["Amount"]}
         self.filterable_columns = {col: i for i, col in enumerate(self.HEADERS[:-1])}
 
+        signals.method.changed.connect(lambda method: self.sync() if self.method.name == method.name else None)
+
     @property
     def uncertain_cols(self) -> list:
         return [self._dataframe.columns.get_loc(c) for c in self.UNCERTAINTY]
@@ -313,8 +314,6 @@ class MethodCharacterizationFactorsModel(EditablePandasModel):
     def load(self, method):
         assert self.method is None, "CF Model already loaded"
         self.method = method
-        self.method.changed.connect(self.sync)
-
         self.sync()
 
     def sync(self) -> None:

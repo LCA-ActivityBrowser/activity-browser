@@ -191,6 +191,8 @@ class CSMethodsModel(CSGenericModel):
         self._methods = {}
 
         signals.calculation_setup_selected.connect(self.load)
+        signals.method.changed.connect(self.sync)
+        signals.method.deleted.connect(self.sync)
 
     @property
     def methods(self) -> list:
@@ -212,8 +214,6 @@ class CSMethodsModel(CSGenericModel):
         Load a calculation setup defined by cs_name into the methods table.
         """
         # disconnect from all the previous methods so any virtual methods delete if appropriate
-        for method in self._methods.values():
-            method.changed.disconnect(self.sync)
         self._methods.clear()
 
         # set the provided cs as current and synchronize our data
@@ -262,7 +262,6 @@ class CSMethodsModel(CSGenericModel):
             }
 
             # if the method changes we need to sync
-            method.changed.connect(self.sync, Qt.UniqueConnection)
             self._methods[method.name] = method
 
             return row

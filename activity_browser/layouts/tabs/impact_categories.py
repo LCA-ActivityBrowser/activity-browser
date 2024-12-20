@@ -45,7 +45,7 @@ class MethodCharacterizationFactorsTab(QtWidgets.QWidget):
         self.connect_signals()
 
     def connect_signals(self) -> None:
-        self.method.deleted.connect(self.deleteLater)
+        signals.method.deleted.connect(lambda method: self.deleteLater() if method.name == self.method.name else None)
         self.hide_uncertainty.toggled.connect(self.cf_table.hide_uncertain)
         self.cf_table.model.updated.connect(self.cf_uncertain_changed)
 

@@ -43,13 +43,12 @@ class MethodsTable(ABFilterableDataFrameView):
         )
         self.model.updated.connect(self.update_proxy_model)
 
-        signals.meta.methods_changed.connect(self.sync)
+        signals.meta.methods_changed.connect(lambda: self.sync())
 
     def selected_methods(self) -> list:
         """Returns a list of all the currently selected methods."""
         return [self.model.get_method(p) for p in self.selectedIndexes()]
 
-    @Slot(name="syncTable")
     def sync(self, query=None) -> None:
         self.model.sync(query)
 
