@@ -39,6 +39,9 @@ class DatabasesModel(EditablePandasModel):
         signals.project.changed.connect(self.sync)
         signals.meta.databases_changed.connect(self.sync)
 
+        # fix for incomplete metadata signal: https://github.com/brightway-lca/brightway2-data/issues/223
+        signals.database.deleted.connect(self.sync)
+
     def get_db_name(self, proxy: QModelIndex) -> str:
         idx = self.proxy_to_source(proxy)
         return self._dataframe.iat[idx.row(), 0]

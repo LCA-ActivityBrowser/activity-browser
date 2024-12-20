@@ -110,7 +110,7 @@ class MetaDataStore(QObject):
 
     def sync_database(self, db_name: str) -> None:
         if db_name in self.databases:
-            self.dataframe.drop(db_name, level=0)
+            self.dataframe.drop(db_name, level=0, inplace=True)
 
         data = self._get_database(db_name)
         if data is None:
