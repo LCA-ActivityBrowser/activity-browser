@@ -3,18 +3,19 @@ import itertools
 from typing import Any, Iterable, Optional
 from logging import getLogger
 
-from qtpy import QtCore
 import pandas as pd
 from asteval import Interpreter
-from bw2data.parameters import (ActivityParameter, DatabaseParameter, Group,
-                                ProjectParameter)
-from bw2data.proxies import ExchangeProxyBase
 from peewee import DoesNotExist
+
+from qtpy import QtCore
 from qtpy.QtCore import QModelIndex, Qt, Slot
+
+from bw2data.parameters import ActivityParameter, DatabaseParameter, Group, ProjectParameter
+from bw2data.proxies import ExchangeProxyBase
+from bw2data.errors import UnknownObject
 
 from activity_browser import actions, signals
 from activity_browser.actions.activity.activity_redo_allocation import MultifunctionalProcessRedoAllocation
-#todo: fix actions import
 from activity_browser.bwutils import PedigreeMatrix
 from activity_browser.bwutils import commontasks as bc
 
@@ -57,7 +58,7 @@ class BaseExchangeModel(EditablePandasModel):
 
     def sync(self):
         """Build the table using either new or stored exchanges iterable."""
-        data = (self.create_row(exc) for exc in self.exchanges)
+        data = (self.create_row(exc) for exc in self.exchanges if exc.valid())
         self._dataframe = pd.DataFrame(
             [row for row in data if row], columns=self.columns
         )
@@ -74,18 +75,8 @@ class BaseExchangeModel(EditablePandasModel):
         try:
             row = {}
             self.update_row_with_common_columns(row, exchange)
-            #     "Amount": float(exchange.get("amount", 1)),
-            #     "Unit": exchange.input.get("unit", "Unknown"),
-            #     "exchange": exchange,
-            # }
-
-            # sync when the exchange input or output changes
-            if exchange is not None:
-                exchange.input.changed.connect(self.sync, Qt.UniqueConnection)
-                exchange.output.changed.connect(self.sync, Qt.UniqueConnection)
-
             return row
-        except DoesNotExist as e:
+        except UnknownObject as e:
             # The input activity does not exist. remove the exchange.
             log.warning(f"Broken exchange: {exchange}, removing.")
             actions.ExchangeDelete.run([exchange])
@@ -94,6 +85,13 @@ class BaseExchangeModel(EditablePandasModel):
     def update_row_with_common_columns(row: dict[str, Any],
                                        exchange: Optional[ExchangeProxyBase]):
         if exchange is not None:
+            try:
+                exchange.input.get("name")
+                exchange.output.get("name")
+            except UnknownObject:
+                # broken exchange
+                row.update({"Amount": float(exchange.get("amount", 1))})
+                return
             row.update({
                 "Amount": float(exchange.get("amount", 1)),
                 "Unit": exchange.input.get("unit", "Unknown"),
@@ -122,11 +120,16 @@ class BaseExchangeModel(EditablePandasModel):
     @staticmethod
     def update_row_with_product_name(row: dict[str, Any], exchange: Optional[ExchangeProxyBase]):
         if exchange is not None:
-            act = exchange.input
-            product = act.get("reference product", act.get("name"))
-            row.update({
-                "Product": product,
-            })
+            try:
+                act = exchange.input
+                product = act.get("reference product", act.get("name"))
+                row.update({
+                    "Product": product,
+                })
+            except UnknownObject:
+                row.update({
+                    "Product": "EXCHANGE NOT FOUND",
+                })
         else:
             row.update({
                 "Product": "",

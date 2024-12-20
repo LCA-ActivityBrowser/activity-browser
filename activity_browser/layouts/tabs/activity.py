@@ -226,11 +226,32 @@ class ActivityTab(QtWidgets.QWidget):
 
     def connect_signals(self):
         signals.database_read_only_changed.connect(self.db_read_only_changed)
-        self.activity.changed.connect(self.populate)
-        self.activity.deleted.connect(self.deleteLater)
-        bd.parameters.parameters_changed.connect(self.populate)
+
+        signals.node.deleted.connect(self.on_node_deleted)
+        signals.node.changed.connect(self.on_node_changed)
+
+        signals.edge.changed.connect(self.on_edge_changed)
+        signals.edge.deleted.connect(self.on_edge_deleted)
+
+        # bd.parameters.parameters_changed.connect(self.populate) PARAMETER_SIGNAL
 
         self.group_splitter.splitterMoved.connect(self.save_splitter_state)
+
+    def on_node_changed(self, old, node):
+        if node.id == self.activity.id:
+            self.populate()
+
+    def on_node_deleted(self, node):
+        if node.id == self.activity.id:
+            self.deleteLater()
+
+    def on_edge_changed(self, old, edge):
+        if self.activity.key in [(edge.input_database, edge.input_code,), (edge.output_database, edge.output_code,)]:
+            self.populate()
+
+    def on_edge_deleted(self, edge):
+        if self.activity.key in [(edge.input_database, edge.input_code,), (edge.output_database, edge.output_code,)]:
+            self.populate()
 
     @Slot(name="openGraph")
     def open_graph(self) -> None:
