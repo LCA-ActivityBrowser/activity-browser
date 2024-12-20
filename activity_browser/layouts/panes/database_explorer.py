@@ -1,14 +1,18 @@
-import enum
+from logging import getLogger
 
 from qtpy import QtWidgets, QtCore, QtGui
 from qtpy.QtCore import Signal, SignalInstance
 
+import bw2data as bd
 from bw2data.backends import ActivityDataset
+from bw2data.errors import UnknownObject
 
 from activity_browser import actions, ui, project_settings, application, signals
 from activity_browser.ui import core
 from activity_browser.bwutils import AB_metadata
-from activity_browser.mod import bw2data as bd
+
+log = getLogger(__name__)
+
 
 DEFAULT_STATE = {
     "columns": ["name", "activity", "activity type", "location", "unit"],
@@ -307,7 +311,12 @@ class ProcessItem(ui.widgets.ABDataItem):
         self.loaded = True
 
         act = bd.get_activity(key=self.data["key"])
-        products = [x.input for x in act.production()]
+        try:
+            products = [x.input for x in act.production()]
+        except UnknownObject:
+            log.error(f"Broken exchanges for product: {self.data["name"]}")
+            return
+
         for product in products:
             data = dict(product)
             data["key"] = product.key
