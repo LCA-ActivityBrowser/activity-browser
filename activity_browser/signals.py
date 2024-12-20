@@ -1,42 +1,28 @@
 # -*- coding: utf-8 -*-
-from bw2data import Method, get_activity
-from bw2data.parameters import ParameterBase
-from qtpy.QtCore import QObject, Qt, QThread, Signal, SignalInstance
+from qtpy.QtCore import QObject, Signal, SignalInstance
 from blinker import signal as blinker_signal
-
-from .application import application
-
-from bw2data.backends import Activity, Exchange
 
 
 class NodeSignals(QObject):
-    from bw2data.backends import ActivityDataset
-
-    changed: SignalInstance = Signal(ActivityDataset, ActivityDataset)
-    deleted: SignalInstance = Signal(ActivityDataset, ActivityDataset)
-    database_change: SignalInstance = Signal(ActivityDataset, ActivityDataset)
-    code_change: SignalInstance = Signal(ActivityDataset, ActivityDataset)
+    changed: SignalInstance = Signal(object, object)
+    deleted: SignalInstance = Signal(object, object)
+    database_change: SignalInstance = Signal(object, object)
+    code_change: SignalInstance = Signal(object, object)
 
 
 class EdgeSignals(QObject):
-    from bw2data.backends import ExchangeDataset
-
-    changed: SignalInstance = Signal(ExchangeDataset, ExchangeDataset)
-    deleted: SignalInstance = Signal(ExchangeDataset, ExchangeDataset)
+    changed: SignalInstance = Signal(object, object)
+    deleted: SignalInstance = Signal(object, object)
 
 
 class MethodSignals(QObject):
-    from bw2data import Method
-
-    changed: SignalInstance = Signal(Method, Method)
-    deleted: SignalInstance = Signal(Method, Method)
+    changed: SignalInstance = Signal(object, object)
+    deleted: SignalInstance = Signal(object, object)
 
 
 class DatabaseSignals(QObject):
-    from bw2data.backends import SQLiteBackend
-
-    written: SignalInstance = Signal(SQLiteBackend)
-    reset: SignalInstance = Signal(SQLiteBackend)
+    written: SignalInstance = Signal(object)
+    reset: SignalInstance = Signal(object)
     delete: SignalInstance = Signal(str)
 
 
@@ -46,10 +32,8 @@ class ProjectSignals(QObject):
 
 
 class MetaSignals(QObject):
-    from bw2data.serialization import SerializedDict
-
-    databases_changed: SignalInstance = Signal(SerializedDict, SerializedDict)
-    methods_changed: SignalInstance = Signal(SerializedDict, SerializedDict)
+    databases_changed: SignalInstance = Signal(object, object)
+    methods_changed: SignalInstance = Signal(object, object)
 
 
 class ABSignals(QObject):
@@ -105,7 +89,7 @@ class ABSignals(QObject):
         from bw2data import signals
         from bw2data.meta import databases, methods
 
-        signals.signaleddataset_on_save.connect(self._on_signaleddataset_on_delete)
+        signals.signaleddataset_on_save.connect(self._on_signaleddataset_on_save)
         signals.signaleddataset_on_delete.connect(self._on_signaleddataset_on_delete)
         signals.on_activity_database_change.connect(self._on_activity_database_change)
         signals.on_activity_code_change.connect(self._on_activity_code_change)
@@ -130,14 +114,14 @@ class ABSignals(QObject):
         else:
             print(f"Unknown dataset type changed: {type(new)}")
 
-    def _on_signaleddataset_on_delete(self, sender, old, new):
+    def _on_signaleddataset_on_delete(self, sender, old):
         from bw2data.backends import ActivityDataset, ExchangeDataset
-        if isinstance(new, ActivityDataset):
-            self.node.deleted.emit(old, new)
-        elif isinstance(new, ExchangeDataset):
-            self.edge.deleted.emit(old, new)
+        if isinstance(old, ActivityDataset):
+            self.node.deleted.emit(old)
+        elif isinstance(old, ExchangeDataset):
+            self.edge.deleted.emit(old)
         else:
-            print(f"Unknown dataset type deleted: {type(new)}")
+            print(f"Unknown dataset type deleted: {type(old)}")
 
     def _on_activity_database_change(self, sender, old, new):
         self.node.database_change.emit(old, new)
