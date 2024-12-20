@@ -63,6 +63,7 @@ from .project.project_duplicate import ProjectDuplicate
 from .project.project_remote_import import ProjectRemoteImport
 from .project.project_local_import import ProjectLocalImport
 from .project.project_new import ProjectNew
+from .project.project_new_remote import ProjectNewRemote
 from .project.project_switch import ProjectSwitch
 from .project.project_export import ProjectExport
 from .project.project_import import ProjectImport

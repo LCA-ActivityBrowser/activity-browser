@@ -2,6 +2,8 @@ from logging import getLogger
 
 from bw2io import *
 
+import bw2io.remote as remote
+
 from activity_browser.info import __ei_versions__
 from activity_browser.utils import sort_semantic_versions
 

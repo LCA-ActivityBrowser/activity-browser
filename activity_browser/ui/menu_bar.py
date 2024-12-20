@@ -35,7 +35,6 @@ class ProjectMenu(QtWidgets.QMenu):
 
         self.setTitle("&Project")
 
-        self.new_proj_action = actions.ProjectNew.get_QAction()
         self.dup_proj_action = actions.ProjectDuplicate.get_QAction()
         self.delete_proj_action = actions.ProjectDelete.get_QAction()
 
@@ -49,7 +48,7 @@ class ProjectMenu(QtWidgets.QMenu):
         self.manage_settings_action = actions.SettingsWizardOpen.get_QAction()
 
         self.addMenu(ProjectSelectionMenu(self))
-        self.addAction(self.new_proj_action)
+        self.addMenu(ProjectNewMenu(self))
         self.addAction(self.dup_proj_action)
         self.addAction(self.delete_proj_action)
         self.addSeparator()
@@ -72,6 +71,41 @@ class ProjectMenu(QtWidgets.QMenu):
         exists = True if bd.config.biosphere in bd.databases else False
         self.update_biosphere_action.setEnabled(exists)
         self.import_db_action.setEnabled(exists)
+
+
+class ProjectNewMenu(QtWidgets.QMenu):
+    def __init__(self, parent=None) -> None:
+        super().__init__(parent)
+
+        self.setTitle("New Project")
+        self.new_proj_action = actions.ProjectNew.get_QAction()
+        self.import_proj_action = actions.ProjectImport.get_QAction()
+
+        self.new_proj_action.setText("Empty project")
+        self.import_proj_action.setText("From .tar.gz file")
+
+        self.new_proj_action.setIcon(QtGui.QIcon())
+        self.import_proj_action.setIcon(QtGui.QIcon())
+
+        self.addAction(self.new_proj_action)
+        self.addAction(self.import_proj_action)
+        self.addMenu(ProjectNewTemplateMenu(self))
+
+
+class ProjectNewTemplateMenu(QtWidgets.QMenu):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setTitle("From template")
+
+        self.actions = {}
+
+        from bw2io.remote import get_projects
+        for key in get_projects():
+            action = actions.ProjectNewRemote.get_QAction(key)
+            action.setText(key)
+            self.actions[key] = action
+            self.addAction(action)
+
 
 
 class ViewMenu(QtWidgets.QMenu):
