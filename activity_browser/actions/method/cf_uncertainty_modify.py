@@ -30,7 +30,7 @@ class CFUncertaintyModify(ABAction):
         the second item in the tuple to a dictionary without losing information.
         """
         method = bd.Method(method_name)
-        method_dict = method.load_dict()
+        method_dict = {cf[0]: cf[1] for cf in method.load()}
 
         if isinstance(cf[1], dict):
             cf[1].update(uncertainty)
@@ -39,4 +39,4 @@ class CFUncertaintyModify(ABAction):
             uncertainty["amount"] = cf[1]
             method_dict[cf[0]] = uncertainty
 
-        method.write_dict(method_dict)
+        method.write(list(method_dict.items()))

@@ -34,9 +34,9 @@ class CFRemove(ABAction):
             return
 
         method = bd.Method(method_name)
-        method_dict = method.load_dict()
+        method_dict = {cf[0]: cf[1] for cf in method.load()}
 
         for cf in char_factors:
             method_dict.pop(cf[0])
 
-        method.write_dict(method_dict)
+        method.write(list(method_dict.items()))

@@ -18,7 +18,7 @@ class CFAmountModify(ABAction):
     @exception_dialogs
     def run(method_name: tuple, char_factors: List[tuple], amount: float):
         method = bd.Method(method_name)
-        method_dict = method.load_dict()
+        method_dict = {cf[0]: cf[1] for cf in method.load()}
         cf = char_factors[0]
 
         if isinstance(cf[1], dict):
@@ -26,4 +26,4 @@ class CFAmountModify(ABAction):
         else:
             method_dict[cf[0]] = amount
 
-        method.write_dict(method_dict)
+        method.write(list(method_dict.items()))

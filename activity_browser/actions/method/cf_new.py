@@ -43,4 +43,4 @@ class CFNew(ABAction):
             method_dict[key] = 0.0
 
         # write the updated dict to the method
-        bd.Method(method_name).write_dict(method_dict)
+        bd.Method(method_name).write(list(method_dict.items()))
