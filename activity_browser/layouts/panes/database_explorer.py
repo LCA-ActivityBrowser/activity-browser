@@ -71,7 +71,7 @@ class DatabaseExplorer(QtWidgets.QWidget):
         self.setLayout(layout)
 
         # connect signals
-        signals.database.delete.connect(self.deleteLater)
+        signals.database.deleted.connect(self.deleteLater)
         AB_metadata.synced.connect(self.sync)
         self.table_view.query_changed.connect(self.search_error)
 

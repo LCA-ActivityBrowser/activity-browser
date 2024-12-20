@@ -59,9 +59,9 @@ class MetaDataStore(QObject):
         self.dataframe = pd.DataFrame()
 
         signals.project.changed.connect(self.sync)
-        signals.node.changed.connect(lambda _, ds: self.sync_node(ds.key))
+        signals.node.changed.connect(lambda act: self.sync_node(act.key))
         signals.node.deleted.connect(self.on_node_deleted)
-        signals.database.delete.connect(lambda name: self.sync_database(name))
+        signals.database.deleted.connect(lambda name: self.sync_database(name))
         signals.database.written.connect(lambda name: self.sync_database(name))
 
     def on_node_deleted(self, ds):

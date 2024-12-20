@@ -19,11 +19,15 @@ class MethodSignals(QObject):
     changed: SignalInstance = Signal(object)
     deleted: SignalInstance = Signal(object)
 
+class ParameterSignals(QObject):
+    changed: SignalInstance = Signal(object, object)
+    deleted: SignalInstance = Signal(object)
+
 
 class DatabaseSignals(QObject):
     written: SignalInstance = Signal(object)
     reset: SignalInstance = Signal(object)
-    delete: SignalInstance = Signal(str)
+    deleted: SignalInstance = Signal(str)
 
 
 class ProjectSignals(QObject):
@@ -48,6 +52,7 @@ class ABSignals(QObject):
     database = DatabaseSignals()
     project = ProjectSignals()
     meta = MetaSignals()
+    parameter = ParameterSignals()
 
     import_project = Signal()  # Import a project
     export_project = Signal()  # Export the current project
@@ -110,19 +115,27 @@ class ABSignals(QObject):
 
     def _on_signaleddataset_on_save(self, sender, old, new):
         from bw2data.backends import ActivityDataset, ExchangeDataset
+        from bw2data.parameters import ProjectParameter, DatabaseParameter, ActivityParameter
+
         if isinstance(new, ActivityDataset):
-            self.node.changed.emit(old, new)
+            self.node.changed.emit(new, old)
         elif isinstance(new, ExchangeDataset):
-            self.edge.changed.emit(old, new)
+            self.edge.changed.emit(new, old)
+        elif isinstance(new, (ProjectParameter, DatabaseParameter, ActivityParameter)):
+            self.parameter.changed.emit(new, old)
         else:
             print(f"Unknown dataset type changed: {type(new)}")
 
     def _on_signaleddataset_on_delete(self, sender, old):
         from bw2data.backends import ActivityDataset, ExchangeDataset
+        from bw2data.parameters import ProjectParameter, DatabaseParameter, ActivityParameter
+
         if isinstance(old, ActivityDataset):
             self.node.deleted.emit(old)
         elif isinstance(old, ExchangeDataset):
             self.edge.deleted.emit(old)
+        elif isinstance(old, (ProjectParameter, DatabaseParameter, ActivityParameter)):
+            self.parameter.deleted.emit(old)
         else:
             print(f"Unknown dataset type deleted: {type(old)}")
 
@@ -133,7 +146,7 @@ class ABSignals(QObject):
         self.node.code_change.emit(old, new)
 
     def _on_database_delete(self, sender, name):
-        self.database.delete.emit(name)
+        self.database.deleted.emit(name)
 
     def _on_database_reset(self, sender, name):
         from bw2data import Database

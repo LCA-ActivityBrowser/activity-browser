@@ -69,8 +69,8 @@ class DatabaseDelete(ABAction):
 
         # delete database search indices
         # fix for: https://github.com/brightway-lca/brightway2-data/issues/219
-        path = os.path.join(bd.projects.request_directory("search"), database.filename)
-        os.remove(path)
+        # path = os.path.join(bd.projects.request_directory("search"), database.filename)
+        # os.remove(path)
 
         # delete database parameters
         Group.delete().where(Group.name == db_name).execute()
