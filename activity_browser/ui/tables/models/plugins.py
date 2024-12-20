@@ -4,8 +4,8 @@ from importlib import metadata
 import pandas as pd
 from qtpy.QtCore import QModelIndex
 
+from activity_browser import signals
 from activity_browser.settings import ab_settings, project_settings
-from activity_browser.signals import qparameters, qprojects
 
 from .base import PandasModel
 
@@ -17,7 +17,7 @@ class PluginsModel(PandasModel):
         super().__init__(parent=parent)
         self.plugins_list = []
         signals.project.changed.connect(self.sync)
-        qparameters.parameters_changed.connect(self.sync)
+        # qparameters.parameters_changed.connect(self.sync) PARAMETER_SIGNAL
 
     def get_plugin_name(self, proxy: QModelIndex) -> str:
         idx = self.proxy_to_source(proxy)

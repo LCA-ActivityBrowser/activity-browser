@@ -11,7 +11,6 @@ from xlsxwriter.exceptions import FileCreateError
 
 from activity_browser import actions, signals
 from bw2data import databases
-from activity_browser.signals import qparameters, qprojects
 
 from ...bwutils.manager import ParameterManager
 from ...ui.icons import qicons
@@ -224,7 +223,7 @@ can be used within the formula!</p>
 
     def _connect_signals(self):
         signals.project.changed.connect(self.build_tables)
-        qparameters.parameters_changed.connect(self.build_tables)
+        # qparameters.parameters_changed.connect(self.build_tables) PARAMETER_SIGNAL
         #        self.new_project_param.clicked.connect(
         #            lambda: signals.add_parameter.emit(None)
         #        )
@@ -362,7 +361,7 @@ class ParameterExchangesTab(BaseRightTab):
 
     def _connect_signals(self):
         signals.project.changed.connect(self.build_tables)
-        qparameters.parameters_changed.connect(self.build_tables)
+        # qparameters.parameters_changed.connect(self.build_tables) PARAMETER_SIGNAL
 
     def _construct_layout(self):
         """Construct the widget layout for the exchanges parameters tab"""
