@@ -74,7 +74,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # Keyboard shortcuts
         signals.restore_cursor.connect(self.restore_user_control)
 
-        bd.projects.current_changed.connect(self.set_titlebar)
+        signals.project.changed.connect(self.set_titlebar)
 
     def set_titlebar(self):
         self.setWindowTitle(f"Activity Browser - {bd.projects.current}")

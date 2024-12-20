@@ -223,7 +223,7 @@ can be used within the formula!</p>
 """
 
     def _connect_signals(self):
-        qprojects.current_changed.connect(self.build_tables)
+        signals.project.changed.connect(self.build_tables)
         qparameters.parameters_changed.connect(self.build_tables)
         #        self.new_project_param.clicked.connect(
         #            lambda: signals.add_parameter.emit(None)
@@ -361,7 +361,7 @@ class ParameterExchangesTab(BaseRightTab):
 """
 
     def _connect_signals(self):
-        qprojects.current_changed.connect(self.build_tables)
+        signals.project.changed.connect(self.build_tables)
         qparameters.parameters_changed.connect(self.build_tables)
 
     def _construct_layout(self):

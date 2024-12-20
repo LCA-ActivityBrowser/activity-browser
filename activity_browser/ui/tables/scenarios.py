@@ -2,7 +2,7 @@ from typing import Iterable, Tuple
 
 from qtpy.QtCore import Slot
 
-from activity_browser.mod import bw2data as bd
+from activity_browser import signals
 
 from .models import ScenarioModel
 from .views import ABDataFrameView
@@ -26,7 +26,7 @@ class ScenarioTable(ABDataFrameView):
 
         self.model = ScenarioModel(self)
         self.model.updated.connect(self.update_proxy_model)
-        bd.projects.current_changed.connect(self.group_column)
+        signals.project.changed.connect(self.group_column)
 
     @Slot(bool, name="showGroupColumn")
     def group_column(self, shown: bool = False) -> None:

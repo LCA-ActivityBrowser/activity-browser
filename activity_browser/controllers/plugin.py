@@ -21,7 +21,7 @@ class PluginController(QObject):
         self.import_plugins()
 
     def connect_signals(self):
-        bd.projects.current_changed.connect(self.reload_plugins)
+        signals.project.changed.connect(self.reload_plugins)
         signals.plugin_selected.connect(self.load_plugin)
 
     def import_plugins(self):

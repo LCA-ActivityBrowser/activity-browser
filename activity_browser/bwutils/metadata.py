@@ -11,7 +11,7 @@ import pandas as pd
 from bw2data.errors import UnknownObject
 from bw2data.backends import sqlite3_lci_db
 
-import activity_browser.bwutils.commontasks as bc
+from activity_browser import signals
 from activity_browser.mod import bw2data as bd
 from activity_browser.mod.bw2data.backends import ActivityDataset
 
@@ -58,7 +58,7 @@ class MetaDataStore(object):
         self.dataframe = pd.DataFrame()
         self.databases = set()
 
-        bd.projects.current_changed.connect(self.reset_metadata)
+        signals.project.changed.connect(self.reset_metadata)
 
     def add_metadata(self, db_names_list: list) -> None:
         """Include data from the brightway databases.

@@ -241,7 +241,7 @@ class ProjectSettings(BaseSettings):
     def connect_signals(self):
 
         # Reload the project settings whenever a project switch occurs.
-        bd.projects.current_changed.connect(self.reset_for_project_selection)
+        signals.project.changed.connect(self.reset_for_project_selection)
 
         # save new plugin for this project
         signals.plugin_selected.connect(self.add_plugin)

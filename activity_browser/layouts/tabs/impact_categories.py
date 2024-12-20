@@ -159,7 +159,7 @@ class MethodsTab(QtWidgets.QWidget):
         self.search_box.textChanged.connect(self.debounce_search.start)
 
         self.reset_search_button.clicked.connect(self.search_box.clear)
-        bd.projects.current_changed.connect(self.search_box.clear)
+        signals.project.changed.connect(self.search_box.clear)
 
     @QtCore.Slot(bool, name="isListToggled")
     def update_view(self, toggled: bool):
@@ -181,7 +181,7 @@ class CharacterizationFactorsTab(ABTab):
         # signals
         signals.method_selected.connect(self.open_method_tab)
         self.tabCloseRequested.connect(self.close_tab)
-        bd.projects.current_changed.connect(self.close_all)
+        signals.project.changed.connect(self.close_all)
 
     def open_method_tab(self, method):
         if method not in self.tabs:

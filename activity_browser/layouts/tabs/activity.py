@@ -46,7 +46,7 @@ class ActivitiesTab(ABTab):
         signals.safe_open_activity_tab.connect(self.safe_open_activity_tab)
         self.tabCloseRequested.connect(self.close_tab)
         signals.close_activity_tab.connect(self.close_tab_by_tab_name)
-        bd.projects.current_changed.connect(self.close_all)
+        signals.project.changed.connect(self.close_all)
 
     @Slot(tuple, name="openActivityTab")
     def open_activity_tab(self, key: tuple, read_only: bool = True) -> None:

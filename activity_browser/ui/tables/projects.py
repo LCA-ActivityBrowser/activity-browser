@@ -20,7 +20,7 @@ class ProjectListWidget(QComboBox):
     def connect_signals(self):
         self.activated.connect(self.on_activated)
         bd.projects.list_changed.connect(self.sync)
-        bd.projects.current_changed.connect(self.sync)
+        signals.project.changed.connect(self.sync)
 
     def sync(self):
         self.clear()

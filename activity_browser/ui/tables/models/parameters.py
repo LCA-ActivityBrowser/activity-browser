@@ -9,7 +9,7 @@ from peewee import DoesNotExist
 from qtpy import QtWidgets
 from qtpy.QtCore import QModelIndex, Slot
 
-from activity_browser import actions, application
+from activity_browser import actions, application, signals
 from activity_browser.mod import bw2data as bd
 from activity_browser.mod.bw2data.parameters import (ActivityParameter,
                                                      DatabaseParameter, Group,
@@ -31,7 +31,7 @@ class BaseParameterModel(EditablePandasModel):
         self.comment_col = 0
         self.dataChanged.connect(self.edit_single_parameter)
 
-        bd.projects.current_changed.connect(self.sync)
+        signals.project.changed.connect(self.sync)
         bd.parameters.parameters_changed.connect(self.sync)
 
     def get_parameter(self, proxy: QModelIndex) -> object:

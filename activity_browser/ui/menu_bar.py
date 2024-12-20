@@ -63,7 +63,7 @@ class ProjectMenu(QtWidgets.QMenu):
         self.addSeparator()
         self.addAction(self.manage_settings_action)
 
-        bd.projects.current_changed.connect(self.biosphere_exists)
+        signals.project.changed.connect(self.biosphere_exists)
         bd.databases.metadata_changed.connect(self.biosphere_exists)
 
     def biosphere_exists(self) -> None:

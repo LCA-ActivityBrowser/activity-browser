@@ -14,7 +14,7 @@ class ActivitiesHistoryModel(PandasModel):
     def __init__(self, parent=None):
         super().__init__(parent=parent)
         self.key_col = 0
-        projects.current_changed.connect(self.sync)
+        signals.project.changed.connect(self.sync)
         signals.add_activity_to_history.connect(self.add_activity)
 
     def sync(self, df=None):

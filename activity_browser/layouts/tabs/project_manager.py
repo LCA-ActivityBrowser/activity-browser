@@ -40,7 +40,7 @@ class ProjectTab(QtWidgets.QWidget):
         self.connect_signals()
 
     def connect_signals(self):
-        bd.projects.current_changed.connect(self.change_project)
+        signals.project.changed.connect(self.change_project)
         bd.databases.metadata_changed.connect(self.update_widgets)
 
         signals.database_selected.connect(self.update_widgets)
@@ -131,7 +131,7 @@ class DatabaseWidget(QtWidgets.QWidget):
 
         # Signals
         bd.databases.metadata_changed.connect(self.update_widget)
-        bd.projects.current_changed.connect(self.update_widget)
+        signals.project.changed.connect(self.update_widget)
 
     def _construct_layout(self):
         header_widget = QtWidgets.QWidget()
@@ -169,7 +169,7 @@ class ActivityBiosphereTabs(ABTab):
         self.connect_signals()
 
     def connect_signals(self) -> None:
-        bd.projects.current_changed.connect(self.close_all)
+        signals.project.changed.connect(self.close_all)
 
         self.tabCloseRequested.connect(self.close_tab)
         signals.database_selected.connect(self.open_or_focus_tab)

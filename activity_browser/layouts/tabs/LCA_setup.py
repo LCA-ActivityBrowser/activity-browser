@@ -184,7 +184,7 @@ class LCASetupTab(QtWidgets.QWidget):
         signals.set_default_calculation_setup.connect(
             self.set_default_calculation_setup
         )
-        bd.projects.current_changed.connect(self.set_default_calculation_setup)
+        signals.project.changed.connect(self.set_default_calculation_setup)
         signals.calculation_setup_changed.connect(self.enable_calculations)
         signals.calculation_setup_selected.connect(self.select_cs)
 
@@ -378,8 +378,8 @@ class ScenarioImportPanel(BaseRightTab):
         self.table_btn.clicked.connect(self.add_table)
         self.table_btn.clicked.connect(self.can_add_table)
         self.save_scenario.clicked.connect(self.save_action)
-        bd.projects.current_changed.connect(self.clear_tables)
-        bd.projects.current_changed.connect(self.can_add_table)
+        signals.project.changed.connect(self.clear_tables)
+        signals.project.changed.connect(self.can_add_table)
         signals.parameter_superstructure_built.connect(
             self.handle_superstructure_signal
         )

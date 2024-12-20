@@ -13,7 +13,7 @@ from qtpy.QtCore import QModelIndex, Qt, Slot
 from qtpy.QtWidgets import QApplication
 
 import activity_browser
-from activity_browser import project_settings, actions
+from activity_browser import project_settings, signals
 # TODO: fix actions formatting
 from activity_browser.actions.database.database_redo_allocation import DatabaseRedoAllocation
 from activity_browser.bwutils import AB_metadata
@@ -36,7 +36,7 @@ class DatabasesModel(EditablePandasModel):
     def __init__(self, parent=None):
         super().__init__(parent=parent)
         self.set_read_only(False)
-        projects.current_changed.connect(self.sync)
+        signals.project.changed.connect(self.sync)
         databases.metadata_changed.connect(self.sync)
 
     def get_db_name(self, proxy: QModelIndex) -> str:
