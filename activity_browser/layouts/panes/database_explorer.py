@@ -24,7 +24,7 @@ NODETYPES = {
     "all_nodes": [],
     "processes": ["process", "multifunctional", "processwithreferenceproduct"],
     "products": ["product", "processwithreferenceproduct"],
-    "biosphere": ["natural resource", "emission", "inventory indicator", "economic"],
+    "biosphere": ["natural resource", "emission", "inventory indicator", "economic", "social"],
 }
 
 
