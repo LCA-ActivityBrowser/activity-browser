@@ -38,7 +38,7 @@ class ParameterNew(ABAction):
         wizard = ParameterWizard(activity_key, application.main_window)
 
         # return if the wizard is canceled
-        if wizard.exec_() != wizard.Accepted:
+        if wizard.exec_() != QtWidgets.QWizard.Accepted:
             return
 
         # gather wizard variables
