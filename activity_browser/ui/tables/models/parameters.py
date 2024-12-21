@@ -33,7 +33,6 @@ class BaseParameterModel(EditablePandasModel):
 
         signals.project.changed.connect(self.sync)
         signals.parameter.changed.connect(self.sync)
-        # bd.parameters.parameters_changed.connect(self.sync) PARAMETER_SIGNAL
 
     def get_parameter(self, proxy: QModelIndex) -> object:
         idx = self.proxy_to_source(proxy)

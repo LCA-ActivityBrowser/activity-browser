@@ -235,8 +235,6 @@ class ActivityTab(QtWidgets.QWidget):
         signals.edge.deleted.connect(self.populate)
         signals.parameter.recalculated.connect(self.populate)
 
-        # bd.parameters.parameters_changed.connect(self.populate) PARAMETER_SIGNAL
-
         self.group_splitter.splitterMoved.connect(self.save_splitter_state)
 
     def on_node_deleted(self, node):

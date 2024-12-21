@@ -223,14 +223,8 @@ can be used within the formula!</p>
 
     def _connect_signals(self):
         signals.project.changed.connect(self.build_tables)
-        # qparameters.parameters_changed.connect(self.build_tables) PARAMETER_SIGNAL
-        #        self.new_project_param.clicked.connect(
-        #            lambda: signals.add_parameter.emit(None)
-        #        )
-        #        self.new_database_param.clicked.connect(
-        #            lambda: signals.add_parameter.emit(("db", ""))
-        #        )
-        #        self.show_order.stateChanged.connect(self.activity_order_column)
+        signals.parameter.recalculated.connect(self.build_tables)
+
         self.show_database_params.toggled.connect(self.hide_database_parameter)
         self.show_activity_params.toggled.connect(self.hide_activity_parameter)
         self.comment_column.stateChanged.connect(self.hide_comment_column)
@@ -361,7 +355,7 @@ class ParameterExchangesTab(BaseRightTab):
 
     def _connect_signals(self):
         signals.project.changed.connect(self.build_tables)
-        # qparameters.parameters_changed.connect(self.build_tables) PARAMETER_SIGNAL
+        signals.parameter.recalculated.connect(self.build_tables)
 
     def _construct_layout(self):
         """Construct the widget layout for the exchanges parameters tab"""

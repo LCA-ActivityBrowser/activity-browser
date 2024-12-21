@@ -17,7 +17,7 @@ class PluginsModel(PandasModel):
         super().__init__(parent=parent)
         self.plugins_list = []
         signals.project.changed.connect(self.sync)
-        # qparameters.parameters_changed.connect(self.sync) PARAMETER_SIGNAL
+        signals.parameter.changed.connect(self.sync)
 
     def get_plugin_name(self, proxy: QModelIndex) -> str:
         idx = self.proxy_to_source(proxy)
