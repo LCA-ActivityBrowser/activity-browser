@@ -28,7 +28,7 @@ log = getLogger(__name__)
 
 
 class DatabasesModel(EditablePandasModel):
-    HEADERS = ["Name", "Records", "Read-only", "Depends", "Default Alloc.", "Modified"]
+    HEADERS = ["Name", "Records", "Read-only", "Depends", "Default Alloc.", "Modified", "Backend"]
     UNSPECIFIED_ALLOCATION = "unspecified"
     CUSTOM_ALLOCATION = "Custom..."
     NOT_APPLICABLE = "N/A"
@@ -64,6 +64,7 @@ class DatabasesModel(EditablePandasModel):
                     "Records": bc.count_database_records(name),
                     "Read-only": database_read_only,
                     "Default Alloc.": self._get_alloc_value(name),
+                    "Backend": databases[name].get("backend")
                 }
             )
 
