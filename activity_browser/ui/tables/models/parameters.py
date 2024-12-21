@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import itertools
 from typing import Iterable
 from logging import getLogger
@@ -6,14 +5,14 @@ from logging import getLogger
 import pandas as pd
 from asteval import Interpreter
 from peewee import DoesNotExist
+
 from qtpy import QtWidgets
 from qtpy.QtCore import QModelIndex, Slot
 
+from bw2data.parameters import ActivityParameter, DatabaseParameter, Group, ProjectParameter
+
 from activity_browser import actions, application, signals
 from activity_browser.mod import bw2data as bd
-from bw2data.parameters import (ActivityParameter,
-                                                     DatabaseParameter, Group,
-                                                     ProjectParameter)
 from activity_browser.ui.wizards import UncertaintyWizard
 
 from .base import BaseTreeModel, EditablePandasModel, TreeItem
@@ -30,8 +29,10 @@ class BaseParameterModel(EditablePandasModel):
         self.param_col = 0
         self.comment_col = 0
         self.dataChanged.connect(self.edit_single_parameter)
+        self.set_read_only(False)
 
         signals.project.changed.connect(self.sync)
+        signals.parameter.changed.connect(self.sync)
         # bd.parameters.parameters_changed.connect(self.sync) PARAMETER_SIGNAL
 
     def get_parameter(self, proxy: QModelIndex) -> object:
