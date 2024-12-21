@@ -233,6 +233,7 @@ class ActivityTab(QtWidgets.QWidget):
         signals.node.changed.connect(self.populate)
         signals.edge.changed.connect(self.populate)
         signals.edge.deleted.connect(self.populate)
+        signals.parameter.recalculated.connect(self.populate)
 
         # bd.parameters.parameters_changed.connect(self.populate) PARAMETER_SIGNAL
 

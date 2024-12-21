@@ -13,15 +13,18 @@ class NodeSignals(QObject):
 class EdgeSignals(QObject):
     changed: SignalInstance = Signal(object, object)
     deleted: SignalInstance = Signal(object)
+    recalculated: SignalInstance = Signal()
 
 
 class MethodSignals(QObject):
     changed: SignalInstance = Signal(object)
     deleted: SignalInstance = Signal(object)
 
+
 class ParameterSignals(QObject):
     changed: SignalInstance = Signal(object, object)
     deleted: SignalInstance = Signal(object)
+    recalculated: SignalInstance = Signal()
 
 
 class DatabaseSignals(QObject):
@@ -106,6 +109,11 @@ class ABSignals(QObject):
         signals.project_changed.connect(self._on_project_changed)
         signals.project_created.connect(self._on_project_created)
 
+        signals.on_activity_parameter_recalculate.connect(self._on_parameter_recalculate)
+        signals.on_database_parameter_recalculate.connect(self._on_parameter_recalculate)
+        signals.on_project_parameter_recalculate.connect(self._on_parameter_recalculate)
+        signals.on_activity_parameter_recalculate_exchanges.connect(self._on_parameterized_exchange_recalculate)
+
         databases._save_signal.connect(self._on_database_metadata_change)
         setattr(methods, "_save_signal", blinker_signal("ab.patched_methods"))
         methods._save_signal.connect(self._on_methods_metadata_change)
@@ -173,6 +181,12 @@ class ABSignals(QObject):
 
     def _on_method_deregister(self, sender):
         self.method.deleted.emit(sender)
+
+    def _on_parameter_recalculate(self, sender, *args, **kwargs):
+        self.parameter.recalculated.emit()
+
+    def _on_parameterized_exchange_recalculate(self, sender, *args, **kwargs):
+        self.edge.recalculated.emit()
 
 
 def patch_methods_datastore():
