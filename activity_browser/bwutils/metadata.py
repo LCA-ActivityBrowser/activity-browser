@@ -65,8 +65,11 @@ class MetaDataStore(QObject):
         signals.database.written.connect(lambda name: self.sync_database(name))
 
     def on_node_deleted(self, ds):
-        self.dataframe.drop(ds.key, inplace=True)
-        self.synced.emit()
+        try:
+            self.dataframe.drop(ds.key, inplace=True)
+            self.synced.emit()
+        except KeyError:
+            pass
 
     @property
     def databases(self):
