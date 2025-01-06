@@ -144,7 +144,7 @@ class LCAResultsSubTab(QTabWidget):
         self.currentChanged.connect(self.generate_content_on_click)
         QApplication.restoreOverrideCursor()
 
-        calculation_setups.metadata_changed.connect(self.check_cs)
+        #calculation_setups.metadata_changed.connect(self.check_cs) CS_SIGNAL
 
     def setup_tabs(self):
         """Have all of the tabs pull in their required data and add them."""

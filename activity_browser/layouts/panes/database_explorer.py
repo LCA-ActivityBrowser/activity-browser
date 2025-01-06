@@ -22,7 +22,7 @@ DEFAULT_STATE = {
 
 NODETYPES = {
     "all_nodes": [],
-    "processes": ["process", "multifunctional", "processwithreferenceproduct"],
+    "processes": ["process", "multifunctional", "processwithreferenceproduct", "nonfunctional"],
     "products": ["product", "processwithreferenceproduct"],
     "biosphere": ["natural resource", "emission", "inventory indicator", "economic", "social"],
 }
@@ -269,7 +269,7 @@ class NodeModel(ui.widgets.ABAbstractItemModel):
     def createItems(self) -> list[ui.widgets.ABDataItem]:
         items = []
         for index, data in self.dataframe.to_dict(orient="index").items():
-            if data["type"] in ["process", "multifunctional", "readonly_process"]:
+            if data["type"] in ["process", "multifunctional", "readonly_process", "nonfunctional"]:
                 items.append(ProcessItem(index, data))
             elif data["type"] in NODETYPES["products"]:
                 items.append(ProductItem(index, data))
@@ -300,7 +300,7 @@ class ProcessItem(ui.widgets.ABDataItem):
     def decorationData(self, key):
         if key != "name":
             return
-        if self["type"] in ["process", "multifunctional"]:
+        if self["type"] in ["process", "multifunctional", "nonfunctional"]:
             return ui.icons.qicons.process
         elif self["type"] == "readonly_process":
             return ui.icons.qicons.readonly_process

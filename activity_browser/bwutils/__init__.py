@@ -3,7 +3,7 @@
 bwutils is a collection of methods that build upon brightway2 and are generic enough to provide here so that we avoid
 re-typing the same code in different parts of the Activity Browser.
 """
-import multifunctional
+import bw_functional
 
 from .commontasks import cleanup_deleted_bw_projects as cleanup
 from .metadata import AB_metadata

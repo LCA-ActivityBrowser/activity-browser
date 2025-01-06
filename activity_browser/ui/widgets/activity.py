@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from qtpy import QtCore, QtWidgets
-from multifunctional import allocation_strategies, list_available_properties
+from bw_functional import allocation_strategies, list_available_properties
 from logging import getLogger
 
 from activity_browser import actions, project_settings, signals

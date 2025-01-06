@@ -6,10 +6,10 @@ from qtpy.QtWidgets import (QAbstractItemView, QDialog, QHBoxLayout, QLabel, QMe
                                QPlainTextEdit, QPushButton, QSizePolicy, QSplitter,
                                QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget)
 
-from multifunctional import (add_custom_property_allocation_to_project,
-                             allocation_strategies, check_property_for_allocation,
-                             list_available_properties, check_property_for_process_allocation)
-from multifunctional.custom_allocation import MessageType
+from bw_functional import (add_custom_property_allocation_to_project,
+                             allocation_strategies, database_property_errors,
+                             list_available_properties, process_property_errors)
+from bw_functional.custom_allocation import MessageType
 
 from activity_browser.ui.style import style_item
 from bw2data.backends import Node
@@ -207,21 +207,17 @@ class CustomAllocationEditor(QDialog):
                 self._status_text.setPlainText("All good!")
             else:
                 if self._target_node is None:
-                    messages = check_property_for_allocation(self._database_label, property)
+                    errors = database_property_errors(self._database_label, property)
                 else:
-                    messages = check_property_for_process_allocation(
+                    errors = process_property_errors(
                         self._target_node,
                         property
                     )
-                if isinstance(messages, bool):
-                    if messages == True:
-                        self._status_text.setPlainText("All good!")
-                    else:
-                        self._status_text.setPlainText("")
-                        log.error("Unexpected return from check_property_for_allocation.")
+                if not errors:
+                    self._status_text.setPlainText("All good!")
                 else:
-                    text = f"Found {len(messages)} issues:\n\n"
-                    for message in messages:
+                    text = f"Found {len(errors)} issues:\n\n"
+                    for message in errors:
                         text += message.message
                     self._status_text.setPlainText(text)
         else:

@@ -1,8 +1,6 @@
 from qtpy import QtGui
 from logging import getLogger
 
-from multifunctional.database import SIMAPRO_ATTRIBUTES
-
 from activity_browser import signals
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.mod import bw2data as bd
@@ -24,11 +22,7 @@ class MultifunctionalProcessRedoAllocation(ABAction):
         if not getattr(node, "multifunctional", None):
             return
         try:
-            is_simapro = any(
-                key in bd.databases[node['database']] for key in SIMAPRO_ATTRIBUTES
-            ) or bd.databases[node['database']].get("products_as_process")
-
-            node.allocate(products_as_process=is_simapro)
+            node.allocate()
 
             signals.new_statusbar_message.emit(f"Allocation values for process {node} updated.")
         except KeyError as exc:

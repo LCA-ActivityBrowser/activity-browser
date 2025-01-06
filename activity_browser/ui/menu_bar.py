@@ -9,7 +9,7 @@ from activity_browser.mod import bw2data as bd
 
 from .icons import qicons
 
-AB_BW25 = True if os.environ.get("AB_BW25", False) else False
+AB_BW25 = True
 
 
 class MenuBar(QtWidgets.QMenuBar):

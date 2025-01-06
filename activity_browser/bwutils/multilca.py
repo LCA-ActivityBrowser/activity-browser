@@ -302,14 +302,6 @@ class MLCA(object):
             columns=pd.Index(self.methods),
         )
 
-    def get_all_metadata(self) -> None:
-        """Populate AB_metadata with relevant database values.
-
-        Set metadata in form of a Pandas DataFrame for biosphere and
-        technosphere databases for tables and additional aggregation.
-        """
-        AB_metadata.add_metadata(self.all_databases)
-
 
 class Contributions(object):
     """Contribution Analysis built on top of the Multi-LCA class.
@@ -356,8 +348,6 @@ class Contributions(object):
         if not isinstance(mlca, MLCA):
             raise ValueError("Must pass an MLCA object. Passed:", type(mlca))
         self.mlca = mlca
-        # Ensure MetaDataStore is updated.
-        self.mlca.get_all_metadata()
 
         # Set default metadata keys (those not in the dataframe will be eliminated)
         self.act_fields = AB_metadata.get_existing_fields(self.DEFAULT_ACT_FIELDS)
