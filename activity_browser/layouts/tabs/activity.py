@@ -53,12 +53,12 @@ class ActivitiesTab(ABTab):
         """Opens new tab or focuses on already open one."""
         if key not in self.tabs:
             act = bd.get_activity(key)
-            if act._document.type not in bd.labels.node_types:
-                QtWidgets.QMessageBox.information(self,
-                    "Node can't be displayed",
-                    "Node can't be displayed because it isn't a process or a product",
-                    QtWidgets.QMessageBox.StandardButton.Ok)
-                return
+            # if act._document.type not in bd.labels.node_types:
+            #     QtWidgets.QMessageBox.information(self,
+            #         "Node can't be displayed",
+            #         "Node can't be displayed because it isn't a process or a product",
+            #         QtWidgets.QMessageBox.StandardButton.Ok)
+            #     return
             new_tab = ActivityTab(key, read_only, self)
 
             # If this is a new or duplicated activity then we want to exit it
@@ -265,15 +265,17 @@ class ActivityTab(QtWidgets.QWidget):
         self.setObjectName(self.activity["name"])
 
         # fill in the values of the ActivityTab widgets, excluding the ActivityDataGrid which is populated separately
-        # todo: add count of results for each exchange table, to label above each table
-        self.production.model.load(self.activity.production())
-        self.technosphere.model.load(self.activity.technosphere())
+
+        production = self.activity.production()
+        technosphere = self.activity.technosphere()
+
+        inputs = [x for x in production if x.amount >= 0] + [x for x in technosphere if x.amount < 0]
+        outputs = [x for x in production if x.amount < 0] + [x for x in technosphere if x.amount >= 0]
+
+        self.production.model.load(inputs)
+        self.technosphere.model.load(outputs)
         self.biosphere.model.load(self.activity.biosphere())
         self.downstream.model.load(self.activity.upstream())
-        self.production.model.exchange_changed.connect(self._handle_exchange_changed,
-                                                  Qt.ConnectionType.UniqueConnection)
-        self.technosphere.model.exchange_changed.connect(self._handle_exchange_changed,
-                                                    Qt.ConnectionType.UniqueConnection)
 
         self.show_exchange_uncertainty(self.checkbox_uncertainty.isChecked())
         self.show_comments(self.checkbox_comment.isChecked())
@@ -397,41 +399,4 @@ class ActivityTab(QtWidgets.QWidget):
         """Opens the tag editor for the current"""
         # Do not save the changes if nothing changed
         if TagEditor.edit(self.activity, self.read_only, self):
-            self.activity.save()
-
-    def _handle_exchange_changed(self, exc: ExchangeProxyBase):
-        # Count functional exchanges
-        functional_count = sum(
-            (1 for exc in self.activity.exchanges() if exc.get("functional", False))
-        )
-        # Change process to multifunctional, if there are more than one functional
-        # exchanges
-        if self.activity["type"] == "process" and functional_count > 1:
-            # change process and database type to `multifunctional`
-            log.info(f"{functional_count} functional exchanges detected. "
-                     f"Changing process type to multifunctional for {self.activity}")
-            # Change database to multifunctional, if it is not already
-            if databases[self.db_name]["backend"] != "multifunctional":
-                log.info(f"Changing database type to multifunctional for {self.db_name}")
-                databases[self.db_name]["backend"] = "multifunctional"
-                # Make the user choose a default allocation, even if there are errors
-                current_allocation = databases[self.db_name].get("default_allocation", "")
-                default_allocation = CustomAllocationEditor.define_custom_allocation(
-                                    current_allocation, self.db_name,
-                                    first_open=True, parent=self
-                                )
-                if default_allocation:
-                    databases[self.db_name]["default_allocation"] = default_allocation
-                databases.flush()
-
-            # Might need a new activity base class if database backend changed
-            self.activity = get_node(id=self.activity.id)
-            self.activity["type"] = "multifunctional"
-            self.activity.save()
-
-        # Change process type to `process`, if there is maximum one functional
-        # exchange. Do not change back database type.
-        if self.activity["type"] == "multifunctional" and functional_count <= 1:
-            self.activity = get_node(id=self.activity.id)
-            self.activity["type"] = "process"
             self.activity.save()

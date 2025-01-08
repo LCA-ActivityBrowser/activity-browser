@@ -155,15 +155,6 @@ class CSActivityModel(CSGenericModel):
         indices = (self.proxy_to_source(p) for p in proxies)
         rows = {i.row() for i in indices}
 
-        # we can disconnect from the deleted activities
-        for key in [self._dataframe.at[row, "key"] for row in rows]:
-            try:
-                activity = bd.get_activity(key)
-                activity.changed.disconnect(self.sync)
-                del self._activities[activity.key]
-            except ActivityDataset.DoesNotExist:
-                pass
-
         self._dataframe = self._dataframe.drop(rows).reset_index(drop=True)
         self.updated.emit()
         signals.calculation_setup_changed.emit()  # Trigger update of CS in brightway

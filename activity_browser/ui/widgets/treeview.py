@@ -1,4 +1,6 @@
 import re
+
+import pandas as pd
 from qtpy import QtWidgets, QtCore, QtGui
 
 from .abstractitemmodel import ABAbstractItemModel
@@ -150,21 +152,26 @@ class ABTreeView(QtWidgets.QTreeView):
             "expanded_paths": list(self.expanded_paths),
             "visible_columns": [self.model().columns[i] for i in range(len(self.model().columns)) if not self.isColumnHidden(i)],
             "filters": self.columnFilters,
+            "sort_column": self.model().sort_column,
+            "sort_ascending": self.model().sort_order == QtCore.Qt.SortOrder.AscendingOrder,
 
             "header_state": bytearray(self.header().saveState()).hex()
         }
 
-    def restoreSate(self, state: dict) -> bool:
+    def restoreSate(self, state: dict, dataframe: pd.DataFrame) -> bool:
         if not self.model():
             return False
-
-        columns = [col for col in state.get("columns", []) if col in self.model().columns]
-        columns = columns + [col for col in self.model().columns if col not in columns]
-
         self.model().beginResetModel()
+
+        columns = [col for col in state.get("columns", []) if col in dataframe.columns]
+        columns = columns + [col for col in dataframe.columns if col not in columns]
+
+        self.model().dataframe = dataframe
         self.model().columns = columns
         self.model().grouped_columns = [columns.index(name) for name in state.get("grouped_columns", [])]
-        self.model().current_query = state.get("current_query", "")
+        self.model()._query = state.get("current_query", self.model()._query)
+        self.model().sort_column = state.get("sort_column", self.model().sort_column)
+        self.model().sort_order = QtCore.Qt.SortOrder.AscendingOrder if state.get("sort_ascending") else QtCore.Qt.SortOrder.DescendingOrder
         self.model().endResetModel()
 
         self.expanded_paths = set(tuple(p) for p in state.get("expanded_paths", []))
