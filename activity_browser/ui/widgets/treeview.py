@@ -163,8 +163,7 @@ class ABTreeView(QtWidgets.QTreeView):
             return False
         self.model().beginResetModel()
 
-        columns = [col for col in state.get("columns", []) if col in dataframe.columns]
-        columns = columns + [col for col in dataframe.columns if col not in columns]
+        columns = state.get("columns", []) + [col for col in dataframe.columns if col not in state.get("columns", [])]
 
         self.model().dataframe = dataframe
         self.model().columns = columns

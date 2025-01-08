@@ -71,7 +71,12 @@ class DatabaseProductViewer(QtWidgets.QWidget):
         prods = df[df.type.isin(NODETYPES["products"] + NODETYPES["biosphere"])].copy()
         if "processor" in prods.columns:
             prods["process_name"] = df.loc[prods.processor].set_index(prods.index).name
-        return prods.dropna(axis=1, how="all")
+
+        prods.dropna(axis=1, how="all")
+        if prods.empty:
+            prods["process_name"] = None
+
+        return prods
 
     def event(self, event):
         if event.type() == QtCore.QEvent.Type.DeferredDelete:
@@ -252,7 +257,7 @@ class ProductModel(ui.widgets.ABAbstractItemModel):
             item = index.internalPointer()
             if not item:
                 continue
-            keys.append(item["key"])
+            keys.append(item["processor"])
         return list(set(keys))
 
     def createItems(self, dataframe=None) -> list[ui.widgets.ABDataItem]:
