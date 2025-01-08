@@ -8,7 +8,7 @@ from logging import getLogger
 
 import pandas as pd
 
-from qtpy.QtCore import QObject, Signal, SignalInstance
+from qtpy.QtCore import Qt, QObject, Signal, SignalInstance
 
 import bw2data as bd
 from bw2data.errors import UnknownObject
@@ -97,7 +97,7 @@ class MetaDataStore(QObject):
         else:  # an activity has been added
             self.dataframe = pd.concat([self.dataframe, data], join="outer")
 
-        self.synced.emit()
+        self.thread().eventDispatcher().awake.connect(self.synced.emit, Qt.ConnectionType.UniqueConnection)
 
     def _get_node(self, key: tuple):
         try:

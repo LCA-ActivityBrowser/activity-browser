@@ -1,1 +1,2 @@
 from .database_explorer import DatabaseExplorer
+from .database_product_viewer import DatabaseProductViewer

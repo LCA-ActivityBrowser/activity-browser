@@ -1,5 +1,6 @@
 from logging import getLogger
 
+import pandas as pd
 from qtpy import QtWidgets, QtCore, QtGui
 from qtpy.QtCore import Signal, SignalInstance
 
@@ -15,8 +16,8 @@ log = getLogger(__name__)
 
 
 DEFAULT_STATE = {
-    "columns": ["name", "activity", "activity type", "location", "unit"],
-    "visible_columns": ["name", "activity", "activity type", "location", "unit"],
+    "columns": ["process_name", "name", "type", "unit", "location"],
+    "visible_columns": ["process_name", "name", "type", "unit", "location"],
 }
 
 
@@ -28,18 +29,17 @@ NODETYPES = {
 }
 
 
-class DatabaseExplorer(QtWidgets.QWidget):
+class DatabaseProductViewer(QtWidgets.QWidget):
 
     def __init__(self, parent, db_name: str):
         super().__init__(parent)
         self.database = bd.Database(db_name)
-        self.model = NodeModel(self)
+        self.model = ProductModel(self)
 
         # Create the QTableView and set the model
-        self.table_view = NodeView(self)
+        self.table_view = ProductView(self)
         self.table_view.setModel(self.model)
-        self.model.setDataFrame(AB_metadata.get_database_metadata(db_name))
-        self.table_view.restoreSate(self.get_state_from_settings())
+        self.table_view.restoreSate(self.get_state_from_settings(), self.build_df())
 
         self.search = QtWidgets.QLineEdit(self)
         self.search.setMaximumHeight(30)
@@ -47,21 +47,9 @@ class DatabaseExplorer(QtWidgets.QWidget):
 
         self.search.textChanged.connect(self.table_view.setAllFilter)
 
-        self.tab_bar = QtWidgets.QTabBar(self)
-        self.tab_bar.setShape(QtWidgets.QTabBar.RoundedEast)
-
-        self.tab_bar.addTab("All Nodes")
-        self.tab_bar.addTab("Processes")
-        self.tab_bar.addTab("Products")
-        self.tab_bar.addTab("Biosphere")
-
-        self.tab_bar.tabBarClicked.connect(self.switch_types)
-
         table_layout = QtWidgets.QHBoxLayout()
         table_layout.setSpacing(0)
         table_layout.addWidget(self.table_view)
-        table_layout.addWidget(self.tab_bar)
-        table_layout.setAlignment(self.tab_bar, QtCore.Qt.AlignmentFlag.AlignTop)
 
         layout = QtWidgets.QVBoxLayout(self)
         layout.addWidget(self.search)
@@ -76,16 +64,17 @@ class DatabaseExplorer(QtWidgets.QWidget):
         self.table_view.query_changed.connect(self.search_error)
 
     def sync(self):
-        self.model.setDataFrame(AB_metadata.get_database_metadata(self.database.name))
+        self.model.setDataFrame(self.build_df())
 
-    def switch_types(self, index) -> None:
-        node_map = ["all_nodes", "processes", "products", "biosphere"]
-        key = node_map[index]
-        self.table_view.setNodeTypes(NODETYPES[key])
-        return
+    def build_df(self) -> pd.DataFrame:
+        df = AB_metadata.get_database_metadata(self.database.name)
+        prods = df[df.type.isin(NODETYPES["products"] + NODETYPES["biosphere"])].copy()
+        if "processor" in prods.columns:
+            prods["process_name"] = df.loc[prods.processor].set_index(prods.index).name
+        return prods.dropna(axis=1, how="all")
 
     def event(self, event):
-        if event.type() == QtCore.QEvent.DeferredDelete:
+        if event.type() == QtCore.QEvent.Type.DeferredDelete:
             self.save_state_to_settings()
 
         return super().event(event)
@@ -108,22 +97,22 @@ class DatabaseExplorer(QtWidgets.QWidget):
         self.search.setPalette(palette)
 
 
-class NodeViewMenuFactory(ui.widgets.ABTreeView.menuFactoryClass):
+class ProductViewMenuFactory(ui.widgets.ABTreeView.menuFactoryClass):
 
     def createMenu(self, pos: QtCore.QPoint):
         """Designed to be passed to customContextMenuRequested.connect"""
         if self.view.indexAt(pos).row() == -1:
-            menu = NodeViewContextMenu.init_none(self.view)
+            menu = ProductViewContextMenu.init_none(self.view)
         else:
-            menu = NodeViewContextMenu.init_single(self.view)
+            menu = ProductViewContextMenu.init_single(self.view)
         menu.exec_(self.view.mapToGlobal(pos))
 
 
-class NodeView(ui.widgets.ABTreeView):
+class ProductView(ui.widgets.ABTreeView):
     query_changed: SignalInstance = Signal(bool)
-    menuFactoryClass = NodeViewMenuFactory
+    menuFactoryClass = ProductViewMenuFactory
 
-    def __init__(self, parent: DatabaseExplorer):
+    def __init__(self, parent: DatabaseProductViewer):
         super().__init__(parent)
         self.setSortingEnabled(True)
         self.setDragEnabled(True)
@@ -171,8 +160,8 @@ class NodeView(ui.widgets.ABTreeView):
         return self.model().get_keys(self.selectedIndexes())
 
 
-class NodeViewContextMenu(QtWidgets.QMenu):
-    def __init__(self, parent: NodeView):
+class ProductViewContextMenu(QtWidgets.QMenu):
+    def __init__(self, parent: ProductView):
         super().__init__(parent)
 
         self.activity_open = actions.ActivityOpen.get_QAction(parent.selected_keys)
@@ -196,7 +185,7 @@ class NodeViewContextMenu(QtWidgets.QMenu):
         self.addMenu(self.copy_menu())
 
     @classmethod
-    def init_none(cls, parent: NodeView):
+    def init_none(cls, parent: ProductView):
         menu = cls(parent)
 
         menu.clear()
@@ -205,7 +194,7 @@ class NodeViewContextMenu(QtWidgets.QMenu):
         return menu
 
     @classmethod
-    def init_single(cls, parent: NodeView):
+    def init_single(cls, parent: ProductView):
         menu = cls(parent)
 
         menu.activity_open.setText(f"Open activity")
@@ -216,7 +205,7 @@ class NodeViewContextMenu(QtWidgets.QMenu):
         return menu
 
     @classmethod
-    def init_multiple(cls, parent: NodeView):
+    def init_multiple(cls, parent: ProductView):
         menu = cls(parent)
 
         menu.activity_open.setText(f"Open activities")
@@ -250,7 +239,7 @@ class NodeViewContextMenu(QtWidgets.QMenu):
         return menu
 
 
-class NodeModel(ui.widgets.ABAbstractItemModel):
+class ProductModel(ui.widgets.ABAbstractItemModel):
 
     def mimeData(self, indices: [QtCore.QModelIndex]):
         data = core.ABMimeData()
@@ -266,12 +255,10 @@ class NodeModel(ui.widgets.ABAbstractItemModel):
             keys.append(item["key"])
         return list(set(keys))
 
-    def createItems(self) -> list[ui.widgets.ABDataItem]:
+    def createItems(self, dataframe=None) -> list[ui.widgets.ABDataItem]:
         items = []
-        for index, data in self.dataframe.to_dict(orient="index").items():
-            if data["type"] in ["process", "multifunctional", "readonly_process", "nonfunctional"]:
-                items.append(ProcessItem(index, data))
-            elif data["type"] in NODETYPES["products"]:
+        for index, data in dataframe.to_dict(orient="index").items():
+            if data["type"] in NODETYPES["products"]:
                 items.append(ProductItem(index, data))
             elif data["type"] in NODETYPES["biosphere"]:
                 items.append(BiosphereItem(index, data))
@@ -280,60 +267,17 @@ class NodeModel(ui.widgets.ABAbstractItemModel):
         return items
 
 
-class ProcessItem(ui.widgets.ABDataItem):
-
-    def __init__(self, index, data):
-        super().__init__(index, data)
-        self.deferred_child_keys = []
-        self.deferred_child_values = {}
-        self.loaded = False
-
-    def has_children(self) -> bool:
-        return True
-
-    def children(self):
-        if not self.loaded:
-            self.deferred_load()
-
-        return self._child_items
-
-    def decorationData(self, key):
-        if key != "name":
-            return
-        if self["type"] in ["process", "multifunctional", "nonfunctional"]:
-            return ui.icons.qicons.process
-        elif self["type"] == "readonly_process":
-            return ui.icons.qicons.readonly_process
-
-    def deferred_load(self):
-        import bw2data as bd
-
-        self.loaded = True
-
-        act = bd.get_activity(key=self.data["key"])
-        try:
-            products = [x.input for x in act.production()]
-        except UnknownObject:
-            log.error(f"Broken exchanges for product: {self.data["name"]}")
-            return
-
-        for product in products:
-            data = dict(product)
-            data["key"] = product.key
-            item = ProductItem(product.id, data)
-            item.set_parent(self)
-
-
 class ProductItem(ui.widgets.ABDataItem):
     def decorationData(self, key):
-        if key != "name":
-            return
-        if self["type"] == "product":
-            return ui.icons.qicons.product
-        elif self["type"] == "waste":
-            return ui.icons.qicons.waste
-        elif self["type"] == "processwithreferenceproduct":
-            return ui.icons.qicons.processproduct
+        if key == "name":
+            if self["type"] == "product":
+                return ui.icons.qicons.product
+            elif self["type"] == "waste":
+                return ui.icons.qicons.waste
+            elif self["type"] == "processwithreferenceproduct":
+                return ui.icons.qicons.processproduct
+        if key == "process_name":
+            return ui.icons.qicons.process
 
 
 class BiosphereItem(ui.widgets.ABDataItem):
