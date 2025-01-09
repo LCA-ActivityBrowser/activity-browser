@@ -108,20 +108,20 @@ class DatabaseExplorer(QtWidgets.QWidget):
         self.search.setPalette(palette)
 
 
-class NodeViewMenuFactory(ui.widgets.ABTreeView.menuFactoryClass):
-
-    def createMenu(self, pos: QtCore.QPoint):
-        """Designed to be passed to customContextMenuRequested.connect"""
-        if self.view.indexAt(pos).row() == -1:
-            menu = NodeViewContextMenu.init_none(self.view)
-        else:
-            menu = NodeViewContextMenu.init_single(self.view)
-        menu.exec_(self.view.mapToGlobal(pos))
+# class NodeViewMenuFactory(ui.widgets.ABTreeView.menuFactoryClass):
+#
+#     def createMenu(self, pos: QtCore.QPoint):
+#         """Designed to be passed to customContextMenuRequested.connect"""
+#         if self.view.indexAt(pos).row() == -1:
+#             menu = NodeViewContextMenu.init_none(self.view)
+#         else:
+#             menu = NodeViewContextMenu.init_single(self.view)
+#         menu.exec_(self.view.mapToGlobal(pos))
 
 
 class NodeView(ui.widgets.ABTreeView):
     query_changed: SignalInstance = Signal(bool)
-    menuFactoryClass = NodeViewMenuFactory
+    # menuFactoryClass = NodeViewMenuFactory
 
     def __init__(self, parent: DatabaseExplorer):
         super().__init__(parent)

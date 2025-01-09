@@ -1,108 +1,75 @@
-import re
-
 import pandas as pd
 from qtpy import QtWidgets, QtCore, QtGui
 
 from .abstractitemmodel import ABAbstractItemModel
 
 
-class ABTreeViewMenuFactory:
-
-    def __init__(self, view: "ABTreeView"):
-        self.view = view
-
-    @property
-    def model(self):
-        return self.view.model()
-
-    def createMenu(self, pos: QtCore.QPoint):
-        """Designed to be passed to customContextMenuRequested.connect"""
-        QtWidgets.QMenu(self.view).exec_(self.view.mapToGlobal(pos))
-
-    def createHeaderMenu(self, pos: QtCore.QPoint):
-        """Designed to be passed to customContextMenuRequested.connect"""
-        col = self.view.columnAt(pos.x())
-        menu = self._header_menu_standard(col)
-        menu.exec_(self.view.mapToGlobal(pos))
-
-    def _header_menu_standard(self, column: int):
-        menu = QtWidgets.QMenu(self.view)
-        col_name = self.model.columns[column]
-
-        search_box = QtWidgets.QLineEdit(menu)
-        search_box.setText(self.view.columnFilters.get(col_name, ""))
-        search_box.setPlaceholderText("Search")
-        search_box.selectAll()
-
-        search_box.textChanged.connect(lambda query: self.view.setColumnFilter(col_name, query))
-        widget_action = QtWidgets.QWidgetAction(menu)
-        widget_action.setDefaultWidget(search_box)
-        menu.addAction(widget_action)
-
-        menu.addAction(
-            QtGui.QIcon(),
-            "Group by column",
-            lambda: self.model.group(column),
-        )
-        menu.addAction(
-            QtGui.QIcon(),
-            "Ungroup",
-            self.model.ungroup,
-        )
-        menu.addAction(
-            QtGui.QIcon(),
-            "Clear column filter",
-            lambda: self.view.setColumnFilter(col_name, ""),
-        )
-        menu.addAction(
-            QtGui.QIcon(),
-            "Clear all filters",
-            lambda: [self.view.setColumnFilter(name, "") for name in list(self.view.columnFilters.keys())],
-        )
-        menu.addSeparator()
-        menu.addMenu(self._header_menu_standard_view())
-
-        search_box.setFocus()
-        return menu
-
-    def _header_menu_standard_view(self):
-        def toggle_slot(action: QtWidgets.QAction):
-            index = action.data()
-            hidden = self.view.isColumnHidden(index)
-            self.view.setColumnHidden(index, not hidden)
-
-        menu = QtWidgets.QMenu(self.view)
-        menu.setTitle("View")
-        self.view_actions = []
-
-        for i in range(1, len(self.model.columns)):
-            action = QtWidgets.QAction(self.model.columns[i])
-            action.setCheckable(True)
-            action.setChecked(not self.view.isColumnHidden(i))
-            action.setData(i)
-            menu.addAction(action)
-            self.view_actions.append(action)
-
-        menu.triggered.connect(toggle_slot)
-
-        return menu
-
-
 class ABTreeView(QtWidgets.QTreeView):
-    menuFactoryClass = ABTreeViewMenuFactory
+
+    class HeaderMenu(QtWidgets.QMenu):
+        def __init__(self, pos: QtCore.QPoint, view: "ABTreeView"):
+            super().__init__(view)
+
+            model = view.model()
+
+            col_index = view.columnAt(pos.x())
+            col_name = model.columns[col_index]
+
+            search_box = QtWidgets.QLineEdit(self)
+            search_box.setText(view.columnFilters.get(col_name, ""))
+            search_box.setPlaceholderText("Search")
+            search_box.selectAll()
+            search_box.textChanged.connect(lambda query: view.setColumnFilter(col_name, query))
+            widget_action = QtWidgets.QWidgetAction(self)
+            widget_action.setDefaultWidget(search_box)
+            self.addAction(widget_action)
+
+            self.addAction(QtGui.QIcon(), "Group by column", lambda: model.group(col_index))
+            self.addAction(QtGui.QIcon(), "Ungroup", model.ungroup)
+            self.addAction(QtGui.QIcon(), "Clear column filter", lambda: view.setColumnFilter(col_name, ""))
+            self.addAction(QtGui.QIcon(), "Clear all filters",
+                lambda: [view.setColumnFilter(name, "") for name in list(view.columnFilters.keys())],
+            )
+            self.addSeparator()
+
+            def toggle_slot(action: QtWidgets.QAction):
+                index = action.data()
+                hidden = view.isColumnHidden(index)
+                view.setColumnHidden(index, not hidden)
+
+            view_menu = QtWidgets.QMenu(view)
+            view_menu.setTitle("View")
+            self.view_actions = []
+
+            for i in range(1, len(model.columns)):
+                action = QtWidgets.QAction(model.columns[i])
+                action.setCheckable(True)
+                action.setChecked(not view.isColumnHidden(i))
+                action.setData(i)
+                view_menu.addAction(action)
+                self.view_actions.append(action)
+
+            view_menu.triggered.connect(toggle_slot)
+
+            self.addMenu(view_menu)
+
+            search_box.setFocus()
+
+    class ContextMenu(QtWidgets.QMenu):
+        def __init__(self, pos, view):
+            super().__init__(view)
 
     def __init__(self, parent=None):
         super().__init__(parent)
 
         self.setUniformRowHeights(True)
-        self.menuFactory = self.menuFactoryClass(self)
 
-        self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
-        self.customContextMenuRequested.connect(self.menuFactory.createMenu)
+        self.setContextMenuPolicy(QtCore.Qt.ContextMenuPolicy.CustomContextMenu)
+        self.customContextMenuRequested.connect(self.showContextMenu)
 
         header = self.header()
-        header.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
-        header.customContextMenuRequested.connect(self.menuFactory.createHeaderMenu)
+        header.setContextMenuPolicy(QtCore.Qt.ContextMenuPolicy.CustomContextMenu)
+        header.customContextMenuRequested.connect(self.showHeaderMenu)
 
         self.expanded_paths = set()
         self.expanded.connect(lambda index: self.expanded_paths.add(tuple(index.internalPointer().path())))
@@ -119,6 +86,12 @@ class ABTreeView(QtWidgets.QTreeView):
 
     def model(self) -> ABAbstractItemModel:
         return super().model()
+
+    def showContextMenu(self, pos):
+        self.ContextMenu(pos, self).exec_(self.mapToGlobal(pos))
+
+    def showHeaderMenu(self, pos):
+        self.HeaderMenu(pos, self).exec_(self.mapToGlobal(pos))
 
     def setColumnFilter(self, column_name: str, query: str):
         if query:
