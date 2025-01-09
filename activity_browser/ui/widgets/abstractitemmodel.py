@@ -108,55 +108,24 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
         if not index.isValid() or not isinstance(index.internalPointer(), ABAbstractItem):
             return None
 
-        # redirect to the displayData method
+        item: ABAbstractItem = index.internalPointer()
+        col = index.column()
+        key = self.columns[col]
+
+        # redirect to the item's displayData method
         if role == Qt.ItemDataRole.DisplayRole:
-            return self.displayData(index)
+            return item.displayData(col, key)
 
-        # redirect to the fontData method
+        # redirect to the item's fontData method
         if role == Qt.ItemDataRole.FontRole:
-            return self.fontData(index)
+            return item.fontData(col, key)
 
+        # redirect to the item's decorationData method
         if role == Qt.ItemDataRole.DecorationRole:
-            key = self.columns[index.column()]
-            return index.internalPointer().decorationData(key)
+            return item.decorationData(col, key)
 
         # else return None
         return None
-
-    def displayData(self, index):
-        """
-        Return the display data for a specific index
-        """
-        entry: ABAbstractItem = index.internalPointer()
-
-        data = entry[self.columns[index.column()]]
-
-        if data is None and index.column() == 0:
-            data = entry.key()
-
-        if data is None:
-            return None
-
-        # clean up the data to a table-readable format
-        display = str(data).replace("\n", " ")
-
-        # if the display is nan, change to the user-friendlier Undefined
-        if display == "nan":
-            display = "Undefined"
-
-        return display
-
-    def fontData(self, index):
-        """
-        Return the font data for a specific index
-        """
-        font = QtGui.QFont()
-
-        # set the font to italic if the display value is Undefined
-        if self.displayData(index) == "Undefined":
-            font.setItalic(True)
-
-        return font
 
     def headerData(self, section, orientation=Qt.Orientation.Horizontal, role=Qt.ItemDataRole.DisplayRole):
         if orientation != Qt.Orientation.Horizontal:
@@ -332,7 +301,13 @@ class ABAbstractItem:
     def iloc(self, index: int, default=None):
         return self.loc(self._child_keys[index], default)
 
-    def decorationData(self, key: str):
+    def displayData(self, col: int, key: str):
+        return None
+
+    def decorationData(self, col: int, key: str):
+        return None
+
+    def fontData(self, col: int, key: str):
         return None
 
 
@@ -367,6 +342,12 @@ class ABBranchItem(ABAbstractItem):
         parent._child_keys.insert(i, self.key())
         self._parent = parent
 
+    def displayData(self, col: int, key: str):
+        if col == 0:
+            return self.key()
+        else:
+            return None
+
 
 class ABDataItem(ABAbstractItem):
     def __init__(self, key, data, parent=None):
@@ -375,4 +356,28 @@ class ABDataItem(ABAbstractItem):
 
     def __getitem__(self, item):
         return self.data.get(item)
+
+    def displayData(self, col: int, key: str):
+        data = self[key]
+
+        if data is None:
+            return None
+
+        # clean up the data to a table-readable format
+        display = str(data).replace("\n", " ")
+
+        # if the display is nan, change to the user-friendlier Undefined
+        if display == "nan":
+            display = "Undefined"
+
+        return display
+
+    def fontData(self, col: int, key: str):
+        font = QtGui.QFont()
+
+        # set the font to italic if the display value is Undefined
+        if self.displayData(col, key) == "Undefined":
+            font.setItalic(True)
+
+        return font
 

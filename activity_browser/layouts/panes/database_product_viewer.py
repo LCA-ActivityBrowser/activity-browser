@@ -268,7 +268,7 @@ class ProductModel(ui.widgets.ABAbstractItemModel):
 
 
 class ProductItem(ui.widgets.ABDataItem):
-    def decorationData(self, key):
+    def decorationData(self, col, key):
         if key == "name":
             if self["type"] == "product":
                 return ui.icons.qicons.product
@@ -281,7 +281,7 @@ class ProductItem(ui.widgets.ABDataItem):
 
 
 class BiosphereItem(ui.widgets.ABDataItem):
-    def decorationData(self, key):
+    def decorationData(self, col, key):
         if key != "name":
             return
         return ui.icons.qicons.biosphere
