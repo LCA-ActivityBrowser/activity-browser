@@ -99,19 +99,19 @@ class ProductView(ui.widgets.ABTreeView):
     query_changed: SignalInstance = Signal(bool)
 
     class ContextMenu(ui.widgets.ABTreeView.ContextMenu):
-        def __init__(self, pos, view):
+        def __init__(self, pos, view: "ProductView"):
             super().__init__(pos, view)
 
-            self.activity_open = actions.ActivityOpen.get_QAction(view.selected_keys)
-            self.activity_graph = actions.ActivityGraph.get_QAction(view.selected_keys)
+            self.activity_open = actions.ActivityOpen.get_QAction(view.selected_processes)
+            self.activity_graph = actions.ActivityGraph.get_QAction(view.selected_processes)
             self.process_new = actions.ActivityNewProcess.get_QAction(view.parent().database.name)
-            self.activity_delete = actions.ActivityDelete.get_QAction(view.selected_keys)
-            self.activity_relink = actions.ActivityRelink.get_QAction(view.selected_keys)
+            self.activity_delete = actions.ActivityDelete.get_QAction(view.selected_products)
+            # self.activity_relink = actions.ActivityRelink.get_QAction(view.selected_processes)
 
-            self.activity_duplicate = actions.ActivityDuplicate.get_QAction(view.selected_keys)
-            self.activity_duplicate_to_loc = actions.ActivityDuplicateToLoc.get_QAction(
-                view.selected_keys[0] if view.selected_keys else None)
-            self.activity_duplicate_to_db = actions.ActivityDuplicateToDB.get_QAction(view.selected_keys)
+            # self.activity_duplicate = actions.ActivityDuplicate.get_QAction(view.selected_products)
+            # self.activity_duplicate_to_loc = actions.ActivityDuplicateToLoc.get_QAction(
+            #     view.selected_products[0] if view.selected_products else None)
+            # self.activity_duplicate_to_db = actions.ActivityDuplicateToDB.get_QAction(view.selected_keys)
 
             self.copy_sdf = QtWidgets.QAction(ui.icons.qicons.superstructure,
                                               "Exchanges for scenario difference file", None)
@@ -123,12 +123,12 @@ class ProductView(ui.widgets.ABTreeView):
             self.addAction(self.activity_open)
             self.addAction(self.activity_graph)
             self.addAction(self.process_new)
-            self.addMenu(self.duplicates_menu())
+            #self.addMenu(self.duplicates_menu())
             self.addAction(self.activity_delete)
-            self.addAction(self.activity_relink)
+            #self.addAction(self.activity_relink)
             self.addMenu(self.copy_menu())
 
-            if len(view.selected_keys) == 1:
+            if len(view.selected_products) == 1:
                 self.init_single()
             else:
                 self.init_multiple()
@@ -137,24 +137,24 @@ class ProductView(ui.widgets.ABTreeView):
             self.addAction(self.process_new)
 
         def init_single(self):
-            self.activity_open.setText("Open activity")
-            self.activity_graph.setText("Open activity in Graph Explorer")
-            self.activity_duplicate.setText("Duplicate activity")
-            self.activity_delete.setText("Delete activity")
+            self.activity_open.setText("Open process")
+            self.activity_graph.setText("Open process in Graph Explorer")
+            # self.activity_duplicate.setText("Duplicate product")
+            self.activity_delete.setText("Delete product")
 
         def init_multiple(self):
-            self.activity_open.setText("Open activities")
-            self.activity_graph.setText("Open activities in Graph Explorer")
-            self.activity_duplicate.setText("Duplicate activities")
-            self.activity_delete.setText("Delete activities")
+            self.activity_open.setText("Open processes")
+            self.activity_graph.setText("Open processes in Graph Explorer")
+            # self.activity_duplicate.setText("Duplicate products")
+            self.activity_delete.setText("Delete products")
 
-            self.activity_duplicate_to_loc.setEnabled(False)
-            self.activity_relink.setEnabled(False)
+            # self.activity_duplicate_to_loc.setEnabled(False)
+            # self.activity_relink.setEnabled(False)
 
         def duplicates_menu(self):
             menu = QtWidgets.QMenu(self)
 
-            menu.setTitle("Duplicate activities")
+            menu.setTitle("Duplicate products")
             menu.setIcon(ui.icons.qicons.copy)
 
             menu.addAction(self.activity_duplicate)
@@ -206,25 +206,16 @@ class ProductView(ui.widgets.ABTreeView):
         return super().buildQuery() + f" & ({q})" + node_query if q else super().buildQuery() + node_query
 
     @property
-    def selected_keys(self) -> [tuple]:
-        return self.model().get_keys(self.selectedIndexes())
+    def selected_products(self) -> [tuple]:
+        return list(set(ProductModel.values_from_indices("key", self.selectedIndexes())))
+
+    @property
+    def selected_processes(self) -> [tuple]:
+        return list(set(ProductModel.values_from_indices("processor", self.selectedIndexes())))
+
 
 
 class ProductModel(ui.widgets.ABAbstractItemModel):
-
-    def mimeData(self, indices: [QtCore.QModelIndex]):
-        data = core.ABMimeData()
-        data.setPickleData("application/bw-nodekeylist", self.get_keys(indices))
-        return data
-
-    def get_keys(self, indices: list[QtCore.QModelIndex]):
-        keys = []
-        for index in indices:
-            item = index.internalPointer()
-            if not item:
-                continue
-            keys.append(item["key"])
-        return list(set(keys))
 
     def createItems(self, dataframe=None) -> list[ui.widgets.ABDataItem]:
         items = []
@@ -236,6 +227,21 @@ class ProductModel(ui.widgets.ABAbstractItemModel):
             else:
                 items.append(ui.widgets.ABDataItem(index, data))
         return items
+
+    def mimeData(self, indices: [QtCore.QModelIndex]):
+        data = core.ABMimeData()
+        data.setPickleData("application/bw-nodekeylist", self.get_keys(indices))
+        return data
+
+    @staticmethod
+    def values_from_indices(key: str, indices: list[QtCore.QModelIndex]):
+        values = []
+        for index in indices:
+            item = index.internalPointer()
+            if not item:
+                continue
+            values.append(item[key])
+        return values
 
 
 class ProductItem(ui.widgets.ABDataItem):
