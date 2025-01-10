@@ -67,7 +67,7 @@ class DatabaseProductViewer(QtWidgets.QWidget):
     def build_df(self) -> pd.DataFrame:
         full_df = AB_metadata.get_database_metadata(self.database.name)
 
-        expected = ["processor", "product", "type", "unit", "location"]
+        expected = ["processor", "product", "type", "unit", "location", "id"]
         for column_name in expected:
             if column_name not in full_df.columns:
                 full_df[column_name] = None
@@ -124,11 +124,17 @@ class ProductView(ui.widgets.ABTreeView):
     class ContextMenu(ui.widgets.ABTreeView.ContextMenu):
         def __init__(self, pos, view: "ProductView"):
             super().__init__(pos, view)
+            self.num_products = len(view.selected_products)
+            self.num_activities = len(view.selected_activities)
 
             self.activity_open = actions.ActivityOpen.get_QAction(view.selected_activities)
             self.activity_graph = actions.ActivityGraph.get_QAction(view.selected_activities)
+
             self.process_new = actions.ActivityNewProcess.get_QAction(view.parent().database.name)
-            self.activity_delete = actions.ActivityDelete.get_QAction(view.selected_products)
+
+            self.activity_delete = actions.ActivityDelete.get_QAction(view.selected_activities)
+            self.product_delete = actions.ActivityDelete.get_QAction(view.selected_products)
+
             # self.activity_relink = actions.ActivityRelink.get_QAction(view.selected_processes)
 
             # self.activity_duplicate = actions.ActivityDuplicate.get_QAction(view.selected_products)
@@ -140,39 +146,43 @@ class ProductView(ui.widgets.ABTreeView):
                                               "Exchanges for scenario difference file", None)
 
             if view.indexAt(pos).row() == -1:
-                self.init_none()
+                self.addAction(self.process_new)
                 return
 
-            self.addAction(self.activity_open)
-            self.addAction(self.activity_graph)
+            self.init_open()
             self.addAction(self.process_new)
             #self.addMenu(self.duplicates_menu())
-            self.addAction(self.activity_delete)
+            self.init_delete()
             #self.addAction(self.activity_relink)
             self.addMenu(self.copy_menu())
 
-            if len(view.selected_products) == 1:
-                self.init_single()
+        def init_open(self):
+            if self.num_activities == 0:
+                return
+            if self.num_activities == 1:
+                self.activity_open.setText("Open activity")
+                self.activity_graph.setText("Open activity in Graph Explorer")
             else:
-                self.init_multiple()
+                self.activity_open.setText("Open activities")
+                self.activity_graph.setText("Open activities in Graph Explorer")
 
-        def init_none(self):
-            self.addAction(self.process_new)
+            self.addAction(self.activity_open)
+            self.addAction(self.activity_graph)
 
-        def init_single(self):
-            self.activity_open.setText("Open process")
-            self.activity_graph.setText("Open process in Graph Explorer")
-            # self.activity_duplicate.setText("Duplicate product")
-            self.activity_delete.setText("Delete product")
+        def init_delete(self):
+            if self.num_activities == 1:
+                self.activity_delete.setText("Delete activity")
+            if self.num_activities > 1:
+                self.activity_delete.setText("Delete activities")
+            if self.num_activities > 0:
+                self.addAction(self.activity_delete)
 
-        def init_multiple(self):
-            self.activity_open.setText("Open processes")
-            self.activity_graph.setText("Open processes in Graph Explorer")
-            # self.activity_duplicate.setText("Duplicate products")
-            self.activity_delete.setText("Delete products")
-
-            # self.activity_duplicate_to_loc.setEnabled(False)
-            # self.activity_relink.setEnabled(False)
+            if self.num_products == 1:
+                self.product_delete.setText("Delete product")
+            if self.num_products > 1:
+                self.product_delete.setText("Delete products")
+            if self.num_products > 0:
+                self.addAction(self.product_delete)
 
         def duplicates_menu(self):
             menu = QtWidgets.QMenu(self)
