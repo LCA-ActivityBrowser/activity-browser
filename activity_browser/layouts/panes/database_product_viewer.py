@@ -5,8 +5,6 @@ from qtpy import QtWidgets, QtCore, QtGui
 from qtpy.QtCore import Signal, SignalInstance
 
 import bw2data as bd
-from bw2data.backends import ActivityDataset
-from bw2data.errors import UnknownObject
 
 from activity_browser import actions, ui, project_settings, application, signals
 from activity_browser.ui import core
@@ -102,31 +100,91 @@ class DatabaseProductViewer(QtWidgets.QWidget):
         self.search.setPalette(palette)
 
 
-class ProductViewMenuFactory(ui.widgets.ABTreeView.menuFactoryClass):
-
-    def createMenu(self, pos: QtCore.QPoint):
-        """Designed to be passed to customContextMenuRequested.connect"""
-        if self.view.indexAt(pos).row() == -1:
-            menu = ProductViewContextMenu.init_none(self.view)
-        else:
-            menu = ProductViewContextMenu.init_single(self.view)
-        menu.exec_(self.view.mapToGlobal(pos))
-
-
 class ProductView(ui.widgets.ABTreeView):
     query_changed: SignalInstance = Signal(bool)
-    menuFactoryClass = ProductViewMenuFactory
+
+    class ContextMenu(ui.widgets.ABTreeView.ContextMenu):
+        def __init__(self, pos, view: "ProductView"):
+            super().__init__(pos, view)
+
+            self.activity_open = actions.ActivityOpen.get_QAction(view.selected_processes)
+            self.activity_graph = actions.ActivityGraph.get_QAction(view.selected_processes)
+            self.process_new = actions.ActivityNewProcess.get_QAction(view.parent().database.name)
+            self.activity_delete = actions.ActivityDelete.get_QAction(view.selected_products)
+            # self.activity_relink = actions.ActivityRelink.get_QAction(view.selected_processes)
+
+            # self.activity_duplicate = actions.ActivityDuplicate.get_QAction(view.selected_products)
+            # self.activity_duplicate_to_loc = actions.ActivityDuplicateToLoc.get_QAction(
+            #     view.selected_products[0] if view.selected_products else None)
+            # self.activity_duplicate_to_db = actions.ActivityDuplicateToDB.get_QAction(view.selected_keys)
+
+            self.copy_sdf = QtWidgets.QAction(ui.icons.qicons.superstructure,
+                                              "Exchanges for scenario difference file", None)
+
+            if view.indexAt(pos).row() == -1:
+                self.init_none()
+                return
+
+            self.addAction(self.activity_open)
+            self.addAction(self.activity_graph)
+            self.addAction(self.process_new)
+            #self.addMenu(self.duplicates_menu())
+            self.addAction(self.activity_delete)
+            #self.addAction(self.activity_relink)
+            self.addMenu(self.copy_menu())
+
+            if len(view.selected_products) == 1:
+                self.init_single()
+            else:
+                self.init_multiple()
+
+        def init_none(self):
+            self.addAction(self.process_new)
+
+        def init_single(self):
+            self.activity_open.setText("Open process")
+            self.activity_graph.setText("Open process in Graph Explorer")
+            # self.activity_duplicate.setText("Duplicate product")
+            self.activity_delete.setText("Delete product")
+
+        def init_multiple(self):
+            self.activity_open.setText("Open processes")
+            self.activity_graph.setText("Open processes in Graph Explorer")
+            # self.activity_duplicate.setText("Duplicate products")
+            self.activity_delete.setText("Delete products")
+
+            # self.activity_duplicate_to_loc.setEnabled(False)
+            # self.activity_relink.setEnabled(False)
+
+        def duplicates_menu(self):
+            menu = QtWidgets.QMenu(self)
+
+            menu.setTitle("Duplicate products")
+            menu.setIcon(ui.icons.qicons.copy)
+
+            menu.addAction(self.activity_duplicate)
+            menu.addAction(self.activity_duplicate_to_loc)
+            menu.addAction(self.activity_duplicate_to_db)
+            return menu
+
+        def copy_menu(self):
+            menu = QtWidgets.QMenu(self)
+
+            menu.setTitle("Copy to clipboard")
+            menu.setIcon(ui.icons.qicons.copy_to_clipboard)
+
+            menu.addAction(self.copy_sdf)
+            return menu
 
     def __init__(self, parent: DatabaseProductViewer):
         super().__init__(parent)
         self.setSortingEnabled(True)
         self.setDragEnabled(True)
-        self.setDragDropMode(QtWidgets.QTableView.DragOnly)
-        self.setSelectionBehavior(ui.widgets.ABTreeView.SelectRows)
-        self.setSelectionMode(ui.widgets.ABTreeView.ExtendedSelection)
+        self.setDragDropMode(QtWidgets.QTableView.DragDropMode.DragOnly)
+        self.setSelectionBehavior(ui.widgets.ABTreeView.SelectionBehavior.SelectRows)
+        self.setSelectionMode(ui.widgets.ABTreeView.SelectionMode.ExtendedSelection)
 
         self.allFilter = ""
-        self.nodeTypes = []
 
     def mouseDoubleClickEvent(self, event) -> None:
         if self.selected_keys:
@@ -141,16 +199,8 @@ class ProductView(ui.widgets.ABTreeView):
             print(f"Error in query: {type(e).__name__}: {e}")
             self.query_changed.emit(False)
 
-    def setNodeTypes(self, node_types: list):
-        self.nodeTypes = node_types
-        self.applyFilter()
-
     def buildQuery(self) -> str:
-        if self.nodeTypes:
-            node_query = " | ".join([f"(type == '{node_type}')" for node_type in self.nodeTypes])
-            node_query = f" & ({node_query})"
-        else:
-            node_query = ""
+        node_query = ""
 
         if self.allFilter.startswith('='):
             return super().buildQuery() + f" & ({self.allFilter[1:]})" + node_query
@@ -161,104 +211,16 @@ class ProductView(ui.widgets.ABTreeView):
         return super().buildQuery() + f" & ({q})" + node_query if q else super().buildQuery() + node_query
 
     @property
-    def selected_keys(self) -> [tuple]:
-        return self.model().get_keys(self.selectedIndexes())
+    def selected_products(self) -> [tuple]:
+        return list(set(ProductModel.values_from_indices("key", self.selectedIndexes())))
 
+    @property
+    def selected_processes(self) -> [tuple]:
+        return list(set(ProductModel.values_from_indices("processor", self.selectedIndexes())))
 
-class ProductViewContextMenu(QtWidgets.QMenu):
-    def __init__(self, parent: ProductView):
-        super().__init__(parent)
-
-        self.activity_open = actions.ActivityOpen.get_QAction(parent.selected_keys)
-        self.activity_graph = actions.ActivityGraph.get_QAction(parent.selected_keys)
-        self.process_new = actions.ActivityNewProcess.get_QAction(parent.parent().database.name)
-        self.activity_delete = actions.ActivityDelete.get_QAction(parent.selected_keys)
-        self.activity_relink = actions.ActivityRelink.get_QAction(parent.selected_keys)
-
-        self.activity_duplicate = actions.ActivityDuplicate.get_QAction(parent.selected_keys)
-        self.activity_duplicate_to_loc = actions.ActivityDuplicateToLoc.get_QAction(parent.selected_keys[0] if parent.selected_keys else None)
-        self.activity_duplicate_to_db = actions.ActivityDuplicateToDB.get_QAction(parent.selected_keys)
-
-        self.copy_sdf = QtWidgets.QAction(ui.icons.qicons.superstructure, "Exchanges for scenario difference file", None)
-
-        self.addAction(self.activity_open)
-        self.addAction(self.activity_graph)
-        self.addAction(self.process_new)
-        self.addMenu(self.duplicates_menu())
-        self.addAction(self.activity_delete)
-        self.addAction(self.activity_relink)
-        self.addMenu(self.copy_menu())
-
-    @classmethod
-    def init_none(cls, parent: ProductView):
-        menu = cls(parent)
-
-        menu.clear()
-        menu.addAction(menu.process_new)
-
-        return menu
-
-    @classmethod
-    def init_single(cls, parent: ProductView):
-        menu = cls(parent)
-
-        menu.activity_open.setText(f"Open activity")
-        menu.activity_graph.setText(f"Open activity in Graph Explorer")
-        menu.activity_duplicate.setText(f"Duplicate activity")
-        menu.activity_delete.setText(f"Delete activity")
-
-        return menu
-
-    @classmethod
-    def init_multiple(cls, parent: ProductView):
-        menu = cls(parent)
-
-        menu.activity_open.setText(f"Open activities")
-        menu.activity_graph.setText(f"Open activities in Graph Explorer")
-        menu.activity_duplicate.setText(f"Duplicate activities")
-        menu.activity_delete.setText(f"Delete activities")
-
-        menu.activity_duplicate_to_loc.setEnabled(False)
-        menu.activity_relink.setEnabled(False)
-
-        return menu
-
-    def duplicates_menu(self):
-        menu = QtWidgets.QMenu(self)
-
-        menu.setTitle(f"Duplicate activities")
-        menu.setIcon(ui.icons.qicons.copy)
-
-        menu.addAction(self.activity_duplicate)
-        menu.addAction(self.activity_duplicate_to_loc)
-        menu.addAction(self.activity_duplicate_to_db)
-        return menu
-
-    def copy_menu(self):
-        menu = QtWidgets.QMenu(self)
-
-        menu.setTitle(f"Copy to clipboard")
-        menu.setIcon(ui.icons.qicons.copy_to_clipboard)
-
-        menu.addAction(self.copy_sdf)
-        return menu
 
 
 class ProductModel(ui.widgets.ABAbstractItemModel):
-
-    def mimeData(self, indices: [QtCore.QModelIndex]):
-        data = core.ABMimeData()
-        data.setPickleData("application/bw-nodekeylist", self.get_keys(indices))
-        return data
-
-    def get_keys(self, indices: list[QtCore.QModelIndex]):
-        keys = []
-        for index in indices:
-            item = index.internalPointer()
-            if not item:
-                continue
-            keys.append(item["processor"])
-        return list(set(keys))
 
     def createItems(self, dataframe=None) -> list[ui.widgets.ABDataItem]:
         items = []
@@ -271,9 +233,24 @@ class ProductModel(ui.widgets.ABAbstractItemModel):
                 items.append(ui.widgets.ABDataItem(index, data))
         return items
 
+    def mimeData(self, indices: [QtCore.QModelIndex]):
+        data = core.ABMimeData()
+        data.setPickleData("application/bw-nodekeylist", self.get_keys(indices))
+        return data
+
+    @staticmethod
+    def values_from_indices(key: str, indices: list[QtCore.QModelIndex]):
+        values = []
+        for index in indices:
+            item = index.internalPointer()
+            if not item:
+                continue
+            values.append(item[key])
+        return values
+
 
 class ProductItem(ui.widgets.ABDataItem):
-    def decorationData(self, key):
+    def decorationData(self, col, key):
         if key == "name":
             if self["type"] == "product":
                 return ui.icons.qicons.product
@@ -286,7 +263,7 @@ class ProductItem(ui.widgets.ABDataItem):
 
 
 class BiosphereItem(ui.widgets.ABDataItem):
-    def decorationData(self, key):
+    def decorationData(self, col, key):
         if key != "name":
             return
         return ui.icons.qicons.biosphere

@@ -4,6 +4,8 @@ from qtpy.QtCore import Qt, Signal, SignalInstance
 
 from activity_browser.ui.icons import qicons
 
+from .abstractitem import ABAbstractItem, ABBranchItem, ABDataItem
+
 
 class ABAbstractItemModel(QtCore.QAbstractItemModel):
     grouped: SignalInstance = Signal(list)
@@ -108,55 +110,24 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
         if not index.isValid() or not isinstance(index.internalPointer(), ABAbstractItem):
             return None
 
-        # redirect to the displayData method
+        item: ABAbstractItem = index.internalPointer()
+        col = index.column()
+        key = self.columns[col]
+
+        # redirect to the item's displayData method
         if role == Qt.ItemDataRole.DisplayRole:
-            return self.displayData(index)
+            return item.displayData(col, key)
 
-        # redirect to the fontData method
+        # redirect to the item's fontData method
         if role == Qt.ItemDataRole.FontRole:
-            return self.fontData(index)
+            return item.fontData(col, key)
 
+        # redirect to the item's decorationData method
         if role == Qt.ItemDataRole.DecorationRole:
-            key = self.columns[index.column()]
-            return index.internalPointer().decorationData(key)
+            return item.decorationData(col, key)
 
         # else return None
         return None
-
-    def displayData(self, index):
-        """
-        Return the display data for a specific index
-        """
-        entry: ABAbstractItem = index.internalPointer()
-
-        data = entry[self.columns[index.column()]]
-
-        if data is None and index.column() == 0:
-            data = entry.key()
-
-        if data is None:
-            return None
-
-        # clean up the data to a table-readable format
-        display = str(data).replace("\n", " ")
-
-        # if the display is nan, change to the user-friendlier Undefined
-        if display == "nan":
-            display = "Undefined"
-
-        return display
-
-    def fontData(self, index):
-        """
-        Return the font data for a specific index
-        """
-        font = QtGui.QFont()
-
-        # set the font to italic if the display value is Undefined
-        if self.displayData(index) == "Undefined":
-            font.setItalic(True)
-
-        return font
 
     def headerData(self, section, orientation=Qt.Orientation.Horizontal, role=Qt.ItemDataRole.DisplayRole):
         if orientation != Qt.Orientation.Horizontal:
@@ -274,105 +245,4 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
         return super().hasChildren(parent)
 
 
-class ABAbstractItem:
-
-    def __init__(self, key, parent=None):
-        self._key = key
-        self._child_keys = []
-        self._child_items = {}
-        self._parent = None
-
-        if parent:
-            self.set_parent(parent)
-
-    def __getitem__(self, item):
-        raise NotImplementedError
-
-    def parent(self) -> "ABAbstractItem":
-        return self._parent
-
-    def key(self):
-        return self._key
-
-    def children(self):
-        return self._child_items
-
-    def path(self) -> [str]:
-        return self.parent().path() + [self.key()] if self.parent() else []
-
-    def rank(self) -> int:
-        """Return the rank of the ABItem within the parent. Returns -1 if there is no parent."""
-        if self.parent is None:
-            return -1
-        return self.parent()._child_keys.index(self.key())
-
-    def has_children(self) -> bool:
-        return bool(self._child_keys)
-
-    def set_parent(self, parent: "ABAbstractItem"):
-        if self.key() in parent.children():
-            raise KeyError(f"Item {self.key()} is already a child of {parent.key()}")
-
-        if self.parent():
-            self.parent()._child_keys.remove(self.key())
-            del self.parent()._child_items[self.key()]
-
-        parent._child_items[self.key()] = self
-        parent._child_keys.append(self.key())
-        self._parent = parent
-
-    def loc(self, key_or_path: object | list[object], default=None):
-        key = key_or_path.pop(0) if isinstance(key_or_path, list) else key_or_path
-
-        if isinstance(key_or_path, list) and len(key_or_path) > 0:
-            return self._child_items[key].loc(key_or_path, default)
-
-        return self._child_items.get(key, default)
-
-    def iloc(self, index: int, default=None):
-        return self.loc(self._child_keys[index], default)
-
-    def decorationData(self, key: str):
-        return None
-
-
-class ABBranchItem(ABAbstractItem):
-
-    def __getitem__(self, item):
-        return None
-
-    def put(self, item: ABAbstractItem, path):
-        key = path.pop(0)
-        if path:
-            sub = self.loc(key)
-            sub = sub if sub else self.__class__(key, self)
-            sub.put(item, path)
-        else:
-            item.set_parent(self)
-
-    def set_parent(self, parent: "ABAbstractItem"):
-        if self.key() in parent._child_items:
-            twin = parent.loc(self.key())
-            for child in twin.child_items.values():
-                child.set_parent(self)
-
-        if self.parent():
-            self.parent()._child_keys.remove(self.key())
-            del self.parent()._child_items[self.key()]
-
-        parent._child_items[self.key()] = self
-
-        branches = [isinstance(parent._child_items[key], ABBranchItem) for key in parent._child_keys]
-        i = branches.index(False) if False in branches else len(branches)
-        parent._child_keys.insert(i, self.key())
-        self._parent = parent
-
-
-class ABDataItem(ABAbstractItem):
-    def __init__(self, key, data, parent=None):
-        super().__init__(key, parent)
-        self.data = data
-
-    def __getitem__(self, item):
-        return self.data.get(item)
 
