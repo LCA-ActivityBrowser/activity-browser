@@ -120,7 +120,6 @@ class ABTreeView(QtWidgets.QTreeView):
         return {
             "columns": self.model().columns,
             "grouped_columns": [self.model().columns[i] for i in self.model().grouped_columns],
-            "current_query": self.model().query(),
 
             "expanded_paths": list(self.expanded_paths),
             "visible_columns": [self.model().columns[i] for i in range(len(self.model().columns)) if not self.isColumnHidden(i)],
@@ -138,16 +137,17 @@ class ABTreeView(QtWidgets.QTreeView):
 
         columns = state.get("columns", []) + [col for col in dataframe.columns if col not in state.get("columns", [])]
 
+        self.expanded_paths = set(tuple(p) for p in state.get("expanded_paths", []))
+        self.columnFilters = state.get("filters", {})
+
         self.model().dataframe = dataframe
         self.model().columns = columns
         self.model().grouped_columns = [columns.index(name) for name in state.get("grouped_columns", [])]
-        self.model()._query = state.get("current_query", self.model()._query)
         self.model().sort_column = state.get("sort_column", self.model().sort_column)
         self.model().sort_order = QtCore.Qt.SortOrder.AscendingOrder if state.get("sort_ascending") else QtCore.Qt.SortOrder.DescendingOrder
+        self.model()._query = self.buildQuery()
         self.model().endResetModel()
 
-        self.expanded_paths = set(tuple(p) for p in state.get("expanded_paths", []))
-        self.columnFilters = state.get("filters", {})
         for column_name in self.columnFilters:
             self.model().filtered_columns.add(self.model().columns.index(column_name))
 
