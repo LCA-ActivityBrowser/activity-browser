@@ -92,6 +92,15 @@ class DatabaseProductViewer(QtWidgets.QWidget):
             "Activity ID": list(with_processor["process_id"]) + list(no_processor["id"]),
         })
 
+        if "properties" in with_processor.columns:
+            for key, props in with_processor["properties"].dropna().items():
+                if not isinstance(props, dict):
+                    continue
+
+                for prop, value in props.items():
+                    final.loc[final["Product Key"] == key, f"Property: {prop}"] = value
+
+
         return final
 
     def event(self, event):
