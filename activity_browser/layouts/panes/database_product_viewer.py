@@ -67,7 +67,7 @@ class DatabaseProductViewer(QtWidgets.QWidget):
     def build_df(self) -> pd.DataFrame:
         full_df = AB_metadata.get_database_metadata(self.database.name)
 
-        expected = ["processor", "product", "type", "unit", "location", "id"]
+        expected = ["processor", "product", "type", "unit", "location", "id", "categories"]
         for column_name in expected:
             if column_name not in full_df.columns:
                 full_df[column_name] = None
@@ -86,6 +86,7 @@ class DatabaseProductViewer(QtWidgets.QWidget):
             "Type": list(with_processor["type"]) + list(no_processor["type"]),
             "Unit": list(with_processor["unit"]) + list(no_processor["unit"]),
             "Location": list(with_processor["location"]) + list(no_processor["location"]),
+            "Categories": list(with_processor["categories"]) + list(no_processor["categories"]),
             "Product Key": list(with_processor["key"]) + [None] * len(no_processor),
             "Product ID": list(with_processor["id"]) + [None] * len(no_processor),
             "Activity Key": list(with_processor["processor"]) + list(no_processor["key"]),
@@ -99,7 +100,6 @@ class DatabaseProductViewer(QtWidgets.QWidget):
 
                 for prop, value in props.items():
                     final.loc[final["Product Key"] == key, f"Property: {prop}"] = value
-
 
         return final
 
