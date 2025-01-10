@@ -116,10 +116,12 @@ class BaseExchangeModel(EditablePandasModel):
 
     @staticmethod
     def update_row_with_product_name(row: dict[str, Any], exchange: Optional[ExchangeProxyBase]):
+        from bw_functional import Function
+
         if exchange is not None:
             try:
                 act = exchange.input
-                product = act.get("reference product", act.get("name"))
+                product = act.get("name") if isinstance(act, Function) else act.get("reference product", act.get("name"))
                 row.update({
                     "Product": product,
                 })
@@ -283,6 +285,8 @@ class BaseExchangeModel(EditablePandasModel):
         """Whenever data is changed, call an update to the relevant exchange
         or activity.
         """
+        from bw_functional import Function
+
         if index.isValid() and not self._read_only:
             value, check_ok = self.prepare_set_value(index, value, role)
             if role == Qt.EditRole or check_ok:
@@ -291,6 +295,8 @@ class BaseExchangeModel(EditablePandasModel):
                 exchange = self._dataframe.iat[index.row(), self.exchange_column]
                 if field in self.VALID_FIELDS:
                     actions.ExchangeModify.run(exchange, {field: value})
+                elif header == "Product" and isinstance(exchange.input, Function):
+                    actions.ActivityModify.run(exchange.input.key, "name", value)
                 else:
                     act_key = exchange.input.key
                     actions.ActivityModify.run(act_key, field, value)

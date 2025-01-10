@@ -50,11 +50,6 @@ class BaseExchangeTable(ABDataFrameView):
         self.key = getattr(parent, "key", None)
         self.model = self.MODEL(self.key, self)
 
-        self.edge_properties_action = actions.EdgeProperties.get_QAction(
-            # Use a lambda for the read-only flag, so that the value
-            # is not captured at definition, but at execution
-            self.selected_exchanges, lambda: self.model.is_read_only(), self
-        )
         self.node_properties_action = actions.NodeProperties.get_QAction(
             # Use a lambda for the read-only flag, so that the value
             # is not captured at definition, but at execution
@@ -106,10 +101,9 @@ class BaseExchangeTable(ABDataFrameView):
             return
         menu = QtWidgets.QMenu()
 
-        menu.addAction(qicons.right, "Open activities", self.open_activities)
+        menu.addAction(qicons.right, "Open processes", self.open_activities)
         if show_uncertainty:
             menu.addAction(self.modify_uncertainty_action)
-        menu.addAction(self.edge_properties_action)
         menu.addAction(self.node_properties_action)
         # Submenu copy to clipboard
         submenu_copy = QtWidgets.QMenu(menu)

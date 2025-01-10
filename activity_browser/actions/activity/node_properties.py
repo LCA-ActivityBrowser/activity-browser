@@ -14,7 +14,7 @@ class NodeProperties(ABAction):
     """
     # No icon for properties
     icon = QtGui.QIcon()
-    text = "Node Properties"
+    text = "Function Properties"
 
     @staticmethod
     @exception_dialogs
