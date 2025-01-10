@@ -233,9 +233,9 @@ class ProductView(ui.widgets.ABTreeView):
         if self.allFilter.startswith('='):
             return super().buildQuery() + f" & ({self.allFilter[1:]})" + node_query
 
-        col_names = [self.model().columns[i] for i in range(1, len(self.model().columns)) if not self.isColumnHidden(i)]
+        col_names = [self.model().columns[i] for i in range(len(self.model().columns)) if not self.isColumnHidden(i)]
 
-        q = " | ".join([f"(`{col}`.astype('str').str.contains('{self.format_query(self.allFilter)}'))" for col in col_names])
+        q = " | ".join([f"(`{col}`.astype('str').str.contains('{self.format_query(self.allFilter)}', False))" for col in col_names])
         return super().buildQuery() + f" & ({q})" + node_query if q else super().buildQuery() + node_query
 
     @property
