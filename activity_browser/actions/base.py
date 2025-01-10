@@ -1,6 +1,9 @@
+from logging import getLogger
 from qtpy import QtCore, QtGui, QtWidgets
 
 from activity_browser import application
+
+log = getLogger(__name__)
 
 
 class ABAction:

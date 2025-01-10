@@ -97,7 +97,11 @@ class MetaDataStore(QObject):
         else:  # an activity has been added
             self.dataframe = pd.concat([self.dataframe, data], join="outer")
 
-        self.thread().eventDispatcher().awake.connect(self.synced.emit, Qt.ConnectionType.UniqueConnection)
+        self.thread().eventDispatcher().awake.connect(self._emitSyncLater, Qt.ConnectionType.UniqueConnection)
+
+    def _emitSyncLater(self):
+        self.synced.emit()
+        self.thread().eventDispatcher().awake.disconnect(self._emitSyncLater)
 
     def _get_node(self, key: tuple):
         try:

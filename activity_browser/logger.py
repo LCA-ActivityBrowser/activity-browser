@@ -230,7 +230,7 @@ def setup_ab_logging():
         "%(asctime)s | %(levelname)s | %(message)s", "%H:%M:%S"
     )
     stderr_handler.setFormatter(formatter)
-    stderr_handler.setLevel("INFO")
+    stderr_handler.setLevel("DEBUG")
     logging.root.addHandler(stderr_handler)
 
     # setting up the pycharm handler

@@ -124,7 +124,6 @@ class ABSignals(QObject):
     def _on_signaleddataset_on_save(self, sender, old, new):
         from bw2data.backends import ActivityDataset, ExchangeDataset
         from bw2data.parameters import ProjectParameter, DatabaseParameter, ActivityParameter
-        return
 
         if isinstance(new, ActivityDataset):
             self.node.changed.emit(new, old)

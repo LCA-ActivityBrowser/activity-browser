@@ -14,8 +14,8 @@ log = getLogger(__name__)
 
 
 DEFAULT_STATE = {
-    "columns": ["process_name", "name", "type", "unit", "location"],
-    "visible_columns": ["process_name", "name", "type", "unit", "location"],
+    "columns": ["Activity", "Product", "Type", "Unit", "Location"],
+    "visible_columns": ["Activity", "Product", "Type", "Unit", "Location"],
 }
 
 
@@ -65,16 +65,34 @@ class DatabaseProductViewer(QtWidgets.QWidget):
         self.model.setDataFrame(self.build_df())
 
     def build_df(self) -> pd.DataFrame:
-        df = AB_metadata.get_database_metadata(self.database.name)
-        prods = df[df.type.isin(NODETYPES["products"] + NODETYPES["biosphere"])].copy()
-        if "processor" in prods.columns:
-            prods["process_name"] = df.loc[prods.processor].set_index(prods.index).name
+        full_df = AB_metadata.get_database_metadata(self.database.name)
 
-        prods.dropna(axis=1, how="all")
-        if prods.empty:
-            prods["process_name"] = None
+        expected = ["processor", "product", "type", "unit", "location"]
+        for column_name in expected:
+            if column_name not in full_df.columns:
+                full_df[column_name] = None
 
-        return prods
+        with_processor = full_df[full_df.processor.isin(full_df.key)].copy()
+        with_processor["process_name"] = full_df.loc[with_processor.processor].set_index(with_processor.index).name
+        with_processor["process_id"] = full_df.loc[with_processor.processor].set_index(with_processor.index).id
+
+        no_processor = full_df[full_df.processor.isin(full_df.key) == False].copy()
+        no_processor.drop(no_processor[no_processor.key.isin(with_processor.processor)].index, inplace=True)
+        no_processor.drop(no_processor[no_processor.type == "readonly_process"].index, inplace=True)
+
+        final = pd.DataFrame({
+            "Activity": list(with_processor["process_name"]) + list(no_processor["name"]),
+            "Product": list(with_processor["name"]) + list(no_processor["product"]),
+            "Type": list(with_processor["type"]) + list(no_processor["type"]),
+            "Unit": list(with_processor["unit"]) + list(no_processor["unit"]),
+            "Location": list(with_processor["location"]) + list(no_processor["location"]),
+            "Product Key": list(with_processor["key"]) + [None] * len(no_processor),
+            "Product ID": list(with_processor["id"]) + [None] * len(no_processor),
+            "Process Key": list(with_processor["processor"]) + list(no_processor["key"]),
+            "Process ID": list(with_processor["process_id"]) + list(no_processor["id"]),
+        })
+
+        return final
 
     def event(self, event):
         if event.type() == QtCore.QEvent.Type.DeferredDelete:
@@ -187,8 +205,8 @@ class ProductView(ui.widgets.ABTreeView):
         self.allFilter = ""
 
     def mouseDoubleClickEvent(self, event) -> None:
-        if self.selected_keys:
-            actions.ActivityOpen.run(self.selected_keys)
+        if self.selected_processes:
+            actions.ActivityOpen.run(self.selected_processes)
 
     def setAllFilter(self, query: str):
         self.allFilter = query
@@ -219,18 +237,12 @@ class ProductView(ui.widgets.ABTreeView):
         return list(set(ProductModel.values_from_indices("processor", self.selectedIndexes())))
 
 
-
 class ProductModel(ui.widgets.ABAbstractItemModel):
 
     def createItems(self, dataframe=None) -> list[ui.widgets.ABDataItem]:
         items = []
         for index, data in dataframe.to_dict(orient="index").items():
-            if data["type"] in NODETYPES["products"]:
-                items.append(ProductItem(index, data))
-            elif data["type"] in NODETYPES["biosphere"]:
-                items.append(BiosphereItem(index, data))
-            else:
-                items.append(ui.widgets.ABDataItem(index, data))
+            items.append(ProductItem(index, data))
         return items
 
     def mimeData(self, indices: [QtCore.QModelIndex]):
@@ -251,21 +263,15 @@ class ProductModel(ui.widgets.ABAbstractItemModel):
 
 class ProductItem(ui.widgets.ABDataItem):
     def decorationData(self, col, key):
-        if key == "name":
-            if self["type"] == "product":
-                return ui.icons.qicons.product
-            elif self["type"] == "waste":
-                return ui.icons.qicons.waste
-            elif self["type"] == "processwithreferenceproduct":
+        if key == "Activity" and self["Activity"]:
+            if self["Type"] == "processwithreferenceproduct":
                 return ui.icons.qicons.processproduct
-        if key == "process_name":
+            if self["Type"] in NODETYPES["biosphere"]:
+                return ui.icons.qicons.biosphere
             return ui.icons.qicons.process
-
-
-class BiosphereItem(ui.widgets.ABDataItem):
-    def decorationData(self, col, key):
-        if key != "name":
-            return
-        return ui.icons.qicons.biosphere
-
+        if key == "Product":
+            if self["Type"] in ["product", "processwithreferenceproduct"]:
+                return ui.icons.qicons.product
+            elif self["Type"] == "waste":
+                return ui.icons.qicons.waste
 
