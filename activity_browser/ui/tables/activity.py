@@ -5,6 +5,8 @@ from logging import getLogger
 from qtpy import QtWidgets
 from qtpy.QtCore import Slot
 
+import bw2data as bd
+
 from activity_browser import actions
 
 from ..icons import qicons
@@ -124,12 +126,26 @@ class BaseExchangeTable(ABDataFrameView):
 
     def dragEnterEvent(self, event):
         if event.mimeData().hasFormat("application/bw-nodekeylist"):
+            keys: list = event.mimeData().retrievePickleData("application/bw-nodekeylist")
+            for key in keys:
+                act = bd.get_node(key=key)
+                if act["type"] not in bd.labels.product_node_types + ["processwithreferenceproduct"]:
+                    keys.remove(key)
+
+            if not keys:
+                return
+
             event.accept()
 
     def dropEvent(self, event):
         event.accept()
-        keys = event.mimeData().retrievePickleData("application/bw-nodekeylist")
-        log.debug(f"Dropevent from: {event.source} to: {self.__class__.__name__}")
+        log.debug(f"Dropevent from: {type(event.source()).__name__} to: {self.__class__.__name__}")
+        keys: list = event.mimeData().retrievePickleData("application/bw-nodekeylist")
+        for key in keys:
+            act = bd.get_node(key=key)
+            if act["type"] not in bd.labels.product_node_types + ["processwithreferenceproduct"]:
+                keys.remove(key)
+
         actions.ExchangeNew.run(keys, self.key, self._new_exchange_type)
 
     def get_usable_parameters(self):

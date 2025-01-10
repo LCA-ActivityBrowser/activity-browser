@@ -268,7 +268,9 @@ class ProductModel(ui.widgets.ABAbstractItemModel):
 
     def mimeData(self, indices: [QtCore.QModelIndex]):
         data = core.ABMimeData()
-        data.setPickleData("application/bw-nodekeylist", self.values_from_indices("Activity key", indices))
+        keys = set(self.values_from_indices("Activity Key", indices))
+        keys.update(self.values_from_indices("Product Key", indices))
+        data.setPickleData("application/bw-nodekeylist", list(keys))
         return data
 
     @staticmethod
