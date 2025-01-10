@@ -88,8 +88,8 @@ class DatabaseProductViewer(QtWidgets.QWidget):
             "Location": list(with_processor["location"]) + list(no_processor["location"]),
             "Product Key": list(with_processor["key"]) + [None] * len(no_processor),
             "Product ID": list(with_processor["id"]) + [None] * len(no_processor),
-            "Process Key": list(with_processor["processor"]) + list(no_processor["key"]),
-            "Process ID": list(with_processor["process_id"]) + list(no_processor["id"]),
+            "Activity Key": list(with_processor["processor"]) + list(no_processor["key"]),
+            "Activity ID": list(with_processor["process_id"]) + list(no_processor["id"]),
         })
 
         return final
@@ -125,8 +125,8 @@ class ProductView(ui.widgets.ABTreeView):
         def __init__(self, pos, view: "ProductView"):
             super().__init__(pos, view)
 
-            self.activity_open = actions.ActivityOpen.get_QAction(view.selected_processes)
-            self.activity_graph = actions.ActivityGraph.get_QAction(view.selected_processes)
+            self.activity_open = actions.ActivityOpen.get_QAction(view.selected_activities)
+            self.activity_graph = actions.ActivityGraph.get_QAction(view.selected_activities)
             self.process_new = actions.ActivityNewProcess.get_QAction(view.parent().database.name)
             self.activity_delete = actions.ActivityDelete.get_QAction(view.selected_products)
             # self.activity_relink = actions.ActivityRelink.get_QAction(view.selected_processes)
@@ -205,8 +205,8 @@ class ProductView(ui.widgets.ABTreeView):
         self.allFilter = ""
 
     def mouseDoubleClickEvent(self, event) -> None:
-        if self.selected_processes:
-            actions.ActivityOpen.run(self.selected_processes)
+        if self.selected_activities:
+            actions.ActivityOpen.run(self.selected_activities)
 
     def setAllFilter(self, query: str):
         self.allFilter = query
@@ -230,11 +230,13 @@ class ProductView(ui.widgets.ABTreeView):
 
     @property
     def selected_products(self) -> [tuple]:
-        return list(set(ProductModel.values_from_indices("key", self.selectedIndexes())))
+        items = [i.internalPointer() for i in self.selectedIndexes() if isinstance(i.internalPointer(), ProductItem)]
+        return list({item["Product Key"] for item in items if item["Product Key"] is not None})
 
     @property
-    def selected_processes(self) -> [tuple]:
-        return list(set(ProductModel.values_from_indices("processor", self.selectedIndexes())))
+    def selected_activities(self) -> [tuple]:
+        items = [i.internalPointer() for i in self.selectedIndexes() if isinstance(i.internalPointer(), ProductItem)]
+        return list({item["Activity Key"] for item in items if item["Activity Key"] is not None})
 
 
 class ProductModel(ui.widgets.ABAbstractItemModel):
@@ -247,7 +249,7 @@ class ProductModel(ui.widgets.ABAbstractItemModel):
 
     def mimeData(self, indices: [QtCore.QModelIndex]):
         data = core.ABMimeData()
-        data.setPickleData("application/bw-nodekeylist", self.get_keys(indices))
+        data.setPickleData("application/bw-nodekeylist", self.values_from_indices("Activity key", indices))
         return data
 
     @staticmethod
@@ -255,7 +257,7 @@ class ProductModel(ui.widgets.ABAbstractItemModel):
         values = []
         for index in indices:
             item = index.internalPointer()
-            if not item:
+            if not item or item[key] is None:
                 continue
             values.append(item[key])
         return values
