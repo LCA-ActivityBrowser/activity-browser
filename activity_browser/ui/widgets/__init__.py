@@ -7,7 +7,7 @@ from .dialog import (ActivityLinkingDialog, ActivityLinkingResultsDialog,
                      DatabaseLinkingDialog, DatabaseLinkingResultsDialog,
                      DefaultBiosphereDialog, EcoinventVersionDialog,
                      ExcelReadDialog, ForceInputDialog, LocationLinkingDialog,
-                     ProjectDeletionDialog, ScenarioDatabaseDialog,
+                     ScenarioDatabaseDialog,
                      TupleNameDialog)
 from .line_edit import (SignalledComboEdit, SignalledLineEdit,
                         SignalledPlainTextEdit)

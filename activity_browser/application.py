@@ -13,6 +13,8 @@ class ABApplication(QApplication):
     _main_window = None
     _controllers = None
 
+    windows = []
+
     @property
     def main_window(self) -> QWidget:
         """Returns the main_window widget of the Activity Browser"""

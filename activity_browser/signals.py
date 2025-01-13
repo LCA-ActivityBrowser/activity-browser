@@ -36,6 +36,7 @@ class DatabaseSignals(QObject):
 class ProjectSignals(QObject):
     changed: SignalInstance = Signal()
     created: SignalInstance = Signal()
+    deleted: SignalInstance = Signal(str)
 
 
 class MetaSignals(QObject):
@@ -210,6 +211,19 @@ def patch_methods_datastore():
     setattr(Method, "_deregister_signal", blinker_signal("ab.patched_method_deregister"))
 
 
+def patch_projects():
+    from bw2data.project import ProjectManager
+
+    def delete_project(self, name=None, delete_dir=False):
+        original_delete(self, name, delete_dir)
+        signals.project.deleted.emit(name)
+
+    original_delete = ProjectManager.delete_project
+
+    setattr(ProjectManager, "delete_project", delete_project)
+
+
 patch_methods_datastore()
+patch_projects()
 
 signals = ABSignals()

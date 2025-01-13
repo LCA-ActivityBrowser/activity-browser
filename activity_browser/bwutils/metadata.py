@@ -154,6 +154,8 @@ class MetaDataStore(QObject):
         df.drop(columns=["data"], inplace=True)
 
         df["key"] = df.loc[:, ["database", "code"]].apply(tuple, axis=1)
+        if df.empty:
+            return df
         df.index = pd.MultiIndex.from_tuples(df["key"])
         return df
 
