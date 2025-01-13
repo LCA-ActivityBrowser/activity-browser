@@ -10,6 +10,9 @@ from .abstractitem import ABAbstractItem, ABBranchItem, ABDataItem
 class ABAbstractItemModel(QtCore.QAbstractItemModel):
     grouped: SignalInstance = Signal(list)
 
+    dataItemClass = ABDataItem
+    branchItemClass = ABBranchItem
+
     def __init__(self, parent=None, dataframe=None):
         super().__init__(parent)
 
@@ -168,7 +171,7 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
         )
 
         # rebuild the ABItem tree
-        self.root = ABBranchItem("root")
+        self.root = self.branchItemClass("root")
         items = self.createItems(df)
 
         # if no grouping of Entries, just append everything as a direct child of the root ABItem
@@ -191,9 +194,9 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
         super().endResetModel()
 
     def createItems(self, dataframe=None) -> list["ABAbstractItem"]:
-        if not dataframe:
+        if dataframe is None:
             dataframe = self.dataframe
-        return [ABDataItem(index, data) for index, data in dataframe.to_dict(orient="index").items()]
+        return [self.dataItemClass(index, data) for index, data in dataframe.to_dict(orient="index").items()]
 
     def setDataFrame(self, dataframe: pd.DataFrame):
         self.beginResetModel()

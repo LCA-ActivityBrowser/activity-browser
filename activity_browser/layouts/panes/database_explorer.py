@@ -1,11 +1,10 @@
 from logging import getLogger
 
+import pandas as pd
 from qtpy import QtWidgets, QtCore, QtGui
 from qtpy.QtCore import Signal, SignalInstance
 
 import bw2data as bd
-from bw2data.backends import ActivityDataset
-from bw2data.errors import UnknownObject
 
 from activity_browser import actions, ui, project_settings, application, signals
 from activity_browser.ui import core
@@ -15,8 +14,8 @@ log = getLogger(__name__)
 
 
 DEFAULT_STATE = {
-    "columns": ["name", "activity", "activity type", "location", "unit"],
-    "visible_columns": ["name", "activity", "activity type", "location", "unit"],
+    "columns": ["Activity", "Product", "Type", "Unit", "Location"],
+    "visible_columns": ["Activity", "Product", "Type", "Unit", "Location"],
 }
 
 
@@ -30,16 +29,17 @@ NODETYPES = {
 
 class DatabaseExplorer(QtWidgets.QWidget):
 
-    def __init__(self, parent, db_name: str):
+    def __init__(self, db_name: str, parent=None):
         super().__init__(parent)
+        self.setWindowTitle("Database Explorer")
+
         self.database = bd.Database(db_name)
         self.model = NodeModel(self)
 
         # Create the QTableView and set the model
         self.table_view = NodeView(self)
         self.table_view.setModel(self.model)
-        self.model.setDataFrame(AB_metadata.get_database_metadata(db_name))
-        self.table_view.restoreSate(self.get_state_from_settings())
+        self.model.setDataFrame(pd.DataFrame.from_dict(bd.Database(db_name).load(), orient="index"))
 
         self.search = QtWidgets.QLineEdit(self)
         self.search.setMaximumHeight(30)
@@ -47,21 +47,9 @@ class DatabaseExplorer(QtWidgets.QWidget):
 
         self.search.textChanged.connect(self.table_view.setAllFilter)
 
-        self.tab_bar = QtWidgets.QTabBar(self)
-        self.tab_bar.setShape(QtWidgets.QTabBar.RoundedEast)
-
-        self.tab_bar.addTab("All Nodes")
-        self.tab_bar.addTab("Processes")
-        self.tab_bar.addTab("Products")
-        self.tab_bar.addTab("Biosphere")
-
-        self.tab_bar.tabBarClicked.connect(self.switch_types)
-
         table_layout = QtWidgets.QHBoxLayout()
         table_layout.setSpacing(0)
         table_layout.addWidget(self.table_view)
-        table_layout.addWidget(self.tab_bar)
-        table_layout.setAlignment(self.tab_bar, QtCore.Qt.AlignmentFlag.AlignTop)
 
         layout = QtWidgets.QVBoxLayout(self)
         layout.addWidget(self.search)
@@ -76,27 +64,52 @@ class DatabaseExplorer(QtWidgets.QWidget):
         self.table_view.query_changed.connect(self.search_error)
 
     def sync(self):
-        self.model.setDataFrame(AB_metadata.get_database_metadata(self.database.name))
+        self.model.setDataFrame(self.build_df())
 
-    def switch_types(self, index) -> None:
-        node_map = ["all_nodes", "processes", "products", "biosphere"]
-        key = node_map[index]
-        self.table_view.setNodeTypes(NODETYPES[key])
-        return
+    def build_df(self) -> pd.DataFrame:
+        full_df = AB_metadata.get_database_metadata(self.database.name)
+
+        expected = ["processor", "product", "type", "unit", "location", "id", "categories"]
+        for column_name in expected:
+            if column_name not in full_df.columns:
+                full_df[column_name] = None
+
+        with_processor = full_df[full_df.processor.isin(full_df.key)].copy()
+        with_processor["process_name"] = full_df.loc[with_processor.processor].set_index(with_processor.index).name
+        with_processor["process_id"] = full_df.loc[with_processor.processor].set_index(with_processor.index).id
+
+        no_processor = full_df[full_df.processor.isin(full_df.key) == False].copy()
+        no_processor.drop(no_processor[no_processor.key.isin(with_processor.processor)].index, inplace=True)
+        no_processor.drop(no_processor[no_processor.type == "readonly_process"].index, inplace=True)
+
+        final = pd.DataFrame({
+            "Activity": list(with_processor["process_name"]) + list(no_processor["name"]),
+            "Product": list(with_processor["name"]) + list(no_processor["product"]),
+            "Type": list(with_processor["type"]) + list(no_processor["type"]),
+            "Unit": list(with_processor["unit"]) + list(no_processor["unit"]),
+            "Location": list(with_processor["location"]) + list(no_processor["location"]),
+            "Categories": list(with_processor["categories"]) + list(no_processor["categories"]),
+            "Product Key": list(with_processor["key"]) + [None] * len(no_processor),
+            "Product ID": list(with_processor["id"]) + [None] * len(no_processor),
+            "Activity Key": list(with_processor["processor"]) + list(no_processor["key"]),
+            "Activity ID": list(with_processor["process_id"]) + list(no_processor["id"]),
+        })
+
+        if "properties" in with_processor.columns:
+            for key, props in with_processor["properties"].dropna().items():
+                if not isinstance(props, dict):
+                    continue
+
+                for prop, value in props.items():
+                    final.loc[final["Product Key"] == key, f"Property: {prop}"] = value
+
+        return final
 
     def event(self, event):
-        if event.type() == QtCore.QEvent.DeferredDelete:
+        if event.type() == QtCore.QEvent.Type.DeferredDelete:
             self.save_state_to_settings()
 
         return super().event(event)
-
-    def save_state_to_settings(self):
-        project_settings.settings["database_explorer"] = project_settings.settings.get("database_explorer", {})
-        project_settings.settings["database_explorer"][self.database.name] = self.table_view.saveState()
-        project_settings.write_settings()
-
-    def get_state_from_settings(self):
-        return project_settings.settings.get("database_explorer", {}).get(self.database.name, DEFAULT_STATE)
 
     def search_error(self, reset=False):
         if reset:
@@ -108,35 +121,22 @@ class DatabaseExplorer(QtWidgets.QWidget):
         self.search.setPalette(palette)
 
 
-# class NodeViewMenuFactory(ui.widgets.ABTreeView.menuFactoryClass):
-#
-#     def createMenu(self, pos: QtCore.QPoint):
-#         """Designed to be passed to customContextMenuRequested.connect"""
-#         if self.view.indexAt(pos).row() == -1:
-#             menu = NodeViewContextMenu.init_none(self.view)
-#         else:
-#             menu = NodeViewContextMenu.init_single(self.view)
-#         menu.exec_(self.view.mapToGlobal(pos))
-
-
 class NodeView(ui.widgets.ABTreeView):
     query_changed: SignalInstance = Signal(bool)
-    # menuFactoryClass = NodeViewMenuFactory
 
     def __init__(self, parent: DatabaseExplorer):
         super().__init__(parent)
         self.setSortingEnabled(True)
         self.setDragEnabled(True)
-        self.setDragDropMode(QtWidgets.QTableView.DragOnly)
-        self.setSelectionBehavior(ui.widgets.ABTreeView.SelectRows)
-        self.setSelectionMode(ui.widgets.ABTreeView.ExtendedSelection)
+        self.setDragDropMode(QtWidgets.QTableView.DragDropMode.DragOnly)
+        self.setSelectionBehavior(ui.widgets.ABTreeView.SelectionBehavior.SelectRows)
+        self.setSelectionMode(ui.widgets.ABTreeView.SelectionMode.ExtendedSelection)
 
         self.allFilter = ""
-        self.nodeTypes = []
 
-    def mouseDoubleClickEvent(self, event) -> None:
-        if self.selected_keys:
-            actions.ActivityOpen.run(self.selected_keys)
+    # def mouseDoubleClickEvent(self, event) -> None:
+    #     if self.selected_activities:
+    #         actions.ActivityOpen.run(self.selected_activities)
 
     def setAllFilter(self, query: str):
         self.allFilter = query
@@ -147,199 +147,44 @@ class NodeView(ui.widgets.ABTreeView):
             print(f"Error in query: {type(e).__name__}: {e}")
             self.query_changed.emit(False)
 
-    def setNodeTypes(self, node_types: list):
-        self.nodeTypes = node_types
-        self.applyFilter()
-
     def buildQuery(self) -> str:
-        if self.nodeTypes:
-            node_query = " | ".join([f"(type == '{node_type}')" for node_type in self.nodeTypes])
-            node_query = f" & ({node_query})"
-        else:
-            node_query = ""
+        node_query = ""
 
         if self.allFilter.startswith('='):
             return super().buildQuery() + f" & ({self.allFilter[1:]})" + node_query
 
-        col_names = [self.model().columns[i] for i in range(1, len(self.model().columns)) if not self.isColumnHidden(i)]
+        col_names = [self.model().columns[i] for i in range(len(self.model().columns)) if not self.isColumnHidden(i)]
 
-        q = " | ".join([f"(`{col}`.astype('str').str.contains('{self.format_query(self.allFilter)}'))" for col in col_names])
+        q = " | ".join([f"(`{col}`.astype('str').str.contains('{self.format_query(self.allFilter)}', False))" for col in col_names])
         return super().buildQuery() + f" & ({q})" + node_query if q else super().buildQuery() + node_query
-
-    @property
-    def selected_keys(self) -> [tuple]:
-        return self.model().get_keys(self.selectedIndexes())
-
-
-class NodeViewContextMenu(QtWidgets.QMenu):
-    def __init__(self, parent: NodeView):
-        super().__init__(parent)
-
-        self.activity_open = actions.ActivityOpen.get_QAction(parent.selected_keys)
-        self.activity_graph = actions.ActivityGraph.get_QAction(parent.selected_keys)
-        self.process_new = actions.ActivityNewProcess.get_QAction(parent.parent().database.name)
-        self.activity_delete = actions.ActivityDelete.get_QAction(parent.selected_keys)
-        self.activity_relink = actions.ActivityRelink.get_QAction(parent.selected_keys)
-
-        self.activity_duplicate = actions.ActivityDuplicate.get_QAction(parent.selected_keys)
-        self.activity_duplicate_to_loc = actions.ActivityDuplicateToLoc.get_QAction(parent.selected_keys[0] if parent.selected_keys else None)
-        self.activity_duplicate_to_db = actions.ActivityDuplicateToDB.get_QAction(parent.selected_keys)
-
-        self.copy_sdf = QtWidgets.QAction(ui.icons.qicons.superstructure, "Exchanges for scenario difference file", None)
-
-        self.addAction(self.activity_open)
-        self.addAction(self.activity_graph)
-        self.addAction(self.process_new)
-        self.addMenu(self.duplicates_menu())
-        self.addAction(self.activity_delete)
-        self.addAction(self.activity_relink)
-        self.addMenu(self.copy_menu())
-
-    @classmethod
-    def init_none(cls, parent: NodeView):
-        menu = cls(parent)
-
-        menu.clear()
-        menu.addAction(menu.process_new)
-
-        return menu
-
-    @classmethod
-    def init_single(cls, parent: NodeView):
-        menu = cls(parent)
-
-        menu.activity_open.setText(f"Open activity")
-        menu.activity_graph.setText(f"Open activity in Graph Explorer")
-        menu.activity_duplicate.setText(f"Duplicate activity")
-        menu.activity_delete.setText(f"Delete activity")
-
-        return menu
-
-    @classmethod
-    def init_multiple(cls, parent: NodeView):
-        menu = cls(parent)
-
-        menu.activity_open.setText(f"Open activities")
-        menu.activity_graph.setText(f"Open activities in Graph Explorer")
-        menu.activity_duplicate.setText(f"Duplicate activities")
-        menu.activity_delete.setText(f"Delete activities")
-
-        menu.activity_duplicate_to_loc.setEnabled(False)
-        menu.activity_relink.setEnabled(False)
-
-        return menu
-
-    def duplicates_menu(self):
-        menu = QtWidgets.QMenu(self)
-
-        menu.setTitle(f"Duplicate activities")
-        menu.setIcon(ui.icons.qicons.copy)
-
-        menu.addAction(self.activity_duplicate)
-        menu.addAction(self.activity_duplicate_to_loc)
-        menu.addAction(self.activity_duplicate_to_db)
-        return menu
-
-    def copy_menu(self):
-        menu = QtWidgets.QMenu(self)
-
-        menu.setTitle(f"Copy to clipboard")
-        menu.setIcon(ui.icons.qicons.copy_to_clipboard)
-
-        menu.addAction(self.copy_sdf)
-        return menu
 
 
 class NodeModel(ui.widgets.ABAbstractItemModel):
 
-    def mimeData(self, indices: [QtCore.QModelIndex]):
-        data = core.ABMimeData()
-        data.setPickleData("application/bw-nodekeylist", self.get_keys(indices))
-        return data
-
-    def get_keys(self, indices: list[QtCore.QModelIndex]):
-        keys = []
-        for index in indices:
-            item = index.internalPointer()
-            if not item:
-                continue
-            keys.append(item["key"])
-        return list(set(keys))
-
-    def createItems(self) -> list[ui.widgets.ABDataItem]:
+    def createItems(self, dataframe=None) -> list[ui.widgets.ABDataItem]:
         items = []
-        for index, data in self.dataframe.to_dict(orient="index").items():
-            if data["type"] in ["process", "multifunctional", "readonly_process", "nonfunctional"]:
-                items.append(ProcessItem(index, data))
-            elif data["type"] in NODETYPES["products"]:
-                items.append(ProductItem(index, data))
-            elif data["type"] in NODETYPES["biosphere"]:
-                items.append(BiosphereItem(index, data))
-            else:
-                items.append(ui.widgets.ABDataItem(index, data))
+        for index, data in dataframe.to_dict(orient="index").items():
+            items.append(NodeItem(index, data))
         return items
 
+    def mimeData(self, indices: [QtCore.QModelIndex]):
+        data = core.ABMimeData()
+        keys = set(self.values_from_indices("Activity Key", indices))
+        keys.update(self.values_from_indices("Product Key", indices))
+        data.setPickleData("application/bw-nodekeylist", list(keys))
+        return data
 
-class ProcessItem(ui.widgets.ABDataItem):
-
-    def __init__(self, index, data):
-        super().__init__(index, data)
-        self.deferred_child_keys = []
-        self.deferred_child_values = {}
-        self.loaded = False
-
-    def has_children(self) -> bool:
-        return True
-
-    def children(self):
-        if not self.loaded:
-            self.deferred_load()
-
-        return self._child_items
-
-    def decorationData(self, key):
-        if key != "name":
-            return
-        if self["type"] in ["process", "multifunctional", "nonfunctional"]:
-            return ui.icons.qicons.process
-        elif self["type"] == "readonly_process":
-            return ui.icons.qicons.readonly_process
-
-    def deferred_load(self):
-        import bw2data as bd
-
-        self.loaded = True
-
-        act = bd.get_activity(key=self.data["key"])
-        try:
-            products = [x.input for x in act.production()]
-        except UnknownObject:
-            log.error(f"Broken exchanges for product: {self.data["name"]}")
-            return
-
-        for product in products:
-            data = dict(product)
-            data["key"] = product.key
-            item = ProductItem(product.id, data)
-            item.set_parent(self)
+    @staticmethod
+    def values_from_indices(key: str, indices: list[QtCore.QModelIndex]):
+        values = []
+        for index in indices:
+            item = index.internalPointer()
+            if not item or item[key] is None:
+                continue
+            values.append(item[key])
+        return values
 
 
-class ProductItem(ui.widgets.ABDataItem):
-    def decorationData(self, key):
-        if key != "name":
-            return
-        if self["type"] == "product":
-            return ui.icons.qicons.product
-        elif self["type"] == "waste":
-            return ui.icons.qicons.waste
-        elif self["type"] == "processwithreferenceproduct":
-            return ui.icons.qicons.processproduct
-
-
-class BiosphereItem(ui.widgets.ABDataItem):
-    def decorationData(self, key):
-        if key != "name":
-            return
-        return ui.icons.qicons.biosphere
-
+class NodeItem(ui.widgets.ABDataItem):
+    pass
 
