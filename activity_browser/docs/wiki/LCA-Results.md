@@ -103,7 +103,7 @@ There are several ways Activity Browser manipulates your results by default:
 - A `cut-off` of 5% is applied, this only shows results that contribute at least 5% to the total range of results, 
   all other entities are grouped into the `Rest (+)` and `Rest (-)` groups for positive and negative 
   contributions respectively.
-- The contributions are _normalized_ to the [range of results](#range-and-score) of that reference flow, 
+- The contributions are _normalized_ to the range of results of that reference flow, 
   meaning contributions are shown as a percentage contribution of the range, counting up to 100%.
 
 These defaults exist to show you the most relevant results in most cases, but you may often want to make this more 
@@ -146,15 +146,18 @@ You can disable one of them if you want to focus on the other.
 #### Relative and Absolute
 You can choose between `Relative` and `Absolute` results.
 The `Relative` results will sum to 100% (the total score), the `Absolute` results will sum to the impact score.
+For `Relative`, you can choose what you use as the 100% reference, the `Range` or the `Score`.
 
 #### Range and Score
 The `Range`/`Score` determines what you use as the _total_ to which the contributions are counted. 
 - For `Range`, this is the full _range_ of results
   - For example, if all your negative results together have a score of -2 and all your positive results together have a 
     score of 10, the _range_ is 12 (-2 * -1 + 10).
+  - An entity with a contribution of 4 would have a relative contribution of 4/12 = 33.3...%. 
 - For `Score`, this is the total score (sum) of the results
   - For example, if all your negative results together have a score of -2 and all your positive results together have a 
     score of 10, the _score_ is 8 (-2 + 10).
+  - An entity with a contribution of 4 would have a relative contribution of 4/8 = 50%.
 
 The `Range` or `Score` setting are only relevant when your results contain both positive and negative contributions.
 

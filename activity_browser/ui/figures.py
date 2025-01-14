@@ -128,8 +128,8 @@ class LCAResultsPlot(Plot):
         )  # get rid of all non-numeric columns (metadata)
         if "amount" in dfp.columns:
             dfp.drop(["amount"], axis=1, inplace=True)  # Drop the 'amount' col
-        if "Total" in dfp.index:
-            dfp.drop("Total", inplace=True)
+        if "Score" in dfp.index:
+            dfp.drop("Score", inplace=True)
 
         # avoid figures getting too large horizontally
         dfp.index = [wrap_text(i, max_length=40) for i in dfp.index]
@@ -191,8 +191,8 @@ class ContributionPlot(Plot):
         dfp.drop(
             dfp.select_dtypes(["object"]), axis=1, inplace=True
         )  # get rid of all non-numeric columns (metadata)
-        if "Total" in dfp.index:
-            dfp.drop("Total", inplace=True)
+        if "Score" in dfp.index:
+            dfp.drop("Score", inplace=True)
         # drop rows if all values are 0
         dfp = dfp.loc[~(dfp == 0).all(axis=1)]
 

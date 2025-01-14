@@ -1276,11 +1276,11 @@ class FirstTierContributionsTab(ContributionTab):
     def __init__(self, cs_name, parent=None):
         super().__init__(parent)
 
-        self.cache = {"totals": {}}  # We cache the calculated data, as it can take some time to generate.
+        self.cache = {"scores": {}, "ranges": {}}  # We cache the calculated data, as it can take some time to generate.
         # We cache the individual calculation results, as they are re-used in multiple views
         # e.g. FU1 x method1 x scenario1
         # may be seen in both 'Reference Flows' and 'Impact Categories', just with different axes.
-        # we also cache totals, not for calculation speed, but to be able to easily convert for relative results
+        # we also cache scores/ranges, not for calculation speed, but to be able to easily convert for relative results
         self.caching = True  # set to False to disable caching for debug
 
         header = get_header_layout_w_help("First Tier Contributions", self.help_button)
@@ -1461,9 +1461,10 @@ class FirstTierContributionsTab(ContributionTab):
         if score == 0:
             # no need to calculate contributions to '0' score
             # technically it could be that positive and negative score of same amount negate to 0, but highly unlikely.
-            return {"Total": 0, demand_key: 0}
+            return {"Score": 0, "Range": 0, demand_key: 0}
 
-        data = {"Total": score}
+        data = {"Score": score}
+        _range = []
         remainder = score  # contribution of demand_key
 
         if not scenario_lca:
@@ -1482,9 +1483,12 @@ class FirstTierContributionsTab(ContributionTab):
             if score != 0:
                 # only store non-zero results
                 data[key] = score
+                _range.append(abs(score))
                 remainder -= score  # subtract this from remainder
 
         data[demand_key] = remainder
+        _range.append(abs(remainder))
+        data["Range"] = sum(_range)
         return data
 
     def key_to_metadata(self, key: tuple) -> list:
@@ -1522,7 +1526,8 @@ class FirstTierContributionsTab(ContributionTab):
             elif compare == "Scenarios":
                 col_name = item
 
-            self.cache["totals"][col_name] = data["Total"]
+            self.cache["scores"][col_name] = data["Score"]
+            self.cache["ranges"][col_name] = data["Range"]
             d[col_name] = []
 
             all_data[i] = item, data, col_name
@@ -1531,7 +1536,7 @@ class FirstTierContributionsTab(ContributionTab):
 
         # convert to dict format to feed into dataframe
         for key in unique_keys:
-            if key == "Total":
+            if key in ["Score", "Range"]:
                 continue
             # get metadata
             metadata = self.key_to_metadata(key)
@@ -1594,31 +1599,34 @@ class FirstTierContributionsTab(ContributionTab):
             df.sort_values(by="_sort_me_", ascending=False, inplace=True)
             del df["_sort_me_"]
 
-        # add the total and rest values
-        total_and_rest = {col: [] for col in df}
+        # add the scores and rest values
+        score_and_rest = {col: [] for col in df}
         for col in df:
             if col == "index":
-                total_and_rest[col].extend(["Total", "Rest (+)", "Rest (-)"])
+                score_and_rest[col].extend(["Score", "Rest (+)", "Rest (-)"])
             elif col in data_cols:
-                # total
-                total = self.cache["totals"][col]
+                # score
+                score = self.cache["scores"][col]
                 # positive and negative rest values
                 pos_rest = (np.sum((all_contributions[col].values)[all_contributions[col].values > 0])
                             - np.sum((df[col].values)[df[col].values > 0]))
                 neg_rest = (np.sum((all_contributions[col].values)[all_contributions[col].values < 0])
                             - np.sum((df[col].values)[df[col].values < 0]))
 
-                total_and_rest[col].extend([total, pos_rest, neg_rest])
+                score_and_rest[col].extend([score, pos_rest, neg_rest])
             else:
-                total_and_rest[col].extend(["", "", ""])
+                score_and_rest[col].extend(["", "", ""])
 
         # add the two df together
-        df = pd.concat([pd.DataFrame(total_and_rest), df], axis=0)
+        df = pd.concat([pd.DataFrame(score_and_rest), df], axis=0)
 
         # normalize
         if self.relative:
-            totals = [self.cache["totals"][col] for col in data_cols]
-            df[data_cols] = df[data_cols] / totals
+            if self.total_range:
+                normalize = [self.cache["ranges"][col] for col in data_cols]
+            else:
+                normalize = [self.cache["scores"][col] for col in data_cols]
+            df[data_cols] = df[data_cols] / normalize
 
         return df
 

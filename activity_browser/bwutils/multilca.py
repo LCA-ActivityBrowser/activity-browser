@@ -441,12 +441,13 @@ class Contributions(object):
         for fu_or_method, col in FU_M_index.items():
             contribution_col = contributions[col, :]
             if total_range:  # total is based on the range
-                total = np.abs(contribution_col).sum()
+                normalize_to = np.abs(contribution_col).sum()
             else:  # total is based on the score
-                total = contribution_col.sum()
+                normalize_to = contribution_col.sum()
+            score = contribution_col.sum()
 
             top_contribution = ca.sort_array(
-                contribution_col, limit=limit, limit_type=limit_type, total=total
+                contribution_col, limit=limit, limit_type=limit_type, total=normalize_to
             )
 
             # split and calculate remaining rest sections for positive and negative part
@@ -462,7 +463,7 @@ class Contributions(object):
             cont_per = OrderedDict()
             cont_per.update(
                 {
-                    ("Total", ""): total,
+                    ("Score", ""): score,
                     ("Rest (+)", ""): pos_rest,
                     ("Rest (-)", ""): neg_rest,
                 }
@@ -606,7 +607,7 @@ class Contributions(object):
         # If the cont_dict has tuples for keys, coerce df.columns into MultiIndex
         if all(isinstance(k, tuple) for k in cont_dict.keys()):
             df.columns = pd.MultiIndex.from_tuples(df.columns)
-        special_keys = [("Total", ""), ("Rest (+)", ""), ("Rest (-)", "")]
+        special_keys = [("Score", ""), ("Rest (+)", ""), ("Rest (-)", "")]
         # replace all 0 values with NaN and drop all rows with only NaNs
         df = df.replace(0, np.nan)
 
@@ -642,7 +643,7 @@ class Contributions(object):
         """Given a dataframe, adjust the unit of the table to either match the given method, or not exist."""
         if "unit" not in df.columns:
             return df
-        keys = df.index[~df["index"].isin({"Total", "Rest (+)", "Rest (-)"})]
+        keys = df.index[~df["index"].isin({"Score", "Rest (+)", "Rest (-)"})]
         unit = bd.Method(method).metadata.get("unit") if method else "unit"
         df.loc[keys, "unit"] = unit
         return df
