@@ -394,20 +394,24 @@ class Contributions(object):
             ),
         }
 
-    def normalize(self, contribution_array: np.ndarray) -> np.ndarray:
-        """Normalise the contribution array.
+    def normalize(self, contribution_array: np.ndarray, total_range:bool=True) -> np.ndarray:
+        """Normalize the contribution array based on range or score
 
         Parameters
         ----------
         contribution_array : A 2-dimensional contribution array
+        total_range : A bool, True for normalization based on range, False for score
 
         Returns
         -------
         2-dimensional array of same shape, with scores normalized.
 
         """
-        scores = abs(contribution_array.sum(axis=1, keepdims=True))
-        return contribution_array / scores
+        if total_range:  # total is based on the range
+            total = abs(abs(contribution_array).sum(axis=1, keepdims=True))
+        else:  # total is based on the score
+            total = abs(contribution_array.sum(axis=1, keepdims=True))
+        return contribution_array / total
 
     def _build_dict(
         self,
@@ -850,7 +854,7 @@ class Contributions(object):
 
         # Normalise if required
         if normalize:
-            contributions = self.normalize(contributions)
+            contributions = self.normalize(contributions, total_range)
 
         top_cont_dict = self._build_dict(
             contributions, index, rev_index, limit, limit_type, total_range
@@ -906,7 +910,7 @@ class Contributions(object):
 
         # Normalise if required
         if normalize:
-            contributions = self.normalize(contributions)
+            contributions = self.normalize(contributions, total_range)
 
         top_cont_dict = self._build_dict(
             contributions, index, rev_index, limit, limit_type, total_range
