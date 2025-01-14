@@ -607,12 +607,13 @@ class Contributions(object):
         # If the cont_dict has tuples for keys, coerce df.columns into MultiIndex
         if all(isinstance(k, tuple) for k in cont_dict.keys()):
             df.columns = pd.MultiIndex.from_tuples(df.columns)
+
         special_keys = [("Score", ""), ("Rest (+)", ""), ("Rest (-)", "")]
         # replace all 0 values with NaN and drop all rows with only NaNs
         df = df.replace(0, np.nan)
 
         # sort on absolute mean of a row
-        df_bot = deepcopy(df.loc[df.index.difference(special_keys)].dropna(how="all"))
+        df_bot = deepcopy(df.iloc[3:, :])
 
         func = lambda row: np.nanmean(np.abs(row))
         if len(df_bot) > 1:  # but only sort if there is something to sort
@@ -621,6 +622,7 @@ class Contributions(object):
             del df_bot["_sort_me_"]
 
         df = pd.concat([df.iloc[:3, :], df_bot], axis=0)
+        df.dropna(how="all", inplace=True)
 
         if not mask:
             joined = self.join_df_with_metadata(
