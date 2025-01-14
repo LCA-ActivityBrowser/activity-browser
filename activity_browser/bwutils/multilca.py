@@ -612,10 +612,9 @@ class Contributions(object):
         # replace all 0 values with NaN and drop all rows with only NaNs
         df = df.replace(0, np.nan)
 
-        # sort on absolute mean of a row
+        # sort on mean square of a row
         df_bot = deepcopy(df.iloc[3:, :])
-
-        func = lambda row: np.nanmean(np.abs(row))
+        func = lambda row: np.nanmean(np.square(row))
         if len(df_bot) > 1:  # but only sort if there is something to sort
             df_bot["_sort_me_"] = (df_bot.select_dtypes(include=np.number)).apply(func, axis=1)
             df_bot.sort_values(by="_sort_me_", ascending=False, inplace=True)

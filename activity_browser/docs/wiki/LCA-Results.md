@@ -99,7 +99,8 @@ In this section we generalize a little bit for the different contribution approa
 we call the _from_ part of the contributions (the EFs or activities or FT above) _entities_.
 
 There are several ways Activity Browser manipulates your results by default:
-- The results are **sorted** so that the row with the largest (absolute) average values are shown first.
+- The results are **sorted** so that the most important contributions are shown first.
+  - The sorting is done on the _mean square_ (ignoring zero values) of each row of contributing entities.
 - A `cut-off` of 5% is applied, this only shows results that contribute at least 5% to the total range of results, 
   all other entities are grouped into the `Rest (+)` and `Rest (-)` groups for positive and negative 
   contributions respectively.

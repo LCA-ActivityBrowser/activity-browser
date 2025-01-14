@@ -1592,8 +1592,8 @@ class FirstTierContributionsTab(ContributionTab):
         # drop any rows not contributing to anything
         df = df.dropna(subset=data_cols, how="all")
 
-        # sort by absolute mean
-        func = lambda row: np.nanmean(np.abs(row))
+        # sort by mean square of each row
+        func = lambda row: np.nanmean(np.square(row))
         if len(df) > 1:  # but only sort if there is something to sort
             df["_sort_me_"] = df[data_cols].apply(func, axis=1)
             df.sort_values(by="_sort_me_", ascending=False, inplace=True)
