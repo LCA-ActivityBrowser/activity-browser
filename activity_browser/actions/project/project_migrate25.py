@@ -1,12 +1,11 @@
-import shutil
+from qtpy import QtWidgets, QtGui, QtCore
 
-from qtpy import QtWidgets
-
-from bw2data.project import projects, ProjectDataset, safe_filename, create_dir
+from bw2data.project import projects
 
 from activity_browser import application
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.ui.icons import qicons
+from activity_browser.ui.threading import ABThread
 
 
 class ProjectMigrate25(ABAction):
@@ -26,35 +25,66 @@ class ProjectMigrate25(ABAction):
         if name is None:
             name = projects.current
 
-        new_name, ok = QtWidgets.QInputDialog.getText(
-            application.main_window,
-            "Migrate project",
-            f"Migrate project ({name}) to Brightway25 project with name:"
-            + " " * 10,
+        dialog = MigrateDialog(name, application.main_window)
+        dialog.exec_()
+
+        if dialog.result() == dialog.DialogCode.Rejected:
+            return
+
+        if name != projects.current:
+            projects.set_current(name, update=False)
+
+        # setup dialog
+        progress = QtWidgets.QProgressDialog(
+            parent=application.main_window,
+            labelText="Migrating project, this may take a while...",
+            maximum=0
         )
+        progress.setCancelButton(None)
+        progress.setWindowTitle("Migrating project to Brightway25")
+        progress.setWindowFlag(QtCore.Qt.WindowContextHelpButtonHint, False)
+        progress.setWindowFlag(QtCore.Qt.WindowCloseButtonHint, False)
+        progress.findChild(QtWidgets.QProgressBar).setTextVisible(False)
+        progress.resize(400, 100)
+        progress.show()
 
-        if not ok or not new_name:
-            return
+        thread = MigrateThread(application)
+        thread.finished.connect(lambda: progress.deleteLater())
+        thread.start()
 
-        if new_name in projects:
-            QtWidgets.QMessageBox.information(
-                application.main_window,
-                "Not possible.",
-                "A project with this name already exists.",
-            )
-            return
 
-        ds = ProjectDataset.get(ProjectDataset.name == name)
+class MigrateDialog(QtWidgets.QDialog):
+    def __init__(self, project_name: str, parent=None):
+        from .project_export import ProjectExport
 
-        old_fp = projects._base_data_dir / safe_filename(ds.name, full=ds.full_hash)
-        new_fp = projects._base_data_dir / safe_filename(new_name, full=ds.full_hash)
-        if new_fp.exists():
-            raise ValueError("Project directory already exists")
+        super().__init__(parent)
+        self.setWindowTitle("Migrate project")
+        label = QtWidgets.QLabel(f"Migrate project ({project_name}) from legacy to Brightway25. This cannot be undone.")
 
-        ProjectDataset.create(data=ds.data, name=new_name, full_hash=ds.full_hash)
+        cancel = QtWidgets.QPushButton("Cancel")
+        migrate = QtWidgets.QPushButton("Migrate")
+        backup = ProjectExport.get_QButton(project_name)
+        backup.setText("Back-up project")
+        backup.setIcon(QtGui.QIcon())
 
-        shutil.copytree(old_fp, new_fp)
-        create_dir(projects._base_logs_dir / safe_filename(new_name))
+        cancel.clicked.connect(self.reject)
+        migrate.clicked.connect(self.accept)
 
-        projects.set_current(new_name)
+        button_layout = QtWidgets.QHBoxLayout()
+        button_layout.addWidget(backup)
+        button_layout.addStretch()
+        button_layout.addWidget(cancel)
+        button_layout.addWidget(migrate)
+
+        layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(label)
+        layout.addLayout(button_layout)
+
+        self.setLayout(layout)
+
+
+class MigrateThread(ABThread):
+    def run_safely(self):
         projects.migrate_project_25()
+        projects.set_current(projects.current)
+

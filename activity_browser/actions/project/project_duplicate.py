@@ -5,6 +5,8 @@ from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.mod import bw2data as bd
 from activity_browser.ui.icons import qicons
 
+from .project_switch import ProjectSwitch
+
 
 class ProjectDuplicate(ABAction):
     """
@@ -42,5 +44,6 @@ class ProjectDuplicate(ABAction):
             return
 
         if name != bd.projects.current:
-            bd.projects.set_current(name)
-        bd.projects.copy_project(new_name)
+            bd.projects.set_current(name, update=False)
+        bd.projects.copy_project(new_name, switch=False)  # don't switch because it will auto-update bw2 projects
+        ProjectSwitch.run(new_name)  # switch using the action instead
