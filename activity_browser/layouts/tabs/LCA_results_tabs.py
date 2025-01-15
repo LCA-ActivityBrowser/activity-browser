@@ -85,7 +85,7 @@ Tabs = namedtuple(
     "tabs", ("inventory", "results", "ef", "process", "ft", "sankey", "mc", "gsa")
 )
 Relativity = namedtuple("relativity", ("relative", "absolute"))
-TotalMenu = namedtuple("total_menu", ("range", "score"))
+TotalMenu = namedtuple("total_menu", ("score", "range"))
 ExportTable = namedtuple("export_table", ("label", "copy", "csv", "excel"))
 ExportPlot = namedtuple("export_plot", ("label", "png", "svg"))
 PlotTableCheck = namedtuple("plot_table_space", ("plot", "table", "invert"))
@@ -302,8 +302,8 @@ class NewAnalysisTab(BaseRightTab):
             self.relativity.relative.toggled.connect(self.relativity_check)
         if self.total_menu:
             row.addWidget(vertical_line())
-            row.addWidget(self.total_menu.range)
             row.addWidget(self.total_menu.score)
+            row.addWidget(self.total_menu.range)
             self.total_menu.range.toggled.connect(self.total_check)
         row.addStretch()
 
@@ -940,22 +940,22 @@ class ContributionTab(NewAnalysisTab):
         self.relativity_group.addButton(self.relativity.absolute)
 
         self.total_menu = TotalMenu(
-            QRadioButton("Range"),
             QRadioButton("Score"),
+            QRadioButton("Range"),
         )
-        self.total_menu.range.setChecked(True)
-        self.total_range = True
-        self.total_menu.range.setToolTip(
-            "Show the contribution relative to the total <i>range</i> of results.\n"
-            "e.g. total negative results is -2 and total positive results is 10, then range is 12 (-2 * -1 + 10)"
-        )
+        self.total_menu.score.setChecked(True)
+        self.total_range = False
         self.total_menu.score.setToolTip(
             "Show the contributions relative to the <i>total</i> impact score.\n"
             "e.g. total negative results is -2 and total positive results is 10, then score is 8 (-2 + 10)"
         )
+        self.total_menu.range.setToolTip(
+            "Show the contribution relative to the total <i>range</i> of results.\n"
+            "e.g. total negative results is -2 and total positive results is 10, then range is 12 (-2 * -1 + 10)"
+        )
         self.total_group = QButtonGroup(self)
-        self.total_group.addButton(self.total_menu.range)
         self.total_group.addButton(self.total_menu.score)
+        self.total_group.addButton(self.total_menu.range)
 
         self.df = None
         self.plot = ContributionPlot()

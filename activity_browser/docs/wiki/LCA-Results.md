@@ -99,17 +99,17 @@ In this section we generalize a little bit for the different contribution approa
 we call the _from_ part of the contributions (the EFs or activities or FT above) _entities_.
 
 There are several ways Activity Browser manipulates your results by default:
-- The results are **sorted** so that the most important contributions are shown first.
+- All reference flows are compared to eachother.
+- The contributions are **sorted** so that the most important contributions are shown first.
   - The sorting is done on the _mean square_ (ignoring zero values) of each row of contributing entities.
 - A `cut-off` of 5% is applied, this only shows results that contribute at least 5% to the total range of results, 
   all other entities are grouped into the `Rest (+)` and `Rest (-)` groups for positive and negative 
   contributions respectively.
-- The contributions are _normalized_ to the range of results of that reference flow, 
-  meaning contributions are shown as a percentage contribution of the range, counting up to 100%.
+- The contributions are _normalized_ to the LCA scores, 
+  meaning contributions are shown as a percentage contribution of the score, counting up to 100%.
 
 These defaults exist to show you the most relevant results in most cases, but you may often want to make this more 
 specific for your analysis. 
-
 You can manually manipulate the contribution results in the menu shown below, which we will explain bit by bit 
 in the next sections.
 ![contributions cutoff](./assets/contribution_manipulation.png)
@@ -135,6 +135,7 @@ The compare mode defines what is shown in the figure.
 
 #### Aggregation
 The `Aggregate by` menu can be used to _group_ results based on field names.
+This is useful to group contributors together so you have fewer -and larger- contributors. 
 As an example, EF contributions can be grouped on the name to group all flows with the same name 
 (which would for example group all EFs with the name _carbon dioxide_ together).
 As another example, process contributions can be grouped based on their reference product name
@@ -146,7 +147,8 @@ You can disable one of them if you want to focus on the other.
 
 #### Relative and Absolute
 You can choose between `Relative` and `Absolute` results.
-The `Relative` results will sum to 100% (the total score), the `Absolute` results will sum to the impact score.
+The `Relative` results will sum to 100% (the total `Range` or `Score`), 
+the `Absolute` results will sum to the impact score.
 For `Relative`, you can choose what you use as the 100% reference, the `Range` or the `Score`.
 
 #### Range and Score
