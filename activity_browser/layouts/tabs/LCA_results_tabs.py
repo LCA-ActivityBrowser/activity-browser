@@ -259,6 +259,7 @@ class NewAnalysisTab(BaseRightTab):
         self.relative: Optional[bool] = None
         self.total_menu: Optional[TotalMenu] = None
         self.total_range: Optional[bool] = None
+        self.score_marker: Optional[bool] = None
         self.export_plot: Optional[ExportPlot] = None
         self.export_table: Optional[ExportTable] = None
 
@@ -305,7 +306,12 @@ class NewAnalysisTab(BaseRightTab):
             row.addWidget(self.total_menu.score)
             row.addWidget(self.total_menu.range)
             self.total_menu.range.toggled.connect(self.total_check)
-        row.addStretch()
+        if self.score_marker:
+            row.addStretch()
+            row.addWidget(self.score_mrk_checkbox)
+            self.score_mrk_checkbox.toggled.connect(self.score_mrk_check)
+        if not self.score_marker:
+            row.addStretch()
 
         # Assemble Table and Plot area
         if self.table and self.plot:
@@ -342,6 +348,11 @@ class NewAnalysisTab(BaseRightTab):
     def total_check(self, checked: bool):
         """Check if the relative or absolute option is selected."""
         self.total_range = checked
+        self.update_tab()
+
+    @QtCore.Slot(bool, name="isScoreMarkerToggled")
+    def score_mrk_check(self, checked: bool):
+        self.score_marker = checked
         self.update_tab()
 
     def get_scenario_labels(self) -> List[str]:
@@ -957,8 +968,16 @@ class ContributionTab(NewAnalysisTab):
         self.total_group.addButton(self.total_menu.score)
         self.total_group.addButton(self.total_menu.range)
 
+        self.score_marker = True
+        self.score_mrk_checkbox = QCheckBox("Score Marker")
+        self.score_mrk_checkbox.setToolTip(
+            "Shows the score marker. When there are both positive and negative results,\n"
+            "this shows a marker where the total score is."
+        )
+        self.score_mrk_checkbox.setChecked(True)
+
         self.df = None
-        self.plot = ContributionPlot()
+        self.plot = ContributionPlot(self)
         self.table = ContributionTable(self)
         self.contribution_fn = None
         self.has_method, self.has_func = False, False
@@ -1131,7 +1150,7 @@ class ContributionTab(NewAnalysisTab):
         # name is already altered by set_filename before update_plot occurs.
         name = self.plot.plot_name
         self.plot.deleteLater()
-        self.plot = ContributionPlot()
+        self.plot = ContributionPlot(self)
         self.pt_layout.insertWidget(idx, self.plot)
         super().update_plot(self.df, unit=self.unit)
         self.plot.plot_name = name
