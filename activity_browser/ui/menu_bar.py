@@ -234,7 +234,7 @@ class ProjectSelectionMenu(QtWidgets.QMenu):
         self.populate()
 
         self.aboutToShow.connect(self.populate)
-        self.triggered.connect(lambda act: bd.projects.set_current(act.text()))
+        self.triggered.connect(lambda act: actions.ProjectSwitch.run(act.text()))
 
     def populate(self):
         """
