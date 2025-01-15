@@ -24,10 +24,10 @@ from activity_browser.bwutils import AB_metadata
 
 from stats_arrays.errors import InvalidParamsError
 import bw2data as bd
-import bw2analyzer as ba
 
 from activity_browser import signals
 from activity_browser.mod.bw2data import calculation_setups
+from activity_browser.mod.bw2analyzer import ABContributionAnalysis
 
 from ...bwutils import (MLCA, Contributions, GlobalSensitivityAnalysis,
                         MonteCarloLCA, SuperstructureMLCA, calculations)
@@ -41,7 +41,7 @@ from ...ui.web import SankeyNavigatorWidget
 from ...ui.widgets import CutoffMenu, SwitchComboBox
 from .base import BaseRightTab
 
-ca = ba.ContributionAnalysis()
+ca = ABContributionAnalysis()
 
 log = getLogger(__name__)
 

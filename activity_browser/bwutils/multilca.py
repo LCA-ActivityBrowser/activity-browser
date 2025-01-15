@@ -3,20 +3,20 @@ from copy import deepcopy
 from typing import Iterable, Optional, Union
 from logging import getLogger
 
-import bw2analyzer as ba
 import bw2calc as bc
 import numpy as np
 import pandas as pd
 from PySide2.QtWidgets import QApplication, QMessageBox
 
 from activity_browser.mod import bw2data as bd
+from activity_browser.mod.bw2analyzer import ABContributionAnalysis
 
 from .commontasks import wrap_text
 from .errors import ReferenceFlowValueError
 from .metadata import AB_metadata
 
 log = getLogger(__name__)
-ca = ba.ContributionAnalysis()
+ca = ABContributionAnalysis()
 
 
 class MLCA(object):
