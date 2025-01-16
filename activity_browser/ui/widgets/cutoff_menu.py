@@ -20,7 +20,7 @@ from PySide2.QtWidgets import (QButtonGroup, QHBoxLayout, QLabel, QLineEdit,
 from ..style import vertical_line
 
 # These tuples are used in referring to the two Types and three Labels used
-Types = namedtuple("types", ("percent", "number"))
+Types = namedtuple("types", ("percent", "cum_percent", "number"))
 Labels = namedtuple("labels", ("unit", "min", "max"))
 
 
@@ -37,15 +37,24 @@ class CutoffMenu(QWidget):
         locale = QLocale(QLocale.English, QLocale.UnitedStates)
         locale.setNumberOptions(QLocale.RejectGroupSeparator)
         self.validators = Types(
-            QDoubleValidator(0.001, 100.0, 1, self), QIntValidator(0, 50, self)
+            QDoubleValidator(0.001, 100.0, 1, self),
+            QIntValidator(0, 100, self),
+            QIntValidator(0, 50, self),
         )
         self.validators.percent.setLocale(locale)
         self.validators.number.setLocale(locale)
-        self.buttons = Types(QRadioButton("Percent"), QRadioButton("Number"))
+        self.buttons = Types(
+            QRadioButton("Percent"),
+            QRadioButton("Cumulative perc."),
+            QRadioButton("Number"))
         self.buttons.percent.setChecked(True)
         self.buttons.percent.setToolTip(
             "This cut-off type shows contributions of at least some percentage "
             "(for example contributions of at least 5%)"
+        )
+        self.buttons.cum_percent.setToolTip(
+            "This cut-off type shows contributions that together are some percentage "
+            "(for example all highest contributors that together count up to 80%)"
         )
         self.buttons.number.setToolTip(
             "This cut-off type shows this many of the largest contributors "
@@ -53,24 +62,32 @@ class CutoffMenu(QWidget):
         )
         self.button_group = QButtonGroup()
         self.button_group.addButton(self.buttons.percent, 0)
-        self.button_group.addButton(self.buttons.number, 1)
+        self.button_group.addButton(self.buttons.cum_percent, 1)
+        self.button_group.addButton(self.buttons.number, 2)
         self.button_id_limit_type = {
             0: "percent",
-            1: "number",
+            1: "cum_percent",
+            2: "number",
         }
         self.button_group.setExclusive(True)
-        self.sliders = Types(LogarithmicSlider(self), QSlider(Qt.Horizontal, self))
+        self.sliders = Types(
+            LogarithmicSlider(self),
+            QSlider(Qt.Horizontal, self),
+            QSlider(Qt.Horizontal, self))
         self.sliders.percent.setToolTip(
             "This slider sets the cut-off percentage to show"
+        )
+        self.sliders.cum_percent.setToolTip(
+            "This slider sets the cumulative cut-off percentage to show"
         )
         self.sliders.number.setToolTip(
             "This slider sets the amount of highest contributors to show"
         )
-        self.units = Types("%", "number")
+        self.units = Types("%", "cumulative %", "number")
         self.labels = Labels(QLabel(), QLabel(), QLabel())
         self.cutoff_slider_line = QLineEdit()
         self.cutoff_slider_line.setToolTip(
-            "This entry set the cut-off amount"
+            "This entry sets the cut-off amount"
         )
         self.cutoff_slider_line.setLocale(locale)
         self.cutoff_slider_lft_btn = QPushButton("<")
@@ -104,18 +121,23 @@ class CutoffMenu(QWidget):
         self.debounce_text.timeout.connect(self.initiate_text_change)
 
         self.sliders.percent.valueChanged.connect(self.debounce_slider.start)
+        self.sliders.cum_percent.valueChanged.connect(self.debounce_slider.start)
         self.sliders.number.valueChanged.connect(self.debounce_slider.start)
         self.cutoff_slider_line.textChanged.connect(self.debounce_text.start)
 
     def initiate_slider_change(self):
         if self.limit_type == "percent":
             self.cutoff_slider_percent_check("sl")
+        elif self.limit_type == "cum_percent":
+            self.cutoff_slider_cum_percent_check("sl")
         elif self.limit_type == "number":
             self.cutoff_slider_number_check("sl")
 
     def initiate_text_change(self):
         if self.limit_type == "percent":
             self.cutoff_slider_percent_check("le")
+        elif self.limit_type == "cum_percent":
+            self.cutoff_slider_cum_percent_check("le")
         elif self.limit_type == "number":
             self.cutoff_slider_number_check("le")
 
@@ -125,6 +147,9 @@ class CutoffMenu(QWidget):
         if self.limit_type == "percent":
             num = int(self.sliders.percent.value())
             self.sliders.percent.setValue(num + 1)
+        elif self.limit_type == "cum_percent":
+            num = int(self.sliders.cum_percent.value())
+            self.sliders.cum_percent.setValue(num - 1)
         elif self.limit_type == "number":
             num = int(self.sliders.number.value())
             self.sliders.number.setValue(num - 1)
@@ -135,6 +160,9 @@ class CutoffMenu(QWidget):
         if self.limit_type == "percent":
             num = int(self.sliders.percent.value())
             self.sliders.percent.setValue(num - 1)
+        elif self.limit_type == "cum_percent":
+            num = int(self.sliders.cum_percent.value())
+            self.sliders.cum_percent.setValue(num + 1)
         elif self.limit_type == "number":
             num = int(self.sliders.number.value())
             self.sliders.number.setValue(num + 1)
@@ -157,19 +185,31 @@ class CutoffMenu(QWidget):
 
         # temporarily block signals
         self.sliders.percent.blockSignals(True)
+        self.sliders.cum_percent.blockSignals(True)
         self.sliders.number.blockSignals(True)
         self.cutoff_slider_line.blockSignals(True)
 
         if self.limit_type == "percent":
             self.sliders.percent.setVisible(True)
+            self.sliders.cum_percent.setVisible(False)
             self.sliders.number.setVisible(False)
 
             self.labels.unit.setText(self.units.percent)
             self.labels.min.setText("100%")
             self.labels.max.setText("0.001%")
             self.cutoff_slider_line.setValidator(self.validators.percent)
+        if self.limit_type == "cum_percent":
+            self.sliders.percent.setVisible(False)
+            self.sliders.cum_percent.setVisible(True)
+            self.sliders.number.setVisible(False)
+
+            self.labels.unit.setText(self.units.cum_percent)
+            self.labels.min.setText("1%")
+            self.labels.max.setText("100%")
+            self.cutoff_slider_line.setValidator(self.validators.cum_percent)
         elif self.limit_type == "number":
             self.sliders.percent.setVisible(False)
+            self.sliders.cum_percent.setVisible(False)
             self.sliders.number.setVisible(True)
 
             self.labels.unit.setText(self.units.number)
@@ -179,6 +219,7 @@ class CutoffMenu(QWidget):
 
         # unblock signals
         self.sliders.percent.blockSignals(False)
+        self.sliders.cum_percent.blockSignals(False)
         self.sliders.number.blockSignals(False)
         self.cutoff_slider_line.blockSignals(False)
 
@@ -187,7 +228,7 @@ class CutoffMenu(QWidget):
         """If 'Percent' selected, change the plots and tables to reflect the slider/line-edit."""
         if not self.limit_type == "percent":
             return
-        cutoff = 0.01
+        cutoff = 0.05
 
         # If called by slider
         if editor == "sl":
@@ -212,6 +253,43 @@ class CutoffMenu(QWidget):
                 self.cutoff_slider_line.setText(str(cutoff))
             self.sliders.percent.log_value = float(cutoff)
             self.sliders.percent.blockSignals(False)
+
+        self.cutoff_value = cutoff / 100
+        self.slider_change.emit()
+
+    @Slot(str, name="sliderCumPercentCheck")
+    def cutoff_slider_cum_percent_check(self, editor: str):
+        """If 'Percent' selected, change the plots and tables to reflect the slider/line-edit."""
+        """If 'Number' selected, change the plots and tables to reflect the slider/line-edit."""
+        if not self.limit_type == "cum_percent":
+            return
+        cutoff = 2
+
+        # If called by slider
+        if editor == "sl":
+            self.cutoff_slider_line.blockSignals(True)
+            cutoff = abs(int(self.sliders.cum_percent.value()))
+            self.cutoff_slider_line.setText(str(cutoff))
+            self.cutoff_slider_line.blockSignals(False)
+            print("cutoff sl", cutoff)
+
+        # if called by line edit
+        elif editor == "le":
+            self.sliders.cum_percent.blockSignals(True)
+            if self.cutoff_slider_line.text() == "-":
+                cutoff = self.sliders.cum_percent.minimum()
+                self.cutoff_slider_line.setText(str(self.sliders.cum_percent.minimum()))
+            elif self.cutoff_slider_line.text() == "":
+                cutoff = self.sliders.cum_percent.minimum()
+            else:
+                cutoff = abs(int(self.cutoff_slider_line.text()))
+
+            if cutoff > self.sliders.cum_percent.maximum():
+                cutoff = self.sliders.cum_percent.maximum()
+                self.cutoff_slider_line.setText(str(cutoff))
+            self.sliders.cum_percent.setValue(int(cutoff))
+            self.sliders.cum_percent.blockSignals(False)
+            print("cutoff le", cutoff)
 
         self.cutoff_value = cutoff / 100
         self.slider_change.emit()
@@ -265,11 +343,14 @@ class CutoffMenu(QWidget):
         cutoff_slider = QVBoxLayout()
         cutoff_slider_set = QVBoxLayout()
         cutoff_slider_label = QLabel("Cut-off level")
+        self.sliders.percent.log_value = self.cutoff_value
         self.sliders.percent.setInvertedAppearance(True)
+        self.sliders.cum_percent.setValue(self.cutoff_value)
+        self.sliders.cum_percent.setMinimum(1)
+        self.sliders.cum_percent.setMaximum(100)
+        self.sliders.number.setValue(self.cutoff_value)
         self.sliders.number.setMinimum(1)
         self.sliders.number.setMaximum(50)
-        self.sliders.number.setValue(self.cutoff_value)
-        self.sliders.percent.log_value = self.cutoff_value
         cutoff_slider_minmax = QHBoxLayout()
         self.labels.min.setText("100%")
         self.labels.max.setText("0.001%")
@@ -282,13 +363,16 @@ class CutoffMenu(QWidget):
         # Assemble types
         cutoff_type.addWidget(cutoff_type_label)
         cutoff_type.addWidget(self.buttons.percent)
+        cutoff_type.addWidget(self.buttons.cum_percent)
         cutoff_type.addWidget(self.buttons.number)
 
         # Assemble slider set
         self.sliders.number.setVisible(False)
+        self.sliders.cum_percent.setVisible(False)
         cutoff_slider_set.addWidget(cutoff_slider_label)
         cutoff_slider_minmax.addWidget(self.labels.min)
         cutoff_slider_minmax.addWidget(self.sliders.percent)
+        cutoff_slider_minmax.addWidget(self.sliders.cum_percent)
         cutoff_slider_minmax.addWidget(self.sliders.number)
         cutoff_slider_minmax.addWidget(self.labels.max)
         cutoff_slider_set.addLayout(cutoff_slider_minmax)
