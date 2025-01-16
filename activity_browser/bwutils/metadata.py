@@ -177,6 +177,7 @@ class MetaDataStore(object):
         removed_dbs = [db for db in self.databases if db not in bd.databases]
         for db in removed_dbs:
             self.dataframe.drop(self.dataframe[self.dataframe.database == db].index, inplace=True)
+            self.databases.remove(db)
 
     def get_existing_fields(self, field_list: list) -> list:
         """Return a list of fieldnames that exist in the current dataframe."""
