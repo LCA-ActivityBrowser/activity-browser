@@ -25,7 +25,7 @@ from activity_browser.bwutils import AB_metadata
 from stats_arrays.errors import InvalidParamsError
 import bw2data as bd
 
-from activity_browser import signals
+from activity_browser import signals, project_settings
 from activity_browser.mod.bw2data import calculation_setups
 from activity_browser.mod.bw2analyzer import ABContributionAnalysis
 
@@ -306,11 +306,11 @@ class NewAnalysisTab(BaseRightTab):
             row.addWidget(self.total_menu.score)
             row.addWidget(self.total_menu.range)
             self.total_menu.range.toggled.connect(self.total_check)
-        if self.score_marker:
+        if hasattr(self, "score_mrk_checkbox"):
             row.addStretch()
             row.addWidget(self.score_mrk_checkbox)
             self.score_mrk_checkbox.toggled.connect(self.score_mrk_check)
-        if not self.score_marker:
+        if not hasattr(self, "score_mrk_checkbox"):
             row.addStretch()
 
         # Assemble Table and Plot area
@@ -353,6 +353,11 @@ class NewAnalysisTab(BaseRightTab):
     @QtCore.Slot(bool, name="isScoreMarkerToggled")
     def score_mrk_check(self, checked: bool):
         self.score_marker = checked
+
+        project_settings.settings["analysis_tab"] = project_settings.settings.get("analysis_tab", {})
+        project_settings.settings["analysis_tab"][f"{self.__class__.__name__}score_marker_enabled"] = checked
+        project_settings.write_settings()
+
         self.update_tab()
 
     def get_scenario_labels(self) -> List[str]:
@@ -968,13 +973,13 @@ class ContributionTab(NewAnalysisTab):
         self.total_group.addButton(self.total_menu.score)
         self.total_group.addButton(self.total_menu.range)
 
-        self.score_marker = True
+        self.score_marker = project_settings.settings.get("analysis_tab", {}).get(f"{self.__class__.__name__}score_marker_enabled", True)
         self.score_mrk_checkbox = QCheckBox("Score Marker")
         self.score_mrk_checkbox.setToolTip(
             "Shows the score marker. When there are both positive and negative results,\n"
             "this shows a marker where the total score is."
         )
-        self.score_mrk_checkbox.setChecked(True)
+        self.score_mrk_checkbox.setChecked(self.score_marker)
 
         self.df = None
         self.plot = ContributionPlot(self)
@@ -1149,6 +1154,7 @@ class ContributionTab(NewAnalysisTab):
         self.plot.figure.clf()
         # name is already altered by set_filename before update_plot occurs.
         name = self.plot.plot_name
+        self.plot.setVisible(False)
         self.plot.deleteLater()
         self.plot = ContributionPlot(self)
         self.pt_layout.insertWidget(idx, self.plot)
