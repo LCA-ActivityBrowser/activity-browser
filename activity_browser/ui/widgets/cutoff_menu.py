@@ -20,7 +20,7 @@ from PySide2.QtWidgets import (QButtonGroup, QHBoxLayout, QLabel, QLineEdit,
 from ..style import vertical_line
 
 # These tuples are used in referring to the two Types and three Labels used
-Types = namedtuple("types", ("relative", "topx"))
+Types = namedtuple("types", ("percent", "number"))
 Labels = namedtuple("labels", ("unit", "min", "max"))
 
 
@@ -29,7 +29,7 @@ class CutoffMenu(QWidget):
 
     slider_change = Signal()
 
-    def __init__(self, parent=None, cutoff_value=0.01, limit_type="percent"):
+    def __init__(self, parent=None, cutoff_value=0.05, limit_type="percent"):
         super().__init__(parent)
         self.cutoff_value = cutoff_value
         self.limit_type = limit_type
@@ -39,41 +39,38 @@ class CutoffMenu(QWidget):
         self.validators = Types(
             QDoubleValidator(0.001, 100.0, 1, self), QIntValidator(0, 50, self)
         )
-        self.validators.relative.setLocale(locale)
-        self.validators.topx.setLocale(locale)
-        self.buttons = Types(QRadioButton("Relative"), QRadioButton("Top #"))
-        self.buttons.relative.setChecked(True)
-        self.buttons.relative.setToolTip(
-            "This cut-off type shows the selected top percentage of contributions (for example the \
-top 10% contributors)"
+        self.validators.percent.setLocale(locale)
+        self.validators.number.setLocale(locale)
+        self.buttons = Types(QRadioButton("Percent"), QRadioButton("Number"))
+        self.buttons.percent.setChecked(True)
+        self.buttons.percent.setToolTip(
+            "This cut-off type shows contributions of at least some percentage "
+            "(for example contributions of at least 5%)"
         )
-        self.buttons.topx.setToolTip(
-            "This cut-off type shows the selected top number of contributions (for example the top \
-5 contributors)"
+        self.buttons.number.setToolTip(
+            "This cut-off type shows this many of the largest contributors "
+            "(for example the top 5 contributors)"
         )
         self.button_group = QButtonGroup()
-        self.button_group.addButton(self.buttons.relative, 0)
-        self.button_group.addButton(self.buttons.topx, 1)
+        self.button_group.addButton(self.buttons.percent, 0)
+        self.button_group.addButton(self.buttons.number, 1)
         self.button_id_limit_type = {
             0: "percent",
             1: "number",
         }
         self.button_group.setExclusive(True)
         self.sliders = Types(LogarithmicSlider(self), QSlider(Qt.Horizontal, self))
-        self.sliders.relative.setToolTip(
-            "This slider sets the selected percentage of contributions\
- to be shown"
+        self.sliders.percent.setToolTip(
+            "This slider sets the cut-off percentage to show"
         )
-        self.sliders.topx.setToolTip(
-            "This slider sets the selected number of contributions to be \
-shown"
+        self.sliders.number.setToolTip(
+            "This slider sets the amount of highest contributors to show"
         )
-        self.units = Types("% of total", "top #")
+        self.units = Types("%", "number")
         self.labels = Labels(QLabel(), QLabel(), QLabel())
         self.cutoff_slider_line = QLineEdit()
         self.cutoff_slider_line.setToolTip(
-            "This box can set a precise cut-off value for the \
-contributions to be shown"
+            "This entry set the cut-off amount"
         )
         self.cutoff_slider_line.setLocale(locale)
         self.cutoff_slider_lft_btn = QPushButton("<")
@@ -86,7 +83,7 @@ contributions to be shown"
         )
 
         self.debounce_slider = QtCore.QTimer()
-        self.debounce_slider.setInterval(750)
+        self.debounce_slider.setInterval(300)
         self.debounce_slider.setSingleShot(True)
 
         self.debounce_text = QtCore.QTimer()
@@ -106,76 +103,52 @@ contributions to be shown"
         self.debounce_slider.timeout.connect(self.initiate_slider_change)
         self.debounce_text.timeout.connect(self.initiate_text_change)
 
-        self.sliders.relative.valueChanged.connect(self.debounce_slider.start)
-        self.sliders.topx.valueChanged.connect(self.debounce_slider.start)
+        self.sliders.percent.valueChanged.connect(self.debounce_slider.start)
+        self.sliders.number.valueChanged.connect(self.debounce_slider.start)
         self.cutoff_slider_line.textChanged.connect(self.debounce_text.start)
 
     def initiate_slider_change(self):
         if self.limit_type == "percent":
-            self.cutoff_slider_relative_check("sl")
+            self.cutoff_slider_percent_check("sl")
         elif self.limit_type == "number":
-            self.cutoff_slider_topx_check("sl")
+            self.cutoff_slider_number_check("sl")
 
     def initiate_text_change(self):
         if self.limit_type == "percent":
-            self.cutoff_slider_relative_check("le")
+            self.cutoff_slider_percent_check("le")
         elif self.limit_type == "number":
-            self.cutoff_slider_topx_check("le")
+            self.cutoff_slider_number_check("le")
 
     @Slot(name="incrementLeftCheck")
     def cutoff_increment_left_check(self):
         """Move the slider 1 increment to left when left button is clicked."""
         if self.limit_type == "percent":
-            num = int(self.sliders.relative.value())
-            self.sliders.relative.setValue(num + 1)
+            num = int(self.sliders.percent.value())
+            self.sliders.percent.setValue(num + 1)
         elif self.limit_type == "number":
-            num = int(self.sliders.topx.value())
-            self.sliders.topx.setValue(num - 1)
+            num = int(self.sliders.number.value())
+            self.sliders.number.setValue(num - 1)
 
     @Slot(name="incrementRightCheck")
     def cutoff_increment_right_check(self):
         """Move the slider 1 increment to right when right button is clicked."""
         if self.limit_type == "percent":
-            num = int(self.sliders.relative.value())
-            self.sliders.relative.setValue(num - 1)
+            num = int(self.sliders.percent.value())
+            self.sliders.percent.setValue(num - 1)
         elif self.limit_type == "number":
-            num = int(self.sliders.topx.value())
-            self.sliders.topx.setValue(num + 1)
-
-    @Slot(bool, name="isRelativeToggled")
-    def cutoff_type_check(self, toggled: bool) -> None:
-        """Dependent on cutoff-type, set the right labels.
-
-        Slot connected to the relative radiobutton, the state of that button determines:
-        - which sliders are visible
-        - the unit shown
-        - minimum and maximum
-        - limit_type
-        """
-        self.sliders.topx.setVisible(not toggled)
-        self.sliders.relative.setVisible(toggled)
-
-        self.sliders.relative.blockSignals(True)
-        self.sliders.topx.blockSignals(True)
-        self.cutoff_slider_line.blockSignals(True)
-        if toggled:
-            self.labels.unit.setText(self.units.relative)
-            self.labels.min.setText("100%")
-            self.labels.max.setText("0.001%")
-            self.limit_type = "percent"
-            self.cutoff_slider_line.setValidator(self.validators.relative)
-        else:
-            self.labels.unit.setText(self.units.topx)
-            self.labels.min.setText(str(self.sliders.topx.minimum()))
-            self.labels.max.setText(str(self.sliders.topx.maximum()))
-            self.limit_type = "number"
-            self.cutoff_slider_line.setValidator(self.validators.topx)
-        self.sliders.relative.blockSignals(False)
-        self.sliders.topx.blockSignals(False)
-        self.cutoff_slider_line.blockSignals(False)
+            num = int(self.sliders.number.value())
+            self.sliders.number.setValue(num + 1)
 
     @Slot(name="isClicked")
     def cutoff_type_check(self) -> None:
+        """Dependent on cutoff-type, set the right labels.
+
+                Slot connected to the 'Cut-off types', the state of those buttons determines:
+                - which sliders are visible
+                - the unit shown
+                - minimum and maximum
+                - limit_type
+                """
         # determine which mode is clicked
         clicked_type = self.button_id_limit_type[self.button_group.checkedId()]
         if self.limit_type == clicked_type:
@@ -183,35 +156,35 @@ contributions to be shown"
         self.limit_type = clicked_type
 
         # temporarily block signals
-        self.sliders.relative.blockSignals(True)
-        self.sliders.topx.blockSignals(True)
+        self.sliders.percent.blockSignals(True)
+        self.sliders.number.blockSignals(True)
         self.cutoff_slider_line.blockSignals(True)
 
         if self.limit_type == "percent":
-            self.sliders.relative.setVisible(True)
-            self.sliders.topx.setVisible(False)
+            self.sliders.percent.setVisible(True)
+            self.sliders.number.setVisible(False)
 
-            self.labels.unit.setText(self.units.relative)
+            self.labels.unit.setText(self.units.percent)
             self.labels.min.setText("100%")
             self.labels.max.setText("0.001%")
-            self.cutoff_slider_line.setValidator(self.validators.relative)
+            self.cutoff_slider_line.setValidator(self.validators.percent)
         elif self.limit_type == "number":
-            self.sliders.relative.setVisible(False)
-            self.sliders.topx.setVisible(True)
+            self.sliders.percent.setVisible(False)
+            self.sliders.number.setVisible(True)
 
-            self.labels.unit.setText(self.units.topx)
-            self.labels.min.setText(str(self.sliders.topx.minimum()))
-            self.labels.max.setText(str(self.sliders.topx.maximum()))
-            self.cutoff_slider_line.setValidator(self.validators.topx)
+            self.labels.unit.setText(self.units.number)
+            self.labels.min.setText(str(self.sliders.number.minimum()))
+            self.labels.max.setText(str(self.sliders.number.maximum()))
+            self.cutoff_slider_line.setValidator(self.validators.number)
 
         # unblock signals
-        self.sliders.relative.blockSignals(False)
-        self.sliders.topx.blockSignals(False)
+        self.sliders.percent.blockSignals(False)
+        self.sliders.number.blockSignals(False)
         self.cutoff_slider_line.blockSignals(False)
 
-    @Slot(str, name="sliderRelativeCheck")
-    def cutoff_slider_relative_check(self, editor: str):
-        """If 'relative' selected, change the plots and tables to reflect the slider/line-edit."""
+    @Slot(str, name="sliderPercentCheck")
+    def cutoff_slider_percent_check(self, editor: str):
+        """If 'Percent' selected, change the plots and tables to reflect the slider/line-edit."""
         if not self.limit_type == "percent":
             return
         cutoff = 0.01
@@ -219,13 +192,13 @@ contributions to be shown"
         # If called by slider
         if editor == "sl":
             self.cutoff_slider_line.blockSignals(True)
-            cutoff = abs(self.sliders.relative.log_value)
+            cutoff = abs(self.sliders.percent.log_value)
             self.cutoff_slider_line.setText(str(cutoff))
             self.cutoff_slider_line.blockSignals(False)
 
         # if called by line edit
         elif editor == "le":
-            self.sliders.relative.blockSignals(True)
+            self.sliders.percent.blockSignals(True)
             if self.cutoff_slider_line.text() == "-":
                 cutoff = 0.001
                 self.cutoff_slider_line.setText("0.001")
@@ -237,15 +210,15 @@ contributions to be shown"
             if cutoff > 100:
                 cutoff = 100
                 self.cutoff_slider_line.setText(str(cutoff))
-            self.sliders.relative.log_value = float(cutoff)
-            self.sliders.relative.blockSignals(False)
+            self.sliders.percent.log_value = float(cutoff)
+            self.sliders.percent.blockSignals(False)
 
         self.cutoff_value = cutoff / 100
         self.slider_change.emit()
 
-    @Slot(str, name="sliderTopXCheck")
-    def cutoff_slider_topx_check(self, editor: str):
-        """If 'top #' selected, change the plots and tables to reflect the slider/line-edit."""
+    @Slot(str, name="sliderNumberCheck")
+    def cutoff_slider_number_check(self, editor: str):
+        """If 'Number' selected, change the plots and tables to reflect the slider/line-edit."""
         if not self.limit_type == "number":
             return
         cutoff = 2
@@ -253,26 +226,26 @@ contributions to be shown"
         # If called by slider
         if editor == "sl":
             self.cutoff_slider_line.blockSignals(True)
-            cutoff = abs(int(self.sliders.topx.value()))
+            cutoff = abs(int(self.sliders.number.value()))
             self.cutoff_slider_line.setText(str(cutoff))
             self.cutoff_slider_line.blockSignals(False)
 
         # if called by line edit
         elif editor == "le":
-            self.sliders.topx.blockSignals(True)
+            self.sliders.number.blockSignals(True)
             if self.cutoff_slider_line.text() == "-":
-                cutoff = self.sliders.topx.minimum()
-                self.cutoff_slider_line.setText(str(self.sliders.topx.minimum()))
+                cutoff = self.sliders.number.minimum()
+                self.cutoff_slider_line.setText(str(self.sliders.number.minimum()))
             elif self.cutoff_slider_line.text() == "":
-                cutoff = self.sliders.topx.minimum()
+                cutoff = self.sliders.number.minimum()
             else:
                 cutoff = abs(int(self.cutoff_slider_line.text()))
 
-            if cutoff > self.sliders.topx.maximum():
-                cutoff = self.sliders.topx.maximum()
+            if cutoff > self.sliders.number.maximum():
+                cutoff = self.sliders.number.maximum()
                 self.cutoff_slider_line.setText(str(cutoff))
-            self.sliders.topx.setValue(int(cutoff))
-            self.sliders.topx.blockSignals(False)
+            self.sliders.number.setValue(int(cutoff))
+            self.sliders.number.blockSignals(False)
 
         self.cutoff_value = int(cutoff)
         self.slider_change.emit()
@@ -280,7 +253,7 @@ contributions to be shown"
     def make_layout(self):
         """Assemble the layout of the cutoff menu.
 
-        Construct the layout for the cutoff menu widget. The initial layout is set to 'relative'.
+        Construct the layout for the cutoff menu widget. The initial layout is set to 'Percent'.
         """
         layout = QHBoxLayout()
 
@@ -292,31 +265,31 @@ contributions to be shown"
         cutoff_slider = QVBoxLayout()
         cutoff_slider_set = QVBoxLayout()
         cutoff_slider_label = QLabel("Cut-off level")
-        self.sliders.relative.setInvertedAppearance(True)
-        self.sliders.topx.setMinimum(1)
-        self.sliders.topx.setMaximum(50)
-        self.sliders.topx.setValue(self.cutoff_value)
-        self.sliders.relative.log_value = self.cutoff_value
+        self.sliders.percent.setInvertedAppearance(True)
+        self.sliders.number.setMinimum(1)
+        self.sliders.number.setMaximum(50)
+        self.sliders.number.setValue(self.cutoff_value)
+        self.sliders.percent.log_value = self.cutoff_value
         cutoff_slider_minmax = QHBoxLayout()
         self.labels.min.setText("100%")
         self.labels.max.setText("0.001%")
-        self.labels.unit.setText("%  of total")
+        self.labels.unit.setText("%")
         cutoff_slider_ledit = QHBoxLayout()
-        self.cutoff_slider_line.setValidator(self.validators.relative)
+        self.cutoff_slider_line.setValidator(self.validators.percent)
         self.cutoff_slider_lft_btn.setMaximumWidth(15)
         self.cutoff_slider_rght_btn.setMaximumWidth(15)
 
         # Assemble types
         cutoff_type.addWidget(cutoff_type_label)
-        cutoff_type.addWidget(self.buttons.relative)
-        cutoff_type.addWidget(self.buttons.topx)
+        cutoff_type.addWidget(self.buttons.percent)
+        cutoff_type.addWidget(self.buttons.number)
 
         # Assemble slider set
-        self.sliders.topx.setVisible(False)
+        self.sliders.number.setVisible(False)
         cutoff_slider_set.addWidget(cutoff_slider_label)
         cutoff_slider_minmax.addWidget(self.labels.min)
-        cutoff_slider_minmax.addWidget(self.sliders.relative)
-        cutoff_slider_minmax.addWidget(self.sliders.topx)
+        cutoff_slider_minmax.addWidget(self.sliders.percent)
+        cutoff_slider_minmax.addWidget(self.sliders.number)
         cutoff_slider_minmax.addWidget(self.labels.max)
         cutoff_slider_set.addLayout(cutoff_slider_minmax)
 
