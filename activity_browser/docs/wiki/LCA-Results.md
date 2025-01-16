@@ -98,26 +98,30 @@ The total impact is still 1.6.
 In this section we generalize a little bit for the different contribution approaches,
 we call the _from_ part of the contributions (the EFs or activities or FT above) _entities_.
 
-There are several ways Activity Browser manipulates your results by default.
-- The results are **sorted** so that the row with the largest (absolute) average values are shown first.
+There are several ways Activity Browser manipulates your results by default:
+- All reference flows are compared to eachother.
+- The contributions are **sorted** so that the most important contributions are shown first.
+  - The sorting is done on the _mean square_ (ignoring zero values) of each row of contributing entities.
 - A `cut-off` of 5% is applied, this only shows results that contribute at least 5% to the total range of results, 
-  all other entities are grouped into a `Rest (+)` or `Rest (-)` groups.
-- The contributions are _normalized_ to the impact of that reference flow, meaning they are show as a percentage, 
-  counting up to 100% for every item you compare.
+  all other entities are grouped into the `Rest (+)` and `Rest (-)` groups for positive and negative 
+  contributions respectively.
+- The contributions are _normalized_ to the LCA scores, 
+  meaning contributions are shown as a percentage contribution of the score, counting up to 100%.
 
-These actions are taken to show you the most relevant results.
-
+These defaults exist to show you the most relevant results in most cases, but you may often want to make this more 
+specific for your analysis. 
 You can manually manipulate the contribution results in the menu shown below, which we will explain bit by bit 
 in the next sections.
 ![contributions cutoff](./assets/contribution_manipulation.png)
 
 #### Cut-off
 You can manually change the `Cut-off type` of the results in two ways, `Relative` or `Top #`.
-The `Relative` mode shows contributions _from_ entities of _x_% or higher.
-The `Top #` mode shows contributions from the _x_ entities that contribute the most (as absolute).
+- The `Relative` mode shows contributions _from_ entities of _x_% or higher.
+- The `Top #` mode shows contributions from the _x_ entities that contribute the most (as absolute).
+
 You can adjust the `Cut-off level` to change how many results you see.
 
-All results that don't make the cut-off will be grouped into the `Rest (+)` and `Rest (-)` groups.
+All contributions that are below the cut-off will be grouped into the `Rest (+)` and `Rest (-)` groups.
 The Rest groups are only present when there are positive or negative numbers remaining for the respective rest groups. 
 
 #### Compare
@@ -131,33 +135,42 @@ The compare mode defines what is shown in the figure.
 
 #### Aggregation
 The `Aggregate by` menu can be used to _group_ results based on field names.
-As an example, EF contributions can be grouped on the name, 
-for example to group all flows with the same name.
-Another example for process contributions can be grouped based on their reference product name.
+This is useful to group contributors together so you have fewer -and larger- contributors. 
+As an example, EF contributions can be grouped on the name to group all flows with the same name 
+(which would for example group all EFs with the name _carbon dioxide_ together).
+As another example, process contributions can be grouped based on their reference product name
+(which would for example group all processes with the product name _electricity, high voltage_ together).
 
 #### Plot and Table
 By default, Activity Browser shows a plot and a table. 
-You can disable one of them if you want to focus on one of them.
+You can disable one of them if you want to focus on the other.
 
 #### Relative and Absolute
 You can choose between `Relative` and `Absolute` results.
-The `Relative` results will sum to 100% (the total score), the `Absolute` results will sum to the impact score.
+The `Relative` results will sum to 100% (the total `Range` or `Score`), 
+the `Absolute` results will sum to the impact score.
+For `Relative`, you can choose what you use as the 100% reference, the `Range` or the `Score`.
 
 #### Range and Score
-If the Cut-off type is `Relative`, you can choose between `Range` and `Score`.
-This determines what you use as the _total_ to which the relative contributions are counted. 
-For `Range`, this is the full _range_ of results, for example, if all your negative results together have a score of -2
-and all your positive results together have a score of 10, the _range_ is 12 (-2 * -1 + 10).
-For `Score`, this is the total score (sum) of the results, for example, if all your negative results together have a 
-score of -2 and all your positive results together have a score of 10, the _score_ is 8 (-2 + 10).
-The `Range` or `Score` setting are only used when your results contain both positive and negative results.
+The `Range`/`Score` determines what you use as the _total_ to which the contributions are counted. 
+- For `Range`, this is the full _range_ of results
+  - For example, if all your negative results together have a score of -2 and all your positive results together have a 
+    score of 10, the _range_ is 12 (-2 * -1 + 10).
+  - An entity with a contribution of 4 would have a relative contribution of 4/12 = 33.3...%. 
+- For `Score`, this is the total score (sum) of the results
+  - For example, if all your negative results together have a score of -2 and all your positive results together have a 
+    score of 10, the _score_ is 8 (-2 + 10).
+  - An entity with a contribution of 4 would have a relative contribution of 4/8 = 50%.
+
+The `Range` or `Score` setting are only relevant when your results contain both positive and negative contributions.
 
 ### Positive and negative numbers in contribution results
 It can happen in LCA that you get both positive and negative numbers in your contribution results.
-Some of these reasons could be negative characterization factors, flows with negative numbers or using substitution flows.
+Some reasons for this could be negative characterization factors, flows with negative numbers or using 
+substitution flows.
 
 When there are both positive and negative numbers in the result, Activity Browser will show a marker to indicate 
-where the total score is, and show positive and negative contributions to the impact separately.
+where the total _score_ is, and show positive and negative contributions to the impact separately.
 
 Below is a simple example (with unrealistic values) to demonstrate this:
 
