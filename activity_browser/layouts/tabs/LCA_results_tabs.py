@@ -164,8 +164,6 @@ class LCAResultsSubTab(QTabWidget):
         self.currentChanged.connect(self.generate_content_on_click)
         QApplication.restoreOverrideCursor()
 
-        calculation_setups.metadata_changed.connect(self.check_cs)
-
     def setup_tabs(self):
         """Have all of the tabs pull in their required data and add them."""
         self._update_tabs()
@@ -234,10 +232,6 @@ class LCAResultsSubTab(QTabWidget):
             if not filepath.endswith(".xlsx"):
                 filepath += ".xlsx"
             df.to_excel(filepath)
-
-    def check_cs(self):
-        if self.cs != calculation_setups.get(self.cs_name, None):
-            self.deleteLater()
 
 
 class NewAnalysisTab(BaseRightTab):
