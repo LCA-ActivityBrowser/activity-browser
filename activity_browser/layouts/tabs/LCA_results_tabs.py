@@ -1154,6 +1154,7 @@ class ContributionTab(NewAnalysisTab):
         self.plot.figure.clf()
         # name is already altered by set_filename before update_plot occurs.
         name = self.plot.plot_name
+        self.plot.setVisible(False)
         self.plot.deleteLater()
         self.plot = ContributionPlot(self)
         self.pt_layout.insertWidget(idx, self.plot)
