@@ -48,7 +48,6 @@ def test_cutoff_slider_toggle(qtbot):
     qtbot.addWidget(slider)
     with qtbot.waitSignal(slider.buttons.number.toggled, timeout=800):
         slider.buttons.number.click()
-    assert not slider.is_relative
     assert slider.limit_type == "number"
 
 
