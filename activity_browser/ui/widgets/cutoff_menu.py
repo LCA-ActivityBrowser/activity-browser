@@ -54,6 +54,11 @@ top 10% contributors)"
         self.button_group = QButtonGroup()
         self.button_group.addButton(self.buttons.relative, 0)
         self.button_group.addButton(self.buttons.topx, 1)
+        self.button_id_limit_type = {
+            0: "percent",
+            1: "number",
+        }
+        self.button_group.setExclusive(True)
         self.sliders = Types(LogarithmicSlider(self), QSlider(Qt.Horizontal, self))
         self.sliders.relative.setToolTip(
             "This slider sets the selected percentage of contributions\
@@ -94,7 +99,7 @@ contributions to be shown"
     def connect_signals(self):
         """Connect the signals of the menu."""
         # Cut-off types
-        self.buttons.relative.toggled.connect(self.cutoff_type_check)
+        self.button_group.buttonClicked.connect(self.cutoff_type_check)
         self.cutoff_slider_lft_btn.clicked.connect(self.cutoff_increment_left_check)
         self.cutoff_slider_rght_btn.clicked.connect(self.cutoff_increment_right_check)
 
@@ -106,39 +111,34 @@ contributions to be shown"
         self.cutoff_slider_line.textChanged.connect(self.debounce_text.start)
 
     def initiate_slider_change(self):
-        if self.is_relative:
+        if self.limit_type == "percent":
             self.cutoff_slider_relative_check("sl")
-        else:
+        elif self.limit_type == "number":
             self.cutoff_slider_topx_check("sl")
 
     def initiate_text_change(self):
-        if self.is_relative:
+        if self.limit_type == "percent":
             self.cutoff_slider_relative_check("le")
-        else:
+        elif self.limit_type == "number":
             self.cutoff_slider_topx_check("le")
-
-    @property
-    def is_relative(self) -> bool:
-        """Check if relative button is checked."""
-        return self.buttons.relative.isChecked()
 
     @Slot(name="incrementLeftCheck")
     def cutoff_increment_left_check(self):
         """Move the slider 1 increment to left when left button is clicked."""
-        if self.is_relative:
+        if self.limit_type == "percent":
             num = int(self.sliders.relative.value())
             self.sliders.relative.setValue(num + 1)
-        else:
+        elif self.limit_type == "number":
             num = int(self.sliders.topx.value())
             self.sliders.topx.setValue(num - 1)
 
     @Slot(name="incrementRightCheck")
     def cutoff_increment_right_check(self):
         """Move the slider 1 increment to right when right button is clicked."""
-        if self.is_relative:
+        if self.limit_type == "percent":
             num = int(self.sliders.relative.value())
             self.sliders.relative.setValue(num - 1)
-        else:
+        elif self.limit_type == "number":
             num = int(self.sliders.topx.value())
             self.sliders.topx.setValue(num + 1)
 
@@ -174,10 +174,45 @@ contributions to be shown"
         self.sliders.topx.blockSignals(False)
         self.cutoff_slider_line.blockSignals(False)
 
+    @Slot(name="isClicked")
+    def cutoff_type_check(self) -> None:
+        # determine which mode is clicked
+        clicked_type = self.button_id_limit_type[self.button_group.checkedId()]
+        if self.limit_type == clicked_type:
+            return  # immediately return if the clicked type was already toggled
+        self.limit_type = clicked_type
+
+        # temporarily block signals
+        self.sliders.relative.blockSignals(True)
+        self.sliders.topx.blockSignals(True)
+        self.cutoff_slider_line.blockSignals(True)
+
+        if self.limit_type == "percent":
+            self.sliders.relative.setVisible(True)
+            self.sliders.topx.setVisible(False)
+
+            self.labels.unit.setText(self.units.relative)
+            self.labels.min.setText("100%")
+            self.labels.max.setText("0.001%")
+            self.cutoff_slider_line.setValidator(self.validators.relative)
+        elif self.limit_type == "number":
+            self.sliders.relative.setVisible(False)
+            self.sliders.topx.setVisible(True)
+
+            self.labels.unit.setText(self.units.topx)
+            self.labels.min.setText(str(self.sliders.topx.minimum()))
+            self.labels.max.setText(str(self.sliders.topx.maximum()))
+            self.cutoff_slider_line.setValidator(self.validators.topx)
+
+        # unblock signals
+        self.sliders.relative.blockSignals(False)
+        self.sliders.topx.blockSignals(False)
+        self.cutoff_slider_line.blockSignals(False)
+
     @Slot(str, name="sliderRelativeCheck")
     def cutoff_slider_relative_check(self, editor: str):
         """If 'relative' selected, change the plots and tables to reflect the slider/line-edit."""
-        if not self.is_relative:
+        if not self.limit_type == "percent":
             return
         cutoff = 0.01
 
@@ -211,7 +246,7 @@ contributions to be shown"
     @Slot(str, name="sliderTopXCheck")
     def cutoff_slider_topx_check(self, editor: str):
         """If 'top #' selected, change the plots and tables to reflect the slider/line-edit."""
-        if self.is_relative:
+        if not self.limit_type == "number":
             return
         cutoff = 2
 
