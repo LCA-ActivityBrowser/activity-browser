@@ -1,6 +1,9 @@
-import pandas as pd
-from qtpy import QtWidgets, QtCore, QtGui
 from logging import getLogger
+
+import pandas as pd
+
+from qtpy import QtWidgets, QtCore, QtGui
+from qtpy.QtCore import Qt
 
 from .abstractitemmodel import ABAbstractItemModel
 
@@ -93,6 +96,8 @@ class ABTreeView(QtWidgets.QTreeView):
     def model(self) -> ABAbstractItemModel:
         return super().model()
 
+    # === Functionality related to contextmenus
+
     def showContextMenu(self, pos):
         self.ContextMenu(pos, self).exec_(self.mapToGlobal(pos))
 
@@ -113,6 +118,8 @@ class ABTreeView(QtWidgets.QTreeView):
             self.model().filtered_columns.discard(col_index)
 
         self.applyFilter()
+
+    # === Functionality related to filtering
 
     def setAllFilter(self, query: str):
         self.allFilter = query
@@ -163,50 +170,68 @@ class ABTreeView(QtWidgets.QTreeView):
     def format_query(query: str) -> str:
         return query.translate(str.maketrans({'(': '\\(', ')': '\\)', "'": "\\'"}))
 
+    # === Functionality related to saving and restoring the View's state
+
     def saveState(self) -> dict:
         if not self.model():
             return {}
 
+        cols = self.model().columns()
+
         return {
-            "columns": self.model().columns(),
-            "grouped_columns": [self.model().columns()[i] for i in self.model().grouped_columns],
+            "columns": cols,
+            "grouped_columns": [cols[i] for i in self.model().grouped_columns],
+            "visible_columns": [cols[i] for i in range(len(cols)) if not self.isColumnHidden(i)],
 
             "expanded_paths": list(self.expanded_paths),
-            "visible_columns": [self.model().columns()[i] for i in range(len(self.model().columns())) if not self.isColumnHidden(i)],
+
             "filters": self.columnFilters,
-            "sort_column": self.model().sort_column,
-            "sort_ascending": self.model().sort_order == QtCore.Qt.SortOrder.AscendingOrder,
+            "sort_column": cols[self.model().sort_column],
+            "sort_ascending": self.model().sort_order == Qt.SortOrder.AscendingOrder,
 
             "header_state": bytearray(self.header().saveState()).hex()
         }
 
-    def restoreSate(self, state: dict, dataframe: pd.DataFrame) -> bool:
+    def restoreSate(self, state: dict, dataframe: pd.DataFrame):
         if not self.model():
-            return False
+            log.debug(f"{self.__class__.__name__}: Model must first be set on the treeview before using restoreState")
+            return
+
+        columns = list(dataframe.columns)
+
         self.model().beginResetModel()
 
-        columns = state.get("columns", []) + [col for col in dataframe.columns if col not in state.get("columns", [])]
-
         self.expanded_paths = set(tuple(p) for p in state.get("expanded_paths", []))
-        self.columnFilters = state.get("filters", {})
+        self.columnFilters = {col: q for col, q in state.get("filters", {}).items() if col in columns}
 
         self.model().dataframe = dataframe
-        self.model().grouped_columns = [columns.index(name) for name in state.get("grouped_columns", [])]
-        self.model().sort_column = state.get("sort_column", self.model().sort_column)
-        self.model().sort_order = QtCore.Qt.SortOrder.AscendingOrder if state.get("sort_ascending") else QtCore.Qt.SortOrder.DescendingOrder
+
+        self.model().grouped_columns = [columns.index(name) for name in state.get("grouped_columns", []) if name in columns]
+        self.model().filtered_columns = {columns.index(name) for name in self.columnFilters if name in columns}
+
+        self.model().sort_column = columns.index(state.get("sort_column")) if state.get("sort_column") in columns else 0
+        self.model().sort_order = Qt.SortOrder.AscendingOrder if state.get("sort_ascending") else Qt.SortOrder.DescendingOrder
+
         self.model()._query = self.buildQuery()
+
         self.model().endResetModel()
 
-        for column_name in self.columnFilters:
-            self.model().filtered_columns.add(self.model().columns().index(column_name))
+        match = True
+        for i, col in enumerate(state.get("columns", [])):
+            if i > len(columns) - 1:
+                match = False
+                break
+            if columns[i] != col:
+                match = False
+                break
 
-        for col_name in [col for col in columns if col not in state.get("visible_columns", columns)]:
-            self.setColumnHidden(columns.index(col_name), True)
+        if match:
+            self.header().restoreState(bytearray.fromhex(state.get("header_state", "")))
 
-        self.header().restoreState(bytearray.fromhex(state.get("header_state", "")))
+        for i, col in enumerate(columns):
+            self.setColumnHidden(i, col not in state.get("visible_columns", [col]))
+
         self.expand_after_reset()
-
-        return True
 
     def expand_after_reset(self):
         indices = []

@@ -21,7 +21,7 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
 
         self.dataframe: pd.DataFrame = dataframe  # DataFrame containing the visible data
         self.root: ABBranchItem = self.branchItemClass("root")  # root ABItem for the object tree
-        self.grouped_columns: [int] = []  # list of all columns that are currently being grouped
+        self.grouped_columns: [int] = list()  # list of columns that are currently being grouped
         self.filtered_columns: [int] = set()  # set of all columns that have filters applied
         self.sort_column: int = 0  # column that is currently sorted
         self.sort_order: Qt.SortOrder = Qt.SortOrder.AscendingOrder
