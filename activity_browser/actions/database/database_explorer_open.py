@@ -25,7 +25,5 @@ class DatabaseExplorerOpen(ABAction):
     @staticmethod
     @exception_dialogs
     def run(db_name: str):
-        db_explorer = DatabaseExplorer(db_name)
-        application.windows.append(db_explorer)
+        db_explorer = DatabaseExplorer(db_name, application.main_window)
         db_explorer.show()
-        db_explorer.destroyed.connect(lambda: application.windows.remove(db_explorer))

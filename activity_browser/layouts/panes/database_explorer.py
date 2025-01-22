@@ -1,16 +1,21 @@
 from logging import getLogger
+from ast import literal_eval
 
 import pandas as pd
 from qtpy import QtWidgets, QtCore, QtGui
 from qtpy.QtCore import Signal, SignalInstance
 
 import bw2data as bd
+from rich.columns import Columns
 
 from activity_browser import actions, ui, project_settings, application, signals
 from activity_browser.ui import core
 from activity_browser.bwutils import AB_metadata
 
 log = getLogger(__name__)
+
+COLUMNS = ["name", "type", "exchanges", "database", "code"]
+DETAILS_COLUMNS = ["input", "output", "type", "amount"]
 
 
 DEFAULT_STATE = {
@@ -30,16 +35,18 @@ NODETYPES = {
 class DatabaseExplorer(QtWidgets.QWidget):
 
     def __init__(self, db_name: str, parent=None):
-        super().__init__(parent)
+        super().__init__(parent, QtCore.Qt.WindowType.Window)
         self.setWindowTitle("Database Explorer")
+        self.setWindowModality(QtCore.Qt.WindowModality.NonModal)
 
         self.database = bd.Database(db_name)
         self.model = NodeModel(self)
+        self.model.columns = COLUMNS
 
         # Create the QTableView and set the model
         self.table_view = NodeView(self)
         self.table_view.setModel(self.model)
-        self.model.setDataFrame(pd.DataFrame.from_dict(bd.Database(db_name).load(), orient="index"))
+        self.model.setDataFrame(self.build_df())
 
         self.search = QtWidgets.QLineEdit(self)
         self.search.setMaximumHeight(30)
@@ -47,19 +54,17 @@ class DatabaseExplorer(QtWidgets.QWidget):
 
         self.search.textChanged.connect(self.table_view.setAllFilter)
 
-        table_layout = QtWidgets.QHBoxLayout()
-        table_layout.setSpacing(0)
-        table_layout.addWidget(self.table_view)
+        self.splitter = QtWidgets.QSplitter(QtCore.Qt.Orientation.Vertical, self)
+        self.splitter.setCollapsible(False)
+        self.splitter.addWidget(self.table_view)
 
-        layout = QtWidgets.QVBoxLayout(self)
-        layout.addWidget(self.search)
-        layout.addLayout(table_layout)
-
-        # Set the table view as the central widget of the window
-        self.setLayout(layout)
+        self.setLayout(QtWidgets.QVBoxLayout())
+        self.layout().addWidget(self.search)
+        self.layout().addWidget(self.splitter)
 
         # connect signals
         signals.database.deleted.connect(self.deleteLater)
+        signals.project.changed.connect(self.deleteLater)
         AB_metadata.synced.connect(self.sync)
         self.table_view.query_changed.connect(self.search_error)
 
@@ -67,43 +72,21 @@ class DatabaseExplorer(QtWidgets.QWidget):
         self.model.setDataFrame(self.build_df())
 
     def build_df(self) -> pd.DataFrame:
+        import sqlite3
+        from bw2data.backends import sqlite3_lci_db
+
         full_df = AB_metadata.get_database_metadata(self.database.name)
 
-        expected = ["processor", "product", "type", "unit", "location", "id", "categories"]
-        for column_name in expected:
-            if column_name not in full_df.columns:
-                full_df[column_name] = None
+        con = sqlite3.connect(sqlite3_lci_db._filepath)
+        sql = f"SELECT output_code FROM exchangedataset WHERE output_database == '{self.database.name}'"
+        excs = pd.read_sql(sql, con)
+        con.close()
 
-        with_processor = full_df[full_df.processor.isin(full_df.key)].copy()
-        with_processor["process_name"] = full_df.loc[with_processor.processor].set_index(with_processor.index).name
-        with_processor["process_id"] = full_df.loc[with_processor.processor].set_index(with_processor.index).id
+        count = excs.groupby(excs.columns.tolist()).size()
+        count.name = "exchanges"
+        full_df = full_df.join(count, "code")
 
-        no_processor = full_df[full_df.processor.isin(full_df.key) == False].copy()
-        no_processor.drop(no_processor[no_processor.key.isin(with_processor.processor)].index, inplace=True)
-        no_processor.drop(no_processor[no_processor.type == "readonly_process"].index, inplace=True)
-
-        final = pd.DataFrame({
-            "Activity": list(with_processor["process_name"]) + list(no_processor["name"]),
-            "Product": list(with_processor["name"]) + list(no_processor["product"]),
-            "Type": list(with_processor["type"]) + list(no_processor["type"]),
-            "Unit": list(with_processor["unit"]) + list(no_processor["unit"]),
-            "Location": list(with_processor["location"]) + list(no_processor["location"]),
-            "Categories": list(with_processor["categories"]) + list(no_processor["categories"]),
-            "Product Key": list(with_processor["key"]) + [None] * len(no_processor),
-            "Product ID": list(with_processor["id"]) + [None] * len(no_processor),
-            "Activity Key": list(with_processor["processor"]) + list(no_processor["key"]),
-            "Activity ID": list(with_processor["process_id"]) + list(no_processor["id"]),
-        })
-
-        if "properties" in with_processor.columns:
-            for key, props in with_processor["properties"].dropna().items():
-                if not isinstance(props, dict):
-                    continue
-
-                for prop, value in props.items():
-                    final.loc[final["Product Key"] == key, f"Property: {prop}"] = value
-
-        return final
+        return full_df
 
     def event(self, event):
         if event.type() == QtCore.QEvent.Type.DeferredDelete:
@@ -124,19 +107,70 @@ class DatabaseExplorer(QtWidgets.QWidget):
 class NodeView(ui.widgets.ABTreeView):
     query_changed: SignalInstance = Signal(bool)
 
-    def __init__(self, parent: DatabaseExplorer):
+    def __init__(self, above: QtWidgets.QWidget=None, parent=None):
         super().__init__(parent)
         self.setSortingEnabled(True)
         self.setDragEnabled(True)
         self.setDragDropMode(QtWidgets.QTableView.DragDropMode.DragOnly)
-        self.setSelectionBehavior(ui.widgets.ABTreeView.SelectionBehavior.SelectRows)
+        self.setSelectionBehavior(ui.widgets.ABTreeView.SelectionBehavior.SelectItems)
         self.setSelectionMode(ui.widgets.ABTreeView.SelectionMode.ExtendedSelection)
 
         self.allFilter = ""
 
+        self.above = above
+        self.below: QtWidgets.QWidget = QtWidgets.QWidget(self)
+
     # def mouseDoubleClickEvent(self, event) -> None:
     #     if self.selected_activities:
     #         actions.ActivityOpen.run(self.selected_activities)
+
+    def deleteLater(self):
+        super().deleteLater()
+        self.below.deleteLater()
+
+    def mouseReleaseEvent(self, event):
+        self.below.deleteLater()
+        self.below = QtWidgets.QWidget(self)
+
+        if not self.selectedIndexes():
+            return
+
+        idx = self.selectedIndexes()[0]
+        col_name = self.model().columns[idx.column()]
+        item = idx.internalPointer()
+        data = item[col_name]
+
+        if col_name == "exchanges":
+            act = bd.get_node(database=item["database"], code=item["code"])
+            model = NodeModel()
+            model.columns = DETAILS_COLUMNS
+            model.setDataFrame(pd.DataFrame(act.exchanges()))
+
+            self.below = NodeView(self)
+            self.below.setModel(model)
+
+            self.parent().addWidget(self.below)
+
+        elif isinstance(data, (dict, list, tuple)):
+            if isinstance(data, dict):
+                df = pd.DataFrame.from_dict(data, orient="index")
+                df.reset_index(inplace=True)
+            else:
+                df = pd.DataFrame(data)
+            model = NodeModel(dataframe=df)
+
+            self.below = NodeView(self)
+            self.below.setModel(model)
+
+            self.parent().addWidget(self.below)
+
+        elif isinstance(data, (str, float, int)):
+
+            if isinstance(data, float) and pd.isna(data):
+                return
+
+            self.below = QtWidgets.QPlainTextEdit(str(data), self)
+            self.parent().addWidget(self.below)
 
     def setAllFilter(self, query: str):
         self.allFilter = query
@@ -159,32 +193,31 @@ class NodeView(ui.widgets.ABTreeView):
         return super().buildQuery() + f" & ({q})" + node_query if q else super().buildQuery() + node_query
 
 
-class NodeModel(ui.widgets.ABAbstractItemModel):
-
-    def createItems(self, dataframe=None) -> list[ui.widgets.ABDataItem]:
-        items = []
-        for index, data in dataframe.to_dict(orient="index").items():
-            items.append(NodeItem(index, data))
-        return items
-
-    def mimeData(self, indices: [QtCore.QModelIndex]):
-        data = core.ABMimeData()
-        keys = set(self.values_from_indices("Activity Key", indices))
-        keys.update(self.values_from_indices("Product Key", indices))
-        data.setPickleData("application/bw-nodekeylist", list(keys))
-        return data
-
-    @staticmethod
-    def values_from_indices(key: str, indices: list[QtCore.QModelIndex]):
-        values = []
-        for index in indices:
-            item = index.internalPointer()
-            if not item or item[key] is None:
-                continue
-            values.append(item[key])
-        return values
-
-
 class NodeItem(ui.widgets.ABDataItem):
-    pass
+
+    def displayData(self, col: int, key: str):
+        data = self[key]
+
+        if data is None:
+            return None
+
+        if isinstance(data, (str, float, int)):
+            if key == "exchanges":
+                return f"Exchanges: {data}" if not pd.isna(data) else "Exchanges: 0"
+
+
+            rep = str(data).replace("\n", " ")
+            if len(rep) > 200:
+                return rep[:200] + "..."
+            return rep
+
+        elif hasattr(data, "__len__"):
+            return f"{type(data).__name__.capitalize()}: {len(data)}"
+
+        else:
+            return str(type(data))
+
+
+class NodeModel(ui.widgets.ABAbstractItemModel):
+    dataItemClass = NodeItem
 

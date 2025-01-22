@@ -17,7 +17,7 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
         super().__init__(parent)
 
         self.dataframe: pd.DataFrame | None = None  # DataFrame containing the visible data
-        self.root: ABBranchItem | None = None  # root ABItem for the object tree
+        self.root: ABBranchItem = self.branchItemClass("root")  # root ABItem for the object tree
         self.grouped_columns: [int] = []  # list of all columns that are currently being grouped
         self.filtered_columns: [int] = set()  # set of all columns that have filters applied
         self.sort_column: int = 0
@@ -157,6 +157,9 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
         Reset the model based on dataframe, query and grouped columns. Should be called to reflect the changes of
         changing the dataframe, grouped columns or query string.
         """
+        if self.dataframe is None or self.dataframe.empty:
+            return
+
         # apply any queries to the dataframe
         if q := self.query():
             df = self.dataframe.query(q).reset_index(drop=True).copy()
