@@ -16,18 +16,21 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
     def __init__(self, parent=None, dataframe=None):
         super().__init__(parent)
 
-        self.dataframe: pd.DataFrame | None = None  # DataFrame containing the visible data
+        if dataframe is None:
+            dataframe = pd.DataFrame()
+
+        self.dataframe: pd.DataFrame = dataframe  # DataFrame containing the visible data
         self.root: ABBranchItem = self.branchItemClass("root")  # root ABItem for the object tree
         self.grouped_columns: [int] = []  # list of all columns that are currently being grouped
         self.filtered_columns: [int] = set()  # set of all columns that have filters applied
-        self.sort_column: int = 0
+        self.sort_column: int = 0  # column that is currently sorted
         self.sort_order: Qt.SortOrder = Qt.SortOrder.AscendingOrder
         self._query = ""  # Pandas query currently applied to the dataframe
-        self.columns = []
 
-        # if a dataframe is set as kwarg set it up
-        if dataframe is not None:
-            self.setDataFrame(dataframe)
+        self.setDataFrame(self.dataframe)
+
+    def columns(self):
+        return list(self.dataframe.columns)
 
     def index(self, row: int, column: int, parent: QtCore.QModelIndex = ...) -> QtCore.QModelIndex:
         """
@@ -104,7 +107,7 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
         # return 0 if there is no DataFrame
         if self.dataframe is None:
             return 0
-        return len(self.columns)
+        return len(self.dataframe.columns)
 
     def data(self, index: QtCore.QModelIndex, role=Qt.ItemDataRole.DisplayRole):
         """
@@ -115,7 +118,7 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
 
         item: ABAbstractItem = index.internalPointer()
         col = index.column()
-        key = self.columns[col]
+        key = self.dataframe.columns[col]
 
         # redirect to the item's displayData method
         if role == Qt.ItemDataRole.DisplayRole:
@@ -138,8 +141,8 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
 
         if role == Qt.ItemDataRole.DisplayRole:
             if section == 0 and self.grouped_columns:
-                return " > ".join([self.columns[column] for column in self.grouped_columns] + [self.columns[0]])
-            return self.columns[section]
+                return " > ".join([self.dataframe.columns[column] for column in self.grouped_columns] + [self.dataframe.columns[0]])
+            return self.dataframe.columns[section]
 
         if role == Qt.ItemDataRole.FontRole and section in self.filtered_columns:
             font = QtGui.QFont()
@@ -168,7 +171,7 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
 
         # apply the sorting
         df.sort_values(
-            by=self.columns[self.sort_column],
+            by=self.dataframe.columns[self.sort_column],
             ascending=(self.sort_order == Qt.SortOrder.AscendingOrder),
             inplace=True, ignore_index=True
         )
@@ -183,7 +186,7 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
                 item.set_parent(self.root)
         # else build paths based on the grouped columns and create an ABItem tree
         else:
-            column_names = [self.columns[column] for column in self.grouped_columns]
+            column_names = [self.dataframe.columns[column] for column in self.grouped_columns]
 
             for i, *paths in df[column_names].itertuples():
                 joined_path = []
@@ -204,14 +207,10 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
     def setDataFrame(self, dataframe: pd.DataFrame):
         self.beginResetModel()
         self.dataframe = dataframe
-
-        # extend the columns
-        self.columns = self.columns + [col for col in self.dataframe.columns if col not in self.columns]
-
         self.endResetModel()
 
     def sort(self, column: int, order=Qt.SortOrder.AscendingOrder):
-        if column + 1 > len(self.columns):
+        if column + 1 > len(self.dataframe.columns):
             return
         if column == self.sort_column and order == self.sort_order:
             return

@@ -1,15 +1,11 @@
 from logging import getLogger
-from ast import literal_eval
 
 import pandas as pd
 from qtpy import QtWidgets, QtCore, QtGui
-from qtpy.QtCore import Signal, SignalInstance
 
 import bw2data as bd
-from rich.columns import Columns
 
-from activity_browser import actions, ui, project_settings, application, signals
-from activity_browser.ui import core
+from activity_browser import ui, application, signals
 from activity_browser.bwutils import AB_metadata
 
 log = getLogger(__name__)
@@ -55,7 +51,7 @@ class DatabaseExplorer(QtWidgets.QWidget):
         self.search.textChanged.connect(self.table_view.setAllFilter)
 
         self.splitter = QtWidgets.QSplitter(QtCore.Qt.Orientation.Vertical, self)
-        self.splitter.setCollapsible(False)
+        self.splitter.setChildrenCollapsible(False)
         self.splitter.addWidget(self.table_view)
 
         self.setLayout(QtWidgets.QVBoxLayout())
@@ -66,7 +62,7 @@ class DatabaseExplorer(QtWidgets.QWidget):
         signals.database.deleted.connect(self.deleteLater)
         signals.project.changed.connect(self.deleteLater)
         AB_metadata.synced.connect(self.sync)
-        self.table_view.query_changed.connect(self.search_error)
+        self.table_view.filtered.connect(self.search_error)
 
     def sync(self):
         self.model.setDataFrame(self.build_df())
@@ -88,12 +84,6 @@ class DatabaseExplorer(QtWidgets.QWidget):
 
         return full_df
 
-    def event(self, event):
-        if event.type() == QtCore.QEvent.Type.DeferredDelete:
-            self.save_state_to_settings()
-
-        return super().event(event)
-
     def search_error(self, reset=False):
         if reset:
             self.search.setPalette(application.palette())
@@ -105,7 +95,6 @@ class DatabaseExplorer(QtWidgets.QWidget):
 
 
 class NodeView(ui.widgets.ABTreeView):
-    query_changed: SignalInstance = Signal(bool)
 
     def __init__(self, above: QtWidgets.QWidget=None, parent=None):
         super().__init__(parent)
@@ -115,14 +104,8 @@ class NodeView(ui.widgets.ABTreeView):
         self.setSelectionBehavior(ui.widgets.ABTreeView.SelectionBehavior.SelectItems)
         self.setSelectionMode(ui.widgets.ABTreeView.SelectionMode.ExtendedSelection)
 
-        self.allFilter = ""
-
         self.above = above
         self.below: QtWidgets.QWidget = QtWidgets.QWidget(self)
-
-    # def mouseDoubleClickEvent(self, event) -> None:
-    #     if self.selected_activities:
-    #         actions.ActivityOpen.run(self.selected_activities)
 
     def deleteLater(self):
         super().deleteLater()
@@ -171,26 +154,6 @@ class NodeView(ui.widgets.ABTreeView):
 
             self.below = QtWidgets.QPlainTextEdit(str(data), self)
             self.parent().addWidget(self.below)
-
-    def setAllFilter(self, query: str):
-        self.allFilter = query
-        try:
-            self.applyFilter()
-            self.query_changed.emit(True)
-        except Exception as e:
-            print(f"Error in query: {type(e).__name__}: {e}")
-            self.query_changed.emit(False)
-
-    def buildQuery(self) -> str:
-        node_query = ""
-
-        if self.allFilter.startswith('='):
-            return super().buildQuery() + f" & ({self.allFilter[1:]})" + node_query
-
-        col_names = [self.model().columns[i] for i in range(len(self.model().columns)) if not self.isColumnHidden(i)]
-
-        q = " | ".join([f"(`{col}`.astype('str').str.contains('{self.format_query(self.allFilter)}', False))" for col in col_names])
-        return super().buildQuery() + f" & ({q})" + node_query if q else super().buildQuery() + node_query
 
 
 class NodeItem(ui.widgets.ABDataItem):

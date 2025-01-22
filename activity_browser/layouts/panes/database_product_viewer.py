@@ -59,7 +59,7 @@ class DatabaseProductViewer(QtWidgets.QWidget):
         # connect signals
         signals.database.deleted.connect(self.deleteLater)
         AB_metadata.synced.connect(self.sync)
-        self.table_view.query_changed.connect(self.search_error)
+        self.table_view.filtered.connect(self.search_error)
 
     def sync(self):
         self.model.setDataFrame(self.build_df())
@@ -128,7 +128,6 @@ class DatabaseProductViewer(QtWidgets.QWidget):
 
 
 class ProductView(ui.widgets.ABTreeView):
-    query_changed: SignalInstance = Signal(bool)
 
     class ContextMenu(ui.widgets.ABTreeView.ContextMenu):
         def __init__(self, pos, view: "ProductView"):
@@ -221,31 +220,9 @@ class ProductView(ui.widgets.ABTreeView):
         self.setSelectionBehavior(ui.widgets.ABTreeView.SelectionBehavior.SelectRows)
         self.setSelectionMode(ui.widgets.ABTreeView.SelectionMode.ExtendedSelection)
 
-        self.allFilter = ""
-
     def mouseDoubleClickEvent(self, event) -> None:
         if self.selected_activities:
             actions.ActivityOpen.run(self.selected_activities)
-
-    def setAllFilter(self, query: str):
-        self.allFilter = query
-        try:
-            self.applyFilter()
-            self.query_changed.emit(True)
-        except Exception as e:
-            print(f"Error in query: {type(e).__name__}: {e}")
-            self.query_changed.emit(False)
-
-    def buildQuery(self) -> str:
-        node_query = ""
-
-        if self.allFilter.startswith('='):
-            return super().buildQuery() + f" & ({self.allFilter[1:]})" + node_query
-
-        col_names = [self.model().columns[i] for i in range(len(self.model().columns)) if not self.isColumnHidden(i)]
-
-        q = " | ".join([f"(`{col}`.astype('str').str.contains('{self.format_query(self.allFilter)}', False))" for col in col_names])
-        return super().buildQuery() + f" & ({q})" + node_query if q else super().buildQuery() + node_query
 
     @property
     def selected_products(self) -> [tuple]:
@@ -258,13 +235,23 @@ class ProductView(ui.widgets.ABTreeView):
         return list({item["Activity Key"] for item in items if item["Activity Key"] is not None})
 
 
-class ProductModel(ui.widgets.ABAbstractItemModel):
+class ProductItem(ui.widgets.ABDataItem):
+    def decorationData(self, col, key):
+        if key == "Activity" and self["Activity"]:
+            if self["Type"] == "processwithreferenceproduct":
+                return ui.icons.qicons.processproduct
+            if self["Type"] in NODETYPES["biosphere"]:
+                return ui.icons.qicons.biosphere
+            return ui.icons.qicons.process
+        if key == "Product":
+            if self["Type"] in ["product", "processwithreferenceproduct"]:
+                return ui.icons.qicons.product
+            elif self["Type"] == "waste":
+                return ui.icons.qicons.waste
 
-    def createItems(self, dataframe=None) -> list[ui.widgets.ABDataItem]:
-        items = []
-        for index, data in dataframe.to_dict(orient="index").items():
-            items.append(ProductItem(index, data))
-        return items
+
+class ProductModel(ui.widgets.ABAbstractItemModel):
+    dataItemClass = ProductItem
 
     def mimeData(self, indices: [QtCore.QModelIndex]):
         data = core.ABMimeData()
@@ -283,18 +270,4 @@ class ProductModel(ui.widgets.ABAbstractItemModel):
             values.append(item[key])
         return values
 
-
-class ProductItem(ui.widgets.ABDataItem):
-    def decorationData(self, col, key):
-        if key == "Activity" and self["Activity"]:
-            if self["Type"] == "processwithreferenceproduct":
-                return ui.icons.qicons.processproduct
-            if self["Type"] in NODETYPES["biosphere"]:
-                return ui.icons.qicons.biosphere
-            return ui.icons.qicons.process
-        if key == "Product":
-            if self["Type"] in ["product", "processwithreferenceproduct"]:
-                return ui.icons.qicons.product
-            elif self["Type"] == "waste":
-                return ui.icons.qicons.waste
 

@@ -1,10 +1,15 @@
 import pandas as pd
 from qtpy import QtWidgets, QtCore, QtGui
+from logging import getLogger
 
 from .abstractitemmodel import ABAbstractItemModel
 
+log = getLogger(__name__)
+
 
 class ABTreeView(QtWidgets.QTreeView):
+    # fired when the filter is applied, fires False when an exception happens during querying
+    filtered: QtCore.SignalInstance = QtCore.Signal(bool)
 
     class HeaderMenu(QtWidgets.QMenu):
         def __init__(self, pos: QtCore.QPoint, view: "ABTreeView"):
@@ -13,7 +18,7 @@ class ABTreeView(QtWidgets.QTreeView):
             model = view.model()
 
             col_index = view.columnAt(pos.x())
-            col_name = model.columns[col_index]
+            col_name = model.columns()[col_index]
 
             search_box = QtWidgets.QLineEdit(self)
             search_box.setText(view.columnFilters.get(col_name, ""))
@@ -41,8 +46,8 @@ class ABTreeView(QtWidgets.QTreeView):
             view_menu.setTitle("View")
             self.view_actions = []
 
-            for i in range(1, len(model.columns)):
-                action = QtWidgets.QAction(model.columns[i])
+            for i in range(1, len(model.columns())):
+                action = QtWidgets.QAction(model.columns()[i])
                 action.setCheckable(True)
                 action.setChecked(not view.isColumnHidden(i))
                 action.setData(i)
@@ -76,6 +81,7 @@ class ABTreeView(QtWidgets.QTreeView):
         self.collapsed.connect(lambda index: self.expanded_paths.discard(tuple(index.internalPointer().path())))
 
         self.columnFilters: dict[str, str] = {}  # dict[column_name, query] for filtering the dataframe
+        self.allFilter: str = ""  # filter applied to the entire dataframe
 
     def setModel(self, model):
         if not isinstance(model, ABAbstractItemModel):
@@ -94,20 +100,64 @@ class ABTreeView(QtWidgets.QTreeView):
         self.HeaderMenu(pos, self).exec_(self.mapToGlobal(pos))
 
     def setColumnFilter(self, column_name: str, query: str):
+        """
+        Set a filter for a specific column using a string query. If the query is empty remove the filter from the column
+        """
+        col_index = self.model().columns().index(column_name)
+
         if query:
             self.columnFilters[column_name] = query
-            self.model().filtered_columns.add(self.model().columns.index(column_name))
+            self.model().filtered_columns.add(col_index)
         elif column_name in self.columnFilters:
             del self.columnFilters[column_name]
-            self.model().filtered_columns.discard(self.model().columns.index(column_name))
+            self.model().filtered_columns.discard(col_index)
+
+        self.applyFilter()
+
+    def setAllFilter(self, query: str):
+        self.allFilter = query
         self.applyFilter()
 
     def buildQuery(self) -> str:
-        q = " & ".join([f"({col}.astype('str').str.contains('{self.format_query(q)}'))" for col, q in self.columnFilters.items()])
-        return "(index == index)" if not q else f"({q})"
+        queries = ["(index == index)"]
+
+        # query for the column filters
+        for col in list(self.columnFilters):
+            if col not in self.model().columns():
+                del self.columnFilters[col]
+
+        for col, query in self.columnFilters.items():
+            q = f"({col}.astype('str').str.contains('{self.format_query(query)}'))"
+            queries.append(q)
+
+        # query for the all filter
+        if self.allFilter.startswith('='):
+            queries.append(f"({self.allFilter[1:]})")
+        else:
+            all_queries = []
+            formatted_filter = self.format_query(self.allFilter)
+
+            for i, col in enumerate(self.model().columns()):
+                if self.isColumnHidden(i):
+                    continue
+                all_queries.append(f"(`{col}`.astype('str').str.contains('{formatted_filter}', False))")
+
+            q = f"({' | '.join(all_queries)})"
+            queries.append(q)
+
+        query = " & ".join(queries)
+        log.debug(f"{self.__class__.__name__} built query: {query}")
+
+        return query
 
     def applyFilter(self):
-        self.model().setQuery(self.buildQuery())
+        query = self.buildQuery()
+        try:
+            self.model().setQuery(query)
+            self.filtered.emit(True)
+        except Exception as e:
+            log.info(f"{self.__class__.__name__} {type(e).__name__} in query: {e}")
+            self.filtered.emit(False)
 
     @staticmethod
     def format_query(query: str) -> str:
@@ -118,11 +168,11 @@ class ABTreeView(QtWidgets.QTreeView):
             return {}
 
         return {
-            "columns": self.model().columns,
-            "grouped_columns": [self.model().columns[i] for i in self.model().grouped_columns],
+            "columns": self.model().columns(),
+            "grouped_columns": [self.model().columns()[i] for i in self.model().grouped_columns],
 
             "expanded_paths": list(self.expanded_paths),
-            "visible_columns": [self.model().columns[i] for i in range(len(self.model().columns)) if not self.isColumnHidden(i)],
+            "visible_columns": [self.model().columns()[i] for i in range(len(self.model().columns())) if not self.isColumnHidden(i)],
             "filters": self.columnFilters,
             "sort_column": self.model().sort_column,
             "sort_ascending": self.model().sort_order == QtCore.Qt.SortOrder.AscendingOrder,
@@ -141,7 +191,6 @@ class ABTreeView(QtWidgets.QTreeView):
         self.columnFilters = state.get("filters", {})
 
         self.model().dataframe = dataframe
-        self.model().columns = columns
         self.model().grouped_columns = [columns.index(name) for name in state.get("grouped_columns", [])]
         self.model().sort_column = state.get("sort_column", self.model().sort_column)
         self.model().sort_order = QtCore.Qt.SortOrder.AscendingOrder if state.get("sort_ascending") else QtCore.Qt.SortOrder.DescendingOrder
@@ -149,7 +198,7 @@ class ABTreeView(QtWidgets.QTreeView):
         self.model().endResetModel()
 
         for column_name in self.columnFilters:
-            self.model().filtered_columns.add(self.model().columns.index(column_name))
+            self.model().filtered_columns.add(self.model().columns().index(column_name))
 
         for col_name in [col for col in columns if col not in state.get("visible_columns", columns)]:
             self.setColumnHidden(columns.index(col_name), True)
