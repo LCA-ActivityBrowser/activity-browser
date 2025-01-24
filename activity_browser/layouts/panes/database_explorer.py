@@ -37,7 +37,6 @@ class DatabaseExplorer(QtWidgets.QWidget):
 
         self.database = bd.Database(db_name)
         self.model = NodeModel(self)
-        self.model.columns = COLUMNS
 
         # Create the QTableView and set the model
         self.table_view = NodeView(self)
@@ -119,7 +118,7 @@ class NodeView(ui.widgets.ABTreeView):
             return
 
         idx = self.selectedIndexes()[0]
-        col_name = self.model().columns[idx.column()]
+        col_name = self.model().columns()[idx.column()]
         item = idx.internalPointer()
         data = item[col_name]
 
