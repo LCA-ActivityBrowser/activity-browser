@@ -233,9 +233,9 @@ def setup_ab_logging():
     stderr_handler.setLevel("DEBUG")
     logging.root.addHandler(stderr_handler)
 
-    # setting up the pycharm handler
-    pycharm_handler = ABPycharmHandler()
-    logging.root.addHandler(pycharm_handler)
+    # # setting up the pycharm handler
+    # pycharm_handler = ABPycharmHandler()
+    # logging.root.addHandler(pycharm_handler)
 
     # setting up the file handler
     file_handler = ABFileHandler()
