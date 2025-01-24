@@ -201,7 +201,7 @@ class ProductExchangeTable(BaseExchangeTable):
         super().__init__(parent)
         self.setDragDropMode(QtWidgets.QTableView.DragDrop)
         self.table_name = "product"
-        self._new_exchange_type = "production"
+        self._new_exchange_type = "technosphere"
 
     def contextMenuEvent(self, event, show_uncertainty: bool = True) -> None:
         if self.indexAt(event.pos()).row() != -1:
@@ -226,12 +226,37 @@ class TechnosphereExchangeTable(BaseExchangeTable):
 
 class BiosphereExchangeTable(BaseExchangeTable):
     MODEL = BiosphereExchangeModel
+    biosphere_nodes = ["emission", "natural resource", "inventory indicator", "economic"]
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setDragDropMode(QtWidgets.QTableView.DropOnly)
         self.table_name = "biosphere"
         self._new_exchange_type = "biosphere"
+
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasFormat("application/bw-nodekeylist"):
+            keys: list = event.mimeData().retrievePickleData("application/bw-nodekeylist")
+            for key in keys:
+                act = bd.get_node(key=key)
+                if act["type"] not in self.biosphere_nodes:
+                    keys.remove(key)
+
+            if not keys:
+                return
+
+            event.accept()
+
+    def dropEvent(self, event):
+        event.accept()
+        log.debug(f"Dropevent from: {type(event.source()).__name__} to: {self.__class__.__name__}")
+        keys: list = event.mimeData().retrievePickleData("application/bw-nodekeylist")
+        for key in keys:
+            act = bd.get_node(key=key)
+            if act["type"] not in self.biosphere_nodes:
+                keys.remove(key)
+
+        actions.ExchangeNew.run(keys, self.key, self._new_exchange_type)
 
 
 class DownstreamExchangeTable(BaseExchangeTable):
