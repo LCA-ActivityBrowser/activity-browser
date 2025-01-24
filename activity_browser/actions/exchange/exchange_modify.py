@@ -29,9 +29,9 @@ class ExchangeModify(ABAction):
             exchange[key] = value
         exchange.save()
 
-        if "functional" in data or exchange.output.get("type") == "multifunctional":
-            if hasattr(exchange.output, "allocate"):
-                exchange.output.allocate()
+        # if "functional" in data or exchange.output.get("type") == "multifunctional":
+        #     if hasattr(exchange.output, "allocate"):
+        #         exchange.output.allocate()
 
         if "formula" in data:
             cls.parameterize_exchanges(exchange.output.key)
