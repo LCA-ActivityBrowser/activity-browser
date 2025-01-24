@@ -162,10 +162,10 @@ class CustomAllocationEditor(QDialog):
         self._property_table.setSortingEnabled(False)
 
         # Inject the "equal" allocation as a property also
-        property_list.append(("equal", MessageType.ALL_VALID))
+        property_list["equal"] = MessageType.ALL_VALID
         self._property_table.setRowCount(len(property_list))
         row = 0
-        for property, type in property_list:
+        for property, type in property_list.items():
             self._property_table.setItem(row, 0, QTableWidgetItem(property))
             self._property_table.setItem(row, 1, QTableWidgetItem(type.value))
             self._property_table.item(row, 0).setForeground(
@@ -264,5 +264,6 @@ class CustomAllocationEditor(QDialog):
         except Exception as e:
             log.error(f"Exception in CustomAllocationEditor: {e}")
             QMessageBox.warning(parent, "An error occured", str(e))
+            raise e
         finally:
             return result
