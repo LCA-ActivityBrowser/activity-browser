@@ -354,21 +354,36 @@ class ExchangeView(ABTreeView):
             col_name = model.columns()[col_index]
 
             def toggle_slot(action: QtWidgets.QAction):
-                index = action.data()
-                hidden = view.isColumnHidden(index)
-                view.setColumnHidden(index, not hidden)
+                indices = action.data()
+                for index in indices:
+                    hidden = view.isColumnHidden(index)
+                    view.setColumnHidden(index, not hidden)
 
             view_menu = QtWidgets.QMenu(view)
             view_menu.setTitle("View")
-            self.view_actions = []
 
-            for i in range(1, len(model.columns())):
+            self.view_actions = []
+            props_indices = []
+
+            for i, col in enumerate(model.columns()):
+                if col.startswith("Property"):
+                    props_indices.append(i)
+                    continue
+
                 action = QtWidgets.QAction(model.columns()[i])
                 action.setCheckable(True)
                 action.setChecked(not view.isColumnHidden(i))
-                action.setData(i)
-                view_menu.addAction(action)
+                action.setData([i])
                 self.view_actions.append(action)
+
+                view_menu.addAction(action)
+
+            action = QtWidgets.QAction("Properties")
+            action.setCheckable(True)
+            action.setChecked(not view.isColumnHidden(props_indices[0]))
+            action.setData(props_indices)
+            self.view_actions.append(action)
+            view_menu.addAction(action)
 
             view_menu.triggered.connect(toggle_slot)
 
