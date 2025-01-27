@@ -2,6 +2,7 @@
 import itertools
 import sqlite3
 import pickle
+from time import time
 from functools import lru_cache
 from typing import Set
 from logging import getLogger
@@ -59,7 +60,7 @@ class MetaDataStore(QObject):
         self.dataframe = pd.DataFrame()
 
         signals.project.changed.connect(self.sync)
-        signals.node.changed.connect(lambda act: self.sync_node(act.key))
+        signals.node.changed.connect(self.on_node_changed)
         signals.node.deleted.connect(self.on_node_deleted)
         signals.database.deleted.connect(lambda name: self.sync_database(name))
         signals.database.written.connect(lambda name: self.sync_database(name))
@@ -70,6 +71,25 @@ class MetaDataStore(QObject):
             self.synced.emit()
         except KeyError:
             pass
+
+    def on_node_changed(self, new, old):
+        data = self._parse_df(pd.DataFrame([{
+            "id": new.id,
+            "data": pickle.dumps(new.data),
+            "code": new.code,
+            "database": new.database,
+            "location": new.location,
+            "name": new.name,
+            "product": new.product,
+            "type": new.type
+        }]))
+
+        if old.key in self.dataframe.index:  # the activity has been modified
+            self.dataframe.loc[old.key] = data.loc[old.key]
+        else:  # an activity has been added
+            self.dataframe = pd.concat([self.dataframe, data], join="outer")
+
+        self.thread().eventDispatcher().awake.connect(self._emitSyncLater, Qt.ConnectionType.UniqueConnection)
 
     @property
     def databases(self):
@@ -100,7 +120,9 @@ class MetaDataStore(QObject):
         self.thread().eventDispatcher().awake.connect(self._emitSyncLater, Qt.ConnectionType.UniqueConnection)
 
     def _emitSyncLater(self):
+        t = time()
         self.synced.emit()
+        log.debug(f"Metadatastore sync signal completed in {time() - t:.2f} seconds")
         self.thread().eventDispatcher().awake.disconnect(self._emitSyncLater)
 
     def _get_node(self, key: tuple):

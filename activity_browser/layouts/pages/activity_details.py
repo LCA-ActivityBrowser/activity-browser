@@ -54,6 +54,8 @@ class ActivityDetails(QtWidgets.QWidget):
     The final table of this tab lists these 'Downstream Consumers'
     """
 
+    _populate_later_flag = False
+
     def __init__(self, key: tuple, read_only=True, parent=None):
         super().__init__(parent)
         self.read_only = read_only
@@ -166,13 +168,13 @@ class ActivityDetails(QtWidgets.QWidget):
         signals.node.deleted.connect(self.on_node_deleted)
         signals.database.deleted.connect(self.on_database_deleted)
 
-        signals.node.changed.connect(self.populate)
-        signals.edge.changed.connect(self.populate)
+        signals.node.changed.connect(self.populateLater)
+        signals.edge.changed.connect(self.populateLater)
         # signals.edge.deleted.connect(self.populate)
 
-        signals.meta.databases_changed.connect(self.populate)
+        signals.meta.databases_changed.connect(self.populateLater)
 
-        signals.parameter.recalculated.connect(self.populate)
+        signals.parameter.recalculated.connect(self.populateLater)
 
     def on_node_deleted(self, node):
         if node.id == self.activity.id:
@@ -184,6 +186,17 @@ class ActivityDetails(QtWidgets.QWidget):
 
     def open_graph(self) -> None:
         signals.open_activity_graph_tab.emit(self.key)
+
+    def populateLater(self):
+        def slot():
+            self._populate_later_flag = False
+            self.populate()
+
+        if self._populate_later_flag:
+            return
+
+        self.thread().eventDispatcher().awake.connect(slot, Qt.ConnectionType.SingleShotConnection)
+        self._populate_later_flag = True
 
     def populate(self) -> None:
         """Populate the various tables and boxes within the Activity Detail tab"""
