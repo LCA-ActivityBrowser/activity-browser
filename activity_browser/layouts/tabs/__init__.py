@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from .activity import ActivitiesTab, ActivityTab
+from .activity import ActivitiesTab
 from .history import HistoryTab
 from .impact_categories import (CharacterizationFactorsTab,
                                 MethodCharacterizationFactorsTab, MethodsTab)

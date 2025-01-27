@@ -30,7 +30,7 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
         self.setDataFrame(self.dataframe)
 
     def columns(self):
-        return list(self.dataframe.columns)
+        return [col for col in self.dataframe.columns if not col.startswith("_")]
 
     def index(self, row: int, column: int, parent: QtCore.QModelIndex = ...) -> QtCore.QModelIndex:
         """
@@ -107,7 +107,7 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
         # return 0 if there is no DataFrame
         if self.dataframe is None:
             return 0
-        return len(self.dataframe.columns)
+        return len(self.columns())
 
     def data(self, index: QtCore.QModelIndex, role=Qt.ItemDataRole.DisplayRole):
         """
@@ -118,7 +118,7 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
 
         item: ABAbstractItem = index.internalPointer()
         col = index.column()
-        key = self.dataframe.columns[col]
+        key = self.columns()[col]
 
         # redirect to the item's displayData method
         if role == Qt.ItemDataRole.DisplayRole:
@@ -135,14 +135,27 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
         # else return None
         return None
 
+    def setData(self, index: QtCore.QModelIndex, value, role=Qt.ItemDataRole.EditRole) -> bool:
+        if not index.isValid() or not isinstance(index.internalPointer(), ABAbstractItem):
+            return False
+
+        if role == Qt.ItemDataRole.EditRole:
+            success = index.internalPointer().setData(index.column(), self.columns()[index.column()], value)
+
+            if success:
+                self.dataChanged.emit(index, index, [Qt.ItemDataRole.DisplayRole, Qt.ItemDataRole.EditRole])
+            return success
+
+        return False
+
     def headerData(self, section, orientation=Qt.Orientation.Horizontal, role=Qt.ItemDataRole.DisplayRole):
         if orientation != Qt.Orientation.Horizontal:
             return None
 
         if role == Qt.ItemDataRole.DisplayRole:
             if section == 0 and self.grouped_columns:
-                return " > ".join([self.dataframe.columns[column] for column in self.grouped_columns] + [self.dataframe.columns[0]])
-            return self.dataframe.columns[section]
+                return " > ".join([self.columns()[column] for column in self.grouped_columns] + [self.columns()[0]])
+            return self.columns()[section]
 
         if role == Qt.ItemDataRole.FontRole and section in self.filtered_columns:
             font = QtGui.QFont()
@@ -153,7 +166,10 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
             return qicons.filter
 
     def flags(self, index):
-        return super().flags(index) | Qt.ItemFlag.ItemIsDragEnabled
+        if not index.isValid() or not isinstance(index.internalPointer(), ABAbstractItem):
+            return Qt.ItemFlag.NoItemFlags
+
+        return index.internalPointer().flags(index.column(), self.columns()[index.column()])
 
     def endResetModel(self):
         """
@@ -171,7 +187,7 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
 
         # apply the sorting
         df.sort_values(
-            by=self.dataframe.columns[self.sort_column],
+            by=self.columns()[self.sort_column],
             ascending=(self.sort_order == Qt.SortOrder.AscendingOrder),
             inplace=True, ignore_index=True
         )
@@ -186,7 +202,7 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
                 item.set_parent(self.root)
         # else build paths based on the grouped columns and create an ABItem tree
         else:
-            column_names = [self.dataframe.columns[column] for column in self.grouped_columns]
+            column_names = [self.columns()[column] for column in self.grouped_columns]
 
             for i, *paths in df[column_names].itertuples():
                 joined_path = []
@@ -210,7 +226,7 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
         self.endResetModel()
 
     def sort(self, column: int, order=Qt.SortOrder.AscendingOrder):
-        if column + 1 > len(self.dataframe.columns):
+        if column + 1 > len(self.columns()):
             return
         if column == self.sort_column and order == self.sort_order:
             return

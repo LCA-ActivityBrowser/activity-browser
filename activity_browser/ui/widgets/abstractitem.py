@@ -1,4 +1,4 @@
-from qtpy import QtGui
+from qtpy import QtGui, QtCore
 
 
 class ABAbstractItem:
@@ -67,6 +67,12 @@ class ABAbstractItem:
 
     def fontData(self, col: int, key: str):
         return None
+
+    def flags(self, col: int, key: str):
+        return QtCore.Qt.ItemFlag.ItemIsEnabled | QtCore.Qt.ItemFlag.ItemIsSelectable
+
+    def setData(self, col: int, key: str, value):
+        return False
 
 
 class ABBranchItem(ABAbstractItem):
