@@ -24,6 +24,19 @@ from ...ui.widgets import (
 
 log = getLogger(__name__)
 
+NODETYPES = {
+    "processes": ["process", "multifunctional", "processwithreferenceproduct", "nonfunctional"],
+    "products": ["product", "processwithreferenceproduct", "waste"],
+    "biosphere": ["natural resource", "emission", "inventory indicator", "economic", "social"],
+}
+
+EXCHANGE_MAP = {
+    "natural resource": "biosphere", "emission": "biosphere", "inventory indicator": "biosphere",
+    "economic": "biosphere", "social": "biosphere", "product": "technosphere",
+    "processwithreferenceproduct": "technosphere", "waste": "technosphere",
+}
+
+
 
 class ActivityDetails(QtWidgets.QWidget):
     """The data relating to Brightway activities can be viewed and edited through this panel interface
@@ -136,7 +149,6 @@ class ActivityDetails(QtWidgets.QWidget):
         layout.addWidget(QtWidgets.QLabel("<b>Input:</b>"))
         layout.addWidget(self.input_view)
 
-
         self.setLayout(layout)
 
         self.populate()
@@ -191,13 +203,13 @@ class ActivityDetails(QtWidgets.QWidget):
         technosphere = self.activity.technosphere()
         biosphere = self.activity.biosphere()
 
-        inputs = ([x for x in production if x.amount < 0] +
-                  [x for x in technosphere if x.amount >= 0] +
-                  [x for x in biosphere if (x.type != "emission" and x.amount >= 0) or (x.type == "emission" and x.amount < 0)])
+        inputs = ([x for x in production if x["amount"] < 0] +
+                  [x for x in technosphere if x["amount"] >= 0] +
+                  [x for x in biosphere if (x["type"] != "emission" and x["amount"] >= 0) or (x["type"] == "emission" and x["amount"] < 0)])
 
-        outputs = ([x for x in production if x.amount >= 0] +
-                   [x for x in technosphere if x.amount < 0] +
-                   [x for x in biosphere if (x.type == "emission" and x.amount >= 0) or (x.type != "emission" and x.amount < 0)])
+        outputs = ([x for x in production if x["amount"] >= 0] +
+                   [x for x in technosphere if x["amount"] < 0] +
+                   [x for x in biosphere if (x.input["type"] == "emission" and x["amount"] >= 0) or (x.input["type"] != "emission" and x["amount"] < 0)])
 
         self.output_model.setDataFrame(self.build_df(outputs))
         self.input_model.setDataFrame(self.build_df(inputs))
@@ -330,6 +342,10 @@ class ExchangeView(ABTreeView):
         "Uncertainty": delegates.UncertaintyDelegate,
     }
 
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.setAcceptDrops(True)
+
     def setModel(self, model):
         super().setModel(model)
         self.model().modelReset.connect(self.set_column_delegates)
@@ -342,6 +358,30 @@ class ExchangeView(ABTreeView):
                 self.setItemDelegateForColumn(i, self.column_delegates[col_name](self))
             elif col_name.startswith("Property: "):
                 self.setItemDelegateForColumn(i, delegates.FloatDelegate(self))
+
+    def dragMoveEvent(self, event) -> None:
+        pass
+
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasFormat("application/bw-nodekeylist"):
+            keys: list = event.mimeData().retrievePickleData("application/bw-nodekeylist")
+            event.accept()
+
+    def dropEvent(self, event):
+        event.accept()
+        log.debug(f"Dropevent from: {type(event.source()).__name__} to: {self.__class__.__name__}")
+        keys: list = event.mimeData().retrievePickleData("application/bw-nodekeylist")
+        exchanges = {"technosphere": set(), "biosphere": set()}
+
+        for key in keys:
+            act = bd.get_node(key=key)
+            if act["type"] not in EXCHANGE_MAP:
+                continue
+            exc_type = EXCHANGE_MAP[act["type"]]
+            exchanges[exc_type].add(act.key)
+
+        for exc_type, keys in exchanges.items():
+            actions.ExchangeNew.run(keys, self.parent().key, exc_type)
 
 
 class ExchangeItem(ABDataItem):
