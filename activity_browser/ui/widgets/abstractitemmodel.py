@@ -132,6 +132,12 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
         if role == Qt.ItemDataRole.DecorationRole:
             return item.decorationData(col, key)
 
+        if role == Qt.ItemDataRole.BackgroundRole:
+            return item.backgroundData(col, key)
+
+        if role == Qt.ItemDataRole.ForegroundRole:
+            return item.foregroundData(col, key)
+
         # else return None
         return None
 

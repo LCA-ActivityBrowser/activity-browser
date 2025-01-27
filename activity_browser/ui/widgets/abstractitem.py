@@ -68,6 +68,12 @@ class ABAbstractItem:
     def fontData(self, col: int, key: str):
         return None
 
+    def backgroundData(self, col: int, key: str):
+        return None
+
+    def foregroundData(self, col: int, key: str):
+        return None
+
     def flags(self, col: int, key: str):
         return QtCore.Qt.ItemFlag.ItemIsEnabled | QtCore.Qt.ItemFlag.ItemIsSelectable
 

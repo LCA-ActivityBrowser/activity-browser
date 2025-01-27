@@ -233,6 +233,7 @@ class ActivityDetails(QtWidgets.QWidget):
             "Allocation": list(act_df["allocation_factor"]) if "allocation_factor" in act_df.columns else None,
             "_exchange_id": [exc.id for exc in exchanges],
             "_activity_id": list(act_df["id"]),
+            "_allocate_by": self.activity.get("default_allocation"),
         })
 
         if "properties" in act_df.columns:
@@ -431,13 +432,15 @@ class ExchangeView(ABTreeView):
 
 
 class ExchangeItem(ABDataItem):
+    _exchange: bd.Edge = None
 
     @property
     def exchange(self):
         from bw2data.backends.proxies import ExchangeDataset
-        id = self["_exchange_id"]
-        return bd.Edge(document=ExchangeDataset.get_by_id(id))
-
+        if self._exchange is None:
+            id = self["_exchange_id"]
+            self._exchange = bd.Edge(document=ExchangeDataset.get_by_id(id))
+        return self._exchange
 
     def flags(self, col: int, key: str):
         flags = super().flags(col, key)
@@ -467,6 +470,10 @@ class ExchangeItem(ABDataItem):
         if self["Exchange Type"] == "production":
             font.setBold(True)
         return font
+
+    def backgroundData(self, col: int, key: str):
+        if key == f"Property: {self['_allocate_by']}":
+            return QtGui.QBrush(Qt.GlobalColor.lightGray)
 
     def setData(self, col: int, key: str, value) -> bool:
         if key in ["Amount"]:
