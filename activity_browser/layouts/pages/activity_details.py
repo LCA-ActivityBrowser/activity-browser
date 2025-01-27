@@ -345,7 +345,7 @@ class ExchangeView(ABTreeView):
     }
 
     class HeaderMenu(QtWidgets.QMenu):
-        def __init__(self, pos: QtCore.QPoint, view: "ABTreeView"):
+        def __init__(self, pos: QtCore.QPoint, view: "ExchangeView"):
             super().__init__(view)
 
             model = view.model()
@@ -388,6 +388,12 @@ class ExchangeView(ABTreeView):
             view_menu.triggered.connect(toggle_slot)
 
             self.addMenu(view_menu)
+
+            if col_name.startswith("Property: "):
+                self.set_alloc = actions.ActivityModify.get_QAction(view.activity.key, "default_allocation", col_name[10:])
+                self.set_alloc.setText(f"Allocate by {col_name[10:]}")
+                self.addAction(self.set_alloc)
+
 
     class ContextMenu(QtWidgets.QMenu):
         def __init__(self, pos, view: "ABTreeView"):

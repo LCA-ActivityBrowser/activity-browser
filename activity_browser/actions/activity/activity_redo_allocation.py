@@ -28,6 +28,8 @@ class MultifunctionalProcessRedoAllocation(ABAction):
         except KeyError as exc:
             signals.new_statusbar_message.emit("A property for the allocation calculation was not found!")
             log.error(f"A property for the allocation calculation was not found: {node}")
+            raise exc
         except ZeroDivisionError as exc:
             signals.new_statusbar_message.emit(str(exc))
             log.error(f"Zero division in allocation calculation: {exc}")
+            raise exc
