@@ -168,7 +168,10 @@ class ActivityDetails(QtWidgets.QWidget):
 
         signals.node.changed.connect(self.populate)
         signals.edge.changed.connect(self.populate)
-        signals.edge.deleted.connect(self.populate)
+        # signals.edge.deleted.connect(self.populate)
+
+        signals.meta.databases_changed.connect(self.populate)
+
         signals.parameter.recalculated.connect(self.populate)
 
     def on_node_deleted(self, node):
@@ -179,11 +182,9 @@ class ActivityDetails(QtWidgets.QWidget):
         if name == self.activity["database"]:
             self.deleteLater()
 
-    @Slot(name="openGraph")
     def open_graph(self) -> None:
         signals.open_activity_graph_tab.emit(self.key)
 
-    @Slot(name="populatePage")
     def populate(self) -> None:
         """Populate the various tables and boxes within the Activity Detail tab"""
         if self.db_name in bd.databases:
@@ -205,7 +206,7 @@ class ActivityDetails(QtWidgets.QWidget):
 
         inputs = ([x for x in production if x["amount"] < 0] +
                   [x for x in technosphere if x["amount"] >= 0] +
-                  [x for x in biosphere if (x["type"] != "emission" and x["amount"] >= 0) or (x["type"] == "emission" and x["amount"] < 0)])
+                  [x for x in biosphere if (x.input["type"] != "emission" and x["amount"] >= 0) or (x.input["type"] == "emission" and x["amount"] < 0)])
 
         outputs = ([x for x in production if x["amount"] >= 0] +
                    [x for x in technosphere if x["amount"] < 0] +
@@ -342,9 +343,54 @@ class ExchangeView(ABTreeView):
         "Uncertainty": delegates.UncertaintyDelegate,
     }
 
+    class HeaderMenu(QtWidgets.QMenu):
+        def __init__(self, pos: QtCore.QPoint, view: "ABTreeView"):
+            super().__init__(view)
+
+            model = view.model()
+
+            col_index = view.columnAt(pos.x())
+            col_name = model.columns()[col_index]
+
+            def toggle_slot(action: QtWidgets.QAction):
+                index = action.data()
+                hidden = view.isColumnHidden(index)
+                view.setColumnHidden(index, not hidden)
+
+            view_menu = QtWidgets.QMenu(view)
+            view_menu.setTitle("View")
+            self.view_actions = []
+
+            for i in range(1, len(model.columns())):
+                action = QtWidgets.QAction(model.columns()[i])
+                action.setCheckable(True)
+                action.setChecked(not view.isColumnHidden(i))
+                action.setData(i)
+                view_menu.addAction(action)
+                self.view_actions.append(action)
+
+            view_menu.triggered.connect(toggle_slot)
+
+            self.addMenu(view_menu)
+
+    class ContextMenu(QtWidgets.QMenu):
+        def __init__(self, pos, view: "ABTreeView"):
+            super().__init__(view)
+
+            index = view.indexAt(pos)
+            item: ExchangeItem = index.internalPointer()
+
+            self.delete_exc_action = actions.ExchangeDelete.get_QAction([item.exchange])
+
+            self.addAction(self.delete_exc_action)
+
     def __init__(self, parent):
         super().__init__(parent)
         self.setAcceptDrops(True)
+
+    @property
+    def activity(self):
+        return self.parent().activity
 
     def setModel(self, model):
         super().setModel(model)
@@ -381,10 +427,17 @@ class ExchangeView(ABTreeView):
             exchanges[exc_type].add(act.key)
 
         for exc_type, keys in exchanges.items():
-            actions.ExchangeNew.run(keys, self.parent().key, exc_type)
+            actions.ExchangeNew.run(keys, self.activity.key, exc_type)
 
 
 class ExchangeItem(ABDataItem):
+
+    @property
+    def exchange(self):
+        from bw2data.backends.proxies import ExchangeDataset
+        id = self["_exchange_id"]
+        return bd.Edge(document=ExchangeDataset.get_by_id(id))
+
 
     def flags(self, col: int, key: str):
         flags = super().flags(col, key)
@@ -417,12 +470,7 @@ class ExchangeItem(ABDataItem):
 
     def setData(self, col: int, key: str, value) -> bool:
         if key in ["Amount"]:
-            from bw2data.backends.proxies import ExchangeDataset
-
-            id = self["_exchange_id"]
-            exc = bd.Edge(document=ExchangeDataset.get_by_id(id))
-
-            actions.ExchangeModify.run(exc, {"amount": value})
+            actions.ExchangeModify.run(self.exchange, {"amount": value})
             return True
 
         if key in ["Unit", "Name", "Location"]:
