@@ -2,7 +2,7 @@ from logging import getLogger
 
 import pandas as pd
 from qtpy import QtWidgets, QtCore, QtGui
-from qtpy.QtCore import Signal, SignalInstance
+from qtpy.QtCore import Qt
 
 import bw2data as bd
 
@@ -248,6 +248,10 @@ class ProductItem(ui.widgets.ABDataItem):
                 return ui.icons.qicons.product
             elif self["Type"] == "waste":
                 return ui.icons.qicons.waste
+
+    def flags(self, col: int, key: str):
+        return super().flags(col, key) | Qt.ItemFlag.ItemIsDragEnabled
+
 
 
 class ProductModel(ui.widgets.ABAbstractItemModel):
