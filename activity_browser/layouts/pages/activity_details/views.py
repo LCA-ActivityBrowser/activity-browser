@@ -106,6 +106,7 @@ class ExchangeView(ABTreeView):
     def __init__(self, parent):
         super().__init__(parent)
         self.setAcceptDrops(True)
+        self.setSortingEnabled(True)
 
     @property
     def activity(self):
