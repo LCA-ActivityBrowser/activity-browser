@@ -67,8 +67,12 @@ class ExchangeItem(ABDataItem):
             return QtGui.QBrush(Qt.GlobalColor.lightGray)
 
     def setData(self, col: int, key: str, value) -> bool:
-        if key in ["Amount"]:
-            actions.ExchangeModify.run(self.exchange, {"amount": value})
+        if key in ["Amount", "Formula"]:
+            if key == "Formula" and not str(value).strip():
+                actions.ExchangeFormulaRemove.run([self.exchange])
+                return True
+
+            actions.ExchangeModify.run(self.exchange, {key.lower(): value})
             return True
 
         if key in ["Unit", "Name", "Location"]:

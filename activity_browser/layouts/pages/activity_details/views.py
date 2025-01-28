@@ -27,7 +27,7 @@ class ExchangeView(ABTreeView):
         "Name": delegates.StringDelegate,
         "Location": delegates.StringDelegate,
         "Product": delegates.StringDelegate,
-        "Formula": delegates.FormulaDelegate,
+        "Formula": delegates.StringDelegate,
         "Comment": delegates.StringDelegate,
         "Uncertainty": delegates.UncertaintyDelegate,
     }

@@ -1,6 +1,7 @@
 from logging import getLogger
 
 import pandas as pd
+import numpy as np
 from peewee import DoesNotExist
 
 from qtpy import QtCore, QtWidgets
@@ -8,7 +9,7 @@ from qtpy.QtCore import Qt
 
 import bw2data as bd
 
-from activity_browser import project_settings, signals, actions
+from activity_browser import project_settings, signals
 from activity_browser.bwutils import AB_metadata
 
 from activity_browser.ui.icons import qicons
@@ -234,6 +235,8 @@ class ActivityDetails(QtWidgets.QWidget):
 
                 for prop, value in props.items():
                     df.loc[i, f"Property: {prop}"] = [value]  # inserted using list because Pandas is weird about setting dicts as values
+
+        df["Formula"] = exc_df.get("formula", np.nan)
 
         return df
 
