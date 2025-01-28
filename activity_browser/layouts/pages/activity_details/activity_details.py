@@ -3,24 +3,24 @@ from logging import getLogger
 import pandas as pd
 from peewee import DoesNotExist
 
-from qtpy import QtCore, QtWidgets, QtGui
-from qtpy.QtCore import Slot, Qt
+from qtpy import QtCore, QtWidgets
+from qtpy.QtCore import Qt
 
 import bw2data as bd
 
 from activity_browser import project_settings, signals, actions
 from activity_browser.bwutils import AB_metadata
-from activity_browser.ui import icons
-from activity_browser.ui.tables import delegates
-from activity_browser.ui.widgets import ABTreeView, ABAbstractItemModel, ABDataItem
 
-from ...ui.icons import qicons
-from ...ui.style import style_activity_tab
-from ...ui.widgets import (
+from activity_browser.ui.icons import qicons
+from activity_browser.ui.style import style_activity_tab
+from activity_browser.ui.widgets import (
     ActivityDataGrid,
     SignalledPlainTextEdit,
     TagEditor,
 )
+
+from .views import ExchangeView
+from .models import ExchangeModel
 
 log = getLogger(__name__)
 
@@ -35,7 +35,6 @@ EXCHANGE_MAP = {
     "economic": "biosphere", "social": "biosphere", "product": "technosphere",
     "processwithreferenceproduct": "technosphere", "waste": "technosphere",
 }
-
 
 
 class ActivityDetails(QtWidgets.QWidget):
@@ -85,11 +84,6 @@ class ActivityDetails(QtWidgets.QWidget):
         self.checkbox_comment.setToolTip("Show/hide the comment column")
         self.checkbox_comment.setChecked(False)
 
-        # Properties button
-        properties = QtWidgets.QPushButton("Properties")
-        properties.clicked.connect(self.open_property_editor)
-        properties.setToolTip("Show the properties dialog")
-
         # Tags button
         self.tags_button = QtWidgets.QPushButton("Tags")
         self.tags_button.clicked.connect(self.open_tag_editor)
@@ -104,7 +98,6 @@ class ActivityDetails(QtWidgets.QWidget):
         toolbar.addWidget(self.checkbox_activity_description)
         toolbar.addWidget(self.checkbox_uncertainty)
         toolbar.addWidget(self.checkbox_comment)
-        toolbar.addWidget(properties)
         toolbar.addWidget(self.tags_button)
 
         # Activity information
@@ -314,277 +307,11 @@ class ActivityDetails(QtWidgets.QWidget):
         else:
             self.setStyleSheet(style_activity_tab.style_sheet_editable)
 
-    def open_property_editor(self):
-        """Opens the property editor for the current """
-        # Do not save the changes if nothing changed
-        if PropertyEditor.edit_properties(self.activity, self.read_only, self):
-            self.activity.save()
-            # Properties changed, redo allocations, the values might have changed
-            actions.MultifunctionalProcessRedoAllocation.run(self.activity)
-
     def open_tag_editor(self):
         """Opens the tag editor for the current"""
         # Do not save the changes if nothing changed
         if TagEditor.edit(self.activity, self.read_only, self):
             self.activity.save()
 
-
-class ExchangeView(ABTreeView):
-    column_delegates = {
-        "Amount": delegates.FloatDelegate,
-        "Unit": delegates.StringDelegate,
-        "Name": delegates.StringDelegate,
-        "Location": delegates.StringDelegate,
-        "Product": delegates.StringDelegate,
-        "Formula": delegates.FormulaDelegate,
-        "Comment": delegates.StringDelegate,
-        "Uncertainty": delegates.UncertaintyDelegate,
-    }
-
-    class HeaderMenu(QtWidgets.QMenu):
-        def __init__(self, pos: QtCore.QPoint, view: "ExchangeView"):
-            super().__init__(view)
-
-            model = view.model()
-
-            col_index = view.columnAt(pos.x())
-            col_name = model.columns()[col_index]
-
-            def toggle_slot(action: QtWidgets.QAction):
-                indices = action.data()
-                for index in indices:
-                    hidden = view.isColumnHidden(index)
-                    view.setColumnHidden(index, not hidden)
-
-            view_menu = QtWidgets.QMenu(view)
-            view_menu.setTitle("View")
-
-            self.view_actions = []
-            props_indices = []
-
-            for i, col in enumerate(model.columns()):
-                if col.startswith("Property"):
-                    props_indices.append(i)
-                    continue
-
-                action = QtWidgets.QAction(model.columns()[i])
-                action.setCheckable(True)
-                action.setChecked(not view.isColumnHidden(i))
-                action.setData([i])
-                self.view_actions.append(action)
-
-                view_menu.addAction(action)
-
-            if props_indices:
-                action = QtWidgets.QAction("Properties")
-                action.setCheckable(True)
-                action.setChecked(not view.isColumnHidden(props_indices[0]))
-                action.setData(props_indices)
-                self.view_actions.append(action)
-                view_menu.addAction(action)
-
-            view_menu.triggered.connect(toggle_slot)
-
-            self.addMenu(view_menu)
-
-            if col_name.startswith("Property: "):
-                props = view.activity.get("properties")
-                prop_name = col_name[10:]
-
-                self.set_alloc = actions.ActivityModify.get_QAction(view.activity.key, "default_allocation", col_name[10:])
-                self.set_alloc.setText(f"Allocate by {col_name[10:]}")
-                self.addAction(self.set_alloc)
-
-    class ContextMenu(QtWidgets.QMenu):
-        def __init__(self, pos, view: "ExchangeView"):
-            super().__init__(view)
-
-            self.add_product_action = actions.ActivityNewProduct.get_QAction(view.activity.key)
-            self.addAction(self.add_product_action)
-
-            index = view.indexAt(pos)
-            if index.isValid():
-                item: ExchangeItem = index.internalPointer()
-
-                self.delete_exc_action = actions.ExchangeDelete.get_QAction([item.exchange])
-                self.add_property_action = actions.FunctionPropertyAdd.get_QAction(item.exchange.input)
-
-                self.addAction(self.delete_exc_action)
-                self.addAction(self.add_property_action)
-
-    def __init__(self, parent):
-        super().__init__(parent)
-        self.setAcceptDrops(True)
-
-    @property
-    def activity(self):
-        return self.parent().activity
-
-    def setModel(self, model):
-        super().setModel(model)
-        self.model().modelReset.connect(self.set_column_delegates)
-
-    def set_column_delegates(self):
-        columns = self.model().columns()
-
-        for i, col_name in enumerate(columns):
-            if col_name in self.column_delegates:
-                self.setItemDelegateForColumn(i, self.column_delegates[col_name](self))
-            elif col_name.startswith("Property: "):
-                self.setItemDelegateForColumn(i, PropertyDelegate(self))
-
-    def dragMoveEvent(self, event) -> None:
-        pass
-
-    def dragEnterEvent(self, event):
-        if event.mimeData().hasFormat("application/bw-nodekeylist"):
-            keys: list = event.mimeData().retrievePickleData("application/bw-nodekeylist")
-            event.accept()
-
-    def dropEvent(self, event):
-        event.accept()
-        log.debug(f"Dropevent from: {type(event.source()).__name__} to: {self.__class__.__name__}")
-        keys: list = event.mimeData().retrievePickleData("application/bw-nodekeylist")
-        exchanges = {"technosphere": set(), "biosphere": set()}
-
-        for key in keys:
-            act = bd.get_node(key=key)
-            if act["type"] not in EXCHANGE_MAP:
-                continue
-            exc_type = EXCHANGE_MAP[act["type"]]
-            exchanges[exc_type].add(act.key)
-
-        for exc_type, keys in exchanges.items():
-            actions.ExchangeNew.run(keys, self.activity.key, exc_type)
-
-
-class ExchangeItem(ABDataItem):
-
-    @property
-    def exchange(self):
-        return self["_exchange"]
-
-    @property
-    def functional(self):
-        return self["Exchange Type"] == "production"
-
-    def flags(self, col: int, key: str):
-        flags = super().flags(col, key)
-        if key in ExchangeView.column_delegates:
-            return flags | Qt.ItemFlag.ItemIsEditable
-        if key.startswith("Property: "):
-            return flags | Qt.ItemFlag.ItemIsEditable
-        return flags
-
-    def displayData(self, col: int, key: str):
-        if key == "Allocation Factor" and not self.functional:
-            return None
-
-        if key.startswith("Property: "):
-            if not self.functional:
-                return ()
-            if not isinstance(self[key], list):
-                return ("Undefined", )
-
-            prop = self[key][0]
-
-            amount = prop.get("amount")
-            unit = prop.get("unit")
-            norm = f" / {self.exchange.input["unit"]}" if prop.get("normalize") else ""
-            return (amount, unit, norm, )
-        return super().displayData(col, key)
-
-    def decorationData(self, col, key):
-        if key != "Name":
-            return
-
-        if self["Activity Type"] in ["natural resource", "emission", "inventory indicator", "economic", "social"]:
-            return icons.qicons.biosphere
-        if self["Activity Type"] in ["product", "processwithreferenceproduct"]:
-            return icons.qicons.product
-        if self["Activity Type"] == "waste":
-            return icons.qicons.waste
-
-    def fontData(self, col: int, key: str):
-        font = super().fontData(col, key)
-
-        # set the font to bold if it's a production/functional exchange
-        if self.functional:
-            font.setBold(True)
-        return font
-
-    def backgroundData(self, col: int, key: str):
-        if key == f"Property: {self['_allocate_by']}":
-            return QtGui.QBrush(Qt.GlobalColor.lightGray)
-
-    def setData(self, col: int, key: str, value) -> bool:
-        if key in ["Amount"]:
-            actions.ExchangeModify.run(self.exchange, {"amount": value})
-            return True
-
-        if key in ["Unit", "Name", "Location"]:
-            act = self.exchange.input
-
-            actions.ActivityModify.run(act.key, key.lower(), value)
-
-        if key.startswith("Property: "):
-            act = self.exchange.input
-            prop_key = key[10:]
-            props = act["properties"]
-            props[prop_key].update({"amount": value})
-
-            actions.ActivityModify.run(act.key, "properties", props)
-
-        return False
-
-
-class ExchangeModel(ABAbstractItemModel):
-    dataItemClass = ExchangeItem
-
-
-class PropertyDelegate(QtWidgets.QStyledItemDelegate):
-
-    def displayText(self, value, locale):
-        if not value:
-            return ""
-        value = [str(x) for x in value]
-        return " ".join(value)
-
-    def createEditor(self, parent, option, index):
-        data = index.data(QtCore.Qt.ItemDataRole.DisplayRole)
-        if not data:
-            return None
-
-        if data == ("Undefined",):
-            item = index.internalPointer()
-            prop_name = index.model().columns()[index.column()][10:]
-
-            actions.FunctionPropertyAdd.run(item.exchange.input, prop_name)
-            return None
-
-        editor = QtWidgets.QLineEdit(parent)
-        validator = QtGui.QDoubleValidator()
-        editor.setValidator(validator)
-        return editor
-
-    def setEditorData(self, editor: QtWidgets.QLineEdit, index: QtCore.QModelIndex):
-        """Populate the editor with data if editing an existing field."""
-        import math
-        data = index.data(QtCore.Qt.ItemDataRole.DisplayRole)
-
-        try:
-            value = float(data[0])
-        except ValueError:
-            value = math.nan
-
-        editor.setText(str(value))
-
-    def setModelData(self, editor: QtWidgets.QLineEdit, model: QtCore.QAbstractItemModel, index: QtCore.QModelIndex):
-        """Take the editor, read the given value and set it in the model"""
-        try:
-            value = float(editor.text())
-            model.setData(index, value, QtCore.Qt.EditRole)
-        except ValueError:
-            pass
 
 
