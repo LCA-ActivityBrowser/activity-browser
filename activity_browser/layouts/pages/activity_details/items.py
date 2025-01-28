@@ -1,6 +1,7 @@
 from qtpy import QtGui
 from qtpy.QtCore import Qt
 
+from activity_browser import actions
 from activity_browser.ui.widgets import ABDataItem
 from activity_browser.ui import icons
 
