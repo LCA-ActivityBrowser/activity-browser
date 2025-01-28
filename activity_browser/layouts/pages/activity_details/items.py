@@ -19,9 +19,11 @@ class ExchangeItem(ABDataItem):
         from .views import ExchangeView
 
         flags = super().flags(col, key)
-        if key in ExchangeView.column_delegates:
+        if key in ["Amount", "Formula"]:
             return flags | Qt.ItemFlag.ItemIsEditable
-        if key.startswith("Property: "):
+        if key in ["Unit", "Name", "Location"] and self.functional:
+            return flags | Qt.ItemFlag.ItemIsEditable
+        if key.startswith("Property: ") and self.functional:
             return flags | Qt.ItemFlag.ItemIsEditable
         return flags
 
