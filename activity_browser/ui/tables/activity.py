@@ -51,12 +51,12 @@ class BaseExchangeTable(ABDataFrameView):
 
         self.key = getattr(parent, "key", None)
         self.model = self.MODEL(self.key, self)
-
-        self.node_properties_action = actions.NodeProperties.get_QAction(
-            # Use a lambda for the read-only flag, so that the value
-            # is not captured at definition, but at execution
-            self.selected_exchanges, lambda: self.model.is_read_only(), self
-        )
+        #
+        # self.node_properties_action = actions.NodeProperties.get_QAction(
+        #     # Use a lambda for the read-only flag, so that the value
+        #     # is not captured at definition, but at execution
+        #     self.selected_exchanges, lambda: self.model.is_read_only(), self
+        # )
 
         self.downstream = False
         self.setEditTriggers(

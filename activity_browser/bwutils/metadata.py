@@ -84,8 +84,14 @@ class MetaDataStore(QObject):
             "type": new.type
         }]))
 
-        if old.key in self.dataframe.index:  # the activity has been modified
-            self.dataframe.loc[old.key] = data.loc[old.key]
+        if new.key in self.dataframe.index:  # the activity has been modified
+
+            compare_old = self.dataframe.loc[new.key].dropna()
+            compare_new = data.loc[new.key].dropna()
+
+            if sorted(compare_new.index) == sorted(compare_old.index) and (compare_new == compare_old).all():
+                return  # but it is the same as the current DF, so no sync necessary
+            self.dataframe.loc[new.key] = data.loc[new.key]
         else:  # an activity has been added
             self.dataframe = pd.concat([self.dataframe, data], join="outer")
 

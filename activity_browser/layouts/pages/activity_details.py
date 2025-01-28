@@ -243,7 +243,7 @@ class ActivityDetails(QtWidgets.QWidget):
             "Location": list(act_df["location"]),
             "Exchange Type": list(exc_df["type"]),
             "Activity Type": list(act_df["type"]),
-            "Allocation": list(act_df["allocation_factor"]) if "allocation_factor" in act_df.columns else None,
+            "Allocation Factor": list(act_df["allocation_factor"]) if "allocation_factor" in act_df.columns else None,
             "_exchange_id": [exc.id for exc in exchanges],
             "_activity_id": list(act_df["id"]),
             "_allocate_by": self.activity.get("default_allocation"),
@@ -256,7 +256,6 @@ class ActivityDetails(QtWidgets.QWidget):
 
                 for prop, value in props.items():
                     df.loc[i, f"Property: {prop}"] = value
-
 
         return df
 
@@ -403,21 +402,27 @@ class ExchangeView(ABTreeView):
             self.addMenu(view_menu)
 
             if col_name.startswith("Property: "):
+                props = view.activity.get("properties")
+                prop_name = col_name[10:]
+
                 self.set_alloc = actions.ActivityModify.get_QAction(view.activity.key, "default_allocation", col_name[10:])
                 self.set_alloc.setText(f"Allocate by {col_name[10:]}")
                 self.addAction(self.set_alloc)
 
-
     class ContextMenu(QtWidgets.QMenu):
-        def __init__(self, pos, view: "ABTreeView"):
+        def __init__(self, pos, view: "ExchangeView"):
             super().__init__(view)
 
+            self.add_product_action = actions.ActivityNewProduct.get_QAction(view.activity.key)
+            self.addAction(self.add_product_action)
+
             index = view.indexAt(pos)
-            item: ExchangeItem = index.internalPointer()
+            if index.isValid():
+                item: ExchangeItem = index.internalPointer()
 
-            self.delete_exc_action = actions.ExchangeDelete.get_QAction([item.exchange])
+                self.delete_exc_action = actions.ExchangeDelete.get_QAction([item.exchange])
 
-            self.addAction(self.delete_exc_action)
+                self.addAction(self.delete_exc_action)
 
     def __init__(self, parent):
         super().__init__(parent)
@@ -488,8 +493,6 @@ class ExchangeItem(ABDataItem):
         if key != "Name":
             return
 
-        if self["Activity Type"] in ["process", "processwithreferenceproduct"]:
-            return icons.qicons.processproduct
         if self["Activity Type"] in ["natural resource", "emission", "inventory indicator", "economic", "social"]:
             return icons.qicons.biosphere
         if self["Activity Type"] in ["product", "processwithreferenceproduct"]:

@@ -1,4 +1,5 @@
 from logging import getLogger
+from time import time
 
 import pandas as pd
 from qtpy import QtWidgets, QtCore, QtGui
@@ -62,9 +63,12 @@ class DatabaseProductViewer(QtWidgets.QWidget):
         self.table_view.filtered.connect(self.search_error)
 
     def sync(self):
+        t = time()
         self.model.setDataFrame(self.build_df())
+        log.debug(f"Synced DatabaseProductViewer in {time() - t:.2f} seconds")
 
     def build_df(self) -> pd.DataFrame:
+        t = time()
         full_df = AB_metadata.get_database_metadata(self.database.name)
 
         expected = ["processor", "product", "type", "unit", "location", "id", "categories"]
@@ -101,6 +105,7 @@ class DatabaseProductViewer(QtWidgets.QWidget):
                 for prop, value in props.items():
                     final.loc[final["Product Key"] == key, f"Property: {prop}"] = value
 
+        log.debug(f"Built DatabaseProductViewer dataframe in {time() - t:.2f} seconds")
         return final
 
     def event(self, event):
@@ -251,7 +256,6 @@ class ProductItem(ui.widgets.ABDataItem):
 
     def flags(self, col: int, key: str):
         return super().flags(col, key) | Qt.ItemFlag.ItemIsDragEnabled
-
 
 
 class ProductModel(ui.widgets.ABAbstractItemModel):
