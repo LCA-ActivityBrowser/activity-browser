@@ -39,21 +39,6 @@ EXCHANGE_MAP = {
 
 
 class ActivityDetails(QtWidgets.QWidget):
-    """The data relating to Brightway activities can be viewed and edited through this panel interface
-    The interface is a GUI representation of the standard activity data format as determined by Brightway
-    This is necessitated as AB does not save its own data structures to disk
-    Data format documentation is under the heading "The schema for an LCI dataset in voluptuous is:" at this link:
-    https://docs.brightway.dev/en/latest/content/theory/structure.html#database-is-a-subclass-of-datastore
-    Note that all activity data are optional.
-    When activities contain exchanges, some fields are required (input, type, amount)
-    Each exchange has a type: production, substitution, technosphere, or biosphere
-    AB does not yet support 'substitution'. Other exchange types are shown in separate columns on this interface
-    Required and other common exchange data fields are hardcoded as column headers in these tables
-    More detail available at: https://docs.brightway.dev/en/latest/content/theory/structure.html#exchange-data-format
-    The technosphere products (first table) of the visible activity are consumed by other activities downstream
-    The final table of this tab lists these 'Downstream Consumers'
-    """
-
     _populate_later_flag = False
 
     def __init__(self, key: tuple, read_only=True, parent=None):
@@ -244,7 +229,7 @@ class ActivityDetails(QtWidgets.QWidget):
             "Exchange Type": list(exc_df["type"]),
             "Activity Type": list(act_df["type"]),
             "Allocation Factor": list(act_df["allocation_factor"]) if "allocation_factor" in act_df.columns else None,
-            "_exchange_id": [exc.id for exc in exchanges],
+            "_exchange": exchanges,
             "_activity_id": list(act_df["id"]),
             "_allocate_by": self.activity.get("default_allocation"),
         })
@@ -255,7 +240,7 @@ class ActivityDetails(QtWidgets.QWidget):
                     continue
 
                 for prop, value in props.items():
-                    df.loc[i, f"Property: {prop}"] = value
+                    df.loc[i, f"Property: {prop}"] = [value]  # inserted using list because Pandas is weird about setting dicts as values
 
         return df
 
@@ -390,12 +375,13 @@ class ExchangeView(ABTreeView):
 
                 view_menu.addAction(action)
 
-            action = QtWidgets.QAction("Properties")
-            action.setCheckable(True)
-            action.setChecked(not view.isColumnHidden(props_indices[0]))
-            action.setData(props_indices)
-            self.view_actions.append(action)
-            view_menu.addAction(action)
+            if props_indices:
+                action = QtWidgets.QAction("Properties")
+                action.setCheckable(True)
+                action.setChecked(not view.isColumnHidden(props_indices[0]))
+                action.setData(props_indices)
+                self.view_actions.append(action)
+                view_menu.addAction(action)
 
             view_menu.triggered.connect(toggle_slot)
 
@@ -421,8 +407,10 @@ class ExchangeView(ABTreeView):
                 item: ExchangeItem = index.internalPointer()
 
                 self.delete_exc_action = actions.ExchangeDelete.get_QAction([item.exchange])
+                self.add_property_action = actions.FunctionPropertyAdd.get_QAction(item.exchange.input)
 
                 self.addAction(self.delete_exc_action)
+                self.addAction(self.add_property_action)
 
     def __init__(self, parent):
         super().__init__(parent)
@@ -443,7 +431,7 @@ class ExchangeView(ABTreeView):
             if col_name in self.column_delegates:
                 self.setItemDelegateForColumn(i, self.column_delegates[col_name](self))
             elif col_name.startswith("Property: "):
-                self.setItemDelegateForColumn(i, delegates.FloatDelegate(self))
+                self.setItemDelegateForColumn(i, PropertyDelegate(self))
 
     def dragMoveEvent(self, event) -> None:
         pass
@@ -471,15 +459,14 @@ class ExchangeView(ABTreeView):
 
 
 class ExchangeItem(ABDataItem):
-    _exchange: bd.Edge = None
 
     @property
     def exchange(self):
-        from bw2data.backends.proxies import ExchangeDataset
-        if self._exchange is None:
-            id = self["_exchange_id"]
-            self._exchange = bd.Edge(document=ExchangeDataset.get_by_id(id))
-        return self._exchange
+        return self["_exchange"]
+
+    @property
+    def functional(self):
+        return self["Exchange Type"] == "production"
 
     def flags(self, col: int, key: str):
         flags = super().flags(col, key)
@@ -488,6 +475,24 @@ class ExchangeItem(ABDataItem):
         if key.startswith("Property: "):
             return flags | Qt.ItemFlag.ItemIsEditable
         return flags
+
+    def displayData(self, col: int, key: str):
+        if key == "Allocation Factor" and not self.functional:
+            return None
+
+        if key.startswith("Property: "):
+            if not self.functional:
+                return ()
+            if not isinstance(self[key], list):
+                return ("Undefined", )
+
+            prop = self[key][0]
+
+            amount = prop.get("amount")
+            unit = prop.get("unit")
+            norm = f" / {self.exchange.input["unit"]}" if prop.get("normalize") else ""
+            return (amount, unit, norm, )
+        return super().displayData(col, key)
 
     def decorationData(self, col, key):
         if key != "Name":
@@ -504,7 +509,7 @@ class ExchangeItem(ABDataItem):
         font = super().fontData(col, key)
 
         # set the font to bold if it's a production/functional exchange
-        if self["Exchange Type"] == "production":
+        if self.functional:
             font.setBold(True)
         return font
 
@@ -518,24 +523,68 @@ class ExchangeItem(ABDataItem):
             return True
 
         if key in ["Unit", "Name", "Location"]:
-            act = bd.get_activity(id=self["_activity_id"])
+            act = self.exchange.input
 
             actions.ActivityModify.run(act.key, key.lower(), value)
 
         if key.startswith("Property: "):
-            act = bd.get_activity(id=self["_activity_id"])
-            props = act.get("properties", {})
-            props[key[10:]] = value
+            act = self.exchange.input
+            prop_key = key[10:]
+            props = act["properties"]
+            props[prop_key].update({"amount": value})
 
             actions.ActivityModify.run(act.key, "properties", props)
-
-            process = bd.get_activity(key=act["processor"])
-            actions.MultifunctionalProcessRedoAllocation.run(process)
 
         return False
 
 
 class ExchangeModel(ABAbstractItemModel):
     dataItemClass = ExchangeItem
+
+
+class PropertyDelegate(QtWidgets.QStyledItemDelegate):
+
+    def displayText(self, value, locale):
+        if not value:
+            return ""
+        value = [str(x) for x in value]
+        return " ".join(value)
+
+    def createEditor(self, parent, option, index):
+        data = index.data(QtCore.Qt.ItemDataRole.DisplayRole)
+        if not data:
+            return None
+
+        if data == ("Undefined",):
+            item = index.internalPointer()
+            prop_name = index.model().columns()[index.column()][10:]
+
+            actions.FunctionPropertyAdd.run(item.exchange.input, prop_name)
+            return None
+
+        editor = QtWidgets.QLineEdit(parent)
+        validator = QtGui.QDoubleValidator()
+        editor.setValidator(validator)
+        return editor
+
+    def setEditorData(self, editor: QtWidgets.QLineEdit, index: QtCore.QModelIndex):
+        """Populate the editor with data if editing an existing field."""
+        import math
+        data = index.data(QtCore.Qt.ItemDataRole.DisplayRole)
+
+        try:
+            value = float(data[0])
+        except ValueError:
+            value = math.nan
+
+        editor.setText(str(value))
+
+    def setModelData(self, editor: QtWidgets.QLineEdit, model: QtCore.QAbstractItemModel, index: QtCore.QModelIndex):
+        """Take the editor, read the given value and set it in the model"""
+        try:
+            value = float(editor.text())
+            model.setData(index, value, QtCore.Qt.EditRole)
+        except ValueError:
+            pass
 
 

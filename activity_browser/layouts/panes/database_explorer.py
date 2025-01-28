@@ -125,7 +125,6 @@ class NodeView(ui.widgets.ABTreeView):
         if col_name == "exchanges":
             act = bd.get_node(database=item["database"], code=item["code"])
             model = NodeModel()
-            model.columns = DETAILS_COLUMNS
             model.setDataFrame(pd.DataFrame(act.exchanges()))
 
             self.below = NodeView(self)

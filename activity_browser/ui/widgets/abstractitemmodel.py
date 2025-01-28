@@ -30,7 +30,7 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
         self.setDataFrame(self.dataframe)
 
     def columns(self):
-        return [col for col in self.dataframe.columns if not col.startswith("_")]
+        return [col for col in self.dataframe.columns if not str(col).startswith("_")]
 
     def index(self, row: int, column: int, parent: QtCore.QModelIndex = ...) -> QtCore.QModelIndex:
         """

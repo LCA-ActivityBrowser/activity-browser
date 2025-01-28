@@ -6,9 +6,7 @@ from qtpy.QtWidgets import (QAbstractItemView, QDialog, QHBoxLayout, QLabel, QMe
                                QPlainTextEdit, QPushButton, QSizePolicy, QSplitter,
                                QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget)
 
-from bw_functional import (add_custom_property_allocation_to_project,
-                             allocation_strategies, database_property_errors,
-                             list_available_properties, process_property_errors)
+from bw_functional import allocation_strategies, database_property_errors, list_available_properties, process_property_errors
 from bw_functional.custom_allocation import MessageType
 
 from activity_browser.ui.style import style_item

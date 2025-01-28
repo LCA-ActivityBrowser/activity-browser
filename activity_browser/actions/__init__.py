@@ -12,6 +12,7 @@ from .activity.activity_open import ActivityOpen
 from .activity.activity_relink import ActivityRelink
 from .activity.node_properties import NodeProperties
 from .activity.activity_redo_allocation import MultifunctionalProcessRedoAllocation
+from .activity.function_property_add import FunctionPropertyAdd
 from .biosphere_update import BiosphereUpdate
 
 from .calculation_setup.cs_new import CSNew
