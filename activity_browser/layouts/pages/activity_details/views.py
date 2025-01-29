@@ -91,17 +91,17 @@ class ExchangeView(ABTreeView):
             super().__init__(view)
 
             self.add_product_action = actions.ActivityNewProduct.get_QAction(view.activity.key)
+            self.add_property_action = actions.ProcessDefaultPropertyModify.get_QAction(view.activity)
             self.addAction(self.add_product_action)
+            self.addAction(self.add_property_action)
 
             index = view.indexAt(pos)
             if index.isValid():
                 item: ExchangeItem = index.internalPointer()
 
                 self.delete_exc_action = actions.ExchangeDelete.get_QAction([item.exchange])
-                self.add_property_action = actions.FunctionPropertyAdd.get_QAction(item.exchange.input)
-
                 self.addAction(self.delete_exc_action)
-                self.addAction(self.add_property_action)
+
 
     def __init__(self, parent):
         super().__init__(parent)

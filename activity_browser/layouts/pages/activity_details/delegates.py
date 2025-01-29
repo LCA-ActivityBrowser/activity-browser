@@ -20,7 +20,7 @@ class PropertyDelegate(QtWidgets.QStyledItemDelegate):
             item = index.internalPointer()
             prop_name = index.model().columns()[index.column()][10:]
 
-            actions.FunctionPropertyAdd.run(item.exchange.input, prop_name)
+            actions.ProcessDefaultPropertyModify.run(item.exchange.input, prop_name)
             return None
 
         editor = QtWidgets.QLineEdit(parent)

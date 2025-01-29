@@ -657,7 +657,7 @@ class Contributions(object):
             [
                 "amount",
                 "unit",
-                "reference product",
+                #"reference product",
                 "name",
                 "location",
                 "database",
