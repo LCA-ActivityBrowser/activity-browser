@@ -12,10 +12,7 @@ class ABContributionAnalysis(ContributionAnalysis):
         See PR above on why we overwrite this function.
         """
         if not total:
-            abs_total_flag = True
             total = np.abs(data).sum()
-        else:
-            abs_total_flag = False
 
         if total == 0 and limit_type == "cum_percent":
             raise ValueError("Cumulative percentage cannot be calculated to a total of 0, use a different limit type or total")
@@ -38,30 +35,10 @@ class ABContributionAnalysis(ContributionAnalysis):
             limit = (np.abs(data) >= (abs(total) * limit))
             results = results[limit, :]
             return results[np.argsort(np.abs(results[:, 0]))[::-1]]
-        elif limit_type == "cum_percent" and abs_total_flag:
+        elif limit_type == "cum_percent":
             # if we would apply this on the 'correct' order, this would stop just before the limit,
             # we want to be on or the first step over the limit.
             results = results[np.argsort(np.abs(data))]  # sort low to high impact
             cumsum = np.cumsum(np.abs(results[:, 0])) / abs(total)
             limit = (cumsum >= (1 - limit))  # find items under limit
             return results[limit, :][::-1]  # drop items under limit and set correct order
-        elif limit_type == "cum_percent" and not abs_total_flag:
-            # iterate over positive and negative values until limit is achieved or surpassed.
-            results = results[np.argsort(np.abs(data))][::-1]
-            pos_neg = [  # split into positive and negative sections
-                results[results[:, 0] > 0],
-                results[results[:, 0] < 0],
-            ]
-            # iterate over positive and negative sections
-            for i, arr in enumerate(pos_neg):
-                c = 0
-                # iterate over array until we have equalled or surpassed limit
-                for j, row in enumerate(arr):
-                    c += abs(row[0] / total)
-                    if c >= limit:
-                        break
-                arr = arr[:min(j + 1, len(arr)), :]
-                pos_neg[i] = arr
-
-            results = np.concatenate(pos_neg)  # rebuild into 1 array
-            return results[np.argsort(np.abs(results[:, 0]))][::-1]  # sort values

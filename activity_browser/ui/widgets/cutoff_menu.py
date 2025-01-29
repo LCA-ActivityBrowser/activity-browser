@@ -289,7 +289,6 @@ class CutoffMenu(QWidget):
                 self.cutoff_slider_line.setText(str(cutoff))
             self.sliders.cum_percent.setValue(int(cutoff))
             self.sliders.cum_percent.blockSignals(False)
-            print("cutoff le", cutoff)
 
         self.cutoff_value = cutoff / 100
         self.slider_change.emit()
