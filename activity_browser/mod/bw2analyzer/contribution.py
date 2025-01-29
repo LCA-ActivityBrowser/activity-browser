@@ -15,13 +15,19 @@ class ABContributionAnalysis(ContributionAnalysis):
             total = np.abs(data).sum()
 
         if total == 0 and limit_type == "cum_percent":
-            raise ValueError("Cumulative percentage cannot be calculated to a total of 0, use a different limit type or total")
+            raise ValueError(
+                "Cumulative percentage cannot be calculated to a total of 0, use a different limit type or total")
 
         if limit_type not in ("number", "percent", "cum_percent"):
             raise ValueError(f"limit_type must be either 'number', 'percent' or 'cum_percent' not '{limit_type}'.")
-        if limit_type  in ("percent", "cum_percent"):
+        if limit_type in ("percent", "cum_percent"):
             if not 0 < limit <= 1:
                 raise ValueError("Percentage limits > 0 and <= 1.")
+        if limit_type == "number":
+            if not int(limit) == limit:
+                raise ValueError("Number limit must a whole number.")
+            if not 0 < limit:
+                raise ValueError("Number limit must be < 0.")
 
         results = np.hstack(
             (data.reshape((-1, 1)), np.arange(data.shape[0]).reshape((-1, 1)))
