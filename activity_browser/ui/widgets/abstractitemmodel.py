@@ -32,6 +32,9 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
     def columns(self):
         return [col for col in self.dataframe.columns if not str(col).startswith("_")]
 
+    def headers(self):
+        return self.columns()
+
     def index(self, row: int, column: int, parent: QtCore.QModelIndex = ...) -> QtCore.QModelIndex:
         """
         Create a QModelIndex based on a specific row, column and parent. Sets the associated ABItem as
@@ -160,8 +163,8 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
 
         if role == Qt.ItemDataRole.DisplayRole:
             if section == 0 and self.grouped_columns:
-                return " > ".join([self.columns()[column] for column in self.grouped_columns] + [self.columns()[0]])
-            return self.columns()[section]
+                return " > ".join([self.headers()[column] for column in self.grouped_columns] + [self.headers()[0]])
+            return self.headers()[section]
 
         if role == Qt.ItemDataRole.FontRole and section in self.filtered_columns:
             font = QtGui.QFont()
