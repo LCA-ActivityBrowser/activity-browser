@@ -52,6 +52,7 @@ class MetaDataStore(object):
         self.databases = set()
 
         bd.projects.current_changed.connect(self.reset_metadata)
+        bd.databases.metadata_changed.connect(self.check_databases)
 
     def add_metadata(self, db_names_list: list) -> None:
         """Include data from the brightway databases.
@@ -171,6 +172,12 @@ class MetaDataStore(object):
         log.debug("Reset metadata.")
         self.dataframe = pd.DataFrame()
         self.databases = set()
+
+    def check_databases(self):
+        removed_dbs = [db for db in self.databases if db not in bd.databases]
+        for db in removed_dbs:
+            self.dataframe.drop(self.dataframe[self.dataframe.database == db].index, inplace=True)
+            self.databases.remove(db)
 
     def get_existing_fields(self, field_list: list) -> list:
         """Return a list of fieldnames that exist in the current dataframe."""
