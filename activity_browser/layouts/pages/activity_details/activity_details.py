@@ -11,8 +11,7 @@ import bw2data as bd
 
 from activity_browser import project_settings, signals
 from activity_browser.bwutils import AB_metadata
-
-from activity_browser.ui.icons import qicons
+from activity_browser.ui import widgets as ABwidgets
 
 from .activity_data import ActivityData
 from .views import ExchangeView
@@ -72,6 +71,7 @@ class ActivityDetails(QtWidgets.QWidget):
 
         # layout.addWidget(toolbar)
         layout.addWidget(self.activity_data_grid)
+        layout.addWidget(ABwidgets.ABHLine(self))
         layout.addWidget(QtWidgets.QLabel("<b>Output:</b>"))
         layout.addWidget(self.output_view)
         layout.addWidget(QtWidgets.QLabel("<b>Input:</b>"))
