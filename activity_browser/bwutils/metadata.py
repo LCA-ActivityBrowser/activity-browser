@@ -76,15 +76,11 @@ class MetaDataStore(QObject):
             pass
 
     def on_node_changed(self, new, old):
-        t = time()
-
         data_raw = model_to_dict(new)
         data = data_raw.pop("data")
         data.update(data_raw)
         data["key"] = new.key
         data = pd.DataFrame([data], index=pd.MultiIndex.from_tuples([new.key]))
-
-        log.debug(f"MetaData step 1: {time() - t:.3f} seconds")
 
         if new.key in self.dataframe.index:  # the activity has been modified
 
@@ -97,10 +93,7 @@ class MetaDataStore(QObject):
         else:  # an activity has been added
             self.dataframe = pd.concat([self.dataframe, data], join="outer")
 
-        log.debug(f"MetaData step 2: {time() - t:.3f} seconds")
-
         self.thread().eventDispatcher().awake.connect(self._emitSyncLater, Qt.ConnectionType.UniqueConnection)
-        log.debug(f"MetaData on_node_changed completed in {time() - t:.3f} seconds")
 
     @property
     def databases(self):
