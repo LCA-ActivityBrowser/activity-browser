@@ -131,6 +131,9 @@ class ActivityDetails(QtWidgets.QWidget):
         # update the object name to be the activity name
         self.setObjectName(self.activity["name"])
 
+        # sync the activity data grid
+        self.activity_data_grid.sync()
+
         # fill in the values of the ActivityTab widgets, excluding the ActivityDataGrid which is populated separately
         production = self.activity.production()
         technosphere = self.activity.technosphere()

@@ -7,6 +7,8 @@ from functools import lru_cache
 from typing import Set
 from logging import getLogger
 
+from playhouse.shortcuts import model_to_dict
+
 import pandas as pd
 
 from qtpy.QtCore import Qt, QObject, Signal, SignalInstance
@@ -16,6 +18,7 @@ from bw2data.errors import UnknownObject
 from bw2data.backends import sqlite3_lci_db, ActivityDataset
 
 from activity_browser import signals
+
 
 log = getLogger(__name__)
 
@@ -73,29 +76,31 @@ class MetaDataStore(QObject):
             pass
 
     def on_node_changed(self, new, old):
-        data = self._parse_df(pd.DataFrame([{
-            "id": new.id,
-            "data": pickle.dumps(new.data),
-            "code": new.code,
-            "database": new.database,
-            "location": new.location,
-            "name": new.name,
-            "product": new.product,
-            "type": new.type
-        }]))
+        t = time()
+
+        data_raw = model_to_dict(new)
+        data = data_raw.pop("data")
+        data.update(data_raw)
+        data["key"] = new.key
+        data = pd.DataFrame([data], index=pd.MultiIndex.from_tuples([new.key]))
+
+        log.debug(f"MetaData step 1: {time() - t:.3f} seconds")
 
         if new.key in self.dataframe.index:  # the activity has been modified
 
-            compare_old = self.dataframe.loc[new.key].dropna()
-            compare_new = data.loc[new.key].dropna()
+            compare_old = self.dataframe.loc[new.key].dropna().sort_index()
+            compare_new = data.loc[new.key].dropna().sort_index()
 
-            if sorted(compare_new.index) == sorted(compare_old.index) and (compare_new == compare_old).all():
+            if list(compare_new.index) == list(compare_old.index) and (compare_new == compare_old).all():
                 return  # but it is the same as the current DF, so no sync necessary
             self.dataframe.loc[new.key] = data.loc[new.key]
         else:  # an activity has been added
             self.dataframe = pd.concat([self.dataframe, data], join="outer")
 
+        log.debug(f"MetaData step 2: {time() - t:.3f} seconds")
+
         self.thread().eventDispatcher().awake.connect(self._emitSyncLater, Qt.ConnectionType.UniqueConnection)
+        log.debug(f"MetaData on_node_changed completed in {time() - t:.3f} seconds")
 
     @property
     def databases(self):

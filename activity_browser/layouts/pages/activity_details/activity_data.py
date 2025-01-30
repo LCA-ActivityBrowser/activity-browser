@@ -11,15 +11,22 @@ class ActivityData(QtWidgets.QWidget):
 
     def __init__(self, parent: QtWidgets.QWidget):
         super().__init__(parent)
-
-        from .activity_details import ActivityDetails
-
-        if not isinstance(parent, ActivityDetails):
-            raise ValueError("ActivityData parent should be ActivityDetails")
-
         self.setContentsMargins(0, 0, 0, 0)
-
         self.activity = parent.activity
+
+        grid = QtWidgets.QGridLayout(self)
+        grid.setContentsMargins(0, 5, 0, 5)
+        grid.setSpacing(10)
+        grid.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop)
+        self.setLayout(grid)
+
+    def sync(self):
+        self.activity = bwutils.refresh_node(self.activity)
+
+        for child in self.children():
+            if child is not self.layout():
+                self.layout().removeWidget(child)
+                child.deleteLater()
 
         setup = {
             "Name:": ActivityName(self),
@@ -31,16 +38,10 @@ class ActivityData(QtWidgets.QWidget):
         }
 
         # arrange widgets for display as a grid
-        grid = QtWidgets.QGridLayout()
-        grid.setContentsMargins(0, 5, 0, 5)
-        grid.setSpacing(10)
-        grid.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop)
-
         for i, (label, widget) in enumerate(setup.items()):
-            grid.addWidget(QtWidgets.QLabel(f"<b>{label}</b>"), i, 1)
-            grid.addWidget(widget, i, 2, 1, 4)
+            self.layout().addWidget(QtWidgets.QLabel(f"<b>{label}</b>"), i, 1)
+            self.layout().addWidget(widget, i, 2, 1, 4)
 
-        self.setLayout(grid)
 
 
 class ActivityName(QtWidgets.QLineEdit):
