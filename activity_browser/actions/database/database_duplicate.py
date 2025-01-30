@@ -53,15 +53,15 @@ class DuplicateDatabaseDialog(QtWidgets.QProgressDialog):
         self.setModal(True)
         self.setRange(0, 0)
 
-        self.thread = DuplicateDatabaseThread(from_db, to_db, self)
-        self.thread.finished.connect(self.finished)
+        self.dup_thread = DuplicateDatabaseThread(from_db, to_db, self)
+        self.dup_thread.finished.connect(self.thread_finished)
 
         self.show()
 
-        self.thread.start()
+        self.dup_thread.start()
 
-    def finished(self, result: int = None) -> None:
-        self.thread.exit(result or 0)
+    def thread_finished(self) -> None:
+        self.dup_thread.exit(0)
         self.setMaximum(1)
         self.setValue(1)
 
