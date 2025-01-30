@@ -13,7 +13,7 @@ from .activity.activity_relink import ActivityRelink
 from .activity.node_properties import NodeProperties
 from .activity.activity_redo_allocation import MultifunctionalProcessRedoAllocation
 from .activity.process_default_property_modify import ProcessDefaultPropertyModify
-from .biosphere_update import BiosphereUpdate
+from .activity.process_default_property_remove import ProcessDefaultPropertyRemove
 
 from .calculation_setup.cs_new import CSNew
 from .calculation_setup.cs_delete import CSDelete
@@ -29,6 +29,7 @@ from .database.database_relink import DatabaseRelink
 from .database.database_redo_allocation import DatabaseRedoAllocation
 from .database.database_explorer_open import DatabaseExplorerOpen
 
+from .biosphere_update import BiosphereUpdate
 from .default_install import DefaultInstall
 from .exchange.exchange_copy_sdf import ExchangeCopySDF
 

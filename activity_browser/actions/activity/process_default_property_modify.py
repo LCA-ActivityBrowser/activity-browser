@@ -1,5 +1,3 @@
-import bw2data as bd
-
 from qtpy import QtWidgets, QtGui, QtCore
 
 from activity_browser import application, bwutils
@@ -16,8 +14,8 @@ class ProcessDefaultPropertyModify(ABAction):
     TODO: move away from using signals like this. Probably add a method to the MainWindow to add a panel instead.
     """
 
-    icon = qicons.right
-    text = "Add property"
+    icon = qicons.edit
+    text = "Modify property"
 
     @staticmethod
     @exception_dialogs

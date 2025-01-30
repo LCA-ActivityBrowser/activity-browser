@@ -93,7 +93,13 @@ class ActivityProperties(QtWidgets.QWidget):
 class ActivityProperty(QtWidgets.QPushButton):
     def __init__(self, activity, property_name):
         super().__init__(property_name, None)
-        self.pressed.connect(lambda: actions.ProcessDefaultPropertyModify.run(activity, property_name))
+
+        self.modify_action = actions.ProcessDefaultPropertyModify.get_QAction(activity, property_name)
+        self.remove_action = actions.ProcessDefaultPropertyRemove.get_QAction(activity, property_name)
+
+        self.menu = QtWidgets.QMenu(self)
+        self.menu.addAction(self.modify_action)
+        self.menu.addAction(self.remove_action)
 
         self.setStyleSheet("""
         QPushButton {
@@ -110,6 +116,12 @@ class ActivityProperty(QtWidgets.QPushButton):
                                               stop: 0 #dadbde, stop: 1 #f6f7fa);
         }
         """)
+
+    def mouseReleaseEvent(self, e):
+        pos = self.geometry().bottomLeft()
+        pos = self.parent().mapToGlobal(pos)
+        self.menu.exec_(pos)
+        e.accept()
 
 
 class ActivityAllocation(QtWidgets.QComboBox):

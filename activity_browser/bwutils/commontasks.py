@@ -157,7 +157,7 @@ def get_activity_name(key, str_length=22):
     return ",".join(key.get("name", "").split(",")[:3])[:str_length]
 
 
-def refresh_node(node: tuple | int | bd.Node):
+def refresh_node(node: tuple | int | bd.Node) -> bd.Node:
     if isinstance(node, bd.Node):
         node = bd.get_node(id=node.id)
     elif isinstance(node, tuple):
