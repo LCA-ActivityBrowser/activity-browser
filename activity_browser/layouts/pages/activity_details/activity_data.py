@@ -1,8 +1,8 @@
 from qtpy import QtWidgets, QtCore
 
-import bw2data as bd
+import bw_functional as bf
 
-from activity_browser import signals, actions, bwutils
+from activity_browser import actions, bwutils
 
 
 class ActivityData(QtWidgets.QWidget):
@@ -26,7 +26,8 @@ class ActivityData(QtWidgets.QWidget):
             "Location:": ActivityLocation(self),
             "Type:": QtWidgets.QLabel(self.activity["type"], self),
             "Database:": QtWidgets.QLabel(self.activity["database"], self),
-            "Properties:": ActivityProperties(self)
+            "Properties:": ActivityProperties(self),
+            "Allocation:": ActivityAllocation(self),
         }
 
         # arrange widgets for display as a grid
@@ -109,3 +110,22 @@ class ActivityProperty(QtWidgets.QPushButton):
         }
         """)
 
+
+class ActivityAllocation(QtWidgets.QComboBox):
+    def __init__(self, parent: ActivityData):
+        super().__init__(parent)
+        self.addItems(sorted(bf.allocation_strategies))
+        if props := parent.activity.get("default_properties", {}):
+            self.insertSeparator(1000)  # large number to make sure it's appended at the end
+            self.addItems(sorted(props))
+
+        i = self.findText(parent.activity.get("allocation"))
+        self.setCurrentIndex(i)
+
+        self.currentTextChanged.connect(self.change_allocation)
+
+    def change_allocation(self, allocation: str):
+        act = self.parent().activity
+        if act.get("allocation") == allocation:
+            return
+        actions.ActivityModify.run(act, "allocation", allocation)

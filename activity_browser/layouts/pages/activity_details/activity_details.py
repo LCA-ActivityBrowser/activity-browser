@@ -163,7 +163,7 @@ class ActivityDetails(QtWidgets.QWidget):
             "Allocation Factor": list(act_df["allocation_factor"]) if "allocation_factor" in act_df.columns else None,
             "_exchange": exchanges,
             "_activity_id": list(act_df["id"]),
-            "_allocate_by": self.activity.get("default_allocation"),
+            "_allocate_by": self.activity.get("allocation"),
         })
 
         if "properties" in act_df.columns:
