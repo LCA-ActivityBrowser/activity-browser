@@ -21,17 +21,5 @@ class ActivityModify(ABAction):
     def run(activity: tuple | int | Node, field: str, value: any):
         activity = bwutils.refresh_node(activity)
 
-        if field == "default_allocation":
-            old_default = activity.get("default_allocation")
-
         activity[field] = value
         activity.save()
-
-        if field == "default_allocation":
-            try:
-                MultifunctionalProcessRedoAllocation.run(activity)
-            except Exception as e:
-                # Rollback
-                activity["default_allocation"] = old_default
-                activity.save()
-                raise e
