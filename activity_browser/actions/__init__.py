@@ -28,6 +28,7 @@ from .database.database_duplicate import DatabaseDuplicate
 from .database.database_relink import DatabaseRelink
 from .database.database_redo_allocation import DatabaseRedoAllocation
 from .database.database_explorer_open import DatabaseExplorerOpen
+from .database.database_process import DatabaseProcess
 
 from .biosphere_update import BiosphereUpdate
 from .default_install import DefaultInstall
