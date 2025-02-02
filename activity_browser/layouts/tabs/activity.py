@@ -34,7 +34,7 @@ class ActivitiesTab(ABTab):
         """Opens new tab or focuses on already open one."""
         if key not in self.tabs:
             act = bd.get_activity(key)
-            new_tab = ActivityDetails(key, read_only, self)
+            new_tab = ActivityDetails(key, self)
 
             # If this is a new or duplicated activity then we want to exit it
             # ditto check the Technosphere and Biosphere tables

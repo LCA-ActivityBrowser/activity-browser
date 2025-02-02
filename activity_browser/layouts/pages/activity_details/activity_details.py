@@ -1,17 +1,16 @@
 from logging import getLogger
 
 import pandas as pd
-import numpy as np
-from peewee import DoesNotExist
 
-from qtpy import QtCore, QtWidgets
+from qtpy import QtCore, QtWidgets, QtGui
 from qtpy.QtCore import Qt
 
 import bw2data as bd
 
-from activity_browser import project_settings, signals
-from activity_browser.bwutils import AB_metadata
+from activity_browser import signals, actions
+from activity_browser.bwutils import AB_metadata, refresh_node
 from activity_browser.ui import widgets as ABwidgets
+from activity_browser.ui.web import GraphNavigatorWidget
 
 from .activity_data import ActivityData
 from .views import ExchangeView
@@ -35,18 +34,90 @@ EXCHANGE_MAP = {
 class ActivityDetails(QtWidgets.QWidget):
     _populate_later_flag = False
 
-    def __init__(self, key: tuple, read_only=True, parent=None):
+    def __init__(self, activity: tuple | int | bd.Node, parent=None):
         super().__init__(parent)
-        self.read_only = read_only
-        self.db_read_only = project_settings.db_is_readonly(db_name=key[0])
-        self.key = key
-        self.db_name = key[0]
-        self.activity = bd.get_activity(key)
-        self.database = bd.Database(self.db_name)
+        self.activity = bd.get_activity(activity)
 
-        # Activity information
-        # this contains: activity name, location, database
+        # widgets
         self.activity_data_grid = ActivityData(self)
+        self.tabs = QtWidgets.QTabWidget(self)
+
+        # tabs
+        self.exchanges_tab = ExchangesTab(activity, self)
+        self.tabs.addTab(self.exchanges_tab, "Exchanges")
+
+        self.description_tab = DescriptionTab(activity, self)
+        self.tabs.addTab(self.description_tab, "Description")
+
+        self.graph_explorer = GraphNavigatorWidget(self, key=self.activity.key)
+        self.tabs.addTab(self.graph_explorer, "Graph")
+
+        self.parameters_tab = QtWidgets.QLabel("WORK IN PROGRESS")
+        self.tabs.addTab(self.parameters_tab, "Parameters")
+
+        self.consumer_tab = ConsumersTab(activity, self)
+        self.tabs.addTab(self.consumer_tab, "Consumers")
+
+        self.explorer = QtWidgets.QLabel("WORK IN PROGRESS")
+        self.tabs.addTab(self.explorer, "Activity Explorer")
+
+        self.build_layout()
+        self.sync()
+        self.connect_signals()
+
+    def build_layout(self):
+        layout = QtWidgets.QVBoxLayout()
+        layout.setContentsMargins(10, 10, 4, 1)
+        layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop)
+
+        # layout.addWidget(toolbar)
+        layout.addWidget(self.activity_data_grid)
+        layout.addWidget(ABwidgets.ABHLine(self))
+        layout.addWidget(self.tabs)
+
+        self.setLayout(layout)
+
+    def connect_signals(self):
+        signals.node.deleted.connect(self.on_node_deleted)
+        signals.database.deleted.connect(self.on_database_deleted)
+        signals.meta.databases_changed.connect(self.syncLater)
+        signals.parameter.recalculated.connect(self.syncLater)
+
+    def on_node_deleted(self, node):
+        if node.id == self.activity.id:
+            self.deleteLater()
+
+    def on_database_deleted(self, name):
+        if name == self.activity["database"]:
+            self.deleteLater()
+
+    def syncLater(self):
+        def slot():
+            self._populate_later_flag = False
+            self.sync()
+
+        if self._populate_later_flag:
+            return
+
+        self.thread().eventDispatcher().awake.connect(slot, Qt.ConnectionType.SingleShotConnection)
+        self._populate_later_flag = True
+
+    def sync(self):
+        self.activity = refresh_node(self.activity)
+        # update the object name to be the activity name
+        self.setObjectName(self.activity["name"])
+
+        self.activity_data_grid.sync()
+        self.exchanges_tab.sync()
+        self.description_tab.sync()
+        self.consumer_tab.sync()
+
+
+class ExchangesTab(QtWidgets.QWidget):
+    def __init__(self, activity: tuple | int | bd.Node, parent=None):
+        super().__init__(parent)
+
+        self.activity = refresh_node(activity)
 
         # Output Table
         self.output_view = ExchangeView(self)
@@ -58,69 +129,22 @@ class ActivityDetails(QtWidgets.QWidget):
         self.input_model = ExchangeModel(self)
         self.input_view.setModel(self.input_model)
 
-        # Full layout
-        layout = QtWidgets.QVBoxLayout()
-        layout.setContentsMargins(10, 10, 4, 1)
-        layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop)
+        self.build_layout()
 
-        # layout.addWidget(toolbar)
-        layout.addWidget(self.activity_data_grid)
-        layout.addWidget(ABwidgets.ABHLine(self))
-        layout.addWidget(QtWidgets.QLabel("<b>Output:</b>"))
+    def build_layout(self):
+        layout = QtWidgets.QVBoxLayout()
+        layout.setContentsMargins(0, 10, 0, 1)
+
+        layout.addWidget(QtWidgets.QLabel("<b>⠀Output:</b>"))
         layout.addWidget(self.output_view)
-        layout.addWidget(QtWidgets.QLabel("<b>Input:</b>"))
+        layout.addWidget(QtWidgets.QLabel("<b>⠀Input:</b>"))
         layout.addWidget(self.input_view)
 
         self.setLayout(layout)
 
-        self.populate()
-        self.connect_signals()
-
-    def connect_signals(self):
-        signals.node.deleted.connect(self.on_node_deleted)
-        signals.database.deleted.connect(self.on_database_deleted)
-
-        signals.meta.databases_changed.connect(self.populateLater)
-
-        signals.parameter.recalculated.connect(self.populateLater)
-
-    def on_node_deleted(self, node):
-        if node.id == self.activity.id:
-            self.deleteLater()
-
-    def on_database_deleted(self, name):
-        if name == self.activity["database"]:
-            self.deleteLater()
-
-    def open_graph(self) -> None:
-        signals.open_activity_graph_tab.emit(self.key)
-
-    def populateLater(self):
-        def slot():
-            self._populate_later_flag = False
-            self.populate()
-
-        if self._populate_later_flag:
-            return
-
-        self.thread().eventDispatcher().awake.connect(slot, Qt.ConnectionType.SingleShotConnection)
-        self._populate_later_flag = True
-
-    def populate(self) -> None:
+    def sync(self) -> None:
         """Populate the various tables and boxes within the Activity Detail tab"""
-        if self.db_name in bd.databases:
-            # Avoid a weird signal interaction in the tests
-            try:
-                self.activity = bd.get_activity(self.key)  # Refresh activity.
-            except DoesNotExist:
-                signals.close_activity_tab.emit(self.key)
-                return
-
-        # update the object name to be the activity name
-        self.setObjectName(self.activity["name"])
-
-        # sync the activity data grid
-        self.activity_data_grid.sync()
+        self.activity = refresh_node(self.activity)
 
         # fill in the values of the ActivityTab widgets, excluding the ActivityDataGrid which is populated separately
         production = self.activity.production()
@@ -139,9 +163,6 @@ class ActivityDetails(QtWidgets.QWidget):
         self.input_model.setDataFrame(self.build_df(inputs))
 
     def build_df(self, exchanges) -> pd.DataFrame:
-        if not exchanges:
-            return pd.DataFrame()
-
         cols = ["key", "unit", "name", "location", "substitute", "substitution_factor", "allocation_factor",
                 "properties", "processor"]
         exc_df = pd.DataFrame(exchanges, columns=["amount", "input", "formula", "uncertainty",])
@@ -191,3 +212,46 @@ class ActivityDetails(QtWidgets.QWidget):
 
         return df[cols]
 
+
+class DescriptionTab(QtWidgets.QTextEdit):
+    def __init__(self, activity: tuple | int | bd.Node, parent=None):
+        self.activity = refresh_node(activity)
+        super().__init__(parent, self.activity.get("comment", ""))
+
+    def sync(self):
+        self.activity = refresh_node(self.activity)
+        self.setText(self.activity.get("comment", ""))
+        self.moveCursor(QtGui.QTextCursor.MoveOperation.End)
+
+    def focusOutEvent(self, e):
+        if self.toPlainText() == self.activity.get("comment", ""):
+            return
+        actions.ActivityModify.run(self.activity, "comment", self.toPlainText())
+
+
+class ConsumersTab(QtWidgets.QWidget):
+    def __init__(self, activity: tuple | int | bd.Node, parent=None):
+        super().__init__(parent)
+
+        self.activity = refresh_node(activity)
+
+        self.view = ABwidgets.ABTreeView(self)
+        self.model = ABwidgets.ABAbstractItemModel(self)
+        self.view.setModel(self.model)
+
+        self.build_layout()
+        self.sync()
+
+    def build_layout(self):
+        layout = QtWidgets.QVBoxLayout()
+        layout.setContentsMargins(0, 10, 0, 1)
+        layout.addWidget(self.view)
+        self.setLayout(layout)
+
+    def sync(self):
+        self.activity = refresh_node(self.activity)
+        exchanges = []
+        for function in self.activity.functions():
+            exchanges += list(function.upstream())
+
+        self.model.setDataFrame(pd.DataFrame(exchanges))
