@@ -1,3 +1,4 @@
+import pandas as pd
 from qtpy import QtGui, QtCore
 
 
@@ -130,17 +131,14 @@ class ABDataItem(ABAbstractItem):
     def displayData(self, col: int, key: str):
         data = self[key]
 
-        if data is None:
+        if data is None or pd.isna(data):
             return None
 
-        # clean up the data to a table-readable format
-        display = str(data).replace("\n", " ")
+        if isinstance(data, str):
+            # clean up the data to a table-readable format
+            data = data.replace("\n", " ")
 
-        # if the display is nan, change to the user-friendlier Undefined
-        if display == "nan":
-            display = "Undefined"
-
-        return display
+        return data
 
     def fontData(self, col: int, key: str):
         font = QtGui.QFont()

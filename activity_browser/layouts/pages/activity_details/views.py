@@ -1,8 +1,9 @@
 from logging import getLogger
 
-from qtpy import QtWidgets, QtCore
+from qtpy import QtWidgets, QtCore, QtGui
 
 import bw2data as bd
+import pandas as pd
 
 from activity_browser import actions
 from activity_browser.ui.widgets import ABTreeView
@@ -22,15 +23,18 @@ EXCHANGE_MAP = {
 
 class ExchangeView(ABTreeView):
     column_delegates = {
-        "Amount": delegates.FloatDelegate,
-        "Unit": delegates.StringDelegate,
-        "Name": delegates.StringDelegate,
-        "Location": delegates.StringDelegate,
-        "Product": delegates.StringDelegate,
-        "Formula": delegates.StringDelegate,
-        "Comment": delegates.StringDelegate,
-        "Uncertainty": delegates.UncertaintyDelegate,
+        "amount": "float",
+        "allocation_factor": "float",
+        "substitution_factor": "float",
+        "unit": "string",
+        "name": "string",
+        "location": "string",
+        "product": "string",
+        "formula": "string",
+        "comment": "string",
+        "uncertainty": "uncertainty",
     }
+    hovered_item: ExchangeItem | None = None
 
     class HeaderMenu(QtWidgets.QMenu):
         def __init__(self, pos: QtCore.QPoint, view: "ExchangeView"):
@@ -102,11 +106,20 @@ class ExchangeView(ABTreeView):
                 self.delete_exc_action = actions.ExchangeDelete.get_QAction([item.exchange])
                 self.addAction(self.delete_exc_action)
 
+                if not pd.isna(item["substitute"]):
+                    self.remove_sub_action = actions.FunctionSubstituteRemove.get_QAction(item.exchange.input)
+                    self.addAction(self.remove_sub_action)
+
 
     def __init__(self, parent):
         super().__init__(parent)
         self.setAcceptDrops(True)
         self.setSortingEnabled(True)
+
+        self.floatDelegate = delegates.FloatDelegate(self)
+        self.stringDelegate = delegates.StringDelegate(self)
+        self.uncertaintyDelegate = delegates.UncertaintyDelegate(self)
+        self.propertyDelegate = PropertyDelegate(self)
 
     @property
     def activity(self):
@@ -114,28 +127,69 @@ class ExchangeView(ABTreeView):
 
     def setModel(self, model):
         super().setModel(model)
+        self.model().modelAboutToBeReset.connect(self.reset_column_delegates)
         self.model().modelReset.connect(self.set_column_delegates)
+
+    def reset_column_delegates(self):
+        for i in range(25):
+            self.setItemDelegateForColumn(i, None)
 
     def set_column_delegates(self):
         columns = self.model().columns()
-
         for i, col_name in enumerate(columns):
             if col_name in self.column_delegates:
-                self.setItemDelegateForColumn(i, self.column_delegates[col_name](self))
-            elif col_name.startswith("Property: "):
-                self.setItemDelegateForColumn(i, PropertyDelegate(self))
+                delegate = getattr(self, f"{self.column_delegates[col_name]}Delegate")
+                self.setItemDelegateForColumn(i, delegate)
+            elif col_name.startswith("property_"):
+                self.setItemDelegateForColumn(i, self.propertyDelegate)
 
     def dragMoveEvent(self, event) -> None:
-        pass
+        index = self.indexAt(event.pos())
+        item = index.internalPointer()
+
+        if self.hovered_item:
+            if item == self.hovered_item:
+                pass
+            elif isinstance(item, ExchangeItem):
+                self.hovered_item.background_color = None
+                self.hovered_item = item
+            else:
+                self.hovered_item.background_color = None
+                self.hovered_item = None
+        elif isinstance(item, ExchangeItem):
+            self.hovered_item = item
+
+        if self.hovered_item and self.hovered_item.acceptsDragDrop(event):
+            self.hovered_item.background_color = "#ADD8E6"
+            self.setPalette(QtGui.QGuiApplication.palette())
+            event.acceptProposedAction()
+        else:
+            self.dragEnterEvent(event)
+            event.acceptProposedAction()
 
     def dragEnterEvent(self, event):
         if event.mimeData().hasFormat("application/bw-nodekeylist"):
-            keys: list = event.mimeData().retrievePickleData("application/bw-nodekeylist")
+            palette = self.palette()
+            palette.setColor(palette.ColorGroup.All, palette.ColorRole.Base, QtGui.QColor("#e8f4f8"))
+            self.setPalette(palette)
             event.accept()
 
+    def dragLeaveEvent(self, event):
+        if self.hovered_item:
+            self.hovered_item.background_color = None
+            self.hovered_item = None
+        self.setPalette(QtGui.QGuiApplication.palette())
+
     def dropEvent(self, event):
-        event.accept()
         log.debug(f"Dropevent from: {type(event.source()).__name__} to: {self.__class__.__name__}")
+        self.setPalette(QtGui.QGuiApplication.palette())
+
+        if self.hovered_item and self.hovered_item.acceptsDragDrop(event):
+            self.hovered_item.onDrop(event)
+            self.hovered_item.background_color = None
+            self.setPalette(QtGui.QGuiApplication.palette())
+            return
+
         keys: list = event.mimeData().retrievePickleData("application/bw-nodekeylist")
         exchanges = {"technosphere": set(), "biosphere": set()}
 

@@ -1,5 +1,10 @@
+import pandas as pd
 from qtpy import QtGui
 from qtpy.QtCore import Qt
+
+import pandas as pd
+
+import bw2data as bd
 
 from activity_browser import actions
 from activity_browser.ui.widgets import ABDataItem
@@ -7,53 +12,56 @@ from activity_browser.ui import icons
 
 
 class ExchangeItem(ABDataItem):
+    background_color = None
+
     @property
     def exchange(self):
         return self["_exchange"]
 
     @property
     def functional(self):
-        return self["Exchange Type"] == "production"
+        return self["_exchange"].get("type") == "production"
 
     def flags(self, col: int, key: str):
-        from .views import ExchangeView
-
         flags = super().flags(col, key)
-        if key in ["Amount", "Formula"]:
+        if key in ["amount", "formula"]:
             return flags | Qt.ItemFlag.ItemIsEditable
-        if key in ["Unit", "Name", "Location"] and self.functional:
+        if key in ["unit", "name", "location", "substitution_factor"] and self.functional:
             return flags | Qt.ItemFlag.ItemIsEditable
-        if key.startswith("Property: ") and self.functional:
+        if key.startswith("property_") and self.functional:
+            return flags | Qt.ItemFlag.ItemIsEditable
+        if key == "allocation_factor" and self.exchange.output.get("allocation") == "manual" and self.functional:
             return flags | Qt.ItemFlag.ItemIsEditable
         return flags
 
     def displayData(self, col: int, key: str):
-        if key == "Allocation Factor" and not self.functional:
+        if key in ["allocation_factor", "substitute", "substitution_factor"] and not self.functional:
             return None
 
-        if key.startswith("Property: "):
-            if not self.functional:
-                return ()
-            if not isinstance(self[key], list):
-                return ("Undefined", )
+        if key.startswith("property_") and not self.functional:
+            return None
 
-            prop = self[key][0]
+        if key.startswith("property_") and self[key]["normalize"]:
+            prop = self[key].copy()
+            prop["unit"] = prop["unit"] + f" / {self["unit"]}"
+            return prop
 
-            amount = prop.get("amount")
-            unit = prop.get("unit")
-            norm = f" / {self.exchange.input["unit"]}" if prop.get("normalize") else ""
-            return (amount, unit, norm, )
         return super().displayData(col, key)
 
     def decorationData(self, col, key):
-        if key != "Name":
+        if key not in ["name", "substitute"] or not self.displayData(col, key):
             return
 
-        if self["Activity Type"] in ["natural resource", "emission", "inventory indicator", "economic", "social"]:
+        if key == "name":
+            activity_type = self.exchange.input.get("type")
+        else:  # key is "substitute"
+            activity_type = bd.get_node(key=self["_substitutor_key"])["type"]
+
+        if activity_type in ["natural resource", "emission", "inventory indicator", "economic", "social"]:
             return icons.qicons.biosphere
-        if self["Activity Type"] in ["product", "processwithreferenceproduct"]:
+        if activity_type in ["product", "processwithreferenceproduct"]:
             return icons.qicons.product
-        if self["Activity Type"] == "waste":
+        if activity_type == "waste":
             return icons.qicons.waste
 
     def fontData(self, col: int, key: str):
@@ -65,29 +73,58 @@ class ExchangeItem(ABDataItem):
         return font
 
     def backgroundData(self, col: int, key: str):
-        if key == f"Property: {self['_allocate_by']}":
+        if self.background_color:
+            return QtGui.QBrush(QtGui.QColor(self.background_color))
+
+        if key == f"property_{self['_allocate_by']}":
             return QtGui.QBrush(Qt.GlobalColor.lightGray)
 
     def setData(self, col: int, key: str, value) -> bool:
-        if key in ["Amount", "Formula"]:
-            if key == "Formula" and not str(value).strip():
+        if key in ["amount", "formula"]:
+            if key == "formula" and not str(value).strip():
                 actions.ExchangeFormulaRemove.run([self.exchange])
                 return True
 
             actions.ExchangeModify.run(self.exchange, {key.lower(): value})
             return True
 
-        if key in ["Unit", "Name", "Location"]:
+        if key in ["unit", "name", "location", "substitution_factor", "allocation_factor"]:
             act = self.exchange.input
-
             actions.ActivityModify.run(act.key, key.lower(), value)
 
-        if key.startswith("Property: "):
+        if key.startswith("property_"):
             act = self.exchange.input
-            prop_key = key[10:]
+            prop_key = key[9:]
             props = act["properties"]
             props[prop_key].update({"amount": value})
 
             actions.ActivityModify.run(act.key, "properties", props)
 
         return False
+
+    def acceptsDragDrop(self, event) -> bool:
+        if not self.functional:
+            return False
+
+        if not event.mimeData().hasFormat("application/bw-nodekeylist"):
+            return False
+
+        keys = set(event.mimeData().retrievePickleData("application/bw-nodekeylist"))
+        acts = [bd.get_node(key=key) for key in keys]
+        acts = [act for act in acts if act["type"] in ["product", "waste", "processwithreferenceproduct"]]
+
+        if len(acts) != 1:
+            return False
+
+        act = acts[0]
+
+        if act["unit"] != self["unit"] or act.key == self.exchange.input.key:
+            return False
+
+        return True
+
+    def onDrop(self, event):
+        keys = set(event.mimeData().retrievePickleData("application/bw-nodekeylist"))
+        acts = [bd.get_node(key=key) for key in keys]
+        act = [act for act in acts if act["type"] in ["product", "waste", "processwithreferenceproduct"]][0]
+        actions.FunctionSubstitute.run(self.exchange.input, act)

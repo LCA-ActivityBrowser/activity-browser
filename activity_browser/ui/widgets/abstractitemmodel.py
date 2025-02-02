@@ -177,6 +177,8 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
     def flags(self, index):
         if not index.isValid() or not isinstance(index.internalPointer(), ABAbstractItem):
             return Qt.ItemFlag.NoItemFlags
+        if index.column() > len(self.columns()) - 1:
+            return Qt.ItemFlag.NoItemFlags
 
         return index.internalPointer().flags(index.column(), self.columns()[index.column()])
 

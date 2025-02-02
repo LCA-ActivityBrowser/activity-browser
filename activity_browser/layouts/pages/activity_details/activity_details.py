@@ -88,9 +88,9 @@ class ActivityDetails(QtWidgets.QWidget):
         signals.node.deleted.connect(self.on_node_deleted)
         signals.database.deleted.connect(self.on_database_deleted)
 
-        signals.node.changed.connect(self.populateLater)
-        signals.edge.changed.connect(self.populateLater)
-        # signals.edge.deleted.connect(self.populate)
+        # signals.node.changed.connect(self.populateLater)
+        # signals.edge.changed.connect(self.populateLater)
+        # # signals.edge.deleted.connect(self.populate)
 
         signals.meta.databases_changed.connect(self.populateLater)
 
@@ -154,30 +154,52 @@ class ActivityDetails(QtWidgets.QWidget):
         if not exchanges:
             return pd.DataFrame()
 
-        exc_df = pd.DataFrame(exchanges)
-        act_df = AB_metadata.get_metadata(exc_df["input"], None)
-        df = pd.DataFrame({
-            "Amount": list(exc_df["amount"]),
-            "Unit": list(act_df["unit"]),
-            "Name": list(act_df["name"]),
-            "Location": list(act_df["location"]),
-            "Exchange Type": list(exc_df["type"]),
-            "Activity Type": list(act_df["type"]),
-            "Allocation Factor": list(act_df["allocation_factor"]) if "allocation_factor" in act_df.columns else None,
-            "_exchange": exchanges,
-            "_activity_id": list(act_df["id"]),
-            "_allocate_by": self.activity.get("allocation"),
-        })
+        cols = ["key", "unit", "name", "location", "substitutor", "substitution_factor", "allocation_factor",
+                "properties", "processor"]
+        exc_df = pd.DataFrame(exchanges, columns=["amount", "input", "formula", "uncertainty",])
+        act_df = AB_metadata.get_metadata(exc_df["input"].unique(), cols)
 
-        if "properties" in act_df.columns:
-            for i, props in act_df["properties"].reset_index(drop=True).items():
-                if not isinstance(props, dict):
-                    continue
+        df = exc_df.merge(
+            act_df,
+            left_on="input",
+            right_on="key"
+        ).drop(columns=["key"])
 
-                for prop, value in props.items():
-                    df.loc[i, f"Property: {prop}"] = [value]  # inserted using list because Pandas is weird about setting dicts as values
+        if not df["substitutor"].isna().all():
+            df = df.merge(
+                AB_metadata.dataframe[["key", "name"]].rename({"name": "substitute"}, axis="columns"),
+                left_on="substitutor",
+                right_on="key",
+                how="left",
+            ).drop(columns=["key"])
+        else:
+            df.drop(columns=["substitutor", "substitution_factor"], inplace=True)
 
-        df["Formula"] = exc_df.get("formula", np.nan)
+        if not act_df.properties.isna().all():
+            props_df = act_df[act_df.properties.notna()]
+            props_df = pd.DataFrame(list(props_df.get("properties")), index=props_df.key)
+            props_df.rename(lambda col: f"property_{col}", axis="columns", inplace=True)
 
-        return df
+            df = df.merge(
+                props_df,
+                left_on="input",
+                right_index=True,
+                how="left",
+            )
+
+        df["_allocate_by"] = self.activity.get("allocation")
+        df["_activity_type"] = self.activity.get("type")
+        df["_exchange"] = exchanges
+
+        df.drop(columns=["properties"], inplace=True)
+        df.rename({"input": "_input_key", "substitutor": "_substitutor_key", "processor": "_processor_key"}, axis="columns", inplace=True)
+
+        cols = ["amount", "unit", "name", "location"]
+        cols += ["substitute", "substitution_factor"] if "substitute" in df.columns else []
+        cols += ["allocation_factor"]
+        cols += [col for col in df.columns if col.startswith("property")]
+        cols += ["formula", "uncertainty"]
+        cols += [col for col in df.columns if col.startswith("_")]
+
+        return df[cols]
 

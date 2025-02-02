@@ -6,21 +6,18 @@ from activity_browser import actions
 class PropertyDelegate(QtWidgets.QStyledItemDelegate):
 
     def displayText(self, value, locale):
-        if not value:
-            return ""
-        value = [str(x) for x in value]
-        return " ".join(value)
+        if not isinstance(value, dict):
+            return "Undefined"
+
+        if sorted(value.keys()) != ["amount", "normalize", "unit"]:
+            return "Faulty property"
+
+        display = f"{value["amount"]} {value["unit"]}"
+        return display
 
     def createEditor(self, parent, option, index):
         data = index.data(QtCore.Qt.ItemDataRole.DisplayRole)
         if not data:
-            return None
-
-        if data == ("Undefined",):
-            item = index.internalPointer()
-            prop_name = index.model().columns()[index.column()][10:]
-
-            actions.ProcessDefaultPropertyModify.run(item.exchange.input, prop_name)
             return None
 
         editor = QtWidgets.QLineEdit(parent)
@@ -30,15 +27,8 @@ class PropertyDelegate(QtWidgets.QStyledItemDelegate):
 
     def setEditorData(self, editor: QtWidgets.QLineEdit, index: QtCore.QModelIndex):
         """Populate the editor with data if editing an existing field."""
-        import math
         data = index.data(QtCore.Qt.ItemDataRole.DisplayRole)
-
-        try:
-            value = float(data[0])
-        except ValueError:
-            value = math.nan
-
-        editor.setText(str(value))
+        editor.setText(str(data["amount"]))
 
     def setModelData(self, editor: QtWidgets.QLineEdit, model: QtCore.QAbstractItemModel, index: QtCore.QModelIndex):
         """Take the editor, read the given value and set it in the model"""

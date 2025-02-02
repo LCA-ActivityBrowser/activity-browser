@@ -89,6 +89,8 @@ class MetaDataStore(QObject):
 
             if list(compare_new.index) == list(compare_old.index) and (compare_new == compare_old).all():
                 return  # but it is the same as the current DF, so no sync necessary
+            for col in [col for col in data.columns if col not in self.dataframe.columns]:
+                self.dataframe[col] = pd.NA
             self.dataframe.loc[new.key] = data.loc[new.key]
         else:  # an activity has been added
             self.dataframe = pd.concat([self.dataframe, data], join="outer")
