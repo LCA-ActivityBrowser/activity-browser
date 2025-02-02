@@ -49,12 +49,12 @@ class ExchangeItem(ABDataItem):
         return super().displayData(col, key)
 
     def decorationData(self, col, key):
-        if key not in ["name", "substitute"] or not self.displayData(col, key):
+        if key not in ["name", "substitute_name"] or not self.displayData(col, key):
             return
 
         if key == "name":
             activity_type = self.exchange.input.get("type")
-        else:  # key is "substitute"
+        else:  # key is "substitute_name"
             activity_type = bd.get_node(key=self["_substitute_key"])["type"]
 
         if activity_type in ["natural resource", "emission", "inventory indicator", "economic", "social"]:

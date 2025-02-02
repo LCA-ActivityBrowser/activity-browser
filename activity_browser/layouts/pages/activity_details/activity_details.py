@@ -154,7 +154,7 @@ class ActivityDetails(QtWidgets.QWidget):
         if not exchanges:
             return pd.DataFrame()
 
-        cols = ["key", "unit", "name", "location", "substitution", "substitution_factor", "allocation_factor",
+        cols = ["key", "unit", "name", "location", "substitute", "substitution_factor", "allocation_factor",
                 "properties", "processor"]
         exc_df = pd.DataFrame(exchanges, columns=["amount", "input", "formula", "uncertainty",])
         act_df = AB_metadata.get_metadata(exc_df["input"].unique(), cols)
@@ -195,7 +195,7 @@ class ActivityDetails(QtWidgets.QWidget):
         df.rename({"input": "_input_key", "substitute": "_substitute_key", "processor": "_processor_key"}, axis="columns", inplace=True)
 
         cols = ["amount", "unit", "name", "location"]
-        cols += ["substitute_name", "substitution_factor"] if "substitute" in df.columns else []
+        cols += ["substitute_name", "substitution_factor"] if "substitute_name" in df.columns else []
         cols += ["allocation_factor"]
         cols += [col for col in df.columns if col.startswith("property")]
         cols += ["formula", "uncertainty"]
