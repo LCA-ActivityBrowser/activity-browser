@@ -44,12 +44,6 @@ class ActivityDetails(QtWidgets.QWidget):
         self.activity = bd.get_activity(key)
         self.database = bd.Database(self.db_name)
 
-        # # Toolbar Layout
-        # toolbar = QtWidgets.QToolBar()
-        # self.graph_action = toolbar.addAction(
-        #     qicons.graph_explorer, "Show in Graph Explorer", self.open_graph
-        # )
-
         # Activity information
         # this contains: activity name, location, database
         self.activity_data_grid = ActivityData(self)
@@ -83,14 +77,8 @@ class ActivityDetails(QtWidgets.QWidget):
         self.connect_signals()
 
     def connect_signals(self):
-        # signals.database_read_only_changed.connect(self.db_read_only_changed)
-
         signals.node.deleted.connect(self.on_node_deleted)
         signals.database.deleted.connect(self.on_database_deleted)
-
-        # signals.node.changed.connect(self.populateLater)
-        # signals.edge.changed.connect(self.populateLater)
-        # # signals.edge.deleted.connect(self.populate)
 
         signals.meta.databases_changed.connect(self.populateLater)
 

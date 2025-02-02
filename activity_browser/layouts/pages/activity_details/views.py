@@ -58,7 +58,7 @@ class ExchangeView(ABTreeView):
             props_indices = []
 
             for i, col in enumerate(model.columns()):
-                if col.startswith("Property"):
+                if col.startswith("property"):
                     props_indices.append(i)
                     continue
 
@@ -71,7 +71,7 @@ class ExchangeView(ABTreeView):
                 view_menu.addAction(action)
 
             if props_indices:
-                action = QtWidgets.QAction("Properties")
+                action = QtWidgets.QAction("properties")
                 action.setCheckable(True)
                 action.setChecked(not view.isColumnHidden(props_indices[0]))
                 action.setData(props_indices)
@@ -82,12 +82,9 @@ class ExchangeView(ABTreeView):
 
             self.addMenu(view_menu)
 
-            if col_name.startswith("Property: "):
-                props = view.activity.get("properties")
-                prop_name = col_name[10:]
-
-                self.set_alloc = actions.ActivityModify.get_QAction(view.activity.key, "default_allocation", col_name[10:])
-                self.set_alloc.setText(f"Allocate by {col_name[10:]}")
+            if col_name.startswith("property"):
+                self.set_alloc = actions.ActivityModify.get_QAction(view.activity.key, "allocation", col_name[9:])
+                self.set_alloc.setText(f"Allocate by {col_name[9:]}")
                 self.addAction(self.set_alloc)
 
     class ContextMenu(QtWidgets.QMenu):
@@ -95,9 +92,7 @@ class ExchangeView(ABTreeView):
             super().__init__(view)
 
             self.add_product_action = actions.ActivityNewProduct.get_QAction(view.activity.key)
-            self.add_property_action = actions.ProcessDefaultPropertyModify.get_QAction(view.activity)
             self.addAction(self.add_product_action)
-            self.addAction(self.add_property_action)
 
             index = view.indexAt(pos)
             if index.isValid():
