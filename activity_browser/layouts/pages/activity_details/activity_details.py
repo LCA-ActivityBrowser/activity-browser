@@ -154,7 +154,7 @@ class ActivityDetails(QtWidgets.QWidget):
         if not exchanges:
             return pd.DataFrame()
 
-        cols = ["key", "unit", "name", "location", "substitutor", "substitution_factor", "allocation_factor",
+        cols = ["key", "unit", "name", "location", "substitution", "substitution_factor", "allocation_factor",
                 "properties", "processor"]
         exc_df = pd.DataFrame(exchanges, columns=["amount", "input", "formula", "uncertainty",])
         act_df = AB_metadata.get_metadata(exc_df["input"].unique(), cols)
@@ -165,15 +165,15 @@ class ActivityDetails(QtWidgets.QWidget):
             right_on="key"
         ).drop(columns=["key"])
 
-        if not df["substitutor"].isna().all():
+        if not df["substitute"].isna().all():
             df = df.merge(
-                AB_metadata.dataframe[["key", "name"]].rename({"name": "substitute"}, axis="columns"),
-                left_on="substitutor",
+                AB_metadata.dataframe[["key", "name"]].rename({"name": "substitute_name"}, axis="columns"),
+                left_on="substitute",
                 right_on="key",
                 how="left",
             ).drop(columns=["key"])
         else:
-            df.drop(columns=["substitutor", "substitution_factor"], inplace=True)
+            df.drop(columns=["substitute", "substitution_factor"], inplace=True)
 
         if not act_df.properties.isna().all():
             props_df = act_df[act_df.properties.notna()]
@@ -192,10 +192,10 @@ class ActivityDetails(QtWidgets.QWidget):
         df["_exchange"] = exchanges
 
         df.drop(columns=["properties"], inplace=True)
-        df.rename({"input": "_input_key", "substitutor": "_substitutor_key", "processor": "_processor_key"}, axis="columns", inplace=True)
+        df.rename({"input": "_input_key", "substitute": "_substitute_key", "processor": "_processor_key"}, axis="columns", inplace=True)
 
         cols = ["amount", "unit", "name", "location"]
-        cols += ["substitute", "substitution_factor"] if "substitute" in df.columns else []
+        cols += ["substitute_name", "substitution_factor"] if "substitute" in df.columns else []
         cols += ["allocation_factor"]
         cols += [col for col in df.columns if col.startswith("property")]
         cols += ["formula", "uncertainty"]

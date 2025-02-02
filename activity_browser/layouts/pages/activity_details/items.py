@@ -55,7 +55,7 @@ class ExchangeItem(ABDataItem):
         if key == "name":
             activity_type = self.exchange.input.get("type")
         else:  # key is "substitute"
-            activity_type = bd.get_node(key=self["_substitutor_key"])["type"]
+            activity_type = bd.get_node(key=self["_substitute_key"])["type"]
 
         if activity_type in ["natural resource", "emission", "inventory indicator", "economic", "social"]:
             return icons.qicons.biosphere

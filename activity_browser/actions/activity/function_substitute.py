@@ -26,7 +26,7 @@ class FunctionSubstitute(ABAction):
         if not isinstance(function, Function):
             return
 
-        if function.get("substitutor") == substitute.key:
+        if function.get("substitute") == substitute.key:
             return
 
         function.substitute(substitute.key)
