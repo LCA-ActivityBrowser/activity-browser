@@ -18,7 +18,7 @@ class FloatDelegate(QtWidgets.QStyledItemDelegate):
 
         if math.isnan(value):
             return ""
-        return "{:.5g}".format(value)
+        return "{:.2f}".format(value)
 
     def createEditor(self, parent, option, index):
         editor = QtWidgets.QLineEdit(parent)
