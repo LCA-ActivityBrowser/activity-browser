@@ -116,8 +116,8 @@ in the next sections.
 
 #### Cut-off
 You can manually change the `Cut-off type` of the results in two ways, `Relative` or `Top #`.
-- The `Relative` mode shows contributions _from_ entities of _x_% or higher.
-- The `Top #` mode shows contributions from the _x_ entities that contribute the most (as absolute).
+- The `Percent` mode shows contributions _from_ entities of at least _x_% or higher.
+- The `Number` mode shows contributions from the _x_ entities that contribute the most (as absolute).
 
 You can adjust the `Cut-off level` to change how many results you see.
 
