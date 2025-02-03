@@ -83,7 +83,7 @@ The data we use should not be used for any studies, it is just educational.
 > Make sure you have/know the following:
 > - [x] Know the basics of LCA
 > - [x] [Know common brightway terminology](https://docs.brightway.dev/en/latest/content/overview/glossary.html)
-> - [x] [Know how Brightway organizes data](Getting-Started.md#organization-of-data-in-brightway-and-activity-browser)
+> - [x] [Know how Brightway organizes data](Getting-Started#organization-of-data-in-brightway-and-activity-browser)
 > - [x] [Have a working installation of Activity Browser](Installation-Guide)
 > - [x] [Have a project set up](Getting-Started#setting-up-a-project)
 

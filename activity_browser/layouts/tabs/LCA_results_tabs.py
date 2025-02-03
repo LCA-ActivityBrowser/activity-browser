@@ -5,9 +5,11 @@ Each of these classes is either a parent for - or a sub-LCA results tab.
 """
 
 from collections import namedtuple
+from copy import deepcopy
 from typing import List, Optional, Union
 from logging import getLogger
 
+import numpy as np
 import pandas as pd
 from qtpy import QtCore, QtGui
 from qtpy.QtWidgets import (QApplication, QButtonGroup, QCheckBox,
@@ -16,7 +18,12 @@ from qtpy.QtWidgets import (QApplication, QButtonGroup, QCheckBox,
                                QPushButton, QRadioButton, QScrollArea,
                                QTableView, QTabWidget, QToolBar, QVBoxLayout,
                                QWidget)
+
+from activity_browser.bwutils import AB_metadata
+
 from stats_arrays.errors import InvalidParamsError
+import bw2data as bd
+import bw2analyzer as ba
 
 from activity_browser import signals
 from bw2data import calculation_setups
@@ -33,6 +40,8 @@ from ...ui.web import SankeyNavigatorWidget, TreeNavigatorWidget
 from ...ui.widgets import CutoffMenu, SwitchComboBox
 from .base import BaseRightTab
 
+ca = ba.ContributionAnalysis()
+
 log = getLogger(__name__)
 
 
@@ -42,6 +51,16 @@ def get_header_layout(header_text: str) -> QVBoxLayout:
     vlayout.addWidget(horizontal_line())
     return vlayout
 
+def get_header_layout_w_help(header_text: str, help_widget) -> QVBoxLayout:
+    hlayout = QHBoxLayout()
+    hlayout.addWidget(header(header_text))
+    hlayout.addWidget(help_widget)
+    hlayout.setStretch(0, 1)
+
+    vlayout = QVBoxLayout()
+    vlayout.addLayout(hlayout)
+    vlayout.addWidget(horizontal_line())
+    return vlayout
 
 def get_unit(method: tuple, relative: bool = False) -> str:
     """Get the unit for plot axis naming.
@@ -62,9 +81,10 @@ def get_unit(method: tuple, relative: bool = False) -> str:
 
 # Special namedtuple for the LCAResults TabWidget.
 Tabs = namedtuple(
-    "tabs", ("inventory", "results", "ef", "process", "sankey", "tree", "mc", "gsa")
+    "tabs", ("inventory", "results", "ef", "process", "ft", "sankey", "mc", "gsa")
 )
 Relativity = namedtuple("relativity", ("relative", "absolute"))
+TotalMenu = namedtuple("total_menu", ("range", "score"))
 ExportTable = namedtuple("export_table", ("label", "copy", "csv", "excel"))
 ExportPlot = namedtuple("export_plot", ("label", "png", "svg"))
 PlotTableCheck = namedtuple("plot_table_space", ("plot", "table", "invert"))
@@ -122,6 +142,7 @@ class LCAResultsSubTab(QTabWidget):
             results=LCAResultsTab(self),
             ef=ElementaryFlowContributionTab(self),
             process=ProcessContributionsTab(self),
+            ft=FirstTierContributionsTab(self.cs_name, parent=self),
             sankey=SankeyNavigatorWidget(self.cs_name, parent=self),
             tree=TreeNavigatorWidget(self.cs_name, parent=self),
             mc=MonteCarloTab(
@@ -134,6 +155,7 @@ class LCAResultsSubTab(QTabWidget):
             results="LCA Results",
             ef="EF Contributions",
             process="Process Contributions",
+            ft="FT Contributions",
             sankey="Sankey",
             tree="Tree",
             mc="Monte Carlo",
@@ -177,6 +199,11 @@ class LCAResultsSubTab(QTabWidget):
             if not self.tabs.sankey.has_sankey:
                 log.info("Generating Sankey Tab")
                 self.tabs.sankey.new_sankey()
+        elif index == self.indexOf(self.tabs.ft):
+            if not self.tabs.ft.has_been_opened:
+                log.info("Generating First Tier results")
+                self.tabs.ft.has_been_opened = True
+                self.tabs.ft.update_tab()
 
         if index == self.indexOf(self.tabs.tree):
             if not self.tabs.tree.has_rendered_once:
@@ -225,6 +252,9 @@ class NewAnalysisTab(BaseRightTab):
 
     def __init__(self, parent=None):
         super().__init__(parent)
+
+        self.help_button: Optional[QToolBar] = None
+
         self.parent = parent
         self.has_scenarios = self.parent.has_scenarios
 
@@ -234,6 +264,8 @@ class NewAnalysisTab(BaseRightTab):
         self.plot_table: Optional[PlotTableCheck] = None
         self.relativity: Optional[Relativity] = None
         self.relative: Optional[bool] = None
+        self.total_menu: Optional[TotalMenu] = None
+        self.total_range: Optional[bool] = None
         self.export_plot: Optional[ExportPlot] = None
         self.export_table: Optional[ExportTable] = None
 
@@ -275,6 +307,11 @@ class NewAnalysisTab(BaseRightTab):
             row.addWidget(self.relativity.relative)
             row.addWidget(self.relativity.absolute)
             self.relativity.relative.toggled.connect(self.relativity_check)
+        if self.total_menu:
+            row.addWidget(vertical_line())
+            row.addWidget(self.total_menu.range)
+            row.addWidget(self.total_menu.score)
+            self.total_menu.range.toggled.connect(self.total_check)
         row.addStretch()
 
         # Assemble Table and Plot area
@@ -308,6 +345,12 @@ class NewAnalysisTab(BaseRightTab):
         self.relative = checked
         self.update_tab()
 
+    @QtCore.Slot(bool, name="isTotalToggled")
+    def total_check(self, checked: bool):
+        """Check if the relative or absolute option is selected."""
+        self.total_range = checked
+        self.update_tab()
+
     def get_scenario_labels(self) -> List[str]:
         """Get scenario labels if scenarios are used."""
         return self.parent.mlca.scenario_names if self.has_scenarios else []
@@ -338,11 +381,11 @@ class NewAnalysisTab(BaseRightTab):
 
     def update_tab(self):
         """Update the plot and table if they are present."""
-        if self.plot:
+        if self.plot and self.plot.isVisible:
             self.update_plot()
-        if self.table:
+        if self.table and self.table.isVisible:
             self.update_table()
-        if self.plot and self.table:
+        if self.plot and self.plot.isVisible and self.table and self.table.isVisible:
             self.space_check()
 
     def update_table(self, *args, **kwargs):
@@ -899,6 +942,27 @@ class ContributionTab(NewAnalysisTab):
         self.relativity.absolute.setToolTip(
             "Show absolute values (compare magnitudes of each contribution)"
         )
+        self.relativity_group = QButtonGroup(self)
+        self.relativity_group.addButton(self.relativity.relative)
+        self.relativity_group.addButton(self.relativity.absolute)
+
+        self.total_menu = TotalMenu(
+            QRadioButton("Range"),
+            QRadioButton("Score"),
+        )
+        self.total_menu.range.setChecked(True)
+        self.total_range = True
+        self.total_menu.range.setToolTip(
+            "Show the contribution relative to the total <i>range</i> of results.\n"
+            "e.g. total negative results is -2 and total positive results is 10, then range is 12 (-2 * -1 + 10)"
+        )
+        self.total_menu.score.setToolTip(
+            "Show the contributions relative to the <i>total</i> impact score.\n"
+            "e.g. total negative results is -2 and total positive results is 10, then score is 8 (-2 + 10)"
+        )
+        self.total_group = QButtonGroup(self)
+        self.total_group.addButton(self.total_menu.range)
+        self.total_group.addButton(self.total_menu.score)
 
         self.df = None
         self.plot = ContributionPlot(self)
@@ -906,6 +970,26 @@ class ContributionTab(NewAnalysisTab):
         self.contribution_fn = None
         self.has_method, self.has_func = False, False
         self.unit = None
+
+        self.has_been_opened = False
+
+        # set-up the help button
+        self.explain_text = """
+                <p>There are three ways of doing Contribtion Analysis in Activity Browser:</h4>
+                <p>- <b>Elementary Flow (EF) Contributions</b></p>
+                <p>- <b>Process Contributions</b></p>
+                <p>- <b>First Tier (FT) Contributions</b></p>
+                
+                Detailed information on the different approaches provided in this <a href="https://github.com/LCA-ActivityBrowser/activity-browser/wiki/LCA-Results#contribution-analysis">wiki page</a> about the different approaches. 
+
+                <p>You can manipulate the results in many ways with Activity Browser, read more on this <a href="https://github.com/LCA-ActivityBrowser/activity-browser/wiki/LCA-Results#manipulating-results">wiki page</a>
+                about manipulating results. 
+                """
+
+        self.help_button = QToolBar(self)
+        self.help_button.addAction(
+            qicons.question, "Left click for help on Contribution Analysis Functions", self.explanation
+        )
 
     def set_filename(self, optional_fields: dict = None):
         """Given a dictionary of fields, put together a usable filename for the plot and table."""
@@ -917,6 +1001,7 @@ class ContributionTab(NewAnalysisTab):
             optional.get("functional_unit"),
             self.unit,
         )
+
         filename = "_".join((str(x) for x in fields if x is not None))
         self.plot.plot_name, self.table.table_name = filename, filename
 
@@ -989,12 +1074,9 @@ class ContributionTab(NewAnalysisTab):
         # gather the combobox values
         method = self.parent.method_dict[self.combobox_menu.method.currentText()]
         functional_unit = self.combobox_menu.func.currentText()
-        scenario = self.combobox_menu.scenario.currentIndex()
+        scenario = max(self.combobox_menu.scenario.currentIndex(), 0)  # set scenario 0 if not initiated yet
         aggregator = self.combobox_menu.agg.currentText()
 
-        # catch uninitiated scenario combobox
-        if scenario < 0:
-            scenario = 0
         # set aggregator to None if unwanted
         if aggregator == "none":
             aggregator = None
@@ -1034,8 +1116,11 @@ class ContributionTab(NewAnalysisTab):
 
     def update_tab(self):
         """Update the tab."""
+        QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
         self.set_combobox_changes()
+
         super().update_tab()
+        QApplication.restoreOverrideCursor()
 
     def update_dataframe(self, *args, **kwargs):
         """Update the underlying dataframe.
@@ -1044,7 +1129,7 @@ class ContributionTab(NewAnalysisTab):
         raise NotImplementedError
 
     def update_table(self):
-        super().update_table(self.df)
+        super().update_table(self.df, unit=self.unit)
 
     def update_plot(self):
         """Update the plot."""
@@ -1083,7 +1168,8 @@ class ElementaryFlowContributionTab(ContributionTab):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        self.layout.addLayout(get_header_layout("Elementary Flow Contributions"))
+        header = get_header_layout_w_help("Elementary Flow Contributions", self.help_button)
+        self.layout.addLayout(header)
         self.layout.addWidget(self.cutoff_menu)
         self.layout.addWidget(horizontal_line())
         combobox = self.build_combobox(has_method=True, has_func=True)
@@ -1110,6 +1196,7 @@ class ElementaryFlowContributionTab(ContributionTab):
             limit=self.cutoff_menu.cutoff_value,
             limit_type=self.cutoff_menu.limit_type,
             normalize=self.relative,
+            total_range=self.total_range,
         )
 
 
@@ -1135,7 +1222,8 @@ class ProcessContributionsTab(ContributionTab):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        self.layout.addLayout(get_header_layout("Process Contributions"))
+        header = get_header_layout_w_help("Process Contributions", self.help_button)
+        self.layout.addLayout(header)
         self.layout.addWidget(self.cutoff_menu)
         self.layout.addWidget(horizontal_line())
         combobox = self.build_combobox(has_method=True, has_func=True)
@@ -1164,7 +1252,391 @@ class ProcessContributionsTab(ContributionTab):
             limit=self.cutoff_menu.cutoff_value,
             limit_type=self.cutoff_menu.limit_type,
             normalize=self.relative,
+            total_range=self.total_range,
         )
+
+
+class FirstTierContributionsTab(ContributionTab):
+    """Class for the 'First Tier Contributions' sub-tab.
+
+    This tab allows for analysis of first-tier (product) contributions.
+    The direct impact (from biosphere exchanges from the FU)
+    and cumulative impacts from all exchange inputs to the FU (first level) are calculated.
+
+    e.g. the direct emissions from steel production and the cumulative impact for all electricity input
+    into that activity. This works on the basis of input products and their total (cumulative) impact, scaled to
+    how much of that product is needed in the FU.
+
+    Example questions that can be answered by this tab:
+        What is the contribution of electricity (product) to reference flow XXX?
+        Which input product contributes the most to impact category YYY?
+        What products contribute most to reference flow ZZZ?
+
+    Shows:
+        Compare options button to change between 'Reference Flows' and 'Impact Categories'
+        'Impact Category'/'Reference Flow' chooser with aggregation method
+        Plot/Table on/off and Relative/Absolute options for data
+        Plot/Table
+        Export options
+    """
+
+    def __init__(self, cs_name, parent=None):
+        super().__init__(parent)
+
+        self.cache = {"totals": {}}  # We cache the calculated data, as it can take some time to generate.
+        # We cache the individual calculation results, as they are re-used in multiple views
+        # e.g. FU1 x method1 x scenario1
+        # may be seen in both 'Reference Flows' and 'Impact Categories', just with different axes.
+        # we also cache totals, not for calculation speed, but to be able to easily convert for relative results
+        self.caching = True  # set to False to disable caching for debug
+
+        header = get_header_layout_w_help("First Tier Contributions", self.help_button)
+        self.layout.addLayout(header)
+        self.layout.addWidget(self.cutoff_menu)
+        self.layout.addWidget(horizontal_line())
+        combobox = self.build_combobox(has_method=True, has_func=True)
+        self.layout.addLayout(combobox)
+        self.layout.addWidget(horizontal_line())
+        self.layout.addWidget(self.build_main_space())
+        self.layout.addLayout(self.build_export(True, True))
+
+        # get relevant data from calculation setup
+        self.cs = cs_name
+        func_units = bd.calculation_setups[self.cs]["inv"]
+        self.func_keys = [list(fu.keys())[0] for fu in func_units]  # extract a list of keys from the functional units
+        self.func_units = [
+            {bd.get_activity(k): v for k, v in fu.items()}
+            for fu in func_units
+        ]
+        self.methods = bd.calculation_setups[self.cs]["ia"]
+
+        self.contribution_fn = "First Tier contributions"
+        self.switches.configure(self.has_func, self.has_method)
+        self.connect_signals()
+        self.toggle_comparisons(self.switches.indexes.func)
+
+    def update_tab(self):
+        """Update the tab."""
+        if self.has_been_opened:
+            super().update_tab()
+
+    def build_combobox(
+        self, has_method: bool = True, has_func: bool = False
+    ) -> QHBoxLayout:
+        self.combobox_menu.agg.addItems(
+            self.parent.contributions.DEFAULT_ACT_AGGREGATES
+        )
+        return super().build_combobox(has_method, has_func)
+
+    def get_data(self, compare) -> List[list]:
+        """Get the data for analysis, either from self.cache or from calculation."""
+        def try_cache():
+            """Get data from cache if exists, otherwise return none."""
+            if self.caching:
+                return self.cache.get(cache_key, None)
+
+        def calculate():
+            """Shorthand for getting calculation results."""
+            return self.calculate_contributions(demand, demand_key, demand_index,
+                                                method=method, method_index=method_index,
+                                                scenario_lca=self.has_scenarios, scenario_index=scenario_index,
+                                                )
+
+        # get the right data
+        if self.has_scenarios:
+            # get the scenario index, if it is -1 (none selected), then use index first index (0)
+            scenario_index = max(self.combobox_menu.scenario.currentIndex(), 0)
+        else:
+            scenario_index = None
+        method_index = self.combobox_menu.method.currentIndex()
+        method = self.methods[method_index]
+        demand_index = self.combobox_menu.func.currentIndex()
+        demand = self.func_units[demand_index]
+        demand_key = self.func_keys[demand_index]
+
+        all_data = []
+        if compare == "Reference Flows":
+            # run the analysis for every reference flow
+            for demand_index, demand in enumerate(self.func_units):
+                demand_key = self.func_keys[demand_index]
+                cache_key = (demand_index, method_index, scenario_index)
+                # get data from cache if exists, otherwise calculate
+                if data := try_cache():
+                    all_data.append([demand_key, data])
+                    continue
+
+                data = calculate()
+                if self.caching:
+                    self.cache[cache_key] = data
+                all_data.append([demand_key, data])
+        elif compare == "Impact Categories":
+            # run the analysis for every method
+            for method_index, method in enumerate(self.methods):
+                cache_key = (demand_index, method_index, scenario_index)
+
+                # get data from cache if exists, otherwise calculate
+                if data := try_cache():
+                    all_data.append([method, data])
+                    continue
+
+                data = calculate()
+                if self.caching:
+                    self.cache[cache_key] = data
+                all_data.append([method, data])
+        elif compare == "Scenarios":
+            # run the analysis for every scenario
+            for scenario_index in range(self.combobox_menu.scenario.count()):
+                scenario = self.combobox_menu.scenario.itemText(scenario_index)
+                cache_key = (demand_index, method_index, scenario_index)
+
+                # get data from cache if exists, otherwise calculate
+                if data := try_cache():
+                    all_data.append([scenario, data])
+                    continue
+
+                data = calculate()
+                if self.caching:
+                    self.cache[cache_key] = data
+                all_data.append([scenario, data])
+
+        return all_data
+
+    def calculate_contributions(self, demand, demand_key, demand_index,
+                                method, method_index: int = None,
+                                scenario_lca: bool = False, scenario_index: int = None) -> dict:
+        """Retrieve relevant activity data and calculate first tier contributions."""
+
+        def get_default_demands() -> dict:
+            """Get the inputs to calculate contributions from the activity"""
+            # get exchange keys leading to this activity
+            technosphere = bd.get_activity(demand_key).technosphere()
+
+            keys = [exch.input.key for exch in technosphere if
+                    exch.input.key != exch.output.key]
+            # find scale from production amount and demand amount
+            scale = demand[demand_key] / [p for p in bd.get_activity(demand_key).production()][0].amount
+
+            amounts = [exch.amount * scale for exch in technosphere if
+                       exch.input.key != exch.output.key]
+            demands = {keys[i]: amounts[i] for i, _ in enumerate(keys)}
+            return demands
+
+        def get_scenario_demands() -> dict:
+            """Get the inputs to calculate contributions from the scenario matrix"""
+            # get exchange keys leading to this activity
+            technosphere = bd.get_activity(demand_key).technosphere()
+            demand_idx = _lca.product_dict[demand_key]
+
+            keys = [exch.input.key for exch in technosphere if
+                    exch.input.key != exch.output.key]
+            # find scale from production amount and demand amount
+            scale = demand[demand_key] / _lca.technosphere_matrix[_lca.activity_dict[demand_key], demand_idx] * -1
+
+            amounts = []
+
+            for exch in technosphere:
+                exch_idx = _lca.activity_dict[exch.input.key]
+                if exch.input.key != exch.output.key:
+                    amounts.append(_lca.technosphere_matrix[exch_idx, demand_idx] * scale)
+
+            # write al non-zero exchanges to demand dict
+            demands = {keys[i]: amounts[i] for i, _ in enumerate(keys) if amounts[i] != 0}
+            return demands
+
+        # reuse LCA object from original calculation to skip 1 LCA
+        if scenario_lca:
+            # get score from the already calculated result
+            score = self.parent.mlca.lca_scores[demand_index, method_index, scenario_index]
+
+            # get lca object from mlca class
+            self.parent.mlca.current = scenario_index
+            self.parent.mlca.update_matrices()
+            _lca = self.parent.mlca.lca
+            _lca.redo_lci(demand)
+
+        else:
+            # get score from the already calculated result
+            score = self.parent.mlca.lca_scores[demand_index, method_index]
+
+            # get lca object to calculate new results
+            _lca = self.parent.mlca.lca
+
+        # set the correct method
+        _lca.switch_method(method)
+        _lca.lcia_calculation()
+
+        if score == 0:
+            # no need to calculate contributions to '0' score
+            # technically it could be that positive and negative score of same amount negate to 0, but highly unlikely.
+            return {"Total": 0, demand_key: 0}
+
+        data = {"Total": score}
+        remainder = score  # contribution of demand_key
+
+        if not scenario_lca:
+            new_demands = get_default_demands()
+        else:
+            new_demands = get_scenario_demands()
+
+        # iterate over all activities demand_key is connected to
+        for key, amt in new_demands.items():
+
+            # recalculate for this demand
+            _lca.redo_lci({key: amt})
+            _lca.redo_lcia()
+
+            score = _lca.score
+            if score != 0:
+                # only store non-zero results
+                data[key] = score
+                remainder -= score  # subtract this from remainder
+
+        data[demand_key] = remainder
+        return data
+
+    def key_to_metadata(self, key: tuple) -> list:
+        """Convert the key information to list with metadata.
+
+        format:
+        [reference product, activity name, location, unit, database]
+        """
+        return list(AB_metadata.get_metadata([key], ["reference product", "name", "location", "unit"]).iloc[0]) + [key[0]]
+
+    def metadata_to_index(self, data: list) -> str:
+        """Convert list to formatted index.
+
+        format:
+        reference product | activity name | location | unit | database
+        """
+        return " | ".join(data)
+
+    def data_to_df(self, all_data: List[list], compare: str) -> pd.DataFrame:
+        """Convert the provided data into a dataframe."""
+        unique_keys = set()
+        # get all the unique keys:
+        d = {"index": [], "reference product": [], "name": [],
+             "location": [], "unit": [], "database": []}
+        meta_cols = set(d.keys())
+
+        for i, (item, data) in enumerate(all_data):
+            # item is a key, method or scenario depending on the `compares`
+            unique_keys.update(data.keys())
+            # already add the total with right column formatting depending on `compares`
+            if compare == "Reference Flows":
+                col_name = self.metadata_to_index(self.key_to_metadata(item))
+            elif compare == "Impact Categories":
+                col_name = self.metadata_to_index(list(item))
+            elif compare == "Scenarios":
+                col_name = item
+
+            self.cache["totals"][col_name] = data["Total"]
+            d[col_name] = []
+
+            all_data[i] = item, data, col_name
+
+        self.unit = get_unit(self.parent.method_dict[self.combobox_menu.method.currentText()], self.relative)
+
+        # convert to dict format to feed into dataframe
+        for key in unique_keys:
+            if key == "Total":
+                continue
+            # get metadata
+            metadata = self.key_to_metadata(key)
+            d["index"].append(self.metadata_to_index(metadata))
+            d["reference product"].append(metadata[0])
+            d["name"].append(metadata[1])
+            d["location"].append(metadata[2])
+            d["unit"].append(self.unit)
+            d["database"].append(metadata[4])
+            # check for each dataset if we have values, otherwise add np.nan
+            for item, data, col_name in all_data:
+                if val := data.get(key, False):
+                    value = val
+                else:
+                    value = np.nan
+                d[col_name].append(value)
+
+        df = pd.DataFrame(d)
+        data_cols = [col for col in df if col not in meta_cols]
+        df = df.dropna(subset=data_cols, how="all")
+
+        # now, apply aggregation
+        group_on = self.combobox_menu.agg.currentText()
+        if group_on != "none":
+            df = df.groupby(by=group_on, as_index=False).sum()
+            df["index"] = df[group_on]
+            df = df[["index"] + data_cols]
+            meta_cols = ["index"]
+
+        all_contributions = deepcopy(df)
+
+        # now, apply cut-off
+        limit_type = self.cutoff_menu.limit_type
+        limit = self.cutoff_menu.cutoff_value
+
+        # iterate over the columns to get contributors, then replace cutoff flows with nan
+        # nested for is slow, but this should rarely have to deal with >>50 rows (rows == technosphere exchanges)
+        contributors = df[data_cols].shape[0]
+        for col_num, col in enumerate(df[data_cols].T.values):
+            # now, get total:
+            if self.total_range:  # total is based on the range
+                total = np.nansum(np.abs(col))
+            else:  # total is based on the score
+                total = np.nansum(col)
+
+            col = np.nan_to_num(col)  # replace nan with 0
+            cont = ca.sort_array(col, limit=limit, limit_type=limit_type, total=total)
+            # write nans to values not present in cont
+            for row_num in range(contributors):
+                if row_num not in cont[:, 1]:
+                    df.iloc[row_num, col_num + len(meta_cols)] = np.nan
+
+        # drop any rows not contributing to anything
+        df = df.dropna(subset=data_cols, how="all")
+
+        # sort by absolute mean
+        func = lambda row: np.nanmean(np.abs(row))
+        if len(df) > 1:  # but only sort if there is something to sort
+            df["_sort_me_"] = df[data_cols].apply(func, axis=1)
+            df.sort_values(by="_sort_me_", ascending=False, inplace=True)
+            del df["_sort_me_"]
+
+        # add the total and rest values
+        total_and_rest = {col: [] for col in df}
+        for col in df:
+            if col == "index":
+                total_and_rest[col].extend(["Total", "Rest (+)", "Rest (-)"])
+            elif col in data_cols:
+                # total
+                total = self.cache["totals"][col]
+                # positive and negative rest values
+                pos_rest = (np.sum((all_contributions[col].values)[all_contributions[col].values > 0])
+                            - np.sum((df[col].values)[df[col].values > 0]))
+                neg_rest = (np.sum((all_contributions[col].values)[all_contributions[col].values < 0])
+                            - np.sum((df[col].values)[df[col].values < 0]))
+
+                total_and_rest[col].extend([total, pos_rest, neg_rest])
+            else:
+                total_and_rest[col].extend(["", "", ""])
+
+        # add the two df together
+        df = pd.concat([pd.DataFrame(total_and_rest), df], axis=0)
+
+        # normalize
+        if self.relative:
+            totals = [self.cache["totals"][col] for col in data_cols]
+            df[data_cols] = df[data_cols] / totals
+
+        return df
+
+    def update_dataframe(self, *args, **kwargs):
+        """Retrieve the product contributions."""
+
+        compare = self.switches.currentText()
+
+        all_data = self.get_data(compare)
+        df = self.data_to_df(all_data, compare)
+        return df
 
 
 class CorrelationsTab(NewAnalysisTab):

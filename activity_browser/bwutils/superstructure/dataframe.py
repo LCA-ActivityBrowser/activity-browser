@@ -154,9 +154,9 @@ def scenario_replace_databases(df_: pd.DataFrame, replacements: dict) -> pd.Data
                     [["from key", "from database"], ["to key", "to database"]][i]
                 ):
                     ds_.loc[col] = (
-                        (key["database"][0], key["code"][0])
+                        (key["database"].iloc[0], key["code"].iloc[0])
                         if j == 0
-                        else key["database"][0]
+                        else key["database"].iloc[0]
                     )
             except Exception as e:
                 # if the record cannot be found add an exception (to a maximum of five)

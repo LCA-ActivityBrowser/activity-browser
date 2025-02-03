@@ -39,6 +39,7 @@ class MethodCharacterizationFactorsTab(QtWidgets.QWidget):
 
         self.method = bd.Method(method_tuple)
         self.cf_table.model.load(self.method)
+        self.cf_table.hide_uncertain()
         self.cf_table.show()
         self.panel.select_tab(self)
 

@@ -125,7 +125,11 @@ class ScenarioModel(PandasModel):
 
         TODO: Fix this so it returns the least amount of required information.
         """
+        df = self._dataframe.reset_index()
+        df = df.set_index(["Group", "Name"])
+
+
         return (
-            (scenario, self._dataframe[scenario])
-            for scenario in self._dataframe.columns[1:]
+            (scenario, df[scenario])
+            for scenario in df.columns
         )

@@ -154,14 +154,20 @@ class Parameters(UserList):
         """
         return {k: data[k] for k in data.keys() & needed}
 
-    def update(self, values: Iterable[float]) -> None:
+    def update(self, new_values: dict[str, float]) -> None:
         """Replace parameters in the list if their linked value is not
         NaN.
         """
-        assert len(values) == len(self.data)
-        for i, (p, v) in enumerate(zip(self.data, values)):
-            if not np.isnan(v):
-                self.data[i] = p._replace(amount=v)
+        param_by_name = {(p.group, p.name): p for p in self.data}
+        index_by_name = {(p.group, p.name): i for i, p in enumerate(self.data)}
+
+        for name, value in new_values.items():
+            if not np.isnan(value):
+                self.data[index_by_name[name]] = param_by_name[name]._replace(amount=value)
+        return
+        # for i, (p, v) in enumerate(zip(self.data, values)):
+        #     if not np.isnan(v):
+        #         self.data[i] = p._replace(amount=v)
 
     def to_gsa(self) -> List[tuple]:
         """Formats all of the parameters in the list for handling in a GSA."""
