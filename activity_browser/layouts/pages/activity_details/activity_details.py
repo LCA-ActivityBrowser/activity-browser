@@ -33,6 +33,7 @@ EXCHANGE_MAP = {
 
 
 class ActivityDetails(QtWidgets.QWidget):
+    _populate_later_flag = False
 
     def __init__(self, activity: tuple | int | bd.Node, parent=None):
         super().__init__(parent)
@@ -82,6 +83,7 @@ class ActivityDetails(QtWidgets.QWidget):
         signals.database.deleted.connect(self.on_database_deleted)
         signals.meta.databases_changed.connect(self.syncLater)
         signals.parameter.recalculated.connect(self.syncLater)
+        signals.node.changed.connect(self.syncLater)
 
     def on_node_deleted(self, node):
         if node.id == self.activity.id:
@@ -97,7 +99,11 @@ class ActivityDetails(QtWidgets.QWidget):
             self.sync()
             self.thread().eventDispatcher().awake.disconnect(slot)
 
-        self.thread().eventDispatcher().awake.connect(slot, Qt.ConnectionType.UniqueConnection)
+        if self._populate_later_flag:
+            return
+
+        self._populate_later_flag = True
+        self.thread().eventDispatcher().awake.connect(slot)
 
     def sync(self):
         self.activity = refresh_node(self.activity)
