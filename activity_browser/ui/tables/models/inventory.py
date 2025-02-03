@@ -63,7 +63,7 @@ class DatabasesModel(EditablePandasModel):
                     "Modified": dt,
                     "Records": bc.count_database_records(name),
                     "Read-only": database_read_only,
-                    "Default Alloc.": self._get_alloc_value(name),
+                    "Default Alloc.": databases[name].get("default_allocation", DatabasesModel.UNSPECIFIED_ALLOCATION),
                     "Backend": databases[name].get("backend")
                 }
             )

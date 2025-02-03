@@ -24,13 +24,16 @@ class ProjectExport(ABAction):
 
     @staticmethod
     @exception_dialogs
-    def run():
+    def run(project_name: str = None):
         """Export the current project to a folder chosen by the user."""
+        if project_name is None:
+            project_name = bd.projects.current
+
         # get target path from the user
         save_path, save_type = QtWidgets.QFileDialog.getSaveFileName(
             parent=application.main_window,
             caption="Choose where",
-            dir=os.path.expanduser(f"~/{bd.projects.current}.tar.gz"),
+            dir=os.path.expanduser(f"~/{project_name}.tar.gz"),
             filter="Tar-file (*.tar.gz)"
         )
 
@@ -52,21 +55,23 @@ class ProjectExport(ABAction):
 
         thread = ExportThread(application)
         setattr(thread, "save_path", save_path)
+        setattr(thread, "project_name", project_name)
         thread.finished.connect(lambda: progress.deleteLater())
         thread.start()
 
 
 class ExportThread(ABThread):
+    save_path: str
+    project_name: str
 
     def run_safely(self):
-        project_name = bd.projects.current
-        project_dir = os.path.join(bd.projects._base_data_dir, bd.utils.safe_filename(project_name))
+        project_dir = os.path.join(bd.projects._base_data_dir, bd.utils.safe_filename(self.project_name))
 
         with open(os.path.join(project_dir, ".project-name.json"), "w") as f:
-            json.dump({"name": project_name}, f)
+            json.dump({"name": self.project_name}, f)
 
         log.info("Creating project backup archive - this could take a few minutes...")
         with tarfile.open(self.save_path, "w:gz") as tar:
-            tar.add(project_dir, arcname=bd.utils.safe_filename(project_name))
+            tar.add(project_dir, arcname=bd.utils.safe_filename(self.project_name))
 
-        log.info(f"Project `{project_name}` exported.")
+        log.info(f"Project `{self.project_name}` exported.")

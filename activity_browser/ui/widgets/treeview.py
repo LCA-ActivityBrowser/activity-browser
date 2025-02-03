@@ -1,112 +1,90 @@
-import re
+from logging import getLogger
+
+import pandas as pd
+
 from qtpy import QtWidgets, QtCore, QtGui
+from qtpy.QtCore import Qt
 
 from .abstractitemmodel import ABAbstractItemModel
 
-
-class ABTreeViewMenuFactory:
-
-    def __init__(self, view: "ABTreeView"):
-        self.view = view
-
-    @property
-    def model(self):
-        return self.view.model()
-
-    def createMenu(self, pos: QtCore.QPoint):
-        """Designed to be passed to customContextMenuRequested.connect"""
-        QtWidgets.QMenu(self.view).exec_(self.view.mapToGlobal(pos))
-
-    def createHeaderMenu(self, pos: QtCore.QPoint):
-        """Designed to be passed to customContextMenuRequested.connect"""
-        col = self.view.columnAt(pos.x())
-        menu = self._header_menu_standard(col)
-        menu.exec_(self.view.mapToGlobal(pos))
-
-    def _header_menu_standard(self, column: int):
-        menu = QtWidgets.QMenu(self.view)
-        col_name = self.model.columns[column]
-
-        search_box = QtWidgets.QLineEdit(menu)
-        search_box.setText(self.view.columnFilters.get(col_name, ""))
-        search_box.setPlaceholderText("Search")
-        search_box.selectAll()
-
-        search_box.textChanged.connect(lambda query: self.view.setColumnFilter(col_name, query))
-        widget_action = QtWidgets.QWidgetAction(menu)
-        widget_action.setDefaultWidget(search_box)
-        menu.addAction(widget_action)
-
-        menu.addAction(
-            QtGui.QIcon(),
-            "Group by column",
-            lambda: self.model.group(column),
-        )
-        menu.addAction(
-            QtGui.QIcon(),
-            "Ungroup",
-            self.model.ungroup,
-        )
-        menu.addAction(
-            QtGui.QIcon(),
-            "Clear column filter",
-            lambda: self.view.setColumnFilter(col_name, ""),
-        )
-        menu.addAction(
-            QtGui.QIcon(),
-            "Clear all filters",
-            lambda: [self.view.setColumnFilter(name, "") for name in list(self.view.columnFilters.keys())],
-        )
-        menu.addSeparator()
-        menu.addMenu(self._header_menu_standard_view())
-
-        search_box.setFocus()
-        return menu
-
-    def _header_menu_standard_view(self):
-        def toggle_slot(action: QtWidgets.QAction):
-            index = action.data()
-            hidden = self.view.isColumnHidden(index)
-            self.view.setColumnHidden(index, not hidden)
-
-        menu = QtWidgets.QMenu(self.view)
-        menu.setTitle("View")
-        self.view_actions = []
-
-        for i in range(1, len(self.model.columns)):
-            action = QtWidgets.QAction(self.model.columns[i])
-            action.setCheckable(True)
-            action.setChecked(not self.view.isColumnHidden(i))
-            action.setData(i)
-            menu.addAction(action)
-            self.view_actions.append(action)
-
-        menu.triggered.connect(toggle_slot)
-
-        return menu
+log = getLogger(__name__)
 
 
 class ABTreeView(QtWidgets.QTreeView):
-    menuFactoryClass = ABTreeViewMenuFactory
+    # fired when the filter is applied, fires False when an exception happens during querying
+    filtered: QtCore.SignalInstance = QtCore.Signal(bool)
+
+    class HeaderMenu(QtWidgets.QMenu):
+        def __init__(self, pos: QtCore.QPoint, view: "ABTreeView"):
+            super().__init__(view)
+
+            model = view.model()
+
+            col_index = view.columnAt(pos.x())
+            col_name = model.columns()[col_index]
+
+            search_box = QtWidgets.QLineEdit(self)
+            search_box.setText(view.columnFilters.get(col_name, ""))
+            search_box.setPlaceholderText("Search")
+            search_box.selectAll()
+            search_box.textChanged.connect(lambda query: view.setColumnFilter(col_name, query))
+            widget_action = QtWidgets.QWidgetAction(self)
+            widget_action.setDefaultWidget(search_box)
+            self.addAction(widget_action)
+
+            self.addAction(QtGui.QIcon(), "Group by column", lambda: model.group(col_index))
+            self.addAction(QtGui.QIcon(), "Ungroup", model.ungroup)
+            self.addAction(QtGui.QIcon(), "Clear column filter", lambda: view.setColumnFilter(col_name, ""))
+            self.addAction(QtGui.QIcon(), "Clear all filters",
+                lambda: [view.setColumnFilter(name, "") for name in list(view.columnFilters.keys())],
+            )
+            self.addSeparator()
+
+            def toggle_slot(action: QtWidgets.QAction):
+                index = action.data()
+                hidden = view.isColumnHidden(index)
+                view.setColumnHidden(index, not hidden)
+
+            view_menu = QtWidgets.QMenu(view)
+            view_menu.setTitle("View")
+            self.view_actions = []
+
+            for i in range(1, len(model.columns())):
+                action = QtWidgets.QAction(model.columns()[i])
+                action.setCheckable(True)
+                action.setChecked(not view.isColumnHidden(i))
+                action.setData(i)
+                view_menu.addAction(action)
+                self.view_actions.append(action)
+
+            view_menu.triggered.connect(toggle_slot)
+
+            self.addMenu(view_menu)
+
+            search_box.setFocus()
+
+    class ContextMenu(QtWidgets.QMenu):
+        def __init__(self, pos, view):
+            super().__init__(view)
 
     def __init__(self, parent=None):
         super().__init__(parent)
 
         self.setUniformRowHeights(True)
-        self.menuFactory = self.menuFactoryClass(self)
 
-        self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
-        self.customContextMenuRequested.connect(self.menuFactory.createMenu)
+        self.setContextMenuPolicy(QtCore.Qt.ContextMenuPolicy.CustomContextMenu)
+        self.customContextMenuRequested.connect(self.showContextMenu)
 
         header = self.header()
-        header.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
-        header.customContextMenuRequested.connect(self.menuFactory.createHeaderMenu)
+        header.setContextMenuPolicy(QtCore.Qt.ContextMenuPolicy.CustomContextMenu)
+        header.customContextMenuRequested.connect(self.showHeaderMenu)
 
         self.expanded_paths = set()
         self.expanded.connect(lambda index: self.expanded_paths.add(tuple(index.internalPointer().path())))
         self.collapsed.connect(lambda index: self.expanded_paths.discard(tuple(index.internalPointer().path())))
 
         self.columnFilters: dict[str, str] = {}  # dict[column_name, query] for filtering the dataframe
+        self.allFilter: str = ""  # filter applied to the entire dataframe
 
     def setModel(self, model):
         if not isinstance(model, ABAbstractItemModel):
@@ -118,67 +96,142 @@ class ABTreeView(QtWidgets.QTreeView):
     def model(self) -> ABAbstractItemModel:
         return super().model()
 
+    # === Functionality related to contextmenus
+
+    def showContextMenu(self, pos):
+        self.ContextMenu(pos, self).exec_(self.mapToGlobal(pos))
+
+    def showHeaderMenu(self, pos):
+        self.HeaderMenu(pos, self).exec_(self.mapToGlobal(pos))
+
     def setColumnFilter(self, column_name: str, query: str):
+        """
+        Set a filter for a specific column using a string query. If the query is empty remove the filter from the column
+        """
+        col_index = self.model().columns().index(column_name)
+
         if query:
             self.columnFilters[column_name] = query
-            self.model().filtered_columns.add(self.model().columns.index(column_name))
+            self.model().filtered_columns.add(col_index)
         elif column_name in self.columnFilters:
             del self.columnFilters[column_name]
-            self.model().filtered_columns.discard(self.model().columns.index(column_name))
+            self.model().filtered_columns.discard(col_index)
+
+        self.applyFilter()
+
+    # === Functionality related to filtering
+
+    def setAllFilter(self, query: str):
+        self.allFilter = query
         self.applyFilter()
 
     def buildQuery(self) -> str:
-        q = " & ".join([f"({col}.astype('str').str.contains('{self.format_query(q)}'))" for col, q in self.columnFilters.items()])
-        return "(index == index)" if not q else f"({q})"
+        queries = ["(index == index)"]
+
+        # query for the column filters
+        for col in list(self.columnFilters):
+            if col not in self.model().columns():
+                del self.columnFilters[col]
+
+        for col, query in self.columnFilters.items():
+            q = f"({col}.astype('str').str.contains('{self.format_query(query)}'))"
+            queries.append(q)
+
+        # query for the all filter
+        if self.allFilter.startswith('='):
+            queries.append(f"({self.allFilter[1:]})")
+        else:
+            all_queries = []
+            formatted_filter = self.format_query(self.allFilter)
+
+            for i, col in enumerate(self.model().columns()):
+                if self.isColumnHidden(i):
+                    continue
+                all_queries.append(f"(`{col}`.astype('str').str.contains('{formatted_filter}', False))")
+
+            q = f"({' | '.join(all_queries)})"
+            queries.append(q)
+
+        query = " & ".join(queries)
+        log.debug(f"{self.__class__.__name__} built query: {query}")
+
+        return query
 
     def applyFilter(self):
-        self.model().setQuery(self.buildQuery())
+        query = self.buildQuery()
+        try:
+            self.model().setQuery(query)
+            self.filtered.emit(True)
+        except Exception as e:
+            log.info(f"{self.__class__.__name__} {type(e).__name__} in query: {e}")
+            self.filtered.emit(False)
 
     @staticmethod
     def format_query(query: str) -> str:
         return query.translate(str.maketrans({'(': '\\(', ')': '\\)', "'": "\\'"}))
 
+    # === Functionality related to saving and restoring the View's state
+
     def saveState(self) -> dict:
         if not self.model():
             return {}
 
+        cols = self.model().columns()
+
         return {
-            "columns": self.model().columns,
-            "grouped_columns": [self.model().columns[i] for i in self.model().grouped_columns],
-            "current_query": self.model().query(),
+            "columns": cols,
+            "grouped_columns": [cols[i] for i in self.model().grouped_columns],
+            "visible_columns": [cols[i] for i in range(len(cols)) if not self.isColumnHidden(i)],
 
             "expanded_paths": list(self.expanded_paths),
-            "visible_columns": [self.model().columns[i] for i in range(len(self.model().columns)) if not self.isColumnHidden(i)],
+
             "filters": self.columnFilters,
+            "sort_column": cols[self.model().sort_column],
+            "sort_ascending": self.model().sort_order == Qt.SortOrder.AscendingOrder,
 
             "header_state": bytearray(self.header().saveState()).hex()
         }
 
-    def restoreSate(self, state: dict) -> bool:
+    def restoreSate(self, state: dict, dataframe: pd.DataFrame):
         if not self.model():
-            return False
+            log.debug(f"{self.__class__.__name__}: Model must first be set on the treeview before using restoreState")
+            return
 
-        columns = [col for col in state.get("columns", []) if col in self.model().columns]
-        columns = columns + [col for col in self.model().columns if col not in columns]
+        columns = list(dataframe.columns)
 
         self.model().beginResetModel()
-        self.model().columns = columns
-        self.model().grouped_columns = [columns.index(name) for name in state.get("grouped_columns", [])]
-        self.model().current_query = state.get("current_query", "")
-        self.model().endResetModel()
 
         self.expanded_paths = set(tuple(p) for p in state.get("expanded_paths", []))
-        self.columnFilters = state.get("filters", {})
-        for column_name in self.columnFilters:
-            self.model().filtered_columns.add(self.model().columns.index(column_name))
+        self.columnFilters = {col: q for col, q in state.get("filters", {}).items() if col in columns}
 
-        for col_name in [col for col in columns if col not in state.get("visible_columns", columns)]:
-            self.setColumnHidden(columns.index(col_name), True)
+        self.model().dataframe = dataframe
 
-        self.header().restoreState(bytearray.fromhex(state.get("header_state", "")))
+        self.model().grouped_columns = [columns.index(name) for name in state.get("grouped_columns", []) if name in columns]
+        self.model().filtered_columns = {columns.index(name) for name in self.columnFilters if name in columns}
+
+        self.model().sort_column = columns.index(state.get("sort_column")) if state.get("sort_column") in columns else 0
+        self.model().sort_order = Qt.SortOrder.AscendingOrder if state.get("sort_ascending") else Qt.SortOrder.DescendingOrder
+
+        self.model()._query = self.buildQuery()
+
+        self.model().endResetModel()
+
+        match = True
+        for i, col in enumerate(state.get("columns", [])):
+            if i > len(columns) - 1:
+                match = False
+                break
+            if columns[i] != col:
+                match = False
+                break
+
+        if match:
+            self.header().restoreState(bytearray.fromhex(state.get("header_state", "")))
+
+        for i, col in enumerate(columns):
+            self.setColumnHidden(i, col not in state.get("visible_columns", [col]))
+
         self.expand_after_reset()
-
-        return True
 
     def expand_after_reset(self):
         indices = []

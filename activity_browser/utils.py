@@ -73,3 +73,20 @@ def sort_semantic_versions(versions: Iterable, highest_to_lowest: bool = True) -
             reverse=highest_to_lowest,
         )
     )
+
+
+def get_templates() -> dict:
+    import platformdirs, os
+
+    base_dir = platformdirs.user_data_dir(appname="ActivityBrowser", appauthor="ActivityBrowser")
+    template_dir = os.path.join(base_dir, "templates")
+    os.makedirs(template_dir, exist_ok=True)
+
+    collection = {}
+
+    for file in os.listdir(template_dir):
+        if file.endswith(".tar.gz"):
+            collection[file[:-7]] = os.path.join(template_dir, file)
+
+    return collection
+

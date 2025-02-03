@@ -78,6 +78,7 @@ class Icons(object):
     # nodes
     process = create_path("nodes", "process.png")
     product = create_path("nodes", "product.png")
+    waste = create_path("nodes", "waste.png")
     processproduct = create_path("nodes", "processproduct.png")
     biosphere = create_path("nodes", "biosphere.png")
     readonly_process = create_path("nodes", "read-only-process.png")

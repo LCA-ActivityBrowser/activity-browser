@@ -86,6 +86,9 @@ class CSActivityModel(CSGenericModel):
         self.HEADERS = self.HEADERS + ["key"]
 
         signals.calculation_setup_selected.connect(self.load)
+        signals.node.changed.connect(self.sync)
+        signals.node.deleted.connect(self.sync)
+
         self.dataChanged.connect(lambda: signals.calculation_setup_changed.emit())
 
     @property
@@ -102,8 +105,6 @@ class CSActivityModel(CSGenericModel):
         return self._dataframe.iat[idx.row(), self.key_col]
 
     def load(self, cs_name: str = None):
-        for act in self._activities.values():
-            act.changed.disconnect(self.sync)
         self._activities.clear()
 
         self.current_cs = cs_name
@@ -138,7 +139,6 @@ class CSActivityModel(CSGenericModel):
             }
             row.update({"Amount": amount, "key": key})
 
-            act.changed.connect(self.sync, Qt.UniqueConnection)
             self._activities[act.key] = act
 
             return row
@@ -154,15 +154,6 @@ class CSActivityModel(CSGenericModel):
         """Delete one or more activities from the Reference flows table"""
         indices = (self.proxy_to_source(p) for p in proxies)
         rows = {i.row() for i in indices}
-
-        # we can disconnect from the deleted activities
-        for key in [self._dataframe.at[row, "key"] for row in rows]:
-            try:
-                activity = bd.get_activity(key)
-                activity.changed.disconnect(self.sync)
-                del self._activities[activity.key]
-            except ActivityDataset.DoesNotExist:
-                pass
 
         self._dataframe = self._dataframe.drop(rows).reset_index(drop=True)
         self.updated.emit()

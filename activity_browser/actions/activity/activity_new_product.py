@@ -2,9 +2,12 @@ from uuid import uuid4
 
 from qtpy.QtWidgets import QDialog
 
+from bw2data import Database, get_activity, labels
+
+from bw_functional import Process
+
 from activity_browser import application
 from activity_browser.actions.base import ABAction, exception_dialogs
-from bw2data import Database, get_activity, labels
 from activity_browser.ui.icons import qicons
 from activity_browser.ui.widgets.new_node_dialog import NewNodeDialog
 
@@ -33,6 +36,9 @@ class ActivityNewProduct(ABAction):
         if not name:
             return
 
+        process = get_activity(key=process_key)
+        assert isinstance(process, Process), "Cannot create new product for non-process type"
+
         # create product
         new_prod_data = {
             "name": name,
@@ -40,18 +46,5 @@ class ActivityNewProduct(ABAction):
             "location": location,
             "type": "product",
         }
-        database = Database(process_key[0])
-        new_product = database.new_activity(code=uuid4().hex, **new_prod_data)
+        new_product = process.new_product(code=uuid4().hex, **new_prod_data)
         new_product.save()
-
-        process = get_activity(process_key)
-
-        new_exchange = process.new_edge(
-            input=new_product,
-            type=labels.production_edge_default,
-            amount=1,
-            functional=True
-        )
-        new_exchange.save()
-
-        ActivityOpen.run([new_product.key])

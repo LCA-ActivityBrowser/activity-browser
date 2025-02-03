@@ -11,7 +11,11 @@ from .activity.activity_new_product import ActivityNewProduct
 from .activity.activity_open import ActivityOpen
 from .activity.activity_relink import ActivityRelink
 from .activity.node_properties import NodeProperties
-from .biosphere_update import BiosphereUpdate
+from .activity.activity_redo_allocation import MultifunctionalProcessRedoAllocation
+from .activity.process_default_property_modify import ProcessDefaultPropertyModify
+from .activity.process_default_property_remove import ProcessDefaultPropertyRemove
+from .activity.function_substitute import FunctionSubstitute
+from .activity.function_substitute_remove import FunctionSubstituteRemove
 
 from .calculation_setup.cs_new import CSNew
 from .calculation_setup.cs_delete import CSDelete
@@ -25,6 +29,10 @@ from .database.database_delete import DatabaseDelete
 from .database.database_duplicate import DatabaseDuplicate
 from .database.database_relink import DatabaseRelink
 from .database.database_redo_allocation import DatabaseRedoAllocation
+from .database.database_explorer_open import DatabaseExplorerOpen
+from .database.database_process import DatabaseProcess
+
+from .biosphere_update import BiosphereUpdate
 from .default_install import DefaultInstall
 from .exchange.exchange_copy_sdf import ExchangeCopySDF
 
@@ -67,6 +75,10 @@ from .project.project_new_remote import ProjectNewRemote
 from .project.project_switch import ProjectSwitch
 from .project.project_export import ProjectExport
 from .project.project_import import ProjectImport
+from .project.project_manager_open import ProjectManagerOpen
+from .project.project_migrate25 import ProjectMigrate25
+from .project.project_create_template import ProjectCreateTemplate
+from .project.project_new_template import ProjectNewFromTemplate
 
 from .default_install import DefaultInstall
 from .biosphere_update import BiosphereUpdate

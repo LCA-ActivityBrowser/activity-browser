@@ -4,7 +4,7 @@ from qtpy import QtWidgets
 from qtpy.QtCore import Qt, Slot
 
 from activity_browser import signals, actions
-from bw2data import calculation_setups
+from bw2data import calculation_setups, get_node, labels
 
 from ..icons import qicons
 from .delegates import FloatDelegate
@@ -129,12 +129,26 @@ class CSActivityTable(CSGenericTable):
 
     def dragEnterEvent(self, event):
         if event.mimeData().hasFormat("application/bw-nodekeylist"):
+            keys: list = event.mimeData().retrievePickleData("application/bw-nodekeylist")
+            for key in keys:
+                act = get_node(key=key)
+                if act["type"] not in labels.product_node_types + ["processwithreferenceproduct"]:
+                    keys.remove(key)
+
+            if not keys:
+                return
+
             event.accept()
 
     def dropEvent(self, event) -> None:
         event.accept()
-        keys = event.mimeData().retrievePickleData("application/bw-nodekeylist")
-        log.debug("Dropevent from:", event.source())
+        log.debug(f"Dropevent from: {type(event.source()).__name__}")
+        keys: list = event.mimeData().retrievePickleData("application/bw-nodekeylist")
+        for key in keys:
+            act = get_node(key=key)
+            if act["type"] not in labels.product_node_types + ["processwithreferenceproduct"]:
+                keys.remove(key)
+
         self.model.include_activities(({key: 1.0} for key in keys))
 
 

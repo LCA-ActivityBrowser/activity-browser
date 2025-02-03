@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from qtpy import QtCore, QtWidgets
-from multifunctional import allocation_strategies, list_available_properties
+from bw_functional import allocation_strategies, list_available_properties
 from logging import getLogger
 
 from activity_browser import actions, project_settings, signals
@@ -36,6 +36,7 @@ class DetailsGroupBox(QtWidgets.QGroupBox):
 
     @QtCore.Slot(name="showHideTable")
     def showhide(self):
+        return
         self.widget.setVisible(self.isChecked())
         if not self.isChecked():
             minimum_height = self.minimumSizeHint().height()
@@ -45,7 +46,7 @@ class DetailsGroupBox(QtWidgets.QGroupBox):
 
     @QtCore.Slot(name="toggleEmptyTable")
     def toggle_empty_table(self) -> None:
-        self.setChecked(bool(self.widget.rowCount() and self.isChecked()))
+        self.setChecked(True) # Disable hidden tables for now
 
 
 class ActivityDataGrid(QtWidgets.QWidget):

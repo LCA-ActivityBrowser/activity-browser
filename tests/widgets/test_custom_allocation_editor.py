@@ -7,8 +7,8 @@ from qtpy.QtCore import Qt
 
 from activity_browser.ui.widgets.custom_allocation_editor import CustomAllocationEditor
 from activity_browser.mod import bw2data as bd
-from multifunctional import allocation_strategies
-from multifunctional.custom_allocation import MessageType, PropertyMessage
+from bw_functional import allocation_strategies
+from bw_functional.custom_allocation import MessageType, PropertyMessage
 
 TEST_PROPERTIES =[
             ("prop1", MessageType.ALL_VALID),

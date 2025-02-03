@@ -16,5 +16,9 @@ class ExchangeFormulaRemove(ABAction):
     @exception_dialogs
     def run(exchanges: List[Any]):
         for exchange in exchanges:
-            del exchange["formula"]
-            exchange.save()
+            try:
+                del exchange["formula"]
+                exchange.save()
+            except KeyError:
+                # formula not in the exchange
+                continue

@@ -4,7 +4,8 @@ from logging import getLogger
 
 import arrow
 
-from activity_browser.mod import bw2data as bd
+import bw2data as bd
+
 from functools import lru_cache
 
 from .metadata import AB_metadata
@@ -154,6 +155,18 @@ bw_keys_to_AB_names = {v: k for k, v in AB_names_to_bw_keys.items()}
 
 def get_activity_name(key, str_length=22):
     return ",".join(key.get("name", "").split(",")[:3])[:str_length]
+
+
+def refresh_node(node: tuple | int | bd.Node) -> bd.Node:
+    if isinstance(node, bd.Node):
+        node = bd.get_node(id=node.id)
+    elif isinstance(node, tuple):
+        node = bd.get_node(key=node)
+    elif isinstance(node, int):
+        node = bd.get_node(id=node)
+    else:
+        raise ValueError("Activity must be either a tuple, int or Node instance")
+    return node
 
 
 def clean_activity_name(activity_name: str) -> str:

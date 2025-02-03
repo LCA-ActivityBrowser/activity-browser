@@ -2,19 +2,23 @@
 import itertools
 import sqlite3
 import pickle
+from time import time
 from functools import lru_cache
 from typing import Set
 from logging import getLogger
 
+from playhouse.shortcuts import model_to_dict
+
 import pandas as pd
 
-from qtpy.QtCore import QObject, Signal, SignalInstance
+from qtpy.QtCore import Qt, QObject, Signal, SignalInstance
 
 import bw2data as bd
 from bw2data.errors import UnknownObject
 from bw2data.backends import sqlite3_lci_db, ActivityDataset
 
 from activity_browser import signals
+
 
 log = getLogger(__name__)
 
@@ -59,14 +63,39 @@ class MetaDataStore(QObject):
         self.dataframe = pd.DataFrame()
 
         signals.project.changed.connect(self.sync)
-        signals.node.changed.connect(lambda act: self.sync_node(act.key))
+        signals.node.changed.connect(self.on_node_changed)
         signals.node.deleted.connect(self.on_node_deleted)
         signals.database.deleted.connect(lambda name: self.sync_database(name))
         signals.database.written.connect(lambda name: self.sync_database(name))
 
     def on_node_deleted(self, ds):
-        self.dataframe.drop(ds.key, inplace=True)
-        self.synced.emit()
+        try:
+            self.dataframe.drop(ds.key, inplace=True)
+            self.synced.emit()
+        except KeyError:
+            pass
+
+    def on_node_changed(self, new, old):
+        data_raw = model_to_dict(new)
+        data = data_raw.pop("data")
+        data.update(data_raw)
+        data["key"] = new.key
+        data = pd.DataFrame([data], index=pd.MultiIndex.from_tuples([new.key]))
+
+        if new.key in self.dataframe.index:  # the activity has been modified
+
+            compare_old = self.dataframe.loc[new.key].dropna().sort_index()
+            compare_new = data.loc[new.key].dropna().sort_index()
+
+            if list(compare_new.index) == list(compare_old.index) and (compare_new == compare_old).all():
+                return  # but it is the same as the current DF, so no sync necessary
+            for col in [col for col in data.columns if col not in self.dataframe.columns]:
+                self.dataframe[col] = pd.NA
+            self.dataframe.loc[new.key] = data.loc[new.key]
+        else:  # an activity has been added
+            self.dataframe = pd.concat([self.dataframe, data], join="outer")
+
+        self.thread().eventDispatcher().awake.connect(self._emitSyncLater, Qt.ConnectionType.UniqueConnection)
 
     @property
     def databases(self):
@@ -94,7 +123,13 @@ class MetaDataStore(QObject):
         else:  # an activity has been added
             self.dataframe = pd.concat([self.dataframe, data], join="outer")
 
+        self.thread().eventDispatcher().awake.connect(self._emitSyncLater, Qt.ConnectionType.UniqueConnection)
+
+    def _emitSyncLater(self):
+        t = time()
         self.synced.emit()
+        log.debug(f"Metadatastore sync signal completed in {time() - t:.2f} seconds")
+        self.thread().eventDispatcher().awake.disconnect(self._emitSyncLater)
 
     def _get_node(self, key: tuple):
         try:
@@ -147,6 +182,8 @@ class MetaDataStore(QObject):
         df.drop(columns=["data"], inplace=True)
 
         df["key"] = df.loc[:, ["database", "code"]].apply(tuple, axis=1)
+        if df.empty:
+            return df
         df.index = pd.MultiIndex.from_tuples(df["key"])
         return df
 

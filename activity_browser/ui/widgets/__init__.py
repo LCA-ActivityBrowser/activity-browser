@@ -7,11 +7,13 @@ from .dialog import (ActivityLinkingDialog, ActivityLinkingResultsDialog,
                      DatabaseLinkingDialog, DatabaseLinkingResultsDialog,
                      DefaultBiosphereDialog, EcoinventVersionDialog,
                      ExcelReadDialog, ForceInputDialog, LocationLinkingDialog,
-                     ProjectDeletionDialog, ScenarioDatabaseDialog,
+                     ScenarioDatabaseDialog,
                      TupleNameDialog)
 from .line_edit import (SignalledComboEdit, SignalledLineEdit,
                         SignalledPlainTextEdit)
 from .message import parameter_save_errorbox, simple_warning_box
 from .tag_editor import TagEditor
 from .treeview import ABTreeView
-from .abstractitemmodel import ABAbstractItemModel, ABAbstractItem, ABBranchItem, ABDataItem
+from .abstractitemmodel import ABAbstractItemModel
+from .abstractitem import ABAbstractItem, ABBranchItem, ABDataItem
+from .line import ABHLine, ABVLine

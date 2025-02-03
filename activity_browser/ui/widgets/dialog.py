@@ -1231,46 +1231,7 @@ class AndOrRadioButtons(QtWidgets.QWidget):
         self.OR.setChecked(not x)
 
 
-class ProjectDeletionDialog(QtWidgets.QDialog):
 
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.title = "Confirm project deletion"
-        self.label = QtWidgets.QLabel(
-            "Final confirmation to remove data from the hard disk.\n"
-            + "Warning: Non reversible process!"
-        )
-        self.check = QtWidgets.QVBoxLayout()
-        self.bttn = QtWidgets.QCheckBox()
-        self.buttons = QtWidgets.QDialogButtonBox(
-            QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel,
-        )
-        self.buttons.accepted.connect(self.accept)
-        self.buttons.rejected.connect(self.reject)
-
-        self.setWindowTitle(self.title)
-        self.layout = QtWidgets.QVBoxLayout()
-        self.layout.addWidget(self.label)
-        self.layout.addLayout(self.check)
-        self.layout.addWidget(self.buttons)
-
-        self.setLayout(self.layout)
-
-    @classmethod
-    def construct_project_deletion_dialog(
-        cls, parent: QtWidgets.QWidget = None, prjctName: str = None
-    ) -> "ProjectDeletionDialog":
-        obj = cls(parent)
-        obj.title = f"Confirm deletion of {prjctName}"
-        obj.setWindowTitle(obj.title)
-        obj.bttn = QtWidgets.QCheckBox(f"Remove {prjctName} from the hard disk")
-        obj.bttn.setChecked(False)
-        obj.check.addWidget(obj.bttn)
-        obj.updateGeometry()
-        return obj
-
-    def deletion_warning_checked(self, parent: QtWidgets.QWidget = None):
-        return self.bttn.isChecked()
 
 
 class ScenarioDatabaseDialog(QtWidgets.QDialog):

@@ -3,6 +3,7 @@ from itertools import chain
 from typing import Iterable, List, NamedTuple, Optional
 
 import numpy as np
+from stats_arrays import UncertaintyBase
 
 import bw2data as bd
 from bw2data.backends import ActivityDataset, ExchangeDataset
@@ -22,6 +23,7 @@ class Parameter(NamedTuple):
     name: str
     group: str
     amount: float = 1.0
+    data: dict = {}
     param_type: Optional[str] = None
 
     def as_gsa_tuple(self) -> tuple:
@@ -126,15 +128,15 @@ class Parameters(UserList):
         return cls(
             chain(
                 (
-                    Parameter(p.name, "project", p.amount, "project")
+                    Parameter(p.name, "project", p.amount, p.data, "project")
                     for p in ProjectParameter.select()
                 ),
                 (
-                    Parameter(p.name, p.database, p.amount, "database")
+                    Parameter(p.name, p.database, p.amount, p.data, "database")
                     for p in DatabaseParameter.select()
                 ),
                 (
-                    Parameter(p.name, p.group, p.amount, "activity")
+                    Parameter(p.name, p.group, p.amount, p.data, "activity")
                     for p in ActivityParameter.select()
                 ),
             )
@@ -154,14 +156,20 @@ class Parameters(UserList):
         """
         return {k: data[k] for k in data.keys() & needed}
 
-    def update(self, values: Iterable[float]) -> None:
+    def update(self, new_values: dict[tuple[str, str], float]) -> None:
         """Replace parameters in the list if their linked value is not
         NaN.
         """
-        assert len(values) == len(self.data)
-        for i, (p, v) in enumerate(zip(self.data, values)):
-            if not np.isnan(v):
-                self.data[i] = p._replace(amount=v)
+        param_by_name = {(p.group, p.name): p for p in self.data}
+        index_by_name = {(p.group, p.name): i for i, p in enumerate(self.data)}
+
+        for name, value in new_values.items():
+            if not np.isnan(value):
+                self.data[index_by_name[name]] = param_by_name[name]._replace(amount=value)
+        return
+        # for i, (p, v) in enumerate(zip(self.data, values)):
+        #     if not np.isnan(v):
+        #         self.data[i] = p._replace(amount=v)
 
     def to_gsa(self) -> List[tuple]:
         """Formats all of the parameters in the list for handling in a GSA."""

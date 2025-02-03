@@ -41,14 +41,11 @@ class BaseExchangeModel(EditablePandasModel):
     }
     UNCERTAINTY_ITEMS = ["loc", "scale", "shape", "minimum", "maximum"]
 
-    exchange_changed = QtCore.Signal(ExchangeProxyBase)
-
     def __init__(self, key=None, parent=None):
         super().__init__(parent=parent)
         self.key = key
         self.exchanges = []
         self.exchange_column = 0
-        self.dataChanged.connect(self._handle_data_changed)
         # Query column names
         self._columns = list(self.create_row(None).keys())
 
@@ -119,10 +116,12 @@ class BaseExchangeModel(EditablePandasModel):
 
     @staticmethod
     def update_row_with_product_name(row: dict[str, Any], exchange: Optional[ExchangeProxyBase]):
+        from bw_functional import Function
+
         if exchange is not None:
             try:
                 act = exchange.input
-                product = act.get("reference product", act.get("name"))
+                product = act.get("name") if isinstance(act, Function) else act.get("reference product", act.get("name"))
                 row.update({
                     "Product": product,
                 })
@@ -138,10 +137,13 @@ class BaseExchangeModel(EditablePandasModel):
     @staticmethod
     def update_row_with_functional(row: dict[str, Any], exchange: Optional[ExchangeProxyBase]):
         if exchange is not None:
-            row.update({
-                "Functional": exchange.get("functional", False),
-                "Allocation factor": as_number(exchange.get('mf_allocation_factor')),
-            })
+            try:
+                row.update({
+                    "Functional": str(exchange.get("functional", False)),
+                    "Allocation factor": as_number(exchange.input.get('allocation_factor')),
+                })
+            except UnknownObject:
+                pass
         else:
             row.update({
                 "Functional": "",
@@ -151,10 +153,13 @@ class BaseExchangeModel(EditablePandasModel):
     @staticmethod
     def update_row_with_categories(row: dict[str, Any], exchange: Optional[ExchangeProxyBase]):
         if exchange is not None:
-            act = exchange.input
-            row.update({
-                "Compartments": " - ".join(act.get("categories", [])),
-            })
+            try:
+                act = exchange.input
+                row.update({
+                    "Compartments": " - ".join(act.get("categories", [])),
+                })
+            except UnknownObject:
+                pass
         else:
             row.update({
                 "Compartments": "",
@@ -163,10 +168,13 @@ class BaseExchangeModel(EditablePandasModel):
     @staticmethod
     def update_row_with_location(row: dict[str, Any], exchange: Optional[ExchangeProxyBase]):
         if exchange is not None:
-            act = exchange.input
-            row.update({
-                "Location": act.get("location", "Unknown"),
-            })
+            try:
+                act = exchange.input
+                row.update({
+                    "Location": act.get("location", "Unknown"),
+                })
+            except UnknownObject:
+                pass
         else:
             row.update({
                 "Location": "",
@@ -175,10 +183,13 @@ class BaseExchangeModel(EditablePandasModel):
     @staticmethod
     def update_row_with_database(row: dict[str, Any], exchange: Optional[ExchangeProxyBase]):
         if exchange is not None:
-            act = exchange.input
-            row.update({
-                "Database": act.get("database"),
-            })
+            try:
+                act = exchange.input
+                row.update({
+                    "Database": act.get("database"),
+                })
+            except UnknownObject:
+                pass
         else:
             row.update({
                 "Database": "",
@@ -274,6 +285,8 @@ class BaseExchangeModel(EditablePandasModel):
         """Whenever data is changed, call an update to the relevant exchange
         or activity.
         """
+        from bw_functional import Function
+
         if index.isValid() and not self._read_only:
             value, check_ok = self.prepare_set_value(index, value, role)
             if role == Qt.EditRole or check_ok:
@@ -282,6 +295,8 @@ class BaseExchangeModel(EditablePandasModel):
                 exchange = self._dataframe.iat[index.row(), self.exchange_column]
                 if field in self.VALID_FIELDS:
                     actions.ExchangeModify.run(exchange, {field: value})
+                elif header == "Product" and isinstance(exchange.input, Function):
+                    actions.ActivityModify.run(exchange.input.key, "name", value)
                 else:
                     act_key = exchange.input.key
                     actions.ActivityModify.run(act_key, field, value)
@@ -360,13 +375,6 @@ class BaseExchangeModel(EditablePandasModel):
             interpreter.symtable.update(DatabaseParameter.static(self.key[0]))
         return interpreter
 
-    def _handle_data_changed(self, top_left: QModelIndex, bottom_right: QModelIndex):
-        if top_left.isValid() and bottom_right.isValid():
-            for i in range(top_left.row(), bottom_right.row() + 1):
-                index = self.index(i, 3)
-                exc = self.get_exchange(index)
-                self.exchange_changed.emit(exc)
-
 
 def as_number(o) -> str:
     if o is None:
@@ -379,7 +387,7 @@ class ProductExchangeModel(BaseExchangeModel):
     def __init__(self, key=None, parent=None):
         super().__init__(key, parent)
         self.set_readonly_column(self.columns.index("Allocation factor"))
-        self.set_builtin_checkbox_delegate(self.columns.index("Functional"), show_text_value = False)
+        #self.set_builtin_checkbox_delegate(self.columns.index("Functional"), show_text_value = False)
 
     def create_row(self, exchange) -> dict:
         row = super().create_row(exchange)
@@ -394,23 +402,13 @@ class ProductExchangeModel(BaseExchangeModel):
         self.update_row_with_comment(row, exchange) # new
         return row
 
-    def _handle_data_changed(self, top_left: QModelIndex, bottom_right: QModelIndex):
-        super()._handle_data_changed(top_left, bottom_right)
-        if top_left.isValid() and bottom_right.isValid():
-            # If the amount column is in the changed columns
-            if top_left.column() <= 0 <= bottom_right.column():
-                # It is enough to handle one of the changed items, as all
-                # exchanges in the product table have the same activity as output
-                exc = self.get_exchange(top_left)
-                MultifunctionalProcessRedoAllocation.run(exc.output)
-
 
 class TechnosphereExchangeModel(BaseExchangeModel):
 
     def __init__(self, key=None, parent=None):
         super().__init__(key, parent)
         self.set_readonly_column(self.columns.index("Allocation factor"))
-        self.set_builtin_checkbox_delegate(self.columns.index("Functional"), show_text_value = False)
+        # self.set_builtin_checkbox_delegate(self.columns.index("Functional"), show_text_value = False)
 
     def create_row(self, exchange: ExchangeProxyBase) -> dict:
         row = super().create_row(exchange)

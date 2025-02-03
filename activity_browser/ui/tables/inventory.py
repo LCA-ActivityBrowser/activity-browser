@@ -55,6 +55,8 @@ class DatabasesTable(ABDataFrameView):
         self.re_allocate_action = actions.DatabaseRedoAllocation.get_QAction(
             self.current_database
         )
+        self.open_explorer_action = actions.DatabaseExplorerOpen.get_QAction(self.current_database)
+        self.process_db_action = actions.DatabaseProcess.get_QAction(self.current_database)
 
         self.model = DatabasesModel(parent=self)
         self.model.set_builtin_checkbox_delegate(2, False, True, False)
@@ -81,6 +83,9 @@ class DatabasesTable(ABDataFrameView):
         menu.addAction(self.duplicate_db_action)
         menu.addAction(self.new_process_action)
         menu.addAction(self.new_product_action)
+        menu.addAction(self.open_explorer_action)
+        menu.addAction(self.process_db_action)
+
         if bd.databases[self.current_database()].get("backend") == "multifunctional":
             menu.addAction(self.re_allocate_action)
         proxy = self.indexAt(event.pos())
