@@ -83,6 +83,17 @@ class TableItemStyle:
             "location": (255, 85, 255),
             "database": (200, 200, 200),
             "key": (200, 200, 200),
+            "modified": (0, 120, 200),
+            "duplicate": (200, 0, 0),
+            "deleted": (100, 100, 100),
+            "new": (0, 200, 0),
+            # Colorblind friendly colors based on the Wong palette from https://davidmathlogic.com/colorblind:
+            # https://davidmathlogic.com/colorblind/#%23000000-%23C7C7C7-%23009E73-%23EBC120-%23D55E00
+            "good": (0, 158, 115),
+            "missing": (85, 85, 85),
+            "warning": (235, 193, 32),
+            "critical": (213, 94, 0),
+            "hyperlink": (0, 100, 238),
         }
     else:  # light theme default
         COLOR_CODE = {
@@ -106,10 +117,10 @@ class TableItemStyle:
             "new": (0, 200, 0),
             # Colorblind friendly colors based on the Wong palette from https://davidmathlogic.com/colorblind:
             # https://davidmathlogic.com/colorblind/#%23000000-%23C7C7C7-%23009E73-%23EBC120-%23D55E00
-            "good": (0, 0x9E, 0x73),
-            "missing": (0xC7, 0xC7, 0xC7),
-            "warning": (0xEB, 0xC1, 0x20),
-            "critical": (0xD5, 0x5E, 0),
+            "good": (0, 158, 115),
+            "missing": (199, 199, 199),
+            "warning": (235, 193, 32),
+            "critical": (213, 94, 0),
             "hyperlink": (0, 0, 238),
         }
 
