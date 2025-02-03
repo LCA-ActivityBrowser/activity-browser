@@ -134,8 +134,8 @@ class LCAResultsPlot(Plot):
         )  # get rid of all non-numeric columns (metadata)
         if "amount" in dfp.columns:
             dfp.drop(["amount"], axis=1, inplace=True)  # Drop the 'amount' col
-        if "Total" in dfp.index:
-            dfp.drop("Total", inplace=True)
+        if "Score" in dfp.index:
+            dfp.drop("Score", inplace=True)
 
         # avoid figures getting too large horizontally
         dfp.index = [wrap_text(i, max_length=40) for i in dfp.index]
@@ -186,16 +186,22 @@ class ContributionPlot(Plot):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.plot_name = "Contributions"
+        self.parent = parent
 
     def plot(self, df: pd.DataFrame, unit: str = None):
-        """Plot a horizontal bar chart of the process contributions."""
+        """Plot a horizontal stacked bar chart of contributions,
+        add 'total' marker if both positive and negative results are present."""
         dfp = df.copy()
+        dfp = dfp.iloc[:, ::-1]  # reverse column names so they align with calculation setup and rest of results
+
         dfp.index = dfp["index"]
         dfp.drop(
             dfp.select_dtypes(["object"]), axis=1, inplace=True
         )  # get rid of all non-numeric columns (metadata)
-        if "Total" in dfp.index:
-            dfp.drop("Total", inplace=True)
+        if "Score" in dfp.index:
+            dfp.drop("Score", inplace=True)
+        # drop rows if all values are 0
+        dfp = dfp.loc[~(dfp == 0).all(axis=1)]
 
         self.ax.clear()
         canvas_width_inches, canvas_height_inches = self.get_canvas_size_in_inches()
@@ -210,9 +216,18 @@ class ContributionPlot(Plot):
         dfp.index = dfp.index.str.strip("_ \n\t")
         dfp.columns = dfp.columns.str.strip("_ \n\t")
 
+        # set colormap to use
+        items = dfp.shape[0]  # how many contribution items
+        # skip grey and black at start/end of cmap
+        cmap = plt.cm.nipy_spectral_r(np.linspace(0, 1, items + 2))[1:-1]
+        colors = {item: color for item, color in zip(dfp.index, cmap)}
+        # overwrite rest values to grey
+        colors["Rest (+)"] = [0.8, 0.8, 0.8, 1.]
+        colors["Rest (-)"] = [0.8, 0.8, 0.8, 1.]
+
         dfp.T.plot.barh(
             stacked=True,
-            cmap=plt.cm.nipy_spectral_r,
+            color=colors,
             ax=self.ax,
             legend=False if dfp.shape[0] >= self.MAX_LEGEND else True,
         )
@@ -230,6 +245,25 @@ class ContributionPlot(Plot):
         # grid
         self.ax.grid(which="major", axis="x", color="grey", linestyle="dashed")
         self.ax.set_axisbelow(True)  # puts gridlines behind bars
+        # make the zero line more present
+        grid = self.ax.get_xgridlines()
+        # get the 0 line from all gridlines
+        label_pos = [i for i, label in enumerate(self.ax.get_xticklabels()) if label.get_position()[0] == 0.0]
+        if len(label_pos) > 0:
+            zero_line = grid[label_pos[0]]
+            zero_line.set_color("black")
+            zero_line.set_linestyle("solid")
+
+        # total marker when enabled and both negative and positive results are present in a column
+        if self.parent.score_marker:
+            marker_size = max(min(150 / dfp.shape[1], 35), 10)  # set marker size dynamic between 10 - 35
+            for i, col in enumerate(dfp):
+                total = np.sum(dfp[col])
+                abs_total = np.sum(np.abs(dfp[col]))
+                if abs(total) != abs_total:
+                    self.ax.plot(total, i,
+                                 markersize=marker_size, marker="d", fillstyle="left",
+                                 markerfacecolor="black", markerfacecoloralt="grey", markeredgecolor="white")
 
         # TODO review: remove or enable
 

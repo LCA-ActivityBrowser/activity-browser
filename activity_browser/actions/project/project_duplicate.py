@@ -5,6 +5,8 @@ from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.mod import bw2data as bd
 from activity_browser.ui.icons import qicons
 
+from .project_switch import ProjectSwitch
+
 
 class ProjectDuplicate(ABAction):
     """
@@ -19,18 +21,21 @@ class ProjectDuplicate(ABAction):
 
     @staticmethod
     @exception_dialogs
-    def run():
-        name, ok = QtWidgets.QInputDialog.getText(
+    def run(name: str = None):
+        if name is None:
+            name = bd.projects.current
+
+        new_name, ok = QtWidgets.QInputDialog.getText(
             application.main_window,
             "Duplicate current project",
-            f"Duplicate current project ({bd.projects.current}) to new name:"
+            f"Duplicate project ({name}) to new name:"
             + " " * 10,
         )
 
-        if not ok or not name:
+        if not ok or not new_name:
             return
 
-        if name in bd.projects:
+        if new_name in bd.projects:
             QtWidgets.QMessageBox.information(
                 application.main_window,
                 "Not possible.",
@@ -38,4 +43,7 @@ class ProjectDuplicate(ABAction):
             )
             return
 
-        bd.projects.copy_project(name)
+        if name != bd.projects.current:
+            bd.projects.set_current(name, update=False)
+        bd.projects.copy_project(new_name, switch=False)  # don't switch because it will auto-update bw2 projects
+        ProjectSwitch.run(new_name)  # switch using the action instead

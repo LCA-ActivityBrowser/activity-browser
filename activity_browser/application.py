@@ -4,7 +4,7 @@ from logging import getLogger
 
 import qtpy
 from qtpy.QtCore import QCoreApplication, QObject, QSysInfo, Qt
-from qtpy.QtWidgets import QApplication, QStyleFactory, QWidget
+from qtpy.QtWidgets import QApplication, QStyleFactory, QWidget, QMainWindow
 
 log = getLogger(__name__)
 
@@ -13,8 +13,10 @@ class ABApplication(QApplication):
     _main_window = None
     _controllers = None
 
+    windows = []
+
     @property
-    def main_window(self) -> QWidget:
+    def main_window(self) -> QMainWindow:
         """Returns the main_window widget of the Activity Browser"""
         if self._main_window:
             return self._main_window
@@ -23,7 +25,7 @@ class ABApplication(QApplication):
         )
 
     @main_window.setter
-    def main_window(self, widget: QWidget):
+    def main_window(self, widget: QMainWindow):
         self._main_window = widget
 
     def show(self):

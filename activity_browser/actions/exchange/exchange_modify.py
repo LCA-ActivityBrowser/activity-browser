@@ -26,24 +26,8 @@ class ExchangeModify(ABAction):
     @exception_dialogs
     def run(cls, exchange: ExchangeProxyBase, data: dict):
         for key, value in data.items():
-            if key == "functional" and value:
-                if (existing_func_edges := cls.get_functional_edges_to_same(exchange)):
-                    log.info(f"Can not set exchange {exchange} to functional, "
-                              f"there is already a functional exchange: {existing_func_edges[0]}")
-                    QMessageBox.information(
-                        application.main_window,
-                        f"Cannot change edge to functional",
-                        "Products can only be functional in one edge.\n"
-                        f"This product is already functional in:\n{existing_func_edges[0]}",
-                        QMessageBox.Ok,
-                    )
-                    return
             exchange[key] = value
         exchange.save()
-        if "functional" in data or exchange.output.get("type") == "multifunctional":
-            if hasattr(exchange.output, "allocate"):
-                exchange.output.allocate()
-            exchange.output.save()
 
         if "formula" in data:
             cls.parameterize_exchanges(exchange.output.key)
@@ -68,10 +52,3 @@ class ExchangeModify(ABAction):
             bd.parameters.remove_exchanges_from_group(group, act)
             bd.parameters.add_exchanges_to_group(group, act)
             ActivityParameter.recalculate_exchanges(group)
-
-    @staticmethod
-    def get_functional_edges_to_same(target_exc: ExchangeProxyBase) -> list[ExchangeProxyBase]:
-        activity = target_exc.output
-        return [exc for exc in activity.exchanges()
-                    if exc.input == target_exc.input and exc.get("functional", False)]
-

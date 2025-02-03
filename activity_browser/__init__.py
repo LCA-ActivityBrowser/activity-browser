@@ -23,8 +23,17 @@ log = getLogger(__name__)
 def load_settings() -> None:
     if ab_settings.settings:
         from pathlib import Path
-        bw2data.projects.change_base_directories(Path(ab_settings.current_bw_dir))
-        bw2data.projects.set_current(ab_settings.startup_project)
+
+        base_dir = Path(ab_settings.current_bw_dir)
+        project_name = ab_settings.startup_project
+
+        bw2data.projects.change_base_directories(base_dir, project_name=project_name, update=False)
+
+    if not bw2data.projects.twofive:
+        from .actions import ProjectSwitch
+        log.warning(f"Project: {bw2data.projects.current} is not yet BW25 compatible")
+        ProjectSwitch.set_warning_bar()
+
     log.info(f"Brightway2 data directory: {bw2data.projects._base_data_dir}")
     log.info(f"Brightway2 current project: {bw2data.projects.current}")
 

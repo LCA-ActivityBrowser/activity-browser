@@ -1,21 +1,22 @@
 from collections import OrderedDict
+from copy import deepcopy
 from typing import Iterable, Optional, Union
 from logging import getLogger
 
-import bw2analyzer as ba
 import bw2calc as bc
 import numpy as np
 import pandas as pd
 from qtpy.QtWidgets import QApplication, QMessageBox
 
 from activity_browser.mod import bw2data as bd
+from activity_browser.mod.bw2analyzer import ABContributionAnalysis
 
 from .commontasks import wrap_text
 from .errors import ReferenceFlowValueError
 from .metadata import AB_metadata
 
 log = getLogger(__name__)
-ca = ba.ContributionAnalysis()
+ca = ABContributionAnalysis()
 
 
 class MLCA(object):
@@ -302,14 +303,6 @@ class MLCA(object):
             columns=pd.Index(self.methods),
         )
 
-    def get_all_metadata(self) -> None:
-        """Populate AB_metadata with relevant database values.
-
-        Set metadata in form of a Pandas DataFrame for biosphere and
-        technosphere databases for tables and additional aggregation.
-        """
-        AB_metadata.add_metadata(self.all_databases)
-
 
 class Contributions(object):
     """Contribution Analysis built on top of the Multi-LCA class.
@@ -356,8 +349,6 @@ class Contributions(object):
         if not isinstance(mlca, MLCA):
             raise ValueError("Must pass an MLCA object. Passed:", type(mlca))
         self.mlca = mlca
-        # Ensure MetaDataStore is updated.
-        self.mlca.get_all_metadata()
 
         # Set default metadata keys (those not in the dataframe will be eliminated)
         self.act_fields = AB_metadata.get_existing_fields(self.DEFAULT_ACT_FIELDS)
@@ -393,20 +384,24 @@ class Contributions(object):
             ),
         }
 
-    def normalize(self, contribution_array: np.ndarray) -> np.ndarray:
-        """Normalise the contribution array.
+    def normalize(self, contribution_array: np.ndarray, total_range:bool=True) -> np.ndarray:
+        """Normalize the contribution array based on range or score
 
         Parameters
         ----------
         contribution_array : A 2-dimensional contribution array
+        total_range : A bool, True for normalization based on range, False for score
 
         Returns
         -------
         2-dimensional array of same shape, with scores normalized.
 
         """
-        scores = abs(contribution_array.sum(axis=1, keepdims=True))
-        return contribution_array / scores
+        if total_range:  # total is based on the range
+            total = abs(abs(contribution_array).sum(axis=1, keepdims=True))
+        else:  # total is based on the score
+            total = abs(contribution_array.sum(axis=1, keepdims=True))
+        return contribution_array / total
 
     def _build_dict(
         self,
@@ -415,6 +410,7 @@ class Contributions(object):
         rev_dict: dict,
         limit: int,
         limit_type: str,
+        total_range: bool,
     ) -> dict:
         """Sort the given contribution array on method or reference flow column.
 
@@ -433,15 +429,33 @@ class Contributions(object):
         """
         topcontribution_dict = dict()
         for fu_or_method, col in FU_M_index.items():
+            contribution_col = contributions[col, :]
+            if total_range:  # total is based on the range
+                normalize_to = np.abs(contribution_col).sum()
+            else:  # total is based on the score
+                normalize_to = contribution_col.sum()
+            score = contribution_col.sum()
+
             top_contribution = ca.sort_array(
-                contributions[col, :], limit=limit, limit_type=limit_type
+                contribution_col, limit=limit, limit_type=limit_type, total=normalize_to
             )
+
+            # split and calculate remaining rest sections for positive and negative part
+            pos_rest = (
+                np.sum(contribution_col[contribution_col > 0])
+                - np.sum(top_contribution[top_contribution[:, 0] > 0][:, 0])
+            )
+            neg_rest = (
+                    np.sum(contribution_col[contribution_col < 0])
+                    - np.sum(top_contribution[top_contribution[:, 0] < 0][:, 0])
+            )
+
             cont_per = OrderedDict()
             cont_per.update(
                 {
-                    ("Total", ""): contributions[col, :].sum(),
-                    ("Rest", ""): contributions[col, :].sum()
-                    - top_contribution[:, 0].sum(),
+                    ("Score", ""): score,
+                    ("Rest (+)", ""): pos_rest,
+                    ("Rest (-)", ""): neg_rest,
                 }
             )
             for value, index in top_contribution:
@@ -544,12 +558,12 @@ class Contributions(object):
 
         if special_keys:
             # replace index keys with labels
-            try:  # first put Total and Rest to the first two positions in the dataframe
+            try:  # first put Total, Rest (+) and Rest (-) to the first three positions in the dataframe
                 complete_index = special_keys + keys
                 joined = joined.reindex(complete_index, axis="index", fill_value=0.0)
             except:
                 log.error(
-                    "Could not put Total and Rest on positions 0 and 1 in the dataframe."
+                    "Could not put 'Total', 'Rest (+)' and 'Rest (-)' on positions 0, 1 and 2 in the dataframe."
                 )
         joined.index = cls.get_labels(joined.index, fields=x_fields)
         return joined
@@ -583,18 +597,21 @@ class Contributions(object):
         # If the cont_dict has tuples for keys, coerce df.columns into MultiIndex
         if all(isinstance(k, tuple) for k in cont_dict.keys()):
             df.columns = pd.MultiIndex.from_tuples(df.columns)
-        special_keys = [("Total", ""), ("Rest", "")]
 
+        special_keys = [("Score", ""), ("Rest (+)", ""), ("Rest (-)", "")]
         # replace all 0 values with NaN and drop all rows with only NaNs
-        # EXCEPT for the special keys
-        df.index = ids_to_keys(df.index)
-        index = (
-            df.loc[df.index.difference(special_keys)]
-            .replace(0, np.nan)
-            .dropna(how="all")
-            .index.union(special_keys)
-        )
-        df = df.loc[index]
+        df = df.replace(0, np.nan)
+
+        # sort on mean square of a row
+        df_bot = deepcopy(df.iloc[3:, :])
+        func = lambda row: np.nanmean(np.square(row))
+        if len(df_bot) > 1:  # but only sort if there is something to sort
+            df_bot["_sort_me_"] = (df_bot.select_dtypes(include=np.number)).apply(func, axis=1)
+            df_bot.sort_values(by="_sort_me_", ascending=False, inplace=True)
+            del df_bot["_sort_me_"]
+
+        df = pd.concat([df.iloc[:3, :], df_bot], axis=0)
+        df.dropna(how="all", inplace=True)
 
         if not mask:
             joined = self.join_df_with_metadata(
@@ -617,7 +634,7 @@ class Contributions(object):
         """Given a dataframe, adjust the unit of the table to either match the given method, or not exist."""
         if "unit" not in df.columns:
             return df
-        keys = df.index[~df["index"].isin({"Total", "Rest"})]
+        keys = df.index[~df["index"].isin({"Score", "Rest (+)", "Rest (-)"})]
         unit = bd.Method(method).metadata.get("unit") if method else "unit"
         df.loc[keys, "unit"] = unit
         return df
@@ -667,7 +684,7 @@ class Contributions(object):
             [
                 "amount",
                 "unit",
-                "reference product",
+                #"reference product",
                 "name",
                 "location",
                 "database",
@@ -791,6 +808,7 @@ class Contributions(object):
         limit: int = 5,
         normalize: bool = False,
         limit_type: str = "number",
+        total_range: bool = True,
         **kwargs,
     ) -> pd.DataFrame:
         """Return top EF contributions for either functional_unit or method.
@@ -807,6 +825,7 @@ class Contributions(object):
         limit : The number of top contributions to consider
         normalize : Determines whether or not to normalize the contribution values
         limit_type : The type of limit, either 'number' or 'percent'
+        total_range : Whether to consider the total for contributions the range (True) or the score (False)
 
         Returns
         -------
@@ -827,10 +846,10 @@ class Contributions(object):
 
         # Normalise if required
         if normalize:
-            contributions = self.normalize(contributions)
+            contributions = self.normalize(contributions, total_range)
 
         top_cont_dict = self._build_dict(
-            contributions, index, rev_index, limit, limit_type
+            contributions, index, rev_index, limit, limit_type, total_range
         )
         labelled_df = self.get_labelled_contribution_dict(
             top_cont_dict, x_fields=x_fields, y_fields=y_fields, mask=mask
@@ -846,6 +865,7 @@ class Contributions(object):
         limit: int = 5,
         normalize: bool = False,
         limit_type: str = "number",
+        total_range: bool = True,
         **kwargs,
     ) -> pd.DataFrame:
         """Return top process contributions for functional_unit or method.
@@ -882,10 +902,10 @@ class Contributions(object):
 
         # Normalise if required
         if normalize:
-            contributions = self.normalize(contributions)
+            contributions = self.normalize(contributions, total_range)
 
         top_cont_dict = self._build_dict(
-            contributions, index, rev_index, limit, limit_type
+            contributions, index, rev_index, limit, limit_type, total_range
         )
         labelled_df = self.get_labelled_contribution_dict(
             top_cont_dict, x_fields=x_fields, y_fields=y_fields, mask=mask

@@ -1,3 +1,4 @@
+from bw2data import Database
 from bw2data.errors import BW2Exception
 from bw2data.project import projects
 from bw2data.utils import get_activity
@@ -6,7 +7,6 @@ import pytest
 from qtpy import QtWidgets
 
 from activity_browser import actions
-from activity_browser.mod.bw2data import Database
 from activity_browser.ui.widgets.dialog import (ActivityLinkingDialog,
                                                 LocationLinkingDialog)
 from activity_browser.ui.widgets.new_node_dialog import NewNodeDialog

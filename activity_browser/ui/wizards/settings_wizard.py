@@ -1,29 +1,27 @@
 # -*- coding: utf-8 -*-
 import os
-from pathlib import Path
 from logging import getLogger
+from pathlib import Path
 
-import peewee
-from peewee import SqliteDatabase
-from qtpy import QtCore, QtWidgets, PYSIDE6
-from qtpy.QtCore import Qt
+from peewee import SqliteDatabase, OperationalError
+from qtpy import QtCore, QtWidgets
 
-from activity_browser import ab_settings, actions
 from bw2data import projects
 
-log = getLogger(__name__)
+from activity_browser import ab_settings
 
+log = getLogger(__name__)
 
 class SettingsWizard(QtWidgets.QWizard):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.last_project = projects.current
-        self.last_bwdir = projects.base_dir
+        self.last_bwdir = projects._base_data_dir
 
         self.setWindowTitle("Activity Browser Settings")
         self.settings_page = SettingsPage(self)
         self.addPage(self.settings_page)
-        self.setWindowFlag(Qt.WindowStaysOnTopHint)
+        self.show()
         self.button(QtWidgets.QWizard.BackButton).hide()
         self.button(QtWidgets.QWizard.FinishButton).clicked.connect(self.save_settings)
         self.button(QtWidgets.QWizard.CancelButton).clicked.connect(self.cancel)
@@ -50,8 +48,11 @@ class SettingsWizard(QtWidgets.QWizard):
 
     def cancel(self):
         log.info("Going back to before settings were changed.")
-        if projects.base_dir != self.last_bwdir:
+        if projects._base_data_dir != self.last_bwdir:
             projects.change_base_directories(Path(self.last_bwdir))
+            projects.set_current(
+                self.last_project
+            )  # project changes only if directory is changed
 
 
 class SettingsPage(QtWidgets.QWizardPage):
@@ -61,26 +62,19 @@ class SettingsPage(QtWidgets.QWizardPage):
         self.wizard = parent
         self.complete = False
 
-        self.startup_project_combobox = QtWidgets.QComboBox(self)
-        self.update_project_combo()
+        # bw dir
+        self.bwdir_variables = set()
+        self.bwdir = QtWidgets.QComboBox()
 
-        self.registerField(
-            "startup_project", self.startup_project_combobox, "currentText"
-        )
-
-        self.bwdir_variables = set(ab_settings.custom_bw_dir)
-        self.bwdir = QtWidgets.QComboBox(self)
-
-        self.bwdir_browse_button = QtWidgets.QPushButton("Browse", self)
-        self.bwdir_remove_button = QtWidgets.QPushButton("Remove", self)
+        self.bwdir_browse_button = QtWidgets.QPushButton("Browse")
+        self.bwdir_remove_button = QtWidgets.QPushButton("Remove")
         self.update_combobox(self.bwdir, ab_settings.custom_bw_dir)
-        self.restore_defaults_button = QtWidgets.QPushButton("Restore defaults", self)
-        self.bwdir_name = QtWidgets.QLineEdit(self.bwdir.currentText(), self)
+        self.restore_defaults_button = QtWidgets.QPushButton("Restore defaults")
+        self.bwdir_name = QtWidgets.QLineEdit(self.bwdir.currentText())
         self.registerField("current_bw_dir", self.bwdir_name)
-        self.message_label = QtWidgets.QLabel("", self)
 
         # startup project
-        self.startup_project_combobox = QtWidgets.QComboBox(self)
+        self.startup_project_combobox = QtWidgets.QComboBox()
         self.update_project_combo()
 
         self.registerField(
@@ -88,7 +82,7 @@ class SettingsPage(QtWidgets.QWizardPage):
         )
 
         # light/dark theme
-        self.theme_combo = QtWidgets.QComboBox(self)
+        self.theme_combo = QtWidgets.QComboBox()
         self.theme_combo.addItems([
             "Light theme",
             "Dark theme compatibility"
@@ -99,27 +93,22 @@ class SettingsPage(QtWidgets.QWizardPage):
         )
 
         # Startup options
-        self.startup_groupbox = QtWidgets.QGroupBox("Startup Options", self)
-        self.startup_layout = QtWidgets.QGridLayout(self)
-        self.startup_layout.addWidget(QtWidgets.QLabel("Brightway Dir: ", self), 0, 0)
+        self.startup_groupbox = QtWidgets.QGroupBox("Startup Options")
+        self.startup_layout = QtWidgets.QGridLayout()
+        self.startup_layout.addWidget(QtWidgets.QLabel("Brightway Dir: "), 0, 0)
         self.startup_layout.addWidget(self.bwdir, 0, 1)
         self.startup_layout.addWidget(self.bwdir_browse_button, 0, 2)
         self.startup_layout.addWidget(self.bwdir_remove_button, 0, 3)
-        self.startup_layout.addWidget(QtWidgets.QLabel("Startup Project: ", self), 1, 0)
+        self.startup_layout.addWidget(QtWidgets.QLabel("Startup Project: "), 1, 0)
         self.startup_layout.addWidget(self.startup_project_combobox, 1, 1)
-        self.startup_layout.addWidget(QtWidgets.QLabel("Theme: ", self), 2, 0)
+        self.startup_layout.addWidget(QtWidgets.QLabel("Theme: "), 2, 0)
         self.startup_layout.addWidget(self.theme_combo, 2, 1)
-        self.startup_layout.addWidget(QtWidgets.QLabel("(Requires restart)", self), 2, 2)
-        self.startup_layout.addWidget(self.message_label, 2, 0, 1, 3)
+        self.startup_layout.addWidget(QtWidgets.QLabel("(Requires restart)"), 2, 2)
 
         self.startup_groupbox.setLayout(self.startup_layout)
 
-        self.layout = QtWidgets.QVBoxLayout(self)
+        self.layout = QtWidgets.QVBoxLayout()
         self.layout.addWidget(self.startup_groupbox)
-
-        if not PYSIDE6:
-            self.layout.addWidget(PySide6Switch(self))
-
         self.layout.addStretch()
         self.layout.addWidget(self.restore_defaults_button)
         self.setLayout(self.layout)
@@ -145,7 +134,7 @@ class SettingsPage(QtWidgets.QWizardPage):
         # find all project names using sql query and return
         try:
             cursor = db.execute_sql('SELECT "name" FROM "projectdataset"')
-        except peewee.OperationalError as e:
+        except OperationalError as e:
             if "no such table" in str(e):
                 return []
             raise
@@ -216,24 +205,53 @@ class SettingsPage(QtWidgets.QWizardPage):
         """Set startup brightway directory.
         Switch to this directory if user wishes (this will update the "projects" combobox correctly).
         """
-        if path not in self.bwdir_variables:
-            self.combobox_add_dir(self.bwdir, path)
-
-        self.setField("current_bw_dir", self.bwdir_name.text())
-        self.bwdir_name.setText(path)
-        self.update_project_combo(path=self.bwdir_name.text())
-        self.bwdir.blockSignals(True)
-        self.bwdir.setCurrentText(self.bwdir_name.text())
-        self.bwdir.blockSignals(False)
-        self.changed()
 
         # if no projects exist in this directory: ask user if he wants to set up a new brightway data directory here
         if not os.path.isfile(os.path.join(path, "projects.db")):
-            self.message_label.setText(
-                "No projects found in this directory. A new one will be created."
+            create_new_directory = QtWidgets.QMessageBox.question(
+                self,
+                "New brightway data directory?",
+                'This directory does not contain any projects. \n Would you like to setup a new brightway data directory here? \n This will close the current project and create a "default" project in the new directory.',
+                QtWidgets.QMessageBox.Yes,
+                QtWidgets.QMessageBox.Cancel,
             )
-        else:
-            self.message_label.setText("")
+            if create_new_directory == QtWidgets.QMessageBox.Cancel:
+                return
+            else:
+                self.bwdir_name.setText(path)
+                self.registerField("current_bw_dir", self.bwdir_name)
+                self.combobox_add_dir(self.bwdir, path)
+                #                ab_settings.current_bw_dir = path
+                ab_settings.startup_project = ""
+                self.bwdir.blockSignals(True)
+                self.bwdir.setCurrentText(self.bwdir_name.text())
+                self.bwdir.blockSignals(False)
+                self.update_project_combo(path=self.bwdir_name.text())
+                self.changed()
+        else:  # a project already exists in this directory
+            # ask user if to switch directory (which will update the project combobox correctly)
+            reply = QtWidgets.QMessageBox.question(
+                self,
+                "Continue?",
+                'Would you like to switch to this directory now? \nThis will close your currently opened project. \nClick "Yes" to be able to choose the startup project.',
+                QtWidgets.QMessageBox.Yes,
+                QtWidgets.QMessageBox.No,
+            )
+            if path not in self.bwdir_variables:
+                self.combobox_add_dir(self.bwdir, path)
+            if reply == QtWidgets.QMessageBox.Yes:
+                self.bwdir_name.setText(path)
+                self.registerField("current_bw_dir", self.bwdir_name)
+                #                ab_settings.current_bw_dir = path
+                self.update_project_combo(path=self.bwdir_name.text())
+            else:
+                prev_env_index = self.bwdir.findText(
+                    self.bwdir_name.text(), QtCore.Qt.MatchFixedString
+                )
+                self.bwdir.blockSignals(True)
+                self.bwdir.setCurrentIndex(prev_env_index)
+                self.bwdir.blockSignals(False)
+                self.changed()
 
     def update_project_combo(self, initialization: bool = True, path: str = None):
         """
@@ -248,10 +266,10 @@ class SettingsPage(QtWidgets.QWizardPage):
             self.startup_project_combobox.addItems(self.project_names)
         else:
             log.warning("No projects found in this directory.")
-
         if ab_settings.startup_project in self.project_names:
             self.startup_project_combobox.setCurrentText(ab_settings.startup_project)
         else:
+            ab_settings.startup_project = ""
             self.startup_project_combobox.setCurrentIndex(-1)
         if not initialization:
             self.changed()
@@ -295,14 +313,3 @@ class SettingsPage(QtWidgets.QWizardPage):
 
     def isComplete(self):
         return self.complete
-
-
-class PySide6Switch(QtWidgets.QGroupBox):
-    def __init__(self, parent=None):
-        super().__init__("Upgrade GUI back-end", parent)
-        self.upgrade_button = actions.PysideUpgrade.get_QButton()
-
-        layout = QtWidgets.QVBoxLayout()
-        layout.addWidget(self.upgrade_button)
-        self.setLayout(layout)
-

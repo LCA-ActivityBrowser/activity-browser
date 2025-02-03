@@ -164,7 +164,7 @@ class ParameterManager(object):
         return data
 
     @abstractmethod
-    def recalculate(self, values: List[float]) -> np.ndarray:
+    def recalculate(self, values: dict[str, float]) -> np.ndarray:
         """Convenience function that takes the given new values and recalculates.
         Returning a fully-formed set of exchange amounts and indices.
 
@@ -174,7 +174,7 @@ class ParameterManager(object):
         self.parameters.update(values)
         return self.calculate()
 
-    def ps_recalculate(self, values: List[float]) -> np.ndarray:
+    def ps_recalculate(self, values: dict[str, float]) -> np.ndarray:
         """Used to recalculate brightway parameters without editing the database.
         Leftover from Presamples.
 
@@ -206,7 +206,7 @@ class ParameterManager(object):
         Side-note on presamples: Presamples was used in AB for calculating scenarios,
         presamples was superseded by this implementation. For more reading:
         https://presamples.readthedocs.io/en/latest/index.html"""
-        sample_data = [self.ps_recalculate(list(values)) for _, values in scenarios]
+        sample_data = [self.ps_recalculate(values.to_dict()) for _, values in scenarios]
         samples = np.concatenate(sample_data, axis=1)
         indices = self.reformat_indices()
         return samples, indices
@@ -300,13 +300,8 @@ class MonteCarloParameterManager(ParameterManager, Iterator):
 
     def __init__(self, seed: Optional[int] = None):
         super().__init__()
-        parameters = itertools.chain(
-            ProjectParameter.select(),
-            DatabaseParameter.select(),
-            ActivityParameter.select(),
-        )
         self.uncertainties = UncertaintyBase.from_dicts(
-            *[getattr(p, "data", {}) for p in parameters]
+            *[p.data for p in self.parameters]
         )
         self.mc_generator = MCRandomNumberGenerator(self.uncertainties, seed=seed)
 
@@ -340,7 +335,8 @@ class MonteCarloParameterManager(ParameterManager, Iterator):
         recalculation.
         """
         values = self.mc_generator.next()
-        self.parameters.update(values)
+        keys = [(p.group, p.name) for p in self.parameters]
+        self.parameters.update({key: value for key, value in zip(keys, values)})
         data = self.calculate()
         return self.indices.mock_params(data)
 
