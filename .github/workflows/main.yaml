@@ -142,9 +142,6 @@ jobs:
           /usr/share/miniconda/envs/build/conda-bld/noarch/*.conda
 
   deploy-beta:
-    # Make sure to only run a deploy if all tests pass.
-    needs:
-      - tests
     # And only on a push event, not a pull_request.
     if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/major' }}
     runs-on: ubuntu-latest

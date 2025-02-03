@@ -20,7 +20,7 @@ class CFNew(ABAction):
     @exception_dialogs
     def run(method_name: tuple, keys: List[tuple]):
         # load old cf's from the Method
-        method_dict = bd.Method(method_name).load_dict()
+        method_dict = {cf[0]: cf[1] for cf in bd.Method(method_name).load()}
 
         # use only the keys that don't already exist within the method
         unique_keys = [key for key in keys if key not in method_dict]
