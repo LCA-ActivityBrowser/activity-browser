@@ -3,20 +3,20 @@ from copy import deepcopy
 from typing import Iterable, Optional, Union
 from logging import getLogger
 
-import bw2analyzer as ba
 import bw2calc as bc
 import numpy as np
 import pandas as pd
 from qtpy.QtWidgets import QApplication, QMessageBox
 
 from activity_browser.mod import bw2data as bd
+from activity_browser.mod.bw2analyzer import ABContributionAnalysis
 
 from .commontasks import wrap_text
 from .errors import ReferenceFlowValueError
 from .metadata import AB_metadata
 
 log = getLogger(__name__)
-ca = ba.ContributionAnalysis()
+ca = ABContributionAnalysis()
 
 
 class MLCA(object):
@@ -384,20 +384,24 @@ class Contributions(object):
             ),
         }
 
-    def normalize(self, contribution_array: np.ndarray) -> np.ndarray:
-        """Normalise the contribution array.
+    def normalize(self, contribution_array: np.ndarray, total_range:bool=True) -> np.ndarray:
+        """Normalize the contribution array based on range or score
 
         Parameters
         ----------
         contribution_array : A 2-dimensional contribution array
+        total_range : A bool, True for normalization based on range, False for score
 
         Returns
         -------
         2-dimensional array of same shape, with scores normalized.
 
         """
-        scores = abs(contribution_array.sum(axis=1, keepdims=True))
-        return contribution_array / scores
+        if total_range:  # total is based on the range
+            total = abs(abs(contribution_array).sum(axis=1, keepdims=True))
+        else:  # total is based on the score
+            total = abs(contribution_array.sum(axis=1, keepdims=True))
+        return contribution_array / total
 
     def _build_dict(
         self,
@@ -427,12 +431,13 @@ class Contributions(object):
         for fu_or_method, col in FU_M_index.items():
             contribution_col = contributions[col, :]
             if total_range:  # total is based on the range
-                total = np.abs(contribution_col).sum()
+                normalize_to = np.abs(contribution_col).sum()
             else:  # total is based on the score
-                total = contribution_col.sum()
+                normalize_to = contribution_col.sum()
+            score = contribution_col.sum()
 
             top_contribution = ca.sort_array(
-                contribution_col, limit=limit, limit_type=limit_type, total=total
+                contribution_col, limit=limit, limit_type=limit_type, total=normalize_to
             )
 
             # split and calculate remaining rest sections for positive and negative part
@@ -448,7 +453,7 @@ class Contributions(object):
             cont_per = OrderedDict()
             cont_per.update(
                 {
-                    ("Total", ""): total,
+                    ("Score", ""): score,
                     ("Rest (+)", ""): pos_rest,
                     ("Rest (-)", ""): neg_rest,
                 }
@@ -592,20 +597,21 @@ class Contributions(object):
         # If the cont_dict has tuples for keys, coerce df.columns into MultiIndex
         if all(isinstance(k, tuple) for k in cont_dict.keys()):
             df.columns = pd.MultiIndex.from_tuples(df.columns)
-        special_keys = [("Total", ""), ("Rest (+)", ""), ("Rest (-)", "")]
+
+        special_keys = [("Score", ""), ("Rest (+)", ""), ("Rest (-)", "")]
         # replace all 0 values with NaN and drop all rows with only NaNs
         df = df.replace(0, np.nan)
 
-        # sort on absolute mean of a row
-        df_bot = deepcopy(df.loc[df.index.difference(special_keys)].dropna(how="all"))
-
-        func = lambda row: np.nanmean(np.abs(row))
+        # sort on mean square of a row
+        df_bot = deepcopy(df.iloc[3:, :])
+        func = lambda row: np.nanmean(np.square(row))
         if len(df_bot) > 1:  # but only sort if there is something to sort
             df_bot["_sort_me_"] = (df_bot.select_dtypes(include=np.number)).apply(func, axis=1)
             df_bot.sort_values(by="_sort_me_", ascending=False, inplace=True)
             del df_bot["_sort_me_"]
 
         df = pd.concat([df.iloc[:3, :], df_bot], axis=0)
+        df.dropna(how="all", inplace=True)
 
         if not mask:
             joined = self.join_df_with_metadata(
@@ -628,7 +634,7 @@ class Contributions(object):
         """Given a dataframe, adjust the unit of the table to either match the given method, or not exist."""
         if "unit" not in df.columns:
             return df
-        keys = df.index[~df["index"].isin({"Total", "Rest (+)", "Rest (-)"})]
+        keys = df.index[~df["index"].isin({"Score", "Rest (+)", "Rest (-)"})]
         unit = bd.Method(method).metadata.get("unit") if method else "unit"
         df.loc[keys, "unit"] = unit
         return df
@@ -840,7 +846,7 @@ class Contributions(object):
 
         # Normalise if required
         if normalize:
-            contributions = self.normalize(contributions)
+            contributions = self.normalize(contributions, total_range)
 
         top_cont_dict = self._build_dict(
             contributions, index, rev_index, limit, limit_type, total_range
@@ -896,7 +902,7 @@ class Contributions(object):
 
         # Normalise if required
         if normalize:
-            contributions = self.normalize(contributions)
+            contributions = self.normalize(contributions, total_range)
 
         top_cont_dict = self._build_dict(
             contributions, index, rev_index, limit, limit_type, total_range

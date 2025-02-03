@@ -300,13 +300,8 @@ class MonteCarloParameterManager(ParameterManager, Iterator):
 
     def __init__(self, seed: Optional[int] = None):
         super().__init__()
-        parameters = itertools.chain(
-            ProjectParameter.select(),
-            DatabaseParameter.select(),
-            ActivityParameter.select(),
-        )
         self.uncertainties = UncertaintyBase.from_dicts(
-            *[getattr(p, "data", {}) for p in parameters]
+            *[p.data for p in self.parameters]
         )
         self.mc_generator = MCRandomNumberGenerator(self.uncertainties, seed=seed)
 
@@ -340,7 +335,8 @@ class MonteCarloParameterManager(ParameterManager, Iterator):
         recalculation.
         """
         values = self.mc_generator.next()
-        self.parameters.update(values)
+        keys = [(p.group, p.name) for p in self.parameters]
+        self.parameters.update({key: value for key, value in zip(keys, values)})
         data = self.calculate()
         return self.indices.mock_params(data)
 

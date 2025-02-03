@@ -134,8 +134,8 @@ class LCAResultsPlot(Plot):
         )  # get rid of all non-numeric columns (metadata)
         if "amount" in dfp.columns:
             dfp.drop(["amount"], axis=1, inplace=True)  # Drop the 'amount' col
-        if "Total" in dfp.index:
-            dfp.drop("Total", inplace=True)
+        if "Score" in dfp.index:
+            dfp.drop("Score", inplace=True)
 
         # avoid figures getting too large horizontally
         dfp.index = [wrap_text(i, max_length=40) for i in dfp.index]
@@ -186,6 +186,7 @@ class ContributionPlot(Plot):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.plot_name = "Contributions"
+        self.parent = parent
 
     def plot(self, df: pd.DataFrame, unit: str = None):
         """Plot a horizontal stacked bar chart of contributions,
@@ -197,8 +198,8 @@ class ContributionPlot(Plot):
         dfp.drop(
             dfp.select_dtypes(["object"]), axis=1, inplace=True
         )  # get rid of all non-numeric columns (metadata)
-        if "Total" in dfp.index:
-            dfp.drop("Total", inplace=True)
+        if "Score" in dfp.index:
+            dfp.drop("Score", inplace=True)
         # drop rows if all values are 0
         dfp = dfp.loc[~(dfp == 0).all(axis=1)]
 
@@ -253,15 +254,16 @@ class ContributionPlot(Plot):
             zero_line.set_color("black")
             zero_line.set_linestyle("solid")
 
-        # total marker when both negative and positive results are present in a column
-        marker_size = max(min(150 / dfp.shape[1], 35), 10)  # set marker size dynamic between 10 - 35
-        for i, col in enumerate(dfp):
-            total = np.sum(dfp[col])
-            abs_total = np.sum(np.abs(dfp[col]))
-            if abs(total) != abs_total:
-                self.ax.plot(total, i,
-                             markersize=marker_size, marker="d", fillstyle="left",
-                             markerfacecolor="black", markerfacecoloralt="grey", markeredgecolor="white")
+        # total marker when enabled and both negative and positive results are present in a column
+        if self.parent.score_marker:
+            marker_size = max(min(150 / dfp.shape[1], 35), 10)  # set marker size dynamic between 10 - 35
+            for i, col in enumerate(dfp):
+                total = np.sum(dfp[col])
+                abs_total = np.sum(np.abs(dfp[col]))
+                if abs(total) != abs_total:
+                    self.ax.plot(total, i,
+                                 markersize=marker_size, marker="d", fillstyle="left",
+                                 markerfacecolor="black", markerfacecoloralt="grey", markeredgecolor="white")
 
         # TODO review: remove or enable
 

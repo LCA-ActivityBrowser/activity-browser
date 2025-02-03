@@ -3,6 +3,7 @@ from itertools import chain
 from typing import Iterable, List, NamedTuple, Optional
 
 import numpy as np
+from stats_arrays import UncertaintyBase
 
 import bw2data as bd
 from bw2data.backends import ActivityDataset, ExchangeDataset
@@ -22,6 +23,7 @@ class Parameter(NamedTuple):
     name: str
     group: str
     amount: float = 1.0
+    data: dict = {}
     param_type: Optional[str] = None
 
     def as_gsa_tuple(self) -> tuple:
@@ -126,15 +128,15 @@ class Parameters(UserList):
         return cls(
             chain(
                 (
-                    Parameter(p.name, "project", p.amount, "project")
+                    Parameter(p.name, "project", p.amount, p.data, "project")
                     for p in ProjectParameter.select()
                 ),
                 (
-                    Parameter(p.name, p.database, p.amount, "database")
+                    Parameter(p.name, p.database, p.amount, p.data, "database")
                     for p in DatabaseParameter.select()
                 ),
                 (
-                    Parameter(p.name, p.group, p.amount, "activity")
+                    Parameter(p.name, p.group, p.amount, p.data, "activity")
                     for p in ActivityParameter.select()
                 ),
             )
@@ -154,7 +156,7 @@ class Parameters(UserList):
         """
         return {k: data[k] for k in data.keys() & needed}
 
-    def update(self, new_values: dict[str, float]) -> None:
+    def update(self, new_values: dict[tuple[str, str], float]) -> None:
         """Replace parameters in the list if their linked value is not
         NaN.
         """
