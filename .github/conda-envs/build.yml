@@ -1,6 +1,8 @@
 name: build
 channels:
   - conda-forge
+  - cmutel
+  - mrvisscher
 dependencies:
   - conda-build
   - anaconda-client
