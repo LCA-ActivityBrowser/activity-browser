@@ -52,17 +52,7 @@ class ActivityNewProcess(ABAction):
             "location": location,
             "type": "product",
         }
-        database = Database(database_name)
-        new_ref_prod = database.new_activity(code=uuid4().hex, **new_ref_prod_data)
-        new_ref_prod.save()
-
-        # create new exchange
-        new_exchange = new_process.new_edge(
-            input=new_ref_prod,
-            type=labels.production_edge_default,
-            amount=1,
-            functional=True
-        )
-        new_exchange.save()
+        prod = new_process.new_product(code=uuid4().hex, **new_ref_prod_data)
+        prod.save()
 
         ActivityOpen.run([new_process.key])

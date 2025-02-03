@@ -3,7 +3,7 @@ from bw2data.project import projects
 from qtpy import QtWidgets
 
 from activity_browser import ab_settings, actions
-from activity_browser.ui.widgets import ProjectDeletionDialog
+from activity_browser.actions.project.project_delete import ProjectDeletionDialog
 
 
 def test_project_delete(ab_app, monkeypatch):

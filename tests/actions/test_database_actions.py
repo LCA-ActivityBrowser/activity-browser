@@ -45,7 +45,7 @@ def test_database_duplicate(ab_app, monkeypatch, qtbot):
     actions.DatabaseDuplicate.run(db)
 
     dialog = application.main_window.findChild(DuplicateDatabaseDialog)
-    with qtbot.waitSignal(dialog.thread.finished, timeout=60 * 1000):
+    with qtbot.waitSignal(dialog.dup_thread.finished, timeout=60 * 1000):
         pass
 
     assert db in databases

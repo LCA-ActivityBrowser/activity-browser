@@ -4,12 +4,12 @@ from importlib.metadata import version
 from qtpy import QtGui, QtWidgets
 from qtpy.QtCore import QSize, QUrl, Slot
 
-from activity_browser import actions, signals, application, info
+from activity_browser import actions, signals, application, utils
 from activity_browser.mod import bw2data as bd
 
 from .icons import qicons
 
-AB_BW25 = True if os.environ.get("AB_BW25", False) else False
+AB_BW25 = True
 
 
 class MenuBar(QtWidgets.QMenuBar):
@@ -46,6 +46,7 @@ class ProjectMenu(QtWidgets.QMenu):
         self.update_biosphere_action = actions.BiosphereUpdate.get_QAction()
 
         self.manage_settings_action = actions.SettingsWizardOpen.get_QAction()
+        self.manage_projects_action = actions.ProjectManagerOpen.get_QAction()
 
         self.addMenu(ProjectSelectionMenu(self))
         self.addMenu(ProjectNewMenu(self))
@@ -62,6 +63,7 @@ class ProjectMenu(QtWidgets.QMenu):
         self.addMenu(MigrationsMenu(self))
         self.addSeparator()
         self.addAction(self.manage_settings_action)
+        self.addAction(self.manage_projects_action)
 
         signals.project.changed.connect(self.biosphere_exists)
         signals.meta.databases_changed.connect(self.biosphere_exists)
@@ -93,18 +95,31 @@ class ProjectNewMenu(QtWidgets.QMenu):
 
 
 class ProjectNewTemplateMenu(QtWidgets.QMenu):
+    remote_projects = {}
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setTitle("From template")
 
         self.actions = {}
 
-        from bw2io.remote import get_projects
-        for key in get_projects():
+        for key in utils.get_templates():
+            action = actions.ProjectNewFromTemplate.get_QAction(key)
+            action.setText(key)
+            self.actions[key] = action
+            self.addAction(action)
+
+        for key in self.get_projects():
             action = actions.ProjectNewRemote.get_QAction(key)
             action.setText(key)
             self.actions[key] = action
             self.addAction(action)
+
+    def get_projects(self):
+        if not self.remote_projects:
+            from bw2io.remote import get_projects
+            ProjectNewTemplateMenu.remote_projects = get_projects()
+        return self.remote_projects
 
 
 
@@ -219,7 +234,7 @@ class ProjectSelectionMenu(QtWidgets.QMenu):
         self.populate()
 
         self.aboutToShow.connect(self.populate)
-        self.triggered.connect(lambda act: bd.projects.set_current(act.text()))
+        self.triggered.connect(lambda act: actions.ProjectSwitch.run(act.text()))
 
     def populate(self):
         """

@@ -11,7 +11,7 @@ from stats_arrays.distributions import (LognormalUncertainty,
                                         UndefinedUncertainty,
                                         UniformUncertainty)
 
-from activity_browser.signals import qparameters
+from activity_browser import signals
 from activity_browser.ui.wizards import UncertaintyWizard
 
 """
@@ -104,7 +104,7 @@ def test_update_uncertainty(ab_app, qtbot):
     assert wizard.type.complete
 
     # Now trigger a 'finish' action
-    with qtbot.waitSignal(qparameters.parameters_changed, timeout=100):
+    with qtbot.waitSignal(signals.parameter.changed, timeout=100):
         wizard.button(QWizard.FinishButton).click()
 
     # Reload param
@@ -131,7 +131,7 @@ def test_update_alter_mean(qtbot, monkeypatch, ab_app):
         QMessageBox, "question", staticmethod(lambda *args: QMessageBox.Yes)
     )
     # Now trigger a 'finish' action
-    with qtbot.waitSignal(qparameters.parameters_changed, timeout=100):
+    with qtbot.waitSignal(signals.parameter.changed, timeout=100):
         wizard.button(QWizard.FinishButton).click()
 
     # Reload param and check that the amount is changed.

@@ -7,6 +7,7 @@ from bw2data.project import projects
 from bw2data.database import Database
 from bw2data.configuration import config
 from bw2data.utils import get_activity
+from bw2data import Method, methods
 
 import pytest
 from stats_arrays.distributions import UndefinedUncertainty, UniformUncertainty
@@ -16,7 +17,6 @@ from activity_browser.bwutils.uncertainty import (
     ExchangeUncertaintyInterface,
     get_uncertainty_interface,
 )
-from activity_browser.mod.bw2data import Method, methods
 
 
 def test_exchange_interface(qtbot, ab_app):

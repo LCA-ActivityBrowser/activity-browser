@@ -11,9 +11,14 @@ class FloatDelegate(QtWidgets.QStyledItemDelegate):
         super().__init__(parent)
 
     def displayText(self, value, locale):
+        try:
+            value = float(value)
+        except ValueError:
+            value = math.nan
+
         if math.isnan(value):
             return ""
-        return "{:.5g}".format(value)
+        return "{:.2f}".format(value)
 
     def createEditor(self, parent, option, index):
         editor = QtWidgets.QLineEdit(parent)
@@ -27,7 +32,12 @@ class FloatDelegate(QtWidgets.QStyledItemDelegate):
     def setEditorData(self, editor: QtWidgets.QLineEdit, index: QtCore.QModelIndex):
         """Populate the editor with data if editing an existing field."""
         data = index.data(QtCore.Qt.DisplayRole)
-        value = float(data) if data and not math.isnan(data) else 0
+
+        try:
+            value = float(data)
+        except ValueError:
+            value = math.nan
+
         editor.setText(str(value))
 
     def setModelData(

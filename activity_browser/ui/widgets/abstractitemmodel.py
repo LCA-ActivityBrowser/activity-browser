@@ -1,42 +1,39 @@
 import pandas as pd
-from qtpy import QtCore, QtGui, QtWidgets
+from qtpy import QtCore, QtGui
 from qtpy.QtCore import Qt, Signal, SignalInstance
 
 from activity_browser.ui.icons import qicons
+
+from .abstractitem import ABAbstractItem, ABBranchItem, ABDataItem
 
 
 class ABAbstractItemModel(QtCore.QAbstractItemModel):
     grouped: SignalInstance = Signal(list)
 
+    dataItemClass = ABDataItem
+    branchItemClass = ABBranchItem
+
     def __init__(self, parent=None, dataframe=None):
         super().__init__(parent)
 
-        self.dataframe: pd.DataFrame | None = None  # DataFrame containing the visible data
-        self.dataframe_: pd.DataFrame | None = None  # DataFrame containing the original (unfiltered) data
-        self.root: ABBranchItem | None = None  # root ABItem for the object tree
-        self.grouped_columns: [int] = []  # list of all columns that are currently being grouped
+        if dataframe is None:
+            dataframe = pd.DataFrame()
+
+        self.dataframe: pd.DataFrame = dataframe  # DataFrame containing the visible data
+        self.root: ABBranchItem = self.branchItemClass("root")  # root ABItem for the object tree
+        self.grouped_columns: [int] = list()  # list of columns that are currently being grouped
         self.filtered_columns: [int] = set()  # set of all columns that have filters applied
+        self.sort_column: int = 0  # column that is currently sorted
+        self.sort_order: Qt.SortOrder = Qt.SortOrder.AscendingOrder
         self._query = ""  # Pandas query currently applied to the dataframe
-        self.columns = []
 
-        # if a dataframe is set as kwarg set it up
-        if dataframe is not None:
-            self.setDataFrame(dataframe)
+        self.setDataFrame(self.dataframe)
 
-    def setDataFrame(self, dataframe: pd.DataFrame):
-        self.beginResetModel()
+    def columns(self):
+        return [col for col in self.dataframe.columns if not str(col).startswith("_")]
 
-        # set the index to a RangeIndex
-        # todo: research whether this is totally necessary
-        dataframe.index = pd.RangeIndex(len(dataframe))
-
-        self.dataframe = dataframe
-        self.dataframe_ = dataframe
-
-        # extend the columns
-        self.columns = self.columns + [col for col in self.dataframe.columns if col not in self.columns]
-
-        self.endResetModel()
+    def headers(self):
+        return self.columns()
 
     def index(self, row: int, column: int, parent: QtCore.QModelIndex = ...) -> QtCore.QModelIndex:
         """
@@ -113,99 +110,102 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
         # return 0 if there is no DataFrame
         if self.dataframe is None:
             return 0
-        return len(self.columns)
+        return len(self.columns())
 
-    def data(self, index: QtCore.QModelIndex, role=Qt.DisplayRole):
+    def data(self, index: QtCore.QModelIndex, role=Qt.ItemDataRole.DisplayRole):
         """
         Get the data associated with a specific index and role
         """
         if not index.isValid() or not isinstance(index.internalPointer(), ABAbstractItem):
             return None
 
-        # redirect to the displayData method
-        if role == Qt.DisplayRole:
-            return self.displayData(index)
+        item: ABAbstractItem = index.internalPointer()
+        col = index.column()
+        key = self.columns()[col]
 
-        # redirect to the fontData method
-        if role == Qt.FontRole:
-            return self.fontData(index)
+        # redirect to the item's displayData method
+        if role == Qt.ItemDataRole.DisplayRole:
+            return item.displayData(col, key)
 
-        if role == Qt.DecorationRole:
-            key = self.columns[index.column()]
-            return index.internalPointer().decorationData(key)
+        # redirect to the item's fontData method
+        if role == Qt.ItemDataRole.FontRole:
+            return item.fontData(col, key)
+
+        # redirect to the item's decorationData method
+        if role == Qt.ItemDataRole.DecorationRole:
+            return item.decorationData(col, key)
+
+        if role == Qt.ItemDataRole.BackgroundRole:
+            return item.backgroundData(col, key)
+
+        if role == Qt.ItemDataRole.ForegroundRole:
+            return item.foregroundData(col, key)
 
         # else return None
         return None
 
-    def displayData(self, index):
-        """
-        Return the display data for a specific index
-        """
-        entry: ABAbstractItem = index.internalPointer()
+    def setData(self, index: QtCore.QModelIndex, value, role=Qt.ItemDataRole.EditRole) -> bool:
+        if not index.isValid() or not isinstance(index.internalPointer(), ABAbstractItem):
+            return False
 
-        data = entry[self.columns[index.column()]]
+        if role == Qt.ItemDataRole.EditRole:
+            success = index.internalPointer().setData(index.column(), self.columns()[index.column()], value)
 
-        if data is None and index.column() == 0:
-            data = entry.key()
+            if success:
+                self.dataChanged.emit(index, index, [Qt.ItemDataRole.DisplayRole, Qt.ItemDataRole.EditRole])
+            return success
 
-        if data is None:
+        return False
+
+    def headerData(self, section, orientation=Qt.Orientation.Horizontal, role=Qt.ItemDataRole.DisplayRole):
+        if orientation != Qt.Orientation.Horizontal:
             return None
 
-        # clean up the data to a table-readable format
-        display = str(data).replace("\n", " ")
-
-        # if the display is nan, change to the user-friendlier Undefined
-        if display == "nan":
-            display = "Undefined"
-
-        return display
-
-    def fontData(self, index):
-        """
-        Return the font data for a specific index
-        """
-        font = QtGui.QFont()
-
-        # set the font to italic if the display value is Undefined
-        if self.displayData(index) == "Undefined":
-            font.setItalic(True)
-
-        return font
-
-    def headerData(self, section, orientation=Qt.Horizontal, role=Qt.DisplayRole):
-        if orientation != Qt.Horizontal:
-            return None
-
-        if role == Qt.DisplayRole:
+        if role == Qt.ItemDataRole.DisplayRole:
             if section == 0 and self.grouped_columns:
-                return " > ".join([self.columns[column] for column in self.grouped_columns] + [self.columns[0]])
-            return self.columns[section]
+                return " > ".join([self.headers()[column] for column in self.grouped_columns] + [self.headers()[0]])
+            return self.headers()[section]
 
-        if role == Qt.FontRole and section in self.filtered_columns:
+        if role == Qt.ItemDataRole.FontRole and section in self.filtered_columns:
             font = QtGui.QFont()
             font.setUnderline(True)
             return font
 
-        if role == Qt.DecorationRole and section in self.filtered_columns:
+        if role == Qt.ItemDataRole.DecorationRole and section in self.filtered_columns:
             return qicons.filter
 
     def flags(self, index):
-        return super().flags(index) | Qt.ItemIsDragEnabled
+        if not index.isValid() or not isinstance(index.internalPointer(), ABAbstractItem):
+            return Qt.ItemFlag.NoItemFlags
+        if index.column() > len(self.columns()) - 1:
+            return Qt.ItemFlag.NoItemFlags
+
+        return index.internalPointer().flags(index.column(), self.columns()[index.column()])
 
     def endResetModel(self):
         """
         Reset the model based on dataframe, query and grouped columns. Should be called to reflect the changes of
         changing the dataframe, grouped columns or query string.
         """
-        # apply any existing queries to the dataframe
+        if self.dataframe is None or self.dataframe.empty:
+            return
+
+        # apply any queries to the dataframe
         if q := self.query():
-            self.dataframe = self.dataframe_.query(q).reset_index(drop=True)
+            df = self.dataframe.query(q).reset_index(drop=True).copy()
         else:
-            self.dataframe = self.dataframe_
+            df = self.dataframe.copy()
+
+        # apply the sorting
+        df.sort_values(
+            by=self.columns()[self.sort_column],
+            ascending=(self.sort_order == Qt.SortOrder.AscendingOrder),
+            inplace=True, ignore_index=True
+        )
 
         # rebuild the ABItem tree
-        self.root = ABBranchItem("root")
-        items = self.createItems()
+        self.root = self.branchItemClass("root")
+        items = self.createItems(df)
 
         # if no grouping of Entries, just append everything as a direct child of the root ABItem
         if not self.grouped_columns:
@@ -213,9 +213,9 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
                 item.set_parent(self.root)
         # else build paths based on the grouped columns and create an ABItem tree
         else:
-            column_names = [self.columns[column] for column in self.grouped_columns]
+            column_names = [self.columns()[column] for column in self.grouped_columns]
 
-            for i, *paths in self.dataframe[column_names].itertuples():
+            for i, *paths in df[column_names].itertuples():
                 joined_path = []
 
                 for path in paths:
@@ -226,17 +226,26 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
 
         super().endResetModel()
 
-    def createItems(self) -> list["ABAbstractItem"]:
-        return [ABDataItem(index, data) for index, data in self.dataframe.to_dict(orient="index").items()]
+    def createItems(self, dataframe=None) -> list["ABAbstractItem"]:
+        if dataframe is None:
+            dataframe = self.dataframe
+        return [self.dataItemClass(index, data) for index, data in dataframe.to_dict(orient="index").items()]
 
-    def sort(self, column: int, order=Qt.AscendingOrder):
-        if column + 1 > len(self.columns):
+    def setDataFrame(self, dataframe: pd.DataFrame):
+        self.beginResetModel()
+        self.dataframe = dataframe
+        self.endResetModel()
+
+    def sort(self, column: int, order=Qt.SortOrder.AscendingOrder):
+        if column + 1 > len(self.columns()):
+            return
+        if column == self.sort_column and order == self.sort_order:
             return
 
         self.beginResetModel()
 
-        column_name = self.columns[column]
-        self.dataframe_.sort_values(by=column_name, ascending=order == Qt.AscendingOrder, inplace=True, ignore_index=True)
+        self.sort_column = column
+        self.sort_order = order
 
         self.endResetModel()
 
@@ -268,105 +277,4 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
         return super().hasChildren(parent)
 
 
-class ABAbstractItem:
-
-    def __init__(self, key, parent=None):
-        self._key = key
-        self._child_keys = []
-        self._child_items = {}
-        self._parent = None
-
-        if parent:
-            self.set_parent(parent)
-
-    def __getitem__(self, item):
-        raise NotImplementedError
-
-    def parent(self) -> "ABAbstractItem":
-        return self._parent
-
-    def key(self):
-        return self._key
-
-    def children(self):
-        return self._child_items
-
-    def path(self) -> [str]:
-        return self.parent().path() + [self.key()] if self.parent() else []
-
-    def rank(self) -> int:
-        """Return the rank of the ABItem within the parent. Returns -1 if there is no parent."""
-        if self.parent is None:
-            return -1
-        return self.parent()._child_keys.index(self.key())
-
-    def has_children(self) -> bool:
-        return bool(self._child_keys)
-
-    def set_parent(self, parent: "ABAbstractItem"):
-        if self.key() in parent.children():
-            raise KeyError(f"Item {self.key()} is already a child of {parent.key()}")
-
-        if self.parent():
-            self.parent()._child_keys.remove(self.key())
-            del self.parent()._child_items[self.key()]
-
-        parent._child_items[self.key()] = self
-        parent._child_keys.append(self.key())
-        self._parent = parent
-
-    def loc(self, key_or_path: object | list[object], default=None):
-        key = key_or_path.pop(0) if isinstance(key_or_path, list) else key_or_path
-
-        if isinstance(key_or_path, list) and len(key_or_path) > 0:
-            return self._child_items[key].loc(key_or_path, default)
-
-        return self._child_items.get(key, default)
-
-    def iloc(self, index: int, default=None):
-        return self.loc(self._child_keys[index], default)
-
-    def decorationData(self, key: str):
-        return None
-
-
-class ABBranchItem(ABAbstractItem):
-
-    def __getitem__(self, item):
-        return None
-
-    def put(self, item: ABAbstractItem, path):
-        key = path.pop(0)
-        if path:
-            sub = self.loc(key)
-            sub = sub if sub else self.__class__(key, self)
-            sub.put(item, path)
-        else:
-            item.set_parent(self)
-
-    def set_parent(self, parent: "ABAbstractItem"):
-        if self.key() in parent._child_items:
-            twin = parent.loc(self.key())
-            for child in twin.child_items.values():
-                child.set_parent(self)
-
-        if self.parent():
-            self.parent()._child_keys.remove(self.key())
-            del self.parent()._child_items[self.key()]
-
-        parent._child_items[self.key()] = self
-
-        branches = [isinstance(parent._child_items[key], ABBranchItem) for key in parent._child_keys]
-        i = branches.index(False) if False in branches else len(branches)
-        parent._child_keys.insert(i, self.key())
-        self._parent = parent
-
-
-class ABDataItem(ABAbstractItem):
-    def __init__(self, key, data, parent=None):
-        super().__init__(key, parent)
-        self.data = data
-
-    def __getitem__(self, item):
-        return self.data.get(item)
 

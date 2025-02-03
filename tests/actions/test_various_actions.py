@@ -1,19 +1,4 @@
-import os
-
-from bw2data.meta import databases, methods
-from bw2data.project import projects
-
-import pytest
-from qtpy import QtWidgets
-
 from activity_browser import actions, application
-from activity_browser.bwutils import AB_metadata
-from activity_browser.mod.bw2data import Database
-from activity_browser.ui.widgets import (
-    BiosphereUpdater,
-    DefaultBiosphereDialog,
-    EcoinventVersionDialog,
-)
 from activity_browser.ui.wizards.plugins_manager_wizard import PluginsManagerWizard
 from activity_browser.ui.wizards.settings_wizard import SettingsWizard
 
