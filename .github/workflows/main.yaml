@@ -4,9 +4,11 @@ on:
     branches:
       - main
       - minor
+      - major
   push:
     branches:
       - main
+      - major
 
 jobs:
   patch-test-environment:
@@ -102,7 +104,7 @@ jobs:
     needs:
       - tests
     # And only on a push event, not a pull_request.
-    if: ${{ github.event_name == 'push' }}
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -136,4 +138,47 @@ jobs:
       - name: Upload the activity-browser-dev package
         run: |
           anaconda -t ${{ secrets.CONDA_UPLOAD_TOKEN }} upload \
+          /usr/share/miniconda/envs/build/conda-bld/noarch/*.conda
+
+  deploy-beta:
+    # Make sure to only run a deploy if all tests pass.
+    needs:
+      - tests
+    # And only on a push event, not a pull_request.
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/major' }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -l {0}
+    env:
+      PKG_NAME: "activity-browser-beta"
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: "0"
+      - name: Build and deploy 3.11
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          python-version: 3.11
+          activate-environment: build
+          environment-file: .github/conda-envs/build.yml
+      - name: Export version
+        run: |
+          ID=$(git rev-list 2.11.0..HEAD --count)
+          VERSION="3.b.${ID}"
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+      - name: Patch recipe with run requirements from stable
+        uses: mikefarah/yq@master
+        # Adds the run dependencies from the stable recipe to the dev recipe (inplace)
+        with:
+          cmd: |
+            yq eval-all -i 'select(fi == 0).requirements.run += select(fi == 1).requirements.run | select(fi == 0)' .github/dev-recipe/meta.yaml recipe/meta.yaml
+      - name: Show patched dev recipe
+        run: cat .github/dev-recipe/meta.yaml
+      - name: Build beta package
+        run: |
+          conda build .github/dev-recipe/
+      - name: Upload the activity-browser-dev package
+        run: |
+          anaconda -t ${{ secrets.CONDA_MRVISSCHER }} upload \
           /usr/share/miniconda/envs/build/conda-bld/noarch/*.conda
