@@ -43,7 +43,7 @@ class ExchangeItem(ABDataItem):
 
         if key.startswith("property_") and self[key]["normalize"]:
             prop = self[key].copy()
-            prop["unit"] = prop["unit"] + f" / {self["unit"]}"
+            prop["unit"] = prop['unit'] + f" / {self['unit']}"
             return prop
 
         return super().displayData(col, key)

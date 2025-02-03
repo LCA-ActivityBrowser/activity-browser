@@ -12,7 +12,7 @@ class PropertyDelegate(QtWidgets.QStyledItemDelegate):
         if sorted(value.keys()) != ["amount", "normalize", "unit"]:
             return "Faulty property"
 
-        display = f"{value["amount"]} {value["unit"]}"
+        display = f"{value['amount']} {value['unit']}"
         return display
 
     def createEditor(self, parent, option, index):

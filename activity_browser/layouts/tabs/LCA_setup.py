@@ -120,7 +120,7 @@ class LCASetupTab(QtWidgets.QWidget):
 
         self.calculate_button = QtWidgets.QPushButton(qicons.calculate, "Calculate")
         self.calculation_type = QtWidgets.QComboBox()
-        self.calculation_type.addItems(["Standard LCA", "Scenario LCA", "Regional LCA"])
+        self.calculation_type.addItems(["Standard LCA", "Scenario LCA"])
 
         name_row = QtWidgets.QHBoxLayout()
         name_row.addWidget(header("Calculation Setup:"))
@@ -206,12 +206,6 @@ class LCASetupTab(QtWidgets.QWidget):
             data = {
                 "cs_name": self.list_widget.name,
                 "calculation_type": "simple",
-            }
-        elif calc_type == self.REGIONAL:
-            # Standard LCA
-            data = {
-                "cs_name": self.list_widget.name,
-                "calculation_type": "regional",
             }
         elif calc_type == self.SCENARIOS:
             # Scenario LCA

@@ -3,7 +3,6 @@ import json
 import tarfile
 from logging import getLogger
 
-from PySide6.QtWidgets import QFileDialog
 from qtpy import QtWidgets, QtCore
 
 from activity_browser import application

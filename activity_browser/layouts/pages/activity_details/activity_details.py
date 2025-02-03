@@ -6,6 +6,7 @@ from qtpy import QtCore, QtWidgets, QtGui
 from qtpy.QtCore import Qt
 
 import bw2data as bd
+import bw_functional as bf
 
 from activity_browser import signals, actions
 from activity_browser.bwutils import AB_metadata, refresh_node
@@ -32,7 +33,6 @@ EXCHANGE_MAP = {
 
 
 class ActivityDetails(QtWidgets.QWidget):
-    _populate_later_flag = False
 
     def __init__(self, activity: tuple | int | bd.Node, parent=None):
         super().__init__(parent)
@@ -95,12 +95,9 @@ class ActivityDetails(QtWidgets.QWidget):
         def slot():
             self._populate_later_flag = False
             self.sync()
+            self.thread().eventDispatcher().awake.disconnect(slot)
 
-        if self._populate_later_flag:
-            return
-
-        self.thread().eventDispatcher().awake.connect(slot, Qt.ConnectionType.SingleShotConnection)
-        self._populate_later_flag = True
+        self.thread().eventDispatcher().awake.connect(slot, Qt.ConnectionType.UniqueConnection)
 
     def sync(self):
         self.activity = refresh_node(self.activity)
@@ -251,7 +248,10 @@ class ConsumersTab(QtWidgets.QWidget):
     def sync(self):
         self.activity = refresh_node(self.activity)
         exchanges = []
-        for function in self.activity.functions():
-            exchanges += list(function.upstream())
+        if isinstance(self.activity, bf.Process):
+            for function in self.activity.functions():
+                exchanges += list(function.upstream())
+        else:
+            exchanges = list(self.activity.upstream())
 
         self.model.setDataFrame(pd.DataFrame(exchanges))
