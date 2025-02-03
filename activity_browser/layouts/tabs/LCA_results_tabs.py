@@ -81,7 +81,7 @@ def get_unit(method: tuple, relative: bool = False) -> str:
 
 # Special namedtuple for the LCAResults TabWidget.
 Tabs = namedtuple(
-    "tabs", ("inventory", "results", "ef", "process", "ft", "sankey", "mc", "gsa")
+    "tabs", ("inventory", "results", "ef", "process", "ft", "sankey", "tree", "mc", "gsa")
 )
 Relativity = namedtuple("relativity", ("relative", "absolute"))
 TotalMenu = namedtuple("total_menu", ("range", "score"))
