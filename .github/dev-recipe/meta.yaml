@@ -15,7 +15,7 @@ build:
     - PKG_NAME
     - VERSION
   entry_points:
-    - activity-browser = activity_browser:run_activity_browser
+    - activity-browser = activity_browser_beta:run_activity_browser
     - activity-browser-cleanup = activity_browser.bwutils:cleanup
 
 requirements:
