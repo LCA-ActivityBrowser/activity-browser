@@ -36,6 +36,5 @@ def run_activity_browser():
     print("______________________________________")
     if ab and environ.get("CONDA_DEFAULT_ENV"):
         print("Updating activity-browser-beta")
-        cli.main("update", "activity-browser-beta")
-
+        cli.main("update", "-c", "mrvisscher", "activity-browser-beta",)
     run()
