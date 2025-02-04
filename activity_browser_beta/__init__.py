@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from importlib import metadata
 from os import environ
+from conda import cli
 import subprocess
 import requests
 
@@ -34,8 +35,6 @@ def run_activity_browser():
     print("______________________________________")
     if ab and environ.get("CONDA_DEFAULT_ENV"):
         print("Updating activity-browser-beta")
-        proc = subprocess.run(["conda", "update", "activity-browser-beta"])
-        if proc.returncode != 0:
-            print("Update failed, try updating manually")
+        cli.main("update activity-browser-beta")
 
     run()

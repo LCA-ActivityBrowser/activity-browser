@@ -25,6 +25,7 @@ requirements:
     - setuptools
   run:
     - python >=3.10, <3.12
+    - conda
     - arrow
     - bw2analyzer >=0.11.5
     - bw2data >=4.1
