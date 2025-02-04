@@ -2,7 +2,6 @@
 from importlib import metadata
 from os import environ
 from conda import cli
-import subprocess
 import requests
 
 
@@ -15,9 +14,11 @@ def check_ab_update() -> bool:
         print("Could not fetch latest activity browser beta version")
         return False
 
-    print(f"activity_browser_beta: {ab_current} x {ab_response.json()['latest_version']}")
+    ab_latest = ab_response.json()['latest_version'].replace(".", "")
 
-    if ab_current == "0.0.0" or ab_current == ab_response.json()['latest_version']:
+    print(f"activity_browser_beta: {ab_current} x {ab_latest}")
+
+    if ab_current == "0.0.0" or ab_current == ab_latest:
         return False
     return True
 
@@ -35,6 +36,6 @@ def run_activity_browser():
     print("______________________________________")
     if ab and environ.get("CONDA_DEFAULT_ENV"):
         print("Updating activity-browser-beta")
-        cli.main("update activity-browser-beta")
+        cli.main("update", "activity-browser-beta")
 
     run()
