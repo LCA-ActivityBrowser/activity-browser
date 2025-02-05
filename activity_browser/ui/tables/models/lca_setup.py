@@ -220,7 +220,9 @@ class CSMethodsModel(CSGenericModel):
         Synchronize the methods table for the current calculation setup. Any methods that are not present in
         the cs_controller will be omitted.
         """
-        assert self.current_cs, "CS Model not yet loaded"
+        if not self.current_cs:
+            log.debug(f"{self.__class__.__name__}: Tried syncing without being loaded first")
+            return
 
         # collect all method tuples from calculation setup that are also actually available
         method_tuples = [
