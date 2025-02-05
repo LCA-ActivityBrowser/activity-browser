@@ -16,8 +16,8 @@ log = getLogger(__name__)
 
 
 DEFAULT_STATE = {
-    "columns": ["Activity", "Product", "Type", "Unit", "Location"],
-    "visible_columns": ["Activity", "Product", "Type", "Unit", "Location"],
+    "columns": ["activity", "product", "Type", "Unit", "Location"],
+    "visible_columns": ["activity", "product", "type", "unit", "location"],
 }
 
 
@@ -70,44 +70,62 @@ class DatabaseProductViewer(QtWidgets.QWidget):
 
     def build_df(self) -> pd.DataFrame:
         t = time()
-        full_df = AB_metadata.get_database_metadata(self.database.name)
+        cols = ["name", "key", "processor", "product", "type", "unit", "location", "id", "categories", "properties"]
+        if self.database.name in AB_metadata.databases:
+            full_df = AB_metadata.dataframe.loc[self.database.name].reindex(cols, axis="columns")
+        else:
+            full_df = pd.DataFrame(columns=cols)
+        full_df["processor"] = full_df["processor"].astype(object)
 
-        expected = ["processor", "product", "type", "unit", "location", "id", "categories"]
-        for column_name in expected:
-            if column_name not in full_df.columns:
-                full_df[column_name] = None
+        df = full_df.merge(
+            full_df[["name", "key"]].rename({"name": "processor_name", "key": "processor_key"}, axis="columns"),
+            left_on="processor",
+            right_on="processor_key",
+            how="left",
+        )
 
-        with_processor = full_df[full_df.processor.isin(full_df.key)].copy()
-        with_processor["process_name"] = full_df.loc[with_processor.processor].set_index(with_processor.index).name
-        with_processor["process_id"] = full_df.loc[with_processor.processor].set_index(with_processor.index).id
+        # "activity"
+        # node.name by default, but processor.name in case of a Function
+        df["activity"] = df["name"]
+        df.update(df["processor_name"].rename("activity"))
 
-        no_processor = full_df[full_df.processor.isin(full_df.key) == False].copy()
-        no_processor.drop(no_processor[no_processor.key.isin(with_processor.processor)].index, inplace=True)
-        no_processor.drop(no_processor[no_processor.type == "readonly_process"].index, inplace=True)
+        # "product"
+        # node.name for "product"-types, overwritten by node.product
+        df["product_name"] = df[df.type == "product"]["name"]
+        df.update(df["product"].rename("product_name"))
+        df["product"] = df["product_name"]
 
-        final = pd.DataFrame({
-            "Activity": list(with_processor["process_name"]) + list(no_processor["name"]),
-            "Product": list(with_processor["name"]) + list(no_processor["product"]),
-            "Type": list(with_processor["type"]) + list(no_processor["type"]),
-            "Unit": list(with_processor["unit"]) + list(no_processor["unit"]),
-            "Location": list(with_processor["location"]) + list(no_processor["location"]),
-            "Categories": list(with_processor["categories"]) + list(no_processor["categories"]),
-            "Product Key": list(with_processor["key"]) + [None] * len(no_processor),
-            "Product ID": list(with_processor["id"]) + [None] * len(no_processor),
-            "Activity Key": list(with_processor["processor"]) + list(no_processor["key"]),
-            "Activity ID": list(with_processor["process_id"]) + list(no_processor["id"]),
-        })
+        # "activity_key"
+        # activity that's opened on double click
+        # node.key by default, but node.processor in case of a Function
+        df["activity_key"] = df["key"]
+        df.update(df["processor"].rename("activity_key"))
 
-        if "properties" in with_processor.columns:
-            for key, props in with_processor["properties"].dropna().items():
-                if not isinstance(props, dict):
-                    continue
+        # "function_key"
+        # only available for functions
+        df["function_key"] = df[pd.notna(df.processor)]["key"]
 
-                for prop, value in props.items():
-                    final.loc[final["Product Key"] == key, f"Property: {prop}"] = value
+        # drop all processes that have functions
+        df = df.drop(df[df.key.isin(df.processor)].index)
+
+        if not df.properties.isna().all():
+            props_df = df[df.properties.notna()]
+            props_df = pd.DataFrame(list(props_df.get("properties")), index=props_df.key)
+            props_df.rename(lambda col: f"property_{col}", axis="columns", inplace=True)
+
+            df = df.merge(
+                props_df,
+                left_on="key",
+                right_index=True,
+                how="left",
+            )
+
+        cols = ["activity", "product", "type", "unit", "location", "categories", "activity_key", "function_key"]
+        cols += [col for col in df.columns if col.startswith("property")]
 
         log.debug(f"Built DatabaseProductViewer dataframe in {time() - t:.2f} seconds")
-        return final
+
+        return df[cols]
 
     def event(self, event):
         if event.type() == QtCore.QEvent.Type.DeferredDelete:
@@ -121,7 +139,7 @@ class DatabaseProductViewer(QtWidgets.QWidget):
         project_settings.write_settings()
 
     def get_state_from_settings(self):
-        return project_settings.settings.get("database_explorer", {}).get(self.database.name, DEFAULT_STATE)
+        return DEFAULT_STATE
 
     def search_error(self, reset=False):
         if reset:
@@ -135,7 +153,7 @@ class DatabaseProductViewer(QtWidgets.QWidget):
 
 class ProductView(ui.widgets.ABTreeView):
     defaultColumnDelegates = {
-        "Categories": delegates.ListDelegate
+        "categories": delegates.ListDelegate
     }
 
     class ContextMenu(ui.widgets.ABTreeView.ContextMenu):
@@ -236,26 +254,26 @@ class ProductView(ui.widgets.ABTreeView):
     @property
     def selected_products(self) -> [tuple]:
         items = [i.internalPointer() for i in self.selectedIndexes() if isinstance(i.internalPointer(), ProductItem)]
-        return list({item["Product Key"] for item in items if item["Product Key"] is not None})
+        return list({item["function_key"] for item in items if item["function_key"] is not None})
 
     @property
     def selected_activities(self) -> [tuple]:
         items = [i.internalPointer() for i in self.selectedIndexes() if isinstance(i.internalPointer(), ProductItem)]
-        return list({item["Activity Key"] for item in items if item["Activity Key"] is not None})
+        return list({item["activity_key"] for item in items if item["activity_key"] is not None})
 
 
 class ProductItem(ui.widgets.ABDataItem):
     def decorationData(self, col, key):
-        if key == "Activity" and self["Activity"]:
-            if self["Type"] == "processwithreferenceproduct":
+        if key == "activity" and self["activity"]:
+            if self["type"] == "processwithreferenceproduct":
                 return ui.icons.qicons.processproduct
-            if self["Type"] in NODETYPES["biosphere"]:
+            if self["type"] in NODETYPES["biosphere"]:
                 return ui.icons.qicons.biosphere
             return ui.icons.qicons.process
-        if key == "Product":
-            if self["Type"] in ["product", "processwithreferenceproduct"]:
+        if key == "product":
+            if self["type"] in ["product", "processwithreferenceproduct"]:
                 return ui.icons.qicons.product
-            elif self["Type"] == "waste":
+            elif self["type"] == "waste":
                 return ui.icons.qicons.waste
 
     def flags(self, col: int, key: str):
@@ -267,8 +285,8 @@ class ProductModel(ui.widgets.ABAbstractItemModel):
 
     def mimeData(self, indices: [QtCore.QModelIndex]):
         data = core.ABMimeData()
-        keys = set(self.values_from_indices("Activity Key", indices))
-        keys.update(self.values_from_indices("Product Key", indices))
+        keys = set(self.values_from_indices("activity_key", indices))
+        keys.update(self.values_from_indices("function_key", indices))
         data.setPickleData("application/bw-nodekeylist", list(keys))
         return data
 

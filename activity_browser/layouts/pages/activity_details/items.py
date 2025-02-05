@@ -41,6 +41,13 @@ class ExchangeItem(ABDataItem):
         if key.startswith("property_") and not self.functional:
             return None
 
+        if key.startswith("property_") and isinstance(self[key], float):
+            return {
+                "amount": self[key],
+                "unit": "undefined",
+                "normalize": False,
+            }
+
         if key.startswith("property_") and self[key]["normalize"]:
             prop = self[key].copy()
             prop["unit"] = prop['unit'] + f" / {self['unit']}"
