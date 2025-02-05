@@ -1,9 +1,35 @@
 from qtpy import QtWidgets
-from qtpy.QtCore import Slot
+from qtpy.QtCore import QTimer, Slot, Signal, SignalInstance
 from qtpy.QtGui import QTextFormat
 from qtpy.QtWidgets import QCompleter
 
 from activity_browser import actions
+
+
+class ABLineEdit(QtWidgets.QLineEdit):
+    textChangedDebounce: SignalInstance = Signal(str)
+    _debounce_ms = 250
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self._debounce_timer = QTimer(self, singleShot=True)
+
+        self.textChanged.connect(self._set_debounce)
+        self._debounce_timer.timeout.connect(self._emit_debounce)
+
+    def _set_debounce(self):
+        self._debounce_timer.setInterval(self._debounce_ms)
+        self._debounce_timer.start()
+
+    def _emit_debounce(self):
+        self.textChangedDebounce.emit(self.text())
+
+    def debounce(self):
+        return self._debounce_ms
+
+    def setDebounce(self, ms: int):
+        self._debounce_ms = ms
 
 
 class SignalledLineEdit(QtWidgets.QLineEdit):

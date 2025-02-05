@@ -9,7 +9,7 @@ from .dialog import (ActivityLinkingDialog, ActivityLinkingResultsDialog,
                      ExcelReadDialog, ForceInputDialog, LocationLinkingDialog,
                      ScenarioDatabaseDialog,
                      TupleNameDialog)
-from .line_edit import (SignalledComboEdit, SignalledLineEdit,
+from .line_edit import (ABLineEdit, SignalledComboEdit, SignalledLineEdit,
                         SignalledPlainTextEdit)
 from .message import parameter_save_errorbox, simple_warning_box
 from .tag_editor import TagEditor

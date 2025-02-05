@@ -8,7 +8,7 @@ from qtpy.QtCore import Qt
 import bw2data as bd
 
 from activity_browser import actions, ui, project_settings, application, signals
-from activity_browser.ui import core
+from activity_browser.ui import core, widgets
 from activity_browser.bwutils import AB_metadata
 
 log = getLogger(__name__)
@@ -40,11 +40,11 @@ class DatabaseProductViewer(QtWidgets.QWidget):
         self.table_view.setModel(self.model)
         self.table_view.restoreSate(self.get_state_from_settings(), self.build_df())
 
-        self.search = QtWidgets.QLineEdit(self)
+        self.search = widgets.ABLineEdit(self)
         self.search.setMaximumHeight(30)
         self.search.setPlaceholderText("Quick Search")
 
-        self.search.textChanged.connect(self.table_view.setAllFilter)
+        self.search.textChangedDebounce.connect(self.table_view.setAllFilter)
 
         table_layout = QtWidgets.QHBoxLayout()
         table_layout.setSpacing(0)
