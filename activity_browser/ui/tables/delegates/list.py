@@ -61,9 +61,10 @@ class ListDelegate(QtWidgets.QStyledItemDelegate):
     """For managing and validating entered string values
     https://stackoverflow.com/a/40275439
     """
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
+    def displayText(self, value, locale):
+        if not isinstance(value, (list, tuple)):
+            return str(value)
+        return " > ".join(value)
 
     def createEditor(self, parent, option, index):
         editor = QtWidgets.QWidget(parent)

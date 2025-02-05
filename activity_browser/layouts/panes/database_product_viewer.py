@@ -9,6 +9,7 @@ import bw2data as bd
 
 from activity_browser import actions, ui, project_settings, application, signals
 from activity_browser.ui import core, widgets
+from activity_browser.ui.tables import delegates
 from activity_browser.bwutils import AB_metadata
 
 log = getLogger(__name__)
@@ -133,6 +134,9 @@ class DatabaseProductViewer(QtWidgets.QWidget):
 
 
 class ProductView(ui.widgets.ABTreeView):
+    defaultColumnDelegates = {
+        "Categories": delegates.ListDelegate
+    }
 
     class ContextMenu(ui.widgets.ABTreeView.ContextMenu):
         def __init__(self, pos, view: "ProductView"):
