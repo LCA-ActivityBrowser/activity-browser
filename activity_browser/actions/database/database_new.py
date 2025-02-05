@@ -38,7 +38,7 @@ class DatabaseNew(ABAction):
             return
 
         db = bd.Database(name, "functional_sqlite")
-        db.register()
+        db.register(searchable=False)
         project_settings.add_db(name, False)
 
         signals.database_selected.emit(name)
