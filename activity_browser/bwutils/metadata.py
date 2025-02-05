@@ -65,8 +65,8 @@ class MetaDataStore(QObject):
         signals.project.changed.connect(self.sync)
         signals.node.changed.connect(self.on_node_changed)
         signals.node.deleted.connect(self.on_node_deleted)
-        signals.database.deleted.connect(lambda name: self.sync_database(name))
-        signals.database.written.connect(lambda name: self.sync_database(name))
+        signals.meta.databases_changed.connect(self.sync_databases)
+        signals.database.deleted.connect(self.sync_databases)
 
     def on_node_deleted(self, ds):
         try:
@@ -143,17 +143,25 @@ class MetaDataStore(QObject):
 
         return self._parse_df(node_df)
 
-    def sync_database(self, db_name: str) -> None:
-        if db_name in self.databases:
+    def sync_databases(self) -> None:
+        sync = False
+
+        for db_name in [x for x in self.databases if x not in bd.databases]:
+            # deleted databases
             self.dataframe.drop(db_name, level=0, inplace=True)
+            sync = True
 
-        data = self._get_database(db_name)
-        if data is None:
-            return
+        for db_name in [x for x in bd.databases if x not in self.databases]:
+            # new databases
+            data = self._get_database(db_name)
+            if data is None:
+                continue
 
-        self.dataframe = pd.concat([self.dataframe, data], join="outer")
+            self.dataframe = pd.concat([self.dataframe, data], join="outer")
+            sync = True
 
-        self.synced.emit()
+        if sync:
+            self.thread().eventDispatcher().awake.connect(self._emitSyncLater, Qt.ConnectionType.UniqueConnection)
 
     def _get_database(self, db_name: str) -> pd.DataFrame | None:
         con = sqlite3.connect(sqlite3_lci_db._filepath)
