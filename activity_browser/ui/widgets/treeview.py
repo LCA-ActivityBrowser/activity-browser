@@ -14,6 +14,8 @@ class ABTreeView(QtWidgets.QTreeView):
     # fired when the filter is applied, fires False when an exception happens during querying
     filtered: QtCore.SignalInstance = QtCore.Signal(bool)
 
+    defaultColumnDelegates = {}
+
     class HeaderMenu(QtWidgets.QMenu):
         def __init__(self, pos: QtCore.QPoint, view: "ABTreeView"):
             super().__init__(view)
@@ -92,6 +94,8 @@ class ABTreeView(QtWidgets.QTreeView):
         super().setModel(model)
 
         model.modelReset.connect(self.expand_after_reset)
+        model.modelAboutToBeReset.connect(self.clearColumnDelegates)
+        model.modelReset.connect(self.setDefaultColumnDelegates)
 
     def model(self) -> ABAbstractItemModel:
         return super().model()
@@ -169,6 +173,20 @@ class ABTreeView(QtWidgets.QTreeView):
     @staticmethod
     def format_query(query: str) -> str:
         return query.translate(str.maketrans({'(': '\\(', ')': '\\)', "'": "\\'"}))
+
+    # === Functionality related to setting the column delegates
+    def clearColumnDelegates(self):
+        for i in range(self.model().columnCount()):
+            self.setItemDelegateForColumn(i, None)
+
+    def setDefaultColumnDelegates(self):
+        columns = self.model().columns()
+        for i, col_name in enumerate(columns):
+            if col_name in self.defaultColumnDelegates:
+                delegate = self.defaultColumnDelegates[col_name](self)
+                self.setItemDelegateForColumn(i, delegate)
+            # elif col_name.startswith("property_"):
+            #     self.setItemDelegateForColumn(i, self.propertyDelegate)
 
     # === Functionality related to saving and restoring the View's state
 

@@ -22,17 +22,17 @@ EXCHANGE_MAP = {
 
 
 class ExchangeView(ABTreeView):
-    column_delegates = {
-        "amount": "float",
-        "allocation_factor": "float",
-        "substitution_factor": "float",
-        "unit": "string",
-        "name": "string",
-        "location": "string",
-        "product": "string",
-        "formula": "string",
-        "comment": "string",
-        "uncertainty": "uncertainty",
+    defaultColumnDelegates = {
+        "amount": delegates.FloatDelegate,
+        "allocation_factor": delegates.FloatDelegate,
+        "substitution_factor": delegates.FloatDelegate,
+        "unit": delegates.StringDelegate,
+        "name": delegates.StringDelegate,
+        "location": delegates.StringDelegate,
+        "product": delegates.StringDelegate,
+        "formula": delegates.StringDelegate,
+        "comment": delegates.StringDelegate,
+        "uncertainty": delegates.UncertaintyDelegate,
     }
     hovered_item: ExchangeItem | None = None
 
@@ -105,38 +105,25 @@ class ExchangeView(ABTreeView):
                     self.remove_sub_action = actions.FunctionSubstituteRemove.get_QAction(item.exchange.input)
                     self.addAction(self.remove_sub_action)
 
-
     def __init__(self, parent):
         super().__init__(parent)
         self.setAcceptDrops(True)
         self.setSortingEnabled(True)
 
-        self.floatDelegate = delegates.FloatDelegate(self)
-        self.stringDelegate = delegates.StringDelegate(self)
-        self.uncertaintyDelegate = delegates.UncertaintyDelegate(self)
         self.propertyDelegate = PropertyDelegate(self)
 
     @property
     def activity(self):
         return self.parent().activity
 
-    def setModel(self, model):
-        super().setModel(model)
-        self.model().modelAboutToBeReset.connect(self.reset_column_delegates)
-        self.model().modelReset.connect(self.set_column_delegates)
+    def setDefaultColumnDelegates(self):
+        super().setDefaultColumnDelegates()
 
-    def reset_column_delegates(self):
-        for i in range(25):
-            self.setItemDelegateForColumn(i, None)
-
-    def set_column_delegates(self):
         columns = self.model().columns()
         for i, col_name in enumerate(columns):
-            if col_name in self.column_delegates:
-                delegate = getattr(self, f"{self.column_delegates[col_name]}Delegate")
-                self.setItemDelegateForColumn(i, delegate)
-            elif col_name.startswith("property_"):
-                self.setItemDelegateForColumn(i, self.propertyDelegate)
+            if not col_name.startswith("property_"):
+                continue
+            self.setItemDelegateForColumn(i, self.propertyDelegate)
 
     def dragMoveEvent(self, event) -> None:
         index = self.indexAt(event.pos())
