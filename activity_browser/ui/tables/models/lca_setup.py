@@ -277,7 +277,6 @@ class CSMethodsModel(CSGenericModel):
                 continue
 
             method = bd.Method(method_tuple)
-            method.changed.disconnect(self.sync)
             del self._methods[method.name]
 
         self._dataframe = self._dataframe.drop(rows).reset_index(drop=True)
