@@ -158,6 +158,12 @@ def ab_import_ecoinvent_release(version, system_model):
                     )
                     unmatched.add(row["name"])
 
+    from activity_browser import signals
+    from bw2data import methods
+    signals.meta.blockSignals(True)
+    signals.method.blockSignals(True)
+    old = methods.data.copy()
+
     for key in pyprind.prog_bar(lcia_data_as_dict, title="Writing LCIA methods"):
         method = bd.Method(key)
         method.register(
@@ -167,3 +173,7 @@ def ab_import_ecoinvent_release(version, system_model):
             database="biosphere3",
         )
         method.write(lcia_data_as_dict[key])
+
+    signals.meta.blockSignals(False)
+    signals.method.blockSignals(False)
+    signals.meta.methods_changed.emit(old, methods.data)
