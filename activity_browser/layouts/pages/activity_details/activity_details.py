@@ -3,7 +3,6 @@ from logging import getLogger
 import pandas as pd
 
 from qtpy import QtCore, QtWidgets, QtGui
-from qtpy.QtCore import Qt
 
 import bw2data as bd
 import bw_functional as bf
@@ -14,8 +13,8 @@ from activity_browser.ui import widgets as ABwidgets
 from activity_browser.ui.web import GraphNavigatorWidget
 
 from .activity_data import ActivityData
-from .views import ExchangeView
-from .models import ExchangeModel
+from .views import ExchangesView, ConsumersView
+from .models import ExchangesModel, ConsumersModel
 
 log = getLogger(__name__)
 
@@ -123,13 +122,13 @@ class ExchangesTab(QtWidgets.QWidget):
         self.activity = refresh_node(activity)
 
         # Output Table
-        self.output_view = ExchangeView(self)
-        self.output_model = ExchangeModel(self)
+        self.output_view = ExchangesView(self)
+        self.output_model = ExchangesModel(self)
         self.output_view.setModel(self.output_model)
 
         # Input Table
-        self.input_view = ExchangeView(self)
-        self.input_model = ExchangeModel(self)
+        self.input_view = ExchangesView(self)
+        self.input_model = ExchangesModel(self)
         self.input_view.setModel(self.input_model)
 
         self.build_layout()
@@ -238,8 +237,8 @@ class ConsumersTab(QtWidgets.QWidget):
 
         self.activity = refresh_node(activity)
 
-        self.view = ABwidgets.ABTreeView(self)
-        self.model = ABwidgets.ABAbstractItemModel(self)
+        self.view = ConsumersView(self)
+        self.model = ConsumersModel(self)
         self.view.setModel(self.model)
 
         self.build_layout()
@@ -260,4 +259,28 @@ class ConsumersTab(QtWidgets.QWidget):
         else:
             exchanges = list(self.activity.upstream())
 
-        self.model.setDataFrame(pd.DataFrame(exchanges))
+        self.model.setDataFrame(self.build_df(exchanges))
+
+    def build_df(self, exchanges):
+        exc_df = pd.DataFrame(exchanges, columns=["amount", "input", "output"])
+        input_df = AB_metadata.get_metadata(exc_df["input"].unique(), ["name", "type", "unit", "key"])
+        output_df = AB_metadata.get_metadata(exc_df["output"].unique(), ["name", "type", "key"])
+
+        df = exc_df.merge(
+            input_df.rename({"name": "producer", "type": "_producer_type"}, axis="columns"),
+            left_on="input",
+            right_on="key",
+        ).drop(columns=["key"])
+
+        df = df.merge(
+            output_df.rename({"name": "consumer", "type": "_consumer_type"}, axis="columns"),
+            left_on="output",
+            right_on="key",
+        ).drop(columns=["key"])
+
+        df = df.rename({"input": "_producer_key", "output": "_consumer_key"}, axis="columns")
+
+        cols = ["amount", "unit", "producer", "consumer"]
+        cols += [col for col in df.columns if col.startswith("_")]
+
+        return df[cols]

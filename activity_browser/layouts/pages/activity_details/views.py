@@ -10,7 +10,7 @@ from activity_browser.ui.widgets import ABTreeView
 from activity_browser.ui.tables import delegates
 
 from .delegates import PropertyDelegate
-from .items import ExchangeItem
+from .items import ExchangesItem, ConsumersItem
 
 log = getLogger(__name__)
 
@@ -21,7 +21,7 @@ EXCHANGE_MAP = {
 }
 
 
-class ExchangeView(ABTreeView):
+class ExchangesView(ABTreeView):
     defaultColumnDelegates = {
         "amount": delegates.FloatDelegate,
         "allocation_factor": delegates.FloatDelegate,
@@ -34,10 +34,10 @@ class ExchangeView(ABTreeView):
         "comment": delegates.StringDelegate,
         "uncertainty": delegates.UncertaintyDelegate,
     }
-    hovered_item: ExchangeItem | None = None
+    hovered_item: ExchangesItem | None = None
 
     class HeaderMenu(QtWidgets.QMenu):
-        def __init__(self, pos: QtCore.QPoint, view: "ExchangeView"):
+        def __init__(self, pos: QtCore.QPoint, view: "ExchangesView"):
             super().__init__(view)
 
             model = view.model()
@@ -88,7 +88,7 @@ class ExchangeView(ABTreeView):
                 self.addAction(self.set_alloc)
 
     class ContextMenu(QtWidgets.QMenu):
-        def __init__(self, pos, view: "ExchangeView"):
+        def __init__(self, pos, view: "ExchangesView"):
             super().__init__(view)
 
             self.add_product_action = actions.ActivityNewProduct.get_QAction(view.activity.key)
@@ -96,7 +96,7 @@ class ExchangeView(ABTreeView):
 
             index = view.indexAt(pos)
             if index.isValid():
-                item: ExchangeItem = index.internalPointer()
+                item: ExchangesItem = index.internalPointer()
 
                 self.delete_exc_action = actions.ExchangeDelete.get_QAction([item.exchange])
                 self.addAction(self.delete_exc_action)
@@ -132,13 +132,13 @@ class ExchangeView(ABTreeView):
         if self.hovered_item:
             if item == self.hovered_item:
                 pass
-            elif isinstance(item, ExchangeItem):
+            elif isinstance(item, ExchangesItem):
                 self.hovered_item.background_color = None
                 self.hovered_item = item
             else:
                 self.hovered_item.background_color = None
                 self.hovered_item = None
-        elif isinstance(item, ExchangeItem):
+        elif isinstance(item, ExchangesItem):
             self.hovered_item = item
 
         if self.hovered_item and self.hovered_item.acceptsDragDrop(event):
@@ -184,4 +184,12 @@ class ExchangeView(ABTreeView):
 
         for exc_type, keys in exchanges.items():
             actions.ExchangeNew.run(keys, self.activity.key, exc_type)
+
+
+class ConsumersView(ABTreeView):
+    def mouseDoubleClickEvent(self, event) -> None:
+        items = [i.internalPointer() for i in self.selectedIndexes() if isinstance(i.internalPointer(), ConsumersItem)]
+        keys = list({i["_consumer_key"] for i in items})
+        if keys:
+            actions.ActivityOpen.run(keys)
 
