@@ -59,7 +59,7 @@ class ActivityDetails(QtWidgets.QWidget):
         self.tabs.addTab(self.consumer_tab, "Consumers")
 
         self.explorer = QtWidgets.QLabel("WORK IN PROGRESS")
-        self.tabs.addTab(self.explorer, "Activity Explorer")
+        self.tabs.addTab(self.explorer, "Data")
 
         self.build_layout()
         self.sync()
