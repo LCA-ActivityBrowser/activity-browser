@@ -31,8 +31,6 @@ class ActivityData(QtWidgets.QWidget):
         setup = {
             "Name:": ActivityName(self),
             "Location:": ActivityLocation(self),
-            "Type:": QtWidgets.QLabel(self.activity["type"], self),
-            "Database:": QtWidgets.QLabel(self.activity["database"], self),
             "Properties:": ActivityProperties(self),
             "Allocation:": ActivityAllocation(self),
         }
