@@ -16,7 +16,7 @@ log = getLogger(__name__)
 class ProjectManager(QtWidgets.QWidget):
 
     def __init__(self, parent=None):
-        super().__init__(parent, QtCore.Qt.WindowType.Window)
+        super().__init__(parent, QtCore.Qt.WindowType.Dialog)
         self.setWindowTitle("Project Manager")
         self.setWindowModality(QtCore.Qt.WindowModality.WindowModal)
 
@@ -102,7 +102,7 @@ class ProjectView(widgets.ABTreeView):
 
             if len(items) == 1:
                 self.dup_project = actions.ProjectDuplicate.get_QAction(items[0]["Name"])
-                self.template_project = actions.ProjectCreateTemplate.get_QAction(items[0]["Name"])
+                self.template_project = actions.ProjectCreateTemplate.get_QAction(items[0]["Name"], view.parent())
                 self.addAction(self.dup_project)
                 self.addAction(self.template_project)
 
@@ -140,7 +140,7 @@ class TemplateView(widgets.ABTreeView):
         def __init__(self, pos, view: "ProductView"):
             super().__init__(pos, view)
 
-            items = list({index.internalPointer() for index in self.selectedIndexes()})
+            items = list({index.internalPointer() for index in view.selectedIndexes()})
 
 
 

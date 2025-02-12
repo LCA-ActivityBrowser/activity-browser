@@ -25,14 +25,14 @@ class ProjectCreateTemplate(ABAction):
 
     @staticmethod
     @exception_dialogs
-    def run(project_name: str = None):
+    def run(project_name: str = None, parent=None):
         """Export the current project to a folder chosen by the user."""
         if project_name is None:
             project_name = bd.projects.current
 
         # get target path from the user
         template_name, ok = QtWidgets.QInputDialog.getText(
-            application.main_window,
+            parent if parent else application.main_window,
             "Create template from project",
             f"Creating new template from project ({project_name}):"
             + " " * 10,
@@ -57,7 +57,7 @@ class ProjectCreateTemplate(ABAction):
 
         # setup dialog
         progress = QtWidgets.QProgressDialog(
-            parent=application.main_window,
+            parent=parent if parent else application.main_window,
             labelText="Creating template",
             maximum=0
         )
