@@ -287,6 +287,7 @@ class ProductModel(ui.widgets.ABAbstractItemModel):
         data = core.ABMimeData()
         keys = set(self.values_from_indices("activity_key", indices))
         keys.update(self.values_from_indices("function_key", indices))
+        keys = {key for key in keys if isinstance(key, tuple)}
         data.setPickleData("application/bw-nodekeylist", list(keys))
         return data
 
