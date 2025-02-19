@@ -8,12 +8,12 @@ from qtpy import QtCore, QtWidgets, QtGui
 import bw2data as bd
 import bw_functional as bf
 
-from activity_browser import signals, actions, static
+from activity_browser import signals, actions
 from activity_browser.bwutils import AB_metadata, refresh_node
 from activity_browser.ui import widgets as ABwidgets
-from activity_browser.ui.web import GraphNavigatorWidget
 
 from .activity_data import ActivityData
+from .graph_tab import GraphTab
 from .views import ExchangesView, ConsumersView
 from .models import ExchangesModel, ConsumersModel
 
@@ -50,7 +50,7 @@ class ActivityDetails(QtWidgets.QWidget):
         self.description_tab = DescriptionTab(activity, self)
         self.tabs.addTab(self.description_tab, "Description")
 
-        self.graph_explorer = GraphTab(self, key=self.activity.key)
+        self.graph_explorer = GraphTab(self)
         self.tabs.addTab(self.graph_explorer, "Graph")
 
         self.parameters_tab = QtWidgets.QLabel("WORK IN PROGRESS")
@@ -230,15 +230,6 @@ class DescriptionTab(QtWidgets.QTextEdit):
         if self.toPlainText() == self.activity.get("comment", ""):
             return
         actions.ActivityModify.run(self.activity, "comment", self.toPlainText())
-
-
-class GraphTab(GraphNavigatorWidget):
-
-    HTML_FILE = os.path.join(static.__path__[0], "activity_graph.html")
-
-    def __init__(self, parent=None, key=None):
-        super().__init__(parent, key)
-
 
 
 class ConsumersTab(QtWidgets.QWidget):

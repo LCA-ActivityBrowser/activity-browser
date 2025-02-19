@@ -1,26 +1,19 @@
 <!DOCTYPE html>
 <html>
-<meta  name="viewport" content="user-scalable=no, initial-scale=1, maximum-scale=1"><meta charset="utf-8">
-<!-- http-equiv="content-type" content="user-scalable=no, intial-scale=1"-->
-
-<body>
-<!--<p id="function" ></p>-->
-
-<!--<p id="data"> </p>-->
-<script>
-    window.ab_sankey_mode = false;
-</script>
-<script src="javascript/d3.js"></script>
-<script src="javascript/dagre.js"></script>
-<script src="javascript/dagre-d3.js"></script>
-<script src="qrc:///qtwebchannel/qwebchannel.js"></script>
-<!--<script type="text/javascript_libs" src="jquery.tipsy.js"></script>-->
-
-<div id="canvasqPWKOg" class="canvas"></div>
-<script type="text/javascript" src="javascript/navigator.js"></script>
-<link href="css/navigator.common.css" rel="stylesheet" type="text/css" />
-<link href="css/navigator.css" rel="stylesheet" type="text/css" />
-
-</body>
+    <head>
+        <meta  name="viewport" content="user-scalable=no, initial-scale=1, maximum-scale=1"><meta charset="utf-8">
+        <script src="javascript/d3.js"></script>
+        <script src="javascript/dagre.js"></script>
+        <script src="javascript/dagre-d3.js"></script>
+        <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
+        <link href="css/activity_graph.css" rel="stylesheet" type="text/css" />
+    </head>
+    <body style="width: 100vw; height: 100vh; margin: 0">
+        <svg id="canvas" class="canvas" style="width: 100%; height: 100%; display: block"></svg>
+        <script>
+            window.ab_sankey_mode = false;
+        </script>
+        <script type="text/javascript" src="javascript/activity_graph.js"></script>
+    </body>
 </html>
 

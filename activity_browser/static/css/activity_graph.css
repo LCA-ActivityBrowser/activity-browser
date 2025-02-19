@@ -1,0 +1,39 @@
+.canvas .wrapper.outer > .background {
+  fill: #FFFFFF;
+  stroke: #333333;
+}
+.canvas .wrapper.inner > .background {
+  fill: #FFFFFF;
+  cursor: move;
+}
+.canvas .background {
+  fill: #FFFFFF;
+  cursor: move;
+}
+
+h1, h2 {
+  color: #333;
+}
+
+text{
+  font-family: sans-serif;
+  font-size: 16px;
+}
+
+.node {
+    fill: black;  /* text color of nodes*/
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.node rect, .cluster rect {
+  stroke: #333;
+  fill: #fff;
+  stroke-width: 3px;
+}
+
+.edgePath {
+  fill: black;
+  stroke: black;
+  stroke-width: 3px;
+}
