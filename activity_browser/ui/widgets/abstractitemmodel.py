@@ -187,8 +187,8 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
         Reset the model based on dataframe, query and grouped columns. Should be called to reflect the changes of
         changing the dataframe, grouped columns or query string.
         """
-        if self.dataframe is None or self.dataframe.empty:
-            return
+        # if self.dataframe is None or self.dataframe.empty:
+        #     return
 
         # apply any queries to the dataframe
         if q := self.query():
@@ -196,12 +196,13 @@ class ABAbstractItemModel(QtCore.QAbstractItemModel):
         else:
             df = self.dataframe.copy()
 
-        # apply the sorting
-        df.sort_values(
-            by=self.columns()[self.sort_column],
-            ascending=(self.sort_order == Qt.SortOrder.AscendingOrder),
-            inplace=True, ignore_index=True
-        )
+        if self.sort_column - 1 >= len(self.columns()):
+            # apply the sorting
+            df.sort_values(
+                by=self.columns()[self.sort_column],
+                ascending=(self.sort_order == Qt.SortOrder.AscendingOrder),
+                inplace=True, ignore_index=True
+            )
 
         # rebuild the ABItem tree
         self.root = self.branchItemClass("root")
