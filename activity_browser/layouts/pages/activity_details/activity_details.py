@@ -50,7 +50,7 @@ class ActivityDetails(QtWidgets.QWidget):
         self.description_tab = DescriptionTab(activity, self)
         self.tabs.addTab(self.description_tab, "Description")
 
-        self.graph_explorer = GraphTab(self)
+        self.graph_explorer = GraphTab(activity, self)
         self.tabs.addTab(self.graph_explorer, "Graph")
 
         self.parameters_tab = QtWidgets.QLabel("WORK IN PROGRESS")

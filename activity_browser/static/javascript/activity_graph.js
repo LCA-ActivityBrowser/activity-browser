@@ -47,11 +47,34 @@ const DEFAULTS = {
 class Cartographer {
     data = {nodes: {}, edges: {}}
 
+    constructor() {
+        console.log("Initializing Cartographer")
+
+        const panGroup = canvas.append("g")
+            .attr("id", "pan-group")
+
+        const zoom = d3.zoom()
+            .scaleExtent([0.5, 5])
+            .on("zoom", function() {
+                panGroup.attr("transform", d3.event.transform);
+            });
+
+        canvas.call(zoom)
+
+        const defaultTransform = d3.zoomIdentity.translate(50, 50);
+        canvas.call(zoom.transform, defaultTransform);
+    }
+
     renderGraph () {
         console.log("Rendering graph")
+
         graph = new dagre.graphlib
             .Graph({multigraph: true, compound: true})
-            .setGraph({rankdir: "LR", align: "UL"});
+            .setGraph({
+                rankdir: "LR",
+                ranker: "longest-path",
+                ranksep: 100,
+            });
 
         this.data.nodes.forEach(this.buildGraphNode);
         this.data.edges.forEach(this.buildGraphEdge);
@@ -59,22 +82,12 @@ class Cartographer {
         dagre.layout(graph)
         console.log(graph)
 
-
-        const g = canvas.append("g")
-            .call(dagreD3.render(), graph)
+        const panGroup = canvas.select("#pan-group")
+        panGroup.selectAll("*").remove() // clear old graph
+        panGroup.call(dagreD3.render(), graph)
 
         graph.nodes().forEach(n => this.setupNode(graph.node(n)))
         graph.edges().forEach(n => this.setupEdge(graph.edge(n)))
-
-        const zoom = d3.zoom()
-            .scaleExtent([0.5, 5])
-            .on("zoom", function() {
-                g.attr("transform", d3.event.transform);
-            });
-
-        canvas.call(zoom)
-
-
     }
 
     // Allow update of graph by parsing a JSON document.
@@ -87,6 +100,9 @@ class Cartographer {
     buildGraphNode(node) {
         node.width = DEFAULTS.NODE_WIDTH
         node.height = DEFAULTS.NODE_HEIGHT + 25 * node.functions.length
+        node.rank = 0
+
+        if (node.functions.length === 0) {node.height = 25}
 
         node.paddingBottom = node.paddingTop = node.paddingLeft = node.paddingRight = 0
 
@@ -99,6 +115,11 @@ class Cartographer {
     };
 
     setupNode(node){
+        if(node.type === "expanded_node"){return this.setupExpandedNode(node)}
+        if(node.type === "collapsed_function"){return this.setupCollapsedFunction(node)}
+    }
+
+    setupExpandedNode(node){
         const elem = d3.select(node.elem)
 
         elem.select(".label").remove()
@@ -109,14 +130,14 @@ class Cartographer {
         lines.forEach((line, i) => {
             elem.append("text")
                 .attr("x", node.width / -2 + 4)
-                .attr("y", node.height / -2 + 20  + i * 20)
+                .attr("y", node.height / -2 + 18  + i * 20)
                 .text(line);
         });
 
         // Set the title for each of the functions
         node.functions.forEach((fn, i) =>{
             const group = elem.append("g")
-                .attr("id", `${node.id}-${fn.id}`)
+                .attr("id", fn.id)
 
             group.append("rect")
                 .attr("width", node.width)
@@ -137,7 +158,7 @@ class Cartographer {
 
                 edgeIds.forEach(e => {
                     const edge = graph.edge(e)
-                    if(edge.product !== fn.name){return}
+                    if(edge.function_id !== fn.id){return}
                     d3.select(edge.elem)
                         .style("fill", "red")
                         .style("stroke", "red")
@@ -162,21 +183,67 @@ class Cartographer {
                 })
             })
         })
+
+        elem.on("contextmenu", ()=>{
+            d3.event.preventDefault()
+            window.backend.collapse_node(node.id.slice(2))
+        })
+    }
+
+    setupCollapsedFunction(node){
+        const elem = d3.select(node.elem)
+        elem.select(".label").remove()
+
+        elem.append("text")
+            .attr("x", node.width / -2 + 4)
+            .attr("y", node.height / -2 + 18)
+            .text(node.name)
+
+        elem.on("mouseenter", () => {
+            const edgeIds = graph.nodeEdges(node.id)
+
+            elem.select("rect").style("fill", "red")
+
+            edgeIds.forEach(e => {
+                const edge = graph.edge(e)
+                if(edge.function_id !== node.id){return}
+                d3.select(edge.elem)
+                    .style("fill", "red")
+                    .style("stroke", "red")
+
+
+            })
+        })
+        elem.on("mouseleave", () => {
+            elem.select("rect").style("fill", null)
+
+            const edgeIds = graph.edges()
+
+            edgeIds.forEach(e => {
+                const edge = graph.edge(e)
+                d3.select(edge.elem)
+                    .style("fill", null)
+                    .style("stroke", null)
+
+
+            })
+        })
+        elem.on("click", () =>{
+            window.backend.expand_node(node.id.slice(2))
+        })
     }
 
     setupEdge(edge){
         const elem = d3.select(edge.elem)
 
-        console.log(edge)
-
         elem.on("mouseenter", ()=>{
             elem.style("fill", "red").style("stroke", "red")
-            d3.select(`#${edge.source_id}-${edge.product_id}`).select("rect").style("fill", "red")
+            d3.select(`#${edge.function_id}`).select("rect").style("fill", "red")
         })
 
         elem.on("mouseleave", ()=>{
             elem.style("fill", null).style("stroke", null)
-            d3.select(`#${edge.source_id}-${edge.product_id}`).select("rect").style("fill", null)
+            d3.select(`#${edge.function_id}`).select("rect").style("fill", null)
         })
     }
 
@@ -208,12 +275,12 @@ function splitTextIntoLines(text, maxWidth, font) {
 }
 
 let graph
-const carto = new Cartographer()
 const canvas = d3.select("#canvas")
+const carto = new Cartographer()
 
 new QWebChannel(qt.webChannelTransport, function (channel) {
-    console.log("Channel check")
     window.bridge = channel.objects.bridge
+    window.backend = channel.objects.backend
 
     window.bridge.update_graph.connect(json_data => carto.update_graph(JSON.parse(json_data)))
     window.bridge.is_ready()
