@@ -21,7 +21,7 @@ class ActivityNewProduct(ABAction):
     """
 
     icon = qicons.add
-    text = "New product"
+    text = "New function"
 
     @staticmethod
     @exception_dialogs
