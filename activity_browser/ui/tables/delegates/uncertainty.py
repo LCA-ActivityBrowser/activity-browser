@@ -2,6 +2,8 @@
 from qtpy import QtCore, QtWidgets
 from stats_arrays import uncertainty_choices as uc
 
+from activity_browser import actions
+
 from ....signals import signals
 
 
@@ -29,7 +31,11 @@ class UncertaintyDelegate(QtWidgets.QStyledItemDelegate):
 
     def createEditor(self, parent, option, index):
         """Simply use the wizard for updating uncertainties. Send a signal."""
-        self.parent().modify_uncertainty_action.trigger()
+        if hasattr(self.parent(), "modify_uncertainty_action"):
+            self.parent().modify_uncertainty_action.trigger()
+        elif hasattr(index.internalPointer(), "exchange"):
+            item = index.internalPointer()
+            actions.ExchangeUncertaintyModify.run([item.exchange])
 
     def setEditorData(self, editor: QtWidgets.QComboBox, index: QtCore.QModelIndex):
         """Simply use the wizard for updating uncertainties."""

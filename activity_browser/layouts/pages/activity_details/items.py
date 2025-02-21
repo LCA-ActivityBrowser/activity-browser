@@ -21,7 +21,7 @@ class ExchangesItem(ABDataItem):
 
     def flags(self, col: int, key: str):
         flags = super().flags(col, key)
-        if key in ["amount", "formula"]:
+        if key in ["amount", "formula", "uncertainty"]:
             return flags | Qt.ItemFlag.ItemIsEditable
         if key in ["unit", "name", "location", "substitution_factor"] and self.functional:
             return flags | Qt.ItemFlag.ItemIsEditable

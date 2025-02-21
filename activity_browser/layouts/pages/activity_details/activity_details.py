@@ -168,7 +168,7 @@ class ExchangesTab(QtWidgets.QWidget):
     def build_df(self, exchanges) -> pd.DataFrame:
         cols = ["key", "unit", "name", "location", "substitute", "substitution_factor", "allocation_factor",
                 "properties", "processor"]
-        exc_df = pd.DataFrame(exchanges, columns=["amount", "input", "formula", "uncertainty",])
+        exc_df = pd.DataFrame(exchanges, columns=["amount", "input", "formula", "uncertainty type",])
         act_df = AB_metadata.get_metadata(exc_df["input"].unique(), cols)
 
         df = exc_df.merge(
@@ -204,7 +204,9 @@ class ExchangesTab(QtWidgets.QWidget):
         df["_exchange"] = exchanges
 
         df.drop(columns=["properties"], inplace=True)
-        df.rename({"input": "_input_key", "substitute": "_substitute_key", "processor": "_processor_key"}, axis="columns", inplace=True)
+        df.rename({"input": "_input_key", "substitute": "_substitute_key", "processor": "_processor_key",
+                   "uncertainty type": "uncertainty"},
+            axis="columns", inplace=True)
 
         cols = ["amount", "unit", "name", "location"]
         cols += ["substitute_name", "substitution_factor"] if "substitute_name" in df.columns else []
