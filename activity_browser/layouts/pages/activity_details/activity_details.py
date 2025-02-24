@@ -14,6 +14,7 @@ from activity_browser.ui import widgets as ABwidgets
 from .activity_header import ActivityHeader
 from .graph_tab import GraphTab
 from .exchanges_tab import ExchangesTab
+from .parameters_tab import ParametersTab
 from .views import ConsumersView
 from .models import ConsumersModel
 
@@ -53,7 +54,7 @@ class ActivityDetails(QtWidgets.QWidget):
         self.graph_explorer = GraphTab(activity, self)
         self.tabs.addTab(self.graph_explorer, "Graph")
 
-        self.parameters_tab = QtWidgets.QLabel("WORK IN PROGRESS")
+        self.parameters_tab = ParametersTab(activity, self)
         self.tabs.addTab(self.parameters_tab, "Parameters")
 
         self.consumer_tab = ConsumersTab(activity, self)

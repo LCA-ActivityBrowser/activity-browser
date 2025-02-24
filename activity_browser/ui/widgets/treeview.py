@@ -97,6 +97,8 @@ class ABTreeView(QtWidgets.QTreeView):
         model.modelAboutToBeReset.connect(self.clearColumnDelegates)
         model.modelReset.connect(self.setDefaultColumnDelegates)
 
+        self.setDefaultColumnDelegates()
+
     def model(self) -> ABAbstractItemModel:
         return super().model()
 
