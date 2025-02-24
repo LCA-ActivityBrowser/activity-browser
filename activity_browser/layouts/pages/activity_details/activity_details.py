@@ -12,7 +12,7 @@ from activity_browser import signals, actions
 from activity_browser.bwutils import AB_metadata, refresh_node
 from activity_browser.ui import widgets as ABwidgets
 
-from .activity_data import ActivityData
+from .activity_header import ActivityHeader
 from .graph_tab import GraphTab
 from .views import ExchangesView, ConsumersView
 from .models import ExchangesModel, ConsumersModel
@@ -40,7 +40,7 @@ class ActivityDetails(QtWidgets.QWidget):
         self.activity = bd.get_activity(activity)
 
         # widgets
-        self.activity_data_grid = ActivityData(self)
+        self.activity_data_grid = ActivityHeader(self)
         self.tabs = QtWidgets.QTabWidget(self)
 
         # tabs

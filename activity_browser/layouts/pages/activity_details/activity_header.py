@@ -5,7 +5,7 @@ import bw_functional as bf
 from activity_browser import actions, bwutils
 
 
-class ActivityData(QtWidgets.QWidget):
+class ActivityHeader(QtWidgets.QWidget):
     DATABASE_DEFINED_ALLOCATION = "(database default)"
     CUSTOM_ALLOCATION = "Custom..."
 
@@ -44,7 +44,7 @@ class ActivityData(QtWidgets.QWidget):
 
 class ActivityName(QtWidgets.QLineEdit):
 
-    def __init__(self, parent: ActivityData):
+    def __init__(self, parent: ActivityHeader):
         super().__init__(parent.activity["name"], parent)
         self.editingFinished.connect(self.change_name)
 
@@ -55,7 +55,7 @@ class ActivityName(QtWidgets.QLineEdit):
 
 
 class ActivityLocation(QtWidgets.QLineEdit):
-    def __init__(self, parent: ActivityData):
+    def __init__(self, parent: ActivityHeader):
         super().__init__(parent.activity.get("location"), parent)
         self.editingFinished.connect(self.change_location)
 
@@ -70,7 +70,7 @@ class ActivityLocation(QtWidgets.QLineEdit):
 
 
 class ActivityProperties(QtWidgets.QWidget):
-    def __init__(self, parent: ActivityData):
+    def __init__(self, parent: ActivityHeader):
         super().__init__(parent)
 
         self.setContentsMargins(0, 0, 0, 0)
@@ -123,7 +123,7 @@ class ActivityProperty(QtWidgets.QPushButton):
 
 
 class ActivityAllocation(QtWidgets.QComboBox):
-    def __init__(self, parent: ActivityData):
+    def __init__(self, parent: ActivityHeader):
         super().__init__(parent)
         self.addItems(sorted(bf.allocation_strategies))
         if props := parent.activity.get("default_properties", {}):
