@@ -4,6 +4,9 @@ from qtpy.QtCore import Slot
 from qtpy.QtGui import QContextMenuEvent, QDragMoveEvent, QDropEvent
 from qtpy.QtWidgets import QAction, QMenu, QMessageBox
 
+import bw2data as bd
+import bw_functional as bf
+
 from activity_browser import actions, project_settings, signals
 
 from ..icons import qicons
@@ -172,15 +175,15 @@ class ActivityParameterTable(BaseParameterTable):
         self.setItemDelegateForColumn(10, ViewOnlyUncertaintyDelegate(self))
 
         # Set dropEnabled
-        self.setDragDropMode(ABDataFrameView.DropOnly)
+        self.setDragDropMode(ABDataFrameView.DragDropMode.DropOnly)
         self.setAcceptDrops(True)
+
+    def dragMoveEvent(self, event, /):
+        pass
 
     def dragEnterEvent(self, event: QDragMoveEvent) -> None:
         """Check that the dragged row is from the databases table"""
-        if (
-            isinstance(event.source(), ActivitiesBiosphereTable)
-            and getattr(event.source(), "technosphere", False)
-        ) or isinstance(event.source(), ActivitiesBiosphereTree):
+        if event.mimeData().hasFormat("application/bw-nodekeylist"):
             event.accept()
 
     def dropEvent(self, event: QDropEvent) -> None:
@@ -189,26 +192,16 @@ class ActivityParameterTable(BaseParameterTable):
 
         Also, create a warning if the activity is from a read-only database
         """
-        db_table = event.source()
+        keys: list = event.mimeData().retrievePickleData("application/bw-nodekeylist")
+        processes = set()
 
-        if project_settings.settings["read-only-databases"].get(
-            db_table.current_database(), True
-        ):
-            QMessageBox.warning(
-                self,
-                "Not allowed",
-                "Cannot set activity parameters on read-only databases",
-                QMessageBox.Ok,
-                QMessageBox.Ok,
-            )
-            return
-
-        if isinstance(event.source(), ActivitiesBiosphereTable):
-            keys = db_table.selected_keys()
-        elif isinstance(event.source(), ActivitiesBiosphereTree):
-            keys = event.source().selected_keys()
+        for key in keys:
+            act = bd.get_node(key=key)
+            if isinstance(act, bf.Function):
+                continue
+            processes.add(key)
         event.accept()
-        actions.ParameterNewAutomatic.run(keys)
+        actions.ParameterNewAutomatic.run(processes)
 
     def contextMenuEvent(self, event: QContextMenuEvent) -> None:
         """Override and activate QTableView.contextMenuEvent()
