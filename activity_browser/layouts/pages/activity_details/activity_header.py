@@ -41,7 +41,6 @@ class ActivityHeader(QtWidgets.QWidget):
             self.layout().addWidget(widget, i, 2, 1, 4)
 
 
-
 class ActivityName(QtWidgets.QLineEdit):
 
     def __init__(self, parent: ActivityHeader):
