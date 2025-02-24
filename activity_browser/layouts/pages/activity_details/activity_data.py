@@ -56,7 +56,7 @@ class ActivityName(QtWidgets.QLineEdit):
 
 class ActivityLocation(QtWidgets.QLineEdit):
     def __init__(self, parent: ActivityData):
-        super().__init__(parent.activity["location"], parent)
+        super().__init__(parent.activity.get("location"), parent)
         self.editingFinished.connect(self.change_location)
 
         locations = set(bwutils.AB_metadata.dataframe.get("location", ["GLO"]))
@@ -64,7 +64,7 @@ class ActivityLocation(QtWidgets.QLineEdit):
         self.setCompleter(completer)
 
     def change_location(self):
-        if self.text() == self.parent().activity["location"]:
+        if self.text() == self.parent().activity.get("location"):
             return
         actions.ActivityModify.run(self.parent().activity, "location", self.text())
 
