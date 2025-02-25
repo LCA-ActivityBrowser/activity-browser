@@ -3,6 +3,7 @@ import textwrap
 from logging import getLogger
 
 import arrow
+import peewee as pw
 
 import bw2data as bd
 
@@ -167,6 +168,47 @@ def refresh_node(node: tuple | int | bd.Node) -> bd.Node:
     else:
         raise ValueError("Activity must be either a tuple, int or Node instance")
     return node
+
+
+def parameters_in_node_scope(node: tuple | int | bd.Node) -> []:
+    from bw2data.parameters import ActivityParameter, DatabaseParameter, ProjectParameter, Group
+    node = refresh_node(node)
+    data = {}
+
+    for name, param in ProjectParameter.load().items():
+        key = ("project", name)
+        param["name"] = name
+        param["group"] = "project"
+        param["type"] = "project"
+        data[key] = param
+
+    for name, param in DatabaseParameter.load(node["database"]).items():
+        key = (node["database"], name)
+        param["name"] = name
+        param["group"] = node["database"]
+        param["type"] = "database"
+        data[key] = param
+
+    try:
+        group_name = ActivityParameter.get((ActivityParameter.database == node["database"]) &
+                                           (ActivityParameter.code == node["code"])).group
+        group_deps: list = Group.get(Group.name == group_name).order
+        group_deps.append(group_name)
+
+        for dep in group_deps:
+            for name, param in ActivityParameter.load(dep).items():
+                key = (dep, name)
+                param["name"] = name
+                param["group"] = dep
+                param["type"] = "activity"
+                data[key] = param
+    except pw.DoesNotExist:
+        # no activity parameters
+        pass
+
+    return data
+
+
 
 
 def clean_activity_name(activity_name: str) -> str:

@@ -9,7 +9,7 @@ from bw2data.parameters import ActivityParameter, DatabaseParameter, ProjectPara
 from activity_browser import signals
 from activity_browser.ui import widgets as abwidgets
 from activity_browser.ui.tables import delegates
-from activity_browser.bwutils import refresh_node, AB_metadata
+from activity_browser.bwutils import refresh_node, parameters_in_node_scope
 
 
 class ParametersTab(QtWidgets.QWidget):
@@ -39,9 +39,17 @@ class ParametersTab(QtWidgets.QWidget):
         self.model.setDataFrame(self.build_df())
 
     def build_df(self) -> pd.DataFrame:
-        data = self.get_project_params()
-        data.update(self.get_database_params())
-        data.update(self.get_activity_params())
+        data = parameters_in_node_scope(self.activity)
+
+        for param in data.values():
+            if param["type"] == "project":
+                param["scope"] = f"Current project"
+            elif param["type"] == "database":
+                param["scope"] = f"Database: {self.activity['database']}"
+            elif param["group"] == f"{self.activity.id}":
+                param["scope"] = "This activity"
+            else:
+                param["scope"] = f"Group: {param['group']}"
 
         columns = ["name", "scope", "amount", "formula", "uncertainty type"]
         df = pd.DataFrame.from_dict(data, orient="index", columns=columns).reset_index(drop=True)
@@ -49,52 +57,12 @@ class ParametersTab(QtWidgets.QWidget):
 
         return df
 
-    def get_activity_params(self) -> dict:
-        data = {}
-        try:
-            group_name = ActivityParameter.get((ActivityParameter.database == self.activity["database"]) &
-                                               (ActivityParameter.code == self.activity["code"])).group
-            group_deps: list = Group.get(Group.name == group_name).order
-            group_deps.append(group_name)
-
-            for dep in group_deps:
-                for name, param in ActivityParameter.load(dep).items():
-                    key = (dep, name)
-                    param["name"] = name
-                    param["group"] = dep
-                    param["scope"] = "This activity" if dep == group_name else f"Group: {dep}"
-                    data[key] = param
-        except pw.DoesNotExist:
-            # no activity parameters (yet)
-            pass
-        return data
-
-    def get_database_params(self) -> dict:
-        data = {}
-        for name, param in DatabaseParameter.load(self.activity["database"]).items():
-            key = (self.activity["database"], name)
-            param["name"] = name
-            param["group"] = self.activity["database"]
-            param["scope"] = f"Database: {self.activity['database']}"
-            data[key] = param
-        return data
-
-    def get_project_params(self) -> dict:
-        data = {}
-        for name, param in ProjectParameter.load().items():
-            key = ("project", name)
-            param["name"] = name
-            param["group"] = "project"
-            param["scope"] = "Current project"
-            data[key] = param
-        return data
-
 
 class ParametersView(abwidgets.ABTreeView):
     defaultColumnDelegates = {
         "amount": delegates.FloatDelegate,
         "name": delegates.StringDelegate,
-        "formula": delegates.StringDelegate,
+        "formula": delegates.NewFormulaDelegate,
         "comment": delegates.StringDelegate,
         "uncertainty": delegates.UncertaintyDelegate,
     }
