@@ -6,6 +6,8 @@ from activity_browser.ui.icons import qicons
 from activity_browser.bwutils import refresh_parameter, Parameter
 from activity_browser.actions.base import ABAction, exception_dialogs
 
+from .parameter_rename import ParameterRename
+
 
 class ParameterModify(ABAction):
     """
@@ -23,10 +25,14 @@ class ParameterModify(ABAction):
 
         if field == "data":
             parameter.data.update(value)
+        elif field == "name":
+            return ParameterRename.run(parameter, value)
         elif field in dir(param_model):
             setattr(param_model, field, value)
         else:
             raise ValueError(f"Field {field} not recognized for {type(parameter)}")
 
         param_model.save()
-        parameters.recalculate()
+
+        if field in ("amount", "formula"):
+            parameters.recalculate()
