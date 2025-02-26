@@ -1,15 +1,11 @@
 from qtpy import QtWidgets, QtCore
 
 import pandas as pd
-import peewee as pw
-
-import bw2data as bd
-from bw2data.parameters import ActivityParameter, DatabaseParameter, ProjectParameter, Group
 
 from activity_browser import signals, actions
 from activity_browser.ui import widgets as abwidgets
 from activity_browser.ui.tables import delegates
-from activity_browser.bwutils import refresh_node, parameters_in_node_scope
+from activity_browser.bwutils import refresh_node, refresh_parameter, parameters_in_node_scope, Parameter
 
 
 class ParametersTab(QtWidgets.QWidget):
@@ -47,6 +43,7 @@ class ParametersTab(QtWidgets.QWidget):
             row = param._asdict()
             row["uncertainty"] = param.data.get("uncertainty type")
             row["formula"] = param.data.get("formula")
+            row["_parameter"] = param
 
             if param.param_type == "project":
                 row["scope"] = f"Current project"
@@ -59,7 +56,7 @@ class ParametersTab(QtWidgets.QWidget):
 
             translated.append(row)
 
-        columns = ["name", "scope", "amount", "formula", "uncertainty"]
+        columns = ["name", "scope", "amount", "formula", "uncertainty", "_parameter"]
         return pd.DataFrame(translated, columns=columns)
 
 
@@ -74,6 +71,11 @@ class ParametersView(abwidgets.ABTreeView):
 
 
 class ParametersItem(abwidgets.ABDataItem):
+
+    @property
+    def parameter(self) -> Parameter:
+        return refresh_parameter(self["_parameter"])
+
     def flags(self, col: int, key: str):
         flags = super().flags(col, key)
         if key in ["amount", "formula", "uncertainty"]:
@@ -82,24 +84,7 @@ class ParametersItem(abwidgets.ABDataItem):
 
     def setData(self, col: int, key: str, value) -> bool:
         if key in ["amount", "formula"]:
-            if key == "formula" and not str(value).strip():
-                actions.ExchangeFormulaRemove.run([self.exchange])
-                return True
-
-            actions.ExchangeModify.run(self.exchange, {key.lower(): value})
-            return True
-
-        if key in ["unit", "name", "location", "substitution_factor", "allocation_factor"]:
-            act = self.exchange.input
-            actions.ActivityModify.run(act.key, key.lower(), value)
-
-        if key.startswith("property_"):
-            act = self.exchange.input
-            prop_key = key[9:]
-            props = act["properties"]
-            props[prop_key].update({"amount": value})
-
-            actions.ActivityModify.run(act.key, "properties", props)
+            actions.ParameterModify.run(self.parameter, key, value)
 
         return False
 
