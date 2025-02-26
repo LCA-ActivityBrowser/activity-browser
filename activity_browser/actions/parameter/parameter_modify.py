@@ -1,8 +1,10 @@
 from typing import Any
 
-from activity_browser.actions.base import ABAction, exception_dialogs
-from bw2data import parameters
+from bw2data.parameters import ParameterBase, parameters
+
 from activity_browser.ui.icons import qicons
+from activity_browser.bwutils import refresh_parameter, Parameter
+from activity_browser.actions.base import ABAction, exception_dialogs
 
 
 class ParameterModify(ABAction):
@@ -15,11 +17,16 @@ class ParameterModify(ABAction):
 
     @staticmethod
     @exception_dialogs
-    def run(parameter: Any, field: str, value: any):
+    def run(parameter: tuple | Parameter | ParameterBase, field: str, value: any):
+        parameter = refresh_parameter(parameter)
+        param_model = parameter.to_peewee_model()
+
         if field == "data":
             parameter.data.update(value)
+        elif field in dir(param_model):
+            setattr(param_model, field, value)
         else:
-            setattr(parameter, field, value)
-        parameter.save()
+            raise ValueError(f"Field {field} not recognized for {type(parameter)}")
 
+        param_model.save()
         parameters.recalculate()
