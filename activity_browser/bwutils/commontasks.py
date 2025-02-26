@@ -6,10 +6,12 @@ import arrow
 import peewee as pw
 
 import bw2data as bd
+from bw2data.parameters import ParameterBase, ProjectParameter, DatabaseParameter, ActivityParameter, Group
 
 from functools import lru_cache
 
 from .metadata import AB_metadata
+from .utils import Parameter
 
 log = getLogger(__name__)
 
@@ -170,22 +172,41 @@ def refresh_node(node: tuple | int | bd.Node) -> bd.Node:
     return node
 
 
-def parameters_in_node_scope(node: tuple | int | bd.Node) -> []:
-    from bw2data.parameters import ActivityParameter, DatabaseParameter, ProjectParameter, Group
+def refresh_parameter(parameter: tuple | Parameter | ParameterBase):
+    if isinstance(parameter, tuple) and len(parameter) == 2:
+        if parameter[0] == "project":
+            parameter = Parameter(parameter[1], parameter[0], None, None, "project")
+        elif parameter[0] in bd.databases:
+            parameter = Parameter(parameter[1], parameter[0], None, None, "database")
+        else:
+            parameter = Parameter(parameter[1], parameter[0], None, None, "activity")
+
+    if isinstance(parameter, Parameter):
+        raw = parameter.to_peewee_model()
+    elif isinstance(parameter, ParameterBase):
+        raw = parameter.get_by_id(parameter.id)
+    else:
+        raise ValueError("Unknown parameter type")
+
+    if isinstance(raw, ProjectParameter):
+        return Parameter(raw.dict.pop("name"), "project", raw.dict["amount"], raw.dict, "project")
+    elif isinstance(raw, DatabaseParameter):
+        return Parameter(raw.dict.pop("name"), raw.database, raw.dict["amount"], raw.dict, "database")
+    elif isinstance(raw, ActivityParameter):
+        return Parameter(raw.dict.pop("name"), raw.group, raw.dict["amount"], raw.dict, "activity")
+    else:
+        raise ValueError("Unknown parameter type")
+
+
+def parameters_in_node_scope(node: tuple | int | bd.Node) -> dict[str, Parameter]:
     node = refresh_node(node)
     data = {}
 
     for name, param in ProjectParameter.load().items():
-        param["name"] = name
-        param["group"] = "project"
-        param["type"] = "project"
-        data[name] = param
+        data[name] = Parameter(name, "project", param["amount"], param, "project")
 
     for name, param in DatabaseParameter.load(node["database"]).items():
-        param["name"] = name
-        param["group"] = node["database"]
-        param["type"] = "database"
-        data[name] = param
+        data[name] = Parameter(name, node["database"], param["amount"], param, "database")
 
     try:
         group_name = ActivityParameter.get((ActivityParameter.database == node["database"]) &
@@ -195,10 +216,7 @@ def parameters_in_node_scope(node: tuple | int | bd.Node) -> []:
 
         for dep in group_deps:
             for name, param in ActivityParameter.load(dep).items():
-                param["name"] = name
-                param["group"] = dep
-                param["type"] = "activity"
-                data[name] = param
+                data[name] = Parameter(name, dep, param["amount"], param, "activity")
     except pw.DoesNotExist:
         # no activity parameters
         pass

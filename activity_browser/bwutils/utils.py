@@ -42,6 +42,18 @@ class Parameter(NamedTuple):
             associated = (p.database, p.code)
         return self.name, scope, associated, self.amount
 
+    def to_peewee_model(self):
+        if not self.param_type:
+            raise ValueError("Cannot refresh parameter without parameter type")
+        if self.param_type == "project":
+            return ProjectParameter.get(ProjectParameter.name == self.name)
+        elif self.param_type == "database":
+            return DatabaseParameter.get((DatabaseParameter.name == self.name) & (DatabaseParameter.database == self.group))
+        elif self.param_type == "activity":
+            return ActivityParameter.get((ActivityParameter.name == self.name) & (ActivityParameter.group == self.group))
+        else:
+            raise ValueError("Unknown parameter type")
+
 
 class Key(NamedTuple):
     database: str

@@ -6,7 +6,7 @@ import peewee as pw
 import bw2data as bd
 from bw2data.parameters import ActivityParameter, DatabaseParameter, ProjectParameter, Group
 
-from activity_browser import signals
+from activity_browser import signals, actions
 from activity_browser.ui import widgets as abwidgets
 from activity_browser.ui.tables import delegates
 from activity_browser.bwutils import refresh_node, parameters_in_node_scope
@@ -41,21 +41,26 @@ class ParametersTab(QtWidgets.QWidget):
     def build_df(self) -> pd.DataFrame:
         data = parameters_in_node_scope(self.activity)
 
-        for param in data.values():
-            if param["type"] == "project":
-                param["scope"] = f"Current project"
-            elif param["type"] == "database":
-                param["scope"] = f"Database: {self.activity['database']}"
-            elif param["group"] == f"{self.activity.id}":
-                param["scope"] = "This activity"
+        translated = []
+
+        for name, param in data.items():
+            row = param._asdict()
+            row["uncertainty"] = param.data.get("uncertainty type")
+            row["formula"] = param.data.get("formula")
+
+            if param.param_type == "project":
+                row["scope"] = f"Current project"
+            elif param.param_type == "database":
+                row["scope"] = f"Database: {self.activity['database']}"
+            elif param.group == f"{self.activity.id}":
+                row["scope"] = "This activity"
             else:
-                param["scope"] = f"Group: {param['group']}"
+                row["scope"] = f"Group: {param.group}"
 
-        columns = ["name", "scope", "amount", "formula", "uncertainty type"]
-        df = pd.DataFrame.from_dict(data, orient="index", columns=columns).reset_index(drop=True)
-        df.rename({"uncertainty type": "uncertainty"}, axis=1, inplace=True)
+            translated.append(row)
 
-        return df
+        columns = ["name", "scope", "amount", "formula", "uncertainty"]
+        return pd.DataFrame(translated, columns=columns)
 
 
 class ParametersView(abwidgets.ABTreeView):
@@ -74,6 +79,29 @@ class ParametersItem(abwidgets.ABDataItem):
         if key in ["amount", "formula", "uncertainty"]:
             return flags | QtCore.Qt.ItemFlag.ItemIsEditable
         return flags
+
+    def setData(self, col: int, key: str, value) -> bool:
+        if key in ["amount", "formula"]:
+            if key == "formula" and not str(value).strip():
+                actions.ExchangeFormulaRemove.run([self.exchange])
+                return True
+
+            actions.ExchangeModify.run(self.exchange, {key.lower(): value})
+            return True
+
+        if key in ["unit", "name", "location", "substitution_factor", "allocation_factor"]:
+            act = self.exchange.input
+            actions.ActivityModify.run(act.key, key.lower(), value)
+
+        if key.startswith("property_"):
+            act = self.exchange.input
+            prop_key = key[9:]
+            props = act["properties"]
+            props[prop_key].update({"amount": value})
+
+            actions.ActivityModify.run(act.key, "properties", props)
+
+        return False
 
 
 class ParametersModel(abwidgets.ABAbstractItemModel):
