@@ -101,7 +101,7 @@ def draw_expression(expression: str, scope: dict, painter: QPainter, width: int,
     full_width = 0
     for token in tokens:
         if token in scope:
-            full_width += draw_parameter(token, painter, height, PARAM_TYPE_COLORS[scope[token]["type"]])
+            full_width += draw_parameter(token, painter, height, PARAM_TYPE_COLORS[scope[token].param_type])
         else:
             full_width += draw_standard_text(token, painter, height)
 
