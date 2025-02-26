@@ -78,12 +78,12 @@ class ParametersItem(abwidgets.ABDataItem):
 
     def flags(self, col: int, key: str):
         flags = super().flags(col, key)
-        if key in ["amount", "formula", "uncertainty"]:
+        if key in ["amount", "formula", "uncertainty", "name"]:
             return flags | QtCore.Qt.ItemFlag.ItemIsEditable
         return flags
 
     def setData(self, col: int, key: str, value) -> bool:
-        if key in ["amount", "formula"]:
+        if key in ["amount", "formula", "name"]:
             actions.ParameterModify.run(self.parameter, key, value)
 
         return False
