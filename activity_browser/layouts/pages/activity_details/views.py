@@ -30,7 +30,7 @@ class ExchangesView(ABTreeView):
         "name": delegates.StringDelegate,
         "location": delegates.StringDelegate,
         "product": delegates.StringDelegate,
-        "formula": delegates.StringDelegate,
+        "formula": delegates.NewFormulaDelegate,
         "comment": delegates.StringDelegate,
         "uncertainty": delegates.UncertaintyDelegate,
     }

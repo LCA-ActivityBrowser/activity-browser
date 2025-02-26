@@ -176,18 +176,16 @@ def parameters_in_node_scope(node: tuple | int | bd.Node) -> []:
     data = {}
 
     for name, param in ProjectParameter.load().items():
-        key = ("project", name)
         param["name"] = name
         param["group"] = "project"
         param["type"] = "project"
-        data[key] = param
+        data[name] = param
 
     for name, param in DatabaseParameter.load(node["database"]).items():
-        key = (node["database"], name)
         param["name"] = name
         param["group"] = node["database"]
         param["type"] = "database"
-        data[key] = param
+        data[name] = param
 
     try:
         group_name = ActivityParameter.get((ActivityParameter.database == node["database"]) &
@@ -197,11 +195,10 @@ def parameters_in_node_scope(node: tuple | int | bd.Node) -> []:
 
         for dep in group_deps:
             for name, param in ActivityParameter.load(dep).items():
-                key = (dep, name)
                 param["name"] = name
                 param["group"] = dep
                 param["type"] = "activity"
-                data[key] = param
+                data[name] = param
     except pw.DoesNotExist:
         # no activity parameters
         pass

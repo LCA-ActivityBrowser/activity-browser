@@ -11,6 +11,7 @@ from .string import StringDelegate
 from .uncertainty import UncertaintyDelegate
 from .viewonly import (ViewOnlyDelegate, ViewOnlyFloatDelegate,
                        ViewOnlyUncertaintyDelegate)
+from .new_formula import NewFormulaDelegate
 
 __all__ = [
     "CheckboxDelegate",
@@ -26,4 +27,5 @@ __all__ = [
     "ViewOnlyDelegate",
     "ViewOnlyFloatDelegate",
     "ViewOnlyUncertaintyDelegate",
+    "NewFormulaDelegate"
 ]

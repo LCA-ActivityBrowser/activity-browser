@@ -3,7 +3,7 @@ from qtpy.QtCore import Qt
 
 import bw2data as bd
 
-from activity_browser import actions
+from activity_browser import actions, bwutils
 from activity_browser.ui.widgets import ABDataItem
 from activity_browser.ui import icons
 
@@ -18,6 +18,10 @@ class ExchangesItem(ABDataItem):
     @property
     def functional(self):
         return self["_exchange"].get("type") == "production"
+
+    @property
+    def scoped_parameters(self):
+        return bwutils.parameters_in_node_scope(self["_exchange"].output)
 
     def flags(self, col: int, key: str):
         flags = super().flags(col, key)
