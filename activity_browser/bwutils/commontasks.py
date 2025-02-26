@@ -173,6 +173,7 @@ def refresh_node(node: tuple | int | bd.Node) -> bd.Node:
 
 
 def refresh_parameter(parameter: tuple | Parameter | ParameterBase):
+    # construct mock-parameter if it is a parameter key (group, name)
     if isinstance(parameter, tuple) and len(parameter) == 2:
         if parameter[0] == "project":
             parameter = Parameter(parameter[1], parameter[0], None, None, "project")
@@ -181,6 +182,7 @@ def refresh_parameter(parameter: tuple | Parameter | ParameterBase):
         else:
             parameter = Parameter(parameter[1], parameter[0], None, None, "activity")
 
+    # get the newest peewee model from the database
     if isinstance(parameter, Parameter):
         raw = parameter.to_peewee_model()
     elif isinstance(parameter, ParameterBase):
@@ -188,6 +190,7 @@ def refresh_parameter(parameter: tuple | Parameter | ParameterBase):
     else:
         raise ValueError("Unknown parameter type")
 
+    # construct a new Parameter-type from the peewee model
     if isinstance(raw, ProjectParameter):
         return Parameter(raw.dict.pop("name"), "project", raw.dict["amount"], raw.dict, "project")
     elif isinstance(raw, DatabaseParameter):
