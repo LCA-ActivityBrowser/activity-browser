@@ -2,8 +2,8 @@ import re
 import asteval as ast
 
 from qtpy import QtCore, QtWidgets
-from qtpy.QtGui import QPen, QPainter, QColor, QFontMetrics, QSyntaxHighlighter, QTextCharFormat, QFont, QTextCursor
-from qtpy.QtCore import Qt, QRect, QRegularExpression
+from qtpy.QtGui import QPainter, QColor, QFontMetrics
+from qtpy.QtCore import Qt
 
 
 PARAM_TYPE_COLORS = {
@@ -19,7 +19,30 @@ class NewFormulaDelegate(QtWidgets.QStyledItemDelegate):
     def displayText(self, value, locale):
         return f"<b>{value}</b>"
 
-    def paint(self, painter, option, index):
+    def paint(self, painter, option: QtWidgets.QStyleOptionViewItem, index):
+        if index.data() is None:
+            return super().paint(painter, option, index)
+        if hasattr(index.internalPointer(), 'scoped_parameters'):
+            scope = index.internalPointer().scoped_parameters
+        else:
+            scope = {}
+
+        from activity_browser.ui.widgets import ABFormulaEdit
+        viewport = self.parent().findChild(QtWidgets.QWidget, "qt_scrollarea_viewport")
+        formula = ABFormulaEdit(viewport, scope, index.data())
+
+        painter.save()
+        painter.setRenderHint(QPainter.Antialiasing)
+        painter.setClipRect(option.rect)
+        painter.translate(option.rect.topLeft())
+
+        formula.setGeometry(option.rect)
+        formula.paint(painter)
+
+        painter.restore()
+
+
+    def oldpaint(self, painter, option, index):
         if index.data() is None:
             return super().paint(painter, option, index)
         if hasattr(index.internalPointer(), 'scoped_parameters'):
@@ -36,19 +59,24 @@ class NewFormulaDelegate(QtWidgets.QStyledItemDelegate):
         painter.restore()
 
     def createEditor(self, parent, option, index):
+        from activity_browser.ui.widgets import ABFormulaEdit
         if hasattr(index.internalPointer(), 'scoped_parameters'):
             scope = index.internalPointer().scoped_parameters
         else:
             scope = {}
-        editor = FormulaEdit(scope, parent)
+        editor = ABFormulaEdit(parent, scope)
         return editor
 
-    def setEditorData(self, editor: "FormulaEdit", index: QtCore.QModelIndex):
+    def setEditorData(self, editor, index: QtCore.QModelIndex):
         """Populate the editor with data if editing an existing field."""
         value = index.data(QtCore.Qt.DisplayRole)
         # Avoid setting 'None' type value as a string
         value = str(value) if value else ""
-        editor.setText(value)
+        editor.text = value
+        editor.cursor_pos = len(value)  # move cursor to the end of the field
+
+    def updateEditorGeometry(self, editor, option, index):
+        super().updateEditorGeometry(editor, option, index)
 
     def setModelData(
         self,
@@ -56,7 +84,7 @@ class NewFormulaDelegate(QtWidgets.QStyledItemDelegate):
         model: QtCore.QAbstractItemModel,
         index: QtCore.QModelIndex,
     ):
-        return super().setModelData(editor, model, index)
+        model.setData(index, editor.text, QtCore.Qt.EditRole)
 
 
 class FormulaEdit(QtWidgets.QLineEdit):
