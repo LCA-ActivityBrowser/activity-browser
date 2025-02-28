@@ -5,7 +5,7 @@ import pandas as pd
 from activity_browser import signals, actions
 from activity_browser.ui import widgets as abwidgets
 from activity_browser.ui.tables import delegates
-from activity_browser.bwutils import refresh_node, refresh_parameter, parameters_in_node_scope, Parameter
+from activity_browser.bwutils import refresh_node, refresh_parameter, parameters_in_scope, Parameter
 
 
 class ParametersTab(QtWidgets.QWidget):
@@ -35,7 +35,7 @@ class ParametersTab(QtWidgets.QWidget):
         self.model.setDataFrame(self.build_df())
 
     def build_df(self) -> pd.DataFrame:
-        data = parameters_in_node_scope(self.activity)
+        data = parameters_in_scope(self.activity)
 
         translated = []
 
@@ -71,6 +71,10 @@ class ParametersView(abwidgets.ABTreeView):
 
 
 class ParametersItem(abwidgets.ABDataItem):
+
+    @property
+    def scoped_parameters(self):
+        return parameters_in_scope(parameter=self["_parameter"])
 
     @property
     def parameter(self) -> Parameter:

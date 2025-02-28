@@ -21,7 +21,7 @@ class ExchangesItem(ABDataItem):
 
     @property
     def scoped_parameters(self):
-        return bwutils.parameters_in_node_scope(self["_exchange"].output)
+        return bwutils.parameters_in_scope(self["_exchange"].output)
 
     def flags(self, col: int, key: str):
         flags = super().flags(col, key)

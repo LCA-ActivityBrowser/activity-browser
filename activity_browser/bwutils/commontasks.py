@@ -1,6 +1,7 @@
 import hashlib
 import textwrap
 from logging import getLogger
+from collections import OrderedDict
 
 import arrow
 import peewee as pw
@@ -201,32 +202,46 @@ def refresh_parameter(parameter: tuple | Parameter | ParameterBase):
         raise ValueError("Unknown parameter type")
 
 
-def parameters_in_node_scope(node: tuple | int | bd.Node) -> dict[str, Parameter]:
-    node = refresh_node(node)
-    data = {}
+def parameters_in_scope(
+        node: tuple | int | bd.Node = None,
+        parameter: tuple | Parameter | ParameterBase = None
+) -> dict[str, Parameter]:
+    if (not node and not parameter) or (node and parameter):
+        raise ValueError("Supply either node or parameter")
+    if node:
+        node = refresh_node(node)
+        database = node["database"]
+        group = ActivityParameter.get_or_none(database=node["database"], code=node["code"]).group
+    else:  # if parameter
+        parameter = refresh_parameter(parameter)
+        group = parameter.group
+        if group == "project":
+            database = None
+        elif group in bd.databases:
+            database = group
+        else:
+            database = ActivityParameter.get_or_none(group=group).database
+
+    data = OrderedDict()
 
     for name, param in ProjectParameter.load().items():
         data[name] = Parameter(name, "project", param["amount"], param, "project")
 
-    for name, param in DatabaseParameter.load(node["database"]).items():
-        data[name] = Parameter(name, node["database"], param["amount"], param, "database")
+    for name, param in DatabaseParameter.load(database).items():
+        if name in data:
+            del data[name]  # the variable is overwritten in the scope chain
+        data[name] = Parameter(name, database, param["amount"], param, "database")
 
-    try:
-        group_name = ActivityParameter.get((ActivityParameter.database == node["database"]) &
-                                           (ActivityParameter.code == node["code"])).group
-        group_deps: list = Group.get(Group.name == group_name).order
-        group_deps.append(group_name)
+    group_deps: list = Group.get(Group.name == group).order
+    group_deps.append(group)
 
-        for dep in group_deps:
-            for name, param in ActivityParameter.load(dep).items():
-                data[name] = Parameter(name, dep, param["amount"], param, "activity")
-    except pw.DoesNotExist:
-        # no activity parameters
-        pass
+    for dep in group_deps:
+        for name, param in ActivityParameter.load(dep).items():
+            if name in data:
+                del data[name]  # the variable is overwritten in the scope chain
+            data[name] = Parameter(name, dep, param["amount"], param, "activity")
 
     return data
-
-
 
 
 def clean_activity_name(activity_name: str) -> str:
