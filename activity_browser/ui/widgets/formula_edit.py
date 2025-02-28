@@ -1,7 +1,7 @@
 import sys
 import re
 
-from asteval import make_symbol_table
+from asteval import make_symbol_table, Interpreter
 
 from qtpy.QtWidgets import QApplication, QWidget
 from qtpy.QtGui import QPainter, QColor, QFontMetrics, QFontDatabase, QPainterPath, QPen
@@ -31,7 +31,7 @@ class ABFormulaEdit(QWidget):
     def __init__(self, parent=None, scope=None, text=None):
         super().__init__(parent)
         self.scope = scope or {}
-        self.text = text or ""  # Stores user input
+        self.error = False
         self.cursor_pos = 0  # Cursor position in the text
         self.selection_start = None  # Selection start index
         self.selection_end = None  # Selection end index
@@ -44,12 +44,28 @@ class ABFormulaEdit(QWidget):
         self.timer.timeout.connect(self.toggle_cursor)
         self.timer.start(500)  # Blink cursor every 500ms
 
-        # self.setFixedHeight(2 * self.fontMetrics().height())
+        self.interpreter = Interpreter({k: v.amount for k, v in scope.items()})
+        self.text = text or ""  # Stores user input
 
         font = self.font()
         font.setFamily("JetBrains Mono")
         font.setPointSize(10)
         self.setFont(font)
+
+    @property
+    def text(self):
+        return self._text
+
+    @text.setter
+    def text(self, value):
+        self._text = str(value)
+        try:
+            self.error = None
+            self.interpreter.eval(self.text, show_errors=False, raise_errors=True)
+        except (SyntaxError, TypeError) as e:
+            self.error = e
+        except:
+            pass
 
     def toggle_cursor(self):
         """Toggles cursor visibility for blinking effect."""
@@ -227,6 +243,8 @@ class ABFormulaEdit(QWidget):
     def paint_text(self, painter: QPainter):
         painter.setFont(self.font())
 
+
+
         # Calculate text width and alignment
         font_metrics = painter.fontMetrics()
         text_x = self.padding - self.scroll_offset
@@ -249,20 +267,22 @@ class ABFormulaEdit(QWidget):
                 pass
             elif is_valid_number(token):
                 painter.setPen(Colors.number)
-            elif token in table:
-                painter.setPen(Colors.builtin)
             elif token in self.scope:
                 painter.setPen(Colors.variable)
-            elif token in accepted_chars:
-                painter.setPen(QColor("Black"))
+            elif token in table:
+                painter.setPen(Colors.builtin)
             else:
                 painter.setPen(QColor("Black"))
-                draw_error_line(painter, text_x, text_y + 2, font_metrics.horizontalAdvance(token))
+                if token not in accepted_chars and self.error is None:
+                    draw_error_line(painter, text_x, text_y + 2, font_metrics.horizontalAdvance(token))
 
             painter.drawText(text_x, text_y, token)
 
             text_x += font_metrics.horizontalAdvance(token)
             painter.restore()
+
+        if self.error:
+            draw_error_line(painter, self.padding - self.scroll_offset, text_y + 2, text_x)
 
         # Draw cursor
         if self.cursor_visible and self.selection_start is None:
