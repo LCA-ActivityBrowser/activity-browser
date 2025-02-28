@@ -12,8 +12,8 @@ from activity_browser.static import fonts
 
 QFontDatabase.addApplicationFont(fonts.__path__[0] + "/mono.ttf")
 
-accepted_chars = ["+", "-", "*", "/", "^", "(", ")", "[", "]", " ", ","]
-pattern = r"\b[a-zA-Z_]\w*\b|[\d.]+|[,+\-*/^()\[\]]| +"
+accepted_chars = ["+", "-", "*", "/", "^", "(", ")", "[", "]", " ", ",", "\"", "{", "}", ":", "'"]
+pattern = r"\b[a-zA-Z_]\w*\b|[\d.]+|[\"'{}:,+\-*/^()\[\]]| +"
 table = make_symbol_table()
 
 parameters = {
