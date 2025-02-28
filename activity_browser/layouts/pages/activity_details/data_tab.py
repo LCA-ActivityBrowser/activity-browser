@@ -68,6 +68,15 @@ class DataItem(widgets.ABDataItem):
             return flags | QtCore.Qt.ItemFlag.ItemIsEditable
         return flags
 
+    def displayData(self, col: int, key: str):
+        if key == "value":
+            data = self[key]
+            if isinstance(data, str):
+                return f"'{data}'"
+            return str(data)
+
+        return super().displayData(col, key)
+
     def setData(self, col: int, key: str, value) -> bool:
         if key in ["amount", "formula", "name"]:
             actions.ParameterModify.run(self.parameter, key, value)
