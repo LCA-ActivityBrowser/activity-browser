@@ -14,6 +14,31 @@ QFontDatabase.addApplicationFont(fonts.__path__[0] + "/mono.ttf")
 
 accepted_chars = ["+", "-", "*", "/", "^", "(", ")", "[", "]", " ", ",", "\"", "{", "}", ":", "'"]
 pattern = r"\b[a-zA-Z_]\w*\b|[\d.]+|[\"'{}:,+\-*/^()\[\]]| +"
+
+
+TOKEN_REGEX = r'''
+(?P<COMMENT>\#.*)                              # Comments
+| (?P<SQSTRING>'(?:\\.|[^\\])*?')              # Single-quoted string
+| (?P<DQSTRING>"(?:\\.|[^\\])*?")             # Double-quoted string
+| (?P<NUMBER>\b\d+(\.\d*)?([eE][-+]?\d+)?\b)  # Integer or decimal number
+| (?P<KEYWORD>\b(?:def|class|if|else|elif|return|for|while|import|from|try|except|with|as|True|False|None|break|continue|pass|and|or|not|is|in|lambda|yield|global|nonlocal|assert|raise|del|async|await)\b)
+| (?P<OPERATOR>[+\-*/%=<>!&|^~]+)             # Operators
+| (?P<PUNCTUATION>[(),.:;\[\]{}])            # Punctuation
+| (?P<IDENTIFIER>\b[a-zA-Z_][a-zA-Z0-9_]*\b)  # Identifiers
+| (?P<WHITESPACE>\s+)                         # Whitespace
+| (?P<MISMATCH>.)                             # Any other character
+'''
+
+
+def tokenize(expression: str):
+    regex = re.compile(TOKEN_REGEX, re.VERBOSE)
+    tokens = []
+    for match in regex.finditer(expression):
+        kind = match.lastgroup
+        value = match.group()
+        tokens.append((kind, value))
+    return tokens
+
 table = make_symbol_table()
 
 parameters = {
@@ -26,6 +51,7 @@ class Colors:
     builtin = QColor("#a626a4")
     number = QColor("#986801")
     variable = QColor("#4078f2")
+    string = QColor("#50a14f")
 
 
 class ABFormulaEdit(QWidget):
@@ -323,21 +349,26 @@ class ABFormulaEdit(QWidget):
                              QColor(173, 216, 230))  # Light blue
 
         # Draw text
-        for token in re.findall(pattern, self.text):
+        for token_type, token in tokenize(self.text):
             painter.save()
 
             if not painter.pen() == Qt.NoPen:
                 pass
-            elif is_valid_number(token):
+            elif token_type == "NUMBER":
                 painter.setPen(Colors.number)
-            elif token in self.scope:
-                painter.setPen(Colors.variable)
-            elif token in table:
-                painter.setPen(Colors.builtin)
+            elif token_type in ["SQSTRING", "DQSTRING"]:
+                painter.setPen(Colors.string)
+            elif token_type == "IDENTIFIER":
+                if token in self.scope:
+                    painter.setPen(Colors.variable)
+                elif token in table:
+                    painter.setPen(Colors.builtin)
+                else:
+                    painter.setPen(QColor("Black"))
+                    draw_error_line(painter, text_x, text_y + 2, font_metrics.horizontalAdvance(token))
             else:
                 painter.setPen(QColor("Black"))
-                if token not in accepted_chars and self.error is None:
-                    draw_error_line(painter, text_x, text_y + 2, font_metrics.horizontalAdvance(token))
+
 
             painter.drawText(text_x, text_y, token)
 
