@@ -15,6 +15,7 @@ from .activity_header import ActivityHeader
 from .graph_tab import GraphTab
 from .exchanges_tab import ExchangesTab
 from .parameters_tab import ParametersTab
+from .data_tab import DataTab
 from .views import ConsumersView
 from .models import ConsumersModel
 
@@ -60,8 +61,8 @@ class ActivityDetails(QtWidgets.QWidget):
         self.consumer_tab = ConsumersTab(activity, self)
         self.tabs.addTab(self.consumer_tab, "Consumers")
 
-        self.explorer = QtWidgets.QLabel("WORK IN PROGRESS")
-        self.tabs.addTab(self.explorer, "Data")
+        self.data_tab = DataTab(activity, self)
+        self.tabs.addTab(self.data_tab, "Data")
 
         self.build_layout()
         self.sync()
@@ -115,6 +116,7 @@ class ActivityDetails(QtWidgets.QWidget):
         self.exchanges_tab.sync()
         self.description_tab.sync()
         self.consumer_tab.sync()
+        self.data_tab.sync()
 
 
 class DescriptionTab(QtWidgets.QTextEdit):
