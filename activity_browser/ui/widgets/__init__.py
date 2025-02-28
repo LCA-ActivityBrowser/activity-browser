@@ -17,3 +17,4 @@ from .treeview import ABTreeView
 from .abstractitemmodel import ABAbstractItemModel
 from .abstractitem import ABAbstractItem, ABBranchItem, ABDataItem
 from .line import ABHLine, ABVLine
+from .formula_edit import ABFormulaEdit
