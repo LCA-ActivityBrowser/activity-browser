@@ -4,13 +4,14 @@ import re
 from asteval import make_symbol_table
 
 from qtpy.QtWidgets import QApplication, QWidget
-from qtpy.QtGui import QPainter, QColor, QFontMetrics, QFontDatabase
+from qtpy.QtGui import QPainter, QColor, QFontMetrics, QFontDatabase, QPainterPath, QPen
 from qtpy.QtCore import QTimer, Qt
 
 from activity_browser.static import fonts
 
 QFontDatabase.addApplicationFont(fonts.__path__[0] + "/mono.ttf")
 
+accepted_chars = ["+", "-", "*", "/", "^", "(", ")", "[", "]", " "]
 pattern = r"\b[a-zA-Z_]\w*\b|[\d.]+|[+\-*/^()\[\]]| +"
 table = make_symbol_table()
 
@@ -252,8 +253,11 @@ class ABFormulaEdit(QWidget):
                 painter.setPen(Colors.builtin)
             elif token in self.scope:
                 painter.setPen(Colors.variable)
+            elif token in accepted_chars:
+                painter.setPen(QColor("Black"))
             else:
                 painter.setPen(QColor("Black"))
+                draw_error_line(painter, text_x, text_y + 2, font_metrics.horizontalAdvance(token))
 
             painter.drawText(text_x, text_y, token)
 
@@ -265,6 +269,31 @@ class ABFormulaEdit(QWidget):
             cursor_x = self.padding - self.scroll_offset + text_index_to_x(self.text, self.cursor_pos, font_metrics)
             painter.setPen(QColor("Black"))
             painter.drawLine(cursor_x, cursor_y1, cursor_x, cursor_y2)
+
+
+def draw_error_line(painter, x, y, w):
+    painter.save()
+    path = QPainterPath()
+
+    # Define squiggly wave parameters
+    amplitude = 2  # Height of the wave
+    frequency = 4  # Number of waves across the width
+
+    path.moveTo(x, y)
+
+    for i in range(w // frequency):
+        path.lineTo(x + frequency // 2, y - amplitude)
+        path.lineTo(x + frequency, y)
+        x += frequency
+
+    # Set the error line pen (red squiggly line)
+    pen = QPen(Qt.red)
+    pen.setWidth(1)
+    painter.setPen(pen)
+
+    # Draw the squiggly line
+    painter.drawPath(path)
+    painter.restore()
 
 
 def text_index_to_x(text, index, fm: QFontMetrics):
