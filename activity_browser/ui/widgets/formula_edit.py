@@ -1,18 +1,19 @@
-import sys
 import re
+
+import pandas as pd
 
 from asteval import make_symbol_table, Interpreter
 
-from qtpy.QtWidgets import QApplication, QWidget
-from qtpy.QtGui import QPainter, QColor, QFontMetrics, QFontDatabase, QPainterPath, QPen
-from qtpy.QtCore import QTimer, Qt
+from qtpy.QtWidgets import QApplication, QWidget, QCompleter, QTableView, QSizePolicy
+from qtpy.QtGui import QPainter, QColor, QFontMetrics, QFontDatabase, QPainterPath, QPen, QFont
+from qtpy.QtCore import QTimer, Qt, QAbstractTableModel, QModelIndex
 
 from activity_browser.static import fonts
 
 QFontDatabase.addApplicationFont(fonts.__path__[0] + "/mono.ttf")
 
-accepted_chars = ["+", "-", "*", "/", "^", "(", ")", "[", "]", " "]
-pattern = r"\b[a-zA-Z_]\w*\b|[\d.]+|[+\-*/^()\[\]]| +"
+accepted_chars = ["+", "-", "*", "/", "^", "(", ")", "[", "]", " ", ","]
+pattern = r"\b[a-zA-Z_]\w*\b|[\d.]+|[,+\-*/^()\[\]]| +"
 table = make_symbol_table()
 
 parameters = {
@@ -40,17 +41,26 @@ class ABFormulaEdit(QWidget):
         self.padding = 5  # Left padding for text inside the box
         self.dragging = False  # Track if mouse is dragging
 
+        font = self.font()
+        font.setFamily("JetBrains Mono")
+        font.setPointSize(10)
+        self.setFont(font)
+
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.toggle_cursor)
         self.timer.start(500)  # Blink cursor every 500ms
 
         self.interpreter = Interpreter({k: v.amount for k, v in scope.items()})
-        self.text = text or ""  # Stores user input
+        self.completer = QCompleter()
+        self.completer.setPopup(CompleterView())
+        self.completer_model = CompleterModel(self.scope, self.font())
 
-        font = self.font()
-        font.setFamily("JetBrains Mono")
-        font.setPointSize(10)
-        self.setFont(font)
+        self.completer.setWidget(self)
+        self.completer.setModel(self.completer_model)
+        self.completer.setCompletionColumn(0)
+        self.completer.activated.connect(self.insert_completion)
+
+        self.text = text or ""  # Stores user input
 
     @property
     def text(self):
@@ -66,6 +76,57 @@ class ABFormulaEdit(QWidget):
             self.error = e
         except:
             pass
+
+    def pos_to_token_index(self, pos: int) -> int:
+        tokens = re.findall(pattern, self.text)
+
+        result = -1
+        char_index = 0
+        for i, token in enumerate(tokens):
+            char_index += len(token)
+            if pos <= char_index:
+                result = i
+                break
+
+        return result
+
+    def token_at_cursor(self):
+        index = self.pos_to_token_index(self.cursor_pos)
+        tokens = re.findall(pattern, self.text)
+
+        return tokens[index] if len(tokens) > 0 else ""
+
+    def update_completer(self):
+        tokens = re.findall(pattern, self.text)
+        index = self.pos_to_token_index(self.cursor_pos)
+
+        if (len(tokens) == 0 or
+                (tokens[index] in accepted_chars and tokens[index] != " ") or
+                (tokens[index] == " " and tokens[index - 1] in accepted_chars)):
+            self.completer.setCompletionPrefix("")
+        else:
+            self.completer.setCompletionPrefix(tokens[index])
+
+        self.completer.complete(self.rect())
+
+    def insert_completion(self, completion):
+        tokens = re.findall(pattern, self.text)
+        if len(tokens) == 0:
+            self.text = completion
+            self.move_cursor(len(completion))
+            return
+
+        index = self.pos_to_token_index(self.cursor_pos)
+        shift = len(completion) - len(tokens[index])
+
+        if ((tokens[index] in accepted_chars and tokens[index] != " ") or
+                (tokens[index] == " " and tokens[index - 1] in accepted_chars)):
+            tokens.insert(index + 1, completion)
+        else:
+            tokens[index] = completion
+
+        self.text = "".join(tokens)
+        self.move_cursor(shift)
 
     def toggle_cursor(self):
         """Toggles cursor visibility for blinking effect."""
@@ -92,7 +153,7 @@ class ABFormulaEdit(QWidget):
                 self.delete_selected_text()
             elif self.cursor_pos > 0:
                 self.text = self.text[:self.cursor_pos - 1] + self.text[self.cursor_pos:]
-                self.cursor_pos -= 1
+                self.move_cursor(-1)
         elif key == Qt.Key_Delete:
             if self.selection_start is not None:
                 self.delete_selected_text()
@@ -112,6 +173,8 @@ class ABFormulaEdit(QWidget):
             self.move_cursor(-self.cursor_pos)
         elif key == Qt.Key_End:
             self.move_cursor(len(self.text) - self.cursor_pos)
+        elif key in (Qt.Key_Return, Qt.Key_Enter):
+            self.completer.popup().event(event)
         elif event.text():
             if self.selection_start is not None:
                 self.delete_selected_text()
@@ -120,7 +183,7 @@ class ABFormulaEdit(QWidget):
             if re.findall(pattern, self.text) == re.findall(pattern, new_text):
                 return
             self.text = new_text
-            self.cursor_pos += 1
+            self.move_cursor(1)
 
         self.adjust_scroll()
         self.update()
@@ -157,6 +220,7 @@ class ABFormulaEdit(QWidget):
         self.cursor_pos = max(0, min(len(self.text), self.cursor_pos + step))
         self.selection_start = None  # Clear selection
         self.adjust_scroll()
+        self.update_completer()
 
     def adjust_selection(self, step):
         """Adjusts selection range while moving the cursor."""
@@ -243,8 +307,6 @@ class ABFormulaEdit(QWidget):
     def paint_text(self, painter: QPainter):
         painter.setFont(self.font())
 
-
-
         # Calculate text width and alignment
         font_metrics = painter.fontMetrics()
         text_x = self.padding - self.scroll_offset
@@ -257,7 +319,8 @@ class ABFormulaEdit(QWidget):
             start, end = sorted([self.selection_start, self.selection_end])
             start_x = text_x + font_metrics.horizontalAdvance(self.text[:start])
             end_x = text_x + font_metrics.horizontalAdvance(self.text[:end])
-            painter.fillRect(start_x, cursor_y1, end_x - start_x, cursor_y2 - cursor_y1, QColor(173, 216, 230))  # Light blue
+            painter.fillRect(start_x, cursor_y1, end_x - start_x, cursor_y2 - cursor_y1,
+                             QColor(173, 216, 230))  # Light blue
 
         # Draw text
         for token in re.findall(pattern, self.text):
@@ -290,6 +353,82 @@ class ABFormulaEdit(QWidget):
             painter.setPen(QColor("Black"))
             painter.drawLine(cursor_x, cursor_y1, cursor_x, cursor_y2)
 
+
+class CompleterModel(QAbstractTableModel):
+    def __init__(self, data: dict, font: QFont, parent=None):
+        super().__init__(parent)
+        self.df = pd.DataFrame.from_dict(data, orient="index")
+
+        self._headers = ["Name", "Amount", "Type"]
+        self.font = font
+
+    def rowCount(self, parent=QModelIndex()):
+        return len(self.df)
+
+    def columnCount(self, parent=QModelIndex()):
+        return len(self._headers)
+
+    def data(self, index, role=Qt.DisplayRole):
+        if not index.isValid():
+            return None
+
+        if role == Qt.DisplayRole:
+            if index.column() == 0:
+                return self.df.iloc[index.row(), index.column()]
+            if index.column() == 1:
+                return f"= {self.df.iloc[index.row()]['amount']}"
+            if index.column() == 2:
+                if self.df.iloc[index.row()]['param_type'] == "project":
+                    return "Project Parameter"
+                if self.df.iloc[index.row()]['param_type'] == "database":
+                    return "Database Parameter"
+                if self.df.iloc[index.row()]['param_type'] == "activity":
+                    return "Activity Parameter"
+
+
+        if role == Qt.EditRole:
+            return self.df.iloc[index.row(), index.column()]
+
+        if role == Qt.FontRole:
+            if index.column() == 0:
+                return self.font
+            if index.column() == 1:
+                font = QFont()
+                font.setItalic(True)
+                return font
+            if index.column() == 2:
+                font = QFont()
+                font.setPointSize(font.pointSize() - 2)
+                return font
+
+        if role == Qt.ForegroundRole and index.column() == 0:
+            return Colors.variable
+
+        return None
+
+    def headerData(self, section, orientation, role=Qt.DisplayRole):
+        return None
+
+
+class CompleterView(QTableView):
+    def __init__(self):
+        super().__init__(showGrid=False)
+        self.horizontalHeader().hide()
+        self.verticalHeader().hide()
+        self.setSizeAdjustPolicy(self.SizeAdjustPolicy.AdjustToContents)
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+
+    def setModel(self, model):
+        super().setModel(model)
+        self.resize_on_reset()
+        model.modelReset.connect(self.resize_on_reset)
+
+    def resize_on_reset(self):
+        self.resizeColumnsToContents()
+        for i in range(self.model().rowCount()):
+            self.setRowHeight(i, 20)
+        self.setFixedWidth(self.sizeHint().width())
 
 def draw_error_line(painter, x, y, w):
     painter.save()
@@ -334,4 +473,3 @@ def is_valid_number(string):
         return True
     except ValueError:
         return False
-

@@ -211,7 +211,8 @@ def parameters_in_scope(
     if node:
         node = refresh_node(node)
         database = node["database"]
-        group = ActivityParameter.get_or_none(database=node["database"], code=node["code"]).group
+        ap = ActivityParameter.get_or_none(database=node["database"], code=node["code"])
+        group = ap.group if ap else None
     else:  # if parameter
         parameter = refresh_parameter(parameter)
         group = parameter.group
@@ -232,8 +233,7 @@ def parameters_in_scope(
             del data[name]  # the variable is overwritten in the scope chain
         data[name] = Parameter(name, database, param["amount"], param, "database")
 
-    group_deps: list = Group.get(Group.name == group).order
-    group_deps.append(group)
+    group_deps = Group.get_or_none(name=group).order + [group] if group else []
 
     for dep in group_deps:
         for name, param in ActivityParameter.load(dep).items():
