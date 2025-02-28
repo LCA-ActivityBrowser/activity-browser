@@ -47,6 +47,7 @@ class ABFormulaEdit(QWidget):
 
         font = self.font()
         font.setFamily("JetBrains Mono")
+        font.setPointSize(10)
         self.setFont(font)
 
     def toggle_cursor(self):
@@ -218,24 +219,19 @@ class ABFormulaEdit(QWidget):
     def paintEvent(self, event):
         """Handles drawing the text input field, cursor, and selection."""
         painter = QPainter(self)
-        self.paint(painter)
-
-    def paint(self, painter: QPainter):
-        # Draw border
-        painter.setFont(self.font())
-
-        painter.save()
-        painter.setBrush(QColor("White"))
         painter.setPen(Qt.NoPen)
-        painter.drawRect(self.rect())
-        painter.restore()
+        painter.fillRect(self.rect(), QColor("White"))
+        self.paint_text(painter)
+
+    def paint_text(self, painter: QPainter):
+        painter.setFont(self.font())
 
         # Calculate text width and alignment
         font_metrics = painter.fontMetrics()
         text_x = self.padding - self.scroll_offset
-        text_y = int(self.height() * (2 / 3))
-        cursor_y1 = int(self.height() * (1 / 4))
-        cursor_y2 = int(self.height() * (3 / 4))
+        text_y = font_metrics.height()
+        cursor_y1 = 0
+        cursor_y2 = self.height()
 
         # Draw selection background if any
         if self.selection_start is not None and self.selection_end is not None:
@@ -248,15 +244,17 @@ class ABFormulaEdit(QWidget):
         for token in re.findall(pattern, self.text):
             painter.save()
 
-            if is_valid_number(token):
+            if not painter.pen() == Qt.NoPen:
+                pass
+            elif is_valid_number(token):
                 painter.setPen(Colors.number)
-            if token in table:
+            elif token in table:
                 painter.setPen(Colors.builtin)
-            if token in self.scope:
+            elif token in self.scope:
                 painter.setPen(Colors.variable)
-                font = self.font()
-                font.setBold(True)
-                painter.setFont(font)
+            else:
+                painter.setPen(QColor("Black"))
+
             painter.drawText(text_x, text_y, token)
 
             text_x += font_metrics.horizontalAdvance(token)
@@ -265,6 +263,7 @@ class ABFormulaEdit(QWidget):
         # Draw cursor
         if self.cursor_visible and self.selection_start is None:
             cursor_x = self.padding - self.scroll_offset + text_index_to_x(self.text, self.cursor_pos, font_metrics)
+            painter.setPen(QColor("Black"))
             painter.drawLine(cursor_x, cursor_y1, cursor_x, cursor_y2)
 
 
