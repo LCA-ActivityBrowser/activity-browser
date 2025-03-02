@@ -21,6 +21,10 @@ class DataTab(QtWidgets.QWidget):
         self.data_model = DataModel(self)
         self.data_view.setModel(self.data_model)
 
+        self.data_model.setDataFrame(self.build_df())
+        self.data_model.group(2)
+        self.data_view.setColumnHidden(2, True)
+
         self.build_layout()
 
     def build_layout(self):
@@ -32,24 +36,24 @@ class DataTab(QtWidgets.QWidget):
         """Populate the various tables and boxes within the Activity Detail tab"""
         self.activity = refresh_node(self.activity)
         self.data_model.setDataFrame(self.build_df())
-        self.data_model.group(2)
-        self.data_view.setColumnHidden(2, True)
 
     def build_df(self) -> pd.DataFrame:
         df = pd.DataFrame.from_dict(self.activity.as_dict(), orient="index")
         df["name"] = self.activity["name"]
+        df["_activity_id"] = self.activity.id
 
         if isinstance(self.activity, bf.Process):
             for function in self.activity.functions():
                 fn_df = pd.DataFrame.from_dict(function.as_dict(), orient="index")
                 fn_df["name"] = function["name"]
+                fn_df["_activity_id"] = function.id
                 df = pd.concat([df, fn_df])
 
         df = df.reset_index()
-        df = df.rename({"index": "key", 0: "value"}, axis=1)
-        df = df.sort_values(["name", "key"], ignore_index=True)
+        df = df.rename({"index": "field", 0: "value"}, axis=1)
+        df = df.sort_values(["name", "field"], ignore_index=True)
 
-        cols = ["key", "value", "name"]
+        cols = ["field", "value", "name", "_activity_id"]
         return df[cols]
 
 
@@ -78,8 +82,9 @@ class DataItem(widgets.ABDataItem):
         return super().displayData(col, key)
 
     def setData(self, col: int, key: str, value) -> bool:
-        if key in ["amount", "formula", "name"]:
-            actions.ParameterModify.run(self.parameter, key, value)
+        if key in ["value"]:
+            value = eval(value)
+            actions.ActivityModify.run(self["_activity_id"], self["field"], value)
 
         return False
 
