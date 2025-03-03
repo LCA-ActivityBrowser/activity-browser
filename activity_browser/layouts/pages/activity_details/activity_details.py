@@ -8,7 +8,7 @@ import bw2data as bd
 import bw_functional as bf
 
 from activity_browser import signals, actions
-from activity_browser.bwutils import AB_metadata, refresh_node
+from activity_browser.bwutils import AB_metadata, refresh_node, refresh_node_or_none
 from activity_browser.ui import widgets as ABwidgets
 
 from .activity_header import ActivityHeader
@@ -108,7 +108,12 @@ class ActivityDetails(QtWidgets.QWidget):
         self.thread().eventDispatcher().awake.connect(slot)
 
     def sync(self):
-        self.activity = refresh_node(self.activity)
+        self.activity = refresh_node_or_none(self.activity)
+
+        if self.activity is None:
+            # activity was already deleted
+            return()
+
         # update the object name to be the activity name
         self.setObjectName(self.activity["name"])
 

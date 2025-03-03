@@ -6,7 +6,7 @@ re-typing the same code in different parts of the Activity Browser.
 import bw_functional
 
 from .commontasks import cleanup_deleted_bw_projects as cleanup
-from .commontasks import refresh_node, refresh_parameter, parameters_in_scope
+from .commontasks import refresh_node, refresh_node_or_none, refresh_parameter, parameters_in_scope
 from .metadata import AB_metadata
 from .montecarlo import MonteCarloLCA
 from .multilca import MLCA, Contributions

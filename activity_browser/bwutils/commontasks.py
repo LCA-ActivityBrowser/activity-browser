@@ -8,6 +8,7 @@ import peewee as pw
 
 import bw2data as bd
 from bw2data.parameters import ParameterBase, ProjectParameter, DatabaseParameter, ActivityParameter, Group
+from bw2data.errors import UnknownObject
 
 from functools import lru_cache
 
@@ -171,6 +172,13 @@ def refresh_node(node: tuple | int | bd.Node) -> bd.Node:
     else:
         raise ValueError("Activity must be either a tuple, int or Node instance")
     return node
+
+
+def refresh_node_or_none(node: tuple | int | bd.Node) -> bd.Node | None:
+    try:
+        return refresh_node(node)
+    except (ValueError, UnknownObject):
+        return None
 
 
 def refresh_parameter(parameter: tuple | Parameter | ParameterBase):
