@@ -14,13 +14,13 @@ class ParametersTab(QtWidgets.QWidget):
         self.activity = refresh_node(activity)
 
         self.model = ParametersModel(self, self.build_df())
-        self.model.group(1)
+        # self.model.group(1)
         self.view = ParametersView()
         self.view.setModel(self.model)
         self.view.expandAll()
 
         self.view.resizeColumnToContents(0)
-        self.view.hideColumn(1)
+        # self.view.hideColumn(1)
         self.view.resizeColumnToContents(3)
 
         self.build_layout()
@@ -51,17 +51,17 @@ class ParametersTab(QtWidgets.QWidget):
             row["_parameter"] = param
 
             if param.param_type == "project":
-                row["scope"] = f"Current project"
+                row["_scope"] = f"Current project"
             elif param.param_type == "database":
-                row["scope"] = f"Database: {self.activity['database']}"
+                row["_scope"] = f"Database: {self.activity['database']}"
             elif param.group == f"{self.activity.id}":
-                row["scope"] = "This activity"
+                row["_scope"] = "This activity"
             else:
-                row["scope"] = f"Group: {param.group}"
+                row["_scope"] = f"Group: {param.group}"
 
             translated.append(row)
 
-        columns = ["name", "scope", "amount", "formula", "uncertainty", "_parameter"]
+        columns = ["name", "amount", "formula", "uncertainty", "_parameter", "_scope"]
         return pd.DataFrame(translated, columns=columns)
 
 
@@ -107,6 +107,49 @@ class ParametersItem(widgets.ABDataItem):
             return icons.qicons.parameterized
 
 
+class NewParametersItem(widgets.ABDataItem):
+    def flags(self, col: int, key: str):
+        flags = super().flags(col, key)
+        if key == "name":
+            return flags | QtCore.Qt.ItemFlag.ItemIsEditable
+        return flags
+
+    def fontData(self, col: int, key: str):
+        font = super().fontData(col, key)
+        font.setItalic(True)
+        return font
+
+    def setData(self, col: int, key: str, value) -> bool:
+        if key != "name" or value == "":
+            return False
+
+        parameter = Parameter(
+            name=value,
+            group=self["_parameter"].group,
+            param_type=self["_parameter"].param_type
+        )
+
+        actions.ParameterNewFromParameter.run(parameter)
+        return True
+
+
 class ParametersModel(widgets.ABAbstractItemModel):
     dataItemClass = ParametersItem
+
+    def createItems(self, dataframe=None) -> list[widgets.ABAbstractItem]:
+        if dataframe is None:
+            dataframe = self.dataframe
+
+        items = []
+        for scope in dataframe._scope.unique():
+            branch = self.branchItemClass(scope)
+
+            for index, data in dataframe.loc[dataframe._scope == scope].to_dict(orient="index").items():
+                self.dataItemClass(index, data, branch)
+                param = data["_parameter"]
+            NewParametersItem(None, {"name": "New parameter", "_parameter": param}, branch)
+
+            items.append(branch)
+
+        return items
 
