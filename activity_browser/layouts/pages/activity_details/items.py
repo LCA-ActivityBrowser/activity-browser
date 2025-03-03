@@ -1,3 +1,4 @@
+import pandas as pd
 from qtpy import QtGui
 from qtpy.QtCore import Qt
 
@@ -57,8 +58,13 @@ class ExchangesItem(ABDataItem):
         return super().displayData(col, key)
 
     def decorationData(self, col, key):
-        if key not in ["name", "substitute_name"] or not self.displayData(col, key):
+        if key not in ["name", "substitute_name", "amount"] or not self.displayData(col, key):
             return
+
+        if key == "amount":
+            if pd.isna(self["formula"]) or self["formula"] is None:
+                return
+            return icons.qicons.parameterized
 
         if key == "name":
             activity_type = self.exchange.input.get("type")
