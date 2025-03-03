@@ -114,7 +114,7 @@ class ParametersItem(widgets.ABDataItem):
         return super().displayData(col, key)
 
     def decorationData(self, col, key):
-        if key not in ["amount"] or not self.displayData(col, key):
+        if key not in ["amount"]:
             return
 
         if key == "amount":
