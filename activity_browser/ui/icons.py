@@ -63,6 +63,7 @@ class Icons(object):
     # activity
     duplicate_activity = create_path("main", "duplicate_activity.png")
     duplicate_to_other_database = create_path("main", "import_database.png")
+    parameterized = create_path("main", "parameterized.png")
 
     # windows
     graph_explorer = create_path("main", "graph_explorer.png")
