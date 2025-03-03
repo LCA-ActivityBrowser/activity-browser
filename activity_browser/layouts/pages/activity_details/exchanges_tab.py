@@ -20,10 +20,14 @@ class ExchangesTab(QtWidgets.QWidget):
         self.output_model = ExchangesModel(self)
         self.output_view.setModel(self.output_model)
 
+        self.output_view.setIndentation(0)
+
         # Input Table
         self.input_view = ExchangesView(self)
         self.input_model = ExchangesModel(self)
         self.input_view.setModel(self.input_model)
+
+        self.input_view.setIndentation(0)
 
         self.build_layout()
 
