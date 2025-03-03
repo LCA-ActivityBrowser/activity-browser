@@ -23,6 +23,10 @@ class ParameterModify(ABAction):
         parameter = refresh_parameter(parameter)
         param_model = parameter.to_peewee_model()
 
+        if field == "formula" and value == "":
+            # clear if the formula string is empty
+            value = None
+
         if field == "data":
             parameter.data.update(value)
         elif field == "name":
