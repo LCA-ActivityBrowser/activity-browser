@@ -63,7 +63,7 @@ class ExchangesItem(ABDataItem):
 
         if key == "amount":
             if pd.isna(self["formula"]) or self["formula"] is None:
-                return
+                return icons.qicons.empty  # empty icon to align the values
             return icons.qicons.parameterized
 
         if key == "name":

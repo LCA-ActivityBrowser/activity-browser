@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 from pathlib import Path
 
-from qtpy.QtGui import QIcon
+from qtpy.QtCore import Qt, QSize
+from qtpy.QtGui import QIcon, QPixmap
 
 PACKAGE_DIR = Path(__file__).resolve().parents[1]
 
@@ -9,6 +10,12 @@ PACKAGE_DIR = Path(__file__).resolve().parents[1]
 def create_path(folder: str, filename: str) -> str:
     """Builds a path to the image file."""
     return str(PACKAGE_DIR.joinpath("static", "icons", folder, filename))
+
+
+def empty_icon(size: QSize = QSize(32, 32)) -> QIcon:
+    pixmap = QPixmap(size)
+    pixmap.fill(Qt.transparent)  # Make the pixmap transparent
+    return QIcon(pixmap)
 
 
 # CURRENTLY UNUSED ICONS
@@ -93,6 +100,7 @@ class Icons(object):
 
 class QIcons(Icons):
     """Using the Icons class, returns the same attributes, but as QIcon type"""
+    empty = empty_icon()
 
     def __getattribute__(self, item):
         return QIcon(Icons.__getattribute__(self, item))
