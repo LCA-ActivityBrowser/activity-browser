@@ -193,11 +193,11 @@ def refresh_parameter(parameter: tuple | Parameter | ParameterBase):
 
     # construct a new Parameter-type from the peewee model
     if isinstance(raw, ProjectParameter):
-        return Parameter(raw.dict.pop("name"), "project", raw.dict["amount"], raw.dict, "project")
+        return Parameter(raw.dict.pop("name"), "project", raw.dict.get("amount"), raw.dict, "project")
     elif isinstance(raw, DatabaseParameter):
-        return Parameter(raw.dict.pop("name"), raw.database, raw.dict["amount"], raw.dict, "database")
+        return Parameter(raw.dict.pop("name"), raw.database, raw.dict.get("amount"), raw.dict, "database")
     elif isinstance(raw, ActivityParameter):
-        return Parameter(raw.dict.pop("name"), raw.group, raw.dict["amount"], raw.dict, "activity")
+        return Parameter(raw.dict.pop("name"), raw.group, raw.dict.get("amount"), raw.dict, "activity")
     else:
         raise ValueError("Unknown parameter type")
 
@@ -239,7 +239,7 @@ def parameters_in_scope(
         for name, param in ActivityParameter.load(dep).items():
             if name in data:
                 del data[name]  # the variable is overwritten in the scope chain
-            data[name] = Parameter(name, dep, param["amount"], param, "activity")
+            data[name] = Parameter(name, dep, param.get("amount"), param, "activity")
 
     return data
 

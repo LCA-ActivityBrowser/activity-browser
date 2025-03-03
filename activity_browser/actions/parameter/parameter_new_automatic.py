@@ -4,6 +4,7 @@ from peewee import IntegrityError
 from qtpy import QtWidgets
 
 from activity_browser import application
+from activity_browser.bwutils import refresh_node
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.mod import bw2data as bd
 from bw2data.parameters import ActivityParameter
@@ -23,9 +24,10 @@ class ParameterNewAutomatic(ABAction):
 
     @staticmethod
     @exception_dialogs
-    def run(activity_keys: List[Tuple]):
-        for key in activity_keys:
-            act = bd.get_activity(key)
+    def run(activities: List[tuple | int | bd.Node]):
+        activities = [refresh_node(x) for x in activities]
+
+        for act in activities:
             if act.get("type", "process") not in bd.labels.lci_node_types:
                 issue = f"Activity must be 'process' type, '{act.get('name')}' is type '{act.get('type')}'."
                 QtWidgets.QMessageBox.warning(
@@ -37,19 +39,13 @@ class ParameterNewAutomatic(ABAction):
                 )
                 return
 
-            group = act._document.id
-            count = (
-                ActivityParameter.select()
-                .where(ActivityParameter.group == group)
-                .count()
-            )
-
+            group = act.id
             row = {
                 "name": "dummy_parameter",
                 "amount": act.get("amount", 1.0),
                 "formula": act.get("formula", ""),
-                "database": key[0],
-                "code": key[1],
+                "database": act.get("database", ""),
+                "code": act.get("code", ""),
             }
 
             bd.parameters.new_activity_parameters([row], group)

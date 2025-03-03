@@ -3,6 +3,7 @@ from itertools import chain
 from typing import Iterable, List, NamedTuple, Optional
 
 import numpy as np
+import peewee as pw
 from stats_arrays import UncertaintyBase
 
 import bw2data as bd
@@ -25,6 +26,13 @@ class Parameter(NamedTuple):
     amount: float = 1.0
     data: dict = {}
     param_type: Optional[str] = None
+
+    @property
+    def deletable(self):
+        try:
+            return self.to_peewee_model().is_deletable()
+        except pw.DoesNotExist:
+            return False
 
     def as_gsa_tuple(self) -> tuple:
         """Return the parameter data formatted as follows:

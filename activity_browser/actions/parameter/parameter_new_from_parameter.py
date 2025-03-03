@@ -3,6 +3,8 @@ from activity_browser.bwutils import Parameter
 from bw2data.parameters import ProjectParameter, DatabaseParameter, ActivityParameter, parameters
 from activity_browser.ui.icons import qicons
 
+from .parameter_new_automatic import ParameterNewAutomatic
+
 
 class ParameterNewFromParameter(ABAction):
     """
@@ -35,7 +37,10 @@ class ParameterNewFromParameter(ABAction):
                 data=parameter.data,
             ).save()
         elif parameter.param_type == "activity":
-            mock = ActivityParameter.get(group=parameter.group)
+            mock = ActivityParameter.get_or_none(group=parameter.group)
+            if mock is None:
+                ParameterNewAutomatic.run([int(parameter.group)])
+                mock = ActivityParameter.get(group=parameter.group)
 
             ActivityParameter(
                 group=parameter.group,
