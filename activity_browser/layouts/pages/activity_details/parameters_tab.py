@@ -21,7 +21,6 @@ class ParametersTab(QtWidgets.QWidget):
 
         self.view.resizeColumnToContents(0)
         self.view.hideColumn(1)
-        self.view.resizeColumnToContents(2)
         self.view.resizeColumnToContents(3)
 
         self.build_layout()
