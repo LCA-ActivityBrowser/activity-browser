@@ -3,7 +3,7 @@ from qtpy import QtWidgets, QtCore
 import pandas as pd
 
 from activity_browser import signals, actions
-from activity_browser.ui import widgets as abwidgets
+from activity_browser.ui import widgets, icons
 from activity_browser.ui.tables import delegates
 from activity_browser.bwutils import refresh_node, refresh_parameter, parameters_in_scope, Parameter
 
@@ -60,7 +60,7 @@ class ParametersTab(QtWidgets.QWidget):
         return pd.DataFrame(translated, columns=columns)
 
 
-class ParametersView(abwidgets.ABTreeView):
+class ParametersView(widgets.ABTreeView):
     defaultColumnDelegates = {
         "amount": delegates.FloatDelegate,
         "name": delegates.StringDelegate,
@@ -70,7 +70,7 @@ class ParametersView(abwidgets.ABTreeView):
     }
 
 
-class ParametersItem(abwidgets.ABDataItem):
+class ParametersItem(widgets.ABDataItem):
 
     @property
     def scoped_parameters(self):
@@ -92,7 +92,16 @@ class ParametersItem(abwidgets.ABDataItem):
 
         return False
 
+    def decorationData(self, col, key):
+        if key not in ["amount"] or not self.displayData(col, key):
+            return
 
-class ParametersModel(abwidgets.ABAbstractItemModel):
+        if key == "amount":
+            if pd.isna(self["formula"]) or self["formula"] is None:
+                return icons.qicons.empty  # empty icon to align the values
+            return icons.qicons.parameterized
+
+
+class ParametersModel(widgets.ABAbstractItemModel):
     dataItemClass = ParametersItem
 
