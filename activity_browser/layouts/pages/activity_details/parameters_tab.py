@@ -19,8 +19,7 @@ class ParametersTab(QtWidgets.QWidget):
         self.view.expandAll()
 
         self.view.resizeColumnToContents(0)
-        # self.view.hideColumn(1)
-        self.view.resizeColumnToContents(3)
+        self.view.resizeColumnToContents(2)
 
         self.build_layout()
         self.connect_signals()
@@ -171,7 +170,7 @@ class ParametersModel(widgets.ABAbstractItemModel):
             else:
                 group, param_type = self.activity.id, "activity"
 
-            NewParametersItem(None, {"name": "New parameter", "_parameter": {
+            NewParametersItem(None, {"name": "New parameter...", "_parameter": {
                 "group": group, "param_type": param_type
             }}, branch)
 
