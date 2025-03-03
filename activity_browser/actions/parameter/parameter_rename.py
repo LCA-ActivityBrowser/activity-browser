@@ -28,6 +28,9 @@ class ParameterRename(ABAction):
         if not new_name:
             return
 
+        if not new_name.isidentifier():
+            raise ValueError("Parameter name must be a valid Python identifier")
+
         getattr(parameters, f"rename_{parameter.param_type}_parameter")(
                 parameter.to_peewee_model(), new_name, update_dependencies=True
             )

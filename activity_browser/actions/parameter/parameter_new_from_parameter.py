@@ -1,3 +1,5 @@
+from ast import literal_eval
+
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.bwutils import Parameter
 from bw2data.parameters import ProjectParameter, DatabaseParameter, ActivityParameter, parameters
@@ -19,6 +21,9 @@ class ParameterNewFromParameter(ABAction):
     def run(parameter: Parameter):
         if not isinstance(parameter, Parameter) or parameter.param_type is None:
             raise ValueError("Parameter must be an instance of Parameter")
+
+        if not parameter.name.isidentifier():
+            raise ValueError("Parameter name must be a valid Python identifier")
 
         # select the right group and instruct the controller to create the parameter there
         if parameter.param_type == "project":
