@@ -1,4 +1,4 @@
-from qtpy import QtWidgets, QtCore
+from qtpy import QtWidgets, QtCore, QtGui
 
 import pandas as pd
 
@@ -110,9 +110,6 @@ class ParametersItem(widgets.ABDataItem):
 
         return False
 
-    def displayData(self, col: int, key: str):
-        return super().displayData(col, key)
-
     def decorationData(self, col, key):
         if key not in ["amount"]:
             return
@@ -132,7 +129,7 @@ class NewParametersItem(widgets.ABDataItem):
 
     def fontData(self, col: int, key: str):
         font = super().fontData(col, key)
-        font.setItalic(True)
+        font.setWeight(font.Weight.ExtraLight)
         return font
 
     def setData(self, col: int, key: str, value) -> bool:
