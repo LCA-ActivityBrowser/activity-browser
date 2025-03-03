@@ -1,4 +1,5 @@
 import re
+from collections import namedtuple
 
 import pandas as pd
 
@@ -12,7 +13,7 @@ from activity_browser.static import fonts
 
 QFontDatabase.addApplicationFont(fonts.__path__[0] + "/mono.ttf")
 
-accepted_chars = ["+", "-", "*", "/", "^", "(", ")", "[", "]", " ", ",", "\"", "{", "}", ":", "'"]
+operators = r"+\-*/%=<>!&|^~"
 pattern = r"\b[a-zA-Z_]\w*\b|[\d.]+|[\"'{}:,+\-*/^()\[\]]| +"
 
 
@@ -36,7 +37,7 @@ def tokenize(expression: str):
     for match in regex.finditer(expression):
         kind = match.lastgroup
         value = match.group()
-        tokens.append((kind, value))
+        tokens.append(namedtuple("Token", ["kind", "value"])(kind, value))
     return tokens
 
 table = make_symbol_table()
@@ -104,11 +105,11 @@ class ABFormulaEdit(QWidget):
             pass
 
     def pos_to_token_index(self, pos: int) -> int:
-        tokens = re.findall(pattern, self.text)
+        tokens = tokenize(self.text)
 
         result = -1
         char_index = 0
-        for i, token in enumerate(tokens):
+        for i, (kind, token) in enumerate(tokens):
             char_index += len(token)
             if pos <= char_index:
                 result = i
@@ -123,35 +124,36 @@ class ABFormulaEdit(QWidget):
         return tokens[index] if len(tokens) > 0 else ""
 
     def update_completer(self):
-        tokens = re.findall(pattern, self.text)
+        tokens = tokenize(self.text)
         index = self.pos_to_token_index(self.cursor_pos)
 
-        if (len(tokens) == 0 or
-                (tokens[index] in accepted_chars and tokens[index] != " ") or
-                (tokens[index] == " " and tokens[index - 1] in accepted_chars)):
+        if len(tokens) == 0 or tokens[index].kind in ["OPERATOR", "PUNCTUATION", "WHITESPACE"]:
             self.completer.setCompletionPrefix("")
         else:
-            self.completer.setCompletionPrefix(tokens[index])
+            self.completer.setCompletionPrefix(tokens[index].value)
 
         self.completer.complete(self.rect())
 
     def insert_completion(self, completion):
-        tokens = re.findall(pattern, self.text)
+        tokens = tokenize(self.text)
+        index = self.pos_to_token_index(self.cursor_pos)
+
+        # if the line is empty, just replace the line with the completion
         if len(tokens) == 0:
             self.text = completion
             self.move_cursor(len(completion))
             return
 
-        index = self.pos_to_token_index(self.cursor_pos)
-        shift = len(completion) - len(tokens[index])
+        text_list = [token.value for token in tokens]
 
-        if ((tokens[index] in accepted_chars and tokens[index] != " ") or
-                (tokens[index] == " " and tokens[index - 1] in accepted_chars)):
-            tokens.insert(index + 1, completion)
+        if tokens[index].kind in ["OPERATOR", "PUNCTUATION", "WHITESPACE"]:
+            shift = len(completion)
+            text_list.insert(index + 1, completion)
         else:
-            tokens[index] = completion
+            shift = len(completion) - len(text_list[index])
+            text_list[index] = completion
 
-        self.text = "".join(tokens)
+        self.text = "".join(text_list)
         self.move_cursor(shift)
 
     def toggle_cursor(self):
