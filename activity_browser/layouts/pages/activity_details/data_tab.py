@@ -24,6 +24,7 @@ class DataTab(QtWidgets.QWidget):
         self.data_model.setDataFrame(self.build_df())
         self.data_model.group(2)
         self.data_view.setColumnHidden(2, True)
+        self.data_view.expandAll()
 
         self.build_layout()
 
