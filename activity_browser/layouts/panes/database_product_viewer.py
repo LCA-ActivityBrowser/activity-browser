@@ -102,8 +102,9 @@ class DatabaseProductViewer(QtWidgets.QWidget):
         df.update(df["processor"].rename("activity_key"))
 
         # "function_key"
-        # only available for functions
-        df["function_key"] = df[pd.notna(df.processor)]["key"]
+        # function or product of an activity
+        # node.key by default, but function.key
+        df["function_key"] = df["key"]
 
         # drop all processes that have functions
         df = df.drop(df[df.key.isin(df.processor)].index)
@@ -170,15 +171,7 @@ class ProductView(ui.widgets.ABTreeView):
             self.activity_delete = actions.ActivityDelete.get_QAction(view.selected_activities)
             self.product_delete = actions.ActivityDelete.get_QAction(view.selected_products)
 
-            # self.activity_relink = actions.ActivityRelink.get_QAction(view.selected_processes)
-
-            # self.activity_duplicate = actions.ActivityDuplicate.get_QAction(view.selected_products)
-            # self.activity_duplicate_to_loc = actions.ActivityDuplicateToLoc.get_QAction(
-            #     view.selected_products[0] if view.selected_products else None)
-            # self.activity_duplicate_to_db = actions.ActivityDuplicateToDB.get_QAction(view.selected_keys)
-
-            self.copy_sdf = QtWidgets.QAction(ui.icons.qicons.superstructure,
-                                              "Exchanges for scenario difference file", None)
+            self.copy_sdf = actions.ActivitySDFToClipboard.get_QAction(view.selected_products)
 
             if view.indexAt(pos).row() == -1:
                 self.addAction(self.process_new)

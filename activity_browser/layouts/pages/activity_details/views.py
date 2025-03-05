@@ -99,7 +99,9 @@ class ExchangesView(ABTreeView):
                 item: ExchangesItem = index.internalPointer()
 
                 self.delete_exc_action = actions.ExchangeDelete.get_QAction([item.exchange])
+                self.exc_to_sdf_action = actions.ExchangeSDFToClipboard.get_QAction([item.exchange])
                 self.addAction(self.delete_exc_action)
+                self.addAction(self.exc_to_sdf_action)
 
                 if not pd.isna(item["substitute"]):
                     self.remove_sub_action = actions.FunctionSubstituteRemove.get_QAction(item.exchange.input)

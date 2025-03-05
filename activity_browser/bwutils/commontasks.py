@@ -4,6 +4,7 @@ from logging import getLogger
 from collections import OrderedDict
 
 import arrow
+import pandas as pd
 import peewee as pw
 
 import bw2data as bd
@@ -331,6 +332,28 @@ def generate_copy_code(key: tuple) -> str:
 
 
 # EXCHANGES
+def refresh_edge(edge: int | bd.Edge) -> bd.Edge:
+    if isinstance(edge, bd.Edge):
+        edge = edge.__class__(bd.Edge.ORMDataset.get_by_id(edge.id))
+    elif isinstance(edge, int):
+        # Edge is just the ID
+        # need to go at it using a workaround to get the edge class right through the owner activity
+        owner = bd.Edge(bd.Edge.ORMDataset.get_by_id(edge)).output
+        for candidate in owner.edges():
+            if candidate.id == edge:
+                return candidate
+    else:
+        raise ValueError("Edge must be either an int or Edge instance")
+    return edge
+
+
+def refresh_edge_or_none(edge: int | bd.Edge) -> bd.Edge | None:
+    try:
+        return refresh_edge(edge)
+    except (ValueError, UnknownObject):
+        return None
+
+
 def get_exchanges_in_scenario_difference_file_notation(exchanges):
     """From a list of exchanges get the information needed for the scenario difference (SDF) file that is used in
     conjunction with the superstructure approach. This is a convenience function to export data from the AB in a format
@@ -367,6 +390,11 @@ def get_exchanges_in_scenario_difference_file_notation(exchanges):
                 )
             )
     return data
+
+
+def exchanges_to_sdf(exchanges: list[dict]) -> pd.DataFrame:
+    data = get_exchanges_in_scenario_difference_file_notation(exchanges)
+    return pd.DataFrame(data)
 
 
 def get_exchanges_from_a_list_of_activities(
