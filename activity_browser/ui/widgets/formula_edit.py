@@ -338,7 +338,7 @@ class ABFormulaEdit(QWidget):
         # Calculate text width and alignment
         font_metrics = painter.fontMetrics()
         text_x = self.padding - self.scroll_offset
-        text_y = font_metrics.height()
+        text_y = font_metrics.height() - 2
         cursor_y1 = 0
         cursor_y2 = self.height()
 
