@@ -70,7 +70,7 @@ class ABFormulaEdit(QWidget):
 
         font = self.font()
         font.setFamily("JetBrains Mono")
-        font.setPointSize(10)
+        font.setPointSize(9)
         self.setFont(font)
 
         self.timer = QTimer(self)
