@@ -6,10 +6,24 @@ from activity_browser import actions, bwutils
 
 
 class ActivityHeader(QtWidgets.QWidget):
+    """
+    A widget that displays the header information of a specific activity.
+
+    Attributes:
+        DATABASE_DEFINED_ALLOCATION (str): Constant for database default allocation.
+        CUSTOM_ALLOCATION (str): Constant for custom allocation.
+        activity (bd.Node): The activity to display the header for.
+    """
     DATABASE_DEFINED_ALLOCATION = "(database default)"
     CUSTOM_ALLOCATION = "Custom..."
 
     def __init__(self, parent: QtWidgets.QWidget):
+        """
+        Initializes the ActivityHeader widget.
+
+        Args:
+            parent (QtWidgets.QWidget): The parent widget.
+        """
         super().__init__(parent)
         self.setContentsMargins(0, 0, 0, 0)
         self.activity = parent.activity
@@ -21,10 +35,13 @@ class ActivityHeader(QtWidgets.QWidget):
         self.setLayout(grid)
 
     def sync(self):
+        """
+        Synchronizes the widget with the current state of the activity.
+        """
         self.activity = bwutils.refresh_node(self.activity)
 
         for child in self.children():
-            if child is not self.layout():
+            if isinstance(child, QtWidgets.QWidget) and child is not self.layout():
                 self.layout().removeWidget(child)
                 child.deleteLater()
 
@@ -35,26 +52,48 @@ class ActivityHeader(QtWidgets.QWidget):
             "Allocation:": ActivityAllocation(self),
         }
 
-        # arrange widgets for display as a grid
+        # Arrange widgets for display as a grid
         for i, (label, widget) in enumerate(setup.items()):
             self.layout().addWidget(QtWidgets.QLabel(f"<b>{label}</b>"), i, 1)
             self.layout().addWidget(widget, i, 2, 1, 4)
 
 
 class ActivityName(QtWidgets.QLineEdit):
+    """
+    A widget that displays and edits the name of the activity.
+    """
 
     def __init__(self, parent: ActivityHeader):
+        """
+        Initializes the ActivityName widget.
+
+        Args:
+            parent (ActivityHeader): The parent widget.
+        """
         super().__init__(parent.activity["name"], parent)
         self.editingFinished.connect(self.change_name)
 
     def change_name(self):
+        """
+        Changes the name of the activity if it has been modified.
+        """
         if self.text() == self.parent().activity["name"]:
             return
         actions.ActivityModify.run(self.parent().activity, "name", self.text())
 
 
 class ActivityLocation(QtWidgets.QLineEdit):
+    """
+    A widget that displays and edits the location of the activity.
+    """
+
     def __init__(self, parent: ActivityHeader):
+        """
+        Initializes the ActivityLocation widget.
+
+        Args:
+            parent (ActivityHeader): The parent widget.
+        """
         super().__init__(parent.activity.get("location"), parent)
         self.editingFinished.connect(self.change_location)
 
@@ -63,13 +102,26 @@ class ActivityLocation(QtWidgets.QLineEdit):
         self.setCompleter(completer)
 
     def change_location(self):
+        """
+        Changes the location of the activity if it has been modified.
+        """
         if self.text() == self.parent().activity.get("location"):
             return
         actions.ActivityModify.run(self.parent().activity, "location", self.text())
 
 
 class ActivityProperties(QtWidgets.QWidget):
+    """
+    A widget that displays and edits the properties of the activity.
+    """
+
     def __init__(self, parent: ActivityHeader):
+        """
+        Initializes the ActivityProperties widget.
+
+        Args:
+            parent (ActivityHeader): The parent widget.
+        """
         super().__init__(parent)
 
         self.setContentsMargins(0, 0, 0, 0)
@@ -88,7 +140,18 @@ class ActivityProperties(QtWidgets.QWidget):
 
 
 class ActivityProperty(QtWidgets.QPushButton):
+    """
+    A widget that represents a single property of the activity.
+    """
+
     def __init__(self, activity, property_name):
+        """
+        Initializes the ActivityProperty widget.
+
+        Args:
+            activity (bd.Node): The activity to which the property belongs.
+            property_name (str): The name of the property.
+        """
         super().__init__(property_name, None)
 
         self.modify_action = actions.ProcessDefaultPropertyModify.get_QAction(activity, property_name)
@@ -107,7 +170,7 @@ class ActivityProperty(QtWidgets.QPushButton):
                                               stop: 0 #f6f7fa, stop: 1 #dadbde);
             min-width: 0px;
         }
-        
+
         QPushButton:pressed {
             background-color: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
                                               stop: 0 #dadbde, stop: 1 #f6f7fa);
@@ -115,6 +178,12 @@ class ActivityProperty(QtWidgets.QPushButton):
         """)
 
     def mouseReleaseEvent(self, e):
+        """
+        Handles the mouse release event to show the context menu.
+
+        Args:
+            e: The mouse release event.
+        """
         pos = self.geometry().bottomLeft()
         pos = self.parent().mapToGlobal(pos)
         self.menu.exec_(pos)
@@ -122,11 +191,21 @@ class ActivityProperty(QtWidgets.QPushButton):
 
 
 class ActivityAllocation(QtWidgets.QComboBox):
+    """
+    A widget that displays and edits the allocation strategy of the activity.
+    """
+
     def __init__(self, parent: ActivityHeader):
+        """
+        Initializes the ActivityAllocation widget.
+
+        Args:
+            parent (ActivityHeader): The parent widget.
+        """
         super().__init__(parent)
         self.addItems(sorted(bf.allocation_strategies))
         if props := parent.activity.get("default_properties", {}):
-            self.insertSeparator(1000)  # large number to make sure it's appended at the end
+            self.insertSeparator(1000)  # Large number to make sure it's appended at the end
             self.addItems(sorted(props))
 
         i = self.findText(parent.activity.get("allocation"))
@@ -135,6 +214,12 @@ class ActivityAllocation(QtWidgets.QComboBox):
         self.currentTextChanged.connect(self.change_allocation)
 
     def change_allocation(self, allocation: str):
+        """
+        Changes the allocation strategy of the activity if it has been modified.
+
+        Args:
+            allocation (str): The new allocation strategy.
+        """
         act = self.parent().activity
         if act.get("allocation") == allocation:
             return

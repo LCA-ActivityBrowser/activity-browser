@@ -2,24 +2,41 @@ import json
 import os
 from logging import getLogger
 
-import numpy as np
-
 from qtpy import QtWebChannel, QtWebEngineWidgets, QtWidgets
 from qtpy.QtCore import QObject, Qt, QUrl, Signal, SignalInstance, Slot
 
 import bw2data as bd
 import bw_functional as bf
 
-from activity_browser import static
-from activity_browser.bwutils import refresh_node
+from activity_browser import static, bwutils
 
 log = getLogger(__name__)
 
-class GraphTab(QtWidgets.QWidget):
 
+class GraphTab(QtWidgets.QWidget):
+    """
+    A widget that displays a graph related to a specific activity.
+
+    Attributes:
+        activity (tuple | int | bd.Node): The activity to display the graph for.
+        expanded_nodes (set): A set of node IDs that are expanded in the graph.
+        button (QtWidgets.QPushButton): A button to trigger synchronization.
+        bridge (Bridge): A bridge object for communication between Python and JavaScript.
+        url (QUrl): The URL of the HTML file to display.
+        channel (QtWebChannel.QWebChannel): A web channel for communication between Python and JavaScript.
+        page (Page): A web engine page to display the HTML content.
+        view (QtWebEngineWidgets.QWebEngineView): A web engine view to display the HTML content.
+    """
     def __init__(self, activity, parent=None):
+        """
+        Initializes the GraphTab widget.
+
+        Args:
+            activity (tuple | int | bd.Node): The activity to display the graph for.
+            parent (QtWidgets.QWidget, optional): The parent widget. Defaults to None.
+        """
         super().__init__(parent)
-        self.activity = refresh_node(activity)
+        self.activity = bwutils.refresh_node(activity)
         self.expanded_nodes = {self.activity.id}
 
         self.button = QtWidgets.QPushButton("CLICK ME")
@@ -48,11 +65,20 @@ class GraphTab(QtWidgets.QWidget):
         self.bridge.ready.connect(self.sync)
 
     def sync(self):
-        self.activity = refresh_node(self.activity)
+        """
+        Synchronizes the widget with the current state of the activity.
+        """
+        self.activity = bwutils.refresh_node(self.activity)
         json = self.build_json()
         self.bridge.update_graph.emit(json)
 
     def build_json(self):
+        """
+        Builds a JSON representation of the graph.
+
+        Returns:
+            str: The JSON representation of the graph.
+        """
         nodes = []
         edges = []
 
@@ -116,6 +142,12 @@ class GraphTab(QtWidgets.QWidget):
 
     @Slot(str)
     def expand_node(self, node_id: str):
+        """
+        Expands a node in the graph.
+
+        Args:
+            node_id (str): The ID of the node to expand.
+        """
         node_id = int(node_id)  # JS shenanigans can't deal with 64 bit strings
         node = bd.get_node(id=node_id)
         if isinstance(node, bf.Function):
@@ -125,6 +157,12 @@ class GraphTab(QtWidgets.QWidget):
 
     @Slot(str)
     def collapse_node(self, node_id: str):
+        """
+        Collapses a node in the graph.
+
+        Args:
+            node_id (str): The ID of the node to collapse.
+        """
         node_id = int(node_id)  # JS shenanigans can't deal with 64 bit strings
         if self.activity.id == node_id:
             return
@@ -133,6 +171,15 @@ class GraphTab(QtWidgets.QWidget):
 
 
 def get_processor_from_exchange(exchange):
+    """
+    Gets the processor from an exchange.
+
+    Args:
+        exchange: The exchange to get the processor from.
+
+    Returns:
+        The processor of the exchange.
+    """
     source = exchange.input
     processors = list(source.upstream(kinds=["production"]))
     if len(processors) > 1:
@@ -142,16 +189,41 @@ def get_processor_from_exchange(exchange):
 
 
 class Bridge(QObject):
+    """
+    A bridge for communication between Python and JavaScript.
+
+    Attributes:
+        update_graph (SignalInstance): A signal to update the graph.
+        ready (SignalInstance): A signal indicating that the bridge is ready.
+    """
     update_graph: SignalInstance = Signal(str)
     ready: SignalInstance = Signal()
 
     @Slot()
     def is_ready(self):
+        """
+        Emits the ready signal.
+        """
         self.ready.emit()
 
 
 class Page(QtWebEngineWidgets.QWebEnginePage):
+    """
+    A web engine page to display the HTML content.
+
+    Methods:
+        javaScriptConsoleMessage: Logs JavaScript console messages.
+    """
     def javaScriptConsoleMessage(self, level: QtWebEngineWidgets.QWebEnginePage.JavaScriptConsoleMessageLevel, message: str, line: str, _: str):
+        """
+        Logs JavaScript console messages.
+
+        Args:
+            level (QtWebEngineWidgets.QWebEnginePage.JavaScriptConsoleMessageLevel): The message level.
+            message (str): The message content.
+            line (str): The line number.
+            _ (str): Unused parameter.
+        """
         if level == QtWebEngineWidgets.QWebEnginePage.InfoMessageLevel:
             log.info(f"JS Info (Line {line}): {message}")
         elif level == QtWebEngineWidgets.QWebEnginePage.WarningMessageLevel:
