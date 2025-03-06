@@ -1,15 +1,16 @@
 from logging import getLogger
 
-from qtpy import QtCore, QtWidgets, QtGui
+from qtpy import QtCore, QtWidgets
 
 import bw2data as bd
 
-from activity_browser import signals, actions
-from activity_browser.bwutils import AB_metadata, refresh_node, refresh_node_or_none
+from activity_browser import signals
+from activity_browser.bwutils import refresh_node_or_none
 from activity_browser.ui import widgets as ABwidgets
 
 from .activity_header import ActivityHeader
 from .exchanges_tab import ExchangesTab
+from .description_tab import DescriptionTab
 from .graph_tab import GraphTab
 from .parameters_tab import ParametersTab
 from .data_tab import DataTab
@@ -119,19 +120,4 @@ class ActivityDetails(QtWidgets.QWidget):
         self.consumer_tab.sync()
         self.data_tab.sync()
 
-
-class DescriptionTab(QtWidgets.QTextEdit):
-    def __init__(self, activity: tuple | int | bd.Node, parent=None):
-        self.activity = refresh_node(activity)
-        super().__init__(parent, self.activity.get("comment", ""))
-
-    def sync(self):
-        self.activity = refresh_node(self.activity)
-        self.setText(self.activity.get("comment", ""))
-        self.moveCursor(QtGui.QTextCursor.MoveOperation.End)
-
-    def focusOutEvent(self, e):
-        if self.toPlainText() == self.activity.get("comment", ""):
-            return
-        actions.ActivityModify.run(self.activity, "comment", self.toPlainText())
 
