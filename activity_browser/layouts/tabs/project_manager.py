@@ -4,8 +4,6 @@ from activity_browser import actions, signals
 from activity_browser.mod import bw2data as bd
 from activity_browser.layouts.panels import ABTab
 from activity_browser.layouts import panes
-from activity_browser.ui import widgets as ABWidgets
-from activity_browser.bwutils import AB_metadata
 
 from ...ui.style import header
 from ...ui.icons import qicons
@@ -21,8 +19,7 @@ class ProjectTab(QtWidgets.QWidget):
     def __init__(self, parent):
         super(ProjectTab, self).__init__(parent)
         # main widgets
-        #self.projects_widget = ProjectsWidget(self)
-        self.databases_widget = DatabaseWidget(self)
+        self.databases_widget = panes.Databases(self)
         self.activity_biosphere_tabs = ActivityBiosphereTabs(self)
 
         # Layout
@@ -33,7 +30,6 @@ class ProjectTab(QtWidgets.QWidget):
 
         self.overall_layout = QtWidgets.QVBoxLayout()
         self.overall_layout.setAlignment(QtCore.Qt.AlignTop)
-        #self.overall_layout.addWidget(self.projects_widget)
         self.overall_layout.addWidget(self.splitter)
         self.setLayout(self.overall_layout)
 

@@ -197,6 +197,7 @@ class DatabaseFunctions(QtWidgets.QWidget):
         palette.setColor(QtGui.QPalette.ColorRole.Base, QtGui.QColor(255, 128, 128))
         self.search.setPalette(palette)
 
+
 class FunctionView(ui.widgets.ABTreeView):
     """
     A view that displays the functions in a tree structure.
@@ -367,6 +368,7 @@ class FunctionView(ui.widgets.ABTreeView):
         items = [i.internalPointer() for i in self.selectedIndexes() if isinstance(i.internalPointer(), FunctionItem)]
         return list({item["activity_key"] for item in items if item["activity_key"] is not None})
 
+
 class FunctionItem(ui.widgets.ABDataItem):
     """
     An item representing a function in the tree view.
@@ -406,6 +408,7 @@ class FunctionItem(ui.widgets.ABDataItem):
             QtCore.Qt.ItemFlags: The item flags.
         """
         return super().flags(col, key) | Qt.ItemFlag.ItemIsDragEnabled
+
 
 class FunctionModel(ui.widgets.ABAbstractItemModel):
     """

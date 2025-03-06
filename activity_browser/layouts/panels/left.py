@@ -12,7 +12,7 @@ class LeftPanel(ABTab):
         super(LeftPanel, self).__init__(*args)
 
         self.tabs = {
-            "Project": ProjectTab(self),
+            "Databases": ProjectTab(self),
             "Impact Categories": MethodsTab(self),
             "History": HistoryTab(self),
         }

@@ -96,6 +96,8 @@ class Icons(object):
     copy_to_clipboard = create_path("main", "copy_to_clipboard.png")
     warning = create_path("context", "warning.png")
     critical = create_path("context", "critical.png")
+    locked = create_path("main", "locked.png")
+    unlocked = create_path("main", "unlocked.png")
 
 
 class QIcons(Icons):

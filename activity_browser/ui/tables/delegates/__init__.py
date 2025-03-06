@@ -12,6 +12,7 @@ from .uncertainty import UncertaintyDelegate
 from .viewonly import (ViewOnlyDelegate, ViewOnlyFloatDelegate,
                        ViewOnlyUncertaintyDelegate)
 from .new_formula import NewFormulaDelegate
+from .date_time import DateTimeDelegate
 
 __all__ = [
     "CheckboxDelegate",
@@ -27,5 +28,6 @@ __all__ = [
     "ViewOnlyDelegate",
     "ViewOnlyFloatDelegate",
     "ViewOnlyUncertaintyDelegate",
-    "NewFormulaDelegate"
+    "NewFormulaDelegate",
+    "DateTimeDelegate",
 ]
