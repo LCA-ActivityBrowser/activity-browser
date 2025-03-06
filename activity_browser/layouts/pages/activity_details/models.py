@@ -1,10 +1,7 @@
 from activity_browser.ui.widgets import ABAbstractItemModel
 
-from .items import ExchangesItem, ConsumersItem
+from .items import ConsumersItem
 
-
-class ExchangesModel(ABAbstractItemModel):
-    dataItemClass = ExchangesItem
 
 
 class ConsumersModel(ABAbstractItemModel):
