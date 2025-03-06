@@ -16,8 +16,8 @@ log = getLogger(__name__)
 
 
 DEFAULT_STATE = {
-    "columns": ["activity", "product", "Type", "Unit", "Location"],
-    "visible_columns": ["activity", "product", "type", "unit", "location"],
+    "columns": ["activity", "function", "Type", "Unit", "Location"],
+    "visible_columns": ["activity", "function", "type", "unit", "location"],
 }
 
 
@@ -29,15 +29,15 @@ NODETYPES = {
 }
 
 
-class DatabaseProductViewer(QtWidgets.QWidget):
+class DatabaseFunctionViewer(QtWidgets.QWidget):
 
     def __init__(self, parent, db_name: str):
         super().__init__(parent)
         self.database = bd.Database(db_name)
-        self.model = ProductModel(self)
+        self.model = FunctionModel(self)
 
         # Create the QTableView and set the model
-        self.table_view = ProductView(self)
+        self.table_view = FunctionView(self)
         self.table_view.setModel(self.model)
         self.table_view.restoreSate(self.get_state_from_settings(), self.build_df())
 
@@ -66,7 +66,7 @@ class DatabaseProductViewer(QtWidgets.QWidget):
     def sync(self):
         t = time()
         self.model.setDataFrame(self.build_df())
-        log.debug(f"Synced DatabaseProductViewer in {time() - t:.2f} seconds")
+        log.debug(f"Synced DatabaseFunctionViewer in {time() - t:.2f} seconds")
 
     def build_df(self) -> pd.DataFrame:
         t = time()
@@ -91,9 +91,9 @@ class DatabaseProductViewer(QtWidgets.QWidget):
 
         # "product"
         # node.name for "product"-types, overwritten by node.product
-        df["product_name"] = df[df.type == "product"]["name"]
-        df.update(df["product"].rename("product_name"))
-        df["product"] = df["product_name"]
+        df["function_name"] = df[df.type == "product"]["name"]
+        df.update(df["product"].rename("function_name"))
+        df["function"] = df["function_name"]
 
         # "activity_key"
         # activity that's opened on double click
@@ -121,10 +121,10 @@ class DatabaseProductViewer(QtWidgets.QWidget):
                 how="left",
             )
 
-        cols = ["activity", "product", "type", "unit", "location", "categories", "activity_key", "function_key"]
+        cols = ["activity", "function", "type", "unit", "location", "categories", "activity_key", "function_key"]
         cols += [col for col in df.columns if col.startswith("property")]
 
-        log.debug(f"Built DatabaseProductViewer dataframe in {time() - t:.2f} seconds")
+        log.debug(f"Built DatabaseFunctionViewer dataframe in {time() - t:.2f} seconds")
 
         return df[cols]
 
@@ -152,13 +152,13 @@ class DatabaseProductViewer(QtWidgets.QWidget):
         self.search.setPalette(palette)
 
 
-class ProductView(ui.widgets.ABTreeView):
+class FunctionView(ui.widgets.ABTreeView):
     defaultColumnDelegates = {
         "categories": delegates.ListDelegate
     }
 
     class ContextMenu(ui.widgets.ABTreeView.ContextMenu):
-        def __init__(self, pos, view: "ProductView"):
+        def __init__(self, pos, view: "FunctionView"):
             super().__init__(pos, view)
             self.num_products = len(view.selected_products)
             self.num_activities = len(view.selected_activities)
@@ -232,7 +232,7 @@ class ProductView(ui.widgets.ABTreeView):
             menu.addAction(self.copy_sdf)
             return menu
 
-    def __init__(self, parent: DatabaseProductViewer):
+    def __init__(self, parent: DatabaseFunctionViewer):
         super().__init__(parent)
         self.setSortingEnabled(True)
         self.setDragEnabled(True)
@@ -246,16 +246,16 @@ class ProductView(ui.widgets.ABTreeView):
 
     @property
     def selected_products(self) -> [tuple]:
-        items = [i.internalPointer() for i in self.selectedIndexes() if isinstance(i.internalPointer(), ProductItem)]
+        items = [i.internalPointer() for i in self.selectedIndexes() if isinstance(i.internalPointer(), FunctionItem)]
         return list({item["function_key"] for item in items if item["function_key"] is not None})
 
     @property
     def selected_activities(self) -> [tuple]:
-        items = [i.internalPointer() for i in self.selectedIndexes() if isinstance(i.internalPointer(), ProductItem)]
+        items = [i.internalPointer() for i in self.selectedIndexes() if isinstance(i.internalPointer(), FunctionItem)]
         return list({item["activity_key"] for item in items if item["activity_key"] is not None})
 
 
-class ProductItem(ui.widgets.ABDataItem):
+class FunctionItem(ui.widgets.ABDataItem):
     def decorationData(self, col, key):
         if key == "activity" and self["activity"]:
             if self["type"] == "processwithreferenceproduct":
@@ -263,7 +263,7 @@ class ProductItem(ui.widgets.ABDataItem):
             if self["type"] in NODETYPES["biosphere"]:
                 return ui.icons.qicons.biosphere
             return ui.icons.qicons.process
-        if key == "product":
+        if key == "function":
             if self["type"] in ["product", "processwithreferenceproduct"]:
                 return ui.icons.qicons.product
             elif self["type"] == "waste":
@@ -273,8 +273,8 @@ class ProductItem(ui.widgets.ABDataItem):
         return super().flags(col, key) | Qt.ItemFlag.ItemIsDragEnabled
 
 
-class ProductModel(ui.widgets.ABAbstractItemModel):
-    dataItemClass = ProductItem
+class FunctionModel(ui.widgets.ABAbstractItemModel):
+    dataItemClass = FunctionItem
 
     def mimeData(self, indices: [QtCore.QModelIndex]):
         data = core.ABMimeData()
