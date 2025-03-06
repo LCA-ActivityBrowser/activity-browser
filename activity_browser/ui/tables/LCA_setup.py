@@ -199,27 +199,14 @@ class CSMethodsTable(CSGenericTable):
         menu.exec_(event.globalPos())
 
     def dragEnterEvent(self, event):
-        if (
-            isinstance(event.source(), (MethodsTable, MethodsTree))
-            or event.source() is self
-        ):
+        if event.mimeData().hasFormat("application/bw-methodnamelist"):
             event.accept()
 
-    def dropEvent(self, event):
+    def dropEvent(self, event) -> None:
         event.accept()
-        source = event.source()
-        if isinstance(event.source(), (MethodsTable, MethodsTree)):
-            self.model.include_methods(event.source().selected_methods())
-        elif event.source() is self:
-            selection = self.selectedIndexes()
-            from_index = selection[0].row() if selection else -1
-            to_index = self.indexAt(event.pos()).row()
-            if (
-                0 <= from_index < self.model.rowCount()
-                and 0 <= to_index < self.model.rowCount()
-                and from_index != to_index
-            ):
-                self.model.relocateRow(from_index, to_index)
+        log.debug(f"Dropevent from: {type(event.source()).__name__}")
+        method_names: list = event.mimeData().retrievePickleData("application/bw-methodnamelist")
+        self.model.include_methods(method_names)
 
     def selected_methods(self):
         return [self.model.get_method(p) for p in self.selectedIndexes() if p.column() == 0]
