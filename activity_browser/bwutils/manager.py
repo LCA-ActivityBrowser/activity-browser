@@ -1,13 +1,15 @@
 from abc import abstractmethod
+from collections import defaultdict
 from collections.abc import Iterator
-from typing import Iterable, List, Optional, Tuple
+from typing import Iterable, Optional, Tuple
 
 import numpy as np
 from stats_arrays import MCRandomNumberGenerator, UncertaintyBase
 
 from bw2data.backends import ExchangeDataset
-from bw2data.parameters import *
+from bw2data.parameters import get_new_symbols, ParameterizedExchange
 from bw2calc import LCA
+from bw2parameters import ParameterSet, MissingName, Interpreter
 
 from .utils import Index, Indices, Parameters, StaticParameters
 
