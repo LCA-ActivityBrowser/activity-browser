@@ -31,7 +31,10 @@ class Databases(QtWidgets.QWidget):
         self.view = DatabasesView()
         self.model = DatabasesModel()
         self.view.setModel(self.model)
+
         self.view.setAlternatingRowColors(True)
+        self.view.setSelectionMode(QtWidgets.QTableView.SingleSelection)
+        self.view.setIndentation(0)
 
         self.build_layout()
         self.connect_signals()
@@ -52,6 +55,7 @@ class Databases(QtWidgets.QWidget):
         layout.addWidget(self.view)
         layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(layout)
+        self.setMinimumHeight(150)
 
     def sync(self):
         """
@@ -152,17 +156,6 @@ class DatabasesView(widgets.ABTreeView):
 
         def __init__(self, *args, **kwargs):
             super().__init__()
-
-    def __init__(self, parent=None):
-        """
-        Initializes the DatabasesView.
-
-        Args:
-            parent (QtWidgets.QWidget, optional): The parent widget. Defaults to None.
-        """
-        super().__init__(parent)
-        self.setSelectionMode(QtWidgets.QTableView.SingleSelection)
-        self.setIndentation(0)
 
     def mouseDoubleClickEvent(self, event: QtGui.QMouseEvent):
         """
