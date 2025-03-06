@@ -4,9 +4,8 @@ from qtpy import QtCore, QtWidgets
 
 import bw2data as bd
 
-from activity_browser import signals
-from activity_browser.bwutils import refresh_node_or_none
-from activity_browser.ui import widgets as ABwidgets
+from activity_browser import signals, bwutils
+from activity_browser.ui import widgets
 
 from .activity_header import ActivityHeader
 from .exchanges_tab import ExchangesTab
@@ -72,7 +71,7 @@ class ActivityDetails(QtWidgets.QWidget):
 
         # layout.addWidget(toolbar)
         layout.addWidget(self.activity_data_grid)
-        layout.addWidget(ABwidgets.ABHLine(self))
+        layout.addWidget(widgets.ABHLine(self))
         layout.addWidget(self.tabs)
 
         self.setLayout(layout)
@@ -105,11 +104,11 @@ class ActivityDetails(QtWidgets.QWidget):
         self.thread().eventDispatcher().awake.connect(slot)
 
     def sync(self):
-        self.activity = refresh_node_or_none(self.activity)
+        self.activity = bwutils.refresh_node_or_none(self.activity)
 
         if self.activity is None:
             # activity was already deleted
-            return()
+            return
 
         # update the object name to be the activity name
         self.setObjectName(self.activity["name"])
