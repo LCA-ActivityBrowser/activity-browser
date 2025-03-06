@@ -12,41 +12,62 @@ from activity_browser.ui.tables import delegates
 
 
 class Databases(QtWidgets.QWidget):
+    """
+    A widget that displays the databases and their details.
+
+    Attributes:
+        view (DatabasesView): The view displaying the databases.
+        model (DatabasesModel): The model containing the data for the databases.
+    """
+
     def __init__(self, parent):
+        """
+        Initializes the Databases widget.
+
+        Args:
+            parent (QtWidgets.QWidget): The parent widget.
+        """
         super().__init__(parent)
         self.view = DatabasesView()
         self.model = DatabasesModel()
         self.view.setModel(self.model)
         self.view.setAlternatingRowColors(True)
 
-        # Buttons
-        self.new_database_button = actions.DatabaseNew.get_QButton()
-        self.import_database_button = actions.DatabaseImport.get_QButton()
-
-        self.setMinimumHeight(200)
-
         self.build_layout()
         self.connect_signals()
 
     def connect_signals(self):
+        """
+        Connects the signals to the appropriate slots.
+        """
         signals.meta.databases_changed.connect(self.sync)
         signals.project.changed.connect(self.sync)
         signals.database_read_only_changed.connect(self.sync)
 
     def build_layout(self):
-        # self.setContentsMargins(0, 0, 0, 0)
-
+        """
+        Builds the layout of the widget.
+        """
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.view)
         layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(layout)
 
     def sync(self):
+        """
+        Synchronizes the model with the current state of the databases.
+        """
         self.model.setDataFrame(self.build_df())
         self.view.resizeColumnToContents(0)
         self.view.header().setSectionResizeMode(0, QtWidgets.QHeaderView.Fixed)
 
     def build_df(self) -> pd.DataFrame:
+        """
+        Builds a DataFrame from the databases.
+
+        Returns:
+            pd.DataFrame: The DataFrame containing the databases data.
+        """
         data = []
         for name in bd.databases:
             # get the modified time, in case it doesn't exist, just write 'now' in the correct format
@@ -73,19 +94,38 @@ class Databases(QtWidgets.QWidget):
 
 
 class DatabasesView(widgets.ABTreeView):
+    """
+    A view that displays the databases in a tree structure.
 
+    Attributes:
+        defaultColumnDelegates (dict): The default column delegates for the view.
+    """
     defaultColumnDelegates = {
         "modified": delegates.DateTimeDelegate,
     }
 
     class ContextMenu(QtWidgets.QMenu):
+        """
+        A context menu for the DatabasesView.
+
+        Attributes:
+            relink_action (QtWidgets.QAction): The action to relink the database.
+            new_process_action (QtWidgets.QAction): The action to create a new process.
+            new_product_action (QtWidgets.QAction): The action to create a new product.
+            delete_db_action (QtWidgets.QAction): The action to delete the database.
+            duplicate_db_action (QtWidgets.QAction): The action to duplicate the database.
+            re_allocate_action (QtWidgets.QAction): The action to redo the allocation.
+            open_explorer_action (QtWidgets.QAction): The action to open the database in the explorer.
+            process_db_action (QtWidgets.QAction): The action to process the database.
+        """
+
         def __init__(self, pos, view: "DatabasesView"):
             """
             Initializes the ContextMenu.
 
             Args:
                 pos: The position of the context menu.
-                view (ExchangesView): The view displaying the exchanges.
+                view (DatabasesView): The view displaying the databases.
             """
             super().__init__(view)
             self.relink_action = actions.DatabaseRelink.get_QAction(view.selected_database)
@@ -106,18 +146,36 @@ class DatabasesView(widgets.ABTreeView):
             self.addAction(self.process_db_action)
 
     class HeaderMenu(QtWidgets.QMenu):
+        """
+        A header menu for the DatabasesView. Currently not used.
+        """
+
         def __init__(self, *args, **kwargs):
             super().__init__()
 
     def __init__(self, parent=None):
+        """
+        Initializes the DatabasesView.
+
+        Args:
+            parent (QtWidgets.QWidget, optional): The parent widget. Defaults to None.
+        """
         super().__init__(parent)
         self.setSelectionMode(QtWidgets.QTableView.SingleSelection)
         self.setIndentation(0)
 
     def mouseDoubleClickEvent(self, event: QtGui.QMouseEvent):
+        """
+        Handles the mouse double click event to toggle the read-only state or select the database.
+
+        Args:
+            event (QtGui.QMouseEvent): The mouse double click event.
+        """
         if not self.selectedIndexes():
             return
+
         index = self.indexAt(event.pos())
+
         if index.column() == 0:
             database = index.internalPointer()["name"]
             read_only = index.internalPointer()["read_only"]
@@ -127,45 +185,62 @@ class DatabasesView(widgets.ABTreeView):
 
         signals.database_selected.emit(self.selected_database())
 
-    def _handle_click(self, index: QtCore.QModelIndex):
-        if (index.isValid()
-                and index.column() == 4
-                and index.data() != DatabasesModel.NOT_APPLICABLE):
-            read_only_idx = self.proxy_model.index(index.row(), 2)
-            rd_only = self.proxy_model.data(read_only_idx)
-            if not rd_only:
-                self.model.show_custom_allocation_editor(index)
-
     def selected_database(self) -> str:
-        """Return the database name of the user-selected index."""
-        return self.currentIndex().internalPointer()["name"]
+        """
+        Returns the database name of the user-selected index.
 
-    def _handle_data_changed(self, top_left: QtCore.QModelIndex,
-            bottom_right: QtCore.QModelIndex):
-        """Handle the change of the read-only state"""
-        if (top_left.isValid() and bottom_right.isValid() and
-                top_left.column() <= 2 <= bottom_right.column()):
-            for i in range(top_left.row(), bottom_right.row() + 1):
-                index = self.model.index(i, 2)
-                # Flip the read-only value for the database
-                read_only = index.data(Qt.ItemDataRole.CheckStateRole) == Qt.CheckState.Checked
-                db_name = self.model.get_db_name(index)
-                project_settings.modify_db(db_name, read_only)
-                signals.database_read_only_changed.emit(db_name, read_only)
+        Returns:
+            str: The name of the selected database.
+        """
+        return self.currentIndex().internalPointer()["name"]
 
 
 class DatabasesItem(widgets.ABDataItem):
+    """
+    An item representing a database in the tree view.
+    """
+
     def decorationData(self, col: int, key: str):
+        """
+        Provides decoration data for the item.
+
+        Args:
+            col (int): The column index.
+            key (str): The key for which to provide decoration data.
+
+        Returns:
+            The decoration data for the item.
+        """
         if key == "read_only":
             return icons.qicons.locked if self["read_only"] else icons.qicons.empty
         return super().decorationData(col, key)
 
     def displayData(self, col: int, key: str):
+        """
+        Provides display data for the item.
+
+        Args:
+            col (int): The column index.
+            key (str): The key for which to provide display data.
+
+        Returns:
+            The display data for the item.
+        """
         if key == "read_only":
             return None
         return super().displayData(col, key)
 
     def fontData(self, col: int, key: str):
+        """
+        Provides font data for the item.
+
+        Args:
+            col (int): The column index.
+            key (str): The key for which to provide font data.
+
+        Returns:
+            QtGui.QFont: The font data for the item.
+        """
         font = super().fontData(col, key)
         if key == "name":
             font.setBold(True)
@@ -173,13 +248,28 @@ class DatabasesItem(widgets.ABDataItem):
 
 
 class DatabasesModel(widgets.ABAbstractItemModel):
+    """
+    A model representing the data for the databases.
+
+    Attributes:
+        dataItemClass (type): The class of the data items.
+    """
     dataItemClass = DatabasesItem
 
     def headerData(self, section, orientation=Qt.Orientation.Horizontal, role=Qt.ItemDataRole.DisplayRole):
+        """
+        Provides header data for the model.
+
+        Args:
+            section (int): The section index.
+            orientation (Qt.Orientation): The orientation of the header.
+            role (Qt.ItemDataRole): The role for which to provide header data.
+
+        Returns:
+            The header data for the model.
+        """
         if section == 0 and role == Qt.ItemDataRole.DisplayRole:
             return ""
         if section == 0 and role == Qt.ItemDataRole.DecorationRole:
             return icons.qicons.unlocked
         return super().headerData(section, orientation, role)
-
-
