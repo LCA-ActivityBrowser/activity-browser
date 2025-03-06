@@ -1,6 +1,6 @@
 import datetime
 
-from qtpy import QtWidgets, QtCore, QtGui
+from qtpy import QtWidgets, QtGui
 from qtpy.QtCore import Qt
 
 import bw2data as bd
@@ -53,7 +53,7 @@ class Databases(QtWidgets.QWidget):
         """
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.view)
-        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setContentsMargins(0, 0, 0, 3)
         self.setLayout(layout)
         self.setMinimumHeight(150)
 
