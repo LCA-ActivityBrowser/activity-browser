@@ -11,7 +11,22 @@ from activity_browser.ui.tables import delegates
 
 
 class DataTab(QtWidgets.QWidget):
+    """
+    A widget that displays the data structure of a specific activity.
+
+    Attributes:
+        activity (tuple | int | bd.Node): The activity to display data for.
+        data_view (DataView): The view displaying the data.
+        data_model (DataModel): The model containing the data.
+    """
     def __init__(self, activity: tuple | int | bd.Node, parent=None):
+        """
+        Initializes the DataTab widget.
+
+        Args:
+            activity (tuple | int | bd.Node): The activity to display data for.
+            parent (QtWidgets.QWidget, optional): The parent widget. Defaults to None.
+        """
         super().__init__(parent)
 
         self.activity = refresh_node(activity)
@@ -29,16 +44,27 @@ class DataTab(QtWidgets.QWidget):
         self.build_layout()
 
     def build_layout(self):
+        """
+        Builds the layout of the widget.
+        """
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.data_view)
         self.setLayout(layout)
 
     def sync(self) -> None:
-        """Populate the various tables and boxes within the Activity Detail tab"""
+        """
+        Synchronizes the widget with the current state of the activity.
+        """
         self.activity = refresh_node(self.activity)
         self.data_model.setDataFrame(self.build_df())
 
     def build_df(self) -> pd.DataFrame:
+        """
+        Builds a DataFrame from the activity data.
+
+        Returns:
+            pd.DataFrame: The DataFrame containing the activity data.
+        """
         df = pd.DataFrame.from_dict(self.activity.as_dict(), orient="index")
         df["name"] = self.activity["name"]
         df["_activity_id"] = self.activity.id
@@ -59,6 +85,12 @@ class DataTab(QtWidgets.QWidget):
 
 
 class DataView(widgets.ABTreeView):
+    """
+    A view that displays the data in a tree structure.
+
+    Attributes:
+        defaultColumnDelegates (dict): The default column delegates for the view.
+    """
     defaultColumnDelegates = {
         "key": delegates.StringDelegate,
         "value": delegates.NewFormulaDelegate,
@@ -66,14 +98,36 @@ class DataView(widgets.ABTreeView):
 
 
 class DataItem(widgets.ABDataItem):
-
+    """
+    An item representing a data entry in the tree view.
+    """
     def flags(self, col: int, key: str):
+        """
+        Returns the item flags for the given column and key.
+
+        Args:
+            col (int): The column index.
+            key (str): The key for which to return the flags.
+
+        Returns:
+            QtCore.Qt.ItemFlags: The item flags.
+        """
         flags = super().flags(col, key)
         if key == "value":
             return flags | QtCore.Qt.ItemFlag.ItemIsEditable
         return flags
 
     def displayData(self, col: int, key: str):
+        """
+        Returns the display data for the given column and key.
+
+        Args:
+            col (int): The column index.
+            key (str): The key for which to return the display data.
+
+        Returns:
+            str: The display data.
+        """
         if key == "value":
             data = self[key]
             if isinstance(data, str):
@@ -83,6 +137,17 @@ class DataItem(widgets.ABDataItem):
         return super().displayData(col, key)
 
     def setData(self, col: int, key: str, value) -> bool:
+        """
+        Sets the data for the given column and key.
+
+        Args:
+            col (int): The column index.
+            key (str): The key for which to set the data.
+            value: The value to set.
+
+        Returns:
+            bool: True if the data was set successfully, False otherwise.
+        """
         if key in ["value"]:
             value = eval(value)
             actions.ActivityModify.run(self["_activity_id"], self["field"], value)
@@ -91,5 +156,10 @@ class DataItem(widgets.ABDataItem):
 
 
 class DataModel(widgets.ABAbstractItemModel):
-    dataItemClass = DataItem
+    """
+    A model representing the data for the activity.
 
+    Attributes:
+        dataItemClass (type): The class of the data items.
+    """
+    dataItemClass = DataItem
