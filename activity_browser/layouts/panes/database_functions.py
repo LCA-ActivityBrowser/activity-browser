@@ -14,12 +14,10 @@ from activity_browser.bwutils import AB_metadata
 
 log = getLogger(__name__)
 
-
 DEFAULT_STATE = {
     "columns": ["activity", "function", "Type", "Unit", "Location"],
     "visible_columns": ["activity", "function", "type", "unit", "location"],
 }
-
 
 NODETYPES = {
     "all_nodes": [],
@@ -28,10 +26,24 @@ NODETYPES = {
     "biosphere": ["natural resource", "emission", "inventory indicator", "economic", "social"],
 }
 
+class DatabaseFunctions(QtWidgets.QWidget):
+    """
+    A widget that displays functions related to a specific database.
 
-class DatabaseFunctionViewer(QtWidgets.QWidget):
-
+    Attributes:
+        database (bd.Database): The database to display functions for.
+        model (FunctionModel): The model containing the data for the functions.
+        table_view (FunctionView): The view displaying the functions.
+        search (widgets.ABLineEdit): The search bar for quick search.
+    """
     def __init__(self, parent, db_name: str):
+        """
+        Initializes the DatabaseFunctions widget.
+
+        Args:
+            parent (QtWidgets.QWidget): The parent widget.
+            db_name (str): The name of the database to display functions for.
+        """
         super().__init__(parent)
         self.database = bd.Database(db_name)
         self.model = FunctionModel(self)
@@ -64,11 +76,20 @@ class DatabaseFunctionViewer(QtWidgets.QWidget):
         self.table_view.filtered.connect(self.search_error)
 
     def sync(self):
+        """
+        Synchronizes the widget with the current state of the database.
+        """
         t = time()
         self.model.setDataFrame(self.build_df())
-        log.debug(f"Synced DatabaseFunctionViewer in {time() - t:.2f} seconds")
+        log.debug(f"Synced DatabaseFunctions in {time() - t:.2f} seconds")
 
     def build_df(self) -> pd.DataFrame:
+        """
+        Builds a DataFrame from the database functions.
+
+        Returns:
+            pd.DataFrame: The DataFrame containing the functions data.
+        """
         t = time()
         cols = ["name", "key", "processor", "product", "type", "unit", "location", "id", "categories", "properties"]
         if self.database.name in AB_metadata.databases:
@@ -124,25 +145,49 @@ class DatabaseFunctionViewer(QtWidgets.QWidget):
         cols = ["activity", "function", "type", "unit", "location", "categories", "activity_key", "function_key"]
         cols += [col for col in df.columns if col.startswith("property")]
 
-        log.debug(f"Built DatabaseFunctionViewer dataframe in {time() - t:.2f} seconds")
+        log.debug(f"Built DatabaseFunctions dataframe in {time() - t:.2f} seconds")
 
         return df[cols]
 
     def event(self, event):
+        """
+        Handles the event to save the state to settings on deferred delete.
+
+        Args:
+            event: The event to handle.
+
+        Returns:
+            bool: True if the event was handled, False otherwise.
+        """
         if event.type() == QtCore.QEvent.Type.DeferredDelete:
             self.save_state_to_settings()
 
         return super().event(event)
 
     def save_state_to_settings(self):
+        """
+        Saves the state of the table view to the project settings.
+        """
         project_settings.settings["database_explorer"] = project_settings.settings.get("database_explorer", {})
         project_settings.settings["database_explorer"][self.database.name] = self.table_view.saveState()
         project_settings.write_settings()
 
     def get_state_from_settings(self):
+        """
+        Gets the state from the project settings.
+
+        Returns:
+            dict: The state of the table view.
+        """
         return DEFAULT_STATE
 
     def search_error(self, reset=False):
+        """
+        Handles the search error by changing the search bar color.
+
+        Args:
+            reset (bool, optional): Whether to reset the search bar color. Defaults to False.
+        """
         if reset:
             self.search.setPalette(application.palette())
             return
@@ -151,14 +196,39 @@ class DatabaseFunctionViewer(QtWidgets.QWidget):
         palette.setColor(QtGui.QPalette.ColorRole.Base, QtGui.QColor(255, 128, 128))
         self.search.setPalette(palette)
 
-
 class FunctionView(ui.widgets.ABTreeView):
+    """
+    A view that displays the functions in a tree structure.
+
+    Attributes:
+        defaultColumnDelegates (dict): The default column delegates for the view.
+    """
     defaultColumnDelegates = {
         "categories": delegates.ListDelegate
     }
 
     class ContextMenu(ui.widgets.ABTreeView.ContextMenu):
+        """
+        A context menu for the FunctionView.
+
+        Attributes:
+            num_products (int): The number of selected products.
+            num_activities (int): The number of selected activities.
+            activity_open (QAction): The action to open an activity.
+            activity_graph (QAction): The action to open an activity in the Graph Explorer.
+            process_new (QAction): The action to create a new process.
+            activity_delete (QAction): The action to delete an activity.
+            product_delete (QAction): The action to delete a product.
+            copy_sdf (QAction): The action to copy the SDF to the clipboard.
+        """
         def __init__(self, pos, view: "FunctionView"):
+            """
+            Initializes the ContextMenu.
+
+            Args:
+                pos: The position of the context menu.
+                view (FunctionView): The view displaying the functions.
+            """
             super().__init__(pos, view)
             self.num_products = len(view.selected_products)
             self.num_activities = len(view.selected_activities)
@@ -185,6 +255,9 @@ class FunctionView(ui.widgets.ABTreeView):
             self.addMenu(self.copy_menu())
 
         def init_open(self):
+            """
+            Initializes the open actions in the context menu.
+            """
             if self.num_activities == 0:
                 return
             if self.num_activities == 1:
@@ -198,6 +271,9 @@ class FunctionView(ui.widgets.ABTreeView):
             self.addAction(self.activity_graph)
 
         def init_delete(self):
+            """
+            Initializes the delete actions in the context menu.
+            """
             if self.num_activities == 1:
                 self.activity_delete.setText("Delete activity")
             if self.num_activities > 1:
@@ -213,6 +289,12 @@ class FunctionView(ui.widgets.ABTreeView):
                 self.addAction(self.product_delete)
 
         def duplicates_menu(self):
+            """
+            Creates a menu for duplicate products.
+
+            Returns:
+                QMenu: The menu for duplicate products.
+            """
             menu = QtWidgets.QMenu(self)
 
             menu.setTitle("Duplicate products")
@@ -224,6 +306,12 @@ class FunctionView(ui.widgets.ABTreeView):
             return menu
 
         def copy_menu(self):
+            """
+            Creates a menu for copying to clipboard.
+
+            Returns:
+                QMenu: The menu for copying to clipboard.
+            """
             menu = QtWidgets.QMenu(self)
 
             menu.setTitle("Copy to clipboard")
@@ -232,7 +320,13 @@ class FunctionView(ui.widgets.ABTreeView):
             menu.addAction(self.copy_sdf)
             return menu
 
-    def __init__(self, parent: DatabaseFunctionViewer):
+    def __init__(self, parent: DatabaseFunctions):
+        """
+        Initializes the FunctionView.
+
+        Args:
+            parent (DatabaseFunctions): The parent widget.
+        """
         super().__init__(parent)
         self.setSortingEnabled(True)
         self.setDragEnabled(True)
@@ -241,22 +335,52 @@ class FunctionView(ui.widgets.ABTreeView):
         self.setSelectionMode(ui.widgets.ABTreeView.SelectionMode.ExtendedSelection)
 
     def mouseDoubleClickEvent(self, event) -> None:
+        """
+        Handles the mouse double click event to open the selected activities.
+
+        Args:
+            event: The mouse double click event.
+        """
         if self.selected_activities:
             actions.ActivityOpen.run(self.selected_activities)
 
     @property
     def selected_products(self) -> [tuple]:
+        """
+        Returns the selected products.
+
+        Returns:
+            list[tuple]: The list of selected products.
+        """
         items = [i.internalPointer() for i in self.selectedIndexes() if isinstance(i.internalPointer(), FunctionItem)]
         return list({item["function_key"] for item in items if item["function_key"] is not None})
 
     @property
     def selected_activities(self) -> [tuple]:
+        """
+        Returns the selected activities.
+
+        Returns:
+            list[tuple]: The list of selected activities.
+        """
         items = [i.internalPointer() for i in self.selectedIndexes() if isinstance(i.internalPointer(), FunctionItem)]
         return list({item["activity_key"] for item in items if item["activity_key"] is not None})
 
-
 class FunctionItem(ui.widgets.ABDataItem):
+    """
+    An item representing a function in the tree view.
+    """
     def decorationData(self, col, key):
+        """
+        Provides decoration data for the item.
+
+        Args:
+            col: The column index.
+            key: The key for which to provide decoration data.
+
+        Returns:
+            The decoration data for the item.
+        """
         if key == "activity" and self["activity"]:
             if self["type"] == "processwithreferenceproduct":
                 return ui.icons.qicons.processproduct
@@ -270,13 +394,37 @@ class FunctionItem(ui.widgets.ABDataItem):
                 return ui.icons.qicons.waste
 
     def flags(self, col: int, key: str):
+        """
+        Returns the item flags for the given column and key.
+
+        Args:
+            col (int): The column index.
+            key (str): The key for which to return the flags.
+
+        Returns:
+            QtCore.Qt.ItemFlags: The item flags.
+        """
         return super().flags(col, key) | Qt.ItemFlag.ItemIsDragEnabled
 
-
 class FunctionModel(ui.widgets.ABAbstractItemModel):
+    """
+    A model representing the data for the functions.
+
+    Attributes:
+        dataItemClass (type): The class of the data items.
+    """
     dataItemClass = FunctionItem
 
     def mimeData(self, indices: [QtCore.QModelIndex]):
+        """
+        Returns the mime data for the given indices.
+
+        Args:
+            indices (list[QtCore.QModelIndex]): The indices to get the mime data for.
+
+        Returns:
+            core.ABMimeData: The mime data.
+        """
         data = core.ABMimeData()
         keys = set(self.values_from_indices("activity_key", indices))
         keys.update(self.values_from_indices("function_key", indices))
@@ -286,6 +434,16 @@ class FunctionModel(ui.widgets.ABAbstractItemModel):
 
     @staticmethod
     def values_from_indices(key: str, indices: list[QtCore.QModelIndex]):
+        """
+        Returns the values from the given indices.
+
+        Args:
+            key (str): The key to get the values for.
+            indices (list[QtCore.QModelIndex]): The indices to get the values for.
+
+        Returns:
+            list: The list of values.
+        """
         values = []
         for index in indices:
             item = index.internalPointer()
@@ -293,5 +451,3 @@ class FunctionModel(ui.widgets.ABAbstractItemModel):
                 continue
             values.append(item[key])
         return values
-
-

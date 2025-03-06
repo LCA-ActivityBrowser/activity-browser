@@ -178,7 +178,7 @@ class ActivityBiosphereTabs(ABTab):
         """Put focus on tab, if not open yet, open it."""
         # create the tab if it doesn't exist yet
         if not self.tabs.get(db_name, False):
-            widget = panes.DatabaseFunctionViewer(parent=self, db_name=db_name)
+            widget = panes.DatabaseFunctions(parent=self, db_name=db_name)
             self.add_tab(widget, db_name)
 
             widget.destroyed.connect(

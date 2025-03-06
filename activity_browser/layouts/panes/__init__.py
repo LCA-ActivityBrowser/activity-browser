@@ -1,4 +1,4 @@
 from .database_explorer import DatabaseExplorer
-from .database_function_viewer import DatabaseFunctionViewer
+from .database_functions import DatabaseFunctions
 from .project_manager import ProjectManager
 
