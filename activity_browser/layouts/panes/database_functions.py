@@ -26,6 +26,7 @@ NODETYPES = {
     "biosphere": ["natural resource", "emission", "inventory indicator", "economic", "social"],
 }
 
+
 class DatabaseFunctions(QtWidgets.QWidget):
     """
     A widget that displays functions related to a specific database.
