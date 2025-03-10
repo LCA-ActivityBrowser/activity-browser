@@ -115,7 +115,8 @@ class CSActivityModel(CSGenericModel):
         self.sync()
 
     def sync(self):
-        assert self.current_cs, "CS Model not yet loaded"
+        if not self.current_cs:
+            return  # model not loaded yet
         fus = bd.calculation_setups.get(self.current_cs, {}).get("inv", [])
         df = pd.DataFrame(
             [
