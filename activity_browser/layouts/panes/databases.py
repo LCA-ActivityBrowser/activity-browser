@@ -132,6 +132,7 @@ class DatabasesView(widgets.ABTreeView):
                 view (DatabasesView): The view displaying the databases.
             """
             super().__init__(view)
+            self.new_database_action = actions.DatabaseNew.get_QAction()
             self.relink_action = actions.DatabaseRelink.get_QAction(view.selected_database)
             self.new_process_action = actions.ActivityNewProcess.get_QAction(view.selected_database)
             self.new_product_action = actions.ActivityNewProduct.get_QAction(view.selected_database)
@@ -141,13 +142,15 @@ class DatabasesView(widgets.ABTreeView):
             self.open_explorer_action = actions.DatabaseExplorerOpen.get_QAction(view.selected_database)
             self.process_db_action = actions.DatabaseProcess.get_QAction(view.selected_database)
 
-            self.addAction(self.delete_db_action)
-            self.addAction(self.relink_action)
-            self.addAction(self.duplicate_db_action)
-            self.addAction(self.new_process_action)
-            self.addAction(self.new_product_action)
-            self.addAction(self.open_explorer_action)
-            self.addAction(self.process_db_action)
+            self.addAction(self.new_database_action)
+            if view.selected_database():
+                self.addAction(self.delete_db_action)
+                self.addAction(self.relink_action)
+                self.addAction(self.duplicate_db_action)
+                self.addAction(self.new_process_action)
+                self.addAction(self.new_product_action)
+                self.addAction(self.open_explorer_action)
+                self.addAction(self.process_db_action)
 
     class HeaderMenu(QtWidgets.QMenu):
         """
@@ -178,13 +181,15 @@ class DatabasesView(widgets.ABTreeView):
 
         signals.database_selected.emit(self.selected_database())
 
-    def selected_database(self) -> str:
+    def selected_database(self) -> str | None:
         """
         Returns the database name of the user-selected index.
 
         Returns:
             str: The name of the selected database.
         """
+        if not self.currentIndex().isValid():
+            return None
         return self.currentIndex().internalPointer()["name"]
 
 
