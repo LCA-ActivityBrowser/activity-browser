@@ -45,6 +45,7 @@ class Databases(QtWidgets.QWidget):
         """
         signals.meta.databases_changed.connect(self.sync)
         signals.project.changed.connect(self.sync)
+        signals.database.deleted.connect(self.sync)
         signals.database_read_only_changed.connect(self.sync)
 
     def build_layout(self):
