@@ -92,7 +92,9 @@ class MetaDataStore(QObject):
             for col in [col for col in data.columns if col not in self.dataframe.columns]:
                 self.dataframe[col] = pd.NA
             self.dataframe.loc[new.key] = data.loc[new.key]
-        else:  # an activity has been added
+        elif self.dataframe.empty:  # an activity has been added and the dataframe was empty
+            self.dataframe = data
+        else:  # an activity has been added and needs to be concatenated to existing metadata
             self.dataframe = pd.concat([self.dataframe, data], join="outer")
 
         self.thread().eventDispatcher().awake.connect(self._emitSyncLater, Qt.ConnectionType.UniqueConnection)
