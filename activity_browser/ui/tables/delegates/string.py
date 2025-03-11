@@ -5,8 +5,8 @@ from qtpy import QtCore, QtWidgets
 class StringDelegate(QtWidgets.QStyledItemDelegate):
     """For managing and validating entered string values."""
 
-    def __init__(self, parent=None):
-        super().__init__(parent)
+    def displayText(self, value, locale):
+        return str(value)
 
     def createEditor(self, parent, option, index):
         editor = QtWidgets.QLineEdit(parent)

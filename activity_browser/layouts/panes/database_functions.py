@@ -206,7 +206,9 @@ class FunctionView(ui.widgets.ABTreeView):
         defaultColumnDelegates (dict): The default column delegates for the view.
     """
     defaultColumnDelegates = {
-        "categories": delegates.ListDelegate
+        "categories": delegates.ListDelegate,
+        "activity_key": delegates.StringDelegate,
+        "function_key": delegates.StringDelegate,
     }
 
     class ContextMenu(ui.widgets.ABTreeView.ContextMenu):
