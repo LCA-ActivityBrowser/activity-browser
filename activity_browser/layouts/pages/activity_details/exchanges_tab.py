@@ -735,8 +735,8 @@ class PropertyDelegate(QtWidgets.QStyledItemDelegate):
             return None
 
         editor = QtWidgets.QLineEdit(parent)
-        validator = QtGui.QDoubleValidator()
-        editor.setValidator(validator)
+        # validator = QtGui.QDoubleValidator()
+        # editor.setValidator(validator)
         return editor
 
     def setEditorData(self, editor: QtWidgets.QLineEdit, index: QtCore.QModelIndex):
