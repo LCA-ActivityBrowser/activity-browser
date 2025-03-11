@@ -58,21 +58,9 @@ class ProjectMenu(QtWidgets.QMenu):
         self.addSeparator()
         self.addAction(self.import_db_action)
         self.addAction(self.export_db_action)
-        self.addAction(self.update_biosphere_action)
-        self.addSeparator()
-        self.addMenu(MigrationsMenu(self))
         self.addSeparator()
         self.addAction(self.manage_settings_action)
         self.addAction(self.manage_projects_action)
-
-        signals.project.changed.connect(self.biosphere_exists)
-        signals.meta.databases_changed.connect(self.biosphere_exists)
-
-    def biosphere_exists(self) -> None:
-        """Test if the default biosphere exists as a database in the project"""
-        exists = True if bd.config.biosphere in bd.databases else False
-        self.update_biosphere_action.setEnabled(exists)
-        self.import_db_action.setEnabled(exists)
 
 
 class ProjectNewMenu(QtWidgets.QMenu):
@@ -120,7 +108,6 @@ class ProjectNewTemplateMenu(QtWidgets.QMenu):
             from bw2io.remote import get_projects
             ProjectNewTemplateMenu.remote_projects = get_projects()
         return self.remote_projects
-
 
 
 class ViewMenu(QtWidgets.QMenu):
@@ -263,16 +250,4 @@ class ProjectSelectionMenu(QtWidgets.QMenu):
             action.setEnabled(not bw_25 or AB_BW25)
 
             self.addAction(action)
-
-
-class MigrationsMenu(QtWidgets.QMenu):
-    """Menu that shows actions that regard to brightway migrations"""
-
-    def __init__(self, parent=None) -> None:
-        super().__init__(parent)
-
-        self.setTitle("Migrations")
-        self.install_migrations_action = actions.MigrationsInstall.get_QAction()
-
-        self.addAction(self.install_migrations_action)
 
