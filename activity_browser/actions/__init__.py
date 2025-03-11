@@ -37,6 +37,12 @@ from .biosphere_update import BiosphereUpdate
 from .default_install import DefaultInstall
 from .exchange.exchange_copy_sdf import ExchangeCopySDF
 
+from .database.importer.database_importer_ecospold_7z import DatabaseImporterEcospold7z
+from .database.importer.database_importer_excel import DatabaseImporterExcel
+from .database.importer.database_importer_bw2package import DatabaseImporterBW2Package
+from .database.importer.database_importer_ecoinvent_interface import DatabaseImporterEcoinventInterface
+from .database.importer.database_importer_forwast import DatabaseImporterForwast
+
 from .exchange.exchange_new import ExchangeNew
 from .exchange.exchange_delete import ExchangeDelete
 from .exchange.exchange_modify import ExchangeModify
@@ -50,6 +56,9 @@ from .exchange.exchange_sdf_to_clipboard import ExchangeSDFToClipboard
 from .method.method_duplicate import MethodDuplicate
 from .method.method_delete import MethodDelete
 from .method.method_open import MethodOpen
+
+from .method.importer.method_importer_ecoinvent import MethodImporterEcoinvent
+from .method.importer.method_importer_bw2io import MethodImporterBW2IO
 
 from .method.cf_uncertainty_modify import CFUncertaintyModify
 from .method.cf_amount_modify import CFAmountModify

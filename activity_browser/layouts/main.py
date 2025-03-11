@@ -115,3 +115,12 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def restore_user_control(self):
         QtWidgets.QApplication.restoreOverrideCursor()
+
+    def dialog_on_exception(self, exception: Exception):
+        QtWidgets.QMessageBox.critical(
+            self,
+            f"An error occurred: {type(exception).__name__}",
+            f"An error occurred, check the logs for more information \n\n {str(exception)}",
+            QtWidgets.QMessageBox.Ok,
+        )
+

@@ -115,6 +115,7 @@ class DatabaseWidget(QtWidgets.QWidget):
             "To change a database from read-only to editable and back,"
             + " click on the checkbox in the table."
         )
+        self.label_change_readonly.setWordWrap(True)
 
         # Buttons
         self.add_default_data_button = actions.DefaultInstall.get_QButton()

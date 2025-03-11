@@ -52,8 +52,13 @@ class ProjectMenu(QtWidgets.QMenu):
         self.addAction(self.import_proj_action)
         self.addAction(self.export_proj_action)
         self.addSeparator()
-        self.addAction(self.import_db_action)
+        self.addMenu(ImportDatabaseMenu(self))
         self.addAction(self.export_db_action)
+        self.addAction(self.update_biosphere_action)
+        self.addSeparator()
+        self.addMenu(ImportICMenu(self))
+        self.addSeparator()
+        self.addMenu(MigrationsMenu(self))
         self.addSeparator()
         self.addAction(self.manage_settings_action)
         self.addAction(self.manage_projects_action)
@@ -245,3 +250,61 @@ class ProjectSelectionMenu(QtWidgets.QMenu):
 
             self.addAction(action)
 
+
+class ImportDatabaseMenu(QtWidgets.QMenu):
+    def __init__(self, parent=None) -> None:
+        super().__init__(parent=parent)
+        self.setTitle("Import database")
+        self.setIcon(qicons.import_db)
+
+        self.beta_warning = QtWidgets.QWidgetAction(self)
+        self.beta_warning.setDefaultWidget(QtWidgets.QLabel("Beta features, use at your own risk"))
+
+        self.import_from_ecoinvent_action = actions.DatabaseImporterEcoinventInterface.get_QAction()
+        self.import_from_forwast_action = actions.DatabaseImporterForwast.get_QAction()
+        self.import_from_z7_action = actions.DatabaseImporterEcospold7z.get_QAction()
+        self.import_from_excel_action = actions.DatabaseImporterExcel.get_QAction()
+        self.import_from_bw2package_action = actions.DatabaseImporterBW2Package.get_QAction()
+        self.open_import_wizard_action = actions.DatabaseImport.get_QAction()
+
+        self.import_from_ecoinvent_action.setText("remote from ecoinvent")
+        self.import_from_forwast_action.setText("remote from forwast")
+        self.import_from_z7_action.setText("from ecospold .7z archive")
+        self.import_from_excel_action.setText("from Brightway2 excel")
+        self.import_from_bw2package_action.setText("from Brightway2 package")
+        self.open_import_wizard_action.setText("using legacy wizard")
+
+        self.addAction(self.beta_warning)
+        self.addSeparator()
+        self.addAction(self.import_from_ecoinvent_action)
+        self.addAction(self.import_from_forwast_action)
+        self.addSeparator()
+        self.addAction(self.import_from_z7_action)
+        self.addAction(self.import_from_excel_action)
+        self.addAction(self.import_from_bw2package_action)
+        self.addSeparator()
+        self.addAction(self.open_import_wizard_action)
+
+
+class ImportICMenu(QtWidgets.QMenu):
+    def __init__(self, parent=None) -> None:
+        super().__init__(parent=parent)
+        self.setTitle("Import impact categories")
+        self.setIcon(qicons.import_db)
+
+        self.beta_warning = QtWidgets.QWidgetAction(self)
+        self.beta_warning.setDefaultWidget(QtWidgets.QLabel("Beta features, use at your own risk"))
+
+        self.import_from_ei_excel_action = actions.MethodImporterEcoinvent.get_QAction()
+        self.import_from_bw2io_action = actions.MethodImporterBW2IO.get_QAction()
+
+        self.import_from_ei_excel_action.setText("from ecoinvent excel")
+        self.import_from_bw2io_action.setText("from bw2io")
+
+        self.import_from_ei_excel_action.setIcon(QtGui.QIcon())
+        self.import_from_bw2io_action.setIcon(QtGui.QIcon())
+
+        self.addAction(self.beta_warning)
+        self.addSeparator()
+        self.addAction(self.import_from_ei_excel_action)
+        self.addAction(self.import_from_bw2io_action)

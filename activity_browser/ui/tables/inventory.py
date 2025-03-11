@@ -39,6 +39,7 @@ class DatabasesTable(ABDataFrameView):
             QtWidgets.QAbstractItemView.EditTrigger.SelectedClicked
         )
 
+        self.new_db_action = actions.DatabaseNew.get_QAction()
         self.relink_action = actions.DatabaseRelink.get_QAction(self.current_database)
         self.new_process_action = actions.ActivityNewProcess.get_QAction(
             self.current_database
@@ -74,10 +75,16 @@ class DatabasesTable(ABDataFrameView):
         self.model.dataChanged.connect(self._handle_data_changed)
 
     def contextMenuEvent(self, event) -> None:
+        from activity_browser.ui.menu_bar import ImportDatabaseMenu
+        menu = QtWidgets.QMenu(self)
+        menu.addAction(self.new_db_action)
+        menu.addMenu(ImportDatabaseMenu(menu))
+
         if self.indexAt(event.pos()).row() == -1:
+            menu.exec_(event.globalPos())
             return
 
-        menu = QtWidgets.QMenu(self)
+        menu.addSeparator()
         menu.addAction(self.delete_db_action)
         menu.addAction(self.relink_action)
         menu.addAction(self.duplicate_db_action)

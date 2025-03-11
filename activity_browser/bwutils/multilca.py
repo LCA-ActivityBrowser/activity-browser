@@ -276,7 +276,7 @@ class MLCA(object):
         # In rare cases, the default biosphere is not found as a dependency, see:
         # https://github.com/LCA-ActivityBrowser/activity-browser/issues/298
         # Always include it.
-        dbs.add(bd.config.biosphere)
+        # dbs.add(bd.config.biosphere)  # commented out because biospheres aren't 'biosphere3' by default anymore
         return dbs
 
     def get_results_for_method(self, index: int = 0) -> pd.DataFrame:

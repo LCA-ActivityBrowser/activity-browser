@@ -1,15 +1,20 @@
-import sys
 import threading
 import logging
 
 from activity_browser.mod import bw2data as bd
-from activity_browser.logger import exception_hook
 
 from qtpy.QtCore import QThread, SignalInstance, Signal
 
 
 class ABThread(QThread):
     status: SignalInstance = Signal(int, str)
+    exception: SignalInstance = Signal(Exception)
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+        from activity_browser import application
+        self.exception.connect(application.main_window.dialog_on_exception)
 
     def run(self):
         """Reimplemented from QThread to close any database connections before finishing."""
@@ -18,8 +23,8 @@ class ABThread(QThread):
             try:
                 self.run_safely()
             except Exception as e:
-                # pass exception to our except hook
-                exception_hook(*sys.exc_info())
+                # send exception signal
+                self.exception.emit(e)
                 raise e
 
     def run_safely(self):

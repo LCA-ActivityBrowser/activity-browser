@@ -129,3 +129,14 @@ class CheckableComboBox(QComboBox):
             if self.model().item(i).checkState() == Qt.Checked:
                 res.append(self.model().item(i).data())
         return res
+
+
+class ABComboBox(QComboBox):
+
+    @classmethod
+    def get_database_combobox(cls, parent=None):
+        from activity_browser.mod import bw2data
+
+        combobox = cls(parent)
+        combobox.addItems(bw2data.databases)
+        return combobox
