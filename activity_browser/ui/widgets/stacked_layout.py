@@ -1,4 +1,4 @@
-from PySide2 import QtWidgets
+from qtpy import QtWidgets
 
 
 class ABStackedLayout(QtWidgets.QStackedLayout):

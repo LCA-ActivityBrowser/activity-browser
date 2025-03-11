@@ -1,7 +1,7 @@
 from logging import getLogger
 
 import ecoinvent_interface as ei
-from PySide2 import QtWidgets, QtCore
+from qtpy import QtWidgets, QtCore
 
 from activity_browser import application
 from activity_browser.ui import widgets, icons, threading, composites

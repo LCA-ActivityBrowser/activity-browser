@@ -1,4 +1,4 @@
-from PySide2.QtWidgets import QProgressDialog
+from qtpy.QtWidgets import QProgressDialog
 
 from activity_browser import application
 from activity_browser.mod.tqdm import qt_tqdm

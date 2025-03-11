@@ -1,6 +1,6 @@
 from tqdm.std import *
 from activity_browser.mod.patching import patch_attribute, patched
-from PySide2.QtCore import QObject, SignalInstance, Signal
+from qtpy.QtCore import QObject, SignalInstance, Signal
 
 
 @patch_attribute(tqdm, "update")

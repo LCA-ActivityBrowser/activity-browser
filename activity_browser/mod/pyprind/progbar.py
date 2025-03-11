@@ -2,7 +2,7 @@ from pyprind.progbar import *
 from activity_browser.mod.patching import patch_superclass, patched
 from activity_browser.ui.threading import thread_local
 
-from PySide2.QtCore import QObject, SignalInstance, Signal
+from qtpy.QtCore import QObject, SignalInstance, Signal
 
 @patch_superclass
 class Progbar(ProgBar):

@@ -1,5 +1,5 @@
-from PySide2 import QtWidgets
-from PySide2.QtCore import Signal, SignalInstance
+from qtpy import QtWidgets
+from qtpy.QtCore import Signal, SignalInstance
 
 from activity_browser.ui.composites import ABComposite
 

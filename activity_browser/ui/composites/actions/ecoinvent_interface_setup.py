@@ -1,5 +1,5 @@
-from PySide2 import QtWidgets, QtCore
-from PySide2.QtCore import Signal, SignalInstance
+from qtpy import QtWidgets, QtCore
+from qtpy.QtCore import Signal, SignalInstance
 
 from activity_browser.mod.ecoinvent_interface import ABEcoinventRelease
 from . import ecoinvent_setup

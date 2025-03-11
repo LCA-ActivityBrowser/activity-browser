@@ -58,8 +58,6 @@ class ProjectMenu(QtWidgets.QMenu):
         self.addSeparator()
         self.addMenu(ImportICMenu(self))
         self.addSeparator()
-        self.addMenu(MigrationsMenu(self))
-        self.addSeparator()
         self.addAction(self.manage_settings_action)
         self.addAction(self.manage_projects_action)
 

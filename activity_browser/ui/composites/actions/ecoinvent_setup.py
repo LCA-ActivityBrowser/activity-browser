@@ -1,4 +1,4 @@
-from PySide2.QtCore import Signal, SignalInstance
+from qtpy.QtCore import Signal, SignalInstance
 
 from activity_browser.ui import widgets
 from activity_browser.ui.composites import RadioButtonCollapseComposite, DatabaseNameComposite, HorizontalButtonsComposite

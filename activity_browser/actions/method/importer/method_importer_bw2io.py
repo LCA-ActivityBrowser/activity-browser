@@ -1,7 +1,7 @@
 import os.path
 from logging import getLogger
 
-from PySide2.QtCore import Signal, SignalInstance
+from qtpy.QtCore import Signal, SignalInstance
 
 from activity_browser import application
 from activity_browser.actions.base import exception_dialogs

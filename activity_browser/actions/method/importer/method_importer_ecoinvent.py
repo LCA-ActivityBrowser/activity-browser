@@ -1,7 +1,7 @@
 from logging import getLogger
 
-from PySide2 import QtWidgets, QtCore
-from PySide2.QtCore import Signal, SignalInstance
+from qtpy import QtWidgets, QtCore
+from qtpy.QtCore import Signal, SignalInstance
 
 from activity_browser import application
 from activity_browser.mod import bw2data as bd

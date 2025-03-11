@@ -1,5 +1,5 @@
-from PySide2 import QtWidgets, QtCore
-from PySide2.QtCore import Signal, SignalInstance
+from qtpy import QtWidgets, QtCore
+from qtpy.QtCore import Signal, SignalInstance
 
 import requests
 import ecoinvent_interface as ei

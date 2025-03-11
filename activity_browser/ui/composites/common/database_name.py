@@ -1,7 +1,7 @@
-from PySide2 import QtWidgets, QtCore
+from qtpy import QtWidgets, QtCore
 
+import bw2data as bd
 from activity_browser.ui.composites import ABComposite
-import activity_browser.mod.bw2data as bd
 
 
 class DatabaseNameComposite(ABComposite):
