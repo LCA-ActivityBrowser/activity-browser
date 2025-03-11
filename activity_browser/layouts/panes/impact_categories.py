@@ -21,6 +21,7 @@ class ImpactCategories(QtWidgets.QWidget):
         self.view.setSelectionMode(QtWidgets.QTableView.SingleSelection)
         self.view.setDragEnabled(True)
         self.view.setDragDropMode(QtWidgets.QTableView.DragDropMode.DragOnly)
+        self.view.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
 
         self.search = widgets.ABLineEdit(self)
         self.search.setMaximumHeight(30)
@@ -77,7 +78,13 @@ class ImpactCategoriesView(widgets.ABTreeView):
 
     @property
     def selected_impact_categories(self):
-        return [x.internalPointer()["_method_name"] for x in self.selectedIndexes()]
+        indices = [i for i in self.selectedIndexes() if i.column() == 0]
+        impact_categories = set()
+
+        for index in indices:
+            impact_categories.add(self.model().get_impact_categories(index))
+
+        return list(set)
 
     def mouseDoubleClickEvent(self, event) -> None:
         if self.selected_impact_categories:
@@ -99,8 +106,24 @@ class ImpactCategoriesItem(widgets.ABDataItem):
         return super().flags(col, key) | Qt.ItemFlag.ItemIsDragEnabled
 
 
+class ImpactCategoriesBranchItem(widgets.ABBranchItem):
+    def flags(self, col: int, key: str):
+        """
+        Returns the item flags for the given column and key.
+
+        Args:
+            col (int): The column index.
+            key (str): The key for which to return the flags.
+
+        Returns:
+            QtCore.Qt.ItemFlags: The item flags.
+        """
+        return super().flags(col, key) | Qt.ItemFlag.ItemIsDragEnabled
+
+
 class ImpactCategoriesModel(widgets.ABAbstractItemModel):
     dataItemClass = ImpactCategoriesItem
+    branchItemClass = ImpactCategoriesBranchItem
 
     def mimeData(self, indices: [QtCore.QModelIndex]):
         """
@@ -113,7 +136,21 @@ class ImpactCategoriesModel(widgets.ABAbstractItemModel):
             core.ABMimeData: The mime data.
         """
         data = core.ABMimeData()
-        names = set([x.internalPointer()["_method_name"] for x in indices])
-        data.setPickleData("application/bw-methodnamelist", list(names))
+        names = []
+
+        for index in indices:
+            names += self.get_impact_categories(index)
+
+        data.setPickleData("application/bw-methodnamelist", list(set(names)))
         return data
+
+    def get_impact_categories(self, index: QtCore.QModelIndex):
+        if isinstance(index.internalPointer(), self.dataItemClass):
+            return [index.internalPointer()["_method_name"]]
+
+        ics = []
+        for i, child in enumerate(index.internalPointer().children().values()):
+            child_index = self.createIndex(i, 0, child)
+            ics += self.get_impact_categories(child_index)
+        return ics
 
