@@ -18,7 +18,7 @@ class FloatDelegate(QtWidgets.QStyledItemDelegate):
 
         if math.isnan(value):
             return ""
-        return "{:.2f}".format(value)
+        return str(value)
 
     def createEditor(self, parent, option, index):
         editor = QtWidgets.QLineEdit(parent)
@@ -38,7 +38,7 @@ class FloatDelegate(QtWidgets.QStyledItemDelegate):
         except ValueError:
             value = math.nan
 
-        editor.setText(str(value))
+        editor.setText(format(value, '.10f').rstrip('0').rstrip('.'))
 
     def setModelData(
         self,
