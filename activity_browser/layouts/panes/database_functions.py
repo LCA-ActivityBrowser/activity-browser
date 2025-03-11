@@ -338,6 +338,21 @@ class FunctionView(ui.widgets.ABTreeView):
         self.setSelectionBehavior(ui.widgets.ABTreeView.SelectionBehavior.SelectRows)
         self.setSelectionMode(ui.widgets.ABTreeView.SelectionMode.ExtendedSelection)
 
+        self.propertyDelegate = delegates.PropertyDelegate(self)
+
+    def setDefaultColumnDelegates(self):
+        """
+        Sets the default column delegates for the view.
+        """
+        super().setDefaultColumnDelegates()
+
+        columns = self.model().columns()
+        for i, col_name in enumerate(columns):
+            if not col_name.startswith("property_"):
+                continue
+            # Set the delegate for property columns
+            self.setItemDelegateForColumn(i, self.propertyDelegate)
+
     def mouseDoubleClickEvent(self, event) -> None:
         """
         Handles the mouse double click event to open the selected activities.
@@ -410,6 +425,13 @@ class FunctionItem(ui.widgets.ABDataItem):
             QtCore.Qt.ItemFlags: The item flags.
         """
         return super().flags(col, key) | Qt.ItemFlag.ItemIsDragEnabled
+
+    def displayData(self, col: int, key: str):
+        if key.startswith("property_") and self[key]["normalize"]:
+            prop = self[key].copy()
+            prop["unit"] = prop['unit'] + f" / {self['unit']}"
+            return prop
+        return super().displayData(col, key)
 
 
 class FunctionModel(ui.widgets.ABAbstractItemModel):

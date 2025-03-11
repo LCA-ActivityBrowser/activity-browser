@@ -13,6 +13,7 @@ from .viewonly import (ViewOnlyDelegate, ViewOnlyFloatDelegate,
                        ViewOnlyUncertaintyDelegate)
 from .new_formula import NewFormulaDelegate
 from .date_time import DateTimeDelegate
+from .property import PropertyDelegate
 
 __all__ = [
     "CheckboxDelegate",
@@ -30,4 +31,5 @@ __all__ = [
     "ViewOnlyUncertaintyDelegate",
     "NewFormulaDelegate",
     "DateTimeDelegate",
+    "PropertyDelegate",
 ]
