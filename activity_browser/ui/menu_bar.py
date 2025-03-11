@@ -1,15 +1,11 @@
-import os
 from importlib.metadata import version
 
 from qtpy import QtGui, QtWidgets
-from qtpy.QtCore import QSize, QUrl, Slot
+from qtpy.QtCore import QSize, QUrl
 
 from activity_browser import actions, signals, application, utils
-from activity_browser.mod import bw2data as bd
 
 from .icons import qicons
-
-AB_BW25 = True
 
 
 class MenuBar(QtWidgets.QMenuBar):
@@ -221,7 +217,7 @@ class ProjectSelectionMenu(QtWidgets.QMenu):
         self.populate()
 
         self.aboutToShow.connect(self.populate)
-        self.triggered.connect(lambda act: actions.ProjectSwitch.run(act.text()))
+        self.triggered.connect(lambda act: actions.ProjectSwitch.run(act.data()))
 
     def populate(self):
         """
@@ -242,12 +238,10 @@ class ProjectSelectionMenu(QtWidgets.QMenu):
                 False if not isinstance(proj.data, dict) else proj.data.get("25", False)
             )
 
-            # add BW25 decorations if necessary
-            name = proj.name if not bw_25 or AB_BW25 else "[BW25] " + proj.name
-
             # create the action and disable it if it's BW25 and BW25 is not supported
-            action = QtWidgets.QAction(name, self)
-            action.setEnabled(not bw_25 or AB_BW25)
+            action = QtWidgets.QAction(proj.name, self)
+            action.setData(proj.name)
+            action.setIcon(application.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_MessageBoxWarning) if not bw_25 else qicons.empty)
 
             self.addAction(action)
 
