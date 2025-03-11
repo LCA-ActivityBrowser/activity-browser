@@ -255,9 +255,6 @@ class ImportDatabaseMenu(QtWidgets.QMenu):
         self.setTitle("Import database")
         self.setIcon(qicons.import_db)
 
-        self.beta_warning = QtWidgets.QWidgetAction(self)
-        self.beta_warning.setDefaultWidget(QtWidgets.QLabel("Beta features, use at your own risk"))
-
         self.import_from_ecoinvent_action = actions.DatabaseImporterEcoinventInterface.get_QAction()
         self.import_from_forwast_action = actions.DatabaseImporterForwast.get_QAction()
         self.import_from_z7_action = actions.DatabaseImporterEcospold7z.get_QAction()
@@ -265,23 +262,14 @@ class ImportDatabaseMenu(QtWidgets.QMenu):
         self.import_from_bw2package_action = actions.DatabaseImporterBW2Package.get_QAction()
         self.open_import_wizard_action = actions.DatabaseImport.get_QAction()
 
-        self.import_from_ecoinvent_action.setText("remote from ecoinvent")
-        self.import_from_forwast_action.setText("remote from forwast")
-        self.import_from_z7_action.setText("from ecospold .7z archive")
-        self.import_from_excel_action.setText("from Brightway2 excel")
-        self.import_from_bw2package_action.setText("from Brightway2 package")
-        self.open_import_wizard_action.setText("using legacy wizard")
+        self.import_from_ecoinvent_action.setText("from ecoinvent")
+        self.import_from_excel_action.setText("from .xlsx")
+        self.import_from_bw2package_action.setText("from .bw2package")
 
-        self.addAction(self.beta_warning)
-        self.addSeparator()
         self.addAction(self.import_from_ecoinvent_action)
-        self.addAction(self.import_from_forwast_action)
         self.addSeparator()
-        self.addAction(self.import_from_z7_action)
         self.addAction(self.import_from_excel_action)
         self.addAction(self.import_from_bw2package_action)
-        self.addSeparator()
-        self.addAction(self.open_import_wizard_action)
 
 
 class ImportICMenu(QtWidgets.QMenu):
