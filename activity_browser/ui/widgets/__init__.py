@@ -22,3 +22,4 @@ from .progress_dialog import ABProgressDialog
 
 from .combobox import ABComboBox
 from .stacked_layout import ABStackedLayout
+from .button_collapser import ABRadioButtonCollapser
