@@ -66,34 +66,18 @@ class EiWizard(widgets.ABWizard):
             self.setTitle("Import from ecoinvent")
             self.setSubTitle("Select local ecoinvent .7z.")
 
-            self.file_button = QtWidgets.QPushButton("Select file")
-            self.file_button.clicked.connect(self.select_file)
-
-            self.file_label = QtWidgets.QLabel("No file selected")
+            self.file_selector = widgets.ABFileSelector(filter="*.7z")
+            self.file_selector.textChanged.connect(lambda: self.completeChanged.emit())
 
             layout = QtWidgets.QVBoxLayout()
-            layout.addWidget(self.file_button)
-            layout.addWidget(self.file_label)
+            layout.addWidget(self.file_selector)
             self.setLayout(layout)
 
         def finalize(self, context: dict):
-            context["ei_filepath"] = self.file_label.text()
-
-        def select_file(self):
-            options = QtWidgets.QFileDialog.Options()
-            file_name, _ = QtWidgets.QFileDialog.getOpenFileName(
-                self,
-                "Select ecoinvent .7z file",
-                "",
-                "Tar GZ Files (*.7z);;All Files (*)",
-                options=options
-            )
-            if file_name:
-                self.file_label.setText(file_name)
-                self.completeChanged.emit()
+            context["ei_filepath"] = self.file_selector.text()
 
         def isComplete(self):
-            return self.file_label.text() != "No file selected"
+            return bool(self.file_selector.text())
 
         def nextPage(self):
             return EiWizard.BiosphereSetupPage
@@ -537,6 +521,6 @@ class EiWizard(widgets.ABWizard):
             return self.install_thread.isFinished()
 
     pages = [
-        RemoteOrLocalPage, LoginPage, EcoinventVersionPage, EcoinventDownloadPage, BiosphereSetupPage,
+        RemoteOrLocalPage, LocalSelectPage, LoginPage, EcoinventVersionPage, EcoinventDownloadPage, BiosphereSetupPage,
         BiosphereInstallPage, MethodsSetupPage, MethodsInstallPage, EcoinventSetupPage, EcoinventInstallPage
     ]

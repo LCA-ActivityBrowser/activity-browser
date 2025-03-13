@@ -1,12 +1,18 @@
 from qtpy import QtWidgets
+from qtpy.QtCore import Signal, SignalInstance
+
 
 class ABFileSelector(QtWidgets.QWidget):
+    textChanged: SignalInstance = Signal(str)
+
     def __init__(self, parent=None, filter=""):
         super().__init__(parent)
 
         self.filter = filter
 
         self.line_edit = QtWidgets.QLineEdit(self)
+        self.line_edit.textChanged.connect(self.textChanged.emit)
+
         self.button = QtWidgets.QPushButton("Browse", self)
         self.button.clicked.connect(self.select_file)
 
