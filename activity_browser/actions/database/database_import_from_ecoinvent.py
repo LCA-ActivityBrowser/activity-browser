@@ -7,12 +7,11 @@ import ecoinvent_interface as ei
 import bw2data as bd
 
 from qtpy import QtWidgets, QtCore
-from qtpy.QtCore import Signal, SignalInstance, Qt
+from qtpy.QtCore import Signal, SignalInstance
 
 from activity_browser import application, signals
-from activity_browser.ui import widgets, icons, threading, composites
+from activity_browser.ui import widgets, icons, threading
 from activity_browser.actions.base import ABAction, exception_dialogs
-from activity_browser.mod.ecoinvent_interface import ABEcoinventRelease
 from activity_browser.bwutils.io.ecoinvent_importer import Ecoinvent7zImporter
 from activity_browser.bwutils.io.ecoinvent_lcia_importer import EcoinventLCIAImporter
 
@@ -194,15 +193,11 @@ class EiWizard(widgets.ABWizard):
         class DownloadThread(threading.ABThread):
             download_ready: SignalInstance = Signal(str)
 
-            release = None
-            version: str
-            model: str
-
-            def run_safely(self):
+            def run_safely(self, release: ei.release, version: str, model: str):
                 print("starting download")
-                path = self.release.get_release(
-                    version=self.version,
-                    system_model=self.model,
+                path = release.get_release(
+                    version=version,
+                    system_model=model,
                     release_type=ei.ReleaseType.ecospold,
                     extract=False,
                     fix_version=False
@@ -234,11 +229,7 @@ class EiWizard(widgets.ABWizard):
             self.setLayout(layout)
 
         def initializePage(self, context: dict):
-            self.download_thread.release = context["release"]
-            self.download_thread.version = context["version"]
-            self.download_thread.model = context["model"]
-
-            self.download_thread.start()
+            self.download_thread.start(context["release"], context["version"], context["model"])
             self.download_thread.download_ready.connect(self.download_ready)
 
         def download_ready(self, filepath: str):
@@ -305,12 +296,9 @@ class EiWizard(widgets.ABWizard):
 
     class BiosphereInstallPage(widgets.ABWizardPage):
         class InstallThread(threading.ABThread):
-            ei_filepath: str
-            biosphere_name: str
-
-            def run_safely(self):
-                importer = Ecoinvent7zImporter(self.ei_filepath)
-                importer.install_biosphere(self.biosphere_name)
+            def run_safely(self, ei_filepath: str, biosphere_name: str):
+                importer = Ecoinvent7zImporter(ei_filepath)
+                importer.install_biosphere(biosphere_name)
 
         def __init__(self, parent=None):
             super().__init__(parent)
@@ -329,10 +317,7 @@ class EiWizard(widgets.ABWizard):
             self.setLayout(layout)
 
         def initializePage(self, context: dict):
-            self.install_thread.ei_filepath = context["ei_filepath"]
-            self.install_thread.biosphere_name = context["biosphere_name"]
-
-            self.install_thread.start()
+            self.install_thread.start(context["ei_filepath"], context["biosphere_name"])
             self.install_thread.finished.connect(self.ready)
 
         def ready(self):
@@ -402,13 +387,10 @@ class EiWizard(widgets.ABWizard):
 
     class MethodsInstallPage(widgets.ABWizardPage):
         class InstallThread(threading.ABThread):
-            methods_filepath: str
-            biosphere_name: str
+            def run_safely(self, methods_filepath: str, biosphere_name: str):
+                importer = EcoinventLCIAImporter.setup_with_ei_excel(methods_filepath)
 
-            def run_safely(self):
-                importer = EcoinventLCIAImporter.setup_with_ei_excel(self.methods_filepath)
-
-                importer.set_biosphere(self.biosphere_name)
+                importer.set_biosphere(biosphere_name)
                 importer.apply_strategies()
 
                 signals.method.blockSignals(True)
@@ -440,10 +422,7 @@ class EiWizard(widgets.ABWizard):
             self.setLayout(layout)
 
         def initializePage(self, context: dict):
-            self.install_thread.methods_filepath = context["methods_filepath"]
-            self.install_thread.biosphere_name = context["biosphere_name"]
-
-            self.install_thread.start()
+            self.install_thread.start(context["methods_filepath"], context["biosphere_name"])
             self.install_thread.finished.connect(self.ready)
 
         def ready(self):
