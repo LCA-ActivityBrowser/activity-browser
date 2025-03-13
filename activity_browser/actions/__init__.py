@@ -33,16 +33,12 @@ from .database.database_redo_allocation import DatabaseRedoAllocation
 from .database.database_explorer_open import DatabaseExplorerOpen
 from .database.database_process import DatabaseProcess
 from .database.database_import_from_ecoinvent import DatabaseImportFromEcoinvent
+from .database.database_importer_excel import DatabaseImporterExcel
+from .database.database_importer_bw2package import DatabaseImporterBW2Package
 
 from .biosphere_update import BiosphereUpdate
 from .default_install import DefaultInstall
 from .exchange.exchange_copy_sdf import ExchangeCopySDF
-
-from .database.importer.database_importer_ecospold_7z import DatabaseImporterEcospold7z
-from .database.importer.database_importer_excel import DatabaseImporterExcel
-from .database.importer.database_importer_bw2package import DatabaseImporterBW2Package
-from .database.importer.database_importer_ecoinvent_interface import DatabaseImporterEcoinventInterface
-from .database.importer.database_importer_forwast import DatabaseImporterForwast
 
 from .exchange.exchange_new import ExchangeNew
 from .exchange.exchange_delete import ExchangeDelete

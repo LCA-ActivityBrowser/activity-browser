@@ -13,7 +13,6 @@ from bw2io.strategies import (
     rationalize_method_names,
     set_biosphere_type,
 )
-from bw2io.strategies.lcia import fix_ecoinvent_38_lcia_implementation
 from bw2io.importers.base_lcia import LCIAImporter
 
 
