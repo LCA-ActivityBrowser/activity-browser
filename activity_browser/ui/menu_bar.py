@@ -39,7 +39,6 @@ class ProjectMenu(QtWidgets.QMenu):
 
         self.import_db_action = actions.DatabaseImport.get_QAction()
         self.export_db_action = actions.DatabaseExport.get_QAction()
-        self.update_biosphere_action = actions.BiosphereUpdate.get_QAction()
 
         self.manage_settings_action = actions.SettingsWizardOpen.get_QAction()
         self.manage_projects_action = actions.ProjectManagerOpen.get_QAction()
@@ -54,7 +53,6 @@ class ProjectMenu(QtWidgets.QMenu):
         self.addSeparator()
         self.addMenu(ImportDatabaseMenu(self))
         self.addAction(self.export_db_action)
-        self.addAction(self.update_biosphere_action)
         self.addSeparator()
         self.addMenu(ImportICMenu(self))
         self.addSeparator()

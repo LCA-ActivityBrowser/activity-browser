@@ -118,7 +118,6 @@ class DatabaseWidget(QtWidgets.QWidget):
         self.label_change_readonly.setWordWrap(True)
 
         # Buttons
-        self.add_default_data_button = actions.DefaultInstall.get_QButton()
         self.new_database_button = actions.DatabaseNew.get_QButton()
         self.import_database_button = actions.DatabaseImport.get_QButton()
 

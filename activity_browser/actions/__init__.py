@@ -36,8 +36,6 @@ from .database.database_import_from_ecoinvent import DatabaseImportFromEcoinvent
 from .database.database_importer_excel import DatabaseImporterExcel
 from .database.database_importer_bw2package import DatabaseImporterBW2Package
 
-from .biosphere_update import BiosphereUpdate
-from .default_install import DefaultInstall
 from .exchange.exchange_copy_sdf import ExchangeCopySDF
 
 from .exchange.exchange_new import ExchangeNew
@@ -89,8 +87,6 @@ from .project.project_migrate25 import ProjectMigrate25
 from .project.project_create_template import ProjectCreateTemplate
 from .project.project_new_template import ProjectNewFromTemplate
 
-from .default_install import DefaultInstall
-from .biosphere_update import BiosphereUpdate
 from .plugin_wizard_open import PluginWizardOpen
 from .settings_wizard_open import SettingsWizardOpen
 from .migrations_install import MigrationsInstall
