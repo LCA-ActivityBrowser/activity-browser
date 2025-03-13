@@ -159,7 +159,11 @@ class MetaDataStore(QObject):
             if data is None:
                 continue
 
-            self.dataframe = pd.concat([self.dataframe, data], join="outer")
+            if self.dataframe.empty:
+                self.dataframe = data
+            else:
+                self.dataframe = pd.concat([self.dataframe, data], join="outer")
+
             sync = True
 
         if sync:
