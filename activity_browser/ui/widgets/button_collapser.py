@@ -1,4 +1,5 @@
 from qtpy import QtWidgets
+from qtpy.QtCore import Signal, SignalInstance
 
 
 class ABRadioButtonCollapser(QtWidgets.QWidget):
@@ -7,12 +8,22 @@ class ABRadioButtonCollapser(QtWidgets.QWidget):
     add different options through the add_option method. These are displayed horizontally and only shown when the
     corresponding radiobutton is clicked.
     """
+    buttonClicked: SignalInstance = Signal()
+    buttonPressed: SignalInstance = Signal()
+    buttonReleased: SignalInstance = Signal()
+    buttonToggled: SignalInstance = Signal()
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         self._options = {}
         self.button_group = QtWidgets.QButtonGroup()
+
+        self.button_group.buttonClicked.connect(lambda: self.buttonClicked.emit())
+        self.button_group.buttonPressed.connect(lambda: self.buttonPressed.emit())
+        self.button_group.buttonReleased.connect(lambda: self.buttonReleased.emit())
+        self.button_group.buttonToggled.connect(lambda: self.buttonToggled.emit())
+
         self.setLayout(QtWidgets.QVBoxLayout())
 
     def __getitem__(self, item):
@@ -56,7 +67,7 @@ class ABRadioButtonCollapser(QtWidgets.QWidget):
         # set up the button
         button.setText(label)
         button.setObjectName(name)
-        button.clicked.connect(self.update_collapse)
+        button.clicked.connect(self.updateCollapse)
 
         # add the button and view to the correct locations
         self.button_group.addButton(button)
@@ -78,7 +89,7 @@ class ABRadioButtonCollapser(QtWidgets.QWidget):
         Slot that check what radio button is checked and only unhides the associated view
         """
         # first hide all
-        self.hide_all(uncheck=False)
+        self.hideAll(uncheck=False)
 
         # get the name of the checked button
         button_name = self.button_group.checkedButton().objectName()

@@ -10,24 +10,35 @@ class ABThread(QThread):
     status: SignalInstance = Signal(int, str)
     exception: SignalInstance = Signal(Exception)
 
+    _args = ()
+    _kwargs = {}
+
     def __init__(self, parent=None):
         super().__init__(parent)
 
         from activity_browser import application
         self.exception.connect(application.main_window.dialog_on_exception)
 
+    def start(self, *args, priority=QThread.NormalPriority, **kwargs):
+        """
+        Reimplemented from QThread to set the priority of the thread.
+        """
+        self._args = args
+        self._kwargs = kwargs
+        super().start(priority)
+
     def run(self):
         """Reimplemented from QThread to close any database connections before finishing."""
         # call run_safely and finish by closing the connections
         with SafeBWConnection(), InfoToSlot(self.status.emit):
             try:
-                self.run_safely()
+                self.run_safely(*self._args, **self._kwargs)
             except Exception as e:
                 # send exception signal
                 self.exception.emit(e)
                 raise e
 
-    def run_safely(self):
+    def run_safely(self, *args, **kwargs):
         raise NotImplementedError
 
 

@@ -3,7 +3,7 @@ import warnings
 import tqdm
 from numbers import Number
 
-from bw2data import Database, config
+from bw2data import Database, config, methods, Method
 from openpyxl import load_workbook
 
 from bw2io.strategies import (
@@ -116,6 +116,37 @@ class EcoinventLCIAImporter(LCIAImporter):
             return
         for method in tqdm.tqdm(self.data, desc=f"Prepending {prepend} to ICs"):
             method["name"] = tuple([prepend, *method["name"]])
+
+    def write_methods(self, overwrite=False, verbose=True):
+        num_methods, num_cfs, num_unlinked = self.statistics(False)
+        if num_unlinked:
+            raise ValueError(
+                ("Can't write unlinked methods ({} unlinked cfs)").format(num_unlinked)
+            )
+        for ds in tqdm.tqdm(self.data, total=len(self.data), desc="Processing CF's"):
+            if ds["name"] in methods:
+                if overwrite:
+                    del methods[ds["name"]]
+                else:
+                    raise ValueError(
+                        (
+                            "Method {} already exists. Use "
+                            "``overwrite=True`` to overwrite existing methods"
+                        ).format(ds["name"])
+                    )
+            method = Method(ds["name"])
+            method.register(
+                description=ds["description"],
+                filename=ds["filename"],
+                unit=ds["unit"],
+            )
+            method.write(self._reformat_cfs(ds["exchanges"]))
+        if verbose:
+            print(
+                "Wrote {} LCIA methods with {} characterization factors".format(
+                    num_methods, num_cfs
+                )
+            )
 
 
 def convert_lcia_methods_data(filename: str):

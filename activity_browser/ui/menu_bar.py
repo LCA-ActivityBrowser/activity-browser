@@ -255,7 +255,7 @@ class ImportDatabaseMenu(QtWidgets.QMenu):
         self.setTitle("Import database")
         self.setIcon(qicons.import_db)
 
-        self.import_from_ecoinvent_action = actions.DatabaseImporterEcoinventInterface.get_QAction()
+        self.import_from_ecoinvent_action = actions.DatabaseImportFromEcoinvent.get_QAction()
         self.import_from_forwast_action = actions.DatabaseImporterForwast.get_QAction()
         self.import_from_z7_action = actions.DatabaseImporterEcospold7z.get_QAction()
         self.import_from_excel_action = actions.DatabaseImporterExcel.get_QAction()

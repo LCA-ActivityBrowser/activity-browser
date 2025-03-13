@@ -59,7 +59,7 @@ class Ecoinvent7zImporter:
 
         # install the biosphere
         importer.apply_strategies()
-        importer.write_database()
+        importer.write_database(searchable=False)
 
     def install_ecoinvent(self, db_name, biosphere_name: str = "biosphere3"):
         """
@@ -83,15 +83,7 @@ class Ecoinvent7zImporter:
 
         # creating the actual database
         db = bd.Database(db_name)
-        db.register()
-
-        bd.mapping.add(db_data.keys())
-        bd.geomapping.add({x["location"] for x in db_data.values() if x.get("location")})
-        # directly write using the private function, because we don't want to make it searchable and that takes a lot
-        # of time. If the user wants it to be searchable, they can do so manually later.
-        db._efficient_write_many_data(db_data)
-        log.info(f"Processing database {db_name}")
-        db.process()
+        db.write(db_data, searchable=False)
 
     def apply_strategies(self, db_data, biosphere_name):
         strategies = [
