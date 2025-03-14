@@ -132,16 +132,11 @@ def count_database_records(name: str) -> int:
     """To account for possible brightway database types that do not implement
     the __len__ method.
     """
-    db = bd.Database(name)
-    return bd.databases[name].get("count", 0)
     try:
-        return len(db)
-    except TypeError as e:
-        log.error("{}. Counting manually".format(e))
-        return sum(1 for _ in db)
-    except pw.OperationalError as e:
-        log.warning("Database locked. Returning cache")
-        return bd.databases[name].get("count", 0)
+        return len(AB_metadata.dataframe.loc[name])
+    except KeyError:
+        return 0
+
 
 
 # Activity
