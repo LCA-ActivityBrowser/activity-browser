@@ -46,6 +46,20 @@ class ImpactCategoryView(widgets.ABTreeView):
         "name": delegates.StringDelegate
     }
 
+    class ContextMenu(QtWidgets.QMenu):
+        def __init__(self, pos, view: "ImpactCategoryView"):
+            super().__init__(view)
+            cs_name = view.parent().calculation_setup_name
+
+            if not view.selectedIndexes():
+                return
+
+            indices = [index.internalPointer().key() for index in view.selectedIndexes()]
+
+            self.delete_ic_action = actions.CSDeleteImpactCategory.get_QAction(cs_name, indices)
+            print(self.delete_ic_action.text())
+            self.addAction(self.delete_ic_action)
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setAcceptDrops(True)

@@ -7,7 +7,7 @@ log = getLogger(__name__)
 
 
 class ABAction:
-    icon: QtGui.QIcon = None
+    icon = QtGui.QIcon()
     text: str = None
     tooltip: str = None
 
