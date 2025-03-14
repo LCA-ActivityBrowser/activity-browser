@@ -31,6 +31,7 @@ class RightPanel(ABTab):
             "Graph Explorer": GraphExplorerTab(self),
             "LCA results": LCAResultsTab(self),
             "Parameters": ParametersTab(self),
+            "New": pages.CalculationSetupPage("check", self)
         }
         self.tab_order = {}
 

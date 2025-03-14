@@ -45,6 +45,7 @@ class ProjectSignals(QObject):
 class MetaSignals(QObject):
     databases_changed: SignalInstance = Signal(object, object)
     methods_changed: SignalInstance = Signal(object, object)
+    calculation_setups_changed: SignalInstance = Signal(object, object)
 
 
 class ABSignals(QObject):
@@ -99,7 +100,7 @@ class ABSignals(QObject):
 
     def _connect_bw_signals(self):
         from bw2data import signals, Method
-        from bw2data.meta import databases, methods
+        from bw2data.meta import databases, methods, calculation_setups
 
         signals.signaleddataset_on_save.connect(self._on_signaleddataset_on_save)
         signals.signaleddataset_on_delete.connect(self._on_signaleddataset_on_delete)
@@ -121,9 +122,12 @@ class ABSignals(QObject):
         databases._save_signal.connect(self._on_database_metadata_change)
         setattr(methods, "_save_signal", blinker_signal("ab.patched_methods"))
         methods._save_signal.connect(self._on_methods_metadata_change)
+        setattr(calculation_setups, "_save_signal", blinker_signal("ab.patched_calculation_setups"))
+        calculation_setups._save_signal.connect(self._on_cs_metadata_change)
 
         Method._write_signal.connect(self._on_method_write)
         Method._deregister_signal.connect(self._on_method_deregister)
+
 
     def _on_signaleddataset_on_save(self, sender, old, new):
         from bw2data.backends import ActivityDataset, ExchangeDataset
@@ -209,6 +213,11 @@ class ABSignals(QObject):
         t = time()
         self.meta.methods_changed.emit(old, new)
         log.debug(f"Methods metadata changed signal completed in {time() - t:.2f} seconds")
+
+    def _on_cs_metadata_change(self, sender, old, new):
+        t = time()
+        self.meta.calculation_setups_changed.emit(old, new)
+        log.debug(f"CS metadata changed signal completed in {time() - t:.2f} seconds")
 
     def _on_method_write(self, sender):
         t = time()

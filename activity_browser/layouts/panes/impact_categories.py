@@ -48,6 +48,8 @@ class ImpactCategories(QtWidgets.QWidget):
         self.model.setDataFrame(self.build_df())
         self.model.group(1)
         self.view.setColumnHidden(1, True)
+        self.view.setColumnHidden(2, True)
+        self.view.setColumnHidden(3, True)
 
     def sync(self):
         self.model.setDataFrame(self.build_df())

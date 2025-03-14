@@ -22,6 +22,7 @@ from .calculation_setup.cs_new import CSNew
 from .calculation_setup.cs_delete import CSDelete
 from .calculation_setup.cs_duplicate import CSDuplicate
 from .calculation_setup.cs_rename import CSRename
+from .calculation_setup.cs_add_functional_unit import CSAddFunctionalUnit
 
 from .database.database_import import DatabaseImport
 from .database.database_export import DatabaseExport
