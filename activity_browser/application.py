@@ -65,3 +65,4 @@ application = ABApplication()
 
 if qtpy.PYSIDE6:
     application.setStyle(QStyleFactory().create("fusion"))
+    application.setAttribute(Qt.AA_DontShowIconsInMenus, True)
