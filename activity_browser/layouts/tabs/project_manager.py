@@ -1,18 +1,10 @@
 from qtpy import QtCore, QtWidgets
 
 from activity_browser import actions, signals
-from activity_browser.mod import bw2data as bd
 from activity_browser.layouts.panels import ABTab
 from activity_browser.layouts import panes
 
 from ...ui.style import header
-from ...ui.icons import qicons
-from ...ui.tables import (
-    DatabasesTable,
-    ProjectListWidget,
-    ActivitiesBiosphereTable,
-    ActivitiesBiosphereTree,
-)
 
 
 class ProjectTab(QtWidgets.QWidget):
@@ -51,110 +43,6 @@ class ProjectTab(QtWidgets.QWidget):
         no_databases = len(self.activity_biosphere_tabs.tabs) == 0
 
         self.activity_biosphere_tabs.setVisible(not no_databases)
-
-
-class ProjectsWidget(QtWidgets.QWidget):
-    def __init__(self, parent):
-        super(ProjectsWidget, self).__init__(parent)
-        self.projects_list = ProjectListWidget()
-
-        # Buttons
-        self.new_project_button = actions.ProjectNew.get_QButton()
-        self.copy_project_button = actions.ProjectDuplicate.get_QButton()
-        self.delete_project_button = actions.ProjectDelete.get_QButton()
-        self.remote_import_project_button = actions.ProjectRemoteImport.get_QButton()
-        self.local_import_project_button = actions.ProjectLocalImport.get_QButton()
-
-        self.construct_layout()
-
-    def construct_layout(self):
-        project_list_widget = QtWidgets.QWidget()
-        project_list_layout = QtWidgets.QHBoxLayout()
-        project_list_layout.setAlignment(QtCore.Qt.AlignLeft)
-        project_list_layout.addWidget(header("Project:"))
-        project_list_layout.addWidget(self.projects_list)
-        project_list_widget.setLayout(project_list_layout)
-
-        project_actions_widget = QtWidgets.QWidget()
-        project_actions_layout = QtWidgets.QVBoxLayout()
-        project_create_delete_layout = QtWidgets.QHBoxLayout()
-        project_create_delete_layout.setAlignment(QtCore.Qt.AlignLeft)
-        project_create_delete_layout.addWidget(self.new_project_button)
-        project_create_delete_layout.addWidget(self.copy_project_button)
-        project_create_delete_layout.addWidget(self.delete_project_button)
-        project_actions_layout.addLayout(project_create_delete_layout)
-        project_import_layout = QtWidgets.QHBoxLayout()
-        project_import_layout.setAlignment(QtCore.Qt.AlignLeft)
-        project_import_layout.addWidget(self.remote_import_project_button)
-        project_import_layout.addWidget(self.local_import_project_button)
-        project_actions_layout.addLayout(project_import_layout)
-        project_actions_widget.setLayout(project_actions_layout)
-
-        # Overall Layout
-        layout = QtWidgets.QVBoxLayout()
-        layout.setAlignment(QtCore.Qt.AlignTop)
-        layout.addWidget(project_list_widget)
-        layout.addWidget(project_actions_widget)
-        self.setLayout(layout)
-
-        self.setSizePolicy(
-            QtWidgets.QSizePolicy(
-                QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Maximum
-            )
-        )
-
-
-class DatabaseWidget(QtWidgets.QWidget):
-    def __init__(self, parent):
-        super().__init__(parent)
-        self.table = DatabasesTable()
-        self.table.setToolTip("To select a database, double-click on an entry")
-
-        # Temporary inclusion to explain things before checkbox is back
-        self.label_change_readonly = QtWidgets.QLabel(
-            "To change a database from read-only to editable and back,"
-            + " click on the checkbox in the table."
-        )
-        self.label_change_readonly.setWordWrap(True)
-
-        # Buttons
-        self.new_database_button = actions.DatabaseNew.get_QButton()
-        self.import_database_button = actions.DatabaseImport.get_QButton()
-
-        self.setMinimumHeight(200)
-
-        self._construct_layout()
-
-        # Signals
-        signals.meta.databases_changed.connect(self.update_widget)
-        signals.project.changed.connect(self.update_widget)
-
-    def _construct_layout(self):
-        header_widget = QtWidgets.QWidget()
-        header_layout = QtWidgets.QHBoxLayout()
-        header_layout.setAlignment(QtCore.Qt.AlignLeft)
-        header_layout.addWidget(header("Databases:"))
-        header_layout.addWidget(self.add_default_data_button)
-        header_layout.addWidget(self.new_database_button)
-        header_layout.addWidget(self.import_database_button)
-        header_widget.setLayout(header_layout)
-
-        # Overall Layout
-        layout = QtWidgets.QVBoxLayout()
-        layout.setAlignment(QtCore.Qt.AlignTop)
-        layout.addWidget(header_widget)
-        layout.addWidget(self.label_change_readonly)
-        layout.addWidget(self.table)
-        self.setLayout(layout)
-
-    def update_widget(self):
-        no_databases = self.table.rowCount() == 0
-        self.add_default_data_button.setVisible(no_databases)
-        self.import_database_button.setVisible(not no_databases)
-        self.new_database_button.setVisible(not no_databases)
-
-        self.table.setVisible(not no_databases)
-        self.label_change_readonly.setVisible(not no_databases)
 
 
 class ActivityBiosphereTabs(ABTab):

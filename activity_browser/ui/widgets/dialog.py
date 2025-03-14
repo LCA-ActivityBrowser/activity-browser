@@ -14,7 +14,6 @@ from ...bwutils.ecoinvent_biosphere_versions.ecospold2biosphereimporter import \
     create_default_biosphere3
 from ...info import __ei_versions__
 from ...ui.icons import qicons
-from ...ui.widgets import BiosphereUpdater
 from ...utils import sort_semantic_versions
 from ..style import style_group_box, vertical_line
 from ..threading import ABThread
@@ -599,71 +598,6 @@ class ActivityLinkingResultsDialog(QtWidgets.QDialog):
 
     def open_activity(self):
         return self.activityToOpen
-
-
-class DefaultBiosphereDialog(QtWidgets.QProgressDialog):
-    def __init__(self, version, check_patches: bool = True, parent=None):
-        super().__init__(parent=parent)
-        self._check_patches = check_patches
-        self.setWindowTitle("Biosphere and impact categories")
-        self.setRange(0, 3)
-        self.setModal(Qt.ApplicationModal)
-
-        self.version = version
-
-        self.biosphere_thread = DefaultBiosphereThread(self.version, self)
-        self.biosphere_thread.update.connect(self.update_progress)
-        self.biosphere_thread.finished.connect(self.thread_finished)
-        self.biosphere_thread.start()
-
-    @Slot(int, str, name="updateThread")
-    def update_progress(self, current: int, text: str) -> None:
-        self.setValue(current)
-        self.setLabelText(text)
-
-    def thread_finished(self, result: int = None) -> None:
-        log.info(f"DefaultBiosphereThread thread finished")
-        # self.biosphere_thread.exit(result or 0)
-        self.setValue(3)
-        if self._check_patches:
-            self.check_patches()
-        self.done(result or 0)
-        log.info(f"DefaultBiosphereDialog dialog done")
-
-    def check_patches(self):
-        """Apply any relevant biosphere patches if available."""
-        # reduce biosphere update list up to the selected version
-        sorted_versions = sort_semantic_versions(
-            __ei_versions__, highest_to_lowest=False
-        )
-        ei_versions = sorted_versions[: sorted_versions.index(self.version) + 1]
-
-        # show updating dialog
-        dialog = BiosphereUpdater(ei_versions, self)
-        dialog.show()
-
-
-class DefaultBiosphereThread(ABThread):
-    update = Signal(int, str)
-
-    def __init__(self, version, parent=None):
-        super().__init__(parent=parent)
-        self.version = version
-
-    def run_safely(self):
-        log.info(f"DefaultBiosphereThread start")
-        project = f"<b>{bd.projects.current}</b>"
-        if "biosphere3" not in bd.databases:
-            self.update.emit(0, "Creating default biosphere for {}".format(project))
-            create_default_biosphere3(self.version)
-            project_settings.add_db("biosphere3")
-        if not len(bd.methods):
-            self.update.emit(1, "Creating default LCIA methods for {}".format(project))
-            bi.create_default_lcia_methods()
-        if not len(bi.migrations):
-            self.update.emit(2, "Creating core data migrations for {}".format(project))
-            bi.create_core_migrations()
-        log.info(f"DefaultBiosphereThread exiting")
 
 
 class FilterManagerDialog(QtWidgets.QDialog):

@@ -3,13 +3,12 @@ from logging import getLogger
 from qtpy import QtWidgets
 from qtpy.QtCore import Qt, Slot
 
-from activity_browser import signals, actions
 from bw2data import calculation_setups, get_node, labels
 
-from ..icons import qicons
+from activity_browser import signals, actions
+from activity_browser.ui.icons import qicons
+
 from .delegates import FloatDelegate
-from .impact_categories import MethodsTable, MethodsTree
-from .inventory import ActivitiesBiosphereTable, ActivitiesBiosphereTree
 from .models import CSMethodsModel, CSActivityModel, ScenarioImportModel
 from .views import ABDataFrameView
 

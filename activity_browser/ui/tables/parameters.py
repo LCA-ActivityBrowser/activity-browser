@@ -1,17 +1,15 @@
-# -*- coding: utf-8 -*-
 from asteval import Interpreter
 from qtpy.QtCore import Slot
 from qtpy.QtGui import QContextMenuEvent, QDragMoveEvent, QDropEvent
-from qtpy.QtWidgets import QAction, QMenu, QMessageBox
+from qtpy.QtWidgets import QAction, QMenu
 
 import bw2data as bd
 import bw_functional as bf
 
-from activity_browser import actions, project_settings, signals
+from activity_browser import actions, signals
 
 from ..icons import qicons
 from .delegates import *
-from .inventory import ActivitiesBiosphereTable, ActivitiesBiosphereTree
 from .models import (
     BaseParameterModel,
     ProjectParameterModel,

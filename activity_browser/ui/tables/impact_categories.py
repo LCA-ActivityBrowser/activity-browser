@@ -4,13 +4,10 @@ from typing import Iterable
 from qtpy import QtWidgets
 from qtpy.QtCore import QModelIndex, Slot, Qt
 
-from activity_browser import actions
-from bw2data import methods
+from activity_browser import actions, signals
 
-from ...signals import signals
 from ..icons import qicons
 from .delegates import FloatDelegate, UncertaintyDelegate
-from .inventory import ActivitiesBiosphereTable
 from .models import (
     MethodCharacterizationFactorsModel,
     MethodsListModel,
