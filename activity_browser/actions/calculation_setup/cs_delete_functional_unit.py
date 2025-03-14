@@ -7,8 +7,8 @@ from activity_browser.actions.base import ABAction, exception_dialogs
 log = getLogger(__name__)
 
 
-class CSDeleteImpactCategory(ABAction):
-    text = "Delete Impact Category"
+class CSDeleteFunctionalUnit(ABAction):
+    text = "Delete Functional Unit"
 
     @staticmethod
     @exception_dialogs
@@ -16,7 +16,7 @@ class CSDeleteImpactCategory(ABAction):
         calculation_setup = bd.calculation_setups[cs_name]
 
         for index in sorted(set(indices), reverse=True):
-            del calculation_setup['ia'][index]
+            del calculation_setup['inv'][index]
 
         bd.calculation_setups[cs_name] = calculation_setup
         bd.calculation_setups.serialize()

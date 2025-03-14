@@ -32,7 +32,7 @@ class ImpactCategorySection(QtWidgets.QWidget):
 
     def build_df(self):
         data = [bd.methods.get(method_name) for method_name in self.calculation_setup.get("ia", [])]
-        df = pd.DataFrame(data)
+        df = pd.DataFrame(data, columns=["name", "unit", "num_cfs"])
 
         df["name"] = self.calculation_setup.get("ia", [])
 
@@ -64,6 +64,7 @@ class ImpactCategoryView(widgets.ABTreeView):
         super().__init__(parent)
         self.setAcceptDrops(True)
         self.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
+        self.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
 
     def dragMoveEvent(self, event) -> None:
         pass

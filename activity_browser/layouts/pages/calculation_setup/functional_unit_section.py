@@ -50,10 +50,24 @@ class FunctionalUnitSection(QtWidgets.QWidget):
 
 class FunctionalUnitView(widgets.ABTreeView):
 
+    class ContextMenu(QtWidgets.QMenu):
+        def __init__(self, pos, view: "FunctionalUnitView"):
+            super().__init__(view)
+            cs_name = view.parent().calculation_setup_name
+
+            if not view.selectedIndexes():
+                return
+
+            indices = [index.internalPointer().key() for index in view.selectedIndexes()]
+
+            self.delete_fu_action = actions.CSDeleteFunctionalUnit.get_QAction(cs_name, indices)
+            self.addAction(self.delete_fu_action)
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setAcceptDrops(True)
         self.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
+        self.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
 
     def dragMoveEvent(self, event) -> None:
         pass
