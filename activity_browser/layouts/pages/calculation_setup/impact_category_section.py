@@ -60,8 +60,9 @@ class ImpactCategoryView(widgets.ABTreeView):
 
     def dropEvent(self, event) -> None:
         event.accept()
-        method_names: list = event.mimeData().retrievePickleData("application/bw-methodnamelist")
-        self.model.include_methods(method_names)
+        cs_name = self.parent().calculation_setup_name
+        method_names = event.mimeData().retrievePickleData("application/bw-methodnamelist")
+        actions.CSAddImpactCategory.run(cs_name, method_names)
 
 
 class ImpactCategoryItem(widgets.ABDataItem):
