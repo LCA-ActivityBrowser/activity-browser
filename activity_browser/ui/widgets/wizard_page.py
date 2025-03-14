@@ -61,9 +61,14 @@ class ABThreadedWizardPage(ABWizardPage):
         self.setLayout(layout)
 
     def statusUpdate(self, progress: int, message: str):
-        self.progress_bar.setRange(0, 100)
-        self.progress_bar.setValue(progress)
         self.message.setText(message)
+
+        if progress == -1:
+            self.progress_bar.setRange(0, 0)
+        else:
+            self.progress_bar.setRange(0, 100)
+            self.progress_bar.setValue(progress)
+
 
     def isComplete(self):
         """Check if the download thread has finished"""

@@ -2,6 +2,7 @@ import threading
 import logging
 
 from activity_browser.mod import bw2data as bd
+from activity_browser.mod.tqdm.std import qt_tqdm
 
 from qtpy.QtCore import QThread, SignalInstance, Signal
 
@@ -29,6 +30,8 @@ class ABThread(QThread):
 
     def run(self):
         """Reimplemented from QThread to close any database connections before finishing."""
+        qt_tqdm.updated.connect(self._emit_status)
+
         # call run_safely and finish by closing the connections
         with SafeBWConnection(), InfoToSlot(self.status.emit):
             try:
@@ -37,6 +40,15 @@ class ABThread(QThread):
                 # send exception signal
                 self.exception.emit(e)
                 raise e
+
+        qt_tqdm.updated.disconnect(self._emit_status)
+        self.status.emit(100, "Complete")
+
+    def _emit_status(self, progress: int, message: str):
+        if progress == 100:
+            self.status.emit(-1, "Working...")
+        else:
+            self.status.emit(progress, message)
 
     def run_safely(self, *args, **kwargs):
         raise NotImplementedError

@@ -133,6 +133,7 @@ def count_database_records(name: str) -> int:
     the __len__ method.
     """
     db = bd.Database(name)
+    return bd.databases[name].get("count", 0)
     try:
         return len(db)
     except TypeError as e:
