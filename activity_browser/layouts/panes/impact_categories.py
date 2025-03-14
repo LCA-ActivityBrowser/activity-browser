@@ -79,12 +79,12 @@ class ImpactCategoriesView(widgets.ABTreeView):
     @property
     def selected_impact_categories(self):
         indices = [i for i in self.selectedIndexes() if i.column() == 0]
-        impact_categories = set()
+        impact_categories = []
 
         for index in indices:
-            impact_categories.add(self.model().get_impact_categories(index))
+            impact_categories.extend(self.model().get_impact_categories(index))
 
-        return list(set)
+        return list(set(impact_categories))
 
     def mouseDoubleClickEvent(self, event) -> None:
         if self.selected_impact_categories:
