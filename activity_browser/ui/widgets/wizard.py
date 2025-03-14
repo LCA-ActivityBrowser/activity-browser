@@ -8,7 +8,7 @@ if TYPE_CHECKING:
 class ABWizard(QtWidgets.QWizard):
     pages = []
 
-    def __init__(self, *args, title=None, **kwargs):
+    def __init__(self, *args, title: str = None, context: dict = None, **kwargs):
         super().__init__(*args, **kwargs)
 
         self.setWizardStyle(QtWidgets.QWizard.WizardStyle.ModernStyle)
@@ -19,7 +19,7 @@ class ABWizard(QtWidgets.QWizard):
         for page in self.pages:
             self.addPage(page(self))
 
-        self.context = {}
+        self.context = context or {}
 
     def page(self, page_id: int) -> "ABWizardPage":
         return super().page(page_id)

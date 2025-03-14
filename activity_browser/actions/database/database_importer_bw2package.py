@@ -31,70 +31,59 @@ class DatabaseImporterBW2Package(ABAction):
             return
 
         # a bit of pathname magic to get a suggested database name
-        filename = os.path.basename(path).split('.bw2package')[0]
+        context = {
+            "path": path,
+            "database_name": os.path.basename(path).split('.bw2package')[0]
+        }
 
         # show the import setup dialog
-        import_dialog = ImportSetupDialog(filename, application.main_window)
-        if import_dialog.exec_() == QtWidgets.QDialog.Rejected:
-            return
-
-        # initialize the import thread, setting needed attributes
-        import_thread = ImportPackageThread(application)
-        import_thread.path = path
-        import_thread.database_name = import_dialog.database_name
-
-        # setup a progress dialog
-        progress_dialog = widgets.ABProgressDialog.get_connected_dialog("Importing Database")
-        import_thread.finished.connect(progress_dialog.deleteLater)
-        import_thread.start()
+        import_dialog = ImportSetup(parent=application.main_window, title="Import Database", context=context)
+        import_dialog.exec_()
 
 
-class ImportSetupDialog(QtWidgets.QDialog):
-    database_name = None
+class ImportSetup(widgets.ABWizard):
+    class DatabaseName(widgets.ABWizardPage):
+        title = "Database Name"
+        subtitle = "Enter the name of the database you wish to create"
 
-    def __init__(self, database_name="", parent=None):
-        super().__init__(parent)
-        self.database_name = database_name
+        def __init__(self, parent=None):
+            super().__init__(parent)
+            self.db_name_edit = widgets.DatabaseNameEdit(
+                label="Set database name:",
+                database_preset="",
+            )
+            self.db_name_edit.textChanged.connect(self.completeChanged)
 
-        self.setWindowTitle("Import database from Brightway2 Package")
+            layout = QtWidgets.QVBoxLayout()
+            layout.addWidget(self.db_name_edit)
+            self.setLayout(layout)
 
-        # Create db name textbox
-        self.db_name_comp = composites.DatabaseNameComposite(
-            label="Set database name:",
-            database_preset=database_name,
-        )
-        self.db_name_comp.textChanged.connect(self.validate)
+        def isComplete(self):
+            return bool(self.db_name_edit.text())
 
-        # Create buttons
-        self.buttons_comp = composites.HorizontalButtonsComposite("Cancel", "*OK")
-        self.buttons_comp["Cancel"].clicked.connect(self.reject)
-        self.buttons_comp["OK"].clicked.connect(self.accept)
+        def initializePage(self, context: dict):
+            self.db_name_edit.setText(context["database_name"])
 
-        # Create layout and add widgets
-        layout = QtWidgets.QVBoxLayout()
-        layout.addWidget(self.db_name_comp)
-        layout.addWidget(self.buttons_comp)
+        def finalize(self, context: dict):
+            context["database_name"] = self.db_name_edit.text()
 
-        # Set the dialog layout
-        self.setLayout(layout)
-        self.validate()
+        def nextPage(self):
+            return ImportSetup.InstallPage
 
-    def validate(self):
-        """Validate the user input and enable the OK button if all is clear"""
-        valid = bool(self.db_name_comp.text)  # the textbox has been filled in
+    class InstallPage(widgets.ABThreadedWizardPage):
+        """Wizard page to install the selected bw2package"""
+        title = "Importing Database"
+        subtitle = "Importing database from .bw2package file"
 
-        self.buttons_comp["OK"].setEnabled(valid)
+        class Thread(threading.ABThread):
+            """Thread to handle the install process"""
+            def run_safely(self, path: str, db_name: str):
+                """Download the ecoinvent release"""
+                ABPackage.import_file(path, rename=db_name)
 
-    def accept(self):
-        """Correctly set the dialog's attributes for further use in the action"""
-        self.database_name = self.db_name_comp.text
-        super().accept()
+        def initializePage(self, context: dict):
+            """Start the download thread"""
+            self.thread.start(context["path"], context["database_name"])
 
-
-class ImportPackageThread(threading.ABThread):
-    path: str
-    database_name: str
-
-    def run_safely(self):
-        ABPackage.import_file(self.path, rename=self.database_name)
+    pages = [DatabaseName, InstallPage]
 

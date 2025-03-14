@@ -138,6 +138,9 @@ def count_database_records(name: str) -> int:
     except TypeError as e:
         log.error("{}. Counting manually".format(e))
         return sum(1 for _ in db)
+    except pw.OperationalError as e:
+        log.warning("Database locked. Returning cache")
+        return bd.databases[name].get("count", 0)
 
 
 # Activity
