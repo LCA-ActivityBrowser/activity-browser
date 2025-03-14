@@ -66,9 +66,7 @@ class ImpactCategoryView(widgets.ABTreeView):
 
 
 class ImpactCategoryItem(widgets.ABDataItem):
-    def decorationData(self, col: int, key: str):
-        if key == "product":
-            return icons.qicons.product
+    pass
 
 
 class ImpactCategoryModel(widgets.ABAbstractItemModel):
