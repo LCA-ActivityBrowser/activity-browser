@@ -7,6 +7,7 @@ from activity_browser import signals
 from .scenario_section import ScenarioSection
 from .functional_unit_section import FunctionalUnitSection
 from .impact_category_section import ImpactCategorySection
+from .toolbar import Toolbar
 
 
 class CalculationSetupPage(QtWidgets.QWidget):
@@ -16,6 +17,7 @@ class CalculationSetupPage(QtWidgets.QWidget):
 
         self.calculation_setup_name = calculation_setup_name
 
+        self.toolbar = Toolbar(self)
         self.functional_unit_section = FunctionalUnitSection(calculation_setup_name, self)
         self.impact_category_section = ImpactCategorySection(calculation_setup_name, self)
         self.scenario_section = ScenarioSection(self)
@@ -28,7 +30,9 @@ class CalculationSetupPage(QtWidgets.QWidget):
         Builds the layout of the widget.
         """
         layout = QtWidgets.QVBoxLayout()
-        layout.setContentsMargins(0, 10, 0, 1)
+        layout.setContentsMargins(0, 0, 0, 0)
+
+        layout.addWidget(self.toolbar)
 
         # Add output label and view to the layout
         layout.addWidget(QtWidgets.QLabel("<b>⠀Functional Units:</b>"))
