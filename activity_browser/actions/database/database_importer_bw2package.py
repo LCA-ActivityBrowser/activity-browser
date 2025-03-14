@@ -5,7 +5,7 @@ from qtpy import QtWidgets
 
 from activity_browser import application
 from activity_browser.actions.base import ABAction, exception_dialogs
-from activity_browser.ui import icons, widgets, threading, composites
+from activity_browser.ui import icons, widgets, threading
 from activity_browser.bwutils.importers import ABPackage
 
 log = getLogger(__name__)
