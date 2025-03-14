@@ -7,7 +7,7 @@ import bw2data as bd
 
 from activity_browser import signals
 from activity_browser.bwutils import commontasks as bc
-from activity_browser.layouts.pages import ActivityDetails
+from activity_browser.layouts.pages import ActivityDetailsPage
 
 from ..panels.panel import ABTab
 
@@ -34,7 +34,7 @@ class ActivitiesTab(ABTab):
         """Opens new tab or focuses on already open one."""
         if key not in self.tabs:
             act = bd.get_activity(key)
-            new_tab = ActivityDetails(key, self)
+            new_tab = ActivityDetailsPage(key, self)
 
             # If this is a new or duplicated activity then we want to exit it
             # ditto check the Technosphere and Biosphere tables

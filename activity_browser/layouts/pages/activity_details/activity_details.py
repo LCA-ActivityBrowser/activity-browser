@@ -18,7 +18,7 @@ from .consumers_tab import ConsumersTab
 log = getLogger(__name__)
 
 
-class ActivityDetails(QtWidgets.QWidget):
+class ActivityDetailsPage(QtWidgets.QWidget):
     """
     A widget that displays detailed information about a specific activity.
 
@@ -37,7 +37,7 @@ class ActivityDetails(QtWidgets.QWidget):
 
     def __init__(self, activity: tuple | int | bd.Node, parent=None):
         """
-        Initializes the ActivityDetails widget.
+        Initializes the ActivityDetailsPage widget.
 
         Args:
             activity (tuple | int | bd.Node): The activity to display details for.

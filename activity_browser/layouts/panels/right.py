@@ -1,13 +1,14 @@
 from pathlib import Path
 from logging import getLogger
 
+import bw2data as bd
+
 from qtpy.QtWidgets import QVBoxLayout
 
-from activity_browser import signals
-from activity_browser.mod import bw2data as bd
+from activity_browser import signals, bwutils
+from activity_browser.layouts import pages
 
-from ...bwutils.commontasks import get_activity_name
-from ...ui.web import GraphNavigatorWidget, RestrictedWebViewWidget
+from ...ui.web import GraphNavigatorWidget
 from ..tabs import (ActivitiesTab, CharacterizationFactorsTab, LCAResultsTab,
                     LCASetupTab, ParametersTab)
 from .panel import ABTab
@@ -23,7 +24,7 @@ class RightPanel(ABTab):
         package_dir = Path(__file__).resolve().parents[2]
         html_file = str(package_dir.joinpath("static", "startscreen", "welcome.html"))
         self.tabs = {
-            "Welcome": RestrictedWebViewWidget(html_file=html_file),
+            "Welcome": pages.WelcomePage(self),
             "Characterization Factors": CharacterizationFactorsTab(self),
             "Activity Details": ActivitiesTab(self),
             "LCA Setup": LCASetupTab(self),
@@ -83,7 +84,7 @@ class GraphExplorerTab(ABTab):
             log.info("adding graph tab")
             new_tab = GraphNavigatorWidget(self, key=key)
             self.tabs[key] = new_tab
-            self.addTab(new_tab, get_activity_name(bd.get_activity(key), str_length=30))
+            self.addTab(new_tab, bwutils.commontasks.get_activity_name(bd.get_activity(key), str_length=30))
         else:
             tab = self.tabs[key]
             tab.new_graph(key)
