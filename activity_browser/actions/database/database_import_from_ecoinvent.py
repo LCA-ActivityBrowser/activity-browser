@@ -39,11 +39,11 @@ class EiWizard(widgets.ABWizard):
 
     class RemoteOrLocalPage(widgets.ABWizardPage):
         """Wizard page to choose between remote or local ecoinvent release"""
+        title = "Import from ecoinvent"
+        subtitle = "Choose whether to import from a remote or local ecoinvent release."
 
         def __init__(self, parent=None):
             super().__init__(parent)
-            self.setTitle("Import from ecoinvent")
-            self.setSubTitle("Choose whether to import from a remote or local ecoinvent release.")
 
             self.remote_button = QtWidgets.QRadioButton("Remote")
             self.local_button = QtWidgets.QRadioButton("Local")
@@ -63,11 +63,11 @@ class EiWizard(widgets.ABWizard):
 
     class LocalSelectPage(widgets.ABWizardPage):
         """Wizard page to select a local ecoinvent .7z file"""
+        title = "Import from ecoinvent"
+        subtitle = "Select local ecoinvent .7z."
 
         def __init__(self, parent=None):
             super().__init__(parent)
-            self.setTitle("Import from ecoinvent")
-            self.setSubTitle("Select local ecoinvent .7z.")
 
             self.file_selector = widgets.ABFileSelector(filter="*.7z")
             self.file_selector.textChanged.connect(lambda: self.completeChanged.emit())
@@ -90,12 +90,11 @@ class EiWizard(widgets.ABWizard):
 
     class LoginPage(widgets.ABWizardPage):
         """Wizard page to login with ecoinvent credentials"""
+        title = "Login"
+        subtitle = "Login with your ecoinvent credentials to authorize the download"
 
         def __init__(self, parent=None):
             super().__init__(parent)
-
-            self.setTitle("Login")
-            self.setSubTitle("Login with your ecoinvent credentials to authorize the download")
 
             self.release = None
 
@@ -151,12 +150,11 @@ class EiWizard(widgets.ABWizard):
 
     class EcoinventVersionPage(widgets.ABWizardPage):
         """Wizard page to choose ecoinvent version and system model"""
+        title = "Choose version"
+        subtitle = "Choose ecoinvent version and system model"
 
         def __init__(self, parent=None):
             super().__init__(parent)
-
-            self.setTitle("Choose version")
-            self.setSubTitle("Choose ecoinvent version and system model")
 
             self.versions = QtWidgets.QComboBox()
             self.models = QtWidgets.QComboBox()
@@ -189,16 +187,17 @@ class EiWizard(widgets.ABWizard):
             self.models.addItems(self.release.list_system_models(version))
             QtWidgets.QApplication.restoreOverrideCursor()
 
-    class EcoinventDownloadPage(widgets.ABWizardPage):
+    class EcoinventDownloadPage(widgets.ABThreadedWizardPage):
         """Wizard page to download the selected ecoinvent release"""
+        title = "Download ecoinvent"
+        subtitle = "Downloading the selected ecoinvent release"
 
-        class DownloadThread(threading.ABThread):
+        class Thread(threading.ABThread):
             """Thread to handle the download process"""
             download_ready: SignalInstance = Signal(str)
 
             def run_safely(self, release: ei.release, version: str, model: str):
                 """Download the ecoinvent release"""
-                print("starting download")
                 path = release.get_release(
                     version=version,
                     system_model=model,
@@ -213,40 +212,20 @@ class EiWizard(widgets.ABWizard):
 
         def __init__(self, parent=None):
             super().__init__(parent)
-
-            self.setTitle("Download ecoinvent")
-            self.setSubTitle("Downloading the selected ecoinvent release")
-
             self.ei_filepath = None
-
-            self.progress_bar = QtWidgets.QProgressBar(self)
-            self.progress_bar.setRange(0, 0)
-            self.download_thread = self.DownloadThread(application)
-
-            layout = QtWidgets.QVBoxLayout()
-            layout.addWidget(self.progress_bar)
-
-            self.setLayout(layout)
 
         def initializePage(self, context: dict):
             """Start the download thread"""
-            self.download_thread.start(context["release"], context["version"], context["model"])
-            self.download_thread.download_ready.connect(self.download_ready)
+            self.thread.start(context["release"], context["version"], context["model"])
+            self.thread.download_ready.connect(self.download_ready)
 
         def download_ready(self, filepath: str):
             """Handle the completion of the download"""
             self.ei_filepath = filepath
-            self.progress_bar.setRange(0, 1)
-            self.progress_bar.setValue(1)
-            self.completeChanged.emit()
 
         def finalize(self, context: dict):
             """Store the downloaded file path in the context"""
             context["ei_filepath"] = self.ei_filepath
-
-        def isComplete(self):
-            """Check if the download thread has finished"""
-            return self.download_thread.isFinished()
 
         def nextPage(self):
             """Proceed to the BiosphereSetupPage"""
@@ -254,12 +233,11 @@ class EiWizard(widgets.ABWizard):
 
     class BiosphereSetupPage(widgets.ABWizardPage):
         """Wizard page to choose biosphere setup options"""
+        title = "Biosphere setup"
+        subtitle = "Choose whether to import the biosphere database or connect to an existing one"
 
         def __init__(self, parent=None):
             super().__init__(parent)
-
-            self.setTitle("Biosphere setup")
-            self.setSubTitle("Choose whether to import the biosphere database or connect to an existing one")
 
             self.biosphere_choice = widgets.ABRadioButtonCollapser(self)
             self.biosphere_choice.buttonClicked.connect(lambda: self.completeChanged.emit())
@@ -273,12 +251,11 @@ class EiWizard(widgets.ABWizard):
             self.biosphere_choice.addOption(
                 name="import",
                 label="Import included biosphere",
-                w=QtWidgets.QLineEdit("biosphere3")
+                w=widgets.DatabaseNameEdit(database_preset="biosphere")
             )
 
             layout = QtWidgets.QVBoxLayout()
             layout.addWidget(self.biosphere_choice)
-
             self.setLayout(layout)
 
         def isComplete(self):
@@ -299,45 +276,21 @@ class EiWizard(widgets.ABWizard):
             else:
                 return EiWizard.BiosphereInstallPage
 
-    class BiosphereInstallPage(widgets.ABWizardPage):
+    class BiosphereInstallPage(widgets.ABThreadedWizardPage):
         """Wizard page to install the biosphere database"""
+        title = "Installing biosphere database"
+        subtitle = "Installing bundled biosphere database into the project"
 
-        class InstallThread(threading.ABThread):
+        class Thread(threading.ABThread):
             """Thread to handle the biosphere installation process"""
             def run_safely(self, ei_filepath: str, biosphere_name: str):
                 """Install the biosphere database"""
                 importer = Ecoinvent7zImporter(ei_filepath)
                 importer.install_biosphere(biosphere_name)
 
-        def __init__(self, parent=None):
-            super().__init__(parent)
-
-            self.setTitle("Installing biosphere database")
-            self.setSubTitle("Installing bundled biosphere database into the project")
-
-            self.progress_bar = QtWidgets.QProgressBar(self)
-            self.progress_bar.setRange(0, 0)
-            self.install_thread = self.InstallThread(application)
-
-            layout = QtWidgets.QVBoxLayout()
-            layout.addWidget(self.progress_bar)
-
-            self.setLayout(layout)
-
         def initializePage(self, context: dict):
             """Start the biosphere installation thread"""
-            self.install_thread.start(context["ei_filepath"], context["biosphere_name"])
-            self.install_thread.finished.connect(self.ready)
-
-        def ready(self):
-            """Handle the completion of the biosphere installation"""
-            self.progress_bar.setRange(0, 1)
-            self.progress_bar.setValue(1)
-            self.completeChanged.emit()
-
-        def isComplete(self):
-            """Check if the installation thread has finished"""
-            return self.install_thread.isFinished()
+            self.thread.start(context["ei_filepath"], context["biosphere_name"])
 
         def nextPage(self):
             """Proceed to the MethodsSetupPage"""
@@ -345,12 +298,11 @@ class EiWizard(widgets.ABWizard):
 
     class MethodsSetupPage(widgets.ABWizardPage):
         """Wizard page to choose methods setup options"""
+        title = "Methods setup"
+        subtitle = "Choose whether to import methods from ecoinvent or from file"
 
         def __init__(self, parent=None):
             super().__init__(parent)
-
-            self.setTitle("Methods setup")
-            self.setSubTitle("Choose whether to import methods from ecoinvent or from file")
 
             self.methods_choice = widgets.ABRadioButtonCollapser(self)
             self.methods_choice.buttonClicked.connect(lambda: self.completeChanged.emit())
@@ -397,53 +349,33 @@ class EiWizard(widgets.ABWizard):
             else:
                 return EiWizard.EcoinventSetupPage
 
-    class MethodsInstallPage(widgets.ABWizardPage):
+    class MethodsInstallPage(widgets.ABThreadedWizardPage):
         """Wizard page to install the selected methods"""
+        title = "Installing methods"
+        subtitle = "Installing selected methods and linking to the biosphere"
 
-        class InstallThread(threading.ABThread):
+        class Thread(threading.ABThread):
             """Thread to handle the methods installation process"""
             def run_safely(self, methods_filepath: str, biosphere_name: str):
                 """Install the methods and link to the biosphere"""
                 importer = EcoinventLCIAImporter.setup_with_ei_excel(methods_filepath)
                 importer.set_biosphere(biosphere_name)
                 importer.apply_strategies()
+
                 signals.method.blockSignals(True)
                 signals.meta.blockSignals(True)
+
                 old = bd.methods.deserialize()
                 importer.write_methods(overwrite=True)
+
                 signals.method.blockSignals(False)
                 signals.meta.blockSignals(False)
+
                 signals.meta.methods_changed.emit(deepcopy(bd.methods.data), old)
-
-        def __init__(self, parent=None):
-            super().__init__(parent)
-
-            self.setTitle("Methods import")
-            self.setSubTitle("Importing methods and linking to biosphere")
-
-            self.progress_bar = QtWidgets.QProgressBar(self)
-            self.progress_bar.setRange(0, 0)
-            self.install_thread = self.InstallThread(application)
-
-            layout = QtWidgets.QVBoxLayout()
-            layout.addWidget(self.progress_bar)
-
-            self.setLayout(layout)
 
         def initializePage(self, context: dict):
             """Start the methods installation thread"""
-            self.install_thread.start(context["methods_filepath"], context["biosphere_name"])
-            self.install_thread.finished.connect(self.ready)
-
-        def ready(self):
-            """Handle the completion of the methods installation"""
-            self.progress_bar.setRange(0, 1)
-            self.progress_bar.setValue(1)
-            self.completeChanged.emit()
-
-        def isComplete(self):
-            """Check if the installation thread has finished"""
-            return self.install_thread.isFinished()
+            self.thread.start(context["methods_filepath"], context["biosphere_name"])
 
         def nextPage(self):
             """Proceed to the EcoinventSetupPage"""
@@ -451,14 +383,13 @@ class EiWizard(widgets.ABWizard):
 
     class EcoinventSetupPage(widgets.ABWizardPage):
         """Wizard page to set up the ecoinvent database"""
+        title = "Ecoinvent setup"
+        subtitle = "Choose name for ecoinvent database"
 
         def __init__(self, parent=None):
             super().__init__(parent)
-            self.setTitle("ecoinvent setup")
-            self.setSubTitle("Choose name for ecoinvent database")
-
-            self.database_name = QtWidgets.QLineEdit()
-            self.database_name.textChanged.connect(lambda: self.completeChanged.emit())
+            self.database_name = widgets.DatabaseNameEdit(database_preset="ecoinvent")
+            self.database_name.textChanged.connect(self.completeChanged)
 
             layout = QtWidgets.QVBoxLayout()
             layout.addWidget(self.database_name)
@@ -476,50 +407,25 @@ class EiWizard(widgets.ABWizard):
             """Proceed to the EcoinventInstallPage"""
             return EiWizard.EcoinventInstallPage
 
-    class EcoinventInstallPage(widgets.ABWizardPage):
+    class EcoinventInstallPage(widgets.ABThreadedWizardPage):
         """Wizard page to install the ecoinvent database"""
+        title = "Installing ecoinvent"
+        subtitle = "Installing ecoinvent database into the project"
 
-        class InstallThread(threading.ABThread):
+        class Thread(threading.ABThread):
             """Thread to handle the ecoinvent installation process"""
             def run_safely(self, ei_filepath: str, database_name: str, biosphere_name: str):
                 """Install the ecoinvent database"""
                 importer = Ecoinvent7zImporter(ei_filepath)
                 importer.install_ecoinvent(database_name, biosphere_name)
 
-        def __init__(self, parent=None):
-            super().__init__(parent)
-
-            self.setTitle("Ecoinvent installation")
-            self.setSubTitle("Installing ecoinvent database")
-            self.setFinalPage(True)
-
-            self.progress_bar = QtWidgets.QProgressBar(self)
-            self.progress_bar.setRange(0, 0)
-            self.install_thread = self.InstallThread(application)
-
-            layout = QtWidgets.QVBoxLayout()
-            layout.addWidget(self.progress_bar)
-
-            self.setLayout(layout)
-
         def initializePage(self, context: dict):
             """Start the ecoinvent installation thread"""
-            self.install_thread.start(
+            self.thread.start(
                 context["ei_filepath"],
                 context["database_name"],
                 context["biosphere_name"]
             )
-            self.install_thread.finished.connect(self.ready)
-
-        def ready(self):
-            """Handle the completion of the ecoinvent installation"""
-            self.progress_bar.setRange(0, 1)
-            self.progress_bar.setValue(1)
-            self.completeChanged.emit()
-
-        def isComplete(self):
-            """Check if the installation thread has finished"""
-            return self.install_thread.isFinished()
 
     pages = [
         RemoteOrLocalPage, LocalSelectPage, LoginPage, EcoinventVersionPage, EcoinventDownloadPage, BiosphereSetupPage,
