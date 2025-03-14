@@ -131,6 +131,14 @@ class ABPackage(BW2Package):
     This implementation is done to raise exceptions and show errors on imports
     much faster.
     """
+    APPROVED = {
+        "bw2calc",
+        "bw2data",
+        "bw2io",
+        "bw2regional",
+        "bw2temporalis",
+        "bw_functional",
+    }
 
     @classmethod
     def unrestricted_export(cls, obj, path: Path) -> Path:
