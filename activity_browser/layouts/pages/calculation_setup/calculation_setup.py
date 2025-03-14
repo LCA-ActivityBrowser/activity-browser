@@ -17,7 +17,7 @@ class CalculationSetupPage(QtWidgets.QWidget):
 
         self.calculation_setup_name = calculation_setup_name
 
-        self.toolbar = Toolbar(self)
+        self.toolbar = Toolbar(calculation_setup_name, self)
         self.functional_unit_section = FunctionalUnitSection(calculation_setup_name, self)
         self.impact_category_section = ImpactCategorySection(calculation_setup_name, self)
         self.scenario_section = ScenarioSection(self)
