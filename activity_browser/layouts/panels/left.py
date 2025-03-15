@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from .panel import ABTab
 from ..panes.impact_categories import ImpactCategories
+from ..panes.calculation_setups import CalculationSetupsPane
 
 
 class LeftPanel(ABTab):
@@ -14,6 +15,7 @@ class LeftPanel(ABTab):
         self.tabs = {
             "Databases": ProjectTab(self),
             "Impact Categories": ImpactCategories(self),
+            "Calculation Setups": CalculationSetupsPane(self),
             "History": HistoryTab(self),
         }
         for tab_name, tab in self.tabs.items():
