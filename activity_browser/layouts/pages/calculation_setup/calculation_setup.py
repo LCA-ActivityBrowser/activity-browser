@@ -21,6 +21,7 @@ class CalculationSetupPage(QtWidgets.QWidget):
         self.functional_unit_section = FunctionalUnitSection(cs_name, self)
         self.impact_category_section = ImpactCategorySection(cs_name, self)
         self.scenario_section = ScenarioSection(self)
+        self.scenario_section.hide()
 
         # Build the layout of the widget
         self.build_layout()
@@ -59,6 +60,17 @@ class CalculationSetupPage(QtWidgets.QWidget):
         signals.project.changed.connect(self.sync)
         signals.meta.calculation_setups_changed.connect(self.sync)
 
+        self.type_dropdown.currentTextChanged.connect(self.type_switch)
+
     def sync(self) -> None:
         self.functional_unit_section.sync()
         self.impact_category_section.sync()
+
+    def type_switch(self, calculation_type: str):
+        if calculation_type == "Standard":
+            self.scenario_section.hide()
+        elif calculation_type == "Scenario":
+            self.scenario_section.show()
+        else:
+            raise ValueError(f"Unknown calculation type: {calculation_type}")
+
