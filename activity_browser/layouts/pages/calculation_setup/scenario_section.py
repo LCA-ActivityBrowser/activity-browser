@@ -27,7 +27,7 @@ class ScenarioSection(QtWidgets.QWidget):
         self._scenario_dataframe = pd.DataFrame()
 
         # set up the control buttons
-        self.table_btn = QtWidgets.QPushButton("Add scenarios", self)
+        self.table_btn = QtWidgets.QPushButton("Add scenarios...", self)
 
         self.save_scenario = QtWidgets.QPushButton("Save to file...", self)
         self.save_scenario.setDisabled(True)
@@ -62,10 +62,12 @@ class ScenarioSection(QtWidgets.QWidget):
         tool_row = QtWidgets.QHBoxLayout()
         tool_row.setContentsMargins(0, 0, 0, 0)
         tool_row.addSpacing(10)
+
+        tool_row.addWidget(QtWidgets.QLabel("<b>⠀Scenarios:</b>"))
+        tool_row.addStretch()
         tool_row.addWidget(self.table_btn)
         tool_row.addWidget(self.save_scenario)
         tool_row.addWidget(self.group_box)
-        tool_row.addStretch()
 
         # layout for the different scenario tables that can be added
         self.scenario_tables = QtWidgets.QHBoxLayout()
@@ -76,8 +78,7 @@ class ScenarioSection(QtWidgets.QWidget):
 
         # construct the full layout
         layout = QtWidgets.QVBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.addWidget(QtWidgets.QLabel("<b>⠀Scenarios:</b>"))
+        layout.setContentsMargins(0, 0, 10, 0)
         layout.addLayout(tool_row)
         layout.addLayout(self.scenario_tables)
         layout.addStretch(1)
