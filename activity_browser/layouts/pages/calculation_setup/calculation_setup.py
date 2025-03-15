@@ -1,12 +1,11 @@
 from qtpy import QtWidgets
 
-import bw2data as bd
-
 from activity_browser import signals, actions
 
 from .scenario_section import ScenarioSection
 from .functional_unit_section import FunctionalUnitSection
 from .impact_category_section import ImpactCategorySection
+
 
 class CalculationSetupPage(QtWidgets.QWidget):
 
@@ -40,13 +39,17 @@ class CalculationSetupPage(QtWidgets.QWidget):
         top_layout.addWidget(self.type_dropdown)
         top_layout.addWidget(self.run_button)
 
-        # Add output label and view to the layout
+        # Add fu label and view to the layout
         layout.addLayout(top_layout)
         layout.addWidget(self.functional_unit_section)
 
-        # Add input label and view to the layout
+        # Add ic label and view to the layout
         layout.addWidget(QtWidgets.QLabel("<b>⠀Impact Categories:</b>"))
         layout.addWidget(self.impact_category_section)
+
+        # Add scenario label and view to the layout
+
+        layout.addWidget(self.scenario_section)
 
         # Set the layout for the widget
         self.setLayout(layout)

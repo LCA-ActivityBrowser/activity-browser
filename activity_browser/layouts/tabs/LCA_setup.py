@@ -20,7 +20,7 @@ from ...ui.icons import qicons
 from ...ui.style import header, horizontal_line, style_group_box
 from ...ui.tables import (CSActivityTable, CSList, CSMethodsTable,
                           ScenarioImportTable)
-from ...ui.widgets import ExcelReadDialog, ScenarioDatabaseDialog
+
 from .base import BaseRightTab
 from ..panels.panel import ABTab
 

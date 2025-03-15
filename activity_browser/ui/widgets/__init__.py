@@ -3,8 +3,7 @@ from .cutoff_menu import CutoffMenu
 from .dialog import (ActivityLinkingDialog, ActivityLinkingResultsDialog,
                      DatabaseLinkingDialog, DatabaseLinkingResultsDialog,
                      EcoinventVersionDialog,
-                     ExcelReadDialog, ForceInputDialog, LocationLinkingDialog,
-                     ScenarioDatabaseDialog,
+                     ForceInputDialog, LocationLinkingDialog,
                      TupleNameDialog)
 from .line_edit import (ABLineEdit, SignalledComboEdit, SignalledLineEdit,
                         SignalledPlainTextEdit)
