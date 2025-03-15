@@ -7,8 +7,6 @@ from activity_browser import signals, actions
 from .scenario_section import ScenarioSection
 from .functional_unit_section import FunctionalUnitSection
 from .impact_category_section import ImpactCategorySection
-from .toolbar import Toolbar
-
 
 class CalculationSetupPage(QtWidgets.QWidget):
 
@@ -16,6 +14,9 @@ class CalculationSetupPage(QtWidgets.QWidget):
         super().__init__(parent)
 
         self.calculation_setup_name = cs_name
+
+        self.type_dropdown = QtWidgets.QComboBox()
+        self.type_dropdown.addItems(["Standard", "Scenario"])
 
         self.run_button = actions.CSCalculate.get_QButton(cs_name)
         self.functional_unit_section = FunctionalUnitSection(cs_name, self)
@@ -36,6 +37,7 @@ class CalculationSetupPage(QtWidgets.QWidget):
         top_layout.setContentsMargins(0, 0, 10, 0)
         top_layout.addWidget(QtWidgets.QLabel("<b>⠀Functional Units:</b>"))
         top_layout.addStretch()
+        top_layout.addWidget(self.type_dropdown)
         top_layout.addWidget(self.run_button)
 
         # Add output label and view to the layout
