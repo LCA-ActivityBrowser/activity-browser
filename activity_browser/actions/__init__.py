@@ -27,6 +27,7 @@ from .calculation_setup.cs_add_impact_category import CSAddImpactCategory
 from .calculation_setup.cs_delete_impact_category import CSDeleteImpactCategory
 from .calculation_setup.cs_delete_functional_unit import CSDeleteFunctionalUnit
 from .calculation_setup.cs_calculate import CSCalculate
+from .calculation_setup.cs_open import CSOpen
 
 from .database.database_import import DatabaseImport
 from .database.database_export import DatabaseExport

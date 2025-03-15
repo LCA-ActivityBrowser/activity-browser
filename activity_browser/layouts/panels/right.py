@@ -30,8 +30,7 @@ class RightPanel(ABTab):
             "LCA Setup": LCASetupTab(self),
             "Graph Explorer": GraphExplorerTab(self),
             "LCA results": LCAResultsTab(self),
-            "Parameters": ParametersTab(self),
-            "New": pages.CalculationSetupPage("check", self)
+            "Parameters": ParametersTab(self)
         }
         self.tab_order = {}
 
@@ -44,6 +43,7 @@ class RightPanel(ABTab):
             "Characterization Factors",
             "Graph Explorer",
             "LCA results",
+            "LCA Setup",
         ]:
             self.hide_tab(tab_name)
 

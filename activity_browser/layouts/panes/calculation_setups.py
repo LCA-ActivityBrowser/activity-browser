@@ -84,28 +84,8 @@ class CalculationSetupsView(widgets.ABTreeView):
     }
 
     class ContextMenu(QtWidgets.QMenu):
-        """
-        A context menu for the DatabasesView.
-
-        Attributes:
-            relink_action (QtWidgets.QAction): The action to relink the database.
-            new_process_action (QtWidgets.QAction): The action to create a new process.
-            new_product_action (QtWidgets.QAction): The action to create a new product.
-            delete_db_action (QtWidgets.QAction): The action to delete the database.
-            duplicate_db_action (QtWidgets.QAction): The action to duplicate the database.
-            re_allocate_action (QtWidgets.QAction): The action to redo the allocation.
-            open_explorer_action (QtWidgets.QAction): The action to open the database in the explorer.
-            process_db_action (QtWidgets.QAction): The action to process the database.
-        """
 
         def __init__(self, pos, view: "DatabasesView"):
-            """
-            Initializes the ContextMenu.
-
-            Args:
-                pos: The position of the context menu.
-                view (DatabasesView): The view displaying the databases.
-            """
             super().__init__(view)
             self.new_database_action = actions.DatabaseNew.get_QAction()
             self.relink_action = actions.DatabaseRelink.get_QAction(view.selected_database)
@@ -147,25 +127,7 @@ class CalculationSetupsView(widgets.ABTreeView):
 
         index = self.indexAt(event.pos())
 
-        if index.column() == 0:
-            database = index.internalPointer()["name"]
-            read_only = index.internalPointer()["read_only"]
-            project_settings.modify_db(database, not read_only)
-            signals.database_read_only_changed.emit(database, not read_only)
-            return
-
-        signals.database_selected.emit(self.selected_database())
-
-    def selected_database(self) -> str | None:
-        """
-        Returns the database name of the user-selected index.
-
-        Returns:
-            str: The name of the selected database.
-        """
-        if not self.currentIndex().isValid():
-            return None
-        return self.currentIndex().internalPointer()["name"]
+        actions.CSOpen.run(index.internalPointer()["name"])
 
 
 class CalculationSetupsItem(widgets.ABDataItem):

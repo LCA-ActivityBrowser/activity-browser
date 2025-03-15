@@ -22,75 +22,47 @@ from ...ui.tables import (CSActivityTable, CSList, CSMethodsTable,
                           ScenarioImportTable)
 from ...ui.widgets import ExcelReadDialog, ScenarioDatabaseDialog
 from .base import BaseRightTab
+from ..panels.panel import ABTab
+
+from activity_browser.layouts.pages import CalculationSetupPage
 
 log = getLogger(__name__)
 
-"""
-Lifecycle of a calculation setup
-================================
 
-Data format
------------
+class LCASetupTab(ABTab):
+    """Tab that contains sub-tabs describing activity information."""
 
-{name: {'inv': [{key: amount}], 'ia': [method]}}
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setTabsClosable(True)
+        self.connect_signals()
 
-Responsibilities
-----------------
+    def connect_signals(self):
+        self.tabCloseRequested.connect(self.close_tab)
+        signals.project.changed.connect(self.close_all)
 
-``CalculationSetupTab`` manages whether the activities and methods tables are shown, and which buttons are shown.
+    def open_cs(self, cs_name: str) -> None:
+        """Opens new tab or focuses on already open one."""
+        if cs_name not in self.tabs:
+            new_tab = CalculationSetupPage(cs_name, self)
+            new_tab.sync()
 
-``CSActivityTableWidget`` and ``CSMethodsTableWidget`` manage drag and drop events, and use signals to communicate data changes with the controller.
+            self.tabs[cs_name] = new_tab
+            self.addTab(new_tab, cs_name)
 
-Initiation
-----------
+            new_tab.destroyed.connect(
+                lambda: self.tabs.pop(cs_name) if cs_name in self.tabs else None
+            )
+            new_tab.destroyed.connect(signals.hide_when_empty.emit)
+            new_tab.objectNameChanged.connect(
+                lambda name: self.setTabText(self.indexOf(new_tab), name)
+            )
 
-The app is started, a default project is loaded. ``CalculationSetupTab`` is initiated. If a calculation setup is present, the first one in a sorted list is selected. The signal ``calculation_setup_selected`` is emitted. Activity and methods tables are shown, as well as the full button row. If no calculation setup is available, all tables and most buttons are hidden, only the ``new_cs_button`` is shown.
-
-``calculation_setup_selected`` is received by ``CSList``, which sets the list index correctly.
-
-``calculation_setup_selected`` is received by ``CSActivityTableWidget`` and ``CSMethodsTableWidget``, and data is displayed.
-
-Selecting a new project
------------------------
-
-When a new project is selected, the signal ``project_selected`` is received by ``CalculationSetupTab``, which follows the same procedure: emit ``calculation_setup_selected`` is possible, otherwise hide tables and buttons.
-
-Selecting a different calculation setup
----------------------------------------
-
-When a new calculation setup is selected in ``CSList``, the event ``itemSelectionChanged`` calls a function that emits ``calculation_setup_selected``.
-
-Altering the current calculation setup
---------------------------------------
-
-When new activities or methods are dragged into the activity or methods tables, the signal ``calculation_setup_changed`` is emitted. ``calculation_setup_changed`` is received by a controller method ``write_current_calculation_setup`` which saves the current data.
-
-When the amount of an activity is changed, the event ``cellChanged`` is caught by ``CSActivityTableWidget``, which emits ``calculation_setup_changed``.
-
-Creating a new calculation setup
---------------------------------
-
-The button ``new_cs_button`` is connected to the controller method ``new_calculation_setup``, which creates the new controller setup and in turn emits ``calculation_setup_selected``. Note that ``CSList`` rebuilds the list of all calculation setups when receiving ``calculation_setup_selected``, so the new setup is listed.
-
-Renaming a calculation setup
-----------------------------
-
-The button ``rename_cs_button`` is connected to the controller method ``rename_calculation_setup``, which changes the calculation setup name and in turn emits ``calculation_setup_selected``.
-
-Deleting a calculation setup
-----------------------------
-
-The button ``delete_cs_button`` is connected to the controller method ``delete_calculation_setup``, which deletes the calculation setup name and in turn emits ``calculation_setups_changed``.
-
-State data
-----------
-
-The currently selected calculation setup is retrieved by getting the currently selected value in ``CSList``.
-
-"""
+        self.select_tab(self.tabs[cs_name])
+        signals.show_tab.emit("LCA Setup")
 
 
-class LCASetupTab(QtWidgets.QWidget):
+class LCASetupTabOld(QtWidgets.QWidget):
     DEFAULT = 0
     SCENARIOS = 1
     REGIONAL = 2
