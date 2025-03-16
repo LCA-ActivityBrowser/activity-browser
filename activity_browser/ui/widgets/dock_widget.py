@@ -41,12 +41,12 @@ class ABDockWidget(QtWidgets.QDockWidget):
         main_window = self.parent()
         if not isinstance(main_window, QtWidgets.QMainWindow):
             # mysterious parents call for a title
-            self.setTitleBarWidget(self.title_bar)
+            self.show_titlebar()
             return
 
         if not main_window.tabifiedDockWidgets(self):
             # if there's no siblings we ain't a tab!
-            self.setTitleBarWidget(self.title_bar)
+            self.show_titlebar()
 
             if not update_others:
                 # prevent infinite recursion
@@ -73,7 +73,7 @@ class ABDockWidget(QtWidgets.QDockWidget):
 
             # show a title if we're not floating (this tab is settled),
             # hide it otherwise (this tab just became floating but wasn't dropped)
-            self.setTitleBarWidget(QtWidgets.QWidget() if not self.isFloating() else self.title_bar)
+            self.hide_titlebar() if not self.isFloating() else self.show_titlebar()
 
             # in this case it's also a good idea to tell to reconsider their situation
             # since Qt won't notify them separately
@@ -81,7 +81,13 @@ class ABDockWidget(QtWidgets.QDockWidget):
                 if hasattr(sibling, 'on_dock_location_changed'):
                     sibling.on_dock_location_changed(main_window.dockWidgetArea(sibling), True)
         else:
-            self.setTitleBarWidget(self.title_bar)
+            self.show_titlebar()
+
+    def show_titlebar(self):
+        self.setTitleBarWidget(self.title_bar)
+
+    def hide_titlebar(self):
+        self.setTitleBarWidget(QtWidgets.QWidget())
 
 
 class TitleBar(QtWidgets.QWidget):
