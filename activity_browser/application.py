@@ -3,8 +3,12 @@ import os
 from logging import getLogger
 
 import qtpy
-from qtpy.QtCore import QCoreApplication, QObject, QSysInfo, Qt
-from qtpy.QtWidgets import QApplication, QStyleFactory, QWidget, QMainWindow
+from qtpy.QtCore import QCoreApplication, QSysInfo, Qt
+from qtpy.QtWidgets import QApplication, QStyleFactory, QMainWindow
+from qtpy.QtGui import QFontDatabase
+
+from activity_browser.static import fonts
+
 
 log = getLogger(__name__)
 
@@ -63,6 +67,15 @@ QCoreApplication.setAttribute(Qt.AA_ShareOpenGLContexts, True)
 
 application = ABApplication()
 
+QFontDatabase.addApplicationFont(fonts.__path__[0] + "/mono.ttf")
+QFontDatabase.addApplicationFont(fonts.__path__[0] + "/ptsans.ttf")
+
 if qtpy.PYSIDE6:
     application.setStyle(QStyleFactory().create("fusion"))
+
+    font = application.font()
+    font.setFamily("PT Sans")
+    font.setPointSize(10)
+    print(font)
+    application.setFont(font)
     application.setAttribute(Qt.AA_DontShowIconsInMenus, True)
