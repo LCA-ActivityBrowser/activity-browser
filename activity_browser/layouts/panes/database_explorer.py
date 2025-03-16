@@ -5,8 +5,9 @@ from qtpy import QtWidgets, QtCore, QtGui
 
 import bw2data as bd
 
-from activity_browser import ui, application, signals
+from activity_browser import application, signals
 from activity_browser.bwutils import AB_metadata
+from activity_browser.ui import widgets
 
 log = getLogger(__name__)
 
@@ -93,15 +94,15 @@ class DatabaseExplorer(QtWidgets.QWidget):
         self.search.setPalette(palette)
 
 
-class NodeView(ui.widgets.ABTreeView):
+class NodeView(widgets.ABTreeView):
 
     def __init__(self, above: QtWidgets.QWidget=None, parent=None):
         super().__init__(parent)
         self.setSortingEnabled(True)
         self.setDragEnabled(True)
         self.setDragDropMode(QtWidgets.QTableView.DragDropMode.DragOnly)
-        self.setSelectionBehavior(ui.widgets.ABTreeView.SelectionBehavior.SelectItems)
-        self.setSelectionMode(ui.widgets.ABTreeView.SelectionMode.ExtendedSelection)
+        self.setSelectionBehavior(widgets.ABTreeView.SelectionBehavior.SelectItems)
+        self.setSelectionMode(widgets.ABTreeView.SelectionMode.ExtendedSelection)
 
         self.above = above
         self.below: QtWidgets.QWidget = QtWidgets.QWidget(self)
@@ -154,7 +155,7 @@ class NodeView(ui.widgets.ABTreeView):
             self.parent().addWidget(self.below)
 
 
-class NodeItem(ui.widgets.ABDataItem):
+class NodeItem(widgets.ABDataItem):
 
     def displayData(self, col: int, key: str):
         data = self[key]
@@ -179,6 +180,6 @@ class NodeItem(ui.widgets.ABDataItem):
             return str(type(data))
 
 
-class NodeModel(ui.widgets.ABAbstractItemModel):
+class NodeModel(widgets.ABAbstractItemModel):
     dataItemClass = NodeItem
 

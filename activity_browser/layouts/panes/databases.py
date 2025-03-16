@@ -54,9 +54,8 @@ class Databases(QtWidgets.QWidget):
         """
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.view)
-        layout.setContentsMargins(0, 0, 0, 3)
+        layout.setContentsMargins(5, 0, 5, 5)
         self.setLayout(layout)
-        self.setMinimumHeight(150)
 
     def sync(self):
         """

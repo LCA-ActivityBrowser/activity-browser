@@ -2,7 +2,6 @@ from activity_browser import application, project_settings
 from activity_browser.actions.base import ABAction, exception_dialogs
 
 from activity_browser.ui.icons import qicons
-from activity_browser.layouts.panes import ProjectManager
 
 
 class ProjectManagerOpen(ABAction):
@@ -17,6 +16,8 @@ class ProjectManagerOpen(ABAction):
     @staticmethod
     @exception_dialogs
     def run():
+        from activity_browser.layouts.panes import ProjectManager
+
         project_manager = ProjectManager(application.main_window)
         application.windows.append(project_manager)
         project_manager.show()

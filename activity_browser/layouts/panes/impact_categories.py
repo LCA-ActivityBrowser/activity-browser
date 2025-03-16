@@ -35,9 +35,9 @@ class ImpactCategories(QtWidgets.QWidget):
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.search)
         layout.addWidget(self.view)
+        layout.setContentsMargins(5, 0, 5, 5)
 
         self.setLayout(layout)
-        self.setMinimumHeight(150)
 
     def connect_signals(self):
         signals.meta.methods_changed.connect(self.sync)

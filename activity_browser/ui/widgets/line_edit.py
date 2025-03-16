@@ -3,8 +3,6 @@ from qtpy.QtCore import QTimer, Slot, Signal, SignalInstance
 from qtpy.QtGui import QTextFormat
 from qtpy.QtWidgets import QCompleter
 
-from activity_browser import actions
-
 
 class ABLineEdit(QtWidgets.QLineEdit):
     textChangedDebounce: SignalInstance = Signal(str)
@@ -51,6 +49,8 @@ class SignalledLineEdit(QtWidgets.QLineEdit):
 
     @Slot(name="customEditFinish")
     def _editing_finished(self) -> None:
+        from activity_browser import actions
+
         after = self.text()
         if self._before != after:
             self._before = after
@@ -78,6 +78,8 @@ class SignalledPlainTextEdit(QtWidgets.QPlainTextEdit):
         self.setExtraSelections([selection])
 
     def focusOutEvent(self, event):
+        from activity_browser import actions
+
         after = self.toPlainText()
         if self._before != after:
             actions.ActivityModify.run(self._key, self._field, after)
@@ -102,6 +104,8 @@ class SignalledComboEdit(QtWidgets.QComboBox):
         self._field = field
 
     def focusOutEvent(self, event):
+        from activity_browser import actions
+
         after = self.currentText()
         if self._before != after:
             self._before = after

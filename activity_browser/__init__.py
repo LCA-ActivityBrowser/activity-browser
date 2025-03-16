@@ -43,7 +43,7 @@ def run_activity_browser():
     if log_file_location:
         log.info(f"The log file can be found at {log_file_location}")
 
-    application.main_window = MainWindow(application)
+    application.main_window = MainWindow()
     load_settings()
     application.show()
 
