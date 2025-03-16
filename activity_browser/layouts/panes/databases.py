@@ -171,15 +171,15 @@ class DatabasesView(widgets.ABTreeView):
             return
 
         index = self.indexAt(event.pos())
+        db_name = index.internalPointer()["name"]
 
         if index.column() == 0:
-            database = index.internalPointer()["name"]
             read_only = index.internalPointer()["read_only"]
-            project_settings.modify_db(database, not read_only)
-            signals.database_read_only_changed.emit(database, not read_only)
+            project_settings.modify_db(db_name, not read_only)
+            signals.database_read_only_changed.emit(db_name, not read_only)
             return
 
-        signals.database_selected.emit(self.selected_database())
+        actions.DatabaseOpen.run([db_name])
 
     def selected_database(self) -> str | None:
         """

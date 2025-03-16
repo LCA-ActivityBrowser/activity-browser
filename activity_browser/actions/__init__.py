@@ -29,6 +29,7 @@ from .calculation_setup.cs_delete_functional_unit import CSDeleteFunctionalUnit
 from .calculation_setup.cs_calculate import CSCalculate
 from .calculation_setup.cs_open import CSOpen
 
+from .database.database_open import DatabaseOpen
 from .database.database_import import DatabaseImport
 from .database.database_export import DatabaseExport
 from .database.database_new import DatabaseNew
