@@ -15,10 +15,15 @@ class MenuBar(QtWidgets.QMenuBar):
     def __init__(self, window):
         super().__init__(parent=window)
 
-        self.addMenu(ProjectMenu(self))
-        self.addMenu(ViewMenu(self))
-        self.addMenu(ToolsMenu(self))
-        self.addMenu(HelpMenu(self))
+        self.project_menu = ProjectMenu(self)
+        self.view_menu = ViewMenu(self)
+        self.tools_menu = ToolsMenu(self)
+        self.help_menu = HelpMenu(self)
+
+        self.addMenu(self.project_menu)
+        self.addMenu(self.view_menu)
+        self.addMenu(self.tools_menu)
+        self.addMenu(self.help_menu)
 
 
 class ProjectMenu(QtWidgets.QMenu):
@@ -114,24 +119,7 @@ class ViewMenu(QtWidgets.QMenu):
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
-
         self.setTitle("&View")
-
-        self.addAction(
-            qicons.graph_explorer,
-            "&Graph Explorer",
-            lambda: signals.toggle_show_or_hide_tab.emit("Graph Explorer"),
-        )
-        self.addAction(
-            qicons.history,
-            "&Activity History",
-            lambda: signals.toggle_show_or_hide_tab.emit("History"),
-        )
-        self.addAction(
-            qicons.welcome,
-            "&Welcome screen",
-            lambda: signals.toggle_show_or_hide_tab.emit("Welcome"),
-        )
 
 
 class ToolsMenu(QtWidgets.QMenu):

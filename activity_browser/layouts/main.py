@@ -29,6 +29,8 @@ class MainWindow(QtWidgets.QMainWindow):
         # Layout: extra items outside main layout
         self.menu_bar = MenuBar(self)
         self.setMenuBar(self.menu_bar)
+
+
         self.status_bar = Statusbar(self)
         self.setStatusBar(self.status_bar)
         self.setTabPosition(QtCore.Qt.AllDockWidgetAreas, QtWidgets.QTabWidget.North)
@@ -37,14 +39,17 @@ class MainWindow(QtWidgets.QMainWindow):
         dock_widget = widgets.ABDockWidget("Databases", self, widgets.ABDockWidget.HideMode.Hide)
         dock_widget.setWidget(panes.Databases(self))
         self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, dock_widget)
+        self.menu_bar.view_menu.addAction(dock_widget.toggleViewAction())
 
         dock_widget = widgets.ABDockWidget("Calculation Setups", self, widgets.ABDockWidget.HideMode.Hide)
         dock_widget.setWidget(panes.CalculationSetupsPane(self))
         self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, dock_widget)
+        self.menu_bar.view_menu.addAction(dock_widget.toggleViewAction())
 
         dock_widget = widgets.ABDockWidget("Impact Categories", self, widgets.ABDockWidget.HideMode.Hide)
         dock_widget.setWidget(panes.ImpactCategories(self))
         self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, dock_widget)
+        self.menu_bar.view_menu.addAction(dock_widget.toggleViewAction())
 
         self.connect_signals()
 
