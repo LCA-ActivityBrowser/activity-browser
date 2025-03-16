@@ -14,49 +14,37 @@ class ABDockWidget(QtWidgets.QDockWidget):
         super().__init__(title, parent)
         self._hide_mode = mode
 
-        if mode == HideMode.Close:
-            self.button = CloseButton(self)
-            self.title_bar = TitleBar(title, self.button, self)
-            self.button.clicked.connect(self.close)
-        else:
-            self.button = MinimizeButton(self)
-            self.title_bar = TitleBar(title, self.button, self)
-            self.button.clicked.connect(self.hide)
-
+        self.title_bar = TitleBar(title, self.button(), self)
         self.setTitleBarWidget(QtWidgets.QWidget())
         self.visibilityChanged.connect(self.on_visibility_changed)
-        self.dockLocationChanged.connect(self.on_dock_location_changed)
+        self.dockLocationChanged.connect(self.updateTitlebar)
 
-    def on_visibility_changed(self, is_visible: bool) -> None:
+    def button(self):
+        if self._hide_mode == HideMode.Close:
+            button = CloseButton(self)
+            button.clicked.connect(self.close)
+        else:
+            button = MinimizeButton(self)
+            button.clicked.connect(self.hide)
+        return button
+
+    def on_visibility_changed(self, visible: bool) -> None:
         # this visibility monitor is really only needed to detect merges of
         # tabbed, floating windows with existing docked windows
-        if not is_visible and isinstance(self.parent(), QtWidgets.QMainWindow):
-            main_window: QtWidgets.QMainWindow = self.parent()
-            all_dockwidgets: list[QtWidgets.QDockWidget] = main_window.findChildren(QtWidgets.QDockWidget)
-            for dockwidget in all_dockwidgets:
-                if hasattr(dockwidget, 'on_dock_location_changed'):
-                    dockwidget.on_dock_location_changed(main_window.dockWidgetArea(dockwidget), False)
+        if not visible and isinstance(self.parent(), QtWidgets.QMainWindow):
+            self.updateOthers()
 
-    def on_dock_location_changed(self, area: Qt.DockWidgetArea, update_others: bool = True) -> None:
+    def updateTitlebar(self, area: Qt.DockWidgetArea, update_others: bool = True) -> None:
         main_window = self.parent()
         if not isinstance(main_window, QtWidgets.QMainWindow):
             # mysterious parents call for a title
-            self.show_titlebar()
+            self.showTitlebar()
             return
 
         if not main_window.tabifiedDockWidgets(self):
             # if there's no siblings we ain't a tab!
-            self.show_titlebar()
-
-            if not update_others:
-                # prevent infinite recursion
-                return
-
-            # force an update to all other docks that may now no longer be tabs
-            all_dockwidgets: list[QtWidgets.QDockWidget] = main_window.findChildren(QtWidgets.QDockWidget)
-            for dockwidget in all_dockwidgets:
-                if dockwidget != self and hasattr(dockwidget, 'on_dock_location_changed'):
-                    dockwidget.on_dock_location_changed(main_window.dockWidgetArea(dockwidget), False)
+            self.showTitlebar()
+            self.updateOthers() if update_others else None
             return
 
         # at this point the dockwidget is either a resting tab or a tab
@@ -67,27 +55,41 @@ class ABDockWidget(QtWidgets.QDockWidget):
         tab_siblings = [x for x in tab_siblings if main_window.dockWidgetArea(x) == area and not x.isFloating()]
 
         if tab_siblings:
-            if not isinstance(self.titleBarWidget(), TitleBar):
-                # no changes needed, prevent infinite recursion
-                return
-
             # show a title if we're not floating (this tab is settled),
             # hide it otherwise (this tab just became floating but wasn't dropped)
-            self.hide_titlebar() if not self.isFloating() else self.show_titlebar()
-
-            # in this case it's also a good idea to tell to reconsider their situation
-            # since Qt won't notify them separately
-            for sibling in tab_siblings:
-                if hasattr(sibling, 'on_dock_location_changed'):
-                    sibling.on_dock_location_changed(main_window.dockWidgetArea(sibling), True)
+            self.showTitlebar(self.isFloating())
         else:
-            self.show_titlebar()
+            self.showTitlebar()
 
-    def show_titlebar(self):
+        self.updateOthers() if update_others else None
+
+    def updateOthers(self):
+        all_dockwidgets: list[ABDockWidget] = self.parent().findChildren(ABDockWidget)
+        for dockwidget in all_dockwidgets:
+            if dockwidget != self:
+                dockwidget.updateTitlebar(self.parent().dockWidgetArea(dockwidget), False)
+
+    def showTitlebar(self, show: bool = True) -> None:
+        if not show:
+            return self.hideTitlebar()
+        self.title_bar.set_button(self.button())
         self.setTitleBarWidget(self.title_bar)
 
-    def hide_titlebar(self):
+    def hideTitlebar(self, hide: bool = True) -> None:
+        if not hide:
+            return self.showTitlebar()
         self.setTitleBarWidget(QtWidgets.QWidget())
+
+        tab_bars = self.parent().findChildren(QtWidgets.QTabBar)
+        for tab_bar in tab_bars:
+            texts = [tab_bar.tabText(i) for i in range(tab_bar.count())]
+
+            if self.windowTitle() not in texts:
+                continue
+
+            index = texts.index(self.windowTitle())
+            tab_bar.setTabButton(index, QtWidgets.QTabBar.RightSide, self.button())
+            return
 
 
 class TitleBar(QtWidgets.QWidget):
@@ -101,20 +103,28 @@ class TitleBar(QtWidgets.QWidget):
         layout.addWidget(button)
         self.setLayout(layout)
 
+    def set_button(self, button):
+        layout = self.layout()
+        w = layout.itemAt(2).widget()
+        layout.replaceWidget(w, button)
+        layout.update()
+        w.deleteLater()
 
-class CloseButton(QtWidgets.QLabel):
+
+class CloseButton(QtWidgets.QWidget):
     """Custom close button with hover effect."""
     clicked: QtCore.SignalInstance = QtCore.Signal()
 
     def __init__(self, parent=None):
-        super().__init__("×", parent)
-        self.setFont(QtGui.QFont("Arial", 12, QtGui.QFont.Bold))
-        self.setAlignment(Qt.AlignCenter)
-        self.setFixedSize(16, 16)
+        super().__init__(parent)
 
-        self.mousePressEvent = lambda event: self.clicked.emit()
+        self.label = QtWidgets.QLabel("×", self)
 
-        # Default style
+        self.label.setFont(QtGui.QFont("Arial", 12, QtGui.QFont.Bold))
+        self.label.setAlignment(Qt.AlignCenter)
+        self.label.setFixedSize(16, 16)
+        self.label.mousePressEvent = lambda event: self.clicked.emit()
+
         self.setStyleSheet("""
             QLabel {
                 border-radius: 8px;
@@ -125,20 +135,26 @@ class CloseButton(QtWidgets.QLabel):
             }
         """)
 
+        layout = QtWidgets.QHBoxLayout()
+        layout.setContentsMargins(5, 0, 0, 0)
+        layout.addWidget(self.label)
+        self.setLayout(layout)
 
-class MinimizeButton(QtWidgets.QLabel):
+
+class MinimizeButton(QtWidgets.QWidget):
     """Custom close button with hover effect."""
     clicked: QtCore.SignalInstance = QtCore.Signal()
 
     def __init__(self, parent=None):
-        super().__init__("-", parent)
-        self.setFont(QtGui.QFont("Arial", 15, QtGui.QFont.Bold))
-        self.setAlignment(Qt.AlignCenter)
-        self.setFixedSize(16, 16)
+        super().__init__(parent)
 
-        self.mousePressEvent = lambda event: self.clicked.emit()
+        self.label = QtWidgets.QLabel("-", self)
 
-        # Default style
+        self.label.setFont(QtGui.QFont("Arial", 12, QtGui.QFont.Bold))
+        self.label.setAlignment(Qt.AlignCenter)
+        self.label.setFixedSize(16, 16)
+        self.label.mousePressEvent = lambda event: self.clicked.emit()
+
         self.setStyleSheet("""
             QLabel {
                 border-radius: 8px;
@@ -149,3 +165,7 @@ class MinimizeButton(QtWidgets.QLabel):
             }
         """)
 
+        layout = QtWidgets.QHBoxLayout()
+        layout.setContentsMargins(5, 0, 0, 0)
+        layout.addWidget(self.label)
+        self.setLayout(layout)
