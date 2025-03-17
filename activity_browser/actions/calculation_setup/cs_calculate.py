@@ -1,5 +1,7 @@
 from logging import getLogger
 
+import pandas as pd
+
 from activity_browser import application, signals
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.mod import bw2data as bd
@@ -19,6 +21,9 @@ class CSCalculate(ABAction):
 
     @staticmethod
     @exception_dialogs
-    def run(cs_name: str, calculation_type: str = "simple"):
-        signals.lca_calculation.emit({"cs_name": cs_name, "calculation_type": calculation_type})
+    def run(cs_name: str, scenario_data: pd.DataFrame = None):
+        if scenario_data is None:
+            signals.lca_calculation.emit({"cs_name": cs_name, "calculation_type": "simple"})
+        else:
+            signals.lca_calculation.emit({"cs_name": cs_name, "calculation_type": "scenario", "data": scenario_data})
 

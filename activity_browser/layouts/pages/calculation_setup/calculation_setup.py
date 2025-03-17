@@ -17,7 +17,7 @@ class CalculationSetupPage(QtWidgets.QWidget):
         self.type_dropdown = QtWidgets.QComboBox()
         self.type_dropdown.addItems(["Standard", "Scenario"])
 
-        self.run_button = actions.CSCalculate.get_QButton(cs_name)
+        self.run_button = QtWidgets.QPushButton("Run")
         self.functional_unit_section = FunctionalUnitSection(cs_name, self)
         self.impact_category_section = ImpactCategorySection(cs_name, self)
         self.scenario_section = ScenarioSection(self)
@@ -61,6 +61,7 @@ class CalculationSetupPage(QtWidgets.QWidget):
         signals.meta.calculation_setups_changed.connect(self.sync)
 
         self.type_dropdown.currentTextChanged.connect(self.type_switch)
+        self.run_button.clicked.connect(self.run_calculation)
 
     def sync(self) -> None:
         self.functional_unit_section.sync()
@@ -73,4 +74,11 @@ class CalculationSetupPage(QtWidgets.QWidget):
             self.scenario_section.show()
         else:
             raise ValueError(f"Unknown calculation type: {calculation_type}")
+
+    def run_calculation(self):
+        if self.type_dropdown.currentText() == "Standard":
+            actions.CSCalculate.run(self.calculation_setup_name)
+        elif self.type_dropdown.currentText() == "Scenario":
+            scenario_data = self.scenario_section.scenario_dataframe()
+            actions.CSCalculate.run(self.calculation_setup_name, scenario_data)
 
