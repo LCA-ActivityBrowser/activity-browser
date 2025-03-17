@@ -79,32 +79,28 @@ class CalculationSetupsView(widgets.ABTreeView):
         defaultColumnDelegates (dict): The default column delegates for the view.
     """
     defaultColumnDelegates = {
-        "modified": delegates.DateTimeDelegate,
+        "name": delegates.StringDelegate,
     }
 
     class ContextMenu(QtWidgets.QMenu):
 
         def __init__(self, pos, view: "DatabasesView"):
             super().__init__(view)
-            self.new_database_action = actions.DatabaseNew.get_QAction()
-            self.relink_action = actions.DatabaseRelink.get_QAction(view.selected_database)
-            self.new_process_action = actions.ActivityNewProcess.get_QAction(view.selected_database)
-            self.new_product_action = actions.ActivityNewProduct.get_QAction(view.selected_database)
-            self.delete_db_action = actions.DatabaseDelete.get_QAction(view.selected_database)
-            self.duplicate_db_action = actions.DatabaseDuplicate.get_QAction(view.selected_database)
-            self.re_allocate_action = actions.DatabaseRedoAllocation.get_QAction(view.selected_database)
-            self.open_explorer_action = actions.DatabaseExplorerOpen.get_QAction(view.selected_database)
-            self.process_db_action = actions.DatabaseProcess.get_QAction(view.selected_database)
+            self.new_cs_action = actions.CSNew.get_QAction()
+            self.addAction(self.new_cs_action)
 
-            self.addAction(self.new_database_action)
-            if view.selected_database():
-                self.addAction(self.delete_db_action)
-                self.addAction(self.relink_action)
-                self.addAction(self.duplicate_db_action)
-                self.addAction(self.new_process_action)
-                self.addAction(self.new_product_action)
-                self.addAction(self.open_explorer_action)
-                self.addAction(self.process_db_action)
+            if view.selectedIndexes():
+                items = {index.internalPointer() for index in view.selectedIndexes()}
+
+                self.open_action = actions.CSOpen.get_QAction([item["name"] for item in items])
+                self.delete_action = actions.CSDelete.get_QAction([item["name"] for item in items])
+
+                self.addAction(self.open_action)
+                self.addAction(self.delete_action)
+
+                if len(items) == 1:
+                    self.rename_action = actions.CSRename.get_QAction([item["name"] for item in items][0])
+                    self.addAction(self.rename_action)
 
     class HeaderMenu(QtWidgets.QMenu):
         """

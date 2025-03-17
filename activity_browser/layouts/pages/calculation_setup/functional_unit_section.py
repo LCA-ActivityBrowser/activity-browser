@@ -27,8 +27,12 @@ class FunctionalUnitSection(QtWidgets.QWidget):
         self.setLayout(layout)
 
     def sync(self):
-        self.calculation_setup = bd.calculation_setups[self.calculation_setup_name]
-        self.model.setDataFrame(self.build_df())
+        try:
+            self.calculation_setup = bd.calculation_setups[self.calculation_setup_name]
+            self.model.setDataFrame(self.build_df())
+        except KeyError:
+            self.parent().close()
+            self.parent().deleteLater()
 
     def build_df(self):
         keys, amounts = [], []

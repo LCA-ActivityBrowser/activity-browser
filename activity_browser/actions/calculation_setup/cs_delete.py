@@ -21,12 +21,15 @@ class CSDelete(ABAction):
 
     @staticmethod
     @exception_dialogs
-    def run(cs_name: str):
+    def run(cs_names: str | list[str]):
+        if isinstance(cs_names, str):
+            cs_names = [cs_names]
+
         # ask the user whether they are sure to delete the calculation setup
         warning = QtWidgets.QMessageBox.warning(
             application.main_window,
-            f"Deleting Calculation Setup: {cs_name}",
-            "Are you sure you want to delete this calculation setup?",
+            f"Deleting Calculation Setup(s): {', '.join(cs_names)}",
+            "Are you sure?",
             QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
             QtWidgets.QMessageBox.No,
         )
@@ -35,13 +38,10 @@ class CSDelete(ABAction):
         if warning == QtWidgets.QMessageBox.No:
             return
 
-        del bd.calculation_setups[cs_name]
-        signals.set_default_calculation_setup.emit()
-        log.info(f"Deleted calculation setup: {cs_name}")
+        for cs_name in cs_names:
+            if cs_name not in bd.calculation_setups:
+                log.warning(f"Calculation setup {cs_name} not found")
+                continue
 
-        QtWidgets.QMessageBox.information(
-            application.main_window,
-            f"Deleting Calculation Setup: {cs_name}",
-            "Calculation setup was succesfully deleted.",
-            QtWidgets.QMessageBox.Ok,
-        )
+            del bd.calculation_setups[cs_name]
+            log.info(f"Deleted calculation setup: {cs_name}")

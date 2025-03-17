@@ -22,7 +22,7 @@ class CSRename(ABAction):
 
     @staticmethod
     @exception_dialogs
-    def run(cs_name: str):
+    def run(cs_name: str, new_name: str = None):
         # prompt the user to give a name for the new calculation setup
         new_name, ok = QtWidgets.QInputDialog.getText(
             application.main_window,
