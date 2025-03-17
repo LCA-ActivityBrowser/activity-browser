@@ -100,7 +100,10 @@ class CalculationSetupsView(widgets.ABTreeView):
 
                 if len(items) == 1:
                     self.rename_action = actions.CSRename.get_QAction([item["name"] for item in items][0])
+                    self.calculate_action = actions.CSCalculate.get_QAction([item["name"] for item in items][0])
                     self.addAction(self.rename_action)
+                    self.addSeparator()
+                    self.addAction(self.calculate_action)
 
     class HeaderMenu(QtWidgets.QMenu):
         """

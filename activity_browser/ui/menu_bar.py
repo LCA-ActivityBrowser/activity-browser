@@ -1,5 +1,7 @@
 from importlib.metadata import version
 
+import bw2data as bd
+
 from qtpy import QtGui, QtWidgets
 from qtpy.QtCore import QSize, QUrl
 
@@ -17,11 +19,13 @@ class MenuBar(QtWidgets.QMenuBar):
 
         self.project_menu = ProjectMenu(self)
         self.view_menu = ViewMenu(self)
+        self.calculate_menu = CalculateMenu(self)
         self.tools_menu = ToolsMenu(self)
         self.help_menu = HelpMenu(self)
 
         self.addMenu(self.project_menu)
         self.addMenu(self.view_menu)
+        self.addMenu(self.calculate_menu)
         self.addMenu(self.tools_menu)
         self.addMenu(self.help_menu)
 
@@ -120,6 +124,29 @@ class ViewMenu(QtWidgets.QMenu):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
         self.setTitle("&View")
+
+
+class CalculateMenu(QtWidgets.QMenu):
+    """
+    Calculate Menu: contains actions in regard to calculating the LCA results for the current project
+    """
+
+    def __init__(self, parent=None) -> None:
+        super().__init__(parent)
+        self.setTitle("&Calculate")
+        self.cs_actions = []
+
+        signals.project.changed.connect(self.sync)
+        signals.meta.calculation_setups_changed.connect(self.sync)
+
+    def sync(self):
+        self.cs_actions.clear()
+        for cs in bd.calculation_setups:
+            action = actions.CSOpen.get_QAction(cs)
+            action.setText(cs)
+            self.cs_actions.append(action)
+            self.addAction(action)
+
 
 
 class ToolsMenu(QtWidgets.QMenu):
