@@ -11,7 +11,7 @@ class ProjectTab(QtWidgets.QWidget):
     def __init__(self, parent):
         super(ProjectTab, self).__init__(parent)
         # main widgets
-        self.databases_widget = panes.Databases(self)
+        self.databases_widget = panes.DatabasesPane(self)
         self.activity_biosphere_tabs = ActivityBiosphereTabs(self)
 
         # Layout
@@ -62,7 +62,7 @@ class ActivityBiosphereTabs(ABTab):
         """Put focus on tab, if not open yet, open it."""
         # create the tab if it doesn't exist yet
         if not self.tabs.get(db_name, False):
-            widget = panes.DatabaseFunctions(parent=self, db_name=db_name)
+            widget = panes.DatabaseFunctionsPane(parent=self, db_name=db_name)
             self.add_tab(widget, db_name)
 
             widget.destroyed.connect(

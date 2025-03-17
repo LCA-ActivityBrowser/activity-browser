@@ -18,7 +18,7 @@ you can compare LCA terms from Brightway, [ISO 14044 (2006)](https://www.iso.org
 ## Organization of data in Brightway and Activity Browser
 Data in Brightway is organized into projects
 - Projects contain databases, impact categories, calculation setups and more
-  - Databases contain activities (biosphere and technosphere)
+  - DatabasesPane contain activities (biosphere and technosphere)
     - Activities are the building blocks of your LCA model 
 - Impact categories are used to score your LCA models against
 - Calculation setups are the combinations of reference flows and impact categories that you can calculate
@@ -49,7 +49,7 @@ Finally, the menu bar at the top allows you to manage Activity Browser, Plugins 
 
 ### Video overview of project setup
 
-[![Projects and Databases](https://img.youtube.com/vi/qWzaQjAf8ZU/hqdefault.jpg)](https://www.youtube.com/watch?v=qWzaQjAf8ZU)
+[![Projects and DatabasesPane](https://img.youtube.com/vi/qWzaQjAf8ZU/hqdefault.jpg)](https://www.youtube.com/watch?v=qWzaQjAf8ZU)
 
 <sup>
 <b>Note:</b> some content of the video may be outdated. Written content should be more up-to-date.
@@ -128,9 +128,9 @@ ___
 
 [Read more about databases...](Databases)
 
-### Video overview of working with Activities in Databases
+### Video overview of working with Activities in DatabasesPane
 
-[![Projects and Databases](https://img.youtube.com/vi/2rmydYdscJY/hqdefault.jpg)](https://www.youtube.com/watch?v=2rmydYdscJY)
+[![Projects and DatabasesPane](https://img.youtube.com/vi/2rmydYdscJY/hqdefault.jpg)](https://www.youtube.com/watch?v=2rmydYdscJY)
 
 <sup>
 <b>Note:</b> some content of the video may be outdated. Written content should be more up-to-date.

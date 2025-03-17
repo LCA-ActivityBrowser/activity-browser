@@ -40,7 +40,7 @@ ___
 ## Documentation
 
 - [📚 Projects](Projects)
-- [📒 Databases](Databases)
+- [📒 DatabasesPane](Databases)
 - [🧾 Activities](Activities)
 - [🌍 Impact Categories](Impact-Categories)
 - [🧮 LCA Calculation Setups](LCA-Calculation-Setups)

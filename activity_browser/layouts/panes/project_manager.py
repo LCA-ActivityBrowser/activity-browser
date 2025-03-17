@@ -13,7 +13,9 @@ from activity_browser.ui import widgets
 log = getLogger(__name__)
 
 
-class ProjectManager(QtWidgets.QWidget):
+class ProjectManagerPane(widgets.ABAbstractPane):
+    title = "Project Manager"
+    hideMode = widgets.ABDockWidget.HideMode.Close
 
     def __init__(self, parent=None):
         super().__init__(parent, QtCore.Qt.WindowType.Dialog)
@@ -114,7 +116,7 @@ class ProjectView(widgets.ABTreeView):
             self.addAction(self.del_project)
 
 
-    def __init__(self, parent: ProjectManager):
+    def __init__(self, parent: ProjectManagerPane):
         super().__init__(parent)
         self.setSortingEnabled(True)
         self.setSelectionBehavior(ui.widgets.ABTreeView.SelectionBehavior.SelectRows)
@@ -142,10 +144,7 @@ class TemplateView(widgets.ABTreeView):
 
             items = list({index.internalPointer() for index in view.selectedIndexes()})
 
-
-
-
-    def __init__(self, parent: ProjectManager):
+    def __init__(self, parent: ProjectManagerPane):
         super().__init__(parent)
         self.setSortingEnabled(True)
         self.setSelectionBehavior(ui.widgets.ABTreeView.SelectionBehavior.SelectRows)

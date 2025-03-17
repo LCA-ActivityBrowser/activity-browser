@@ -1,17 +1,17 @@
-import datetime
-
 from qtpy import QtWidgets, QtGui
-from qtpy.QtCore import Qt
 
 import bw2data as bd
 import pandas as pd
 
-from activity_browser import signals, actions, project_settings, bwutils
-from activity_browser.ui import widgets, icons
+from activity_browser import signals, actions
+from activity_browser.ui import widgets
 from activity_browser.ui.tables import delegates
 
 
-class CalculationSetupsPane(QtWidgets.QWidget):
+class CalculationSetupsPane(widgets.ABAbstractPane):
+    title = "Calculation Setups"
+    hideMode = widgets.ABDockWidget.HideMode.Hide
+
     def __init__(self, parent):
         super().__init__(parent)
         self.view = CalculationSetupsView()

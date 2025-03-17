@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from .panel import ABTab
-from ..panes.impact_categories import ImpactCategories
+from ..panes.impact_categories import ImpactCategoriesPane
 from ..panes.calculation_setups import CalculationSetupsPane
 
 
@@ -13,8 +13,8 @@ class LeftPanel(ABTab):
         super(LeftPanel, self).__init__(*args)
 
         self.tabs = {
-            "Databases": ProjectTab(self),
-            "Impact Categories": ImpactCategories(self),
+            "DatabasesPane": ProjectTab(self),
+            "Impact Categories": ImpactCategoriesPane(self),
             "Calculation Setups": CalculationSetupsPane(self),
             "History": HistoryTab(self),
         }

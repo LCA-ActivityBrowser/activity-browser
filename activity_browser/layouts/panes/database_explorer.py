@@ -29,13 +29,12 @@ NODETYPES = {
 }
 
 
-class DatabaseExplorer(QtWidgets.QWidget):
+class DatabaseExplorerPane(widgets.ABAbstractPane):
+    hideMode = widgets.ABDockWidget.HideMode.Close
 
     def __init__(self, db_name: str, parent=None):
         super().__init__(parent, QtCore.Qt.WindowType.Window)
-        self.setWindowTitle("Database Explorer")
-        self.setWindowModality(QtCore.Qt.WindowModality.NonModal)
-
+        self.title = "Database Explorer - " + db_name
         self.database = bd.Database(db_name)
         self.model = NodeModel(self)
 

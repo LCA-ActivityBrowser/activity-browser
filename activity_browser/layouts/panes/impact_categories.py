@@ -9,7 +9,10 @@ from activity_browser.ui import widgets, core
 from activity_browser.ui.tables import delegates
 
 
-class ImpactCategories(QtWidgets.QWidget):
+class ImpactCategoriesPane(widgets.ABAbstractPane):
+    title = "Impact Categories"
+    hideMode = widgets.ABDockWidget.HideMode.Hide
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.view = ImpactCategoriesView()

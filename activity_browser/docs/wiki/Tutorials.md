@@ -93,7 +93,7 @@ For this, we use databases.
 
 - Click the `New Database...` button, this will open a popup.
 - In the window, fill in the name _'first lca tutorial'_, confirm.
-- We now see the new database in the `Databases` table on the left.
+- We now see the new database in the `DatabasesPane` table on the left.
 
 ![create a database](./assets/_tutorials/first_lca_tutorial_create_db.png)
 
@@ -105,7 +105,7 @@ Lets create the first activity:
 To assess the environmental impact of generating electricity from coal, we need to model the production of 
 electricity and coal first.
 
-- Right-click on your new database in the `Databases` table and choose `New activity`.
+- Right-click on your new database in the `DatabasesPane` table and choose `New activity`.
 
 ![create an activity context menu](./assets/_tutorials/first_lca_tutorial_create_act_context.png)
 
@@ -120,7 +120,7 @@ Your `Activity Details` tab should look like below:
 
 > [!TIP]
 > You can only edit activities when the database is not set to `Read-only` and the activity is set to `Edit Activity`.
-> You can set these in the `Databases` table and in the top left of the `Activity Details` tab respectively.
+> You can set these in the `DatabasesPane` table and in the top left of the `Activity Details` tab respectively.
 > This is done to avoid accidental changes.
 > 
 > Every time you close an `Activity Details` tab, the editing state will be reset, when you open the activity again you
@@ -145,10 +145,10 @@ The top part of your activity should now look like this:
 #### 2.2 Linking activities
 Now that we have one activity, we need to link a biosphere flow to it.
 
-- In the `Databases` table in the `Project` tab on the left, open the database _'biosphere3'_ by double-clicking on it.
+- In the `DatabasesPane` table in the `Project` tab on the left, open the database _'biosphere3'_ by double-clicking on it.
 
 > [!NOTE]
-> All databases that you have open in a project are shown as tabs underneath the `Databases` table.
+> All databases that you have open in a project are shown as tabs underneath the `DatabasesPane` table.
 
 - Search for _'carbon dioxide, fossil'_ in the database.
 - In the `Activity Details` enable the (still empty) `Biosphere Flows` table by ticking the box.

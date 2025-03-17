@@ -565,7 +565,7 @@ class ScenarioDatabaseDialog(QtWidgets.QDialog):
         )
 
         self.label_choices = []
-        self.grid_box = QtWidgets.QGroupBox("Databases:")
+        self.grid_box = QtWidgets.QGroupBox("DatabasesPane:")
         self.grid = QtWidgets.QGridLayout()
         self.grid_box.setLayout(self.grid)
 

@@ -4,7 +4,7 @@
 > Please help us improve the wiki by reading our
 > [contributing guidelines](https://github.com/LCA-ActivityBrowser/activity-browser/blob/main/CONTRIBUTING.md#wiki).
 
-Databases are the main way in which Brightway manages and stores [Activities](Activities). 
+DatabasesPane are the main way in which Brightway manages and stores [Activities](Activities). 
 Use databases to organize your data in a meaningful way, for example by separating foreground and background systems. 
 
 [Read more about data organization in Brightway...](Getting-Started#organization-of-data-in-brightway-and-activity-browser)
@@ -16,7 +16,7 @@ Brightway databases consist of two parts:
 2. **Metadata:** this is where database specific metadata is stored, such as dependent databases, number of activities,
    and time of last edit.
 
-Databases that are installed in a project may be found in the `Databases` section, part of the `Project` panel. 
+DatabasesPane that are installed in a project may be found in the `DatabasesPane` section, part of the `Project` panel. 
 This section shows a table that displays a selection of the metadata for all the databases in the project. 
 
 > [!NOTE]
@@ -28,17 +28,17 @@ This section shows a table that displays a selection of the metadata for all the
 ## Basic functions
 
 ### Opening a database
-You can open a database by double-clicking its entry within the `Databases` table. 
+You can open a database by double-clicking its entry within the `DatabasesPane` table. 
 This will open a tab at the bottom of the `Project` panel that contains a table showing all [activities](Activities) 
 that the database contains.
 
 ### Creating a new database
-You can create a new database by clicking the `New database...` button in the `Databases` table. 
+You can create a new database by clicking the `New database...` button in the `DatabasesPane` table. 
 This will prompt you to enter a unique name for the database, after which the newly created database will open and you 
 can start adding activities as desired.
 
 ### Deleting a database
-You can delete a database by right-clicking on its entry withing the `Databases` table and selecting `Delete database`, 
+You can delete a database by right-clicking on its entry withing the `DatabasesPane` table and selecting `Delete database`, 
 this will prompt you for a confirmation. 
 
 > [!WARNING]
@@ -48,17 +48,17 @@ this will prompt you for a confirmation.
 > Make sure you anticipate the consequences of deleting a database before doing so!
 
 ### Duplicating a database
-You can duplicate a database by right-clicking on its entry withing the `Databases` table. 
+You can duplicate a database by right-clicking on its entry withing the `DatabasesPane` table. 
 This will prompt to enter a unique name for the new database, after which the newly duplicated database will open.
 
 ### Relinking a database
-Databases are often connected to other databases by exchanges. 
+DatabasesPane are often connected to other databases by exchanges. 
 Sometimes, you may want to replace the connections from a database to another, as an example:
 
 You have 2 databases, database _A_ and _B_, _B_ uses activities that are in _A_.
 You duplicated a database _A_ to make and test some changes to _A_copy_, and now want to change the links in _B_ to _A_copy_.
 
-To relink a database, you can right-click on its entry in the `Databases` table and choose `Relink the database`.
+To relink a database, you can right-click on its entry in the `DatabasesPane` table and choose `Relink the database`.
 In the pop-up, you can choose a new link for every database your database depends on.
 
 Relinking will only work if exact matches are found for the `name`, `reference product` adn `unit` for the activities. 

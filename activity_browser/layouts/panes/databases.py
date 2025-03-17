@@ -11,7 +11,7 @@ from activity_browser.ui import widgets, icons
 from activity_browser.ui.tables import delegates
 
 
-class Databases(QtWidgets.QWidget):
+class DatabasesPane(widgets.ABAbstractPane):
     """
     A widget that displays the databases and their details.
 
@@ -19,10 +19,12 @@ class Databases(QtWidgets.QWidget):
         view (DatabasesView): The view displaying the databases.
         model (DatabasesModel): The model containing the data for the databases.
     """
+    title = "Databases"
+    hideMode = widgets.ABDockWidget.HideMode.Hide
 
     def __init__(self, parent):
         """
-        Initializes the Databases widget.
+        Initializes the DatabasesPane widget.
 
         Args:
             parent (QtWidgets.QWidget): The parent widget.

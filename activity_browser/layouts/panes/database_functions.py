@@ -27,7 +27,8 @@ NODETYPES = {
 }
 
 
-class DatabaseFunctions(QtWidgets.QWidget):
+class DatabaseFunctionsPane(widgets.ABAbstractPane):
+    hideMode = widgets.ABDockWidget.HideMode.Hide
     """
     A widget that displays functions related to a specific database.
 
@@ -39,7 +40,7 @@ class DatabaseFunctions(QtWidgets.QWidget):
     """
     def __init__(self, parent, db_name: str):
         """
-        Initializes the DatabaseFunctions widget.
+        Initializes the DatabaseFunctionsPane widget.
 
         Args:
             parent (QtWidgets.QWidget): The parent widget.
@@ -47,6 +48,7 @@ class DatabaseFunctions(QtWidgets.QWidget):
         """
         super().__init__(parent)
         self.database = bd.Database(db_name)
+        self.title = db_name
         self.model = FunctionModel(self)
 
         # Create the QTableView and set the model
@@ -82,7 +84,7 @@ class DatabaseFunctions(QtWidgets.QWidget):
         """
         t = time()
         self.model.setDataFrame(self.build_df())
-        log.debug(f"Synced DatabaseFunctions in {time() - t:.2f} seconds")
+        log.debug(f"Synced DatabaseFunctionsPane in {time() - t:.2f} seconds")
 
     def build_df(self) -> pd.DataFrame:
         """
@@ -146,7 +148,7 @@ class DatabaseFunctions(QtWidgets.QWidget):
         cols = ["activity", "function", "type", "unit", "location", "categories", "activity_key", "function_key"]
         cols += [col for col in df.columns if col.startswith("property")]
 
-        log.debug(f"Built DatabaseFunctions dataframe in {time() - t:.2f} seconds")
+        log.debug(f"Built DatabaseFunctionsPane dataframe in {time() - t:.2f} seconds")
 
         return df[cols]
 
@@ -324,12 +326,12 @@ class FunctionView(ui.widgets.ABTreeView):
             menu.addAction(self.copy_sdf)
             return menu
 
-    def __init__(self, parent: DatabaseFunctions):
+    def __init__(self, parent: DatabaseFunctionsPane):
         """
         Initializes the FunctionView.
 
         Args:
-            parent (DatabaseFunctions): The parent widget.
+            parent (DatabaseFunctionsPane): The parent widget.
         """
         super().__init__(parent)
         self.setSortingEnabled(True)

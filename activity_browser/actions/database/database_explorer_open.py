@@ -16,6 +16,6 @@ class DatabaseExplorerOpen(ABAction):
     @staticmethod
     @exception_dialogs
     def run(db_name: str):
-        from activity_browser.layouts.panes import DatabaseExplorer
-        db_explorer = DatabaseExplorer(db_name, application.main_window)
+        from activity_browser.layouts.panes import DatabaseExplorerPane
+        db_explorer = DatabaseExplorerPane(db_name, application.main_window)
         db_explorer.show()

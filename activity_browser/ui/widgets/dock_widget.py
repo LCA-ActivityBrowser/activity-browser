@@ -1,4 +1,4 @@
-from qtpy import QtWidgets, QtCore, QtGui
+from qtpy import QtWidgets, QtCore, QtGui, shiboken
 from qtpy.QtCore import Qt
 
 
@@ -13,10 +13,12 @@ class ABDockWidget(QtWidgets.QDockWidget):
     def __init__(self, title: str, parent: QtWidgets.QMainWindow, mode=HideMode.Close) -> None:
         super().__init__(title, parent)
         self._hide_mode = mode
+        if self._hide_mode == HideMode.Close:
+            self.setAttribute(Qt.WA_DeleteOnClose)
 
         self.title_bar = TitleBar(title, self.button(), self)
         self.setTitleBarWidget(QtWidgets.QWidget())
-        self.visibilityChanged.connect(self.on_visibility_changed)
+        self.visibilityChanged.connect(self.updateOthers)
         self.dockLocationChanged.connect(self.updateTitlebar)
 
     def button(self):
@@ -27,12 +29,6 @@ class ABDockWidget(QtWidgets.QDockWidget):
             button = MinimizeButton(self)
             button.clicked.connect(self.hide)
         return button
-
-    def on_visibility_changed(self, visible: bool) -> None:
-        # this visibility monitor is really only needed to detect merges of
-        # tabbed, floating windows with existing docked windows
-        if not visible and isinstance(self.parent(), QtWidgets.QMainWindow):
-            self.updateOthers()
 
     def updateTitlebar(self, area: Qt.DockWidgetArea, update_others: bool = True) -> None:
         main_window = self.parent()
@@ -52,7 +48,10 @@ class ABDockWidget(QtWidgets.QDockWidget):
         # collect all siblings of this dockwidget...
         tab_siblings: list[QtWidgets.QDockWidget] = main_window.tabifiedDockWidgets(self)
         # and filter for non-floating siblings in the same area
-        tab_siblings = [x for x in tab_siblings if main_window.dockWidgetArea(x) == area and not x.isFloating()]
+        tab_siblings = [x for x in tab_siblings
+                        if main_window.dockWidgetArea(x) == area
+                        and not x.isFloating()
+                        and not x.isHidden()]
 
         if tab_siblings:
             # show a title if we're not floating (this tab is settled),
@@ -80,14 +79,16 @@ class ABDockWidget(QtWidgets.QDockWidget):
             return self.showTitlebar()
         self.setTitleBarWidget(QtWidgets.QWidget())
 
-        tab_bars = self.parent().findChildren(QtWidgets.QTabBar)
-        for tab_bar in tab_bars:
-            texts = [tab_bar.tabText(i) for i in range(tab_bar.count())]
+        pointer_id = shiboken.getCppPointer(self)[0]
 
-            if self.windowTitle() not in texts:
+        tab_bars = self.parent().findChildren(QtWidgets.QTabBar, options=Qt.FindDirectChildrenOnly)
+        for tab_bar in tab_bars:
+            ids = [tab_bar.tabData(i) for i in range(tab_bar.count())]
+
+            if pointer_id not in ids:
                 continue
 
-            index = texts.index(self.windowTitle())
+            index = ids.index(pointer_id)
             tab_bar.setTabButton(index, QtWidgets.QTabBar.RightSide, self.button())
             return
 
@@ -169,3 +170,11 @@ class MinimizeButton(QtWidgets.QWidget):
         layout.setContentsMargins(5, 0, 0, 0)
         layout.addWidget(self.label)
         self.setLayout(layout)
+
+import gc
+
+def objects_by_id(id_):
+    for obj in gc.get_objects():
+        if id(obj) == id_:
+            return obj
+    raise Exception("No found")

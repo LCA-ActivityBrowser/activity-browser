@@ -253,7 +253,7 @@ def scenario_replace_databases(df_: pd.DataFrame, replacements: dict) -> pd.Data
             response = critical_message.exec_()
         QApplication.setOverrideCursor(Qt.WaitCursor)
         raise ScenarioDatabaseNotFoundError(
-            "Incompatible Databases in the scenario file, unable to complete further checks on the file"
+            "Incompatible DatabasesPane in the scenario file, unable to complete further checks on the file"
         )
     else:
         df_.loc[df.index] = df

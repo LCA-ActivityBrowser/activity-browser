@@ -20,7 +20,7 @@ TODO: Later only keep general tutorial sections, not individual tutorials
 ___
 ○ [**📚 Projects**](Projects)
 
-○ [**📒 Databases**](Databases)
+○ [**📒 DatabasesPane**](Databases)
 
 ○ [**🧾 Activities**](Activities)
 

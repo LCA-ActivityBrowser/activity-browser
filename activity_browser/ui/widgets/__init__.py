@@ -1,3 +1,4 @@
+from .abstract_pane import ABAbstractPane
 from .comparison_switch import SwitchComboBox
 from .cutoff_menu import CutoffMenu
 from .dialog import (ActivityLinkingDialog, ActivityLinkingResultsDialog,
