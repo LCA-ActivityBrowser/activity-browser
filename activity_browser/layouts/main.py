@@ -33,8 +33,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.status_bar = Statusbar(self)
         self.setStatusBar(self.status_bar)
-        self.setTabPosition(QtCore.Qt.AllDockWidgetAreas, QtWidgets.QTabWidget.West)
-        self.setDockOptions(QtWidgets.QMainWindow.AllowTabbedDocks | QtWidgets.QMainWindow.AllowNestedDocks)
+        # self.setTabPosition(QtCore.Qt.AllDockWidgetAreas, QtWidgets.QTabWidget.South)
+        # # self.setDockOptions(QtWidgets.QMainWindow.AllowTabbedDocks | QtWidgets.QMainWindow.AllowNestedDocks)
 
         for pane in self.standardPanes:
             dock_widget = pane(self).getDockWidget(self)

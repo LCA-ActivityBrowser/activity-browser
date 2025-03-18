@@ -65,7 +65,11 @@ class ABDockWidget(QtWidgets.QDockWidget):
 class TitleBar(QtWidgets.QWidget):
     def __init__(self, title: str, button, parent=None):
         super().__init__(parent)
+
         self.label = QtWidgets.QLabel(title, self)
+        font = self.font()
+        font.setPointSize(font.pointSize() + 1)
+        self.label.setFont(font)
 
         layout = QtWidgets.QHBoxLayout()
         layout.addWidget(self.label)
