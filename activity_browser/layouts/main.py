@@ -1,5 +1,6 @@
-# -*- coding: utf-8 -*-
-from qtpy import QtCore, QtWidgets
+from functools import partial
+from qtpy import QtCore, QtWidgets, shiboken
+from qtpy.QtCore import Qt
 
 import bw2data as bd
 
@@ -30,11 +31,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.menu_bar = MenuBar(self)
         self.setMenuBar(self.menu_bar)
 
-
         self.status_bar = Statusbar(self)
         self.setStatusBar(self.status_bar)
-        self.setTabPosition(QtCore.Qt.AllDockWidgetAreas, QtWidgets.QTabWidget.North)
-        self.setDockOptions(QtWidgets.QMainWindow.GroupedDragging | QtWidgets.QMainWindow.AllowTabbedDocks | QtWidgets.QMainWindow.AllowNestedDocks)
+        self.setTabPosition(QtCore.Qt.AllDockWidgetAreas, QtWidgets.QTabWidget.West)
+        self.setDockOptions(QtWidgets.QMainWindow.AllowTabbedDocks | QtWidgets.QMainWindow.AllowNestedDocks)
 
         for pane in self.standardPanes:
             dock_widget = pane(self).getDockWidget(self)
@@ -46,7 +46,6 @@ class MainWindow(QtWidgets.QMainWindow):
     def connect_signals(self):
         # Keyboard shortcuts
         signals.restore_cursor.connect(self.restore_user_control)
-
         signals.project.changed.connect(self.set_titlebar)
 
     def set_titlebar(self):

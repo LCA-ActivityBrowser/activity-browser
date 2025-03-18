@@ -1,5 +1,7 @@
+import PySide6
 from qtpy import QtWidgets, QtCore, QtGui, shiboken
 from qtpy.QtCore import Qt
+import time
 
 
 class HideMode:
@@ -8,18 +10,27 @@ class HideMode:
 
 
 class ABDockWidget(QtWidgets.QDockWidget):
+    updatingTabBar = False
     HideMode = HideMode
 
     def __init__(self, title: str, parent: QtWidgets.QMainWindow, mode=HideMode.Close) -> None:
         super().__init__(title, parent)
+        self.main = parent
+        self.title = title
+
+        self._updating_tab_bar = ""
+
         self._hide_mode = mode
         if self._hide_mode == HideMode.Close:
             self.setAttribute(Qt.WA_DeleteOnClose)
 
         self.title_bar = TitleBar(title, self.button(), self)
-        self.setTitleBarWidget(QtWidgets.QWidget())
-        self.visibilityChanged.connect(self.updateOthers)
-        self.dockLocationChanged.connect(self.updateTitlebar)
+        self.setTitleBarWidget(self.title_bar)
+
+    def moveEvent(self, event, /):
+        if not self.updatingTabBar and event.pos().y() >= 0 and event.pos().x() >= 0:
+            self.updateTabBar()
+        super().moveEvent(event)
 
     def button(self):
         if self._hide_mode == HideMode.Close:
@@ -30,67 +41,25 @@ class ABDockWidget(QtWidgets.QDockWidget):
             button.clicked.connect(self.hide)
         return button
 
-    def updateTitlebar(self, area: Qt.DockWidgetArea, update_others: bool = True) -> None:
-        main_window = self.parent()
-        if not isinstance(main_window, QtWidgets.QMainWindow):
-            # mysterious parents call for a title
-            self.showTitlebar()
-            return
-
-        if not main_window.tabifiedDockWidgets(self):
-            # if there's no siblings we ain't a tab!
-            self.showTitlebar()
-            self.updateOthers() if update_others else None
-            return
-
-        # at this point the dockwidget is either a resting tab or a tab
-        # that is being dragged and hasn't been dropped yet (siblings are updated post-drop)
-        # collect all siblings of this dockwidget...
-        tab_siblings: list[QtWidgets.QDockWidget] = main_window.tabifiedDockWidgets(self)
-        # and filter for non-floating siblings in the same area
-        tab_siblings = [x for x in tab_siblings
-                        if main_window.dockWidgetArea(x) == area
-                        and not x.isFloating()
-                        and not x.isHidden()]
-
-        if tab_siblings:
-            # show a title if we're not floating (this tab is settled),
-            # hide it otherwise (this tab just became floating but wasn't dropped)
-            self.showTitlebar(self.isFloating())
-        else:
-            self.showTitlebar()
-
-        self.updateOthers() if update_others else None
-
-    def updateOthers(self):
-        all_dockwidgets: list[ABDockWidget] = self.parent().findChildren(ABDockWidget)
-        for dockwidget in all_dockwidgets:
-            if dockwidget != self:
-                dockwidget.updateTitlebar(self.parent().dockWidgetArea(dockwidget), False)
-
-    def showTitlebar(self, show: bool = True) -> None:
-        if not show:
-            return self.hideTitlebar()
-        self.title_bar.set_button(self.button())
-        self.setTitleBarWidget(self.title_bar)
-
-    def hideTitlebar(self, hide: bool = True) -> None:
-        if not hide:
-            return self.showTitlebar()
-        self.setTitleBarWidget(QtWidgets.QWidget())
-
+    def updateTabBar(self) -> None:
+        type(self).updatingTabBar = True
         pointer_id = shiboken.getCppPointer(self)[0]
+        tab_bars = self.main.findChildren(QtWidgets.QTabBar, options=Qt.FindDirectChildrenOnly)
 
-        tab_bars = self.parent().findChildren(QtWidgets.QTabBar, options=Qt.FindDirectChildrenOnly)
         for tab_bar in tab_bars:
-            ids = [tab_bar.tabData(i) for i in range(tab_bar.count())]
+            tab_bar.setMovable(False)
 
+            ids = [tab_bar.tabData(i) for i in range(tab_bar.count())]
             if pointer_id not in ids:
                 continue
 
             index = ids.index(pointer_id)
-            tab_bar.setTabButton(index, QtWidgets.QTabBar.RightSide, self.button())
-            return
+
+            for i in range(tab_bar.count()):
+                tab_bar.setTabVisible(i, i != index)
+            self.raise_()
+
+        type(self).updatingTabBar = False
 
 
 class TitleBar(QtWidgets.QWidget):
@@ -171,10 +140,22 @@ class MinimizeButton(QtWidgets.QWidget):
         layout.addWidget(self.label)
         self.setLayout(layout)
 
-import gc
 
-def objects_by_id(id_):
-    for obj in gc.get_objects():
-        if id(obj) == id_:
-            return obj
-    raise Exception("No found")
+def mousePressEvent(self, event):
+    if event.button() == Qt.LeftButton:
+        self.drag_start_pos = event.pos()
+
+
+def mouseMoveEvent(self, event):
+    if not self.drag_start_pos:
+        return
+
+    # Check if mouse moved beyond threshold
+    if (event.pos() - self.drag_start_pos).manhattanLength() > QtWidgets.QApplication.startDragDistance():
+        index = self.tabAt(self.drag_start_pos)
+        if index >= 0:
+            startDrag(self, index)
+
+def startDrag(self, index):
+    """Start dragging a tab."""
+    print("Dragging success")
