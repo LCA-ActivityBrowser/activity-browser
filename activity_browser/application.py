@@ -76,6 +76,5 @@ if qtpy.PYSIDE6:
     font = application.font()
     font.setFamily("PT Sans")
     font.setPointSize(10)
-    print(font)
     application.setFont(font)
     application.setAttribute(Qt.AA_DontShowIconsInMenus, True)
