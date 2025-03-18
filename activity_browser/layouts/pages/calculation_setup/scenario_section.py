@@ -88,15 +88,13 @@ class ScenarioSection(QtWidgets.QWidget):
         self.connect_signals()
 
     def connect_signals(self) -> None:
+        signals.project.changed.connect(self.clear_tables)
+        signals.project.changed.connect(self.can_add_table)
+        signals.parameter_superstructure_built.connect(self.handle_superstructure_signal)
+
         self.table_btn.clicked.connect(self.add_table)
         self.table_btn.clicked.connect(self.can_add_table)
         self.save_scenario.clicked.connect(self.save_action)
-        signals.project.changed.connect(self.clear_tables)
-        signals.project.changed.connect(self.can_add_table)
-        signals.parameter_superstructure_built.connect(
-            self.handle_superstructure_signal
-        )
-
         self.combine_group.buttonClicked.connect(self.toggle_combine_type)
 
     def update_stats(self) -> None:
