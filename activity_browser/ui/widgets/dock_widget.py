@@ -28,8 +28,8 @@ class ABDockWidget(QtWidgets.QDockWidget):
         self.setTitleBarWidget(self.title_bar)
 
     def moveEvent(self, event, /):
-        if not self.updatingTabBar and event.pos().y() >= 0 and event.pos().x() >= 0:
-            self.updateTabBar()
+        # if not self.updatingTabBar and event.pos().y() >= 0 and event.pos().x() >= 0:
+        #     self.updateTabBar()
         super().moveEvent(event)
 
     def button(self):
@@ -41,25 +41,25 @@ class ABDockWidget(QtWidgets.QDockWidget):
             button.clicked.connect(self.hide)
         return button
 
-    def updateTabBar(self) -> None:
-        type(self).updatingTabBar = True
-        pointer_id = shiboken.getCppPointer(self)[0]
-        tab_bars = self.main.findChildren(QtWidgets.QTabBar, options=Qt.FindDirectChildrenOnly)
-
-        for tab_bar in tab_bars:
-            tab_bar.setMovable(False)
-
-            ids = [tab_bar.tabData(i) for i in range(tab_bar.count())]
-            if pointer_id not in ids:
-                continue
-
-            index = ids.index(pointer_id)
-
-            for i in range(tab_bar.count()):
-                tab_bar.setTabVisible(i, i != index)
-            self.raise_()
-
-        type(self).updatingTabBar = False
+    # def updateTabBar(self) -> None:
+    #     type(self).updatingTabBar = True
+    #     pointer_id = shiboken.getCppPointer(self)[0]
+    #     tab_bars = self.main.findChildren(QtWidgets.QTabBar, options=Qt.FindDirectChildrenOnly)
+    #
+    #     for tab_bar in tab_bars:
+    #         tab_bar.setMovable(False)
+    #
+    #         ids = [tab_bar.tabData(i) for i in range(tab_bar.count())]
+    #         if pointer_id not in ids:
+    #             continue
+    #
+    #         index = ids.index(pointer_id)
+    #
+    #         for i in range(tab_bar.count()):
+    #             tab_bar.setTabVisible(i, i != index)
+    #         self.raise_()
+    #
+    #     type(self).updatingTabBar = False
 
 
 class TitleBar(QtWidgets.QWidget):
