@@ -70,6 +70,7 @@ class TitleBar(QtWidgets.QWidget):
         font = self.font()
         font.setPointSize(font.pointSize() + 1)
         self.label.setFont(font)
+        self.label.setCursor(QtGui.QCursor(Qt.CursorShape.SizeAllCursor))
 
         layout = QtWidgets.QHBoxLayout()
         layout.addWidget(self.label)
@@ -92,6 +93,7 @@ class CloseButton(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
 
+
         self.label = QtWidgets.QLabel("×", self)
 
         self.label.setFont(QtGui.QFont("Arial", 12, QtGui.QFont.Bold))
@@ -99,7 +101,7 @@ class CloseButton(QtWidgets.QWidget):
         self.label.setFixedSize(16, 16)
         self.label.mousePressEvent = lambda event: self.clicked.emit()
 
-        self.setStyleSheet("""
+        self.label.setStyleSheet("""
             QLabel {
                 border-radius: 8px;
                 background-color: transparent;
