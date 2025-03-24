@@ -4,8 +4,8 @@ from bw2io import *
 
 import bw2io.remote as remote
 
-from activity_browser.info import __ei_versions__
-from activity_browser.utils import sort_semantic_versions
+
+
 
 log = getLogger(__name__)
 
@@ -13,6 +13,8 @@ log = getLogger(__name__)
 def ab_bw2setup(version):
     import bw2io as bi
     from activity_browser.mod.bw2io.importers.ecospold2_biosphere import ABEcospold2BiosphereImporter
+    from activity_browser.info import __ei_versions__
+    from activity_browser.utils import sort_semantic_versions
     from .migrations import ab_create_core_migrations
 
     ab_create_core_migrations()
