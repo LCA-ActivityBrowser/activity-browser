@@ -18,7 +18,7 @@ class DatabaseOpen(ABAction):
         from activity_browser.layouts import main, panes
 
         for db_name in database_names:
-            db_pane = panes.DatabaseFunctionsPane(application.main_window, db_name)
+            db_pane = panes.DatabaseProductsPane(application.main_window, db_name)
             dock_widget = widgets.ABDockWidget(db_name, application.main_window)
             dock_widget.setWidget(db_pane)
             application.main_window.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, dock_widget)

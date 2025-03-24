@@ -16,15 +16,15 @@ class NewNodeDialog(QDialog):
             self.setWindowTitle("New process")
             layout.addWidget(QLabel("Process name"), row, 0)
         else:
-            self.setWindowTitle("New function")
-            layout.addWidget(QLabel("Function name"), row, 0)
+            self.setWindowTitle("New product")
+            layout.addWidget(QLabel("Product name"), row, 0)
         self._process_name_edit = QLineEdit()
         self._process_name_edit.textChanged.connect(self._handle_text_changed)
         layout.addWidget(self._process_name_edit, row, 1)
         row += 1
         self._ref_product_name_edit = QLineEdit()
         if process:
-            layout.addWidget(QLabel("Function name"), row, 0)
+            layout.addWidget(QLabel("Product name"), row, 0)
             layout.addWidget(self._ref_product_name_edit, row, 1)
             row += 1
         layout.addWidget(QLabel("Unit"), row, 0)

@@ -13,8 +13,6 @@ from .signals import signals
 from .settings import ab_settings, project_settings
 from .info import __version__ as version
 from .layouts.main import MainWindow
-from .plugin import Plugin
-from .controllers import plugin_controller
 
 log = getLogger(__name__)
 

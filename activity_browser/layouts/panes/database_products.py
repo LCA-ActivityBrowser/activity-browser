@@ -15,8 +15,8 @@ from activity_browser.bwutils import AB_metadata
 log = getLogger(__name__)
 
 DEFAULT_STATE = {
-    "columns": ["activity", "function", "Type", "Unit", "Location"],
-    "visible_columns": ["activity", "function", "type", "unit", "location"],
+    "columns": ["activity", "product", "Type", "Unit", "Location"],
+    "visible_columns": ["activity", "product", "type", "unit", "location"],
 }
 
 NODETYPES = {
@@ -27,32 +27,32 @@ NODETYPES = {
 }
 
 
-class DatabaseFunctionsPane(widgets.ABAbstractPane):
+class DatabaseProductsPane(widgets.ABAbstractPane):
     hideMode = widgets.ABDockWidget.HideMode.Hide
     """
-    A widget that displays functions related to a specific database.
+    A widget that displays products related to a specific database.
 
     Attributes:
-        database (bd.Database): The database to display functions for.
-        model (FunctionModel): The model containing the data for the functions.
-        table_view (FunctionView): The view displaying the functions.
+        database (bd.Database): The database to display products for.
+        model (ProductModel): The model containing the data for the products.
+        table_view (ProductView): The view displaying the products.
         search (widgets.ABLineEdit): The search bar for quick search.
     """
     def __init__(self, parent, db_name: str):
         """
-        Initializes the DatabaseFunctionsPane widget.
+        Initializes the DatabaseProductsPane widget.
 
         Args:
             parent (QtWidgets.QWidget): The parent widget.
-            db_name (str): The name of the database to display functions for.
+            db_name (str): The name of the database to display products for.
         """
         super().__init__(parent)
         self.database = bd.Database(db_name)
         self.title = db_name
-        self.model = FunctionModel(self)
+        self.model = ProductModel(self)
 
         # Create the QTableView and set the model
-        self.table_view = FunctionView(self)
+        self.table_view = ProductView(self)
         self.table_view.setModel(self.model)
         self.table_view.restoreSate(self.get_state_from_settings(), self.build_df())
 
@@ -84,14 +84,14 @@ class DatabaseFunctionsPane(widgets.ABAbstractPane):
         """
         t = time()
         self.model.setDataFrame(self.build_df())
-        log.debug(f"Synced DatabaseFunctionsPane in {time() - t:.2f} seconds")
+        log.debug(f"Synced DatabaseProductsPane in {time() - t:.2f} seconds")
 
     def build_df(self) -> pd.DataFrame:
         """
-        Builds a DataFrame from the database functions.
+        Builds a DataFrame from the database products.
 
         Returns:
-            pd.DataFrame: The DataFrame containing the functions data.
+            pd.DataFrame: The DataFrame containing the products data.
         """
         t = time()
         cols = ["name", "key", "processor", "product", "type", "unit", "location", "id", "categories", "properties"]
@@ -109,28 +109,27 @@ class DatabaseFunctionsPane(widgets.ABAbstractPane):
         )
 
         # "activity"
-        # node.name by default, but processor.name in case of a Function
+        # node.name by default, but processor.name in case of a Product
         df["activity"] = df["name"]
         df.update(df["processor_name"].rename("activity"))
 
         # "product"
         # node.name for "product"-types, overwritten by node.product
-        df["function_name"] = df[df.type == "product"]["name"]
-        df.update(df["product"].rename("function_name"))
-        df["function"] = df["function_name"]
+        df["product_name"] = df[df.type == "product"]["name"]
+        df.update(df["product"].rename("product_name"))
+        df["product"] = df["product_name"]
 
         # "activity_key"
         # activity that's opened on double click
-        # node.key by default, but node.processor in case of a Function
+        # node.key by default, but node.processor in case of a Product
         df["activity_key"] = df["key"]
         df.update(df["processor"].rename("activity_key"))
 
-        # "function_key"
-        # function or product of an activity
-        # node.key by default, but function.key
-        df["function_key"] = df["key"]
+        # "product_key"
+        #  product of an activity
+        df["product_key"] = df["key"]
 
-        # drop all processes that have functions
+        # drop all processes that have products
         df = df.drop(df[df.key.isin(df.processor)].index)
 
         if not df.properties.isna().all():
@@ -145,10 +144,10 @@ class DatabaseFunctionsPane(widgets.ABAbstractPane):
                 how="left",
             )
 
-        cols = ["activity", "function", "type", "unit", "location", "categories", "activity_key", "function_key"]
+        cols = ["activity", "product", "type", "unit", "location", "categories", "activity_key", "product_key"]
         cols += [col for col in df.columns if col.startswith("property")]
 
-        log.debug(f"Built DatabaseFunctionsPane dataframe in {time() - t:.2f} seconds")
+        log.debug(f"Built DatabaseProductsPane dataframe in {time() - t:.2f} seconds")
 
         return df[cols]
 
@@ -200,9 +199,9 @@ class DatabaseFunctionsPane(widgets.ABAbstractPane):
         self.search.setPalette(palette)
 
 
-class FunctionView(ui.widgets.ABTreeView):
+class ProductView(ui.widgets.ABTreeView):
     """
-    A view that displays the functions in a tree structure.
+    A view that displays the products in a tree structure.
 
     Attributes:
         defaultColumnDelegates (dict): The default column delegates for the view.
@@ -210,12 +209,12 @@ class FunctionView(ui.widgets.ABTreeView):
     defaultColumnDelegates = {
         "categories": delegates.ListDelegate,
         "activity_key": delegates.StringDelegate,
-        "function_key": delegates.StringDelegate,
+        "product_key": delegates.StringDelegate,
     }
 
     class ContextMenu(ui.widgets.ABTreeView.ContextMenu):
         """
-        A context menu for the FunctionView.
+        A context menu for the ProductView.
 
         Attributes:
             num_products (int): The number of selected products.
@@ -227,13 +226,13 @@ class FunctionView(ui.widgets.ABTreeView):
             product_delete (QAction): The action to delete a product.
             copy_sdf (QAction): The action to copy the SDF to the clipboard.
         """
-        def __init__(self, pos, view: "FunctionView"):
+        def __init__(self, pos, view: "ProductView"):
             """
             Initializes the ContextMenu.
 
             Args:
                 pos: The position of the context menu.
-                view (FunctionView): The view displaying the functions.
+                view (ProductView): The view displaying the products.
             """
             super().__init__(pos, view)
             self.num_products = len(view.selected_products)
@@ -326,12 +325,12 @@ class FunctionView(ui.widgets.ABTreeView):
             menu.addAction(self.copy_sdf)
             return menu
 
-    def __init__(self, parent: DatabaseFunctionsPane):
+    def __init__(self, parent: DatabaseProductsPane):
         """
-        Initializes the FunctionView.
+        Initializes the ProductView.
 
         Args:
-            parent (DatabaseFunctionsPane): The parent widget.
+            parent (DatabaseProductsPane): The parent widget.
         """
         super().__init__(parent)
         self.setSortingEnabled(True)
@@ -373,8 +372,8 @@ class FunctionView(ui.widgets.ABTreeView):
         Returns:
             list[tuple]: The list of selected products.
         """
-        items = [i.internalPointer() for i in self.selectedIndexes() if isinstance(i.internalPointer(), FunctionItem)]
-        return list({item["function_key"] for item in items if item["function_key"] is not None})
+        items = [i.internalPointer() for i in self.selectedIndexes() if isinstance(i.internalPointer(), ProductItem)]
+        return list({item["product_key"] for item in items if item["product_key"] is not None})
 
     @property
     def selected_activities(self) -> [tuple]:
@@ -384,13 +383,13 @@ class FunctionView(ui.widgets.ABTreeView):
         Returns:
             list[tuple]: The list of selected activities.
         """
-        items = [i.internalPointer() for i in self.selectedIndexes() if isinstance(i.internalPointer(), FunctionItem)]
+        items = [i.internalPointer() for i in self.selectedIndexes() if isinstance(i.internalPointer(), ProductItem)]
         return list({item["activity_key"] for item in items if item["activity_key"] is not None})
 
 
-class FunctionItem(ui.widgets.ABDataItem):
+class ProductItem(ui.widgets.ABDataItem):
     """
-    An item representing a function in the tree view.
+    An item representing a product in the tree view.
     """
     def decorationData(self, col, key):
         """
@@ -409,7 +408,7 @@ class FunctionItem(ui.widgets.ABDataItem):
             if self["type"] in NODETYPES["biosphere"]:
                 return ui.icons.qicons.biosphere
             return ui.icons.qicons.process
-        if key == "function":
+        if key == "product":
             if self["type"] in ["product", "processwithreferenceproduct"]:
                 return ui.icons.qicons.product
             elif self["type"] == "waste":
@@ -436,14 +435,14 @@ class FunctionItem(ui.widgets.ABDataItem):
         return super().displayData(col, key)
 
 
-class FunctionModel(ui.widgets.ABAbstractItemModel):
+class ProductModel(ui.widgets.ABAbstractItemModel):
     """
-    A model representing the data for the functions.
+    A model representing the data for the products.
 
     Attributes:
         dataItemClass (type): The class of the data items.
     """
-    dataItemClass = FunctionItem
+    dataItemClass = ProductItem
 
     def mimeData(self, indices: [QtCore.QModelIndex]):
         """
@@ -457,7 +456,7 @@ class FunctionModel(ui.widgets.ABAbstractItemModel):
         """
         data = core.ABMimeData()
         keys = set(self.values_from_indices("activity_key", indices))
-        keys.update(self.values_from_indices("function_key", indices))
+        keys.update(self.values_from_indices("product_key", indices))
         keys = {key for key in keys if isinstance(key, tuple)}
         data.setPickleData("application/bw-nodekeylist", list(keys))
         return data
