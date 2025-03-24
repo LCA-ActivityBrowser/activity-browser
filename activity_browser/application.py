@@ -5,7 +5,7 @@ from logging import getLogger
 import qtpy
 from qtpy.QtCore import QCoreApplication, QSysInfo, Qt
 from qtpy.QtWidgets import QApplication, QStyleFactory, QMainWindow
-from qtpy.QtGui import QFontDatabase
+from qtpy.QtGui import QFontDatabase, QFont
 
 from activity_browser.static import fonts
 
@@ -69,12 +69,14 @@ application = ABApplication()
 
 QFontDatabase.addApplicationFont(fonts.__path__[0] + "/mono.ttf")
 QFontDatabase.addApplicationFont(fonts.__path__[0] + "/ptsans.ttf")
+QFontDatabase.addApplicationFont(fonts.__path__[0] + "/notosans.ttf")
 
 if qtpy.PYSIDE6:
     application.setStyle(QStyleFactory().create("fusion"))
 
     font = application.font()
-    font.setFamily("PT Sans")
+    font.setFamily("Noto Sans")
+    font.setStyleStrategy(QFont.PreferQuality)
     font.setPointSize(10)
     application.setFont(font)
     application.setAttribute(Qt.AA_DontShowIconsInMenus, True)
