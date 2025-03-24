@@ -103,8 +103,13 @@ class ExchangesTab(QtWidgets.QWidget):
                    [x for x in biosphere if (x.input["type"] == "emission" and x["amount"] >= 0) or (x.input["type"] != "emission" and x["amount"] < 0)])
 
         # Update the models with the new data
-        self.output_model.setDataFrame(self.build_df(outputs))
-        self.input_model.setDataFrame(self.build_df(inputs))
+        output_df = self.build_df(outputs)
+        self.output_model.setDataFrame(output_df)
+        self.output_view.drag_drop_hint.setVisible(output_df.empty)
+
+        input_df = self.build_df(inputs)
+        self.input_model.setDataFrame(input_df)
+        self.input_view.drag_drop_hint.setVisible(input_df.empty)
 
     def build_df(self, exchanges) -> pd.DataFrame:
         """
@@ -326,10 +331,14 @@ class ExchangesView(widgets.ABTreeView):
             parent (QtWidgets.QWidget): The parent widget.
         """
         super().__init__(parent)
-        # Enable drag and drop functionality
         self.setAcceptDrops(True)
-        # Enable sorting of columns
         self.setSortingEnabled(True)
+
+        self.drag_drop_hint = QtWidgets.QLabel("Drag products here to create new exchanges.", self)
+        fnt = self.drag_drop_hint.font()
+        fnt.setPointSize(fnt.pointSize() + 2)
+        fnt.setWeight(QtGui.QFont.Weight.ExtraLight)
+        self.drag_drop_hint.setFont(fnt)
 
         # Set the property delegate
         self.propertyDelegate = delegates.PropertyDelegate(self)
@@ -445,6 +454,15 @@ class ExchangesView(widgets.ABTreeView):
         # Run the action for new exchanges
         for exc_type, keys in exchanges.items():
             actions.ExchangeNew.run(keys, self.activity.key, exc_type)
+
+    def move_hint(self):
+        x = self.width() / 2 - self.drag_drop_hint.width() / 2
+        y = self.height() / 2 - self.drag_drop_hint.height() / 2
+        self.drag_drop_hint.move(int(x), int(y))
+
+    def moveEvent(self, event):
+        super().moveEvent(event)
+        self.move_hint()
 
 
 class ExchangesItem(widgets.ABDataItem):
