@@ -1,8 +1,9 @@
-from qtpy import QtWidgets, QtCore
+from qtpy import QtWidgets, QtCore, QtGui
 
 import bw_functional as bf
 
 from activity_browser import actions, bwutils
+from activity_browser.ui import widgets
 
 
 class ActivityHeader(QtWidgets.QWidget):
@@ -53,8 +54,8 @@ class ActivityHeader(QtWidgets.QWidget):
         }
 
         # Arrange widgets for display as a grid
-        for i, (label, widget) in enumerate(setup.items()):
-            self.layout().addWidget(QtWidgets.QLabel(f"<b>{label}</b>"), i, 1)
+        for i, (title, widget) in enumerate(setup.items()):
+            self.layout().addWidget(widgets.ABLabel.demiBold(title, self), i, 1)
             self.layout().addWidget(widget, i, 2, 1, 4)
 
 

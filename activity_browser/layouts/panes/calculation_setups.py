@@ -145,7 +145,7 @@ class CalculationSetupsItem(widgets.ABDataItem):
         """
         font = super().fontData(col, key)
         if key == "name":
-            font.setBold(True)
+            font.setWeight(QtGui.QFont.Weight.DemiBold)
         return font
 
 

@@ -1,6 +1,7 @@
 from qtpy import QtWidgets
 
 from activity_browser import signals, actions
+from activity_browser.ui import widgets
 
 from .scenario_section import ScenarioSection
 from .functional_unit_section import FunctionalUnitSection
@@ -35,7 +36,7 @@ class CalculationSetupPage(QtWidgets.QWidget):
 
         top_layout = QtWidgets.QHBoxLayout()
         top_layout.setContentsMargins(0, 0, 10, 0)
-        top_layout.addWidget(QtWidgets.QLabel("<b>⠀Functional Units:</b>"))
+        top_layout.addWidget(widgets.ABLabel.demiBold("    Functional Units:", self))
         top_layout.addStretch()
         top_layout.addWidget(self.type_dropdown)
         top_layout.addWidget(self.run_button)
@@ -45,7 +46,7 @@ class CalculationSetupPage(QtWidgets.QWidget):
         layout.addWidget(self.functional_unit_section)
 
         # Add ic label and view to the layout
-        layout.addWidget(QtWidgets.QLabel("<b>⠀Impact Categories:</b>"))
+        layout.addWidget(widgets.ABLabel.demiBold("    Impact Categories:", self))
         layout.addWidget(self.impact_category_section)
 
         # Add scenario label and view to the layout

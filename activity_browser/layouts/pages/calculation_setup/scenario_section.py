@@ -8,7 +8,7 @@ import pandas as pd
 import bw2data as bd
 
 from activity_browser import signals
-from activity_browser.ui import icons, tables
+from activity_browser.ui import icons, tables, widgets
 from activity_browser.bwutils import superstructure as ss
 from activity_browser.bwutils import errors
 
@@ -63,7 +63,7 @@ class ScenarioSection(QtWidgets.QWidget):
         tool_row.setContentsMargins(0, 0, 0, 0)
         tool_row.addSpacing(10)
 
-        tool_row.addWidget(QtWidgets.QLabel("<b>⠀Scenarios:</b>"))
+        tool_row.addWidget(widgets.ABLabel.demiBold("  Scenarios:", self))
         tool_row.addStretch()
         tool_row.addWidget(self.table_btn)
         tool_row.addWidget(self.save_scenario)

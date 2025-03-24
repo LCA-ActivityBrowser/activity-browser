@@ -24,3 +24,4 @@ from .wizard_page import ABWizardPage, ABThreadedWizardPage
 from .file_selector import ABFileSelector
 from .database_name_edit import DatabaseNameEdit
 from .dock_widget import ABDockWidget
+from .label import ABLabel

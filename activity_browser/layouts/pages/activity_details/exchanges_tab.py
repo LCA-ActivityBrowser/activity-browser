@@ -71,11 +71,11 @@ class ExchangesTab(QtWidgets.QWidget):
         layout.setContentsMargins(0, 10, 0, 1)
 
         # Add output label and view to the layout
-        layout.addWidget(QtWidgets.QLabel("<b>⠀Output:</b>"))
+        layout.addWidget(widgets.ABLabel.demiBold(" Output:", self))
         layout.addWidget(self.output_view)
 
         # Add input label and view to the layout
-        layout.addWidget(QtWidgets.QLabel("<b>⠀Input:</b>"))
+        layout.addWidget(widgets.ABLabel.demiBold(" Input:", self))
         layout.addWidget(self.input_view)
 
         # Set the layout for the widget
@@ -604,7 +604,7 @@ class ExchangesItem(widgets.ABDataItem):
 
         # set the font to bold if it's a production/functional exchange
         if self.functional:
-            font.setBold(True)
+            font.setWeight(QtGui.QFont.Weight.DemiBold)
         return font
 
     def backgroundData(self, col: int, key: str):
