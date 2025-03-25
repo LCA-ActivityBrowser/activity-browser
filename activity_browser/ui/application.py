@@ -1,26 +1,58 @@
-# -*- coding: utf-8 -*-
-import os
 from logging import getLogger
 
-import qtpy
-from qtpy.QtCore import QCoreApplication, QSysInfo, Qt
-from qtpy.QtWidgets import QApplication, QStyleFactory, QMainWindow
+from qtpy import QtGui, QtWidgets, PYSIDE6
+from qtpy.QtCore import Qt
 from qtpy.QtGui import QFontDatabase, QFont
 
 from activity_browser.static import fonts
 
-
 log = getLogger(__name__)
 
 
-class ABApplication(QApplication):
+class ABApplication(QtWidgets.QApplication):
     _main_window = None
     _controllers = None
 
     windows = []
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.setAttribute(Qt.AA_DontShowIconsInMenus, True)
+        self.setAttribute(Qt.AA_ShareOpenGLContexts, True)
+
+        self.add_fonts()
+
+        if PYSIDE6:
+            self.pyside6_setup()
+
+    def add_fonts(self):
+        QFontDatabase.addApplicationFont(fonts.__path__[0] + "/mono.ttf")
+        QFontDatabase.addApplicationFont(fonts.__path__[0] + "/ptsans.ttf")
+        QFontDatabase.addApplicationFont(fonts.__path__[0] + "/notosans.ttf")
+
+    def pyside6_setup(self):
+        style = QtWidgets.QStyleFactory().create("fusion")
+        self.setStyle(style)
+
+        font = self.font()
+        font.setFamily("Noto Sans")
+        font.setStyleStrategy(QFont.PreferQuality)
+        font.setPointSize(10)
+        self.setFont(font)
+
+        self.styleHints().colorSchemeChanged.connect(self.check_palette)
+        self.check_palette(self.styleHints().colorScheme())
+
+    def check_palette(self, color_scheme):
+        if color_scheme == Qt.ColorScheme.Dark:
+            palette = self.style().standardPalette()
+            palette.setColor(QtGui.QPalette.AlternateBase, QtGui.QColor(53, 53, 53))
+        else:
+            palette = self.style().standardPalette()
+        self.setPalette(palette)
+
     @property
-    def main_window(self) -> QMainWindow:
+    def main_window(self) -> QtWidgets.QMainWindow:
         """Returns the main_window widget of the Activity Browser"""
         if self._main_window:
             return self._main_window
@@ -29,7 +61,7 @@ class ABApplication(QApplication):
         )
 
     @main_window.setter
-    def main_window(self, widget: QMainWindow):
+    def main_window(self, widget: QtWidgets.QMainWindow):
         self._main_window = widget
 
     def show(self):
@@ -43,40 +75,24 @@ class ABApplication(QApplication):
     def deleteLater(self):
         self.main_window.deleteLater()
 
-
-if QSysInfo.productType() == "osx":
-    # https://bugreports.qt.io/browse/QTBUG-87014
-    # https://bugreports.qt.io/browse/QTBUG-85546
-    # https://github.com/mapeditor/tiled/issues/2845
-    # https://doc.qt.io/qt-5/qoperatingsystemversion.html#MacOSBigSur-var
-    supported = {"10.10", "10.11", "10.12", "10.13", "10.14", "10.15", "13.6"}
-    if QSysInfo.productVersion() not in supported:
-        os.environ["QT_MAC_WANTS_LAYER"] = "1"
-        os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = "--disable-gpu"
-        log.info("Info: GPU hardware acceleration disabled")
-
-# on macos buttons silently crashes the renderer without any logs
-# confirmed that buttons works on the latest version of qt using pyside6
-if QSysInfo.productType() in ["arch", "nixos", "osx"]:
-    os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = "{} --no-sandbox".format(
-        os.getenv("QTWEBENGINE_CHROMIUM_FLAGS")
-    )
-    log.info("Info: QtWebEngine sandbox disabled")
-
-QCoreApplication.setAttribute(Qt.AA_ShareOpenGLContexts, True)
-
 application = ABApplication()
 
-QFontDatabase.addApplicationFont(fonts.__path__[0] + "/mono.ttf")
-QFontDatabase.addApplicationFont(fonts.__path__[0] + "/ptsans.ttf")
-QFontDatabase.addApplicationFont(fonts.__path__[0] + "/notosans.ttf")
-
-if qtpy.PYSIDE6:
-    application.setStyle(QStyleFactory().create("fusion"))
-
-    font = application.font()
-    font.setFamily("Noto Sans")
-    font.setStyleStrategy(QFont.PreferQuality)
-    font.setPointSize(10)
-    application.setFont(font)
-    application.setAttribute(Qt.AA_DontShowIconsInMenus, True)
+#
+# if QSysInfo.productType() == "osx":
+#     # https://bugreports.qt.io/browse/QTBUG-87014
+#     # https://bugreports.qt.io/browse/QTBUG-85546
+#     # https://github.com/mapeditor/tiled/issues/2845
+#     # https://doc.qt.io/qt-5/qoperatingsystemversion.html#MacOSBigSur-var
+#     supported = {"10.10", "10.11", "10.12", "10.13", "10.14", "10.15", "13.6"}
+#     if QSysInfo.productVersion() not in supported:
+#         os.environ["QT_MAC_WANTS_LAYER"] = "1"
+#         os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = "--disable-gpu"
+#         log.info("Info: GPU hardware acceleration disabled")
+#
+# # on macos buttons silently crashes the renderer without any logs
+# # confirmed that buttons works on the latest version of qt using pyside6
+# if QSysInfo.productType() in ["arch", "nixos", "osx"]:
+#     os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = "{} --no-sandbox".format(
+#         os.getenv("QTWEBENGINE_CHROMIUM_FLAGS")
+#     )
+#     log.info("Info: QtWebEngine sandbox disabled")
