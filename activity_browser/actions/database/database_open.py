@@ -15,7 +15,7 @@ class DatabaseOpen(ABAction):
     @staticmethod
     @exception_dialogs
     def run(database_names: list[str]):
-        from activity_browser.layouts import main, panes
+        from activity_browser.layouts import panes
 
         for db_name in database_names:
             db_pane = panes.DatabaseFunctionsPane(application.main_window, db_name)

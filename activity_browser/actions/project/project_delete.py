@@ -1,6 +1,6 @@
 from qtpy import QtWidgets
 
-from activity_browser import ab_settings, application
+from activity_browser import settings, application
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.mod import bw2data as bd
 from activity_browser.ui.icons import qicons
@@ -26,7 +26,7 @@ class ProjectDelete(ABAction):
             return
 
         # if it's the startup project: reject deletion and inform user
-        if ab_settings.startup_project in project_names:
+        if settings.ab_settings.startup_project in project_names:
             QtWidgets.QMessageBox.information(
                 application.main_window,
                 "Not possible",
@@ -41,7 +41,7 @@ class ProjectDelete(ABAction):
 
         # try to delete the project, delete directory if user specified so
         if bd.projects.current in project_names:
-            bd.projects.set_current(ab_settings.startup_project)
+            bd.projects.set_current(settings.ab_settings.startup_project)
 
         for project in project_names:
             bd.projects.delete_project(

@@ -2,7 +2,7 @@ from typing import List
 
 from qtpy import QtWidgets
 
-from activity_browser import application, project_settings
+from activity_browser import application, settings
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.bwutils import commontasks
 from activity_browser.mod import bw2data as bd
@@ -50,7 +50,7 @@ class ActivityDuplicateToDB(ABAction):
         # get valid databases (not the original database, or locked databases)
         origin_db = next(iter(activities)).get("database")
         target_dbs = [
-            db for db in project_settings.get_editable_databases() if db != origin_db
+            db for db in settings.project_settings.get_editable_databases() if db != origin_db
         ]
 
         # return if there are no valid databases to duplicate to

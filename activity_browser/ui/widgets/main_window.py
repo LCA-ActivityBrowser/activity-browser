@@ -1,21 +1,15 @@
-from functools import partial
-from qtpy import QtCore, QtWidgets, shiboken
-from qtpy.QtCore import Qt
+from qtpy import QtCore, QtWidgets
 
 import bw2data as bd
 
 from activity_browser import signals
-from activity_browser.layouts import panes
-from activity_browser.ui import widgets, icons
+from activity_browser.ui import icons
 
-from ..ui.icons import qicons
-from ..ui.menu_bar import MenuBar
-from ..ui.statusbar import Statusbar
-from .panels import RightPanel
+from activity_browser.ui.menu_bar import MenuBar
+from activity_browser.ui.statusbar import Statusbar
 
 
 class MainWindow(QtWidgets.QMainWindow):
-    standardPanes = [panes.DatabasesPane, panes.ImpactCategoriesPane, panes.CalculationSetupsPane]
 
     def __init__(self):
         super().__init__()
@@ -24,9 +18,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setWindowTitle("Activity Browser")
         self.setWindowIcon(icons.qicons.ab)
 
-        self.right_panel = RightPanel(self)
-        self.setCentralWidget(self.right_panel)
-
         # Layout: extra items outside main layout
         self.menu_bar = MenuBar(self)
         self.setMenuBar(self.menu_bar)
@@ -34,12 +25,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.status_bar = Statusbar(self)
         self.setStatusBar(self.status_bar)
 
-        for pane in self.standardPanes:
+        self.connect_signals()
+
+    def setPanes(self, panes: list):
+        for pane in panes:
             dock_widget = pane(self).getDockWidget(self)
             self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, dock_widget)
             self.menu_bar.view_menu.addAction(dock_widget.toggleViewAction())
-
-        self.connect_signals()
 
     def connect_signals(self):
         # Keyboard shortcuts

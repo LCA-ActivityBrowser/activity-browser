@@ -5,7 +5,7 @@ import bw2data as bd
 from qtpy import QtGui, QtWidgets
 from qtpy.QtCore import QSize, QUrl
 
-from activity_browser import actions, signals, application, utils
+from activity_browser import actions, signals, utils, application
 
 from .icons import qicons
 
@@ -257,7 +257,8 @@ class ProjectSelectionMenu(QtWidgets.QMenu):
             # create the action and disable it if it's BW25 and BW25 is not supported
             action = QtWidgets.QAction(proj.name, self)
             action.setData(proj.name)
-            action.setIcon(application.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_MessageBoxWarning) if not bw_25 else qicons.empty)
+            action.setIcon(
+                application.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_MessageBoxWarning) if not bw_25 else qicons.empty)
 
             self.addAction(action)
 

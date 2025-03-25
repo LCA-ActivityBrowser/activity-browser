@@ -8,9 +8,10 @@ from qtpy import QtCore, QtWidgets
 
 from bw2data import projects
 
-from activity_browser import ab_settings
+from activity_browser.settings import ab_settings
 
 log = getLogger(__name__)
+
 
 class SettingsWizard(QtWidgets.QWizard):
     def __init__(self, parent=None):

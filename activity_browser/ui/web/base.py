@@ -8,7 +8,8 @@ from logging import getLogger
 from qtpy import QtWebChannel, QtWebEngineWidgets, QtWidgets
 from qtpy.QtCore import QObject, Qt, QUrl, Signal, Slot
 
-from activity_browser import ab_settings, signals
+from activity_browser import signals
+from activity_browser.settings import ab_settings
 from activity_browser.mod import bw2data as bd
 
 from ... import utils

@@ -1,22 +1,15 @@
-from pathlib import Path
 from typing import List, Tuple
 from logging import getLogger
 
-import bw2io as bi
 from qtpy import QtGui, QtWidgets
-from qtpy.QtCore import Qt, Signal, Slot
+from qtpy.QtCore import Qt, Slot
 
-from activity_browser import project_settings, signals
-from activity_browser.bwutils.superstructure import get_sheet_names
-from activity_browser.mod import bw2data as bd
+from activity_browser import signals
 
-from ...bwutils.ecoinvent_biosphere_versions.ecospold2biosphereimporter import \
-    create_default_biosphere3
 from ...info import __ei_versions__
 from ...ui.icons import qicons
 from ...utils import sort_semantic_versions
 from ..style import style_group_box, vertical_line
-from ..threading import ABThread
 
 log = getLogger(__name__)
 
