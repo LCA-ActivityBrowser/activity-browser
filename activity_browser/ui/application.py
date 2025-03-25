@@ -34,12 +34,6 @@ class ABApplication(QtWidgets.QApplication):
         style = QtWidgets.QStyleFactory().create("fusion")
         self.setStyle(style)
 
-        font = self.font()
-        font.setFamily("Noto Sans")
-        font.setStyleStrategy(QFont.PreferQuality)
-        font.setPointSize(10)
-        self.setFont(font)
-
         self.styleHints().colorSchemeChanged.connect(self.check_palette)
         self.check_palette(self.styleHints().colorScheme())
 
