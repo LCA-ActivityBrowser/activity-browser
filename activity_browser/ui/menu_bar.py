@@ -148,7 +148,6 @@ class CalculateMenu(QtWidgets.QMenu):
             self.addAction(action)
 
 
-
 class ToolsMenu(QtWidgets.QMenu):
     """
     Tools Menu: contains actions in regard to special tooling aspects of the AB
@@ -274,14 +273,14 @@ class ImportDatabaseMenu(QtWidgets.QMenu):
         self.import_from_bw2package_action = actions.DatabaseImporterBW2Package.get_QAction()
         self.open_import_wizard_action = actions.DatabaseImport.get_QAction()
 
-        self.import_from_ecoinvent_action.setText("from ecoinvent")
+        self.import_from_ecoinvent_action.setText("ecoinvent...")
         self.import_from_excel_action.setText("from .xlsx")
         self.import_from_bw2package_action.setText("from .bw2package")
 
-        self.addAction(self.import_from_ecoinvent_action)
-        self.addSeparator()
         self.addAction(self.import_from_excel_action)
         self.addAction(self.import_from_bw2package_action)
+        self.addSeparator()
+        self.addAction(self.import_from_ecoinvent_action)
 
 
 class ImportICMenu(QtWidgets.QMenu):
