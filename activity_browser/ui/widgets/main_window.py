@@ -6,7 +6,6 @@ from activity_browser import signals
 from activity_browser.ui import icons
 
 from activity_browser.ui.menu_bar import MenuBar
-from activity_browser.ui.statusbar import Statusbar
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -21,9 +20,6 @@ class MainWindow(QtWidgets.QMainWindow):
         # Layout: extra items outside main layout
         self.menu_bar = MenuBar(self)
         self.setMenuBar(self.menu_bar)
-
-        self.status_bar = Statusbar(self)
-        self.setStatusBar(self.status_bar)
 
         self.connect_signals()
 
