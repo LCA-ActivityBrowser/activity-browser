@@ -6,11 +6,12 @@ from pathlib import Path
 from typing import Optional, Any
 from logging import getLogger
 
+import bw2data as bd
+
 import platformdirs
 from qtpy.QtWidgets import QMessageBox
 
-from activity_browser.signals import signals
-from activity_browser.mod import bw2data as bd
+from .signals import signals
 
 log = getLogger(__name__)
 DEFAULT_BW_DATA_DIR = bd.projects._base_data_dir

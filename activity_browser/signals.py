@@ -6,6 +6,7 @@ from blinker import signal as blinker_signal
 
 log = getLogger(__name__)
 
+
 class NodeSignals(QObject):
     changed: SignalInstance = Signal(object, object)
     deleted: SignalInstance = Signal(object)
@@ -93,14 +94,18 @@ class ABSignals(QObject):
     hide_when_empty = Signal()  # Show/Hide tab when it has/does not have sub-tabs
     plugin_selected = Signal(str, bool)  # This plugin was/was not selected | name of plugin, selected state
 
-    def __init__(self, parent=None):
-        super().__init__(parent)
-
+    def __getattribute__(self, item):
+        """Delayed loading of connecting to the brighway signals"""
+        setattr(ABSignals, "__getattribute__", super().__getattribute__)
         self._connect_bw_signals()
+        return super().__getattribute__(item)
 
     def _connect_bw_signals(self):
         from bw2data import signals, Method
         from bw2data.meta import databases, methods, calculation_setups
+
+        patch_methods_datastore()
+        patch_projects()
 
         signals.signaleddataset_on_save.connect(self._on_signaleddataset_on_save)
         signals.signaleddataset_on_delete.connect(self._on_signaleddataset_on_delete)
@@ -127,7 +132,6 @@ class ABSignals(QObject):
 
         Method._write_signal.connect(self._on_method_write)
         Method._deregister_signal.connect(self._on_method_deregister)
-
 
     def _on_signaleddataset_on_save(self, sender, old, new):
         from bw2data.backends import ActivityDataset, ExchangeDataset
@@ -272,8 +276,5 @@ def patch_projects():
 
     setattr(ProjectManager, "delete_project", delete_project)
 
-
-patch_methods_datastore()
-patch_projects()
 
 signals = ABSignals()

@@ -59,9 +59,13 @@ class MetaDataStore(QObject):
     synced: SignalInstance = Signal()
 
     def __init__(self, parent=None):
+        from activity_browser import application
         super().__init__(parent)
         self.dataframe = pd.DataFrame()
+        self.moveToThread(application.thread())
+        self.connect_signals()
 
+    def connect_signals(self):
         signals.project.changed.connect(self.sync)
         signals.node.changed.connect(self.on_node_changed)
         signals.node.deleted.connect(self.on_node_deleted)

@@ -1,4 +1,4 @@
-from activity_browser import application, project_settings
+from activity_browser import application
 from activity_browser.actions.base import ABAction, exception_dialogs
 
 from activity_browser.ui.icons import qicons
@@ -16,9 +16,9 @@ class ProjectManagerOpen(ABAction):
     @staticmethod
     @exception_dialogs
     def run():
-        from activity_browser.layouts.panes import ProjectManager
+        from activity_browser.layouts.panes import ProjectManagerPane
 
-        project_manager = ProjectManager(application.main_window)
+        project_manager = ProjectManagerPane(application.main_window)
         application.windows.append(project_manager)
         project_manager.show()
         project_manager.destroyed.connect(lambda: application.windows.remove(project_manager))

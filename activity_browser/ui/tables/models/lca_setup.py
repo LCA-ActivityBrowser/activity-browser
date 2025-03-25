@@ -1,12 +1,11 @@
-from typing import Iterable, List, Union
+from typing import Iterable, Union
 from logging import getLogger
 
 import numpy as np
 import pandas as pd
-from qtpy import QtWidgets
 from qtpy.QtCore import QModelIndex, Qt, Slot
 
-from activity_browser import signals, application
+from activity_browser import signals
 from activity_browser.bwutils import commontasks as bc
 from activity_browser.mod import bw2data as bd
 from bw2data.backends import ActivityDataset

@@ -24,10 +24,9 @@ from activity_browser.bwutils import AB_metadata
 from stats_arrays.errors import InvalidParamsError
 import bw2data as bd
 
-from activity_browser import signals, project_settings
+from activity_browser.settings import project_settings
 from activity_browser.mod.bw2analyzer import ABContributionAnalysis
 from activity_browser import signals
-from bw2data import calculation_setups
 
 from ...bwutils import (MLCA, Contributions, GlobalSensitivityAnalysis,
                         MonteCarloLCA, SuperstructureMLCA, calculations)
@@ -119,7 +118,7 @@ class LCAResultsSubTab(QTabWidget):
         log.info("Starting calculation")
         self.data = data
         self.cs_name = self.data.get("cs_name")
-        self.cs = calculation_setups[self.cs_name]
+        self.cs = bd.calculation_setups[self.cs_name]
         self.has_scenarios: bool = data.get("calculation_type") not in ("simple", "regional")
         self.mlca: Optional[Union[MLCA, SuperstructureMLCA]] = None
         self.contributions: Optional[Contributions] = None

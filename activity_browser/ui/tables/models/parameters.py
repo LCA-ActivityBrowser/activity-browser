@@ -11,7 +11,8 @@ from qtpy.QtCore import QModelIndex, Slot
 
 from bw2data.parameters import ActivityParameter, DatabaseParameter, Group, ProjectParameter
 
-from activity_browser import actions, application, signals
+from activity_browser import actions, signals
+from ... import application
 from activity_browser.mod import bw2data as bd
 from activity_browser.ui.wizards import UncertaintyWizard
 

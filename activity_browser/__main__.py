@@ -1,4 +1,147 @@
-from activity_browser import run_activity_browser
+import sys
+import os
+from logging import getLogger
 
-if __name__ == "__main__":
-    run_activity_browser()
+from qtpy import QtWidgets, QtCore, QtGui
+from qtpy.QtCore import Qt
+
+from activity_browser import application
+
+from .logger import setup_ab_logging
+from .static.icons import main
+
+log = getLogger(__name__)
+
+
+class SpecialProgressBar(QtWidgets.QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setFixedSize(500, 10)
+
+        self.going = "right"
+
+        self.inner = QtWidgets.QFrame(self)
+        self.inner.setFixedSize(502, 10)
+        self.inner.setStyleSheet("background-color: #0070c0;")
+        self.inner.move(100, 0)
+
+        self.timer = QtCore.QTimer(self)
+        self.timer.timeout.connect(self.loop)
+        self.timer.start(1)
+
+    def loop(self):
+        x = self.inner.x()
+
+        if self.going == "right":
+            x += 1
+            if x > 500:
+                self.going = "left"
+                self.inner.setStyleSheet("background-color: #c00000;")
+        elif self.going == "left":
+            x -= 1
+            if x < -500:
+                self.going = "right"
+                self.inner.setStyleSheet("background-color: #0070c0;")
+
+        self.inner.move(x, 0)
+
+
+class ABLoader(QtWidgets.QWidget):
+    def __init__(self):
+        super().__init__()
+        self.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint)
+        self.setFixedSize(500, 300)
+
+        logo_pixmap = QtGui.QPixmap(os.path.join(main.__path__[0], "activitybrowser.png")).scaledToHeight(280, mode=Qt.TransformationMode.SmoothTransformation)
+        logo_label = QtWidgets.QLabel(self)
+        logo_label.setPixmap(logo_pixmap)
+
+        self.text_label = QtWidgets.QLabel("Initializing", self)
+        self.text_label.setContentsMargins(0, 0, 30, 0)
+
+        loading_bar = SpecialProgressBar(self)
+
+        layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(logo_label, alignment=Qt.AlignCenter)
+        layout.addWidget(self.text_label, alignment=Qt.AlignmentFlag.AlignRight)
+        layout.addWidget(loading_bar)
+        layout.setContentsMargins(0, 0, 0, 0)
+
+        self.setLayout(layout)
+
+        self.load_modules()
+
+    def load_modules(self):
+        thread = ModuleThread(self)
+        thread.finished.connect(self.load_layout)
+        thread.status.connect(self.text_label.setText)
+        thread.start()
+
+    def load_layout(self):
+        from .ui.widgets import MainWindow
+        from .layouts import panes, panels
+        from activity_browser.bwutils import AB_metadata
+        from activity_browser import signals
+
+        application.main_window = MainWindow()
+        application.main_window.setPanes([panes.DatabasesPane, panes.ImpactCategoriesPane, panes.CalculationSetupsPane])
+        application.main_window.setCentralWidget(panels.RightPanel(application.main_window))
+
+        self.load_settings()
+
+    def load_settings(self):
+        self.text_label.setText("Loading project")
+        thread = SettingsThread(self)
+        thread.finished.connect(self.load_finished)
+        thread.start()
+
+    def load_finished(self):
+        application.main_window.show()
+        self.deleteLater()
+
+
+class ModuleThread(QtCore.QThread):
+    status: QtCore.SignalInstance = QtCore.Signal(str)
+
+    def run(self):
+        self.status.emit("Loading Numpy")
+        log.debug("ABLoader: Importing numpy")
+        import numpy, pandas
+        self.status.emit("Loading Brightway25")
+        log.debug("ABLoader: Importing brightway modules")
+        import bw2data, bw2calc, bw2analyzer, bw2io, bw_functional, bw_processing, matrix_utils
+        self.status.emit("Loading Activity Browser")
+        log.debug("ABLoader: Importing activity_browser")
+        from activity_browser import actions, layouts, mod, settings, ui, signals
+        from activity_browser.layouts import panes, panels, pages, tabs
+        from activity_browser.ui import core, tables, widgets, web, wizards
+
+
+class SettingsThread(QtCore.QThread):
+    def run(self):
+        import bw2data as bd
+        from activity_browser import settings, actions
+
+        if settings.ab_settings.settings:
+            from pathlib import Path
+
+            base_dir = Path(settings.ab_settings.current_bw_dir)
+            project_name = settings.ab_settings.startup_project
+            bd.projects.change_base_directories(base_dir, project_name=project_name, update=False)
+
+        if not bd.projects.twofive:
+            log.warning(f"Project: {bd.projects.current} is not yet BW25 compatible")
+            actions.ProjectSwitch.set_warning_bar()
+
+        log.info(f"Brightway2 data directory: {bd.projects._base_data_dir}")
+        log.info(f"Brightway2 current project: {bd.projects.current}")
+
+
+def run_activity_browser():
+    setup_ab_logging()
+    loader = ABLoader()
+    loader.show()
+    sys.exit(application.exec_())
+
+
+run_activity_browser()

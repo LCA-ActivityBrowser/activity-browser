@@ -6,7 +6,8 @@ from qtpy import QtWidgets, QtCore
 import bw2data as bd
 from bw2io import remote
 
-from activity_browser import actions, ui, ab_settings, signals, utils
+from activity_browser import actions, ui, signals, utils
+from activity_browser.settings import ab_settings
 from activity_browser.ui import widgets
 
 

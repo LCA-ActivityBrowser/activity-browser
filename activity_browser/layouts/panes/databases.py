@@ -6,7 +6,8 @@ from qtpy.QtCore import Qt
 import bw2data as bd
 import pandas as pd
 
-from activity_browser import signals, actions, project_settings, bwutils
+from activity_browser import signals, actions, bwutils
+from activity_browser.settings import project_settings
 from activity_browser.ui import widgets, icons
 from activity_browser.ui.tables import delegates
 

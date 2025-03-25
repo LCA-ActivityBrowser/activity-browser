@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from qtpy import QtGui, QtWidgets
-from activity_browser import ab_settings
+from activity_browser.settings import ab_settings
 
 default_font = QtGui.QFont("Arial", 8)
 

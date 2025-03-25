@@ -6,8 +6,9 @@ from qtpy import QtGui, QtWidgets
 from qtpy.QtCore import QPoint, QRect, QSize, Qt, QTimer, Signal, Slot
 from qtpy.QtWidgets import QApplication, QSizePolicy, QTableView
 
-from activity_browser import ab_settings
-from activity_browser.mod import bw2data as bd
+import bw2data as bd
+
+from activity_browser.settings import ab_settings
 
 from ..icons import qicons
 from ..widgets.dialog import FilterManagerDialog, SimpleFilterDialog
