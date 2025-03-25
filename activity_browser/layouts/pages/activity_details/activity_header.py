@@ -167,14 +167,7 @@ class ActivityProperty(QtWidgets.QPushButton):
             border: 1px solid #8f8f91;
             border-radius: 0px;
             padding: 1px 10px 1px 10px;
-            background-color: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
-                                              stop: 0 #f6f7fa, stop: 1 #dadbde);
             min-width: 0px;
-        }
-
-        QPushButton:pressed {
-            background-color: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,
-                                              stop: 0 #dadbde, stop: 1 #f6f7fa);
         }
         """)
 
