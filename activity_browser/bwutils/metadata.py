@@ -194,7 +194,7 @@ class MetaDataStore(QObject):
         self.synced.emit()
 
     def _parse_df(self, raw_df: pd.DataFrame) -> pd.DataFrame:
-        data_df = pd.DataFrame([pickle.loads(x) for x in raw_df["data"]]).drop(columns=["id"])
+        data_df = pd.DataFrame([pickle.loads(x) for x in raw_df["data"]]).drop(columns=["id"], errors="ignore")
 
         df = raw_df.combine_first(data_df)
         df.drop(columns=["data"], inplace=True)
