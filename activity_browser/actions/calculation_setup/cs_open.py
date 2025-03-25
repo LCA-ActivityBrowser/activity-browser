@@ -22,6 +22,6 @@ class CSOpen(ABAction):
         for cs_name in cs_names:
             if cs_name not in bd.calculation_setups:
                 log.warning(f"Calculation setup {cs_name} not found")
-            tab = application.main_window.right_panel.tabs["LCA Setup"]
+            tab = application.main_window.centralWidget().tabs["LCA Setup"]
             tab.open_cs(cs_name)
 
