@@ -45,6 +45,23 @@ class LCAResultsTab(ABTab):
             index = self.indexOf(self.tabs[name])
             self.close_tab(index)
 
+    def open_results(self, result_page):
+        """Open the results tab."""
+        self.tabs["results"] = result_page
+        self.addTab(result_page, "results")
+        self.select_tab(self.tabs["results"])
+
+        result_page.destroyed.connect(
+            lambda: (
+                self.tabs.pop("results")
+                if id(self.tabs.get("results", None)) == id(result_page)
+                else None
+            )
+        )
+        result_page.destroyed.connect(signals.hide_when_empty.emit)
+
+        signals.show_tab.emit("LCA results")
+
     @Slot(str, name="generateSetup")
     def generate_setup(self, data: dict):
         """Check if the calculation results with this setup name exists, if it does, remove it, then create a new one."""

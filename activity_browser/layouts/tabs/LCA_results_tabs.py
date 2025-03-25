@@ -29,7 +29,7 @@ from activity_browser.mod.bw2analyzer import ABContributionAnalysis
 from activity_browser import signals
 
 from ...bwutils import (MLCA, Contributions, GlobalSensitivityAnalysis,
-                        MonteCarloLCA, SuperstructureMLCA, calculations)
+                        MonteCarloLCA, SuperstructureMLCA)
 from ...bwutils import commontasks as bc
 from ...ui.figures import (ContributionPlot, CorrelationPlot,
                            LCAResultsBarChart, LCAResultsPlot, MonteCarloPlot)
