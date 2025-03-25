@@ -20,6 +20,10 @@ class ImpactCategoryDetailsPage(QtWidgets.QWidget):
         self.view = CharacterizationFactorsView(self)
         self.view.setModel(self.model)
 
+        # resizing name and categories columns
+        self.view.resizeColumnToContents(0)
+        self.view.resizeColumnToContents(1)
+
         self.build_layout()
         self.connect_signals()
 
