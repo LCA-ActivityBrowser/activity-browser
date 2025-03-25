@@ -327,9 +327,11 @@ class ABFormulaEdit(QWidget):
 
     def paintEvent(self, event):
         """Handles drawing the text input field, cursor, and selection."""
+        background_color = self.palette().color(self.backgroundRole())
+
         painter = QPainter(self)
         painter.setPen(Qt.NoPen)
-        painter.fillRect(self.rect(), QColor("White"))
+        painter.fillRect(self.rect(), background_color)
         self.paint_text(painter)
 
     def paint_text(self, painter: QPainter):
@@ -341,6 +343,7 @@ class ABFormulaEdit(QWidget):
         text_y = font_metrics.height() - 2
         cursor_y1 = 0
         cursor_y2 = self.height()
+        foreground_color = self.palette().color(self.foregroundRole())
 
         # Draw selection background if any
         if self.selection_start is not None and self.selection_end is not None:
@@ -356,7 +359,8 @@ class ABFormulaEdit(QWidget):
 
             if not painter.pen() == Qt.NoPen:
                 pass
-            elif token_type == "NUMBER":
+
+            if token_type == "NUMBER":
                 painter.setPen(Colors.number)
             elif token_type in ["SQSTRING", "DQSTRING"]:
                 painter.setPen(Colors.string)
@@ -366,11 +370,10 @@ class ABFormulaEdit(QWidget):
                 elif token in table:
                     painter.setPen(Colors.builtin)
                 else:
-                    painter.setPen(QColor("Black"))
+                    painter.setPen(foreground_color)
                     draw_error_line(painter, text_x, text_y + 2, font_metrics.horizontalAdvance(token))
             else:
-                painter.setPen(QColor("Black"))
-
+                painter.setPen(foreground_color)
 
             painter.drawText(text_x, text_y, token)
 
@@ -383,7 +386,7 @@ class ABFormulaEdit(QWidget):
         # Draw cursor
         if self.cursor_visible and self.selection_start is None:
             cursor_x = self.padding - self.scroll_offset + text_index_to_x(self.text, self.cursor_pos, font_metrics)
-            painter.setPen(QColor("Black"))
+            painter.setPen(foreground_color)
             painter.drawLine(cursor_x, cursor_y1, cursor_x, cursor_y2)
 
 
