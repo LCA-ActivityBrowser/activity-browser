@@ -185,8 +185,10 @@ class CharacterizationFactorsTab(ABTab):
         signals.project.changed.connect(self.close_all)
 
     def open_method_tab(self, method):
+        from activity_browser.layouts import pages
+
         if method not in self.tabs:
-            new_tab = MethodCharacterizationFactorsTab(self, method)
+            new_tab = pages.ImpactCategoryDetailsPage(method)
             full_tab_label = " ".join(method)
             label = full_tab_label[: min((10, len(full_tab_label)))] + ".."
             self.tabs[method] = new_tab

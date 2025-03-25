@@ -1,5 +1,3 @@
-from typing import List
-
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.mod import bw2data as bd
 from activity_browser.ui.icons import qicons
@@ -16,14 +14,16 @@ class CFAmountModify(ABAction):
 
     @staticmethod
     @exception_dialogs
-    def run(method_name: tuple, char_factors: List[tuple], amount: float):
-        method = bd.Method(method_name)
-        method_dict = {cf[0]: cf[1] for cf in method.load()}
-        cf = char_factors[0]
+    def run(method: tuple | bd.Method, key: int | tuple, amount: float):
+        if isinstance(method, bd.Method):
+            method = method.name
 
-        if isinstance(cf[1], dict):
-            method_dict[cf[0]]["amount"] = amount
+        method = bd.Method(method)
+        method_dict = {cf[0]: cf[1] for cf in method.load()}
+
+        if isinstance(method_dict[key], dict):
+            method_dict[key]["amount"] = amount
         else:
-            method_dict[cf[0]] = amount
+            method_dict[key] = amount
 
         method.write(list(method_dict.items()))
