@@ -18,6 +18,8 @@ from activity_browser.ui.icons import qicons
 from activity_browser.ui.tables import delegates
 from activity_browser.ui.style import style_item
 
+from .dialogs import FilterManagerDialog, SimpleFilterDialog
+
 
 log = getLogger(__name__)
 
