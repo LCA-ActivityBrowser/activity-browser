@@ -1,1 +1,1 @@
-from .lca_results import CalculationResultsPage
+from .LCA_results import LCAResultsPage

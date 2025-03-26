@@ -22,7 +22,7 @@ class CSCalculate(ABAction):
     @staticmethod
     @exception_dialogs
     def run(cs_name: str, scenario_data: pd.DataFrame = None):
-        from activity_browser.layouts.pages import CalculationResultsPage
+        from activity_browser.layouts.pages import LCAResultsPage
 
         if scenario_data is None:
             mlca = bwutils.MLCA(cs_name)
@@ -34,7 +34,7 @@ class CSCalculate(ABAction):
         mlca.calculate()
         mc = bwutils.MonteCarloLCA(cs_name)
 
-        page = CalculationResultsPage(cs_name, mlca, contributions, mc)
+        page = LCAResultsPage(cs_name, mlca, contributions, mc)
 
         tab = application.main_window.centralWidget().tabs["LCA results"]
         tab.open_results(page)

@@ -102,7 +102,7 @@ class CustomHeader(QtWidgets.QHeaderView):
         self.viewport().update()
 
 
-class PandasModel(QtWidgets.QAbstractTableModel):
+class PandasModel(QtCore.QAbstractTableModel):
     """Abstract pandas table model adapted from
     https://stackoverflow.com/a/42955764.
     """
@@ -376,7 +376,7 @@ class ABSortProxyModel(QtCore.QSortFilterProxyModel):
     See this for context: https://github.com/LCA-ActivityBrowser/activity-browser/pull/1151
     """
 
-    def lessThan(self, left: QtGui.QModelIndex, right: QtCore.QModelIndex) -> bool:
+    def lessThan(self, left: QtCore.QModelIndex, right: QtCore.QModelIndex) -> bool:
         """Override to sort actual data, expects `left` and `right` are comparable.
 
         If `left` and `right` are not the same type, we check if numerical and empty string are compared, if that is the

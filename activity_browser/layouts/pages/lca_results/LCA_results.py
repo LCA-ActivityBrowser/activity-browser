@@ -83,7 +83,7 @@ Combobox = namedtuple(
 )
 
 
-class LCAResultsSubTab(QtWidgets.QTabWidget):
+class LCAResultsPage(QtWidgets.QTabWidget):
     """Class for the main 'LCA Results' tab.
 
     Shows:
@@ -91,27 +91,20 @@ class LCAResultsSubTab(QtWidgets.QTabWidget):
         For each calculation setup-tab one array of relevant tabs.
     """
 
-    update_scenario_box_index = QtCore.Signal(int)
+    update_scenario_box_index: QtCore.SignalInstance = QtCore.Signal(int)
 
-    def __init__(self, data: dict, parent=None):
+    def __init__(self, cs_name, mlca, contributions, mc, parent=None):
         super().__init__(parent)
-        log.info("Starting calculation")
-        self.data = data
-        self.cs_name = self.data.get("cs_name")
+        self.cs_name, self.mlca, self.contributions, self.mc = cs_name, mlca, contributions, mc
         self.cs = bd.calculation_setups[self.cs_name]
-        self.has_scenarios: bool = data.get("calculation_type") not in ("simple", "regional")
-        self.method_dict = dict()
-        self.single_func_unit = False
-        self.single_method = False
+        self.has_scenarios: bool = False
+        self.method_dict = bwutils.commontasks.get_LCIA_method_name_dict(self.mlca.methods)
+        self.single_func_unit = len(self.mlca.func_units) == 1
+        self.single_method = len(self.mlca.methods) == 1
 
         self.setMovable(True)
         self.setVisible(False)
         self.visible = False
-
-        self.mlca, self.contributions, self.mc = calculations.do_LCA_calculations(data)
-        self.method_dict = bwutils.commontasks.get_LCIA_method_name_dict(self.mlca.methods)
-        self.single_func_unit = len(self.mlca.func_units) == 1
-        self.single_method = len(self.mlca.methods) == 1
 
         self.tabs = Tabs(
             inventory=InventoryTab(self),
@@ -140,9 +133,6 @@ class LCAResultsSubTab(QtWidgets.QTabWidget):
         self.setup_tabs()
         self.setCurrentWidget(self.tabs.results)
         self.currentChanged.connect(self.generate_content_on_click)
-        QtWidgets.QApplication.restoreOverrideCursor()
-
-        #calculation_setups.metadata_changed.connect(self.check_cs) CS_SIGNAL
 
     def setup_tabs(self):
         """Have all the tabs pull in their required data and add them."""
@@ -221,6 +211,7 @@ class LCAResultsSubTab(QtWidgets.QTabWidget):
 
 class NewAnalysisTab(QtWidgets.QWidget):
     """Parent class around which all sub-tabs are built."""
+    explain_text = "I explain what happens here"
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -439,6 +430,14 @@ class NewAnalysisTab(QtWidgets.QWidget):
 
         export_menu.addStretch()
         return export_menu
+
+    def explanation(self):
+        """Builds and shows a message box containing whatever text is set
+        on self.explain_text
+        """
+        return QtWidgets.QMessageBox.question(
+            self, "Explanation", self.explain_text, QtWidgets.QMessageBox.Ok, QtWidgets.QMessageBox.Ok
+        )
 
 
 class InventoryTab(NewAnalysisTab):

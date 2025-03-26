@@ -12,8 +12,8 @@ from qtpy import QtWidgets
 
 from bw2data import methods
 from activity_browser.utils import savefilepath
+from activity_browser.bwutils.commontasks import wrap_text
 
-from ..bwutils.commontasks import wrap_text
 
 log = getLogger(__name__)
 
