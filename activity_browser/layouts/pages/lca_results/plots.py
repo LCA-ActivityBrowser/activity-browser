@@ -1,20 +1,25 @@
+# -*- coding: utf-8 -*-
 import math
 from logging import getLogger
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
-import bw2data as bd
-
-import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 from qtpy import QtWidgets
 
+from bw2data import methods
 from activity_browser.utils import savefilepath
-from activity_browser.bwutils.commontasks import wrap_text
+
+from ..bwutils.commontasks import wrap_text
 
 log = getLogger(__name__)
+
+# todo: sizing of the figures needs to be improved and systematized...
+# todo: Bokeh is a potential alternative as it allows interactive visualizations,
+#  but this issue needs to be resolved first: https://github.com/bokeh/bokeh/issues/8169
 
 
 class Plot(QtWidgets.QWidget):
@@ -99,7 +104,7 @@ class LCAResultsBarChart(Plot):
 
         # labels
         self.ax.set_yticks(np.arange(len(labels)))
-        self.ax.set_xlabel(bd.methods[method].get("unit"))
+        self.ax.set_xlabel(methods[method].get("unit"))
         self.ax.set_title(", ".join([m for m in method]))
         # self.ax.set_yticklabels(labels, minor=False)
 
@@ -358,7 +363,7 @@ class MonteCarloPlot(Plot):
             # self.ax.axvline(df[col].median(), color=color)
             self.ax.axvline(df[col].mean(), color=color)
 
-        self.ax.set_xlabel(bd.methods[method]["unit"])
+        self.ax.set_xlabel(methods[method]["unit"])
         self.ax.set_ylabel("Probability")
         self.ax.legend(
             loc="upper center",
@@ -368,4 +373,3 @@ class MonteCarloPlot(Plot):
         # lconfi, upconfi =mc['statistics']['interval'][0], mc['statistics']['interval'][1]
 
         self.canvas.draw()
-

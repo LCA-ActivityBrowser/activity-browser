@@ -1,26 +1,22 @@
-# -*- coding: utf-8 -*-
-"""Classes related to the LCA results sub-tabs in the main LCA results tab.
-
-Each of these classes is either a parent for - or a sub-LCA results tab.
-"""
-
 from collections import namedtuple
 from copy import deepcopy
-from typing import List, Optional, Union
+from typing import List, Optional
 from logging import getLogger
 
 import numpy as np
 import pandas as pd
+import bw2data as bd
 from qtpy import QtCore, QtGui, QtWidgets
 
-from activity_browser.bwutils import AB_metadata
-
 from stats_arrays.errors import InvalidParamsError
-import bw2data as bd
 
 from activity_browser import signals, bwutils, settings
 from activity_browser.mod.bw2analyzer import ABContributionAnalysis
-from activity_browser.ui import figures, icons, style, tables, web, widgets
+from activity_browser.ui import icons, web, widgets
+
+from .style import header, horizontal_line, vertical_line
+from .tables import ContributionTable, InventoryTable, LCAResultsTable
+from .plots import ContributionPlot, CorrelationPlot, LCAResultsBarChart, LCAResultsPlot, MonteCarloPlot
 
 ca = ABContributionAnalysis()
 
@@ -33,6 +29,7 @@ def get_header_layout(header_text: str) -> QtWidgets.QVBoxLayout:
     vlayout.addWidget(horizontal_line())
     return vlayout
 
+
 def get_header_layout_w_help(header_text: str, help_widget) -> QtWidgets.QVBoxLayout:
     hlayout = QtWidgets.QHBoxLayout()
     hlayout.addWidget(header(header_text))
@@ -43,6 +40,7 @@ def get_header_layout_w_help(header_text: str, help_widget) -> QtWidgets.QVBoxLa
     vlayout.addLayout(hlayout)
     vlayout.addWidget(horizontal_line())
     return vlayout
+
 
 def get_unit(method: tuple, relative: bool = False) -> str:
     """Get the unit for plot axis naming.
@@ -57,7 +55,7 @@ def get_unit(method: tuple, relative: bool = False) -> str:
     if relative:
         return "relative share"
     if method:  # for all reference flows
-        return bc.unit_of_method(method)
+        return bwutils.commontasks.unit_of_method(method)
     return "units of each impact category"
 
 
@@ -111,7 +109,7 @@ class LCAResultsSubTab(QtWidgets.QTabWidget):
         self.visible = False
 
         self.mlca, self.contributions, self.mc = calculations.do_LCA_calculations(data)
-        self.method_dict = bc.get_LCIA_method_name_dict(self.mlca.methods)
+        self.method_dict = bwutils.commontasks.get_LCIA_method_name_dict(self.mlca.methods)
         self.single_func_unit = len(self.mlca.func_units) == 1
         self.single_method = len(self.mlca.methods) == 1
 
@@ -121,8 +119,8 @@ class LCAResultsSubTab(QtWidgets.QTabWidget):
             ef=ElementaryFlowContributionTab(self),
             process=ProcessContributionsTab(self),
             ft=FirstTierContributionsTab(self.cs_name, parent=self),
-            sankey=SankeyNavigatorWidget(self.cs_name, parent=self),
-            tree=TreeNavigatorWidget(self.cs_name, parent=self),
+            sankey=web.SankeyNavigatorWidget(self.cs_name, parent=self),
+            tree=web.TreeNavigatorWidget(self.cs_name, parent=self),
             mc=MonteCarloTab(
                 self
             ),  # mc=None if self.mc is None else MonteCarloTab(self),
@@ -142,12 +140,12 @@ class LCAResultsSubTab(QtWidgets.QTabWidget):
         self.setup_tabs()
         self.setCurrentWidget(self.tabs.results)
         self.currentChanged.connect(self.generate_content_on_click)
-        QApplication.restoreOverrideCursor()
+        QtWidgets.QApplication.restoreOverrideCursor()
 
         #calculation_setups.metadata_changed.connect(self.check_cs) CS_SIGNAL
 
     def setup_tabs(self):
-        """Have all of the tabs pull in their required data and add them."""
+        """Have all the tabs pull in their required data and add them."""
         self._update_tabs()
         for name, tab in zip(self.tab_names, self.tabs):
             if tab:
@@ -221,7 +219,7 @@ class LCAResultsSubTab(QtWidgets.QTabWidget):
             df.to_excel(filepath)
 
 
-class NewAnalysisTab(BaseRightTab):
+class NewAnalysisTab(QtWidgets.QWidget):
     """Parent class around which all sub-tabs are built."""
 
     def __init__(self, parent=None):
@@ -251,8 +249,8 @@ class NewAnalysisTab(BaseRightTab):
 
     def build_main_space(self, invertable: bool = False) -> QtWidgets.QScrollArea:
         """Assemble main space where plots, tables and relevant options are shown."""
-        space = QScrollArea()
-        widget = QWidget()
+        space = QtWidgets.QScrollArea()
+        widget = QtWidgets.QWidget()
         self.pt_layout.setAlignment(QtCore.Qt.AlignTop)
         widget.setLayout(self.pt_layout)
         space.setWidget(widget)
@@ -335,9 +333,9 @@ class NewAnalysisTab(BaseRightTab):
     def score_mrk_check(self, checked: bool):
         self.score_marker = checked
 
-        project_settings.settings["analysis_tab"] = project_settings.settings.get("analysis_tab", {})
-        project_settings.settings["analysis_tab"][f"{self.__class__.__name__}score_marker_enabled"] = checked
-        project_settings.write_settings()
+        settings.project_settings.settings["analysis_tab"] = settings.project_settings.settings.get("analysis_tab", {})
+        settings.project_settings.settings["analysis_tab"][f"{self.__class__.__name__}score_marker_enabled"] = checked
+        settings.project_settings.write_settings()
 
         self.update_tab()
 
@@ -817,7 +815,7 @@ class LCAScoresTab(NewAnalysisTab):
         method = self.parent.mlca.methods[method_index]
         df = self.parent.mlca.get_results_for_method(method_index)
         labels = [
-            bc.format_activity_label(next(iter(fu.keys())), style="pnld")
+            bwutils.commontasks.format_activity_label(next(iter(fu.keys())), style="pnld")
             for fu in self.parent.mlca.func_units
         ]
         idx = self.layout.indexOf(self.plot)
@@ -906,7 +904,7 @@ class ContributionTab(NewAnalysisTab):
 
     def __init__(self, parent, **kwargs):
         super().__init__(parent)
-        self.cutoff_menu = CutoffMenu(self, cutoff_value=0.05)
+        self.cutoff_menu = widgets.CutoffMenu(self, cutoff_value=0.05)
         self.combobox_menu = Combobox(
             func=QtWidgets.QComboBox(self),
             func_label=QtWidgets.QLabel("Reference Flow:"),
@@ -918,10 +916,10 @@ class ContributionTab(NewAnalysisTab):
             scenario_label=QtWidgets.QLabel("Scenario:"),
         )
         self.switch_label = QtWidgets.QLabel("Compare:")
-        self.switches = SwitchComboBox(self)
+        self.switches = widgets.SwitchComboBox(self)
 
         self.relativity = Relativity(
-            QtWidgets.("Relative"),
+            QtWidgets.QRadioButton("Relative"),
             QtWidgets.QRadioButton("Absolute"),
         )
         self.relativity.relative.setChecked(True)
@@ -954,7 +952,7 @@ class ContributionTab(NewAnalysisTab):
         self.total_group.addButton(self.total_menu.score)
         self.total_group.addButton(self.total_menu.range)
 
-        self.score_marker = project_settings.settings.get("analysis_tab", {}).get(f"{self.__class__.__name__}score_marker_enabled", True)
+        self.score_marker = settings.project_settings.settings.get("analysis_tab", {}).get(f"{self.__class__.__name__}score_marker_enabled", True)
         self.score_mrk_checkbox = QtWidgets.QCheckBox("Score Marker")
         self.score_mrk_checkbox.setToolTip(
             "Shows the score marker. When there are both positive and negative results,\n"
@@ -986,7 +984,7 @@ class ContributionTab(NewAnalysisTab):
 
         self.help_button = QtWidgets.QToolBar(self)
         self.help_button.addAction(
-            qicons.question, "Left click for help on Contribution Analysis Functions", self.explanation
+            icons.qicons.question, "Left click for help on Contribution Analysis Functions", self.explanation
         )
 
     def set_filename(self, optional_fields: dict = None):
@@ -1503,7 +1501,7 @@ class FirstTierContributionsTab(ContributionTab):
         format:
         [reference product, activity name, location, unit, database]
         """
-        return list(AB_metadata.get_metadata([key], ["reference product", "name", "location", "unit"]).iloc[0]) + [key[0]]
+        return list(bwutils.AB_metadata.get_metadata([key], ["reference product", "name", "location", "unit"]).iloc[0]) + [key[0]]
 
     def metadata_to_index(self, data: list) -> str:
         """Convert list to formatted index.
@@ -1686,7 +1684,7 @@ class MonteCarloTab(NewAnalysisTab):
         _header.setToolTip("Left click on the question mark for help")
         header_.addWidget(_header)
         header_.addAction(
-            qicons.question,
+            icons.qicons.question,
             "Left click for help on Monte Carlo analysis",
             self.explanation,
         )
@@ -1992,14 +1990,14 @@ class GSATab(NewAnalysisTab):
         super(GSATab, self).__init__(parent)
         self.parent = parent
 
-        self.GSA = GlobalSensitivityAnalysis(self.parent.mc)
+        self.GSA = bwutils.GlobalSensitivityAnalysis(self.parent.mc)
 
         header_ = QtWidgets.QToolBar()
         _header = header("Global Sensitivity Analysis")
         _header.setToolTip("Left click on the question mark for help")
         header_.addWidget(_header)
         header_.addAction(
-            qicons.question,
+            icons.qicons.question,
             "Left click for help on Global Sensitivity Analysis",
             self.explanation,
         )
@@ -2067,11 +2065,11 @@ class GSATab(NewAnalysisTab):
         self.hlayout_row1.addStretch(1)
 
         # H-LAYOUT SETTINGS ROW 2
-        self.hlayout_row2 = QHBoxLayout()
+        self.hlayout_row2 = QtWidgets.QHBoxLayout()
 
         # cutoff technosphere
-        self.label_cutoff_technosphere = QLabel("Cut-off technosphere:")
-        self.cutoff_technosphere = QLineEdit("0.01")
+        self.label_cutoff_technosphere = QtWidgets.QLabel("Cut-off technosphere:")
+        self.cutoff_technosphere = QtWidgets.QLineEdit("0.01")
         self.cutoff_technosphere.setFixedWidth(40)
         self.cutoff_technosphere.setValidator(QtGui.QDoubleValidator(0.0, 1.0, 5))
 
@@ -2101,14 +2099,14 @@ class GSATab(NewAnalysisTab):
         self.hlayout_row2.addStretch(1)
 
         # OVERALL LAYOUT OF SETTINGS
-        self.layout_settings = QVBoxLayout()
+        self.layout_settings = QtWidgets.QVBoxLayout()
         self.layout_settings.addLayout(self.hlayout_row1)
         self.layout_settings.addLayout(self.hlayout_row2)
-        self.widget_settings = QWidget()
+        self.widget_settings = QtWidgets.QWidget()
         self.widget_settings.setLayout(self.layout_settings)
 
         # add to GSA layout
-        self.label_monte_carlo_first = QLabel(
+        self.label_monte_carlo_first = QtWidgets.QLabel(
             "You need to run a Monte Carlo Simulation first."
         )
         self.layout.addWidget(self.label_monte_carlo_first)
@@ -2140,7 +2138,7 @@ class GSATab(NewAnalysisTab):
         # print('Calculating GSA for: ', act_number, method_number, cutoff_technosphere, cutoff_biosphere)
 
         try:
-            QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
+            QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
             self.GSA.perform_GSA(
                 act_number=act_number,
                 method_number=method_number,
@@ -2189,7 +2187,7 @@ class GSATab(NewAnalysisTab):
     def update_table(self):
         super().update_table(self.df)
 
-    def build_export(self, has_table: bool = True, has_plot: bool = True) -> QWidget:
+    def build_export(self, has_table: bool = True, has_plot: bool = True) -> QtWidgets.QWidget:
         """Construct the export layout but set it into a widget because we
         want to hide it."""
         export_layout = super().build_export(has_table, has_plot)
