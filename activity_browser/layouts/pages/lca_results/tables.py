@@ -12,11 +12,9 @@ from qtpy import QtGui, QtWidgets, QtCore
 from qtpy.QtCore import QPoint, QRect, QSize, Qt, QTimer, Signal, Slot, SignalInstance
 from qtpy.QtWidgets import QSizePolicy, QTableView
 
-from activity_browser.bwutils import commontasks
 from activity_browser.settings import ab_settings
 from activity_browser.ui.icons import qicons
 from activity_browser.ui.tables import delegates
-from activity_browser.ui.style import style_item
 
 from .dialogs import FilterManagerDialog, SimpleFilterDialog
 
@@ -207,14 +205,6 @@ class PandasModel(QtCore.QAbstractTableModel):
             # only show tooltip if the text is wider then the cell minus the margin
             if text_width > column_width - margin:
                 return value
-
-        if role == Qt.ForegroundRole:
-            col_name = self._dataframe.columns[index.column()]
-            if col_name not in style_item.brushes:
-                col_name = commontasks.AB_names_to_bw_keys.get(col_name, "")
-            return QtGui.QBrush(
-                style_item.brushes.get(col_name, style_item.brushes.get("default"))
-            )
 
         return None
 
