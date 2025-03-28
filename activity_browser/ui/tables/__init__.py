@@ -1,4 +1,3 @@
-from .history import ActivitiesHistoryTable
 from .impact_categories import (
     MethodCharacterizationFactorsTable,
     MethodsTable,

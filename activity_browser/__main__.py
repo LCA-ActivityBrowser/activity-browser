@@ -78,14 +78,18 @@ class ABLoader(QtWidgets.QWidget):
         thread.start()
 
     def load_layout(self):
-        from .ui.widgets import MainWindow
-        from .layouts import panes, panels
+        from .ui.widgets import MainWindow, CentralTabWidget
+        from .layouts import panes, pages
         from activity_browser.bwutils import AB_metadata
         from activity_browser import signals
 
         application.main_window = MainWindow()
         application.main_window.setPanes([panes.DatabasesPane, panes.ImpactCategoriesPane, panes.CalculationSetupsPane])
-        application.main_window.setCentralWidget(panels.RightPanel(application.main_window))
+
+        central_widget = CentralTabWidget(application.main_window)
+        central_widget.addTab(pages.WelcomePage(), "Welcome")
+
+        application.main_window.setCentralWidget(central_widget)
 
         self.load_settings()
 
@@ -113,7 +117,7 @@ class ModuleThread(QtCore.QThread):
         self.status.emit("Loading Activity Browser")
         log.debug("ABLoader: Importing activity_browser")
         from activity_browser import actions, layouts, mod, settings, ui, signals
-        from activity_browser.layouts import panes, panels, pages, tabs
+        from activity_browser.layouts import panes, pages, tabs
         from activity_browser.ui import core, tables, widgets, web, wizards
 
 
