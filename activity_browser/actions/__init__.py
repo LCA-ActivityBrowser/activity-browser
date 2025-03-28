@@ -11,7 +11,6 @@ from .activity.activity_new_product import ActivityNewProduct
 from .activity.activity_open import ActivityOpen
 from .activity.activity_relink import ActivityRelink
 from .activity.activity_sdf_to_clipboard import ActivitySDFToClipboard
-from .activity.node_properties import NodeProperties
 from .activity.activity_redo_allocation import MultifunctionalProcessRedoAllocation
 from .activity.process_default_property_modify import ProcessDefaultPropertyModify
 from .activity.process_default_property_remove import ProcessDefaultPropertyRemove
@@ -30,7 +29,6 @@ from .calculation_setup.cs_calculate import CSCalculate
 from .calculation_setup.cs_open import CSOpen
 
 from .database.database_open import DatabaseOpen
-from .database.database_import import DatabaseImport
 from .database.database_export import DatabaseExport
 from .database.database_new import DatabaseNew
 from .database.database_delete import DatabaseDelete
@@ -51,7 +49,6 @@ from .exchange.exchange_modify import ExchangeModify
 from .exchange.exchange_formula_remove import ExchangeFormulaRemove
 from .exchange.exchange_uncertainty_modify import ExchangeUncertaintyModify
 from .exchange.exchange_uncertainty_remove import ExchangeUncertaintyRemove
-from .exchange.edge_properties import EdgeProperties
 from .exchange.exchange_copy_sdf import ExchangeCopySDF
 from .exchange.exchange_sdf_to_clipboard import ExchangeSDFToClipboard
 
@@ -94,7 +91,6 @@ from .project.project_migrate25 import ProjectMigrate25
 from .project.project_create_template import ProjectCreateTemplate
 from .project.project_new_template import ProjectNewFromTemplate
 
-from .plugin_wizard_open import PluginWizardOpen
 from .settings_wizard_open import SettingsWizardOpen
 from .migrations_install import MigrationsInstall
 from .pyside_upgrade import PysideUpgrade

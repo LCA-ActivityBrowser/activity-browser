@@ -13,6 +13,7 @@ from ..style import style_group_box, vertical_line
 
 log = getLogger(__name__)
 
+
 class ForceInputDialog(QtWidgets.QDialog):
     """Due to QInputDialog not allowing 'ok' button to be disabled when
     nothing is entered, we have this.
@@ -147,8 +148,6 @@ class TupleNameDialog(QtWidgets.QDialog):
         obj.input_box.updateGeometry()
         obj.changed()
         return obj
-
-
 
 
 class DatabaseLinkingDialog(QtWidgets.QDialog):
