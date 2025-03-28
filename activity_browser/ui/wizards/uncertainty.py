@@ -211,7 +211,6 @@ class UncertaintyTypePage(QtWidgets.QWizardPage):
 
         # Set values for selected uncertainty distribution.
         self.field_box = QtWidgets.QGroupBox("Fill out or change required parameters")
-        self.field_box.setStyleSheet(style_group_box.border_title)
         self.locale = QtCore.QLocale(
             QtCore.QLocale.English, QtCore.QLocale.UnitedStates
         )
