@@ -118,7 +118,7 @@ class ModuleThread(QtCore.QThread):
         self.status.emit("Loading Activity Browser")
         log.debug("ABLoader: Importing activity_browser")
         from activity_browser import actions, layouts, mod, settings, ui, signals
-        from activity_browser.layouts import panes, pages, tabs
+        from activity_browser.layouts import panes, pages
         from activity_browser.ui import core, tables, widgets, web, wizards
 
 
