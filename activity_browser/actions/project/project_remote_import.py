@@ -9,8 +9,7 @@ import requests
 
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.mod import bw2data as bd
-from activity_browser.ui.icons import qicons
-from activity_browser.ui.style import header
+from activity_browser.ui import icons, widgets
 
 log = getLogger(__name__)
 
@@ -88,7 +87,7 @@ class ProjectRemoteImportWindow(QtWidgets.QDialog):
 
         remote_url_layout = QtWidgets.QHBoxLayout()
         remote_url_layout.setAlignment(QtCore.Qt.AlignLeft)
-        remote_url_layout.addWidget(header("Remote URL:"))
+        remote_url_layout.addWidget(widgets.ABLabel.demiBold("Remote URL:"))
         self.remote_url_path = QtWidgets.QLineEdit()
         self.remote_url_path.setText("https://files.brightway.dev/")
         self.remote_url_path.textChanged.connect(self._handle_url_changed)
@@ -97,7 +96,7 @@ class ProjectRemoteImportWindow(QtWidgets.QDialog):
 
         remote_catalogue_layout = QtWidgets.QHBoxLayout()
         remote_catalogue_layout.setAlignment(QtCore.Qt.AlignLeft)
-        remote_catalogue_layout.addWidget(header("Catalogue file:"))
+        remote_catalogue_layout.addWidget(widgets.ABLabel.demiBold("Catalogue file:"))
         self.remote_catalogue = QtWidgets.QLineEdit()
         self.remote_catalogue.setText("projects-config.json")
         self.remote_catalogue.textChanged.connect(self._handle_url_changed)
@@ -121,7 +120,7 @@ class ProjectRemoteImportWindow(QtWidgets.QDialog):
 
         project_name_layout = QtWidgets.QHBoxLayout()
         project_name_layout.setAlignment(QtCore.Qt.AlignLeft)
-        project_name_layout.addWidget(header("Project name:"))
+        project_name_layout.addWidget(widgets.ABLabel.demiBold("Project name:"))
         self.project_name = QtWidgets.QLineEdit()
         self.project_name.setText("")
         self.project_name.textChanged.connect(self._handle_project_name_changed)
@@ -307,7 +306,7 @@ class ProjectRemoteImport(ABAction):
     Allows for customization of server URL, created project name, and whether or not to overwrite existing projects.
     """
 
-    icon = qicons.import_db
+    icon = icons.qicons.import_db
     text = "Import remote project"
     tool_tip = "Import a project file from a remote server"
 

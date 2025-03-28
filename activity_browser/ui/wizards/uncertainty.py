@@ -12,7 +12,6 @@ from .. import application
 from ...bwutils import PedigreeMatrix, get_uncertainty_interface
 from ...bwutils.uncertainty import EMPTY_UNCERTAINTY
 from ..figures import SimpleDistributionPlot
-from ..style import style_group_box
 
 log = getLogger(__name__)
 
@@ -198,7 +197,6 @@ class UncertaintyTypePage(QtWidgets.QWizardPage):
 
         # Selection of uncertainty distribution.
         box1 = QtWidgets.QGroupBox("Select the uncertainty distribution")
-        box1.setStyleSheet(style_group_box.border_title)
         self.distribution = QtWidgets.QComboBox(box1)
         self.distribution.addItems([ud.description for ud in uncertainty.choices])
         self.distribution.currentIndexChanged.connect(self.distribution_selection)
@@ -522,7 +520,6 @@ class PedigreeMatrixPage(QtWidgets.QWizardPage):
         self.matrix = None
 
         self.field_box = QtWidgets.QGroupBox("Fill out or change required parameters")
-        self.field_box.setStyleSheet(style_group_box.border_title)
         self.locale = QtCore.QLocale(
             QtCore.QLocale.English, QtCore.QLocale.UnitedStates
         )
@@ -547,7 +544,6 @@ class PedigreeMatrixPage(QtWidgets.QWizardPage):
         self.field_box.setLayout(box_layout)
 
         box = QtWidgets.QGroupBox("Select pedigree values")
-        box.setStyleSheet(style_group_box.border_title)
 
         self.reliable = QtWidgets.QComboBox(box)
         self.reliable.addItems(

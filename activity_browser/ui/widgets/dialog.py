@@ -5,11 +5,11 @@ from qtpy import QtGui, QtWidgets
 from qtpy.QtCore import Qt, Slot
 
 from activity_browser import signals
+from activity_browser.ui import widgets
 
 from ...info import __ei_versions__
 from ...ui.icons import qicons
 from ...utils import sort_semantic_versions
-from ..style import style_group_box, vertical_line
 
 log = getLogger(__name__)
 
@@ -80,7 +80,6 @@ class TupleNameDialog(QtWidgets.QDialog):
         row.addWidget(self.view_name)
         layout.addLayout(row)
         self.input_box = QtWidgets.QGroupBox(self)
-        self.input_box.setStyleSheet(style_group_box.border_title)
         input_field_layout = QtWidgets.QVBoxLayout()
         self.input_box.setLayout(input_field_layout)
         layout.addWidget(self.input_box)
@@ -854,7 +853,7 @@ class StrFilterRow(FilterRow):
         self.row_layout.addWidget(self.filter_case_sensitive_check)
         if remove_option:
             # add button to remove the row
-            self.row_layout.addWidget(vertical_line())
+            self.row_layout.addWidget(widgets.ABVLine(self))
             self.row_layout.addWidget(self.remove)
 
         self.setLayout(self.row_layout)
@@ -927,7 +926,7 @@ class NumFilterRow(FilterRow):
         self.row_layout.addWidget(self.filter_query_line)
         if remove_option:
             # add button to remove the row
-            self.row_layout.addWidget(vertical_line())
+            self.row_layout.addWidget(widgets.ABVLine(self))
             self.row_layout.addWidget(self.remove)
 
         self.setLayout(self.row_layout)
