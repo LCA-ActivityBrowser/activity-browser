@@ -6,7 +6,7 @@ from .line_edit import (ABLineEdit, SignalledComboEdit, SignalledLineEdit,
 from .message import parameter_save_errorbox, simple_warning_box
 from .treeview import ABTreeView
 from .item_model import ABItemModel
-from .abstractitem import ABAbstractItem, ABBranchItem, ABDataItem
+from .item import ABAbstractItem, ABBranchItem, ABDataItem
 from .line import ABHLine, ABVLine
 from .formula_edit import ABFormulaEdit
 from .progress_dialog import ABProgressDialog

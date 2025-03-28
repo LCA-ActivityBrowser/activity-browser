@@ -4,7 +4,7 @@ from qtpy.QtCore import Qt, Signal, SignalInstance
 
 from activity_browser.ui.icons import qicons
 
-from .abstractitem import ABAbstractItem, ABBranchItem, ABDataItem
+from .item import ABAbstractItem, ABBranchItem, ABDataItem
 
 
 class ABItemModel(QtCore.QAbstractItemModel):
