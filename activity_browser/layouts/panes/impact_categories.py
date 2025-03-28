@@ -123,7 +123,7 @@ class ImpactCategoriesBranchItem(widgets.ABBranchItem):
         return super().flags(col, key) | Qt.ItemFlag.ItemIsDragEnabled
 
 
-class ImpactCategoriesModel(widgets.ABAbstractItemModel):
+class ImpactCategoriesModel(widgets.ABItemModel):
     dataItemClass = ImpactCategoriesItem
     branchItemClass = ImpactCategoriesBranchItem
 

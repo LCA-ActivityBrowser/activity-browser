@@ -132,5 +132,5 @@ class ExchangesItem(widgets.ABDataItem):
         actions.CFAmountModify.run(self["_impact_category_name"], self["_id"], value)
 
 
-class CharacterizationFactorsModel(widgets.ABAbstractItemModel):
+class CharacterizationFactorsModel(widgets.ABItemModel):
     dataItemClass = ExchangesItem

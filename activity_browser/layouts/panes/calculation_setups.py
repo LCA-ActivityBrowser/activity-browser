@@ -148,7 +148,7 @@ class CalculationSetupsItem(widgets.ABDataItem):
         return font
 
 
-class CalculationSetupsModel(widgets.ABAbstractItemModel):
+class CalculationSetupsModel(widgets.ABItemModel):
     """
     A model representing the data for the databases.
 

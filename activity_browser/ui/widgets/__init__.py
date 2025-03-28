@@ -1,16 +1,11 @@
 from .abstract_pane import ABAbstractPane
 from .comparison_switch import SwitchComboBox
 from .cutoff_menu import CutoffMenu
-from .dialog import (ActivityLinkingDialog, ActivityLinkingResultsDialog,
-                     DatabaseLinkingDialog, DatabaseLinkingResultsDialog,
-                     EcoinventVersionDialog,
-                     ForceInputDialog, LocationLinkingDialog,
-                     TupleNameDialog)
 from .line_edit import (ABLineEdit, SignalledComboEdit, SignalledLineEdit,
                         SignalledPlainTextEdit)
 from .message import parameter_save_errorbox, simple_warning_box
 from .treeview import ABTreeView
-from .abstractitemmodel import ABAbstractItemModel
+from .item_model import ABItemModel
 from .abstractitem import ABAbstractItem, ABBranchItem, ABDataItem
 from .line import ABHLine, ABVLine
 from .formula_edit import ABFormulaEdit

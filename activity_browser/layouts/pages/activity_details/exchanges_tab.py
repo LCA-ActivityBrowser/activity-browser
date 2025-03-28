@@ -700,7 +700,7 @@ class ExchangesItem(widgets.ABDataItem):
         actions.FunctionSubstitute.run(self.exchange.input, act)
 
 
-class ExchangesModel(widgets.ABAbstractItemModel):
+class ExchangesModel(widgets.ABItemModel):
     """
     A model representing the data for the exchanges.
 

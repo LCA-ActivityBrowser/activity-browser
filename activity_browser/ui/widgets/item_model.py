@@ -7,7 +7,7 @@ from activity_browser.ui.icons import qicons
 from .abstractitem import ABAbstractItem, ABBranchItem, ABDataItem
 
 
-class ABAbstractItemModel(QtCore.QAbstractItemModel):
+class ABItemModel(QtCore.QAbstractItemModel):
     grouped: SignalInstance = Signal(list)
 
     dataItemClass = ABDataItem

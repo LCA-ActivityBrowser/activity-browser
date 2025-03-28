@@ -179,6 +179,6 @@ class NodeItem(widgets.ABDataItem):
             return str(type(data))
 
 
-class NodeModel(widgets.ABAbstractItemModel):
+class NodeModel(widgets.ABItemModel):
     dataItemClass = NodeItem
 

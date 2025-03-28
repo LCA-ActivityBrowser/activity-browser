@@ -247,7 +247,7 @@ class DatabasesItem(widgets.ABDataItem):
         return font
 
 
-class DatabasesModel(widgets.ABAbstractItemModel):
+class DatabasesModel(widgets.ABItemModel):
     """
     A model representing the data for the databases.
 

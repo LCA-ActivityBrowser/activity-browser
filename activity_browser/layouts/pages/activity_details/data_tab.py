@@ -154,7 +154,7 @@ class DataItem(widgets.ABDataItem):
         return False
 
 
-class DataModel(widgets.ABAbstractItemModel):
+class DataModel(widgets.ABItemModel):
     """
     A model representing the data for the activity.
 

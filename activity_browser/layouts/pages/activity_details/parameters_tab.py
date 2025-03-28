@@ -273,7 +273,7 @@ class NewParametersItem(widgets.ABDataItem):
         return True
 
 
-class ParametersModel(widgets.ABAbstractItemModel):
+class ParametersModel(widgets.ABItemModel):
     """
     A model representing the data for the parameters.
 

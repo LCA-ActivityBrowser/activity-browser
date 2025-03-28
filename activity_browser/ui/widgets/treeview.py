@@ -5,7 +5,7 @@ import pandas as pd
 from qtpy import QtWidgets, QtCore, QtGui
 from qtpy.QtCore import Qt
 
-from .abstractitemmodel import ABAbstractItemModel
+from .item_model import ABItemModel
 
 log = getLogger(__name__)
 
@@ -89,8 +89,8 @@ class ABTreeView(QtWidgets.QTreeView):
         self.allFilter: str = ""  # filter applied to the entire dataframe
 
     def setModel(self, model):
-        if not isinstance(model, ABAbstractItemModel):
-            raise TypeError("Model must be an instance of ABAbstractItemModel")
+        if not isinstance(model, ABItemModel):
+            raise TypeError("Model must be an instance of ABItemModel")
         super().setModel(model)
 
         model.modelReset.connect(self.expand_after_reset)
@@ -99,7 +99,7 @@ class ABTreeView(QtWidgets.QTreeView):
 
         self.setDefaultColumnDelegates()
 
-    def model(self) -> ABAbstractItemModel:
+    def model(self) -> ABItemModel:
         return super().model()
 
     # === Functionality related to contextmenus

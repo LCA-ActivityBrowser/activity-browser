@@ -268,7 +268,7 @@ class ScenarioImportWidget(QtWidgets.QWidget):
         self.remove_btn = QtWidgets.QPushButton(icons.qicons.delete, "Delete")
         self.remove_btn.setToolTip("Remove this scenario table")
         self.view = widgets.ABTreeView(self)
-        self.model = widgets.ABAbstractItemModel(self)
+        self.model = widgets.ABItemModel(self)
         self.view.setModel(self.model)
         self.scenario_df = pd.DataFrame(columns=ss.SUPERSTRUCTURE)
 

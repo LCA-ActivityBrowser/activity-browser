@@ -87,5 +87,5 @@ class ImpactCategoryItem(widgets.ABDataItem):
     pass
 
 
-class ImpactCategoryModel(widgets.ABAbstractItemModel):
+class ImpactCategoryModel(widgets.ABItemModel):
     dataItemClass = ImpactCategoryItem

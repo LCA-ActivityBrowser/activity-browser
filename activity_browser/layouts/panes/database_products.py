@@ -435,7 +435,7 @@ class ProductItem(ui.widgets.ABDataItem):
         return super().displayData(col, key)
 
 
-class ProductModel(ui.widgets.ABAbstractItemModel):
+class ProductModel(ui.widgets.ABItemModel):
     """
     A model representing the data for the products.
 
