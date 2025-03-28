@@ -32,6 +32,9 @@ class ABApplication(QtWidgets.QApplication):
         QFontDatabase.addApplicationFont(fonts.__path__[0] + "/notosans.ttf")
 
     def pyside6_setup(self):
+        from qtpy.QtWebEngineQuick import QtWebEngineQuick
+        QtWebEngineQuick.initialize()
+
         style = QtWidgets.QStyleFactory().create("fusion")
         self.setStyle(style)
 
@@ -81,6 +84,8 @@ class ABApplication(QtWidgets.QApplication):
         self.main_window.deleteLater()
 
 application = ABApplication()
+
+
 
 #
 # if QSysInfo.productType() == "osx":
