@@ -5,8 +5,7 @@ import bw2data as bd
 import pandas as pd
 
 from activity_browser import actions, signals
-from activity_browser.ui import widgets, icons
-from activity_browser.ui.tables import delegates
+from activity_browser.ui import widgets, icons, delegates
 from activity_browser.bwutils import AB_metadata
 
 
@@ -15,6 +14,8 @@ class ImpactCategoryDetailsPage(QtWidgets.QWidget):
         super().__init__(parent)
         self.name = name
         self.impact_category = bd.Method(name)
+
+        self.setObjectName(" | ".join(name))
 
         self.model = CharacterizationFactorsModel(self, self.build_df())
         self.view = CharacterizationFactorsView(self)
@@ -131,5 +132,5 @@ class ExchangesItem(widgets.ABDataItem):
         actions.CFAmountModify.run(self["_impact_category_name"], self["_id"], value)
 
 
-class CharacterizationFactorsModel(widgets.ABAbstractItemModel):
+class CharacterizationFactorsModel(widgets.ABItemModel):
     dataItemClass = ExchangesItem

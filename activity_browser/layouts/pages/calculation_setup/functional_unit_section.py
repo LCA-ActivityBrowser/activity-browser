@@ -108,5 +108,5 @@ class FunctionalUnitItem(widgets.ABDataItem):
             return icons.qicons.product
 
 
-class FunctionalUnitModel(widgets.ABAbstractItemModel):
+class FunctionalUnitModel(widgets.ABItemModel):
     dataItemClass = FunctionalUnitItem

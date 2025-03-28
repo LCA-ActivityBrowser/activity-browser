@@ -1,3 +1,4 @@
+import os
 from logging import getLogger
 
 from qtpy import QtGui, QtWidgets, PYSIDE6
@@ -31,6 +32,9 @@ class ABApplication(QtWidgets.QApplication):
         QFontDatabase.addApplicationFont(fonts.__path__[0] + "/notosans.ttf")
 
     def pyside6_setup(self):
+        from qtpy.QtWebEngineQuick import QtWebEngineQuick
+        QtWebEngineQuick.initialize()
+
         style = QtWidgets.QStyleFactory().create("fusion")
         self.setStyle(style)
 
@@ -38,11 +42,21 @@ class ABApplication(QtWidgets.QApplication):
         self.check_palette(self.styleHints().colorScheme())
 
     def check_palette(self, color_scheme):
+        import matplotlib.pyplot as plt
+
         if color_scheme == Qt.ColorScheme.Dark:
             palette = self.style().standardPalette()
             palette.setColor(QtGui.QPalette.AlternateBase, QtGui.QColor(53, 53, 53))
+
+            plt.style.use("dark_background")
+
+            # os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = "--force-dark-mode"
         else:
             palette = self.style().standardPalette()
+
+            plt.style.use("default")
+
+            # os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = ""
         self.setPalette(palette)
 
     @property
@@ -70,6 +84,8 @@ class ABApplication(QtWidgets.QApplication):
         self.main_window.deleteLater()
 
 application = ABApplication()
+
+
 
 #
 # if QSysInfo.productType() == "osx":

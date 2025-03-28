@@ -17,7 +17,8 @@ from qtpy.QtWidgets import (QButtonGroup, QHBoxLayout, QLabel, QLineEdit,
                                QPushButton, QRadioButton, QSlider, QVBoxLayout,
                                QWidget)
 
-from ..style import vertical_line
+from activity_browser.ui import widgets
+
 
 # These tuples are used in referring to the two Types and three Labels used
 Types = namedtuple("types", ("relative", "topx"))
@@ -296,7 +297,7 @@ contributions to be shown"
 
         # Assemble cut-off menu
         layout.addLayout(cutoff_type)
-        layout.addWidget(vertical_line())
+        layout.addWidget(widgets.ABVLine(self))
         layout.addLayout(cutoff_slider)
         layout.addStretch()
 

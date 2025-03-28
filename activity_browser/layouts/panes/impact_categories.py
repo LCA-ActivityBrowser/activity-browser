@@ -5,8 +5,7 @@ import bw2data as bd
 import pandas as pd
 
 from activity_browser import signals, actions
-from activity_browser.ui import widgets, core
-from activity_browser.ui.tables import delegates
+from activity_browser.ui import widgets, core, delegates
 
 
 class ImpactCategoriesPane(widgets.ABAbstractPane):
@@ -124,7 +123,7 @@ class ImpactCategoriesBranchItem(widgets.ABBranchItem):
         return super().flags(col, key) | Qt.ItemFlag.ItemIsDragEnabled
 
 
-class ImpactCategoriesModel(widgets.ABAbstractItemModel):
+class ImpactCategoriesModel(widgets.ABItemModel):
     dataItemClass = ImpactCategoriesItem
     branchItemClass = ImpactCategoriesBranchItem
 

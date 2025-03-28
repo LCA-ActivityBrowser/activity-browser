@@ -20,13 +20,13 @@ class MenuBar(QtWidgets.QMenuBar):
         self.project_menu = ProjectMenu(self)
         self.view_menu = ViewMenu(self)
         self.calculate_menu = CalculateMenu(self)
-        self.tools_menu = ToolsMenu(self)
+        # self.tools_menu = ToolsMenu(self)
         self.help_menu = HelpMenu(self)
 
         self.addMenu(self.project_menu)
         self.addMenu(self.view_menu)
         self.addMenu(self.calculate_menu)
-        self.addMenu(self.tools_menu)
+        # self.addMenu(self.tools_menu)
         self.addMenu(self.help_menu)
 
 
@@ -46,7 +46,6 @@ class ProjectMenu(QtWidgets.QMenu):
         self.import_proj_action = actions.ProjectImport.get_QAction()
         self.export_proj_action = actions.ProjectExport.get_QAction()
 
-        self.import_db_action = actions.DatabaseImport.get_QAction()
         self.export_db_action = actions.DatabaseExport.get_QAction()
 
         self.manage_settings_action = actions.SettingsWizardOpen.get_QAction()
@@ -148,18 +147,18 @@ class CalculateMenu(QtWidgets.QMenu):
             self.addAction(action)
 
 
-class ToolsMenu(QtWidgets.QMenu):
-    """
-    Tools Menu: contains actions in regard to special tooling aspects of the AB
-    """
-
-    def __init__(self, parent=None) -> None:
-        super().__init__(parent)
-        self.setTitle("&Tools")
-
-        self.manage_plugins_action = actions.PluginWizardOpen.get_QAction()
-
-        self.addAction(self.manage_plugins_action)
+# class ToolsMenu(QtWidgets.QMenu):
+#     """
+#     Tools Menu: contains actions in regard to special tooling aspects of the AB
+#     """
+#
+#     def __init__(self, parent=None) -> None:
+#         super().__init__(parent)
+#         self.setTitle("&Tools")
+#
+#         self.manage_plugins_action = actions.PluginWizardOpen.get_QAction()
+#
+#         self.addAction(self.manage_plugins_action)
 
 
 class HelpMenu(QtWidgets.QMenu):
@@ -271,7 +270,6 @@ class ImportDatabaseMenu(QtWidgets.QMenu):
         self.import_from_ecoinvent_action = actions.DatabaseImportFromEcoinvent.get_QAction()
         self.import_from_excel_action = actions.DatabaseImporterExcel.get_QAction()
         self.import_from_bw2package_action = actions.DatabaseImporterBW2Package.get_QAction()
-        self.open_import_wizard_action = actions.DatabaseImport.get_QAction()
 
         self.import_from_ecoinvent_action.setText("ecoinvent...")
         self.import_from_excel_action.setText("from .xlsx")

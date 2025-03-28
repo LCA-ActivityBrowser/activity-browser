@@ -598,7 +598,7 @@ class SuperstructureManager(object):
                 QApplication.restoreOverrideCursor()
                 response = warning.exec_()
                 QApplication.setOverrideCursor(Qt.WaitCursor)
-                if response == warning.Rejected:
+                if response == warning.DialogCode.Rejected:
                     raise ImportCanceledError
             return data
 

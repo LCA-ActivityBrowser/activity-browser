@@ -7,8 +7,7 @@ from bw2io import restore_project_directory
 
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.mod import bw2data as bd
-from activity_browser.ui.icons import qicons
-from activity_browser.ui.style import header
+from activity_browser.ui import icons, widgets
 
 log = getLogger(__name__)
 
@@ -48,7 +47,7 @@ class ProjectLocalImportWindow(QtWidgets.QDialog):
 
         project_name_layout = QtWidgets.QHBoxLayout()
         project_name_layout.setAlignment(QtCore.Qt.AlignLeft)
-        project_name_layout.addWidget(header("Project name:"))
+        project_name_layout.addWidget(widgets.ABLabel.demiBold("Project name:"))
         self.project_name = QtWidgets.QLineEdit()
         self.project_name.setText("")
         self.project_name.textChanged.connect(self._handle_project_name_changed)
@@ -267,7 +266,7 @@ class ProjectLocalImport(ABAction):
     Allows for customization of server URL, created project name, and whether or not to overwrite existing projects.
     """
 
-    icon = qicons.import_db
+    icon = icons.qicons.import_db
     text = "Import local project"
     tool_tip = "Import a project file from a remote server"
 

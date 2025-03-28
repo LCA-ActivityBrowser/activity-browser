@@ -4,8 +4,7 @@ import bw2data as bd
 import pandas as pd
 
 from activity_browser import signals, actions
-from activity_browser.ui import widgets
-from activity_browser.ui.tables import delegates
+from activity_browser.ui import widgets, delegates
 
 
 class CalculationSetupsPane(widgets.ABAbstractPane):
@@ -149,7 +148,7 @@ class CalculationSetupsItem(widgets.ABDataItem):
         return font
 
 
-class CalculationSetupsModel(widgets.ABAbstractItemModel):
+class CalculationSetupsModel(widgets.ABItemModel):
     """
     A model representing the data for the databases.
 

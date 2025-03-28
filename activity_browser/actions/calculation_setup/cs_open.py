@@ -16,12 +16,17 @@ class CSOpen(ABAction):
     @staticmethod
     @exception_dialogs
     def run(cs_names: str | list[str]):
+        from activity_browser.layouts import pages
+
         if isinstance(cs_names, str):
             cs_names = [cs_names]
 
         for cs_name in cs_names:
             if cs_name not in bd.calculation_setups:
                 log.warning(f"Calculation setup {cs_name} not found")
-            tab = application.main_window.centralWidget().tabs["LCA Setup"]
-            tab.open_cs(cs_name)
+                continue
 
+            page = pages.CalculationSetupPage(cs_name)
+            central = application.main_window.centralWidget()
+
+            central.addToGroup("LCA Setup", page)

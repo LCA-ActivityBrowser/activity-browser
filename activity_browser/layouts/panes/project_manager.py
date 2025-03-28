@@ -25,10 +25,10 @@ class ProjectManagerPane(widgets.ABAbstractPane):
 
         self.tabs = QtWidgets.QTabWidget(self)
 
-        self.project_model = widgets.ABAbstractItemModel(self)
+        self.project_model = widgets.ABItemModel(self)
         self.project_model.dataItemClass = ProjectItem
 
-        self.template_model = widgets.ABAbstractItemModel(self)
+        self.template_model = widgets.ABItemModel(self)
         self.template_model.dataItemClass = TemplateItem
 
         self.project_view = ProjectView(self)

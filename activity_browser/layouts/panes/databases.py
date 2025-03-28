@@ -8,8 +8,7 @@ import pandas as pd
 
 from activity_browser import signals, actions, bwutils
 from activity_browser.settings import project_settings
-from activity_browser.ui import widgets, icons
-from activity_browser.ui.tables import delegates
+from activity_browser.ui import widgets, icons, delegates
 
 
 class DatabasesPane(widgets.ABAbstractPane):
@@ -248,7 +247,7 @@ class DatabasesItem(widgets.ABDataItem):
         return font
 
 
-class DatabasesModel(widgets.ABAbstractItemModel):
+class DatabasesModel(widgets.ABItemModel):
     """
     A model representing the data for the databases.
 

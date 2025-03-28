@@ -1,15 +1,11 @@
-from typing import Callable, Optional, Union
-
 import pandas as pd
-from qtpy import QtCore
+from qtpy import QtWidgets
 
 from activity_browser import application, signals
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.bwutils import AB_metadata, commontasks
 from activity_browser.mod import bw2data as bd
 from activity_browser.ui.icons import qicons
-
-from ...ui.widgets import LocationLinkingDialog
 
 
 class ActivityDuplicateToLoc(ABAction):
@@ -143,7 +139,7 @@ class ActivityDuplicateToLoc(ABAction):
     @staticmethod
     def find_candidate(
         db_name, dbs, exch, old_location, new_location, use_alternatives, alternatives
-    ) -> Optional[object]:
+    ):
         """Find a candidate to replace the exchange with."""
         current_db = exch.input[0]
         if current_db == db_name:
@@ -185,3 +181,96 @@ class ActivityDuplicateToLoc(ABAction):
             if len(candidate) != 1:
                 return  # there are either no or multiple matches with alternative locations
         return candidate
+
+
+class LocationLinkingDialog(QtWidgets.QDialog):
+    """Display all of the possible location links in a single dialog for the user.
+
+    Allow users to select alternate location links and an option to link to generic alternatives (GLO, RoW).
+    """
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Activity Location linking")
+
+        self.loc_label = QtWidgets.QLabel()
+        self.label_choices = []
+        self.grid_box = QtWidgets.QGroupBox("Location link:")
+        self.grid = QtWidgets.QGridLayout()
+        self.grid_box.setLayout(self.grid)
+
+        self.use_alternatives_label = QtWidgets.QLabel(
+            "Use generic alternatives as fallback:"
+        )
+        self.use_alternatives_label.setToolTip(
+            "If the chosen location is not found, try matching the selected "
+            "locations below too"
+        )
+        self.use_row = QtWidgets.QCheckBox("RoW")
+        self.use_row.setChecked(True)
+        self.use_rer = QtWidgets.QCheckBox("RER")
+        self.use_ews = QtWidgets.QCheckBox("Europe without Switzerland")
+
+        self.buttons = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel,
+        )
+        self.buttons.accepted.connect(self.accept)
+        self.buttons.rejected.connect(self.reject)
+
+        layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(self.loc_label)
+        layout.addWidget(self.grid_box)
+        layout.addWidget(self.use_alternatives_label)
+        layout.addWidget(self.use_row)
+        layout.addWidget(self.use_rer)
+        layout.addWidget(self.use_ews)
+        layout.addWidget(self.buttons)
+        self.setLayout(layout)
+
+    @property
+    def relink(self) -> dict:
+        """Returns a dictionary of str -> str key/values, showing which keys
+        should be linked to which values.
+
+        Only returns key/value pairs if they differ.
+        """
+        return {
+            label.text(): combo.currentText()
+            for label, combo in self.label_choices
+            if label.text() != combo.currentText()
+        }
+
+    @classmethod
+    def construct_dialog(
+        cls,
+        label: str,
+        options: list,
+        parent: QtWidgets.QWidget = None,
+    ) -> "LocationLinkingDialog":
+        loc, locs = options
+
+        obj = cls(parent)
+        obj.loc_label.setText(label)
+
+        label = QtWidgets.QLabel(loc)
+        combo = QtWidgets.QComboBox()
+        combo.addItems(locs)
+        combo.setCurrentText(loc)
+        obj.label_choices.append((label, combo))
+        # Start at 1 because row 0 is taken up by the loc_label
+        obj.grid.addWidget(label, 0, 0, 1, 2)
+        obj.grid.addWidget(combo, 0, 2, 1, 2)
+
+        obj.updateGeometry()
+        return obj
+
+    @classmethod
+    def relink_location(
+        cls, act_name: str, options: list, parent=None
+    ) -> "LocationLinkingDialog":
+        label = "Relinking exchanges from activity '{}' to a new location.".format(
+            act_name
+        )
+        return cls.construct_dialog(label, options, parent)
+
+

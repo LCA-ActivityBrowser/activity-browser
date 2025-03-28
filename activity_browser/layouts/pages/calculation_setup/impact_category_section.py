@@ -4,8 +4,7 @@ import bw2data as bd
 import pandas as pd
 
 from activity_browser import actions
-from activity_browser.ui import widgets, icons
-from activity_browser.ui.tables import delegates
+from activity_browser.ui import widgets, delegates
 
 
 class ImpactCategorySection(QtWidgets.QWidget):
@@ -88,5 +87,5 @@ class ImpactCategoryItem(widgets.ABDataItem):
     pass
 
 
-class ImpactCategoryModel(widgets.ABAbstractItemModel):
+class ImpactCategoryModel(widgets.ABItemModel):
     dataItemClass = ImpactCategoryItem

@@ -145,7 +145,7 @@ class ConsumersItem(widgets.ABDataItem):
             return icons.qicons.waste
 
 
-class ConsumersModel(widgets.ABAbstractItemModel):
+class ConsumersModel(widgets.ABItemModel):
     """
     A model representing the data for the consumers.
 

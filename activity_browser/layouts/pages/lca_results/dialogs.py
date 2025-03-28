@@ -1,176 +1,9 @@
-from logging import getLogger
-
-from qtpy import QtGui, QtWidgets
+from qtpy import QtWidgets, QtGui
 from qtpy.QtCore import Qt
-from activity_browser.ui import widgets, icons
 
-log = getLogger(__name__)
+from activity_browser.ui.icons import qicons
 
-
-class FilterManagerDialog(QtWidgets.QDialog):
-    """Set filters for a table.
-
-    Dialog has 1 tab per given column. Each tab has rows for filters,
-    where type/query/other is defined. User can add/remove filters as desired.
-    When multiple filters exist for 1 column, user can choose AND/OR combination of filters.
-    AND/OR for combining columns can also be chosen.
-
-    Required inputs:
-    - column names: dict --> the column names and their indices in the table
-        format: {'col_name': i}
-    Optional inputs:
-    - filters: dict --> pre-apply filters in the dialog (see format example below)
-    - selected_column: int --> open the dialog with this column tab open
-    - column_types: dict --> show other filters for this column
-        format: {'col_name': 'num'}
-        options: str/num, defaults to str if no type is given
-
-    Interaction:
-    - call 'start_filter_dialog' of 'ABFilterableDataFrameView' to launch dialog,
-    filters are only applied when OK is selected. This calls self.get_filters,
-    which returns filter data as dict.
-
-    example of filters (see also ABMultiColumnSortProxyModel):
-    filters = {
-            0: {'filters': [('contains', 'heat', False), ('contains', 'electricity', False)],
-                'mode': 'OR'},
-            1: {'filters': [('contains', 'market', False)]}
-        }
-    """
-
-    def __init__(
-        self,
-        column_names: dict,
-        filter_types: dict,
-        filters: dict = None,
-        selected_column: int = 0,
-        column_types: dict = {},
-        parent=None,
-    ):
-        super().__init__(parent)
-        self.setWindowIcon(icons.qicons.filter)
-        self.setWindowTitle("Manage table filters")
-
-        # set given filters, if any
-        if isinstance(filters, dict):
-            self.filters = filters
-        else:
-            self.filters = {}
-
-        # create a tab for every column in the table
-        self.tab_widget = QtWidgets.QTabWidget()
-        self.tabs = []
-
-        # we need this dict as we may have hidden columns (e.g. CFTable)
-        self.col_id_2_tab_id = {}
-        for tab_id, col_data in enumerate(column_names.items()):
-            col_name, col_id = col_data
-            self.col_id_2_tab_id[col_id] = tab_id
-            tab = ColumnFilterTab(
-                parent=self,
-                state=self.filters.get(col_id, None),
-                col_type=column_types.get(col_name, "str"),
-                filter_types=filter_types,
-            )
-            self.tabs.append(tab)
-            self.tab_widget.addTab(tab, col_name)
-
-        # add AND/OR choice button.
-        self.and_or_buttons = AndOrRadioButtons(label_text="Combine columns:")
-        # in the extremely unlikely event there is only 1 column, hide the AND/OR option.
-        if len(column_names) == 1:
-            self.and_or_buttons.hide()
-
-        # create OK/cancel buttons
-        self.buttons = QtWidgets.QDialogButtonBox(
-            QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel,
-        )
-        self.buttons.accepted.connect(self.accept)
-        self.buttons.rejected.connect(self.reject)
-
-        # assemble layout
-        layout = QtWidgets.QVBoxLayout()
-        layout.addWidget(self.tab_widget)
-        layout.addWidget(self.and_or_buttons)
-        layout.addWidget(self.buttons)
-        self.setLayout(layout)
-
-        # set the column that launched the dialog as the open tab
-        self.tab_widget.setCurrentIndex(self.col_id_2_tab_id[selected_column])
-        self.tabs[selected_column].filter_rows[-1].filter_query_line.setFocus()
-
-    @property
-    def get_filters(self) -> dict:
-        state = {}
-        t2c = {v: k for k, v in self.col_id_2_tab_id.items()}
-        for tab_id, tab in enumerate(self.tabs):
-            tab_state = tab.get_state
-            if isinstance(tab_state, dict):
-                state[t2c[tab_id]] = tab_state
-        if len(state) == 0:
-            return
-        state["mode"] = self.and_or_buttons.get_state
-        return state
-
-
-class SimpleFilterDialog(QtWidgets.QDialog):
-    """Add one filter to a column.
-
-    Related to FilterManagerDialog.
-    """
-
-    def __init__(
-        self,
-        column_name: dict,
-        filter_types: dict,
-        column_type: str = "str",
-        preset_type: str = None,
-        parent=None,
-    ):
-        super().__init__(parent)
-        self.setWindowIcon(icons.qicons.filter)
-        self.setWindowTitle("Add filter")
-
-        # Create filter label and buttons
-        label = QtWidgets.QLabel("Define a filter for column '{}'".format(column_name))
-
-        if column_type == "num":
-            self.filter_row = NumFilterRow(
-                idx=0,
-                filter_types=filter_types,
-                remove_option=False,
-                preset_type=preset_type,
-                parent=self,
-            )
-        else:
-            # if none of the above types, assume str
-            self.filter_row = StrFilterRow(
-                idx=0,
-                filter_types=filter_types,
-                remove_option=False,
-                preset_type=preset_type,
-                parent=self,
-            )
-
-        self.filter_row.filter_query_line.setFocus()
-
-        # create OK/cancel buttons
-        self.buttons = QtWidgets.QDialogButtonBox(
-            QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel,
-        )
-        self.buttons.accepted.connect(self.accept)
-        self.buttons.rejected.connect(self.reject)
-
-        layout = QtWidgets.QVBoxLayout()
-        layout.addWidget(label)
-        layout.addWidget(self.filter_row)
-        layout.addWidget(self.buttons)
-        self.setLayout(layout)
-
-    @property
-    def get_filter(self) -> tuple:
-        if self.filter_row.get_state:
-            return self.filter_row.get_state
+from .style import vertical_line
 
 
 class ColumnFilterTab(QtWidgets.QWidget):
@@ -197,7 +30,7 @@ class ColumnFilterTab(QtWidgets.QWidget):
         self.col_type = col_type
 
         self.add = QtWidgets.QToolButton()
-        self.add.setIcon(icons.qicons.add)
+        self.add.setIcon(qicons.add)
         self.add.setToolTip("Add a new filter for this column")
         self.add.clicked.connect(self.add_row)
 
@@ -291,6 +124,60 @@ class ColumnFilterTab(QtWidgets.QWidget):
             self.and_or_buttons.hide()
 
 
+class AndOrRadioButtons(QtWidgets.QWidget):
+    """Convenience class for managing AND/OR buttons.
+
+    This class is purely intended for FilterManagerDialog and related, take this into account if using elsewhere.
+
+    Required inputs:
+    - None
+    Optional inputs:
+    - label_text: str -->
+    - state: str --> str of existing AND/OR state that should be re-created in UI.
+
+    Interaction:
+    - def get_state: Provides the state of AND/OR radio buttons (string of 'AND' or 'OR')
+    returns: str
+    - def set_state: Writes given AND/OR state UI element (string of 'AND' or 'OR')
+    """
+
+    def __init__(self, label_text: str = "", state: str = None, parent=None):
+        super().__init__(parent)
+        # create an AND/OR widget
+        layout = QtWidgets.QHBoxLayout()
+        self.btn_group = QtWidgets.QButtonGroup()
+        self.AND = QtWidgets.QRadioButton("AND")
+        self.OR = QtWidgets.QRadioButton("OR")
+        self.btn_group.addButton(self.AND)
+        self.btn_group.addButton(self.OR)
+        layout.addStretch()
+        layout.addWidget(QtWidgets.QLabel(label_text))
+        layout.addWidget(self.AND)
+        layout.addWidget(self.OR)
+        self.setLayout(layout)
+        self.setToolTip(
+            "Choose how filters combine with each other.\n"
+            "AND must satisfy all filters, OR must satisfy at least one filter."
+        )
+
+        # set the state if one was given, otherwise, assume AND
+        if isinstance(state, str):
+            self.set_state(state)
+        else:
+            self.set_state("AND")
+
+    @property
+    def get_state(self) -> str:
+        return self.btn_group.checkedButton().text()
+
+    def set_state(self, state: str) -> None:
+        x = True
+        if state == "OR":
+            x = False
+        self.AND.setChecked(x)
+        self.OR.setChecked(not x)
+
+
 class FilterRow(QtWidgets.QWidget):
     """Convenience class for managing a filter input row.
 
@@ -343,7 +230,7 @@ class FilterRow(QtWidgets.QWidget):
         if remove_option:
             # add buttons to remove the row
             self.remove = QtWidgets.QToolButton()
-            self.remove.setIcon(icons.qicons.delete)
+            self.remove.setIcon(qicons.delete)
             self.remove.setToolTip("Remove this filter")
             self.remove.clicked.connect(self.self_destruct)
 
@@ -389,7 +276,7 @@ class StrFilterRow(FilterRow):
         self.row_layout.addWidget(self.filter_case_sensitive_check)
         if remove_option:
             # add button to remove the row
-            self.row_layout.addWidget(widgets.ABVLine(self))
+            self.row_layout.addWidget(vertical_line())
             self.row_layout.addWidget(self.remove)
 
         self.setLayout(self.row_layout)
@@ -462,7 +349,7 @@ class NumFilterRow(FilterRow):
         self.row_layout.addWidget(self.filter_query_line)
         if remove_option:
             # add button to remove the row
-            self.row_layout.addWidget(widgets.ABVLine(self))
+            self.row_layout.addWidget(vertical_line())
             self.row_layout.addWidget(self.remove)
 
         self.setLayout(self.row_layout)
@@ -518,55 +405,170 @@ class NumFilterRow(FilterRow):
         self.filter_type_box.setToolTip(tt)
 
 
-class AndOrRadioButtons(QtWidgets.QWidget):
-    """Convenience class for managing AND/OR buttons.
 
-    This class is purely intended for FilterManagerDialog and related, take this into account if using elsewhere.
+class SimpleFilterDialog(QtWidgets.QDialog):
+    """Add one filter to a column.
 
-    Required inputs:
-    - None
-    Optional inputs:
-    - label_text: str -->
-    - state: str --> str of existing AND/OR state that should be re-created in UI.
-
-    Interaction:
-    - def get_state: Provides the state of AND/OR radio buttons (string of 'AND' or 'OR')
-    returns: str
-    - def set_state: Writes given AND/OR state UI element (string of 'AND' or 'OR')
+    Related to FilterManagerDialog.
     """
 
-    def __init__(self, label_text: str = "", state: str = None, parent=None):
+    def __init__(
+        self,
+        column_name: dict,
+        filter_types: dict,
+        column_type: str = "str",
+        preset_type: str = None,
+        parent=None,
+    ):
         super().__init__(parent)
-        # create an AND/OR widget
-        layout = QtWidgets.QHBoxLayout()
-        self.btn_group = QtWidgets.QButtonGroup()
-        self.AND = QtWidgets.QRadioButton("AND")
-        self.OR = QtWidgets.QRadioButton("OR")
-        self.btn_group.addButton(self.AND)
-        self.btn_group.addButton(self.OR)
-        layout.addStretch()
-        layout.addWidget(QtWidgets.QLabel(label_text))
-        layout.addWidget(self.AND)
-        layout.addWidget(self.OR)
-        self.setLayout(layout)
-        self.setToolTip(
-            "Choose how filters combine with each other.\n"
-            "AND must satisfy all filters, OR must satisfy at least one filter."
-        )
+        self.setWindowIcon(qicons.filter)
+        self.setWindowTitle("Add filter")
 
-        # set the state if one was given, otherwise, assume AND
-        if isinstance(state, str):
-            self.set_state(state)
+        # Create filter label and buttons
+        label = QtWidgets.QLabel("Define a filter for column '{}'".format(column_name))
+
+        if column_type == "num":
+            self.filter_row = NumFilterRow(
+                idx=0,
+                filter_types=filter_types,
+                remove_option=False,
+                preset_type=preset_type,
+                parent=self,
+            )
         else:
-            self.set_state("AND")
+            # if none of the above types, assume str
+            self.filter_row = StrFilterRow(
+                idx=0,
+                filter_types=filter_types,
+                remove_option=False,
+                preset_type=preset_type,
+                parent=self,
+            )
+
+        self.filter_row.filter_query_line.setFocus()
+
+        # create OK/cancel buttons
+        self.buttons = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel,
+        )
+        self.buttons.accepted.connect(self.accept)
+        self.buttons.rejected.connect(self.reject)
+
+        layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(label)
+        layout.addWidget(self.filter_row)
+        layout.addWidget(self.buttons)
+        self.setLayout(layout)
 
     @property
-    def get_state(self) -> str:
-        return self.btn_group.checkedButton().text()
+    def get_filter(self) -> tuple:
+        if self.filter_row.get_state:
+            return self.filter_row.get_state
 
-    def set_state(self, state: str) -> None:
-        x = True
-        if state == "OR":
-            x = False
-        self.AND.setChecked(x)
-        self.OR.setChecked(not x)
+
+class FilterManagerDialog(QtWidgets.QDialog):
+    """Set filters for a table.
+
+    Dialog has 1 tab per given column. Each tab has rows for filters,
+    where type/query/other is defined. User can add/remove filters as desired.
+    When multiple filters exist for 1 column, user can choose AND/OR combination of filters.
+    AND/OR for combining columns can also be chosen.
+
+    Required inputs:
+    - column names: dict --> the column names and their indices in the table
+        format: {'col_name': i}
+    Optional inputs:
+    - filters: dict --> pre-apply filters in the dialog (see format example below)
+    - selected_column: int --> open the dialog with this column tab open
+    - column_types: dict --> show other filters for this column
+        format: {'col_name': 'num'}
+        options: str/num, defaults to str if no type is given
+
+    Interaction:
+    - call 'start_filter_dialog' of 'ABFilterableDataFrameView' to launch dialog,
+    filters are only applied when OK is selected. This calls self.get_filters,
+    which returns filter data as dict.
+
+    example of filters (see also ABMultiColumnSortProxyModel):
+    filters = {
+            0: {'filters': [('contains', 'heat', False), ('contains', 'electricity', False)],
+                'mode': 'OR'},
+            1: {'filters': [('contains', 'market', False)]}
+        }
+    """
+
+    def __init__(
+        self,
+        column_names: dict,
+        filter_types: dict,
+        filters: dict = None,
+        selected_column: int = 0,
+        column_types: dict = {},
+        parent=None,
+    ):
+        super().__init__(parent)
+        self.setWindowIcon(qicons.filter)
+        self.setWindowTitle("Manage table filters")
+
+        # set given filters, if any
+        if isinstance(filters, dict):
+            self.filters = filters
+        else:
+            self.filters = {}
+
+        # create a tab for every column in the table
+        self.tab_widget = QtWidgets.QTabWidget()
+        self.tabs = []
+
+        # we need this dict as we may have hidden columns (e.g. CFTable)
+        self.col_id_2_tab_id = {}
+        for tab_id, col_data in enumerate(column_names.items()):
+            col_name, col_id = col_data
+            self.col_id_2_tab_id[col_id] = tab_id
+            tab = ColumnFilterTab(
+                parent=self,
+                state=self.filters.get(col_id, None),
+                col_type=column_types.get(col_name, "str"),
+                filter_types=filter_types,
+            )
+            self.tabs.append(tab)
+            self.tab_widget.addTab(tab, col_name)
+
+        # add AND/OR choice button.
+        self.and_or_buttons = AndOrRadioButtons(label_text="Combine columns:")
+        # in the extremely unlikely event there is only 1 column, hide the AND/OR option.
+        if len(column_names) == 1:
+            self.and_or_buttons.hide()
+
+        # create OK/cancel buttons
+        self.buttons = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel,
+        )
+        self.buttons.accepted.connect(self.accept)
+        self.buttons.rejected.connect(self.reject)
+
+        # assemble layout
+        layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(self.tab_widget)
+        layout.addWidget(self.and_or_buttons)
+        layout.addWidget(self.buttons)
+        self.setLayout(layout)
+
+        # set the column that launched the dialog as the open tab
+        self.tab_widget.setCurrentIndex(self.col_id_2_tab_id[selected_column])
+        self.tabs[selected_column].filter_rows[-1].filter_query_line.setFocus()
+
+    @property
+    def get_filters(self) -> dict:
+        state = {}
+        t2c = {v: k for k, v in self.col_id_2_tab_id.items()}
+        for tab_id, tab in enumerate(self.tabs):
+            tab_state = tab.get_state
+            if isinstance(tab_state, dict):
+                state[t2c[tab_id]] = tab_state
+        if len(state) == 0:
+            return
+        state["mode"] = self.and_or_buttons.get_state
+        return state
+
+

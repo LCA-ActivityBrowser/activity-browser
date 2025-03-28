@@ -7,10 +7,9 @@ from qtpy.QtCore import Qt
 
 import bw2data as bd
 
-from activity_browser import actions, ui, signals
+from activity_browser import actions, ui, signals, application
 from activity_browser.settings import project_settings
-from activity_browser.ui import core, widgets, application
-from activity_browser.ui.tables import delegates
+from activity_browser.ui import core, widgets, delegates
 from activity_browser.bwutils import AB_metadata
 
 log = getLogger(__name__)
@@ -436,7 +435,7 @@ class ProductItem(ui.widgets.ABDataItem):
         return super().displayData(col, key)
 
 
-class ProductModel(ui.widgets.ABAbstractItemModel):
+class ProductModel(ui.widgets.ABItemModel):
     """
     A model representing the data for the products.
 
