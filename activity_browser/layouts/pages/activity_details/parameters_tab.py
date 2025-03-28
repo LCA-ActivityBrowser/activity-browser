@@ -3,8 +3,7 @@ from qtpy import QtWidgets, QtCore, QtGui
 import pandas as pd
 
 from activity_browser import signals, actions
-from activity_browser.ui import widgets, icons
-from activity_browser.ui.tables import delegates
+from activity_browser.ui import widgets, icons, delegates
 from activity_browser.bwutils import refresh_node, refresh_parameter, parameters_in_scope, Parameter
 
 

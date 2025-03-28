@@ -9,8 +9,7 @@ import bw2data as bd
 
 from activity_browser import actions, ui, signals, application
 from activity_browser.settings import project_settings
-from activity_browser.ui import core, widgets
-from activity_browser.ui.tables import delegates
+from activity_browser.ui import core, widgets, delegates
 from activity_browser.bwutils import AB_metadata
 
 log = getLogger(__name__)

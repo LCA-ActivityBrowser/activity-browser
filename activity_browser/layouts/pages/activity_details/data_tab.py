@@ -5,9 +5,8 @@ import bw2data as bd
 import bw_functional as bf
 
 from activity_browser import actions
-from activity_browser.bwutils import refresh_node, AB_metadata
-from activity_browser.ui import widgets
-from activity_browser.ui.tables import delegates
+from activity_browser.bwutils import refresh_node
+from activity_browser.ui import widgets, delegates
 
 
 class DataTab(QtWidgets.QWidget):

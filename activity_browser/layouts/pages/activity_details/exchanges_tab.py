@@ -8,8 +8,7 @@ import bw2data as bd
 
 from activity_browser import actions, bwutils
 from activity_browser.bwutils import refresh_node, AB_metadata
-from activity_browser.ui import widgets, icons
-from activity_browser.ui.tables import delegates
+from activity_browser.ui import widgets, icons, delegates
 
 log = getLogger(__name__)
 

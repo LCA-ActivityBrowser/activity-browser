@@ -9,15 +9,12 @@ import pandas as pd
 import bw2data as bd
 
 from qtpy.QtCore import QAbstractItemModel, QAbstractTableModel, QModelIndex, QSortFilterProxyModel
-from qtpy.QtGui import QBrush
 from qtpy import QtGui, QtWidgets
 from qtpy.QtCore import QPoint, QRect, QSize, Qt, QTimer, Signal, Slot
 from qtpy.QtWidgets import QApplication, QSizePolicy, QTableView
 
-from activity_browser.bwutils import commontasks as bc
 from activity_browser.settings import ab_settings
-from activity_browser.ui import icons, widgets
-from activity_browser.ui.tables import delegates
+from activity_browser.ui import icons, widgets, delegates
 
 log = getLogger(__name__)
 

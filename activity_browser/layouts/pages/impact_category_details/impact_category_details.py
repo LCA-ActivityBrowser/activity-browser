@@ -5,8 +5,7 @@ import bw2data as bd
 import pandas as pd
 
 from activity_browser import actions, signals
-from activity_browser.ui import widgets, icons
-from activity_browser.ui.tables import delegates
+from activity_browser.ui import widgets, icons, delegates
 from activity_browser.bwutils import AB_metadata
 
 

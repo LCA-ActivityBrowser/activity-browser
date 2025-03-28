@@ -1,12 +1,10 @@
-from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
 from qtpy import QtWidgets, QtCore, QtGui
-from qtpy.QtTest import QTest
 from pytestqt.qtbot import QtBot
 
-from activity_browser.ui.tables.delegates import JSONDelegate, ComboBoxDelegate
+from activity_browser.ui.delegates import JSONDelegate, ComboBoxDelegate
 from activity_browser.ui.tables.tags import TagTable, TagDelegate
 from activity_browser.ui.widgets import TagEditor
 

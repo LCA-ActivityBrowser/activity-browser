@@ -7,8 +7,7 @@ import bw2data as bd
 import bw_functional as bf
 
 from activity_browser import actions, signals
-from activity_browser.ui import icons
-from activity_browser.ui.tables import delegates
+from activity_browser.ui import icons, delegates
 
 from .parameter_models import (
     BaseParameterModel,

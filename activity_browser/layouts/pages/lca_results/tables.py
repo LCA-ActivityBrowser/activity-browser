@@ -14,7 +14,7 @@ from qtpy.QtWidgets import QSizePolicy, QTableView
 
 from activity_browser.settings import ab_settings
 from activity_browser.ui.icons import qicons
-from activity_browser.ui.tables import delegates
+from activity_browser.ui import delegates
 
 from .dialogs import FilterManagerDialog, SimpleFilterDialog
 
