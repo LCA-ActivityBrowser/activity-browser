@@ -12,6 +12,7 @@ class CalculationSetupPage(QtWidgets.QWidget):
 
     def __init__(self, cs_name: str, parent=None):
         super().__init__(parent)
+        self.setObjectName(cs_name)
 
         self.calculation_setup_name = cs_name
 
@@ -26,6 +27,8 @@ class CalculationSetupPage(QtWidgets.QWidget):
 
         # Build the layout of the widget
         self.build_layout()
+        self.sync()
+        self.connect_signals()
 
     def build_layout(self):
         """
