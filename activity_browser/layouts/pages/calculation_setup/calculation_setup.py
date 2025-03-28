@@ -19,7 +19,7 @@ class CalculationSetupPage(QtWidgets.QWidget):
         self.type_dropdown = QtWidgets.QComboBox()
         self.type_dropdown.addItems(["Standard", "Scenario"])
 
-        self.run_button = QtWidgets.QPushButton("Run")
+        self.run_button = QtWidgets.QPushButton("Run", self)
         self.functional_unit_section = FunctionalUnitSection(cs_name, self)
         self.impact_category_section = ImpactCategorySection(cs_name, self)
         self.scenario_section = ScenarioSection(self)
@@ -58,14 +58,13 @@ class CalculationSetupPage(QtWidgets.QWidget):
 
         # Set the layout for the widget
         self.setLayout(layout)
-        self.connect_signals()
 
     def connect_signals(self):
         signals.project.changed.connect(self.sync)
         signals.meta.calculation_setups_changed.connect(self.sync)
 
         self.type_dropdown.currentTextChanged.connect(self.type_switch)
-        self.run_button.clicked.connect(self.run_calculation)
+        self.run_button.released.connect(self.run_calculation)
 
     def sync(self) -> None:
         self.functional_unit_section.sync()
