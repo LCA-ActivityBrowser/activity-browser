@@ -304,7 +304,7 @@ class ExchangesView(widgets.ABTreeView):
             super().__init__(view)
 
             # Add the action to add a new product
-            self.add_product_action = actions.ActivityNewProduct.get_QAction(view.activity.key)
+            self.add_product_action = actions.ActivityNewProduct.get_QAction([view.activity.key])
             self.addAction(self.add_product_action)
 
             index = view.indexAt(pos)
