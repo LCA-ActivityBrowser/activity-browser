@@ -95,6 +95,8 @@ class LCAResultsPage(QtWidgets.QTabWidget):
 
     def __init__(self, cs_name, mlca, contributions, mc, parent=None):
         super().__init__(parent)
+        self.setObjectName(cs_name)
+
         self.cs_name, self.mlca, self.contributions, self.mc = cs_name, mlca, contributions, mc
         self.cs = bd.calculation_setups[self.cs_name]
         self.has_scenarios: bool = False
