@@ -23,5 +23,8 @@ class MethodOpen(ABAction):
         from activity_browser.layouts import pages
 
         for name in method_names:
-            tab = application.main_window.centralWidget().tabs["Characterization Factors"]
-            tab.open_method_tab(name)
+            page = pages.ImpactCategoryDetailsPage(name)
+            central = application.main_window.centralWidget()
+
+            central.addToGroup("Characterization Factors", page)
+

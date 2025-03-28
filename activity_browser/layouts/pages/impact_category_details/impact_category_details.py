@@ -16,6 +16,8 @@ class ImpactCategoryDetailsPage(QtWidgets.QWidget):
         self.name = name
         self.impact_category = bd.Method(name)
 
+        self.setObjectName(" | ".join(name))
+
         self.model = CharacterizationFactorsModel(self, self.build_df())
         self.view = CharacterizationFactorsView(self)
         self.view.setModel(self.model)
