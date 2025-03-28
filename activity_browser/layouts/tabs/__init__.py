@@ -5,5 +5,4 @@ from .impact_categories import (CharacterizationFactorsTab,
 from .LCA_results_tab import LCAResultsTab
 from .LCA_setup import LCASetupTab
 from .parameters import ParametersTab
-from .plugin import PluginTab
 from .project_manager import ProjectTab
