@@ -24,6 +24,7 @@ class CSOpen(ABAction):
         for cs_name in cs_names:
             if cs_name not in bd.calculation_setups:
                 log.warning(f"Calculation setup {cs_name} not found")
+                continue
 
             page = pages.CalculationSetupPage(cs_name)
             central = application.main_window.centralWidget()
