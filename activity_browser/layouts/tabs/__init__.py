@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 from .activity import ActivitiesTab
-from .history import HistoryTab
 from .impact_categories import (CharacterizationFactorsTab,
                                 MethodCharacterizationFactorsTab, MethodsTab)
 from .LCA_results_tab import LCAResultsTab
