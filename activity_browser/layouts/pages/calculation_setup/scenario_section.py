@@ -267,7 +267,9 @@ class ScenarioImportWidget(QtWidgets.QWidget):
         self.load_btn.setToolTip("Load (new) data for this scenario table")
         self.remove_btn = QtWidgets.QPushButton(icons.qicons.delete, "Delete")
         self.remove_btn.setToolTip("Remove this scenario table")
-        self.table = tables.ScenarioImportTable(self)
+        self.view = widgets.ABTreeView(self)
+        self.model = widgets.ABAbstractItemModel(self)
+        self.view.setModel(self.model)
         self.scenario_df = pd.DataFrame(columns=ss.SUPERSTRUCTURE)
 
         layout = QtWidgets.QVBoxLayout()
@@ -279,7 +281,7 @@ class ScenarioImportWidget(QtWidgets.QWidget):
         row.addWidget(self.remove_btn)
 
         layout.addLayout(row)
-        layout.addWidget(self.table)
+        layout.addWidget(self.view)
         layout.addStretch(1)
         self.setLayout(layout)
         self.connect_signals()
@@ -293,7 +295,7 @@ class ScenarioImportWidget(QtWidgets.QWidget):
 
     def load_action(self) -> None:
         dialog = ExcelReadDialog(self)
-        if dialog.exec_() == ExcelReadDialog.Accepted:
+        if dialog.exec_() == ExcelReadDialog.DialogCode.Accepted:
 
             try:
                 path = dialog.path
@@ -389,20 +391,18 @@ class ScenarioImportWidget(QtWidgets.QWidget):
     def sync_superstructure(self, df: pd.DataFrame) -> None:
         """synchronizes the contents of either a single, or multiple scenario files to create a single scenario
         dataframe"""
-        # TODO: Move the 'scenario_df' into the model itself.
         QtWidgets.QApplication.restoreOverrideCursor()
         df = self.scenario_db_check(df)
         QtWidgets.QApplication.setOverrideCursor(Qt.WaitCursor)
         df = ss.SuperstructureManager.fill_empty_process_keys_in_exchanges(df)
         ss.SuperstructureManager.verify_scenario_process_keys(df)
         df = ss.SuperstructureManager.check_duplicates(df)
-        # TODO add the key checks here and field checks here.
         # If we've cancelled the import then we don't want to load the dataframe
         if df.empty:
             return
         self.scenario_df = df
         cols = ss.scenario_names_from_df(self.scenario_df)
-        self.table.model.sync(cols)
+        self.model.setDataFrame(pd.DataFrame(cols, columns=["Scenarios"]))
         self._parent.combined_dataframe()
 
     def scenario_db_check(self, df: pd.DataFrame) -> pd.DataFrame:
