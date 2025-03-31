@@ -621,7 +621,8 @@ class ExchangesItem(widgets.ABDataItem):
             return QtGui.QBrush(QtGui.QColor(self.background_color))
 
         if key == f"property_{self['_allocate_by']}":
-            return QtGui.QBrush(Qt.GlobalColor.lightGray)
+            from activity_browser import application
+            return application.palette().alternateBase()
 
     def setData(self, col: int, key: str, value) -> bool:
         """
