@@ -60,23 +60,27 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
         self.search.setMaximumHeight(30)
         self.search.setPlaceholderText("Quick Search")
 
-        self.search.textChangedDebounce.connect(self.table_view.setAllFilter)
+        self.build_layout()
+        self.connect_signals()
 
-        table_layout = QtWidgets.QHBoxLayout()
-        table_layout.setSpacing(0)
-        table_layout.addWidget(self.table_view)
+    def build_layout(self):
+            table_layout = QtWidgets.QHBoxLayout()
+            table_layout.setSpacing(0)
+            table_layout.addWidget(self.table_view)
 
-        layout = QtWidgets.QVBoxLayout(self)
-        layout.addWidget(self.search)
-        layout.addLayout(table_layout)
+            layout = QtWidgets.QVBoxLayout(self)
+            layout.addWidget(self.search)
+            layout.addLayout(table_layout)
 
-        # Set the table view as the central widget of the window
-        self.setLayout(layout)
+            # Set the table view as the central widget of the window
+            self.setLayout(layout)
 
-        # connect signals
-        signals.database.deleted.connect(self.deleteLater)
+    def connect_signals(self):
         AB_metadata.synced.connect(self.sync)
+        signals.database.deleted.connect(self.on_database_deleted)
+
         self.table_view.filtered.connect(self.search_error)
+        self.search.textChangedDebounce.connect(self.table_view.setAllFilter)
 
     def sync(self):
         """
@@ -150,6 +154,16 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
         log.debug(f"Built DatabaseProductsPane dataframe in {time() - t:.2f} seconds")
 
         return df[cols]
+
+    def on_database_deleted(self, db_name: str):
+        """
+        Handles the database deleted signal by closing the widget if the database is deleted.
+
+        Args:
+            db_name (str): The name of the deleted database.
+        """
+        if db_name == self.database.name:
+            self.deleteLater()
 
     def event(self, event):
         """

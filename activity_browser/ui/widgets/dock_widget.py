@@ -27,6 +27,10 @@ class ABDockWidget(QtWidgets.QDockWidget):
         self.title_bar = TitleBar(title, self.button(), self)
         self.setTitleBarWidget(self.title_bar)
 
+    def setWidget(self, widget):
+        super().setWidget(widget)
+        widget.destroyed.connect(self.deleteLater)
+
     def button(self):
         if self._hide_mode == HideMode.Close:
             button = CloseButton(self)
