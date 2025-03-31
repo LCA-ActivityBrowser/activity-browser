@@ -6,6 +6,7 @@ from qtpy import QtWidgets, QtCore, QtGui
 from qtpy.QtCore import Qt
 
 from activity_browser import application
+from activity_browser.ui import icons
 
 from .logger import setup_ab_logging
 from .static.icons import main
@@ -50,6 +51,7 @@ class ABLoader(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint)
+        self.setWindowIcon(icons.qicons.ab)
         self.setFixedSize(500, 300)
 
         logo_pixmap = QtGui.QPixmap(os.path.join(main.__path__[0], "activitybrowser.png")).scaledToHeight(280, mode=Qt.TransformationMode.SmoothTransformation)
