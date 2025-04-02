@@ -17,9 +17,10 @@ class ABApplication(QtWidgets.QApplication):
     windows = []
 
     def __init__(self, *args, **kwargs):
+        QtGui.QGuiApplication.setAttribute(Qt.AA_ShareOpenGLContexts, True)
+        QtGui.QGuiApplication.setAttribute(Qt.AA_DontShowIconsInMenus, True)
+
         super().__init__(*args, **kwargs)
-        self.setAttribute(Qt.AA_DontShowIconsInMenus, True)
-        self.setAttribute(Qt.AA_ShareOpenGLContexts, True)
 
         self.add_fonts()
 
