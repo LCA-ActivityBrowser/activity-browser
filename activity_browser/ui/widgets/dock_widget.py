@@ -1,7 +1,5 @@
-import PySide6
-from qtpy import QtWidgets, QtCore, QtGui, shiboken
+from qtpy import QtWidgets, QtCore, QtGui
 from qtpy.QtCore import Qt
-import time
 
 
 class HideMode:
