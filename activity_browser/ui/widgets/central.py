@@ -1,13 +1,18 @@
-from pathlib import Path
 from logging import getLogger
 
 from qtpy import QtWidgets
+
+from activity_browser import signals
 
 
 log = getLogger(__name__)
 
 
 class CentralTabWidget(QtWidgets.QTabWidget):
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        signals.project.changed.connect(lambda: self.setCurrentIndex(0))
 
     @property
     def groups(self):
@@ -40,7 +45,12 @@ class GroupTabWidget(QtWidgets.QTabWidget):
 
         self.setObjectName(name)
 
+        self.connect_signals()
+
+    def connect_signals(self):
         self.tabCloseRequested.connect(self.tabClosed)
+        signals.project.changed.connect(self.deleteLater)
+
 
     def tabClosed(self, index):
         self.widget(index).deleteLater()
