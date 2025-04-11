@@ -1,9 +1,8 @@
-import os
 from logging import getLogger
 
-from qtpy import QtGui, QtWidgets, PYSIDE6
+from qtpy import QtGui, QtWidgets, QtCore, PYSIDE6
 from qtpy.QtCore import Qt
-from qtpy.QtGui import QFontDatabase, QFont
+from qtpy.QtGui import QFontDatabase
 
 from activity_browser.static import fonts
 
@@ -17,10 +16,12 @@ class ABApplication(QtWidgets.QApplication):
     windows = []
 
     def __init__(self, *args, **kwargs):
-        QtGui.QGuiApplication.setAttribute(Qt.AA_ShareOpenGLContexts, True)
-        QtGui.QGuiApplication.setAttribute(Qt.AA_DontShowIconsInMenus, True)
+        QtCore.QCoreApplication.setAttribute(Qt.AA_ShareOpenGLContexts, True)
+        QtCore.QCoreApplication.setAttribute(Qt.AA_UseSoftwareOpenGL)
 
         super().__init__(*args, **kwargs)
+
+        QtGui.QGuiApplication.setAttribute(Qt.AA_DontShowIconsInMenus, True)
 
         self.add_fonts()
 
@@ -83,6 +84,7 @@ class ABApplication(QtWidgets.QApplication):
 
     def deleteLater(self):
         self.main_window.deleteLater()
+
 
 application = ABApplication()
 
