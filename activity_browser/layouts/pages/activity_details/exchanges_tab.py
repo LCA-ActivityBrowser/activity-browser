@@ -121,7 +121,7 @@ class ExchangesTab(QtWidgets.QWidget):
             pd.DataFrame: The DataFrame containing the exchanges data.
         """
         # Define the columns for the metadata
-        cols = ["key", "unit", "name", "location", "substitute", "substitution_factor", "allocation_factor",
+        cols = ["key", "unit", "name", "location", "database", "substitute", "substitution_factor", "allocation_factor",
                 "properties", "processor"]
 
         # Create a DataFrame from the exchanges
@@ -171,7 +171,7 @@ class ExchangesTab(QtWidgets.QWidget):
             axis="columns", inplace=True)
 
         # Define the order of columns for the final DataFrame
-        cols = ["amount", "unit", "name", "location"]
+        cols = ["amount", "unit", "name", "location", "database"]
         cols += ["substitute_name", "substitution_factor"] if "substitute_name" in df.columns else []
         cols += ["allocation_factor"]
         cols += [col for col in df.columns if col.startswith("property")]
