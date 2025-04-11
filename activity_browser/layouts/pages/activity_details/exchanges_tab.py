@@ -121,7 +121,7 @@ class ExchangesTab(QtWidgets.QWidget):
             pd.DataFrame: The DataFrame containing the exchanges data.
         """
         # Define the columns for the metadata
-        cols = ["key", "unit", "name", "location", "database", "substitute", "substitution_factor", "allocation_factor",
+        cols = ["key", "unit", "name", "product", "location", "database", "substitute", "substitution_factor", "allocation_factor",
                 "properties", "processor"]
 
         # Create a DataFrame from the exchanges
@@ -134,6 +134,9 @@ class ExchangesTab(QtWidgets.QWidget):
             left_on="input",
             right_on="key"
         ).drop(columns=["key"])
+
+        # Use "product" if available otherwise use "name"
+        df.update(df["product"].rename("name"))
 
         # Handle substitute data if available
         if not df["substitute"].isna().all():
