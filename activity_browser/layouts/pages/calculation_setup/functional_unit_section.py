@@ -47,7 +47,11 @@ class FunctionalUnitSection(QtWidgets.QWidget):
         act_df["amount"] = amounts
         act_df["_activity_key"] = keys
 
-        cols = ["amount", "unit", "product", "name", "location"]
+        # Use "product" if available otherwise use "name"
+        act_df.update(act_df["product"].rename("name"))
+        act_df["product"] = act_df["name"]
+
+        cols = ["amount", "unit", "product", "location"]
 
         return act_df[cols].reset_index(drop=True)
 
