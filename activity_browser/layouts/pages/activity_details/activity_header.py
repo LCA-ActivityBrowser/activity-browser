@@ -50,8 +50,11 @@ class ActivityHeader(QtWidgets.QWidget):
             "Name:": ActivityName(self),
             "Location:": ActivityLocation(self),
             "Properties:": ActivityProperties(self),
-            "Allocation:": ActivityAllocation(self),
         }
+
+        # Add allocation strategy selector if the activity is multifunctional
+        if self.activity.get("type") == "multifunctional":
+            setup["Allocation:"] = ActivityAllocation(self)
 
         # Arrange widgets for display as a grid
         for i, (title, widget) in enumerate(setup.items()):
