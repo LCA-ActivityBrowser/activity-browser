@@ -119,7 +119,7 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
 
         # "product"
         # node.name for "product"-types, overwritten by node.product
-        df["product_name"] = df[df.type == "product"]["name"]
+        df["product_name"] = df[df.type.isin(["product", "waste"])]["name"]
         df.update(df["product"].rename("product_name"))
         df["product"] = df["product_name"]
 
