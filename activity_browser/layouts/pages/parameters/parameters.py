@@ -462,8 +462,9 @@ class ParameterScenariosTab(QtWidgets.QWidget):
         """
         pm = manager.ParameterManager()
         names, data = zip(*self.tbl.iterate_scenarios())
-        samples, indices = pm.arrays_from_scenarios(zip(names, data))
-        df = superstructure.superstructure_from_arrays(samples, indices, names)
+
+        exchanges = pm.exchanges_from_scenarios(names, data)
+        df = superstructure.superstructure_from_scenario_exchanges(exchanges)
         return df
 
     def store_flows_to_file(self, df: pd.DataFrame) -> None:

@@ -284,6 +284,35 @@ class ParameterManager(object):
             schema[name]["group"] = "project"
         return schema
 
+    def new_process_exchanges(self, project_params: dict, database_params: dict):
+        complete = {}
+        for p in self.initial.act_by_group_db:
+
+            scope = project_params.copy()
+            scope.update(database_params.get(p.database, {}))
+
+            activity_params = self.recalculate_activity_parameters(p.group, scope)
+
+            scope.update(activity_params)
+
+            exchanges = {exc_id: value for exc_id, value in self.recalculate_exchanges(p.group, scope)}
+
+            complete.update(exchanges)
+
+        return complete
+
+    def exchanges_from_scenarios(self, scenario_names, data):
+        scenario_dict = {name: dict(data[i]) for i, name in enumerate(scenario_names)}
+        scenario_samples = {}
+
+        for scenario, parameters in scenario_dict.items():
+            self.parameters.update(parameters)
+
+            project_params = self.recalculate_project_parameters()
+            database_params = self.process_database_parameters(project_params)
+            scenario_samples[scenario] = self.new_process_exchanges(project_params, database_params)
+        return scenario_samples
+
 
 class MonteCarloParameterManager(ParameterManager, Iterator):
     """Use to sample the uncertainty of parameter values, mostly for use in
