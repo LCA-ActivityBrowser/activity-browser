@@ -61,10 +61,14 @@ class CentralTabWidget(QtWidgets.QTabWidget):
         group = self.groups[group]
 
         # Check if the page already exists in the group
-        page_names = [group.tabText(i) for i in range(group.count())]
+        page_names = [group.widget(i).objectName() for i in range(group.count())]
         if page.objectName() not in page_names:
             # Add the page to the group if it does not exist
-            group.addTab(page, page.objectName())
+            name = page.windowTitle() or page.objectName()  # Use windowTitle if available
+            page.setWindowTitle(name)  # make sure the page has a title
+            group.addTab(page, name)
+
+            page.windowTitleChanged.connect(lambda title: group.setTabText(group.indexOf(page), title))
         else:
             # Set the existing page as the current tab
             index = page_names.index(page.objectName())
