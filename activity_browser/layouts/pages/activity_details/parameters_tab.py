@@ -1,6 +1,7 @@
 from qtpy import QtWidgets, QtCore, QtGui
 
 import pandas as pd
+import bw2data as bd
 
 from activity_browser import signals, actions
 from activity_browser.ui import widgets, icons, delegates
@@ -77,6 +78,7 @@ class ParametersTab(QtWidgets.QWidget):
             row["uncertainty"] = param.data.get("uncertainty type")
             row["formula"] = param.data.get("formula")
             row["_parameter"] = param
+            row["_activity"] = self.activity
 
             if param.param_type == "project":
                 row["_scope"] = f"Current project"
@@ -89,7 +91,7 @@ class ParametersTab(QtWidgets.QWidget):
 
             translated.append(row)
 
-        columns = ["name", "amount", "formula", "uncertainty", "_parameter", "_scope"]
+        columns = ["name", "amount", "formula", "uncertainty", "_parameter", "_scope", "_activity"]
         return pd.DataFrame(translated, columns=columns)
 
 
@@ -172,7 +174,10 @@ class ParametersItem(widgets.ABDataItem):
             QtCore.Qt.ItemFlags: The item flags.
         """
         flags = super().flags(col, key)
-        if key in ["amount", "formula", "uncertainty", "name"]:
+
+        database_locked = bd.databases[self["_activity"]["database"]].get("read_only", True)
+
+        if key in ["amount", "formula", "uncertainty", "name"] and not database_locked:
             return flags | QtCore.Qt.ItemFlag.ItemIsEditable
         return flags
 
@@ -305,15 +310,20 @@ class ParametersModel(widgets.ABItemModel):
             list[widgets.ABAbstractItem]: The list of created items.
         """
         if dataframe is None:
+            # If no DataFrame is provided, use the model's default DataFrame.
             dataframe = self.dataframe
 
         items = []
         for scope in ["Current project", "This database", "This activity"]:
+            # Create a branch item for the current scope.
             branch = self.branchItemClass(scope)
 
+            # Iterate over the rows in the DataFrame that match the current scope.
             for index, data in dataframe.loc[dataframe._scope == scope].to_dict(orient="index").items():
+                # Create a data item for each row and add it to the branch.
                 self.dataItemClass(index, data, branch)
 
+            # Determine the group and parameter type based on the current scope.
             if scope == "Current project":
                 group, param_type = "project", "project"
             elif scope == "This database":
@@ -321,10 +331,14 @@ class ParametersModel(widgets.ABItemModel):
             else:
                 group, param_type = self.activity.id, "activity"
 
-            NewParametersItem(None, {"name": "New parameter...", "_parameter": {
-                "group": group, "param_type": param_type
-            }}, branch)
+            # If the database is not read-only, add a placeholder for creating a new parameter.
+            if not bd.databases[self.activity["database"]].get("read_only", True):
+                NewParametersItem(None, {"name": "New parameter...", "_parameter": {
+                    "group": group, "param_type": param_type
+                }}, branch)
 
+            # Add the branch to the list of items.
             items.append(branch)
 
+        # Return the list of created items.
         return items

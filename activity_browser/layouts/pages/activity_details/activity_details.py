@@ -164,3 +164,4 @@ class ActivityDetailsPage(QtWidgets.QWidget):
         self.description_tab.sync()
         self.consumer_tab.sync()
         self.data_tab.sync()
+        self.parameters_tab.sync()
