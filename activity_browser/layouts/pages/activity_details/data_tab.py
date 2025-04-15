@@ -67,19 +67,21 @@ class DataTab(QtWidgets.QWidget):
         df = pd.DataFrame.from_dict(self.activity.as_dict(), orient="index")
         df["name"] = self.activity["name"]
         df["_activity_id"] = self.activity.id
+        df["_activity_db"] = self.activity["database"]
 
         if isinstance(self.activity, bf.Process):
             for function in self.activity.functions():
                 fn_df = pd.DataFrame.from_dict(function.as_dict(), orient="index")
                 fn_df["name"] = function["name"]
                 fn_df["_activity_id"] = function.id
+                fn_df["_activity_db"] = function["database"]
                 df = pd.concat([df, fn_df])
 
         df = df.reset_index()
         df = df.rename({"index": "field", 0: "value"}, axis=1)
         df = df.sort_values(["name", "field"], ignore_index=True)
 
-        cols = ["field", "value", "name", "_activity_id"]
+        cols = ["field", "value", "name", "_activity_id", "_activity_db"]
         return df[cols]
 
 
@@ -112,7 +114,10 @@ class DataItem(widgets.ABDataItem):
             QtCore.Qt.ItemFlags: The item flags.
         """
         flags = super().flags(col, key)
-        if key == "value":
+
+        database_locked = bd.databases[self["_activity_db"]].get("read_only", True)
+
+        if key == "value" and not database_locked:
             return flags | QtCore.Qt.ItemFlag.ItemIsEditable
         return flags
 
