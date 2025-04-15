@@ -40,6 +40,7 @@ from .database.database_process import DatabaseProcess
 from .database.database_import_from_ecoinvent import DatabaseImportFromEcoinvent
 from .database.database_importer_excel import DatabaseImporterExcel
 from .database.database_importer_bw2package import DatabaseImporterBW2Package
+from .database.database_set_readonly import DatabaseSetReadonly
 
 from .exchange.exchange_copy_sdf import ExchangeCopySDF
 
