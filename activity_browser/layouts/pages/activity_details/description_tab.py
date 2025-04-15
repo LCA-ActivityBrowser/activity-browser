@@ -32,7 +32,7 @@ class DescriptionTab(QtWidgets.QTextEdit):
         self.moveCursor(QtGui.QTextCursor.MoveOperation.End)
 
         # Set the read-only state based on the activity's database
-        self.setDisabled(bd.databases[self.activity["database"]].get("read_only", True))
+        self.setDisabled(bwutils.database_is_locked(self.activity["database"]))
 
     def focusOutEvent(self, e):
         """

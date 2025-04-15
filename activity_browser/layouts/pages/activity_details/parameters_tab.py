@@ -5,7 +5,7 @@ import bw2data as bd
 
 from activity_browser import signals, actions
 from activity_browser.ui import widgets, icons, delegates
-from activity_browser.bwutils import refresh_node, refresh_parameter, parameters_in_scope, Parameter
+from activity_browser.bwutils import refresh_node, refresh_parameter, parameters_in_scope, Parameter, database_is_locked
 
 
 class ParametersTab(QtWidgets.QWidget):
@@ -175,9 +175,7 @@ class ParametersItem(widgets.ABDataItem):
         """
         flags = super().flags(col, key)
 
-        database_locked = bd.databases[self["_activity"]["database"]].get("read_only", True)
-
-        if key in ["amount", "formula", "uncertainty", "name"] and not database_locked:
+        if key in ["amount", "formula", "uncertainty", "name"] and not database_is_locked(self["_activity"]["database"]):
             return flags | QtCore.Qt.ItemFlag.ItemIsEditable
         return flags
 

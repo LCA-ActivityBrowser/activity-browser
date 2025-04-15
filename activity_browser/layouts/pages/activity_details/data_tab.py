@@ -5,7 +5,7 @@ import bw2data as bd
 import bw_functional as bf
 
 from activity_browser import actions
-from activity_browser.bwutils import refresh_node
+from activity_browser.bwutils import refresh_node, database_is_locked
 from activity_browser.ui import widgets, delegates
 
 
@@ -115,9 +115,7 @@ class DataItem(widgets.ABDataItem):
         """
         flags = super().flags(col, key)
 
-        database_locked = bd.databases[self["_activity_db"]].get("read_only", True)
-
-        if key == "value" and not database_locked:
+        if key == "value" and not database_is_locked(self["_activity_db"]):
             return flags | QtCore.Qt.ItemFlag.ItemIsEditable
         return flags
 
