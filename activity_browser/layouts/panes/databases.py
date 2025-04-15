@@ -88,7 +88,7 @@ class DatabasesPane(widgets.ABAbstractPane):
                     "depends": ", ".join(bd.databases[name].get("depends", [])),
                     "modified": dt,
                     "records": bwutils.commontasks.count_database_records(name),
-                    "read_only": database_read_only,
+                    "read_only": bd.databases[name].get("read_only", True),
                     "default_allocation": bd.databases[name].get("default_allocation", "unspecified"),
                     "backend": bd.databases[name].get("backend")
                 }
@@ -177,8 +177,7 @@ class DatabasesView(widgets.ABTreeView):
 
         if index.column() == 0:
             read_only = index.internalPointer()["read_only"]
-            project_settings.modify_db(db_name, not read_only)
-            signals.database_read_only_changed.emit(db_name, not read_only)
+            actions.DatabaseSetReadonly.run(db_name, not read_only)
             return
 
         actions.DatabaseOpen.run([db_name])
