@@ -1,5 +1,6 @@
 from qtpy import QtWidgets, QtCore, QtGui
 
+import bw2data as bd
 import bw_functional as bf
 
 from activity_browser import actions, bwutils
@@ -60,6 +61,7 @@ class ActivityHeader(QtWidgets.QWidget):
         for i, (title, widget) in enumerate(setup.items()):
             self.layout().addWidget(widgets.ABLabel.demiBold(title, self), i, 1)
             self.layout().addWidget(widget, i, 2, 1, 4)
+            widget.setDisabled(bd.databases[self.activity["database"]].get("read_only", True))
 
 
 class ActivityName(QtWidgets.QLineEdit):
