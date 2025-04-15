@@ -7,7 +7,7 @@ import pandas as pd
 import bw2data as bd
 
 from activity_browser import actions, bwutils
-from activity_browser.bwutils import refresh_node, AB_metadata
+from activity_browser.bwutils import refresh_node, AB_metadata, database_is_locked
 from activity_browser.ui import widgets, icons, delegates
 
 log = getLogger(__name__)
@@ -406,6 +406,9 @@ class ExchangesView(widgets.ABTreeView):
         Args:
             event: The drag enter event.
         """
+        if database_is_locked(self.activity["database"]):
+            return
+
         if event.mimeData().hasFormat("application/bw-nodekeylist"):
             palette = self.palette()
             # Change background color on drag enter
@@ -518,14 +521,27 @@ class ExchangesItem(widgets.ABDataItem):
             QtCore.Qt.ItemFlags: The item flags.
         """
         flags = super().flags(col, key)
+        # Check if the database is read-only. If it is, return the default flags.
+        if database_is_locked(self["database"]):
+            return flags
+
+        # Allow editing for specific keys: "amount", "formula", and "uncertainty".
         if key in ["amount", "formula", "uncertainty"]:
             return flags | Qt.ItemFlag.ItemIsEditable
+
+        # Allow editing for "unit", "name", "location", and "substitution_factor" if the exchange is functional.
         if key in ["unit", "name", "location", "substitution_factor"] and self.functional:
             return flags | Qt.ItemFlag.ItemIsEditable
+
+        # Allow editing for properties (keys starting with "property_") if the exchange is functional.
         if key.startswith("property_") and self.functional:
             return flags | Qt.ItemFlag.ItemIsEditable
+
+        # Allow editing for "allocation_factor" if the allocation is manual and the exchange is functional.
         if key == "allocation_factor" and self.exchange.output.get("allocation") == "manual" and self.functional:
             return flags | Qt.ItemFlag.ItemIsEditable
+
+        # Return the default flags if none of the above conditions are met.
         return flags
 
     def displayData(self, col: int, key: str):
@@ -671,7 +687,7 @@ class ExchangesItem(widgets.ABDataItem):
         Returns:
             bool: True if the item accepts the drag and drop event, False otherwise.
         """
-        if not self.functional:
+        if not self.functional or database_is_locked(self["database"]):
             return False
 
         if not event.mimeData().hasFormat("application/bw-nodekeylist"):
