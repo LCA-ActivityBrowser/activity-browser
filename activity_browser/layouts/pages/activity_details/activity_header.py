@@ -3,7 +3,7 @@ from qtpy import QtWidgets, QtCore, QtGui
 import bw2data as bd
 import bw_functional as bf
 
-from activity_browser import actions, bwutils
+from activity_browser import actions, bwutils, application
 from activity_browser.ui import widgets
 
 
@@ -27,14 +27,11 @@ class ActivityHeader(QtWidgets.QWidget):
             parent (QtWidgets.QWidget): The parent widget.
         """
         super().__init__(parent)
-        self.setContentsMargins(0, 0, 0, 0)
         self.activity = parent.activity
 
-        grid = QtWidgets.QGridLayout(self)
-        grid.setContentsMargins(0, 5, 0, 5)
-        grid.setSpacing(10)
-        grid.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop)
-        self.setLayout(grid)
+        layout = QtWidgets.QVBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
+        self.setLayout(layout)
 
     def sync(self):
         """
@@ -42,26 +39,52 @@ class ActivityHeader(QtWidgets.QWidget):
         """
         self.activity = bwutils.refresh_node(self.activity)
 
-        for child in self.children():
-            if isinstance(child, QtWidgets.QWidget) and child is not self.layout():
-                self.layout().removeWidget(child)
-                child.deleteLater()
+        self.clear_layout()
 
-        setup = {
-            "Name:": ActivityName(self),
-            "Location:": ActivityLocation(self),
-            "Properties:": ActivityProperties(self),
-        }
+        if bwutils.database_is_locked(self.activity["database"]):
+            self.layout().addWidget(LockedWarningBar(self))
+
+        self.layout().addLayout(self.build_grid())
+
+    def clear_layout(self, layout: QtWidgets.QLayout = None):
+        layout = layout or self.layout()
+
+        if layout is None:
+            return
+
+        while layout.count():
+            item = layout.takeAt(0)
+            widget = item.widget()
+            if widget is not None:
+                widget.deleteLater()
+            elif item.layout() is not None:
+                self.clear_layout(item.layout())
+
+    def build_grid(self) -> QtWidgets.QGridLayout:
+        grid = QtWidgets.QGridLayout(self)
+        grid.setContentsMargins(0, 5, 0, 5)
+        grid.setSpacing(10)
+        grid.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop)
+
+        setup = [
+            ("Name:", ActivityName(self),),
+            ("Location:", ActivityLocation(self),),
+            ("Properties:", ActivityProperties(self),),
+        ]
 
         # Add allocation strategy selector if the activity is multifunctional
         if self.activity.get("type") == "multifunctional":
-            setup["Allocation:"] = ActivityAllocation(self)
+            setup.append(("Allocation:", ActivityAllocation(self),))
 
         # Arrange widgets for display as a grid
-        for i, (title, widget) in enumerate(setup.items()):
-            self.layout().addWidget(widgets.ABLabel.demiBold(title, self), i, 1)
-            self.layout().addWidget(widget, i, 2, 1, 4)
+        for i, (title, widget) in enumerate(setup):
+            grid.addWidget(widgets.ABLabel.demiBold(title, self), i, 1)
+            grid.addWidget(widget, i, 2, 1, 4)
             widget.setDisabled(bwutils.database_is_locked(self.activity["database"]))
+
+        return grid
+
+
 
 
 class ActivityName(QtWidgets.QLineEdit):
@@ -223,3 +246,29 @@ class ActivityAllocation(QtWidgets.QComboBox):
         if act.get("allocation") == allocation:
             return
         actions.ActivityModify.run(act, "allocation", allocation)
+
+
+class LockedWarningBar(QtWidgets.QToolBar):
+    def __init__(self, parent: ActivityHeader):
+        super().__init__(parent)
+        self.setMovable(False)
+        self.setContentsMargins(0, 0, 0, 0)
+
+        warning_label = QtWidgets.QLabel("The database of this activity is currently locked.")
+        height = warning_label.minimumSizeHint().height()
+
+        warning_icon = QtWidgets.QLabel(self)
+        qicon = application.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_MessageBoxWarning)
+        pixmap = qicon.pixmap(height, height)
+        warning_icon.setPixmap(pixmap)
+
+        migrate_label = QtWidgets.QLabel("<a style='text-decoration:underline;'>Unlock database</a>")
+        migrate_label.mouseReleaseEvent = lambda x: actions.DatabaseSetReadonly.run(parent.activity["database"], False)
+
+        self.addWidget(warning_icon)
+        self.addWidget(warning_label)
+        self.addWidget(migrate_label)
+
+    def contextMenuEvent(self, event):
+        return None
+
