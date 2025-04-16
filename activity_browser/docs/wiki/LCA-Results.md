@@ -18,6 +18,9 @@ Activity Browser has three contribution analysis approaches available to assess 
 `Elementary Flow (EF) Contributions`, `Process contributions` and `First Tier (FT) Contributions`.
 
 Before we discuss the different approaches, we introduce a small example for the production of _'steel'_:
+These approaches are extensively discussed independent of Activity Browser by 
+[van der Meide et al. (2025)](https://doi.org/10.31219/osf.io/sfgj6_v1) 
+if you want to learn more.
 
 ![steel production example](./assets/steel_production_example.svg)
 
@@ -33,7 +36,8 @@ The amounts we use are:
 <b>Note:</b> These numbers are used for ease of understanding, not for realism.
 </sup>
 
-To produce 1 kg of steel, we get a climate change impact of 1.6 kg CO2 eq with the _'IPCC 2021'_ impact category.
+To produce 1 kg of steel, we get a climate change impact of 1.6 kg CO<sub>2</sub> eq. with the 
+_'IPCC 2021 GWP 100'_ impact category.
 In the way Brightway (and thus Activity Browser) calculate results, a _contribution matrix_ is calculated with 
 all impacts _from_ all EFs and all activities. 
 For the system and functional unit above, this would be:
@@ -46,7 +50,7 @@ For the system and functional unit above, this would be:
 The _contribution matrix_ show the dis-aggregated results for each individual biosphere flow for each activity.
 
 #### Elementary Flow (EF) contributions
-If we take sum the _rows_ to one row, we get the EF contributions 
+If we take the sum the _rows_ to one column, we get the EF contributions 
 (the contribution of all CO<sub>2</sub> and CH<sub>4</sub> impacts together).
 
 In the case above, the EF contributions are:
@@ -54,7 +58,7 @@ In the case above, the EF contributions are:
 - CH<sub>4</sub>: 0.0596... (3.7%)
 
 #### Process contributions
-If we take the sum of the _columns_ to one column, we get the process contributions
+If we take the sum of the _columns_ to one row, we get the process contributions
 (the contribution of all coal, electricity and steel production impacts together).
 
 In the case above, the process contributions are:
@@ -179,9 +183,11 @@ Below is a simple example (with unrealistic values) to demonstrate this:
 ## Sankey
 The `Sankey` tab shows results from [graph traversal](https://docs.brightway.dev/projects/graphtools/en/latest/index.html).
 Graph traversal calculates results step-by-step for _nodes_ (activites) in the _graph_ (supply chain/product system).
+This is explained in detail by 
+[van der Meide et al. (2025)](https://doi.org/10.31219/osf.io/sfgj6_v1) (path contributions).
 
 ### Sankey configuration
-In the `Sankey` tab, you can configure, you can set the 
+In the `Sankey` tab, you can set the 
 Reference flow, Impact category and Scenario (only available in scenario LCA, see [scenarios](#scenarios)) to be shown.
 you can also set a `cutoff` and `calculation depth` setting.
 
