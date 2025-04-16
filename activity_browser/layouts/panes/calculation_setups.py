@@ -81,28 +81,23 @@ class CalculationSetupsView(widgets.ABTreeView):
         "name": delegates.StringDelegate,
     }
 
-    class ContextMenu(QtWidgets.QMenu):
+    class ContextMenu(widgets.ABMenu):
+        menuSetup = [
+            lambda menu: menu.add(actions.CSNew),
+            lambda menu: menu.add(actions.CSOpen, menu.calculation_setups),
+            lambda menu: menu.add(actions.CSDelete, menu.calculation_setups),
+            lambda menu: menu.add(actions.CSRename, menu.calculation_setups[0], enable=menu.single_selection),
+            lambda menu: menu.addSeparator(),
+            lambda menu: menu.add(actions.CSCalculate, menu.calculation_setups[0], enable=menu.single_selection),
+        ]
 
-        def __init__(self, pos, view: "DatabasesView"):
-            super().__init__(view)
-            self.new_cs_action = actions.CSNew.get_QAction()
-            self.addAction(self.new_cs_action)
+        @property
+        def calculation_setups(self):
+            return [item["name"] for item in {index.internalPointer() for index in self.parent().selectedIndexes()}]
 
-            if view.selectedIndexes():
-                items = {index.internalPointer() for index in view.selectedIndexes()}
-
-                self.open_action = actions.CSOpen.get_QAction([item["name"] for item in items])
-                self.delete_action = actions.CSDelete.get_QAction([item["name"] for item in items])
-
-                self.addAction(self.open_action)
-                self.addAction(self.delete_action)
-
-                if len(items) == 1:
-                    self.rename_action = actions.CSRename.get_QAction([item["name"] for item in items][0])
-                    self.calculate_action = actions.CSCalculate.get_QAction([item["name"] for item in items][0])
-                    self.addAction(self.rename_action)
-                    self.addSeparator()
-                    self.addAction(self.calculate_action)
+        @property
+        def single_selection(self):
+            return len(self.calculation_setups) == 1
 
     class HeaderMenu(QtWidgets.QMenu):
         """
