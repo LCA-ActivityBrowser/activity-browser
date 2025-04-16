@@ -20,3 +20,4 @@ from .dock_widget import ABDockWidget
 from .label import ABLabel
 from .main_window import MainWindow
 from .central import CentralTabWidget
+from .menu import ABMenu
