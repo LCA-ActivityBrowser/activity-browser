@@ -285,6 +285,10 @@ class ExchangesView(widgets.ABTreeView):
             lambda m: m.add(actions.ActivityNewProduct, [m.activity.key], enable=not m.locked),
             lambda m: m.add(actions.ExchangeDelete, m.exchanges, enable=bool(m.exchanges) and not m.locked),
             lambda m: m.add(actions.ExchangeSDFToClipboard, m.exchanges, enable=bool(m.exchanges)),
+            lambda m: m.add(actions.ActivityOpen, [x.input for x in m.exchanges],
+                            enable=bool(m.exchanges),
+                            text="Open processs" if len(m.exchanges) == 1 else "Open processes",
+                            ),
         ]
 
         @property

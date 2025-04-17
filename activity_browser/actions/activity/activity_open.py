@@ -1,6 +1,7 @@
 from logging import getLogger
 
 import bw2data as bd
+import bw_functional as bf
 
 from activity_browser import signals, bwutils, application
 from activity_browser.actions.base import ABAction, exception_dialogs
@@ -44,6 +45,8 @@ class ActivityOpen(ABAction):
 
         # Refresh the activity nodes to ensure they are up-to-date
         activities = [bwutils.refresh_node(activity) for activity in activities]
+        processes = [bwutils.refresh_node(function["processor"]) for function in activities if isinstance(function, bf.Function)]
+        activities = list(set(activities + processes))
 
         for act in activities:
             # Check if the activity type is supported
