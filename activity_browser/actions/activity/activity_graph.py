@@ -11,7 +11,7 @@ class ActivityGraph(ABAction):
     """
 
     icon = qicons.graph_explorer
-    text = "'Open *** in Graph Explorer'"
+    text = "Open in Graph Explorer"
 
     @staticmethod
     @exception_dialogs

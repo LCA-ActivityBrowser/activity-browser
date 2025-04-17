@@ -10,7 +10,7 @@ import bw2data as bd
 from activity_browser import actions, ui, signals, application
 from activity_browser.settings import project_settings
 from activity_browser.ui import core, widgets, delegates
-from activity_browser.bwutils import AB_metadata
+from activity_browser.bwutils import AB_metadata, database_is_locked
 
 log = getLogger(__name__)
 
@@ -226,7 +226,34 @@ class ProductView(ui.widgets.ABTreeView):
         "product_key": delegates.StringDelegate,
     }
 
-    class ContextMenu(ui.widgets.ABTreeView.ContextMenu):
+    class ContextMenu(ui.widgets.ABMenu):
+        menuSetup = [
+            lambda m, p: m.add(actions.ActivityOpen, p.selected_activities,
+                               text="Open process" if len(p.selected_activities) == 1 else "Open processes",
+                               enable=len(p.selected_activities) > 0
+                               ),
+            lambda m, p: m.add(actions.ActivityGraph, p.selected_activities,
+                               enable=len(p.selected_activities) > 0,
+                               ),
+            lambda m: m.addSeparator(),
+            lambda m, p: m.add(actions.ActivityNewProcess, p.parent().database.name,
+                               enable=not database_is_locked(p.parent().database.name),
+                               ),
+            lambda m, p: m.add(actions.ActivityDelete, p.selected_activities,
+                               text="Delete process" if len(p.selected_activities) == 1 else "Delete processes",
+                               enable=len(p.selected_activities) > 0 and not database_is_locked(p.parent().database.name),
+                               ),
+            lambda m, p: m.add(actions.ActivityDelete, p.selected_products,
+                               text="Delete product" if len(p.selected_products) == 1 else "Delete products",
+                               enable=len(p.selected_products) > 0 and not database_is_locked(p.parent().database.name),
+                               ),
+            lambda m: m.addSeparator(),
+            lambda m, p: m.add(actions.ActivitySDFToClipboard, p.selected_products,
+                               enable=len(p.selected_products) > 0,
+                               ),
+        ]
+
+    class ContextMenu2(ui.widgets.ABTreeView.ContextMenu):
         """
         A context menu for the ProductView.
 
