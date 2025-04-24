@@ -28,6 +28,7 @@ class ABDockWidget(QtWidgets.QDockWidget):
     def setWidget(self, widget):
         super().setWidget(widget)
         widget.destroyed.connect(self.deleteLater)
+        self.setObjectName(f"dockwidget-{widget.objectName()}")
 
     def button(self):
         if self._hide_mode == HideMode.Close:

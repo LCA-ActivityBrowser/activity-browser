@@ -1,11 +1,16 @@
+import pickle
+from logging import getLogger
+
 from qtpy import QtCore, QtWidgets
 
 import bw2data as bd
 
-from activity_browser import signals
+from activity_browser import signals, settings
 from activity_browser.ui import icons
 
 from activity_browser.ui.menu_bar import MenuBar
+
+log = getLogger(__name__)
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -32,7 +37,27 @@ class MainWindow(QtWidgets.QMainWindow):
     def connect_signals(self):
         # Keyboard shortcuts
         signals.restore_cursor.connect(self.restore_user_control)
-        signals.project.changed.connect(self.set_titlebar)
+        signals.project.changed.connect(self.on_project_changed)
+
+    def on_project_changed(self, new, old):
+        """
+        Save the state of the main window, including the current project and layout.
+        """
+        self.set_titlebar()
+
+        # Save the state of the main window
+        data = self.saveState(0)
+        path = old.dir.joinpath("activity_browser\\main_window_state.pickle")
+        with open(path, "wb") as f:
+            pickle.dump(data, f)
+
+        # Restore the state of the main window
+        path = new.dir.joinpath("activity_browser\\main_window_state.pickle")
+        if path.exists():
+            with open(path, "rb") as f:
+                data = pickle.load(f)
+            succes =self.restoreState(data, 0)
+            log.debug(f"Restored main window state: {succes}")
 
     def set_titlebar(self):
         self.setWindowTitle(f"Activity Browser - {bd.projects.current}")
