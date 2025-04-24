@@ -84,11 +84,15 @@ class CalculationSetupsView(widgets.ABTreeView):
     class ContextMenu(widgets.ABMenu):
         menuSetup = [
             lambda menu: menu.add(actions.CSNew),
-            lambda menu: menu.add(actions.CSOpen, menu.calculation_setups),
-            lambda menu: menu.add(actions.CSDelete, menu.calculation_setups),
-            lambda menu: menu.add(actions.CSRename, menu.calculation_setups[0], enable=menu.single_selection),
+            lambda menu: menu.add(actions.CSOpen, menu.calculation_setups,
+                                  enable=bool(menu.calculation_setups)),
+            lambda menu: menu.add(actions.CSDelete, menu.calculation_setups,
+                                  enable=bool(menu.calculation_setups)),
+            lambda menu: menu.add(actions.CSRename, menu.calculation_setups[0] if menu.single_selection else None,
+                                  enable=menu.single_selection),
             lambda menu: menu.addSeparator(),
-            lambda menu: menu.add(actions.CSCalculate, menu.calculation_setups[0], enable=menu.single_selection),
+            lambda menu: menu.add(actions.CSCalculate, menu.calculation_setups[0] if menu.single_selection else None,
+                                  enable=menu.single_selection),
         ]
 
         @property
