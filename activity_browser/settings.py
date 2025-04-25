@@ -230,6 +230,8 @@ class ProjectSettings(BaseSettings):
         self.connect_signals()
         super().__init__(bd.projects.dir, filename)
 
+        bd.projects.dir.joinpath("activity_browser").mkdir(exist_ok=True)
+
         # https://github.com/LCA-ActivityBrowser/activity-browser/issues/235
         # Fix empty settings file and populate with currently active databases
         if "read-only-databases" not in self.settings:
@@ -267,6 +269,9 @@ class ProjectSettings(BaseSettings):
         project.
         """
         log.info(f"Project settings directory: {bd.projects.dir}")
+
+        bd.projects.dir.joinpath("activity_browser").mkdir(exist_ok=True)
+
         self.settings_file = os.path.join(bd.projects.dir, self.filename)
         self.initialize_settings()
         # create a plugins_list entry for old projects

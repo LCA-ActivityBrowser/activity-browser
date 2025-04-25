@@ -20,3 +20,22 @@ class ABAbstractPane(QtWidgets.QWidget):
         dock_widget = ABDockWidget(self.title, parent=main_window, mode=self.hideMode)
         dock_widget.setWidget(self)
         return dock_widget
+
+    def sync(self):
+        """
+        Synchronize the pane with the current state of Brightway.
+        """
+        pass
+
+    def saveState(self):
+        """
+        Save the state of the pane.
+        """
+        return {}
+
+    @classmethod
+    def fromState(cls, state: dict, parent=None):
+        """
+        Restore the state of the pane.
+        """
+        return cls(parent=parent)

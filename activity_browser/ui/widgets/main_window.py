@@ -28,82 +28,103 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.connect_signals()
 
+    def defaultPanes(self):
+        from activity_browser.layouts import panes
+        return [
+            {"class": panes.DatabasesPane, "state": {}},
+            {"class": panes.CalculationSetupsPane, "state": {}},
+            {"class": panes.ImpactCategoriesPane, "state": {}},
+        ]
+
+    def connect_signals(self):
+        # Keyboard shortcuts
+        signals.project.changed.connect(self.on_project_changed)
+
+    def clearPanes(self):
+        for pane in self.panes():
+            pane.deleteLater()
+
     def setPanes(self, panes: list):
         for pane in panes:
             dock_widget = pane(self).getDockWidget(self)
             self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, dock_widget)
             self.menu_bar.view_menu.addAction(dock_widget.toggleViewAction())
 
-    def connect_signals(self):
-        # Keyboard shortcuts
-        signals.restore_cursor.connect(self.restore_user_control)
-        signals.project.changed.connect(self.on_project_changed)
+    def panes(self):
+        """
+        Return a list of all panes in the main window.
+        """
+        from activity_browser.ui import widgets
+        return self.findChildren(widgets.ABAbstractPane)
+
 
     def on_project_changed(self, new, old):
         """
         Save the state of the main window, including the current project and layout.
         """
+        self.clearPanes()
+
+        self.writeState(old.dir)
+        data = self.getState(new.dir)
+
+        for pane in data.get("panes", self.defaultPanes()):
+            pane_class = pane.get("class")
+            if pane_class is None:
+                continue
+
+            log.debug(f"Restoring pane {pane_class.__name__}")
+
+            try:
+                pane_instance = pane_class.fromState(pane.get("state"), self)
+            except Exception as e:
+                log.error(f"Error restoring pane {pane_class.__name__}: {e}")
+                continue
+
+            dockwidget = pane_instance.getDockWidget(self)
+            self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, dockwidget)
+            self.menu_bar.view_menu.addAction(dockwidget.toggleViewAction())
+
+            pane_instance.sync()
+
+        success = self.restoreState(data.get("state"), 0)
+        log.debug(f"Restored main window state: {success}")
+
         self.set_titlebar()
 
+    def writeState(self, directory):
+        pane_data = []
+        for pane in self.panes():
+            pane_data.append({
+                "class": pane.__class__,
+                "state": pane.saveState(),
+            })
+        own_data = self.saveState(0)
+
+        data = {
+            "state": own_data,
+            "panes": pane_data,
+        }
+
         # Save the state of the main window
-        data = self.saveState(0)
-        path = old.dir.joinpath("activity_browser\\main_window_state.pickle")
+        path = directory.joinpath("activity_browser\\main_window_state.pickle")
         with open(path, "wb") as f:
             pickle.dump(data, f)
 
-        # Restore the state of the main window
-        path = new.dir.joinpath("activity_browser\\main_window_state.pickle")
+    def getState(self, directory):
+        """
+        Get the state of the main window.
+        """
+        path = directory.joinpath("activity_browser\\main_window_state.pickle")
         if path.exists():
             with open(path, "rb") as f:
                 data = pickle.load(f)
-            succes =self.restoreState(data, 0)
-            log.debug(f"Restored main window state: {succes}")
+        else:
+            data = {
+                "state": self.saveState(0),
+                "panes": self.defaultPanes(),
+            }
+        return data
+
 
     def set_titlebar(self):
         self.setWindowTitle(f"Activity Browser - {bd.projects.current}")
-
-    def add_tab_to_panel(self, obj, label, side):
-        panel = self.left_panel if side == "left" else self.right_panel
-        panel.add_tab(obj, label)
-
-    def select_tab(self, obj, side):
-        panel = self.left_panel if side == "left" else self.right_panel
-        panel.setCurrentIndex(panel.indexOf(obj))
-
-    def dialog(self, title, label):
-        value, ok = QtWidgets.QInputDialog.getText(self, title, label)
-        if ok:
-            return value
-
-    def info(self, label):
-        QtWidgets.QMessageBox.information(
-            self,
-            "Information",
-            label,
-            QtWidgets.QMessageBox.Ok,
-        )
-
-    def warning(self, title, text):
-        QtWidgets.QMessageBox.warning(self, title, text)
-
-    def confirm(self, label):
-        response = QtWidgets.QMessageBox.question(
-            self,
-            "Confirm Action",
-            label,
-            QtWidgets.QMessageBox.Yes,
-            QtWidgets.QMessageBox.No,
-        )
-        return response == QtWidgets.QMessageBox.Yes
-
-    def restore_user_control(self):
-        QtWidgets.QApplication.restoreOverrideCursor()
-
-    def dialog_on_exception(self, exception: Exception):
-        QtWidgets.QMessageBox.critical(
-            self,
-            f"An error occurred: {type(exception).__name__}",
-            f"An error occurred, check the logs for more information \n\n {str(exception)}",
-            QtWidgets.QMessageBox.Ok,
-        )
-
