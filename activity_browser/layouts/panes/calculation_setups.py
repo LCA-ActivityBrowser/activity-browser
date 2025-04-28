@@ -9,9 +9,20 @@ from activity_browser.ui import widgets, delegates
 
 class CalculationSetupsPane(widgets.ABAbstractPane):
     title = "Calculation Setups"
+    name = "calculation_setups_pane"
     hideMode = widgets.ABDockWidget.HideMode.Hide
 
     def __init__(self, parent):
+        """
+        Initializes the CalculationSetupsPane.
+
+        This constructor sets up the view and model for displaying calculation setups,
+        configures the view's appearance and behavior, and builds the layout while
+        connecting necessary signals.
+
+        Args:
+            parent (QtWidgets.QWidget): The parent widget for this pane.
+        """
         super().__init__(parent)
         self.view = CalculationSetupsView()
         self.model = CalculationSetupsModel()

@@ -84,6 +84,8 @@ class MainWindow(QtWidgets.QMainWindow):
             self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, dockwidget)
             self.menu_bar.view_menu.addAction(dockwidget.toggleViewAction())
 
+            print(dockwidget.objectName())
+
             pane_instance.sync()
 
         success = self.restoreState(data.get("state"), 0)

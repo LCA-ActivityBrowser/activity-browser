@@ -46,6 +46,8 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
             parent (QtWidgets.QWidget): The parent widget.
             db_name (str): The name of the database to display products for.
         """
+        self.name = "database_products_pane_" + db_name
+
         super().__init__(parent)
         self.database = bd.Database(db_name)
         self.title = db_name
@@ -54,7 +56,7 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
         # Create the QTableView and set the model
         self.table_view = ProductView(self)
         self.table_view.setModel(self.model)
-        self.table_view.restoreSate(self.get_state_from_settings(), self.build_df())
+        self.model.setDataFrame(self.build_df())
 
         self.search = widgets.ABLineEdit(self)
         self.search.setMaximumHeight(30)
@@ -81,6 +83,20 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
 
         self.table_view.filtered.connect(self.search_error)
         self.search.textChangedDebounce.connect(self.table_view.setAllFilter)
+
+    def saveState(self):
+        """
+        Save the state of the pane.
+        """
+        return {"database_name": self.database.name}
+
+    @classmethod
+    def fromState(cls, state: dict, parent=None):
+        """
+        Restore the state of the pane.
+        """
+        return cls(parent, state["database_name"])
+
 
     def sync(self):
         """
@@ -257,119 +273,6 @@ class ProductView(ui.widgets.ABTreeView):
                                enable=len(p.selected_products) > 0,
                                ),
         ]
-
-    class ContextMenu2(ui.widgets.ABTreeView.ContextMenu):
-        """
-        A context menu for the ProductView.
-
-        Attributes:
-            num_products (int): The number of selected products.
-            num_activities (int): The number of selected activities.
-            activity_open (QAction): The action to open an activity.
-            activity_graph (QAction): The action to open an activity in the Graph Explorer.
-            process_new (QAction): The action to create a new process.
-            activity_delete (QAction): The action to delete an activity.
-            product_delete (QAction): The action to delete a product.
-            copy_sdf (QAction): The action to copy the SDF to the clipboard.
-        """
-        def __init__(self, pos, view: "ProductView"):
-            """
-            Initializes the ContextMenu.
-
-            Args:
-                pos: The position of the context menu.
-                view (ProductView): The view displaying the products.
-            """
-            super().__init__(pos, view)
-            self.num_products = len(view.selected_products)
-            self.num_activities = len(view.selected_activities)
-
-            self.activity_open = actions.ActivityOpen.get_QAction(view.selected_activities)
-            self.activity_graph = actions.ActivityGraph.get_QAction(view.selected_activities)
-
-            self.process_new = actions.ActivityNewProcess.get_QAction(view.parent().database.name)
-
-            self.activity_delete = actions.ActivityDelete.get_QAction(view.selected_activities)
-            self.product_delete = actions.ActivityDelete.get_QAction(view.selected_products)
-
-            self.copy_sdf = actions.ActivitySDFToClipboard.get_QAction(view.selected_products)
-
-            if view.indexAt(pos).row() == -1:
-                self.addAction(self.process_new)
-                return
-
-            self.init_open()
-            self.addAction(self.process_new)
-            #self.addMenu(self.duplicates_menu())
-            self.init_delete()
-            #self.addAction(self.activity_relink)
-            self.addMenu(self.copy_menu())
-
-        def init_open(self):
-            """
-            Initializes the open actions in the context menu.
-            """
-            if self.num_activities == 0:
-                return
-            if self.num_activities == 1:
-                self.activity_open.setText("Open activity")
-                self.activity_graph.setText("Open activity in Graph Explorer")
-            else:
-                self.activity_open.setText("Open activities")
-                self.activity_graph.setText("Open activities in Graph Explorer")
-
-            self.addAction(self.activity_open)
-            self.addAction(self.activity_graph)
-
-        def init_delete(self):
-            """
-            Initializes the delete actions in the context menu.
-            """
-            if self.num_activities == 1:
-                self.activity_delete.setText("Delete activity")
-            if self.num_activities > 1:
-                self.activity_delete.setText("Delete activities")
-            if self.num_activities > 0:
-                self.addAction(self.activity_delete)
-
-            if self.num_products == 1:
-                self.product_delete.setText("Delete product")
-            if self.num_products > 1:
-                self.product_delete.setText("Delete products")
-            if self.num_products > 0:
-                self.addAction(self.product_delete)
-
-        def duplicates_menu(self):
-            """
-            Creates a menu for duplicate products.
-
-            Returns:
-                QMenu: The menu for duplicate products.
-            """
-            menu = QtWidgets.QMenu(self)
-
-            menu.setTitle("Duplicate products")
-            menu.setIcon(ui.icons.qicons.copy)
-
-            menu.addAction(self.activity_duplicate)
-            menu.addAction(self.activity_duplicate_to_loc)
-            menu.addAction(self.activity_duplicate_to_db)
-            return menu
-
-        def copy_menu(self):
-            """
-            Creates a menu for copying to clipboard.
-
-            Returns:
-                QMenu: The menu for copying to clipboard.
-            """
-            menu = QtWidgets.QMenu(self)
-
-            menu.setTitle("Copy to clipboard")
-            menu.setIcon(ui.icons.qicons.copy_to_clipboard)
-
-            menu.addAction(self.copy_sdf)
-            return menu
 
     def __init__(self, parent: DatabaseProductsPane):
         """

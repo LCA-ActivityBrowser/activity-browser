@@ -10,6 +10,7 @@ from activity_browser.ui import widgets, core, delegates
 
 class ImpactCategoriesPane(widgets.ABAbstractPane):
     title = "Impact Categories"
+    name = "impact_categories_pane"
     hideMode = widgets.ABDockWidget.HideMode.Hide
 
     def __init__(self, parent=None):
