@@ -88,14 +88,22 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
         """
         Save the state of the pane.
         """
-        return {"database_name": self.database.name}
+        return {
+            "database_name": self.database.name,
+            "header_state": self.table_view.header().saveState(),
+            "group_by": self.model.grouped_columns,
+        }
 
     @classmethod
     def fromState(cls, state: dict, parent=None):
         """
         Restore the state of the pane.
         """
-        return cls(parent, state["database_name"])
+        pane = cls(parent, state["database_name"])
+        pane.model.grouped_columns = state.get("group_by", [])
+        if "header_state" in state:
+            pane.table_view.header().restoreState(state["header_state"])
+        return pane
 
 
     def sync(self):
@@ -377,7 +385,7 @@ class ProductItem(ui.widgets.ABDataItem):
         return super().flags(col, key) | Qt.ItemFlag.ItemIsDragEnabled
 
     def displayData(self, col: int, key: str):
-        if key.startswith("property_") and self[key]["normalize"]:
+        if key.startswith("property_") and not pd.isna(self[key]) and self[key]["normalize"]:
             prop = self[key].copy()
             prop["unit"] = prop['unit'] + f" / {self['unit']}"
             return prop
