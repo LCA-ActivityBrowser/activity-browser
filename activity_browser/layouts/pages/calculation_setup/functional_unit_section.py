@@ -66,18 +66,31 @@ class FunctionalUnitSection(QtWidgets.QWidget):
 
 class FunctionalUnitView(widgets.ABTreeView):
 
-    class ContextMenu(QtWidgets.QMenu):
-        def __init__(self, pos, view: "FunctionalUnitView"):
-            super().__init__(view)
-            cs_name = view.parent().calculation_setup_name
+    class ContextMenu(widgets.ABMenu):
+        menuSetup = [
+            lambda m, p: m.add(actions.ActivityOpen, m.selected_processes,
+                               text="Open process" if len(m.selected_processes) == 1 else "Open processes",
+                               enable=len(m.selected_processes) > 0
+                               ),
+            lambda m: m.addSeparator(),
+            lambda m, p: m.add(actions.CSDeleteFunctionalUnit, m.cs_name, m.selected_fus,
+                               text="Delete Functional Unit" if len(m.selected_fus) == 1 else "Delete Functional Units",
+                               enable=len(m.selected_fus) > 0
+                               ),
 
-            if not view.selectedIndexes():
-                return
+        ]
 
-            indices = [index.internalPointer().key() for index in view.selectedIndexes()]
+        @property
+        def selected_fus(self):
+            return list(set([index.internalPointer().key() for index in self.parent().selectedIndexes()]))
 
-            self.delete_fu_action = actions.CSDeleteFunctionalUnit.get_QAction(cs_name, indices)
-            self.addAction(self.delete_fu_action)
+        @property
+        def selected_processes(self):
+            return list(set([index.internalPointer()["_processor_key"] for index in self.parent().selectedIndexes()]))
+
+        @property
+        def cs_name(self):
+            return self.parent().parent().calculation_setup_name
 
     def __init__(self, parent=None):
         super().__init__(parent)
