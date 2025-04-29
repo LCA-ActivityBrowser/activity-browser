@@ -21,6 +21,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setLocale(QtCore.QLocale(QtCore.QLocale.English, QtCore.QLocale.UnitedStates))
         self.setWindowTitle("Activity Browser")
         self.setWindowIcon(icons.qicons.ab)
+        self.setDockNestingEnabled(True)
 
         # Layout: extra items outside main layout
         self.menu_bar = MenuBar(self)
