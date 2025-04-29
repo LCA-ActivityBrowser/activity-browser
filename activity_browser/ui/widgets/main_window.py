@@ -67,31 +67,47 @@ class MainWindow(QtWidgets.QMainWindow):
         self.writeState(old.dir)
         data = self.getState(new.dir)
 
-        for pane in data.get("panes", self.defaultPanes()):
-            pane_class = pane.get("class")
-            if pane_class is None:
-                continue
-
-            log.debug(f"Restoring pane {pane_class.__name__}")
-
-            try:
-                pane_instance = pane_class.fromState(pane.get("state"), self)
-            except Exception as e:
-                log.error(f"Error restoring pane {pane_class.__name__}: {e}")
-                continue
-
-            dockwidget = pane_instance.getDockWidget(self)
-            self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, dockwidget)
-            self.menu_bar.view_menu.addAction(dockwidget.toggleViewAction())
-
-            print(dockwidget.objectName())
-
-            pane_instance.sync()
+        for pane_state in data.get("panes", self.defaultPanes()):
+            self.restorePane(pane_state)
 
         success = self.restoreState(data.get("state"), 0)
         log.debug(f"Restored main window state: {success}")
 
         self.set_titlebar()
+
+    def restorePane(self, pane_state: dict):
+        """
+        Restore a pane in the main window based on its saved state.
+
+        Args:
+            pane_state (dict): A dictionary containing the class and state of the pane to restore.
+                - "class": The class of the pane to be restored.
+                - "state": The saved state of the pane.
+
+        Returns:
+            None
+        """
+        pane_class = pane_state.get("class")
+        if pane_class is None:
+            return
+
+        log.debug(f"Restoring pane {pane_class.__name__}")
+
+        try:
+            # Attempt to create an instance of the pane using its saved state
+            pane_instance = pane_class.fromState(pane_state.get("state"), self)
+        except Exception as e:
+            # Log an error if the pane cannot be restored
+            log.error(f"Error restoring pane {pane_class.__name__}: {e}")
+            return
+
+        # Add the restored pane to the main window as a dock widget
+        dockwidget = pane_instance.getDockWidget(self)
+        self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, dockwidget)
+        self.menu_bar.view_menu.addAction(dockwidget.toggleViewAction())
+
+        # Synchronize the pane instance
+        pane_instance.sync()
 
     def writeState(self, directory):
         pane_data = []
