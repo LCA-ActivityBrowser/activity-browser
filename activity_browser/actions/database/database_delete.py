@@ -1,13 +1,12 @@
-import os
-
-from bw2data.parameters import Group
 from qtpy import QtCore, QtWidgets
 
+import bw2data as bd
+from bw2data.parameters import Group
+from bw2data.backends.proxies import ExchangeDataset, Exchanges
+
 from activity_browser import application, settings
+from activity_browser.bwutils import AB_metadata
 from activity_browser.actions.base import ABAction, exception_dialogs
-from activity_browser.mod import bw2data as bd
-from bw2data.backends.proxies import (ExchangeDataset,
-                                                           Exchanges)
 from activity_browser.ui.icons import qicons
 
 
@@ -29,8 +28,7 @@ class DatabaseDelete(ABAction):
 
         # get the record count from the database controller
         db_name = db_name
-        database = bd.Database(db_name)
-        n_records = len(database)
+        n_records = AB_metadata.dataframe[AB_metadata.dataframe["database"] == db_name].shape[0]
 
         # get any upstream exchanges (hacky because Brightway doesn't do this itself)
         excs = Exchanges((db_name, None))
