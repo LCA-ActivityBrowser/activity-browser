@@ -132,8 +132,8 @@ class NewProductDialog(QtWidgets.QDialog):
         layout.addWidget(QtWidgets.QLabel("Location"), 2, 0)
         layout.addWidget(self.location_edit, 2, 1)
 
-        layout.addWidget(self.cancel_button, 3, 0)
-        layout.addWidget(self.ok_button, 3, 1)
+        layout.addWidget(self.ok_button, 3, 0)
+        layout.addWidget(self.cancel_button, 3, 1)
 
         self.setLayout(layout)
 
