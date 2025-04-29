@@ -36,7 +36,7 @@ class FunctionalUnitSection(QtWidgets.QWidget):
 
     def build_df(self):
         keys, amounts = [], []
-        cols = ["unit", "name", "product", "location", "database"]
+        cols = ["unit", "name", "product", "location", "database", "processor"]
 
         for fu in self.calculation_setup.get("inv", []):
             for key, amount in fu.items():
@@ -47,11 +47,19 @@ class FunctionalUnitSection(QtWidgets.QWidget):
         act_df["amount"] = amounts
         act_df["_activity_key"] = keys
 
+        act_df["_processor_key"] = act_df["processor"]
+        act_df["_processor_key"].fillna(act_df["_activity_key"], inplace=True)
+
+        processor_df = AB_metadata.get_metadata(act_df["_processor_key"], ["name"])
+        processor_df.index = processor_df.index.to_flat_index()
+        processor_df = pd.merge(act_df["_processor_key"], processor_df, "left", left_on="_processor_key", right_index=True)
+        act_df["process"] = processor_df["name"]
+
         # Use "product" if available otherwise use "name"
         act_df.update(act_df["product"].rename("name"))
         act_df["product"] = act_df["name"]
 
-        cols = ["amount", "unit", "product", "location"]
+        cols = ["amount", "unit", "product", "process", "database", "location"]
 
         return act_df[cols].reset_index(drop=True)
 
@@ -110,6 +118,8 @@ class FunctionalUnitItem(widgets.ABDataItem):
     def decorationData(self, col: int, key: str):
         if key == "product":
             return icons.qicons.product
+        if key == "process":
+            return icons.qicons.process
 
 
 class FunctionalUnitModel(widgets.ABItemModel):
