@@ -77,6 +77,9 @@ class ABTreeView(QtWidgets.QTreeView):
         self.setContextMenuPolicy(QtCore.Qt.ContextMenuPolicy.CustomContextMenu)
         self.customContextMenuRequested.connect(self.showContextMenu)
 
+        self.setSelectionBehavior(QtWidgets.QTreeView.SelectionBehavior.SelectRows)
+        self.setSelectionMode(QtWidgets.QTreeView.SelectionMode.ExtendedSelection)
+
         header = self.header()
         header.setContextMenuPolicy(QtCore.Qt.ContextMenuPolicy.CustomContextMenu)
         header.customContextMenuRequested.connect(self.showHeaderMenu)
