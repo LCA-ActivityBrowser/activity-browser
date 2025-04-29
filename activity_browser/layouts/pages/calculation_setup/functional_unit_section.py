@@ -48,7 +48,7 @@ class FunctionalUnitSection(QtWidgets.QWidget):
         act_df["_activity_key"] = keys
 
         act_df["_processor_key"] = act_df["processor"]
-        act_df["_processor_key"].fillna(act_df["_activity_key"], inplace=True)
+        act_df["_processor_key"] = act_df["_processor_key"].fillna(act_df["_activity_key"])
 
         processor_df = AB_metadata.get_metadata(act_df["_processor_key"], ["name"])
         processor_df.index = processor_df.index.to_flat_index()
@@ -59,7 +59,7 @@ class FunctionalUnitSection(QtWidgets.QWidget):
         act_df.update(act_df["product"].rename("name"))
         act_df["product"] = act_df["name"]
 
-        cols = ["amount", "unit", "product", "process", "database", "location"]
+        cols = ["amount", "unit", "product", "process", "database", "location", "_processor_key", "_activity_key"]
 
         return act_df[cols].reset_index(drop=True)
 
@@ -84,6 +84,17 @@ class FunctionalUnitView(widgets.ABTreeView):
         self.setAcceptDrops(True)
         self.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
         self.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
+
+    def mouseDoubleClickEvent(self, event) -> None:
+        """
+        Handles the mouse double click event to open the selected activities.
+
+        Args:
+            event: The mouse double click event.
+        """
+        if self.selectedIndexes():
+            activities = [index.internalPointer()["_processor_key"] for index in self.selectedIndexes()]
+            actions.ActivityOpen.run(list(set(activities)))
 
     def dragMoveEvent(self, event) -> None:
         pass
