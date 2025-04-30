@@ -2,9 +2,11 @@ from logging import getLogger
 
 from qtpy import QtWidgets
 
+import bw2data as bd
+
 from activity_browser import application, signals
 from activity_browser.actions.base import ABAction, exception_dialogs
-from activity_browser.mod import bw2data as bd
+from activity_browser.bwutils import refresh_node
 from activity_browser.ui.icons import qicons
 
 log = getLogger(__name__)
@@ -12,26 +14,38 @@ log = getLogger(__name__)
 
 class CSNew(ABAction):
     """
-    ABAction to create a new Calculation Setup. Prompts the user for a name for the new CS. Returns if the user cancels,
-    or when a CS with the same name is already present within the project. Otherwise, instructs the CSController to
-    create a new Calculation Setup with the given name.
+    Create a new Calculation Setup.
+
+    This method prompts the user for a name for the new Calculation Setup (CS) if not provided.
+    It validates the name to ensure it is unique within the project and creates a new CS
+    with the specified functional units and impact categories.
+
+    Args:
+        name (str, optional): The name of the new Calculation Setup. If not provided, the user is prompted.
+        functional_units (list[tuple | int | bd.Node], optional): A list of functional units to include in the CS.
+        impact_categories (list[tuple], optional): A list of impact categories to include in the CS.
+
+    Returns:
+        None: Returns early if the user cancels, provides no name, or if the name already exists.
+
+    Raises:
+        None: This method does not raise exceptions but logs errors and shows warnings for invalid inputs.
     """
 
     icon = qicons.add
-    text = "New"
+    text = "New Calculation Setup"
 
     @staticmethod
     @exception_dialogs
-    def run():
-        # prompt the user to give a name for the new calculation setup
-        name, ok = QtWidgets.QInputDialog.getText(
-            application.main_window,
-            "Create new calculation setup",
-            "Name of new calculation setup:" + " " * 10,
-        )
+    def run(name: str = None,
+            functional_units: list[tuple | int | bd.Node] = None,
+            impact_categories: list[tuple] = None
+            ):
+
+        name = name or CSNew.get_cs_name()
 
         # return if the user cancels or gives no name
-        if not ok or not name:
+        if not name:
             return
 
         # throw error if the name is already present, and return
@@ -43,7 +57,29 @@ class CSNew(ABAction):
             )
             return
 
+        inv = functional_units or []
+        inv = [refresh_node(i).key for i in inv]
+
+        ia = impact_categories or []
+
         # instruct the CalculationSetupController to create a CS with the new name
-        bd.calculation_setups[name] = {"inv": [], "ia": []}
-        signals.calculation_setup_selected.emit(name)
+        bd.calculation_setups[name] = {"inv": inv, "ia": ia}
+
         log.info(f"New calculation setup: {name}")
+
+    @staticmethod
+    def get_cs_name() -> str | None:
+        """
+        Prompt the user for a name for the new calculation setup.
+        """
+        # prompt the user to give a name for the new calculation setup
+        name, ok = QtWidgets.QInputDialog.getText(
+            application.main_window,
+            "Create new calculation setup",
+            "Name of new calculation setup:" + " " * 10,
+        )
+
+        # return if the user cancels or gives no name
+        if not ok or not name:
+            return None
+        return name
