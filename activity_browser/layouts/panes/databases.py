@@ -121,7 +121,25 @@ class DatabasesView(widgets.ABTreeView):
                                enable=len(p.selected_databases) == 1),
             lambda m, p: m.add(actions.DatabaseProcess, p.selected_databases[0] if p.selected_databases else None,
                                enable=len(p.selected_databases) == 1),
+            lambda m: m.addSeparator(),
+            lambda m, p: m.add(actions.DatabaseSetReadonly, p.selected_databases[0] if p.selected_databases else None,
+                               not m.selected_readonly,
+                               enable=len(p.selected_databases) == 1,
+                               text="Unlock database" if m.selected_readonly else "Lock database",
+                               ),
         ]
+
+        @property
+        def selected_readonly(self):
+            """
+            Returns the read-only state of the selected database.
+
+            Returns:
+                bool: The read-only state of the selected database.
+            """
+            if not self.parent().selected_databases:
+                return None
+            return self.parent().selectedIndexes()[0].internalPointer()["read_only"]
 
     class HeaderMenu(QtWidgets.QMenu):
         """
