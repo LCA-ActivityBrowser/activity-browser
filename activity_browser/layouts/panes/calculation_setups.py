@@ -122,6 +122,10 @@ class CalculationSetupsView(widgets.ABTreeView):
         def __init__(self, *args, **kwargs):
             super().__init__()
 
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setAcceptDrops(True)
+
     def mouseDoubleClickEvent(self, event: QtGui.QMouseEvent):
         """
         Handles the mouse double click event to toggle the read-only state or select the database.
@@ -135,6 +139,36 @@ class CalculationSetupsView(widgets.ABTreeView):
         index = self.indexAt(event.pos())
 
         actions.CSOpen.run(index.internalPointer()["name"])
+
+
+    def dragMoveEvent(self, event) -> None:
+        pass
+
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasFormat("application/bw-nodekeylist"):
+            keys: list = event.mimeData().retrievePickleData("application/bw-nodekeylist")
+            for key in keys:
+                act = bd.get_node(key=key)
+                if act["type"] not in bd.labels.product_node_types + ["processwithreferenceproduct"]:
+                    keys.remove(key)
+
+            if not keys:
+                return
+
+            event.accept()
+
+    def dropEvent(self, event) -> None:
+        event.accept()
+
+        keys: list = event.mimeData().retrievePickleData("application/bw-nodekeylist")
+        for key in keys:
+            act = bd.get_node(key=key)
+            if act["type"] not in bd.labels.product_node_types + ["processwithreferenceproduct"]:
+                keys.remove(key)
+
+        functional_units = [{key: 1.0} for key in keys]
+
+        actions.CSNew.run(functional_units=functional_units)
 
 
 class CalculationSetupsItem(widgets.ABDataItem):

@@ -22,7 +22,7 @@ class CSNew(ABAction):
 
     Args:
         name (str, optional): The name of the new Calculation Setup. If not provided, the user is prompted.
-        functional_units (list[tuple | int | bd.Node], optional): A list of functional units to include in the CS.
+        functional_units (list[dict[tuple | int | bd.Node, float]], optional): A list of functional units to include in the CS.
         impact_categories (list[tuple], optional): A list of impact categories to include in the CS.
 
     Returns:
@@ -38,7 +38,7 @@ class CSNew(ABAction):
     @staticmethod
     @exception_dialogs
     def run(name: str = None,
-            functional_units: list[tuple | int | bd.Node] = None,
+            functional_units: list[dict[tuple | int | bd.Node, float]] = None,
             impact_categories: list[tuple] = None
             ):
 
@@ -58,7 +58,11 @@ class CSNew(ABAction):
             return
 
         inv = functional_units or []
-        inv = [refresh_node(i).key for i in inv]
+        for i, fu in enumerate(inv):
+            if not isinstance(fu, dict):
+                raise TypeError("Functional units must be a list of dictionaries.")
+            refreshed = {refresh_node(key).key: amount for key, amount in fu.items()}
+            inv[i] = refreshed
 
         ia = impact_categories or []
 
