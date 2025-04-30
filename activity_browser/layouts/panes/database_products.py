@@ -277,10 +277,22 @@ class ProductView(ui.widgets.ABTreeView):
                                enable=len(p.selected_products) > 0 and not database_is_locked(p.parent().database.name),
                                ),
             lambda m: m.addSeparator(),
+            lambda m, p: m.add(actions.CSNew,
+                               functional_units=[{prod: m.get_functional_unit_amount(prod)} for prod in p.selected_products],
+                               enable=len(p.selected_products) > 0,
+                               text="Create setup"
+                               ),
             lambda m, p: m.add(actions.ActivitySDFToClipboard, p.selected_products,
                                enable=len(p.selected_products) > 0,
                                ),
         ]
+
+        @staticmethod
+        def get_functional_unit_amount(key):
+            from activity_browser.bwutils import refresh_node
+            excs = list(refresh_node(key).upstream(["production"]))
+            exc = excs[0] if len(excs) == 1 else {}
+            return exc.get("amount", 1.0)
 
     def __init__(self, parent: DatabaseProductsPane):
         """
