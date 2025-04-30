@@ -1,6 +1,7 @@
 from logging import getLogger
 
 import pandas as pd
+import bw2data as bd
 
 from activity_browser import application, bwutils
 from activity_browser.actions.base import ABAction, exception_dialogs
@@ -22,6 +23,15 @@ class CSCalculate(ABAction):
     @exception_dialogs
     def run(cs_name: str, scenario_data: pd.DataFrame = None):
         from activity_browser.layouts import pages
+
+        # Check if the calculation setup is complete
+        if cs_name not in bd.calculation_setups:
+            raise Exception(f"Calculation setup '{cs_name}' not found.")
+        cs = bd.calculation_setups[cs_name]
+        if not cs.get("inv"):
+            raise Exception(f"Calculation setup '{cs_name}' has no functional units.")
+        if not cs.get("ia"):
+            raise Exception(f"Calculation setup '{cs_name}' has no impact assessment methods.")
 
         if scenario_data is None:
             mlca = bwutils.MLCA(cs_name)
