@@ -29,8 +29,6 @@ class CalculationSetupsPane(widgets.ABAbstractPane):
         self.view.setModel(self.model)
 
         self.view.setAlternatingRowColors(True)
-        self.view.setSelectionMode(QtWidgets.QTableView.SingleSelection)
-        self.view.setIndentation(0)
 
         self.build_layout()
         self.connect_signals()
@@ -53,18 +51,17 @@ class CalculationSetupsPane(widgets.ABAbstractPane):
 
     def sync(self):
         """
-        Synchronizes the model with the current state of the databases.
+        Synchronizes the model with the current state of the calculation setups.
         """
         self.model.setDataFrame(self.build_df())
         self.view.resizeColumnToContents(0)
-        self.view.header().setSectionResizeMode(0, QtWidgets.QHeaderView.Fixed)
 
     def build_df(self) -> pd.DataFrame:
         """
-        Builds a DataFrame from the databases.
+        Builds a DataFrame from the calculation setups.
 
         Returns:
-            pd.DataFrame: The DataFrame containing the databases data.
+            pd.DataFrame: The DataFrame containing the calculation setups data.
         """
         data = []
         for cs in bd.calculation_setups:
@@ -83,7 +80,7 @@ class CalculationSetupsPane(widgets.ABAbstractPane):
 
 class CalculationSetupsView(widgets.ABTreeView):
     """
-    A view that displays the databases in a tree structure.
+    A view that displays the calculation setups in a tree structure.
 
     Attributes:
         defaultColumnDelegates (dict): The default column delegates for the view.
@@ -128,7 +125,7 @@ class CalculationSetupsView(widgets.ABTreeView):
 
     def mouseDoubleClickEvent(self, event: QtGui.QMouseEvent):
         """
-        Handles the mouse double click event to toggle the read-only state or select the database.
+        Handles the mouse double click event to open the selected calculation setups.
 
         Args:
             event (QtGui.QMouseEvent): The mouse double click event.
@@ -173,7 +170,7 @@ class CalculationSetupsView(widgets.ABTreeView):
 
 class CalculationSetupsItem(widgets.ABDataItem):
     """
-    An item representing a database in the tree view.
+    An item representing a calculation setup in the tree view.
     """
     def fontData(self, col: int, key: str):
         """
