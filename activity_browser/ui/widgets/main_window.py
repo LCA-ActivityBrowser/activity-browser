@@ -15,8 +15,8 @@ log = getLogger(__name__)
 
 class MainWindow(QtWidgets.QMainWindow):
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, parent=None):
+        super().__init__(parent)
 
         self.setLocale(QtCore.QLocale(QtCore.QLocale.English, QtCore.QLocale.UnitedStates))
         self.setWindowTitle("Activity Browser")

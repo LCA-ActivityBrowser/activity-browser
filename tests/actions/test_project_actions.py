@@ -2,7 +2,7 @@ from bw2data.project import projects
 
 from qtpy import QtWidgets
 
-from activity_browser import ab_settings, actions
+from activity_browser import actions
 from activity_browser.actions.project.project_delete import ProjectDeletionDialog
 
 

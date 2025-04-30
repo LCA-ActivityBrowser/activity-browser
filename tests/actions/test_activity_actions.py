@@ -7,12 +7,11 @@ import pytest
 from qtpy import QtWidgets
 
 from activity_browser import actions
-from activity_browser.ui.widgets.dialog import (ActivityLinkingDialog,
-                                                LocationLinkingDialog)
 from activity_browser.ui.widgets.new_node_dialog import NewNodeDialog
 
 
 def test_activity_delete(ab_app, monkeypatch):
+    print("check")
     key = ("activity_tests", "330b935a46bc4ad39530ab7df012f38b")
 
     monkeypatch.setattr(
