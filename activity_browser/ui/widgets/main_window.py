@@ -29,6 +29,14 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.connect_signals()
 
+    def closeEvent(self, event):
+        """
+        Save the state of the main window when it is closed.
+        """
+        # Save the state of the main window
+        self.writeState(bd.projects.dir)
+        super().closeEvent(event)
+
     def defaultPanes(self):
         from activity_browser.layouts import panes
         return [
