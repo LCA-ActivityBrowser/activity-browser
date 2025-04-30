@@ -57,7 +57,8 @@ class FunctionalUnitSection(QtWidgets.QWidget):
         processor_df.index = processor_df.index.to_flat_index()
 
         # Merge the processor keys from the activity DataFrame with the processor metadata.
-        processor_df = pd.merge(act_df["_processor_key"], processor_df, "right", left_on="_processor_key", right_index=True)
+        processor_df = pd.merge(act_df["_processor_key"].astype(object), processor_df, "right",
+                                left_on="_processor_key", right_index=True, )
 
         # Add a column for function keys by flattening the index of the processor DataFrame.
         processor_df["function_keys"] = processor_df.index.to_flat_index()
