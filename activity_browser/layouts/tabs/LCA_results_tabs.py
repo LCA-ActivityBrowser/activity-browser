@@ -1551,7 +1551,10 @@ class FirstTierContributionsTab(ContributionTab):
 
             all_data[i] = item, data, col_name
 
-        self.unit = get_unit(self.parent.method_dict[self.combobox_menu.method.currentText()], self.relative)
+        if compare == "Impact Categories":
+            self.unit = get_unit(method=False, relative=self.relative)
+        else:
+            self.unit = get_unit(self.parent.method_dict[self.combobox_menu.method.currentText()], self.relative)
 
         # convert to dict format to feed into dataframe
         for key in unique_keys:
