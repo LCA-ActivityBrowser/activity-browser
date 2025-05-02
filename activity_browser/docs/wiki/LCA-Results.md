@@ -120,12 +120,12 @@ in the next sections.
 
 #### Cut-off
 You can manually change the `Cut-off type` of the results in three ways:
-- The `Percent` mode shows contributions _from_ entities of at least _x_% or higher.
+- The `Minimum %` mode shows contributions _from_ entities of at least _x_% or higher.
   - For example: If the cut-off is set to 5% for process contribtions, then all contributions of at least 5% are shown.  
-- The `Cumulative percent` mode shows contributions that cumulatively contribute at least _x_%.
+- The `Cumulative %` mode shows contributions that cumulatively contribute at least _x_%.
   - For example: If the cut-off is set to 80% for process contributions, then the first _n_ processes (sorted highest 
   to lowest) that count up to 80% are shown.
-- The `Number` mode shows contributions from the _x_ entities that contribute the most (as absolute).
+- The `Top #` mode shows contributions from the _x_ entities that contribute the most (as absolute).
   - For example: If the cut-off is set to 5, then the first 5 processes (sorted highest 
   to lowest) will be shown.
 
