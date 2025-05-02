@@ -271,7 +271,6 @@ class CutoffMenu(QWidget):
             cutoff = abs(int(self.sliders.cum_percent.value()))
             self.cutoff_slider_line.setText(str(cutoff))
             self.cutoff_slider_line.blockSignals(False)
-            print("cutoff sl", cutoff)
 
         # if called by line edit
         elif editor == "le":
