@@ -195,7 +195,7 @@ class MonteCarloLCA(object):
                 sort_idx = np.searchsorted(uniq, subset[self.param_cols])
                 # Finally, insert the sorted subset amounts into the tech_vector
                 # at the correct indexes.
-                tech_vector[idx] = subset[sort_idx]["amount"]
+                tech_vector[idx[sort_idx]] = subset["amount"]
                 # Repeat the above, but for the biosphere array.
                 subset = param_exchanges[param_exchanges["type"] == 2]
                 idx = np.argwhere(
