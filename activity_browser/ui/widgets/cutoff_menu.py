@@ -44,21 +44,21 @@ class CutoffMenu(QWidget):
         self.validators.percent.setLocale(locale)
         self.validators.number.setLocale(locale)
         self.buttons = Types(
-            QRadioButton("Percent"),
-            QRadioButton("Cumulative perc."),
-            QRadioButton("Number"))
+            QRadioButton("Minimum %"),
+            QRadioButton("Cumulative %"),
+            QRadioButton("Top #"))
         self.buttons.percent.setChecked(True)
         self.buttons.percent.setToolTip(
             "This cut-off type shows contributions of at least some percentage "
-            "(for example contributions of at least 5%)"
+            "(for example contributions of at least 5% of the total impact)"
         )
         self.buttons.cum_percent.setToolTip(
             "This cut-off type shows contributions that together are some percentage "
-            "(for example all highest contributors that together count up to 80%)"
+            "(for example all highest contributors that together count up to 80% of the total impact)"
         )
         self.buttons.number.setToolTip(
-            "This cut-off type shows this many of the largest contributors "
-            "(for example the top 5 contributors)"
+            "This cut-off type shows this number of largest contributors "
+            "(for example the top 5 largest contributors)"
         )
         self.button_group = QButtonGroup()
         self.button_group.addButton(self.buttons.percent, 0)
@@ -83,7 +83,7 @@ class CutoffMenu(QWidget):
         self.sliders.number.setToolTip(
             "This slider sets the amount of highest contributors to show"
         )
-        self.units = Types("%", "cumulative %", "number")
+        self.units = Types("minimum %", "cumulative %", "number")
         self.labels = Labels(QLabel(), QLabel(), QLabel())
         self.cutoff_slider_line = QLineEdit()
         self.cutoff_slider_line.setToolTip(
@@ -353,7 +353,7 @@ class CutoffMenu(QWidget):
         cutoff_slider_minmax = QHBoxLayout()
         self.labels.min.setText("100%")
         self.labels.max.setText("0.001%")
-        self.labels.unit.setText("%")
+        self.labels.unit.setText("minimum %")
         cutoff_slider_ledit = QHBoxLayout()
         self.cutoff_slider_line.setValidator(self.validators.percent)
         self.cutoff_slider_lft_btn.setMaximumWidth(15)
