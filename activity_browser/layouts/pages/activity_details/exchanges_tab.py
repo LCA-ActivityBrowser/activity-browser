@@ -7,7 +7,7 @@ import pandas as pd
 import bw2data as bd
 
 from activity_browser import actions, bwutils
-from activity_browser.bwutils import refresh_node, AB_metadata, database_is_locked
+from activity_browser.bwutils import refresh_node, AB_metadata, database_is_locked, database_is_legacy
 from activity_browser.ui import widgets, icons, delegates
 
 log = getLogger(__name__)
@@ -176,7 +176,7 @@ class ExchangesTab(QtWidgets.QWidget):
         # Define the order of columns for the final DataFrame
         cols = ["amount", "unit", "name", "location", "database"]
         cols += ["substitute_name", "substitution_factor"] if "substitute_name" in df.columns else []
-        cols += ["allocation_factor"]
+        cols += ["allocation_factor"] if not database_is_legacy(self.activity.get("database")) else []
         cols += [col for col in df.columns if col.startswith("property")]
         cols += ["formula", "uncertainty"]
         cols += [col for col in df.columns if col.startswith("_")]
@@ -282,7 +282,9 @@ class ExchangesView(widgets.ABTreeView):
 
     class ContextMenu(widgets.ABMenu):
         menuSetup = [
-            lambda m: m.add(actions.ActivityNewProduct, [m.activity.key], enable=not m.locked),
+            lambda m: m.add(actions.ActivityNewProduct, [m.activity.key],
+                            enable=not m.locked and not database_is_legacy(m.activity["database"])
+                            ),
             lambda m: m.add(actions.ExchangeDelete, m.exchanges, enable=bool(m.exchanges) and not m.locked),
             lambda m: m.add(actions.ExchangeSDFToClipboard, m.exchanges, enable=bool(m.exchanges)),
             lambda m: m.add(actions.ActivityOpen, [x.input for x in m.exchanges],
