@@ -3,7 +3,7 @@ from uuid import uuid4
 from qtpy.QtWidgets import QDialog
 import bw2data as bd
 
-from activity_browser import application
+from activity_browser import application, bwutils
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.ui.icons import qicons
 from activity_browser.ui.widgets.new_node_dialog import NewNodeDialog
@@ -36,11 +36,7 @@ class ActivityNewProcess(ABAction):
             ref_product = name
 
         database = bd.Database(database_name)
-
-        if database.backend not in ["sqlite", "functional_sqlite"]:
-            raise ValueError("Database backend must be sqlite or functional_sqlite")
-
-        legacy_backend = database.backend == "sqlite"
+        legacy_backend = bwutils.database_is_legacy(database_name)
 
         # create process
         new_proc_data = {

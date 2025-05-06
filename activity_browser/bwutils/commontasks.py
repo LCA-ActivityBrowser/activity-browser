@@ -125,6 +125,17 @@ def database_is_locked(name: str) -> bool:
         raise KeyError("Not an existing database:", name)
     return bd.databases[name].get("read_only", True)
 
+def database_is_legacy(name: str) -> bool:
+    """Returns True if the database is locked, False otherwise."""
+    if not name in bd.databases:
+        raise KeyError("Not an existing database:", name)
+
+    database = bd.Database(name)
+
+    if database.backend not in ["sqlite", "functional_sqlite"]:
+        raise ValueError("Database backend must be sqlite or functional_sqlite")
+
+    return database.backend == "sqlite"
 
 def is_technosphere_db(db_name: str) -> bool:
     """Returns True if database describes the technosphere, False if it describes a biosphere."""
