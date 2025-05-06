@@ -10,7 +10,7 @@ import bw2data as bd
 from activity_browser import actions, ui, signals, application
 from activity_browser.settings import project_settings
 from activity_browser.ui import core, widgets, delegates
-from activity_browser.bwutils import AB_metadata, database_is_locked
+from activity_browser.bwutils import AB_metadata, database_is_locked, database_is_legacy
 
 log = getLogger(__name__)
 
@@ -260,21 +260,23 @@ class ProductView(ui.widgets.ABTreeView):
                                enable=len(p.selected_activities) > 0,
                                ),
             lambda m: m.addSeparator(),
-            lambda m, p: m.add(actions.ActivityNewProcess, p.parent().database.name,
-                               enable=not database_is_locked(p.parent().database.name),
+            lambda m, p: m.add(actions.ActivityNewProcess, m.database_name,
+                               enable=not database_is_locked(m.database_name),
                                ),
             lambda m, p: m.add(actions.ActivityDuplicate, p.selected_activities,
                                text="Duplicate process" if len(p.selected_activities) == 1 else "Duplicate processes",
-                               enable=len(p.selected_activities) > 0 and not database_is_locked(p.parent().database.name),
+                               enable=len(p.selected_activities) > 0 and not database_is_locked(m.database_name),
                                ),
             lambda m: m.addSeparator(),
             lambda m, p: m.add(actions.ActivityDelete, p.selected_activities,
                                text="Delete process" if len(p.selected_activities) == 1 else "Delete processes",
-                               enable=len(p.selected_activities) > 0 and not database_is_locked(p.parent().database.name),
+                               enable=len(p.selected_activities) > 0 and not database_is_locked(m.database_name),
                                ),
             lambda m, p: m.add(actions.ActivityDelete, p.selected_products,
                                text="Delete product" if len(p.selected_products) == 1 else "Delete products",
-                               enable=len(p.selected_products) > 0 and not database_is_locked(p.parent().database.name),
+                               enable=len(p.selected_products) > 0 and not
+                               database_is_locked(m.database_name) and not
+                               database_is_legacy(m.database_name),
                                ),
             lambda m: m.addSeparator(),
             lambda m, p: m.add(actions.CSNew,
@@ -293,6 +295,10 @@ class ProductView(ui.widgets.ABTreeView):
             excs = list(refresh_node(key).upstream(["production"]))
             exc = excs[0] if len(excs) == 1 else {}
             return exc.get("amount", 1.0)
+
+        @property
+        def database_name(self):
+            return self.parent().parent().database.name
 
     def __init__(self, parent: DatabaseProductsPane):
         """
