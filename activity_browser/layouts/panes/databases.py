@@ -20,8 +20,7 @@ class DatabasesPane(widgets.ABAbstractPane):
         model (DatabasesModel): The model containing the data for the databases.
     """
     title = "Databases"
-    name = "databases_pane"
-    hideMode = widgets.ABDockWidget.HideMode.Hide
+    unique = True
 
     def __init__(self, parent):
         """

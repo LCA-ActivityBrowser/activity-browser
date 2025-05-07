@@ -9,8 +9,7 @@ from activity_browser.ui import widgets, delegates
 
 class CalculationSetupsPane(widgets.ABAbstractPane):
     title = "Calculation Setups"
-    name = "calculation_setups_pane"
-    hideMode = widgets.ABDockWidget.HideMode.Hide
+    unique = True
 
     def __init__(self, parent):
         """

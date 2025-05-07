@@ -86,8 +86,6 @@ class ABLoader(QtWidgets.QWidget):
         from activity_browser import signals
 
         application.main_window = MainWindow()
-        application.main_window.setPanes([panes.DatabasesPane, panes.ImpactCategoriesPane, panes.CalculationSetupsPane])
-
         central_widget = CentralTabWidget(application.main_window)
         central_widget.addTab(pages.WelcomePage(), "Welcome")
         central_widget.addTab(pages.ParametersPage(), "Parameters")
@@ -95,6 +93,8 @@ class ABLoader(QtWidgets.QWidget):
         application.main_window.setCentralWidget(central_widget)
 
         self.load_settings()
+
+        application.main_window.sync()
 
     def load_settings(self):
         self.text_label.setText("Loading project")

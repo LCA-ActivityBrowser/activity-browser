@@ -1,25 +1,25 @@
-from qtpy import QtWidgets
+import re
 
-from activity_browser import signals
+from qtpy import QtWidgets
 
 from .dock_widget import ABDockWidget
 
 
 class ABAbstractPane(QtWidgets.QWidget):
     title: str
-    name = "abstract_pane"
-    hideMode: ABDockWidget.HideMode
+    name: str = None
+    unique: bool = False  # whether the pane is unique in the application
 
     def __init__(self, parent=None):
         super().__init__(parent)
-
+        self.name = self.name or re.sub(r'([a-z])([A-Z])', r'\1_\2', self.__class__.__name__).lower()
         self.setObjectName(self.name)
 
-        if self.hideMode == ABDockWidget.HideMode.Close:
-            signals.project.changed.connect(self.deleteLater)
-
     def getDockWidget(self, main_window: QtWidgets.QMainWindow):
-        dock_widget = ABDockWidget(self.title, parent=main_window, mode=self.hideMode)
+
+        hidemode = ABDockWidget.HideMode.Hide if self.unique else ABDockWidget.HideMode.Close
+
+        dock_widget = ABDockWidget(self.title, parent=main_window, mode=hidemode)
         dock_widget.setWidget(self)
         return dock_widget
 
@@ -35,9 +35,17 @@ class ABAbstractPane(QtWidgets.QWidget):
         """
         return {}
 
+    def restoreState(self, state: dict):
+        """
+        Restore the state of the pane.
+        """
+        pass
+
     @classmethod
     def fromState(cls, state: dict, parent=None):
         """
         Restore the state of the pane.
         """
-        return cls(parent=parent)
+        pane = cls(parent=parent)
+        pane.restoreState(state)
+        return pane

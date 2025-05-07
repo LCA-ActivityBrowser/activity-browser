@@ -21,8 +21,8 @@ class DatabaseOpen(ABAction):
 
         for db_name in database_names:
             db_pane = panes.DatabaseProductsPane(application.main_window, db_name)
-            dock_widget = widgets.ABDockWidget(db_name, application.main_window)
-            dock_widget.setWidget(db_pane)
+            dock_widget = db_pane.getDockWidget(application.main_window)
+
             application.main_window.addDockWidget(DatabaseOpen.get_area(), dock_widget)
 
             if sibling:
@@ -30,6 +30,8 @@ class DatabaseOpen(ABAction):
 
                 application.thread().eventDispatcher().processEvents(QEventLoop.ProcessEventsFlags.AllEvents)
                 dock_widget.raise_()
+
+            dock_widget.show()
 
     @staticmethod
     def find_sibling():

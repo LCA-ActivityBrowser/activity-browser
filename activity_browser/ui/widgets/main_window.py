@@ -37,13 +37,28 @@ class MainWindow(QtWidgets.QMainWindow):
         self.writeState(bd.projects.dir)
         super().closeEvent(event)
 
-    def defaultPanes(self):
+    def sync(self):
         from activity_browser.layouts import panes
-        return [
-            {"class": panes.DatabasesPane, "state": {}},
-            {"class": panes.CalculationSetupsPane, "state": {}},
-            {"class": panes.ImpactCategoriesPane, "state": {}},
-        ]
+
+        self.clearPanes()
+
+        data = self.getState(bd.projects.dir)
+
+        unique_panes = [pane for pane in panes.registered_panes if pane.unique]
+
+        for pane_state in data.get("panes", []):
+            self.restorePane(pane_state)
+            if pane_state.get("class") in unique_panes:
+                unique_panes.remove(pane_state.get("class"))
+
+        for pane in unique_panes:
+            self.addPane(pane(parent=self))
+
+        success = self.restoreState(data.get("state"), 0)
+        log.debug(f"Restored main window state: {success}")
+
+        self.setWindowTitle(f"Activity Browser - {bd.projects.current}")
+
 
     def connect_signals(self):
         # Keyboard shortcuts
@@ -53,12 +68,6 @@ class MainWindow(QtWidgets.QMainWindow):
         for pane in self.panes():
             pane.deleteLater()
 
-    def setPanes(self, panes: list):
-        for pane in panes:
-            dock_widget = pane(self).getDockWidget(self)
-            self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, dock_widget)
-            self.menu_bar.view_menu.addAction(dock_widget.toggleViewAction())
-
     def panes(self):
         """
         Return a list of all panes in the main window.
@@ -66,23 +75,9 @@ class MainWindow(QtWidgets.QMainWindow):
         from activity_browser.ui import widgets
         return self.findChildren(widgets.ABAbstractPane)
 
-
     def on_project_changed(self, new, old):
-        """
-        Save the state of the main window, including the current project and layout.
-        """
-        self.clearPanes()
-
         self.writeState(old.dir)
-        data = self.getState(new.dir)
-
-        for pane_state in data.get("panes", self.defaultPanes()):
-            self.restorePane(pane_state)
-
-        success = self.restoreState(data.get("state"), 0)
-        log.debug(f"Restored main window state: {success}")
-
-        self.set_titlebar()
+        self.sync()
 
     def restorePane(self, pane_state: dict):
         """
@@ -110,13 +105,23 @@ class MainWindow(QtWidgets.QMainWindow):
             log.error(f"Error restoring pane {pane_class.__name__}: {e}")
             return
 
-        # Add the restored pane to the main window as a dock widget
-        dockwidget = pane_instance.getDockWidget(self)
+        self.addPane(pane_instance)
+
+    def addPane(self, pane: QtWidgets.QWidget):
+        """
+        Add a pane to the main window.
+
+        Args:
+            pane (QtWidgets.QWidget): The pane to add.
+
+        Returns:
+            None
+        """
+        dockwidget = pane.getDockWidget(self)
         self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, dockwidget)
         self.menu_bar.view_menu.addAction(dockwidget.toggleViewAction())
 
-        # Synchronize the pane instance
-        pane_instance.sync()
+        pane.sync()
 
     def writeState(self, directory):
         pane_data = []
@@ -137,7 +142,7 @@ class MainWindow(QtWidgets.QMainWindow):
         with open(path, "wb") as f:
             pickle.dump(data, f)
 
-    def getState(self, directory):
+    def getState(self, directory) -> dict:
         """
         Get the state of the main window.
         """
@@ -148,7 +153,6 @@ class MainWindow(QtWidgets.QMainWindow):
         else:
             data = {
                 "state": self.saveState(0),
-                "panes": self.defaultPanes(),
             }
         return data
 

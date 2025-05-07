@@ -30,7 +30,6 @@ NODETYPES = {
 
 
 class DatabaseExplorerPane(widgets.ABAbstractPane):
-    hideMode = widgets.ABDockWidget.HideMode.Close
 
     def __init__(self, db_name: str, parent=None):
         super().__init__(parent, QtCore.Qt.WindowType.Window)

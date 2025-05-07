@@ -28,7 +28,6 @@ NODETYPES = {
 
 
 class DatabaseProductsPane(widgets.ABAbstractPane):
-    hideMode = widgets.ABDockWidget.HideMode.Close
     """
     A widget that displays products related to a specific database.
 
