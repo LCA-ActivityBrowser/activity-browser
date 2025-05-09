@@ -119,9 +119,19 @@ in the next sections.
 ![contributions cutoff](./assets/contribution_manipulation.png)
 
 #### Cut-off
-You can manually change the `Cut-off type` of the results in two ways, `Relative` or `Top #`.
-- The `Relative` mode shows contributions _from_ entities of _x_% or higher.
+You can manually change the `Cut-off type` of the results in three ways:
+- The `Minimum %` mode shows contributions _from_ entities of at least _x_% or higher.
+  - For example: If the cut-off is set to 5% for process contribtions, then all contributions of at least 5% are shown.  
+- The `Cumulative %` mode shows contributions that cumulatively contribute at least _x_%.
+  - For example: If the cut-off is set to 80% for process contributions, then the first _n_ processes (sorted highest 
+  to lowest) that count up to 80% are shown.
 - The `Top #` mode shows contributions from the _x_ entities that contribute the most (as absolute).
+  - For example: If the cut-off is set to 5, then the first 5 processes (sorted highest 
+  to lowest) will be shown.
+
+The cut-off is applied per item (e.g. per reference flow or impact category, see [compare](#compare)) below).
+This means that if you want to see the top 5 contributors, you will only see the top 5 per item, even if a contributor would 
+also be present for another item. 
 
 You can adjust the `Cut-off level` to change how many results you see.
 
@@ -151,22 +161,22 @@ You can disable one of them if you want to focus on the other.
 
 #### Relative and Absolute
 You can choose between `Relative` and `Absolute` results.
-The `Relative` results will sum to 100% (the total `Range` or `Score`), 
+The `Relative` results will sum to 100% (the total `Score` or `Range`), 
 the `Absolute` results will sum to the impact score.
-For `Relative`, you can choose what you use as the 100% reference, the `Range` or the `Score`.
+For `Relative`, you can choose what you use as the 100% reference, the `Score` or the `Range`.
 
-#### Range and Score
-The `Range`/`Score` determines what you use as the _total_ to which the contributions are counted. 
-- For `Range`, this is the full _range_ of results
-  - For example, if all your negative results together have a score of -2 and all your positive results together have a 
-    score of 10, the _range_ is 12 (-2 * -1 + 10).
-  - An entity with a contribution of 4 would have a relative contribution of 4/12 = 33.3...%. 
+#### Score and Range
+The `Score`/`Range` determines what you use as the _total_ to which the contributions are counted. 
 - For `Score`, this is the total score (sum) of the results
   - For example, if all your negative results together have a score of -2 and all your positive results together have a 
     score of 10, the _score_ is 8 (-2 + 10).
   - An entity with a contribution of 4 would have a relative contribution of 4/8 = 50%.
+- For `Range`, this is the full _range_ of results
+  - For example, if all your negative results together have a score of -2 and all your positive results together have a 
+    score of 10, the _range_ is 12 (-2 * -1 + 10).
+  - An entity with a contribution of 4 would have a relative contribution of 4/12 = 33.3...%. 
 
-The `Range` or `Score` setting are only relevant when your results contain both positive and negative contributions.
+The `Score` or `Range` setting are only relevant when your results contain both positive and negative contributions.
 
 ### Positive and negative numbers in contribution results
 It can happen in LCA that you get both positive and negative numbers in your contribution results.

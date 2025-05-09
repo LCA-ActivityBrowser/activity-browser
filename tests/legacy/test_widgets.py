@@ -46,9 +46,8 @@ def test_comparison_switch_all(qtbot):
 def test_cutoff_slider_toggle(qtbot):
     slider = CutoffMenu()
     qtbot.addWidget(slider)
-    with qtbot.waitSignal(slider.buttons.topx.toggled, timeout=800):
-        slider.buttons.topx.click()
-    assert not slider.is_relative
+    with qtbot.waitSignal(slider.buttons.number.toggled, timeout=800):
+        slider.buttons.number.click()
     assert slider.limit_type == "number"
 
 
