@@ -10,9 +10,10 @@ from PySide2 import QtWidgets
 from PySide2.QtCore import Slot
 
 from activity_browser import signals
-from activity_browser.mod.bw2data import Database, get_activity
+from activity_browser.mod.bw2data import Database, get_activity, databases, Edge
+from activity_browser.mod.bw2data.backends import ExchangeDataset
 
-from ...bwutils.commontasks import identify_activity_type
+from ...bwutils.commontasks import identify_activity_type, get_activity_name
 from .base import BaseGraph, BaseNavigatorWidget
 
 log = getLogger(__name__)
@@ -60,6 +61,8 @@ class GraphNavigatorWidget(BaseNavigatorWidget):
 
     def __init__(self, parent=None, key=None):
         super().__init__(parent, css_file="navigator.css")
+        self.setObjectName(get_activity_name(get_activity(key), str_length=30))
+        self.key = key
 
         self.graph = Graph()
 
@@ -113,6 +116,13 @@ class GraphNavigatorWidget(BaseNavigatorWidget):
             self.update_graph_settings
         )
         self.checkbox_flip_negative_edges.stateChanged.connect(self.reload_graph)
+        databases.metadata_changed.connect(self.sync_graph)
+
+    def sync_graph(self):
+        """Sync the graph with the current project."""
+        self.graph.update(delete_unstacked=False)
+        self.send_json()
+        self.setObjectName(get_activity_name(get_activity(self.key), str_length=30))
 
     def construct_layout(self) -> None:
         """Layout of Graph Navigator"""
@@ -251,8 +261,14 @@ class Graph(BaseGraph):
         self.flip_negative_edges = False  # show true flow direction of edges (e.g. for ecoinvent treatment activities, or substitutions)
 
     def update(self, delete_unstacked: bool = True) -> None:
+        self.update_datasets()
         super().update(delete_unstacked)
         self.json_data = self.get_json_data()
+
+    def update_datasets(self):
+        """Update the activities in the graph."""
+        self.nodes = [get_activity(act.key) for act in self.nodes]
+        self.edges = [Edge(document=ExchangeDataset.get_by_id(exc._document.id)) for exc in self.edges]
 
     def store_previous(self) -> None:
         self.stack.append((deepcopy(self.nodes), deepcopy(self.edges)))

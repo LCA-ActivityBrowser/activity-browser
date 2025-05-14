@@ -83,7 +83,10 @@ class GraphExplorerTab(ABTab):
             log.info("adding graph tab")
             new_tab = GraphNavigatorWidget(self, key=key)
             self.tabs[key] = new_tab
-            self.addTab(new_tab, get_activity_name(bd.get_activity(key), str_length=30))
+            self.addTab(new_tab, new_tab.objectName())
+
+            new_tab.objectNameChanged.connect(lambda name: self.setTabText(self.indexOf(new_tab), name))
+
         else:
             tab = self.tabs[key]
             tab.new_graph(key)
