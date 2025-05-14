@@ -11,7 +11,7 @@ from PySide2.QtCore import Slot
 
 from activity_browser import signals
 from activity_browser.mod.bw2data import Database, get_activity, databases, Edge
-from activity_browser.mod.bw2data.backends import ExchangeDataset
+from activity_browser.mod.bw2data.backends import ExchangeDataset, ActivityDataset
 
 from ...bwutils.commontasks import identify_activity_type, get_activity_name
 from .base import BaseGraph, BaseNavigatorWidget
@@ -63,6 +63,7 @@ class GraphNavigatorWidget(BaseNavigatorWidget):
         super().__init__(parent, css_file="navigator.css")
         self.setObjectName(get_activity_name(get_activity(key), str_length=30))
         self.key = key
+        self.tab = parent
 
         self.graph = Graph()
 
@@ -122,7 +123,11 @@ class GraphNavigatorWidget(BaseNavigatorWidget):
         """Sync the graph with the current project."""
         self.graph.update(delete_unstacked=False)
         self.send_json()
-        self.setObjectName(get_activity_name(get_activity(self.key), str_length=30))
+        try:
+            self.setObjectName(get_activity_name(get_activity(self.key), str_length=30))
+        except ActivityDataset.DoesNotExist:
+            log.debug("Graph activity no longer exists. Closing tab.")
+            self.tab.close_tab_by_tab_name(self.tab.get_tab_name(self))
 
     def construct_layout(self) -> None:
         """Layout of Graph Navigator"""
@@ -267,8 +272,17 @@ class Graph(BaseGraph):
 
     def update_datasets(self):
         """Update the activities in the graph."""
-        self.nodes = [get_activity(act.key) for act in self.nodes]
-        self.edges = [Edge(document=ExchangeDataset.get_by_id(exc._document.id)) for exc in self.edges]
+        try:
+            self.nodes = [get_activity(act.key) for act in self.nodes]
+            self.edges = [Edge(document=ExchangeDataset.get_by_id(exc._document.id)) for exc in self.edges]
+        except ActivityDataset.DoesNotExist:
+            try:
+                get_activity(self.central_activity.key)  # test whether the activity still exists
+                self.new_graph(self.central_activity.key)  # if so, create a new graph
+            except ActivityDataset.DoesNotExist:
+                log.warning("Graph activity no longer exists.")
+                self.nodes = []
+                self.edges = []
 
     def store_previous(self) -> None:
         self.stack.append((deepcopy(self.nodes), deepcopy(self.edges)))
