@@ -275,7 +275,7 @@ class Graph(BaseGraph):
         try:
             self.nodes = [get_activity(act.key) for act in self.nodes]
             self.edges = [Edge(document=ExchangeDataset.get_by_id(exc._document.id)) for exc in self.edges]
-        except ActivityDataset.DoesNotExist:
+        except (ActivityDataset.DoesNotExist, ExchangeDataset.DoesNotExist):
             try:
                 get_activity(self.central_activity.key)  # test whether the activity still exists
                 self.new_graph(self.central_activity.key)  # if so, create a new graph
