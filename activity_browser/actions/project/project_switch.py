@@ -1,3 +1,4 @@
+import datetime
 from logging import getLogger
 
 from qtpy import QtWidgets, QtGui
@@ -7,6 +8,8 @@ import bw2data as bd
 from activity_browser import application, signals
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.ui import icons
+
+from activity_browser.bwutils import projects_by_last_opened
 
 from .project_migrate25 import ProjectMigrate25
 
@@ -34,6 +37,11 @@ class ProjectSwitch(ABAction):
                 ProjectSwitch.set_warning_bar()
 
             log.info(f"Brightway2 current project: {project_name}")
+
+            bd.projects.dataset.data["last_opened"] = datetime.datetime.now().isoformat()
+            bd.projects.dataset.save()
+
+            print(projects_by_last_opened())
             
         # if the project to be switched to is already the current project, do nothing
         else: 
