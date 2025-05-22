@@ -41,5 +41,5 @@ jobs:
         env:
           USER: "bsteubing"
         run: |
-          anaconda -t ${{ secrets.CONDA_UPLOAD_TOKEN }} upload -u ${{ env.USER }} \
+          anaconda -t ${{ secrets.CONDA_UPLOAD_TOKEN_2025 }} upload -u ${{ env.USER }} \
             -l main ${{ env.CONDA_BLD_PATH }}/noarch/${{ env.PKG_NAME }}-${{ env.VERSION }}-py_0.tar.bz2
