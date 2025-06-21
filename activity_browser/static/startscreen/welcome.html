@@ -100,10 +100,30 @@
     </div>
     <div class="projects">
         <h2>Recent projects:</h2>
-        <a href="http://localhost">bw-25</a>
-        <a href="http://localhost">bw-25-default</a>
-        <a href="http://localhost">bikes-bikes</a>
     </div>
+    <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
+    <script>
+
+        function addRecentProject(project_name){
+            let projectsEl = document.getElementsByClassName("projects")[0]
+            projectsEl.innerHTML = projectsEl.innerHTML + `<a onclick="projectClick('${project_name}')">${project_name}</a>`
+        }
+
+        function projectClick(name){
+            console.log(name)
+            window.bridge.open_project(name)
+        }
+
+        new QWebChannel(qt.webChannelTransport, function (channel) {
+            window.bridge = channel.objects.bridge
+
+            window.bridge.update.connect(function(data){
+                console.log(data)
+                data.forEach(addRecentProject)
+            })
+            window.bridge.is_ready()
+        })
+    </script>
 </div>
 
 </body>
