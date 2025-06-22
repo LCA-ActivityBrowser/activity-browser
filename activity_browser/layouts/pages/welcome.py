@@ -35,7 +35,8 @@ class WelcomePage(QtWidgets.QWidget):
         signals.project.changed.connect(lambda: self.page.load(self.url))
 
     def update_welcome(self):
-        projects = projects_by_last_opened()[1:5]
+        projects = projects_by_last_opened()
+        projects = projects[1:5] if len(projects) > 5 else projects[1:]
         project_names = [p.name for p in projects]
         self.bridge.update.emit(project_names)
 
