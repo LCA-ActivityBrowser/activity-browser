@@ -4,7 +4,7 @@ from activity_browser import application, bwutils
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.ui.icons import qicons
 
-from bw_functional import Function
+from bw_functional import Product
 
 
 class FunctionSubstituteRemove(ABAction):
@@ -19,10 +19,10 @@ class FunctionSubstituteRemove(ABAction):
 
     @staticmethod
     @exception_dialogs
-    def run(function: tuple | int | Function):
+    def run(function: tuple | int | Product):
         function = bwutils.refresh_node(function)
 
-        if not isinstance(function, Function):
+        if not isinstance(function, Product):
             return
 
         function.substitute(None)

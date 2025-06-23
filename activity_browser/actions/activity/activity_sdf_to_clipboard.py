@@ -25,7 +25,7 @@ class ActivitySDFToClipboard(ABAction):
 
         exchanges = []
         for activity in activities:
-            if isinstance(activity, bf.Function):
+            if isinstance(activity, bf.Product):
                 exchanges += activity.virtual_edges
             if isinstance(activity, bf.Process):
                 for function in activity.functions():

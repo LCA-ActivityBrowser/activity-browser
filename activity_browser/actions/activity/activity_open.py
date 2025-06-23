@@ -45,7 +45,7 @@ class ActivityOpen(ABAction):
 
         # Refresh the activity nodes to ensure they are up-to-date
         activities = [bwutils.refresh_node(activity) for activity in activities]
-        processes = [bwutils.refresh_node(function["processor"]) for function in activities if isinstance(function, bf.Function)]
+        processes = [bwutils.refresh_node(function["processor"]) for function in activities if isinstance(function, bf.Product)]
         activities = list(set(activities + processes))
 
         for act in activities:

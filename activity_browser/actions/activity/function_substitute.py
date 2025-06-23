@@ -4,7 +4,7 @@ from activity_browser import application, bwutils
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.ui.icons import qicons
 
-from bw_functional import Function
+from bw_functional import Product
 
 
 class FunctionSubstitute(ABAction):
@@ -15,15 +15,15 @@ class FunctionSubstitute(ABAction):
     """
 
     icon = qicons.edit
-    text = "Substitute Function"
+    text = "Substitute Product"
 
     @staticmethod
     @exception_dialogs
-    def run(function: tuple | int | Function, substitute: tuple | int | Function):
+    def run(function: tuple | int | Product, substitute: tuple | int | Product):
         function = bwutils.refresh_node(function)
         substitute = bwutils.refresh_node(substitute)
 
-        if not isinstance(function, Function):
+        if not isinstance(function, Product):
             return
 
         if function.get("substitute") == substitute.key:
