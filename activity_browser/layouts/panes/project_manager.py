@@ -57,6 +57,11 @@ class ProjectManagerPane(widgets.ABAbstractPane):
     def build_project_df(self) -> pd.DataFrame:
         data = {}
         for proj_ds in sorted(bd.projects):
+            # if for any reason the project data is not a dictionary, log a warning and set it to an empty dict
+            if not isinstance(proj_ds.data, dict):
+                log.warning(f"Project {proj_ds.name} has no data dictionary")
+                proj_ds.data = {}
+
             data[proj_ds.name] = {
                 "Name": proj_ds.name,
                 "Path": proj_ds.dir,
