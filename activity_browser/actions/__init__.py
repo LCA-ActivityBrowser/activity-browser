@@ -14,8 +14,6 @@ from .activity.activity_sdf_to_clipboard import ActivitySDFToClipboard
 from .activity.activity_redo_allocation import MultifunctionalProcessRedoAllocation
 from .activity.process_default_property_modify import ProcessDefaultPropertyModify
 from .activity.process_default_property_remove import ProcessDefaultPropertyRemove
-from .activity.function_substitute import FunctionSubstitute
-from .activity.function_substitute_remove import FunctionSubstituteRemove
 
 from .calculation_setup.cs_new import CSNew
 from .calculation_setup.cs_delete import CSDelete
