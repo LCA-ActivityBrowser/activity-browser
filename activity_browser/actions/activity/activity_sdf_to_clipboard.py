@@ -28,8 +28,8 @@ class ActivitySDFToClipboard(ABAction):
             if isinstance(activity, bf.Product):
                 exchanges += activity.virtual_edges
             if isinstance(activity, bf.Process):
-                for function in activity.functions():
-                    exchanges += function.virtual_exchanges
+                for product in activity.products():
+                    exchanges += product.virtual_exchanges
             else:
                 exchanges += [exc.to_dict() for exc in activity.exchanges()]
 

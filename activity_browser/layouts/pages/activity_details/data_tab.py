@@ -70,11 +70,11 @@ class DataTab(QtWidgets.QWidget):
         df["_activity_db"] = self.activity["database"]
 
         if isinstance(self.activity, bf.Process):
-            for function in self.activity.functions():
-                fn_df = pd.DataFrame.from_dict(function.as_dict(), orient="index")
-                fn_df["name"] = function["name"]
-                fn_df["_activity_id"] = function.id
-                fn_df["_activity_db"] = function["database"]
+            for product in self.activity.products():
+                fn_df = pd.DataFrame.from_dict(product.as_dict(), orient="index")
+                fn_df["name"] = product["name"]
+                fn_df["_activity_id"] = product.id
+                fn_df["_activity_db"] = product["database"]
                 df = pd.concat([df, fn_df])
 
         df = df.reset_index()

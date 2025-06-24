@@ -42,10 +42,10 @@ class ProcessDefaultPropertyModify(ABAction):
             process.save()
 
             # update the values in all functions as well
-            for function in process.functions():
-                function["properties"][property_name]["unit"] = prop_dialog.prop["unit"]
-                function["properties"][property_name]["normalize"] = prop_dialog.prop["normalize"]
-                function.save()
+            for product in process.products():
+                product["properties"][property_name]["unit"] = prop_dialog.prop["unit"]
+                product["properties"][property_name]["normalize"] = prop_dialog.prop["normalize"]
+                product.save()
 
         # the property already exists, but the name has changed
         elif property_name in process.get("default_properties", {}) and property_name != prop_dialog.name:
@@ -55,15 +55,15 @@ class ProcessDefaultPropertyModify(ABAction):
             process.save()
 
             # update the values in all functions as well
-            for function in process.functions():
-                function["properties"][prop_dialog.name] = {
-                    "amount": function["properties"][property_name]["amount"],
+            for product in process.products():
+                product["properties"][prop_dialog.name] = {
+                    "amount": product["properties"][property_name]["amount"],
                     "unit": prop_dialog.prop["unit"],
                     "normalize": prop_dialog.prop["normalize"],
                 }
                 # and delete the old property
-                del function["properties"][property_name]
-                function.save()
+                del product["properties"][property_name]
+                product.save()
 
         # if the property is new, add it
         else:

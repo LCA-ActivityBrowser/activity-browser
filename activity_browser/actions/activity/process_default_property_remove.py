@@ -35,11 +35,11 @@ class ProcessDefaultPropertyRemove(ABAction):
         del process["default_properties"][property_name]
         process.save()
 
-        for function in process.functions():
-            if property_name not in function.get("properties", {}):
+        for product in process.products():
+            if property_name not in product.get("properties", {}):
                 continue
-            del function["properties"][property_name]
-            function.save()
+            del product["properties"][property_name]
+            product.save()
 
         if allocate:
             process.allocate()
