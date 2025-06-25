@@ -5,6 +5,7 @@ from qtpy.QtCore import Qt
 
 import pandas as pd
 import bw2data as bd
+import bw_functional as bf
 
 from activity_browser import actions, bwutils
 from activity_browser.bwutils import refresh_node, AB_metadata, database_is_locked, database_is_legacy
@@ -649,12 +650,22 @@ class ExchangesItem(widgets.ABDataItem):
             actions.ActivityModify.run(act.key, key.lower(), value)
 
         if key.startswith("property_"):
-            act = self.exchange.input
-            prop_key = key[9:]
-            props = act["properties"]
-            props[prop_key].update({"amount": value})
+            # should move this process to a separate action
+            process = self.exchange.output
+            product = self.exchange.input
 
-            actions.ActivityModify.run(act.key, "properties", props)
+            if not isinstance(process, bf.Process) or not isinstance(product, bf.Product):
+                log.warning(f"Expected a Process and Product, got {type(process)} and {type(product)} instead.")
+                return False
+
+            prop_key = key[9:]
+
+            prop = process.property_template(prop_key, value)
+
+            props = product.get("properties", {})
+            props[prop_key] = prop
+
+            actions.ActivityModify.run(product, "properties", props)
 
         return False
 
