@@ -227,9 +227,13 @@ class ActivityAllocation(QtWidgets.QComboBox):
         Args:
             parent (ActivityHeader): The parent widget.
         """
+        if not isinstance(parent.activity, bf.Process):
+            raise TypeError("ActivityAllocation can only be used with bf.Process instances.")
+
         super().__init__(parent)
+
         self.addItems(sorted(bf.allocation_strategies))
-        if props := parent.activity.get("default_properties", {}):
+        if props := parent.activity.available_properties():
             self.insertSeparator(1000)  # Large number to make sure it's appended at the end
             self.addItems(sorted(props))
 
