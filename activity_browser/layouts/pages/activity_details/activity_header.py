@@ -164,7 +164,7 @@ class ActivityProperties(QtWidgets.QWidget):
             layout.addWidget(ActivityProperty(parent.activity, property_name))
 
         add_label = QtWidgets.QLabel("<a style='text-decoration:underline;'>Add property</a>")
-        add_label.mouseReleaseEvent = lambda x: actions.ProcessDefaultPropertyModify.run(parent.activity)
+        add_label.mouseReleaseEvent = lambda x: actions.ProcessPropertyModify.run(parent.activity)
 
         layout.addWidget(add_label)
 
@@ -186,7 +186,7 @@ class ActivityProperty(QtWidgets.QPushButton):
         """
         super().__init__(property_name, None)
 
-        self.modify_action = actions.ProcessDefaultPropertyModify.get_QAction(activity, property_name)
+        self.modify_action = actions.ProcessPropertyModify.get_QAction(activity, property_name)
         self.remove_action = actions.ProcessDefaultPropertyRemove.get_QAction(activity, property_name)
 
         self.menu = QtWidgets.QMenu(self)

@@ -1,4 +1,4 @@
-from qtpy import QtWidgets, QtGui, QtCore
+from qtpy import QtWidgets, QtCore
 
 from activity_browser import application, bwutils
 from activity_browser.actions.base import ABAction, exception_dialogs
@@ -7,9 +7,21 @@ from activity_browser.ui.icons import qicons
 from bw_functional import Process
 
 
-class ProcessDefaultPropertyModify(ABAction):
+class ProcessPropertyModify(ABAction):
     """
-    ABAction to modify a default property of a process. First asks the user for confirmation and returns if cancelled.
+    Modify a property for all the products of a process.
+
+    This method refreshes the given process, validates its type, and opens a dialog
+    for the user to modify a property. If the property already exists, the dialog
+    is pre-populated with its current values. The updated property is then applied
+    to all products of the process.
+
+    Args:
+        process (tuple | int | Process): The process to modify. Can be a tuple, integer, or Process object.
+        property_name (str, optional): The name of the property to modify. Defaults to None.
+
+    Raises:
+        ValueError: If the provided process is not of type Process.
     """
 
     icon = qicons.edit
@@ -17,12 +29,15 @@ class ProcessDefaultPropertyModify(ABAction):
 
     @staticmethod
     @exception_dialogs
-    def run(process: tuple | int | Process, property_name: str = None):
+    def run(process: tuple | int | Process,
+            property_name: str = None
+            ):
+
         process = bwutils.refresh_node(process)
         if not isinstance(process, Process):
             raise ValueError(f"Expected a Process-type activity, got {type(process)} instead")
 
-        prop_dialog = DefaultPropertyDialog(process)
+        prop_dialog = PropertyDialog(process)
 
         # if the property already exists, populate the dialog with the existing values
         if property_name in process.available_properties():
@@ -58,7 +73,7 @@ class ProcessDefaultPropertyModify(ABAction):
             product.save()
 
 
-class DefaultPropertyDialog(QtWidgets.QDialog):
+class PropertyDialog(QtWidgets.QDialog):
     name: str | None = None
     prop: dict | None = None
 
