@@ -187,7 +187,7 @@ class ActivityProperty(QtWidgets.QPushButton):
         super().__init__(property_name, None)
 
         self.modify_action = actions.ProcessPropertyModify.get_QAction(activity, property_name)
-        self.remove_action = actions.ProcessDefaultPropertyRemove.get_QAction(activity, property_name)
+        self.remove_action = actions.ProcessPropertyRemove.get_QAction(activity, property_name)
 
         self.menu = QtWidgets.QMenu(self)
         self.menu.addAction(self.modify_action)
