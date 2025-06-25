@@ -157,7 +157,10 @@ class ActivityProperties(QtWidgets.QWidget):
         layout = QtWidgets.QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
 
-        for property_name in parent.activity.get("default_properties", {}):
+        if not isinstance(parent.activity, bf.Process):
+            return
+
+        for property_name in parent.activity.available_properties():
             layout.addWidget(ActivityProperty(parent.activity, property_name))
 
         add_label = QtWidgets.QLabel("<a style='text-decoration:underline;'>Add property</a>")

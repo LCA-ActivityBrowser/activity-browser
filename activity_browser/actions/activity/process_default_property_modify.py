@@ -25,49 +25,37 @@ class ProcessDefaultPropertyModify(ABAction):
         prop_dialog = DefaultPropertyDialog(process)
 
         # if the property already exists, populate the dialog with the existing values
-        if property_name in process.get("default_properties", {}):
-            prop = process["default_properties"][property_name]
+        if property_name in process.available_properties():
+            prop = process.property_template(property_name)
             prop_dialog.prop_name.setText(property_name)
             prop_dialog.prop_unit.setText(prop["unit"])
-            prop_dialog.prop_value.setText(str(prop["amount"]))
-            prop_dialog.normalize_check.setChecked(prop["normalize"])
+            prop_dialog.normalize_check.setChecked(prop.get("normalize", True))
 
         # show the dialog to the user
         if prop_dialog.exec_() != QtWidgets.QDialog.DialogCode.Accepted:
             return
 
-        # if the property already exists, update the values
-        if property_name in process.get("default_properties", {}) and property_name == prop_dialog.name:
-            process["default_properties"][property_name] = prop_dialog.prop
-            process.save()
+        name_changed = prop_dialog.name != property_name if property_name else False
 
-            # update the values in all functions as well
-            for product in process.products():
-                product["properties"][property_name]["unit"] = prop_dialog.prop["unit"]
-                product["properties"][property_name]["normalize"] = prop_dialog.prop["normalize"]
-                product.save()
+        for product in process.products():
+            # make sure the dictionaries are in place
+            product["properties"] = product.get("properties", {})
+            product["properties"][prop_dialog.name] = product["properties"].get(property_name, {})
 
-        # the property already exists, but the name has changed
-        elif property_name in process.get("default_properties", {}) and property_name != prop_dialog.name:
-            # delete the old property and add the new one
-            del process["default_properties"][property_name]
-            process["default_properties"][prop_dialog.name] = prop_dialog.prop
-            process.save()
+            prop = {
+                "unit": prop_dialog.prop["unit"],
+                "normalize": prop_dialog.prop["normalize"],
+                "amount": product["properties"][prop_dialog.name].get("amount", 1.0),
+            }
 
-            # update the values in all functions as well
-            for product in process.products():
-                product["properties"][prop_dialog.name] = {
-                    "amount": product["properties"][property_name]["amount"],
-                    "unit": prop_dialog.prop["unit"],
-                    "normalize": prop_dialog.prop["normalize"],
-                }
-                # and delete the old property
+            # update the property with the new values
+            product["properties"][prop_dialog.name] = prop
+
+            # if the name has changed, remove the old property
+            if name_changed and property_name in product["properties"]:
                 del product["properties"][property_name]
-                product.save()
 
-        # if the property is new, add it
-        else:
-            process.new_default_property(name=prop_dialog.name, **prop_dialog.prop)
+            product.save()
 
 
 class DefaultPropertyDialog(QtWidgets.QDialog):
