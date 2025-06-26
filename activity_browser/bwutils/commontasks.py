@@ -110,7 +110,7 @@ def cleanup_deleted_bw_projects() -> None:
 
 def projects_by_last_opened():
     def key(ds):
-        if "last_opened" not in ds.data:
+        if not ds.data or "last_opened" not in ds.data:
             return 0
         date = datetime.fromisoformat(ds.data["last_opened"])
 
