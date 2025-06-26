@@ -65,14 +65,14 @@ class DataTab(QtWidgets.QWidget):
             pd.DataFrame: The DataFrame containing the activity data.
         """
         df = pd.DataFrame.from_dict(self.activity.as_dict(), orient="index")
-        df["name"] = self.activity["name"]
+        df["name"] = self.activity["name"] + " (" + str(self.activity["id"]) + ")"
         df["_activity_id"] = self.activity.id
         df["_activity_db"] = self.activity["database"]
 
         if isinstance(self.activity, bf.Process):
             for product in self.activity.products():
                 fn_df = pd.DataFrame.from_dict(product.as_dict(), orient="index")
-                fn_df["name"] = product["name"]
+                fn_df["name"] = product["name"] + " (" + str(product["id"]) + ")"
                 fn_df["_activity_id"] = product.id
                 fn_df["_activity_db"] = product["database"]
                 df = pd.concat([df, fn_df])
