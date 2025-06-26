@@ -1,15 +1,12 @@
 import datetime
 from logging import getLogger
 
-from qtpy import QtWidgets, QtGui
+from qtpy import QtWidgets
 
 import bw2data as bd
 
 from activity_browser import application, signals
 from activity_browser.actions.base import ABAction, exception_dialogs
-from activity_browser.ui import icons
-
-from activity_browser.bwutils import projects_by_last_opened
 
 from .project_migrate25 import ProjectMigrate25
 
@@ -18,7 +15,21 @@ log = getLogger(__name__)
 
 class ProjectSwitch(ABAction):
     """
-    ABAction to switch to another project.
+    Switch to a specified Brightway2 project.
+
+    This method compares the given project name with the currently active project.
+    If the specified project is different, it switches to the new project, updates
+    the last opened timestamp, and logs the change. If the project is not Brightway25
+    compatible, a warning is displayed. If the specified project is already active,
+    no action is taken.
+
+    Args:
+        project_name (str): The name of the project to switch to.
+
+    Logs:
+        Warning: If the project is not Brightway25 compatible.
+        Info: When the project is successfully switched.
+        Debug: If the specified project is already the current project.
     """
 
     text = "Switch project"
@@ -27,25 +38,23 @@ class ProjectSwitch(ABAction):
     @staticmethod
     @exception_dialogs
     def run(project_name: str):
-        
         # compare the new to the current project name and switch to the new one if the two are not the same
-        if not project_name == bd.projects.current:
-            bd.projects.set_current(project_name, update=False)
-
-            if not bd.projects.twofive:
-                log.warning(f"Project: {bd.projects.current} is not yet BW25 compatible")
-                ProjectSwitch.set_warning_bar()
-
-            log.info(f"Brightway2 current project: {project_name}")
-
-            bd.projects.dataset.data["last_opened"] = datetime.datetime.now().isoformat()
-            bd.projects.dataset.save()
-
-            print(projects_by_last_opened())
-            
-        # if the project to be switched to is already the current project, do nothing
-        else: 
+        if project_name == bd.projects.current:
             log.debug(f"Brightway2 already selected: {project_name}")
+            return
+
+        # switch to the new project, don't auto update to brightway25
+        bd.projects.set_current(project_name, update=False)
+
+        if not bd.projects.twofive:
+            log.warning(f"Project: {bd.projects.current} is not yet BW25 compatible")
+            ProjectSwitch.set_warning_bar()
+
+        log.info(f"Brightway2 current project: {project_name}")
+
+        # update the last opened timestamp
+        bd.projects.dataset.data["last_opened"] = datetime.datetime.now().isoformat()
+        bd.projects.dataset.save()
 
     @staticmethod
     def set_warning_bar():
