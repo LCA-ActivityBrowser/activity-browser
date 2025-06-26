@@ -22,6 +22,7 @@ class DescriptionTab(QtWidgets.QTextEdit):
         """
         self.activity = bwutils.refresh_node(activity)
         super().__init__(parent, self.activity.get("comment", ""))
+        self.setPlaceholderText("Click here to edit the description of this activity...")
 
     def sync(self):
         """
