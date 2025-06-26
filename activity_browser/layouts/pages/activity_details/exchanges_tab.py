@@ -5,9 +5,10 @@ from qtpy.QtCore import Qt
 
 import pandas as pd
 import bw2data as bd
+import bw_functional as bf
 
 from activity_browser import actions, bwutils
-from activity_browser.bwutils import refresh_node, AB_metadata
+from activity_browser.bwutils import refresh_node, AB_metadata, database_is_locked, database_is_legacy
 from activity_browser.ui import widgets, icons, delegates
 
 log = getLogger(__name__)
@@ -121,7 +122,7 @@ class ExchangesTab(QtWidgets.QWidget):
             pd.DataFrame: The DataFrame containing the exchanges data.
         """
         # Define the columns for the metadata
-        cols = ["key", "unit", "name", "location", "substitute", "substitution_factor", "allocation_factor",
+        cols = ["key", "unit", "name", "product", "location", "database", "substitute", "substitution_factor", "allocation_factor",
                 "properties", "processor"]
 
         # Create a DataFrame from the exchanges
@@ -134,6 +135,9 @@ class ExchangesTab(QtWidgets.QWidget):
             left_on="input",
             right_on="key"
         ).drop(columns=["key"])
+
+        # Use "product" if available otherwise use "name"
+        df.update(df["product"].rename("name"))
 
         # Handle substitute data if available
         if not df["substitute"].isna().all():
@@ -171,9 +175,9 @@ class ExchangesTab(QtWidgets.QWidget):
             axis="columns", inplace=True)
 
         # Define the order of columns for the final DataFrame
-        cols = ["amount", "unit", "name", "location"]
+        cols = ["amount", "unit", "name", "location", "database"]
         cols += ["substitute_name", "substitution_factor"] if "substitute_name" in df.columns else []
-        cols += ["allocation_factor"]
+        cols += ["allocation_factor"] if not database_is_legacy(self.activity.get("database")) else []
         cols += [col for col in df.columns if col.startswith("property")]
         cols += ["formula", "uncertainty"]
         cols += [col for col in df.columns if col.startswith("_")]
@@ -203,30 +207,15 @@ class ExchangesView(widgets.ABTreeView):
     }
     hovered_item: "ExchangesItem" = None
 
-    class HeaderMenu(QtWidgets.QMenu):
-        """
-        A context menu for the header of the ExchangesView.
+    class HeaderMenu(widgets.ABMenu):
+        menuSetup = [
+            lambda m: m.setup_view_menu(),
+            lambda m: m.setup_allocation(),
+        ]
 
-        Attributes:
-            view_actions (list): The list of actions for the view menu.
-            set_alloc (QAction): The action to set the allocation.
-        """
-
-        def __init__(self, pos: QtCore.QPoint, view: "ExchangesView"):
-            """
-            Initializes the HeaderMenu.
-
-            Args:
-                pos: The position of the context menu.
-                view (ExchangesView): The view displaying the exchanges.
-            """
-            super().__init__(view)
-
-            model = view.model()
-
-            # Get the column index and name based on the position
-            col_index = view.columnAt(pos.x())
-            col_name = model.columns()[col_index]
+        def setup_view_menu(self):
+            table_view: ExchangesView = self.parent()
+            table_model: ExchangesModel = table_view.model()
 
             def toggle_slot(action: QtWidgets.QAction):
                 """
@@ -237,37 +226,34 @@ class ExchangesView(widgets.ABTreeView):
                 """
                 indices = action.data()
                 for index in indices:
-                    hidden = view.isColumnHidden(index)
-                    view.setColumnHidden(index, not hidden)
+                    hidden = table_view.isColumnHidden(index)
+                    table_view.setColumnHidden(index, not hidden)
 
             # Create the view menu
-            view_menu = QtWidgets.QMenu(view)
+            view_menu = QtWidgets.QMenu(table_view)
             view_menu.setTitle("View")
 
-            self.view_actions = []
             props_indices = []
 
             # Add actions for each column to the view menu
-            for i, col in enumerate(model.columns()):
+            for i, col in enumerate(table_model.columns()):
                 if col.startswith("property"):
                     props_indices.append(i)
                     continue
 
-                action = QtWidgets.QAction(model.columns()[i])
+                action = QtWidgets.QAction(table_model.columns()[i], self)
                 action.setCheckable(True)
-                action.setChecked(not view.isColumnHidden(i))
+                action.setChecked(not table_view.isColumnHidden(i))
                 action.setData([i])
-                self.view_actions.append(action)
 
                 view_menu.addAction(action)
 
             # Add a combined action for property columns
             if props_indices:
-                action = QtWidgets.QAction("properties")
+                action = QtWidgets.QAction("properties", self)
                 action.setCheckable(True)
-                action.setChecked(not view.isColumnHidden(props_indices[0]))
+                action.setChecked(not table_view.isColumnHidden(props_indices[0]))
                 action.setData(props_indices)
-                self.view_actions.append(action)
                 view_menu.addAction(action)
 
             # Connect the view menu actions to the toggle slot
@@ -276,51 +262,50 @@ class ExchangesView(widgets.ABTreeView):
             # Add the view menu to the context menu
             self.addMenu(view_menu)
 
-            # Add an allocation action if the column is a property
-            if col_name.startswith("property"):
-                self.set_alloc = actions.ActivityModify.get_QAction(view.activity.key, "allocation", col_name[9:])
-                self.set_alloc.setText(f"Allocate by {col_name[9:]}")
-                self.addAction(self.set_alloc)
+        def setup_allocation(self):
+            table_view: ExchangesView = self.parent()
 
-    class ContextMenu(QtWidgets.QMenu):
-        """
-        A context menu for the ExchangesView.
+            if database_is_locked(table_view.activity["database"]) or not self.column.startswith("property"):
+                return
 
-        Attributes:
-            add_product_action (QAction): The action to add a new product.
-            delete_exc_action (QAction): The action to delete an exchange.
-            exc_to_sdf_action (QAction): The action to copy the exchange to SDF.
-            remove_sub_action (QAction): The action to remove a substitute.
-        """
+            action = actions.ActivityModify.get_QAction(table_view.activity.key,
+                                                        "allocation",
+                                                        self.column[9:],
+                                                        parent=self)
+            action.setText(f"Allocate by {self.column[9:]}")
+            self.addAction(action)
 
-        def __init__(self, pos, view: "ExchangesView"):
-            """
-            Initializes the ContextMenu.
+        @property
+        def column(self):
+            view, model, pos = self.parent(), self.parent().model(), QtGui.QCursor.pos()
+            col_index = view.columnAt(view.mapFromGlobal(pos).x())
+            return model.columns()[col_index]
 
-            Args:
-                pos: The position of the context menu.
-                view (ExchangesView): The view displaying the exchanges.
-            """
-            super().__init__(view)
+    class ContextMenu(widgets.ABMenu):
+        menuSetup = [
+            lambda m: m.add(actions.ActivityNewProduct, [m.activity.key],
+                            enable=not m.locked and not database_is_legacy(m.activity["database"])
+                            ),
+            lambda m: m.add(actions.ExchangeDelete, m.exchanges, enable=bool(m.exchanges) and not m.locked),
+            lambda m: m.add(actions.ExchangeSDFToClipboard, m.exchanges, enable=bool(m.exchanges)),
+            lambda m: m.add(actions.ActivityOpen, [x.input for x in m.exchanges],
+                            enable=bool(m.exchanges),
+                            text="Open processs" if len(m.exchanges) == 1 else "Open processes",
+                            ),
+        ]
 
-            # Add the action to add a new product
-            self.add_product_action = actions.ActivityNewProduct.get_QAction([view.activity.key])
-            self.addAction(self.add_product_action)
+        @property
+        def locked(self):
+            return database_is_locked(self.activity["database"])
 
-            index = view.indexAt(pos)
-            if index.isValid():
-                item: ExchangesItem = index.internalPointer()
+        @property
+        def activity(self):
+            return self.parent().activity
 
-                # Add actions for deleting an exchange and copying to SDF
-                self.delete_exc_action = actions.ExchangeDelete.get_QAction([item.exchange])
-                self.exc_to_sdf_action = actions.ExchangeSDFToClipboard.get_QAction([item.exchange])
-                self.addAction(self.delete_exc_action)
-                self.addAction(self.exc_to_sdf_action)
-
-                # Add action to remove a substitute if it exists
-                if not pd.isna(item["substitute"]):
-                    self.remove_sub_action = actions.FunctionSubstituteRemove.get_QAction(item.exchange.input)
-                    self.addAction(self.remove_sub_action)
+        @property
+        def exchanges(self):
+            indexes = self.parent().selectedIndexes()
+            return list(set(idx.internalPointer().exchange for idx in indexes if idx.isValid()))
 
     def __init__(self, parent):
         """
@@ -403,6 +388,9 @@ class ExchangesView(widgets.ABTreeView):
         Args:
             event: The drag enter event.
         """
+        if database_is_locked(self.activity["database"]):
+            return
+
         if event.mimeData().hasFormat("application/bw-nodekeylist"):
             palette = self.palette()
             # Change background color on drag enter
@@ -515,14 +503,27 @@ class ExchangesItem(widgets.ABDataItem):
             QtCore.Qt.ItemFlags: The item flags.
         """
         flags = super().flags(col, key)
+        # Check if the database is read-only. If it is, return the default flags.
+        if database_is_locked(self["database"]):
+            return flags
+
+        # Allow editing for specific keys: "amount", "formula", and "uncertainty".
         if key in ["amount", "formula", "uncertainty"]:
             return flags | Qt.ItemFlag.ItemIsEditable
+
+        # Allow editing for "unit", "name", "location", and "substitution_factor" if the exchange is functional.
         if key in ["unit", "name", "location", "substitution_factor"] and self.functional:
             return flags | Qt.ItemFlag.ItemIsEditable
+
+        # Allow editing for properties (keys starting with "property_") if the exchange is functional.
         if key.startswith("property_") and self.functional:
             return flags | Qt.ItemFlag.ItemIsEditable
+
+        # Allow editing for "allocation_factor" if the allocation is manual and the exchange is functional.
         if key == "allocation_factor" and self.exchange.output.get("allocation") == "manual" and self.functional:
             return flags | Qt.ItemFlag.ItemIsEditable
+
+        # Return the default flags if none of the above conditions are met.
         return flags
 
     def displayData(self, col: int, key: str):
@@ -621,7 +622,8 @@ class ExchangesItem(widgets.ABDataItem):
             return QtGui.QBrush(QtGui.QColor(self.background_color))
 
         if key == f"property_{self['_allocate_by']}":
-            return QtGui.QBrush(Qt.GlobalColor.lightGray)
+            from activity_browser import application
+            return application.palette().alternateBase()
 
     def setData(self, col: int, key: str, value) -> bool:
         """
@@ -648,56 +650,24 @@ class ExchangesItem(widgets.ABDataItem):
             actions.ActivityModify.run(act.key, key.lower(), value)
 
         if key.startswith("property_"):
-            act = self.exchange.input
-            prop_key = key[9:]
-            props = act["properties"]
-            props[prop_key].update({"amount": value})
+            # should move this process to a separate action
+            process = self.exchange.output
+            product = self.exchange.input
 
-            actions.ActivityModify.run(act.key, "properties", props)
+            if not isinstance(process, bf.Process) or not isinstance(product, bf.Product):
+                log.warning(f"Expected a Process and Product, got {type(process)} and {type(product)} instead.")
+                return False
+
+            prop_key = key[9:]
+
+            prop = process.property_template(prop_key, value)
+
+            props = product.get("properties", {})
+            props[prop_key] = prop
+
+            actions.ActivityModify.run(product, "properties", props)
 
         return False
-
-    def acceptsDragDrop(self, event) -> bool:
-        """
-        Determines if the item accepts the drag and drop event.
-
-        Args:
-            event: The drag and drop event.
-
-        Returns:
-            bool: True if the item accepts the drag and drop event, False otherwise.
-        """
-        if not self.functional:
-            return False
-
-        if not event.mimeData().hasFormat("application/bw-nodekeylist"):
-            return False
-
-        keys = set(event.mimeData().retrievePickleData("application/bw-nodekeylist"))
-        acts = [bd.get_node(key=key) for key in keys]
-        acts = [act for act in acts if act["type"] in ["product", "waste", "processwithreferenceproduct"]]
-
-        if len(acts) != 1:
-            return False
-
-        act = acts[0]
-
-        if act["unit"] != self["unit"] or act.key == self.exchange.input.key:
-            return False
-
-        return True
-
-    def onDrop(self, event):
-        """
-        Handles the drop event.
-
-        Args:
-            event: The drop event.
-        """
-        keys = set(event.mimeData().retrievePickleData("application/bw-nodekeylist"))
-        acts = [bd.get_node(key=key) for key in keys]
-        act = [act for act in acts if act["type"] in ["product", "waste", "processwithreferenceproduct"]][0]
-        actions.FunctionSubstitute.run(self.exchange.input, act)
 
 
 class ExchangesModel(widgets.ABItemModel):

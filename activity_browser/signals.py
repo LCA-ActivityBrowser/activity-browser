@@ -38,7 +38,7 @@ class DatabaseSignals(QObject):
 
 
 class ProjectSignals(QObject):
-    changed: SignalInstance = Signal()
+    changed: SignalInstance = Signal(object, object)  # Project changed | new project dataset, old project dataset
     created: SignalInstance = Signal()
     deleted: SignalInstance = Signal(str)
 
@@ -97,6 +97,10 @@ class ABSignals(QObject):
     def __getattribute__(self, item):
         """Delayed loading of connecting to the brighway signals"""
         setattr(ABSignals, "__getattribute__", super().__getattribute__)
+        import bw2data as bd
+
+        self._project_dataset = bd.projects.dataset
+
         self._connect_bw_signals()
         return super().__getattribute__(item)
 
@@ -200,7 +204,8 @@ class ABSignals(QObject):
 
     def _on_project_changed(self, ds):
         t = time()
-        self.project.changed.emit()
+        self.project.changed.emit(ds, self._project_dataset)
+        self._project_dataset = ds
         log.debug(f"Project changed signal completed in {time() - t:.2f} seconds")
 
     def _on_project_created(self, ds):

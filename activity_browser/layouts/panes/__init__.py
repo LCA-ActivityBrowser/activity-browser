@@ -5,3 +5,19 @@ from .databases import DatabasesPane
 from .impact_categories import ImpactCategoriesPane
 from .calculation_setups import CalculationSetupsPane
 
+
+registered_panes = [
+    DatabaseExplorerPane,
+    DatabaseProductsPane,
+    ProjectManagerPane,
+    DatabasesPane,
+    ImpactCategoriesPane,
+    CalculationSetupsPane,
+]
+
+default_panes = [
+    DatabasesPane,
+    ImpactCategoriesPane,
+    CalculationSetupsPane,
+]
+

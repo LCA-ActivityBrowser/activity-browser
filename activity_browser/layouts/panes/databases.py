@@ -20,7 +20,7 @@ class DatabasesPane(widgets.ABAbstractPane):
         model (DatabasesModel): The model containing the data for the databases.
     """
     title = "Databases"
-    hideMode = widgets.ABDockWidget.HideMode.Hide
+    unique = True
 
     def __init__(self, parent):
         """
@@ -35,7 +35,7 @@ class DatabasesPane(widgets.ABAbstractPane):
         self.view.setModel(self.model)
 
         self.view.setAlternatingRowColors(True)
-        self.view.setSelectionMode(QtWidgets.QTableView.SingleSelection)
+        # self.view.setSelectionMode(QtWidgets.QTableView.SingleSelection)
         self.view.setIndentation(0)
 
         self.build_layout()
@@ -88,7 +88,7 @@ class DatabasesPane(widgets.ABAbstractPane):
                     "depends": ", ".join(bd.databases[name].get("depends", [])),
                     "modified": dt,
                     "records": bwutils.commontasks.count_database_records(name),
-                    "read_only": database_read_only,
+                    "read_only": bd.databases[name].get("read_only", True),
                     "default_allocation": bd.databases[name].get("default_allocation", "unspecified"),
                     "backend": bd.databases[name].get("backend")
                 }
@@ -110,49 +110,35 @@ class DatabasesView(widgets.ABTreeView):
         "modified": delegates.DateTimeDelegate,
     }
 
-    class ContextMenu(QtWidgets.QMenu):
-        """
-        A context menu for the DatabasesView.
+    class ContextMenu(widgets.ABMenu):
+        menuSetup = [
+            lambda m, p: m.add(actions.DatabaseNew),
+            lambda m: m.addSeparator(),
+            lambda m, p: m.add(actions.DatabaseDelete, p.selected_databases[0] if p.selected_databases else None,
+                               enable=len(p.selected_databases) == 1),
+            lambda m, p: m.add(actions.DatabaseDuplicate, p.selected_databases[0] if p.selected_databases else None,
+                               enable=len(p.selected_databases) == 1),
+            lambda m, p: m.add(actions.DatabaseProcess, p.selected_databases[0] if p.selected_databases else None,
+                               enable=len(p.selected_databases) == 1),
+            lambda m: m.addSeparator(),
+            lambda m, p: m.add(actions.DatabaseSetReadonly, p.selected_databases[0] if p.selected_databases else None,
+                               not m.selected_readonly,
+                               enable=len(p.selected_databases) == 1,
+                               text="Unlock database" if m.selected_readonly else "Lock database",
+                               ),
+        ]
 
-        Attributes:
-            relink_action (QtWidgets.QAction): The action to relink the database.
-            new_process_action (QtWidgets.QAction): The action to create a new process.
-            new_product_action (QtWidgets.QAction): The action to create a new product.
-            delete_db_action (QtWidgets.QAction): The action to delete the database.
-            duplicate_db_action (QtWidgets.QAction): The action to duplicate the database.
-            re_allocate_action (QtWidgets.QAction): The action to redo the allocation.
-            open_explorer_action (QtWidgets.QAction): The action to open the database in the explorer.
-            process_db_action (QtWidgets.QAction): The action to process the database.
-        """
-
-        def __init__(self, pos, view: "DatabasesView"):
+        @property
+        def selected_readonly(self):
             """
-            Initializes the ContextMenu.
+            Returns the read-only state of the selected database.
 
-            Args:
-                pos: The position of the context menu.
-                view (DatabasesView): The view displaying the databases.
+            Returns:
+                bool: The read-only state of the selected database.
             """
-            super().__init__(view)
-            self.new_database_action = actions.DatabaseNew.get_QAction()
-            self.relink_action = actions.DatabaseRelink.get_QAction(view.selected_database)
-            self.new_process_action = actions.ActivityNewProcess.get_QAction(view.selected_database)
-            self.new_product_action = actions.ActivityNewProduct.get_QAction(view.selected_database)
-            self.delete_db_action = actions.DatabaseDelete.get_QAction(view.selected_database)
-            self.duplicate_db_action = actions.DatabaseDuplicate.get_QAction(view.selected_database)
-            self.re_allocate_action = actions.DatabaseRedoAllocation.get_QAction(view.selected_database)
-            self.open_explorer_action = actions.DatabaseExplorerOpen.get_QAction(view.selected_database)
-            self.process_db_action = actions.DatabaseProcess.get_QAction(view.selected_database)
-
-            self.addAction(self.new_database_action)
-            if view.selected_database():
-                self.addAction(self.delete_db_action)
-                self.addAction(self.relink_action)
-                self.addAction(self.duplicate_db_action)
-                self.addAction(self.new_process_action)
-                self.addAction(self.new_product_action)
-                self.addAction(self.open_explorer_action)
-                self.addAction(self.process_db_action)
+            if not self.parent().selected_databases:
+                return None
+            return self.parent().selectedIndexes()[0].internalPointer()["read_only"]
 
     class HeaderMenu(QtWidgets.QMenu):
         """
@@ -169,30 +155,31 @@ class DatabasesView(widgets.ABTreeView):
         Args:
             event (QtGui.QMouseEvent): The mouse double click event.
         """
-        if not self.selectedIndexes():
-            return
-
         index = self.indexAt(event.pos())
+
+        if not index.isValid():
+            return super().mouseDoubleClickEvent(event)
+
         db_name = index.internalPointer()["name"]
 
         if index.column() == 0:
             read_only = index.internalPointer()["read_only"]
-            project_settings.modify_db(db_name, not read_only)
-            signals.database_read_only_changed.emit(db_name, not read_only)
+            actions.DatabaseSetReadonly.run(db_name, not read_only)
             return
 
         actions.DatabaseOpen.run([db_name])
 
-    def selected_database(self) -> str | None:
+    @property
+    def selected_databases(self) -> list:
         """
         Returns the database name of the user-selected index.
 
         Returns:
             str: The name of the selected database.
         """
-        if not self.currentIndex().isValid():
-            return None
-        return self.currentIndex().internalPointer()["name"]
+        if not self.selectedIndexes():
+            return []
+        return list(set([i.internalPointer()["name"] for i in self.selectedIndexes()]))
 
 
 class DatabasesItem(widgets.ABDataItem):

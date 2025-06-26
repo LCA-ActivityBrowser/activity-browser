@@ -1,4 +1,4 @@
-from qtpy import QtWidgets, QtGui, QtCore
+from qtpy import QtWidgets, QtCore
 
 from activity_browser import application, bwutils
 from activity_browser.actions.base import ABAction, exception_dialogs
@@ -7,11 +7,21 @@ from activity_browser.ui.icons import qicons
 from bw_functional import Process
 
 
-class ProcessDefaultPropertyModify(ABAction):
+class ProcessPropertyModify(ABAction):
     """
-    ABAction to open one or more supplied activities in an activity tab by employing signals.
+    Modify a property for all the products of a process.
 
-    TODO: move away from using signals like this. Probably add a method to the MainWindow to add a panel instead.
+    This method refreshes the given process, validates its type, and opens a dialog
+    for the user to modify a property. If the property already exists, the dialog
+    is pre-populated with its current values. The updated property is then applied
+    to all products of the process.
+
+    Args:
+        process (tuple | int | Process): The process to modify. Can be a tuple, integer, or Process object.
+        property_name (str, optional): The name of the property to modify. Defaults to None.
+
+    Raises:
+        ValueError: If the provided process is not of type Process.
     """
 
     icon = qicons.edit
@@ -19,49 +29,51 @@ class ProcessDefaultPropertyModify(ABAction):
 
     @staticmethod
     @exception_dialogs
-    def run(process: tuple | int | Process, property_name: str = None):
+    def run(process: tuple | int | Process,
+            property_name: str = None
+            ):
+
         process = bwutils.refresh_node(process)
+        if not isinstance(process, Process):
+            raise ValueError(f"Expected a Process-type activity, got {type(process)} instead")
 
-        prop_dialog = DefaultPropertyDialog(process)
+        prop_dialog = PropertyDialog(process)
 
-        if property_name in process.get("default_properties", {}):
-            prop = process["default_properties"][property_name]
+        # if the property already exists, populate the dialog with the existing values
+        if property_name in process.available_properties():
+            prop = process.property_template(property_name)
             prop_dialog.prop_name.setText(property_name)
             prop_dialog.prop_unit.setText(prop["unit"])
-            prop_dialog.prop_value.setText(str(prop["amount"]))
-            prop_dialog.normalize_check.setChecked(prop["normalize"])
+            prop_dialog.normalize_check.setChecked(prop.get("normalize", True))
 
+        # show the dialog to the user
         if prop_dialog.exec_() != QtWidgets.QDialog.DialogCode.Accepted:
             return
 
-        if property_name in process.get("default_properties", {}) and property_name == prop_dialog.name:
-            process["default_properties"][property_name] = prop_dialog.prop
-            process.save()
+        name_changed = prop_dialog.name != property_name if property_name else False
 
-            for function in process.functions():
-                function["properties"][property_name]["unit"] = prop_dialog.prop["unit"]
-                function["properties"][property_name]["normalize"] = prop_dialog.prop["normalize"]
-                function.save()
+        for product in process.products():
+            # make sure the dictionaries are in place
+            product["properties"] = product.get("properties", {})
+            product["properties"][prop_dialog.name] = product["properties"].get(property_name, {})
 
-        elif property_name in process.get("default_properties", {}) and property_name != prop_dialog.name:
-            del process["default_properties"][property_name]
-            process["default_properties"][prop_dialog.name] = prop_dialog.prop
-            process.save()
+            prop = {
+                "unit": prop_dialog.prop["unit"],
+                "normalize": prop_dialog.prop["normalize"],
+                "amount": product["properties"][prop_dialog.name].get("amount", 1.0),
+            }
 
-            for function in process.functions():
-                function["properties"][prop_dialog.name] = {
-                    "amount": function["properties"][property_name]["amount"],
-                    "unit": prop_dialog.prop["unit"],
-                    "normalize": prop_dialog.prop["normalize"],
-                }
-                del function["properties"][property_name]
-                function.save()
+            # update the property with the new values
+            product["properties"][prop_dialog.name] = prop
 
-        else:
-            process.new_default_property(name=prop_dialog.name, **prop_dialog.prop)
+            # if the name has changed, remove the old property
+            if name_changed and property_name in product["properties"]:
+                del product["properties"][property_name]
+
+            product.save()
 
 
-class DefaultPropertyDialog(QtWidgets.QDialog):
+class PropertyDialog(QtWidgets.QDialog):
     name: str | None = None
     prop: dict | None = None
 
@@ -79,11 +91,6 @@ class DefaultPropertyDialog(QtWidgets.QDialog):
         self.prop_unit.setPlaceholderText("Property unit")
         self.prop_unit.textChanged.connect(self.validate)
 
-        self.prop_value = QtWidgets.QLineEdit(self)
-        self.prop_value.setPlaceholderText("Default amount")
-        self.prop_value.setValidator(QtGui.QDoubleValidator())
-        self.prop_value.textChanged.connect(self.validate)
-
         self.normalize_label = QtWidgets.QLabel(" / amount", self)
         self.normalize_label.setVisible(False)
         self.normalize_check = QtWidgets.QCheckBox("per amount")
@@ -98,7 +105,6 @@ class DefaultPropertyDialog(QtWidgets.QDialog):
         self.buttons.rejected.connect(self.reject)
 
         h_layout = QtWidgets.QHBoxLayout()
-        h_layout.addWidget(self.prop_value)
         h_layout.addWidget(self.prop_unit)
         h_layout.addWidget(self.normalize_label)
 
@@ -114,13 +120,11 @@ class DefaultPropertyDialog(QtWidgets.QDialog):
         if (
             self.prop_name.text() and
             self.prop_unit.text() and
-            self.prop_value.text() and
             self.prop_name.text() not in self.process.get("properties", [])
         ):
             self.name = self.prop_name.text()
             self.prop = {
                 "unit": self.prop_unit.text(),
-                "amount": float(self.prop_value.text().replace(',', '.')),
                 "normalize": self.normalize_check.isChecked(),
             }
             self.buttons.button(QtWidgets.QDialogButtonBox.Ok).setEnabled(True)

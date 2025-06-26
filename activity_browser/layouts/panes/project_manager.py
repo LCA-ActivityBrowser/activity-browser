@@ -16,12 +16,11 @@ log = getLogger(__name__)
 
 class ProjectManagerPane(widgets.ABAbstractPane):
     title = "Project Manager"
-    hideMode = widgets.ABDockWidget.HideMode.Close
+    unique = True
 
     def __init__(self, parent=None):
-        super().__init__(parent, QtCore.Qt.WindowType.Dialog)
+        super().__init__(parent)
         self.setWindowTitle("Project Manager")
-        self.setWindowModality(QtCore.Qt.WindowModality.WindowModal)
 
         self.tabs = QtWidgets.QTabWidget(self)
 
@@ -58,6 +57,11 @@ class ProjectManagerPane(widgets.ABAbstractPane):
     def build_project_df(self) -> pd.DataFrame:
         data = {}
         for proj_ds in sorted(bd.projects):
+            # if for any reason the project data is not a dictionary, log a warning and set it to an empty dict
+            if not isinstance(proj_ds.data, dict):
+                log.warning(f"Project {proj_ds.name} has no data dictionary")
+                proj_ds.data = {}
+
             data[proj_ds.name] = {
                 "Name": proj_ds.name,
                 "Path": proj_ds.dir,
@@ -156,6 +160,3 @@ class TemplateItem(widgets.ABDataItem):
         if col != 0:
             return
         return ui.icons.qicons.forward if self["Name"] == ab_settings.startup_project else ui.icons.QIcons.forward
-
-
-

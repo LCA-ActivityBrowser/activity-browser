@@ -45,6 +45,8 @@ class ActivityDetailsPage(QtWidgets.QWidget):
         """
         super().__init__(parent)
         self.activity = bd.get_activity(activity)
+        self.setObjectName(f"activity_details_{self.activity['database']}_{self.activity['code']}")
+        self.setWindowTitle(self.activity["name"])
 
         # Initialize header widget for activity data
         self.activity_data_grid = ActivityHeader(self)
@@ -154,7 +156,7 @@ class ActivityDetailsPage(QtWidgets.QWidget):
             return
 
         # Update the tab name to be the activity name
-        self.setObjectName(self.activity["name"])
+        self.setWindowTitle(self.activity["name"])
 
         # Synchronize all tabs with the current state of the activity
         self.activity_data_grid.sync()
@@ -162,3 +164,4 @@ class ActivityDetailsPage(QtWidgets.QWidget):
         self.description_tab.sync()
         self.consumer_tab.sync()
         self.data_tab.sync()
+        self.parameters_tab.sync()

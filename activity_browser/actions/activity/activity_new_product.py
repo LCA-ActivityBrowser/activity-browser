@@ -13,31 +13,51 @@ from activity_browser.ui.icons import qicons
 
 class ActivityNewProduct(ABAction):
     """
-    ABAction to create a new activity. Prompts the user to supply a name. Returns if no name is supplied or if the user
-    cancels. Otherwise, instructs the ActivityController to create a new activity.
+    ABAction to create a new product for an activity.
+
+    This action prompts the user to supply a name, unit, and location for the new product.
+    If the user cancels or does not provide a name, the action is aborted.
+    Otherwise, it creates a new product associated with the given activity.
+
+    Attributes:
+        icon (QIcon): The icon representing this action.
+        text (str): The display text for this action.
     """
 
     icon = qicons.add
-    text = "New product"
+    text = "Create product"
 
     @staticmethod
     @exception_dialogs
     def run(activities: list[tuple | int | bd.Node]):
+        """
+        Execute the action to create a new product.
+
+        This method iterates over the provided activities, ensuring each is a `Process`.
+        It prompts the user to input details for the new product. If valid details are provided,
+        a new product is created and saved.
+
+        Args:
+            activities (list[tuple | int | bd.Node]): A list of activities to process.
+
+        Raises:
+            AssertionError: If an activity is not of type `Process`.
+        """
         activities = [bwutils.refresh_node(activity) for activity in activities]
 
         for act in activities:
             assert isinstance(act, Process), "Cannot create new product for non-process type"
-            # ask the user to provide a name for the new activity
+            # Ask the user to provide a name for the new product
             dialog = NewProductDialog(act, application.main_window)
-            # if the user cancels, return
+            # If the user cancels, skip to the next activity
             if dialog.exec_() != QtWidgets.QDialog.Accepted:
                 continue
             name, unit, location = dialog.get_new_process_data()
-            # if no name is provided, return
+            # If no name is provided, skip to the next activity
             if not name:
                 continue
 
-            # create product
+            # Create the new product
             new_prod_data = {
                 "name": name,
                 "unit": unit,
@@ -50,32 +70,58 @@ class ActivityNewProduct(ABAction):
 
 class NewProductDialog(QtWidgets.QDialog):
     """
-    Gathers the paremeters for creating a new process.
+    A dialog for gathering parameters to create a new product.
+
+    This dialog allows the user to input the product name, unit, and location.
+    It validates the input and provides options to either create the product or cancel the operation.
     """
 
-    def __init__(self, activity, parent: QtWidgets.QWidget = None):
+    def __init__(self, activity: bd.Node, parent: QtWidgets.QWidget = None):
+        """
+        Initialize the NewProductDialog.
+
+        Args:
+            activity (bd.Node): The activity for which the product is being created.
+                             Used to prefill the location field and set the dialog title.
+            parent (QtWidgets.QWidget, optional): The parent widget for the dialog. Defaults to None.
+        """
         super().__init__(parent)
 
-        self.setWindowTitle("New product")
+        # Set the dialog window title
+        self.setWindowTitle(f"Create product for {activity['name']}")
 
+        # Input fields for product details
         self.name_edit = QtWidgets.QLineEdit()
-        self.unit_edit = QtWidgets.QLineEdit("kilogram")
-        self.location_edit = QtWidgets.QLineEdit(activity.get("location", ""))
+        self.unit_edit = QtWidgets.QLineEdit("kilogram")  # Default unit is "kilogram"
+        self.location_edit = QtWidgets.QLineEdit(activity.get("location", ""))  # Prefill location if available
 
-        self.ok_button = QtWidgets.QPushButton("OK")
-        self.ok_button.clicked.connect(self.accept)
-        self.ok_button.setEnabled(False)
+        # Buttons for user actions
+        self.ok_button = QtWidgets.QPushButton("Create")
+        self.ok_button.clicked.connect(self.accept)  # Connect the "Create" button to accept the dialog
+        self.ok_button.setEnabled(False)  # Initially disable the button until a name is entered
 
         self.cancel_button = QtWidgets.QPushButton("Cancel")
-        self.cancel_button.clicked.connect(self.reject)
+        self.cancel_button.clicked.connect(self.reject)  # Connect the "Cancel" button to reject the dialog
 
+        # Set up signals and layout
         self.connect_signals()
         self.build_layout()
 
     def connect_signals(self):
+        """
+        Connect signals to their respective handlers.
+
+        - Enables the "Create" button only when the name field is not empty.
+        """
         self.name_edit.textChanged.connect(lambda x: self.ok_button.setEnabled(bool(x)))
 
     def build_layout(self):
+        """
+        Build and set the layout for the dialog.
+
+        The layout includes labels and input fields for product name, unit, and location,
+        as well as "Create" and "Cancel" buttons.
+        """
         layout = QtWidgets.QGridLayout()
         layout.addWidget(QtWidgets.QLabel("Product name"), 0, 0)
         layout.addWidget(self.name_edit, 0, 1)
@@ -92,9 +138,14 @@ class NewProductDialog(QtWidgets.QDialog):
         self.setLayout(layout)
 
     def get_new_process_data(self) -> tuple[str, str, str]:
-        """Return the parameters the user entered."""
+        """
+        Retrieve the parameters entered by the user.
+
+        Returns:
+            tuple[str, str, str]: A tuple containing the product name, unit, and location.
+        """
         return (
-                self.name_edit.text(),
-                self.unit_edit.text(),
-                self.location_edit.text()
-            )
+            self.name_edit.text(),
+            self.unit_edit.text(),
+            self.location_edit.text()
+        )

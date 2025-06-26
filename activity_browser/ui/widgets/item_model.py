@@ -223,7 +223,7 @@ class ABItemModel(QtCore.QAbstractItemModel):
                     joined_path.extend(path) if isinstance(path, (list, tuple)) else joined_path.append(path)
 
                 joined_path.append(i)
-                self.root.put(items[i], joined_path)
+                self.root.put(items[df.index.get_loc(i)], joined_path)
 
         super().endResetModel()
 

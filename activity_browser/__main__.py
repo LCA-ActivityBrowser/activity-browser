@@ -6,6 +6,7 @@ from qtpy import QtWidgets, QtCore, QtGui
 from qtpy.QtCore import Qt
 
 from activity_browser import application
+from activity_browser.ui import icons
 
 from .logger import setup_ab_logging
 from .static.icons import main
@@ -50,6 +51,7 @@ class ABLoader(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint)
+        self.setWindowIcon(icons.qicons.ab)
         self.setFixedSize(500, 300)
 
         logo_pixmap = QtGui.QPixmap(os.path.join(main.__path__[0], "activitybrowser.png")).scaledToHeight(280, mode=Qt.TransformationMode.SmoothTransformation)
@@ -84,8 +86,6 @@ class ABLoader(QtWidgets.QWidget):
         from activity_browser import signals
 
         application.main_window = MainWindow()
-        application.main_window.setPanes([panes.DatabasesPane, panes.ImpactCategoriesPane, panes.CalculationSetupsPane])
-
         central_widget = CentralTabWidget(application.main_window)
         central_widget.addTab(pages.WelcomePage(), "Welcome")
         central_widget.addTab(pages.ParametersPage(), "Parameters")
@@ -93,6 +93,8 @@ class ABLoader(QtWidgets.QWidget):
         application.main_window.setCentralWidget(central_widget)
 
         self.load_settings()
+
+        application.main_window.sync()
 
     def load_settings(self):
         self.text_label.setText("Loading project")
@@ -149,4 +151,47 @@ def run_activity_browser():
     sys.exit(application.exec_())
 
 
-run_activity_browser()
+def run_activity_browser_no_launcher():
+    import sys
+
+    from activity_browser import settings, actions
+    import bw2data as bd
+
+    from .ui.widgets import MainWindow, CentralTabWidget
+    from .layouts import panes, pages
+    from .logger import setup_ab_logging
+
+    setup_ab_logging()
+
+    application.main_window = MainWindow()
+    application.main_window.setPanes([panes.DatabasesPane, panes.ImpactCategoriesPane, panes.CalculationSetupsPane])
+
+    central_widget = CentralTabWidget(application.main_window)
+    central_widget.addTab(pages.WelcomePage(), "Welcome")
+    central_widget.addTab(pages.ParametersPage(), "Parameters")
+
+    application.main_window.setCentralWidget(central_widget)
+
+    if settings.ab_settings.settings:
+        from pathlib import Path
+
+        base_dir = Path(settings.ab_settings.current_bw_dir)
+        project_name = settings.ab_settings.startup_project
+        bd.projects.change_base_directories(base_dir, project_name=project_name, update=False)
+
+    if not bd.projects.twofive:
+        log.warning(f"Project: {bd.projects.current} is not yet BW25 compatible")
+        actions.ProjectSwitch.set_warning_bar()
+
+    log.info(f"Brightway2 data directory: {bd.projects._base_data_dir}")
+    log.info(f"Brightway2 current project: {bd.projects.current}")
+
+    application.main_window.show()
+
+    sys.exit(application.exec_())
+
+
+if "--no-launcher" in sys.argv:
+    run_activity_browser_no_launcher()
+else:
+    run_activity_browser()

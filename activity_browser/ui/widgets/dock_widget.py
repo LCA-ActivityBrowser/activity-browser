@@ -1,7 +1,5 @@
-import PySide6
-from qtpy import QtWidgets, QtCore, QtGui, shiboken
+from qtpy import QtWidgets, QtCore, QtGui
 from qtpy.QtCore import Qt
-import time
 
 
 class HideMode:
@@ -30,6 +28,7 @@ class ABDockWidget(QtWidgets.QDockWidget):
     def setWidget(self, widget):
         super().setWidget(widget)
         widget.destroyed.connect(self.deleteLater)
+        self.setObjectName(f"dockwidget-{widget.objectName()}")
 
     def button(self):
         if self._hide_mode == HideMode.Close:

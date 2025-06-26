@@ -31,6 +31,9 @@ class DescriptionTab(QtWidgets.QTextEdit):
         self.setText(self.activity.get("comment", ""))
         self.moveCursor(QtGui.QTextCursor.MoveOperation.End)
 
+        # Set the read-only state based on the activity's database
+        self.setDisabled(bwutils.database_is_locked(self.activity["database"]))
+
     def focusOutEvent(self, e):
         """
         Handles the focus out event to save the comment if it has changed.

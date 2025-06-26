@@ -5,6 +5,8 @@ from typing import List, Tuple
 
 import numpy as np
 import pandas as pd
+import bw2data as bd
+import bw_functional as bf
 from qtpy.QtCore import Qt
 from qtpy.QtWidgets import QApplication, QPushButton
 
@@ -40,6 +42,80 @@ def superstructure_from_arrays(
 
     df = pd.concat([superstructure, scenarios], axis=1)
     return df
+
+
+def superstructure_from_scenario_exchanges(scenarios: dict[str, dict[int, float]]):
+    from activity_browser.bwutils import exchanges_to_sdf
+    from bw2data import Edge
+
+    scenarios = transpose_scenarios_to_exchange_ids(scenarios)
+    df = pd.DataFrame(columns=SUPERSTRUCTURE)
+
+    for exchange_id, amounts in scenarios.items():
+        if exchange_is_from_functional_backend(exchange_id):
+            df = pd.concat([df, mf_exchange_to_sdf(exchange_id, amounts)], ignore_index=True)
+        else:
+            df = pd.concat([df, regular_exchange_to_sdf(exchange_id, amounts)], ignore_index=True)
+
+    return df
+
+
+def regular_exchange_to_sdf(exchange_id: int, scenarios: dict[str, float]):
+    from activity_browser.bwutils import exchanges_to_sdf
+
+    exc = bd.Edge(bd.Edge.ORMDataset.get_by_id(exchange_id)).as_dict()
+    df = exchanges_to_sdf([exc])
+    df.drop(columns=["amount"], inplace=True)
+    for scenario, amount in scenarios.items():
+        df[scenario] = amount
+
+    return df
+
+
+def mf_exchange_to_sdf(exchange_id: int, scenarios: dict[str, float]):
+    from activity_browser.bwutils import exchanges_to_sdf
+
+    exc = bf.MFExchange(bf.MFExchange.ORMDataset.get_by_id(exchange_id))
+
+    df = exchanges_to_sdf(exc.virtual_edges)
+    df.drop(columns=["amount"], inplace=True)
+    for scenario, amount in scenarios.items():
+        exc["amount"] = amount
+        df[scenario] = [edge["amount"] for edge in exc.virtual_edges]
+
+    return df
+
+
+def exchange_is_from_functional_backend(exchange_id: int):
+    db = bd.Edge.ORMDataset.get_by_id(exchange_id).output_database
+    return bd.databases[db].get("backend") == "functional_sqlite"
+
+
+def transpose_scenarios_to_exchange_ids(scenarios: dict[str, dict[int, float]]) -> dict[int, dict[str, float]]:
+    """
+    Transpose a dictionary of scenarios to organize data by exchange IDs.
+
+    Parameters
+    ----------
+    scenarios : dict[str, dict[int, float]]
+        A dictionary where keys are scenario names (str) and values are dictionaries
+        mapping exchange IDs (int) to amounts (float).
+
+    Returns
+    -------
+    dict[int, dict[str, float]]
+        A dictionary where keys are exchange IDs (int) and values are dictionaries
+        mapping scenario names (str) to amounts (float).
+    """
+    scenarios_by_exchange = {}
+
+    for scenario, exchanges in scenarios.items():
+        for exchange_id, amount in exchanges.items():
+            if exchange_id not in scenarios_by_exchange:
+                scenarios_by_exchange[exchange_id] = {}
+            scenarios_by_exchange[exchange_id][scenario] = amount
+
+    return scenarios_by_exchange
 
 
 def arrays_from_indexed_superstructure(

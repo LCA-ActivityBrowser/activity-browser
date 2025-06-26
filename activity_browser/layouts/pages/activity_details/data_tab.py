@@ -5,7 +5,7 @@ import bw2data as bd
 import bw_functional as bf
 
 from activity_browser import actions
-from activity_browser.bwutils import refresh_node
+from activity_browser.bwutils import refresh_node, database_is_locked
 from activity_browser.ui import widgets, delegates
 
 
@@ -67,19 +67,21 @@ class DataTab(QtWidgets.QWidget):
         df = pd.DataFrame.from_dict(self.activity.as_dict(), orient="index")
         df["name"] = self.activity["name"]
         df["_activity_id"] = self.activity.id
+        df["_activity_db"] = self.activity["database"]
 
         if isinstance(self.activity, bf.Process):
-            for function in self.activity.functions():
-                fn_df = pd.DataFrame.from_dict(function.as_dict(), orient="index")
-                fn_df["name"] = function["name"]
-                fn_df["_activity_id"] = function.id
+            for product in self.activity.products():
+                fn_df = pd.DataFrame.from_dict(product.as_dict(), orient="index")
+                fn_df["name"] = product["name"]
+                fn_df["_activity_id"] = product.id
+                fn_df["_activity_db"] = product["database"]
                 df = pd.concat([df, fn_df])
 
         df = df.reset_index()
         df = df.rename({"index": "field", 0: "value"}, axis=1)
         df = df.sort_values(["name", "field"], ignore_index=True)
 
-        cols = ["field", "value", "name", "_activity_id"]
+        cols = ["field", "value", "name", "_activity_id", "_activity_db"]
         return df[cols]
 
 
@@ -112,7 +114,8 @@ class DataItem(widgets.ABDataItem):
             QtCore.Qt.ItemFlags: The item flags.
         """
         flags = super().flags(col, key)
-        if key == "value":
+
+        if key == "value" and not database_is_locked(self["_activity_db"]):
             return flags | QtCore.Qt.ItemFlag.ItemIsEditable
         return flags
 

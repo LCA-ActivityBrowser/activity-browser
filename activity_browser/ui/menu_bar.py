@@ -135,6 +135,11 @@ class CalculateMenu(QtWidgets.QMenu):
         self.setTitle("&Calculate")
         self.cs_actions = []
 
+        self.new_cs_action = actions.CSNew.get_QAction()
+        self.new_cs_action.setText("New setup...")
+        self.addAction(self.new_cs_action)
+        self.addSeparator()
+
         signals.project.changed.connect(self.sync)
         signals.meta.calculation_setups_changed.connect(self.sync)
 

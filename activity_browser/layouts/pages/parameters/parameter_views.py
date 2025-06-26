@@ -223,7 +223,7 @@ class ActivityParameterTable(BaseParameterTable):
 
         for key in keys:
             act = bd.get_node(key=key)
-            if isinstance(act, bf.Function):
+            if isinstance(act, bf.Product):
                 continue
             processes.add(key)
         event.accept()

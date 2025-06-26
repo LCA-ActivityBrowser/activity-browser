@@ -36,7 +36,7 @@ class FunctionalUnitSection(QtWidgets.QWidget):
 
     def build_df(self):
         keys, amounts = [], []
-        cols = ["unit", "name", "product", "location", "database"]
+        cols = ["unit", "name", "product", "location", "database", "processor"]
 
         for fu in self.calculation_setup.get("inv", []):
             for key, amount in fu.items():
@@ -47,31 +47,81 @@ class FunctionalUnitSection(QtWidgets.QWidget):
         act_df["amount"] = amounts
         act_df["_activity_key"] = keys
 
-        cols = ["amount", "unit", "product", "name", "location"]
+        act_df["_processor_key"] = act_df["processor"]
+        act_df["_processor_key"] = act_df["_processor_key"].fillna(act_df["_activity_key"])
+
+        # Retrieve metadata for unique processor keys, focusing on the "name" column.
+        processor_df = AB_metadata.get_metadata(act_df["_processor_key"].unique(), ["name"])
+
+        # Flatten the index of the processor DataFrame to ensure compatibility with merging.
+        processor_df.index = processor_df.index.to_flat_index()
+
+        # Merge the processor keys from the activity DataFrame with the processor metadata.
+        processor_df = pd.merge(act_df["_processor_key"].astype(object), processor_df, "right",
+                                left_on="_processor_key", right_index=True, )
+
+        # Add a column for function keys by flattening the index of the processor DataFrame.
+        processor_df["function_keys"] = processor_df.index.to_flat_index()
+
+        # Remove duplicate rows from the processor DataFrame to ensure uniqueness.
+        processor_df = processor_df.drop_duplicates()
+
+        # Add the "process" column to the activity DataFrame using the processor names.
+        act_df["process"] = processor_df["name"]
+
+        # Use "product" if available otherwise use "name"
+        act_df.update(act_df["product"].rename("name"))
+        act_df["product"] = act_df["name"]
+
+        cols = ["amount", "unit", "product", "process", "database", "location", "_processor_key", "_activity_key"]
 
         return act_df[cols].reset_index(drop=True)
 
 
 class FunctionalUnitView(widgets.ABTreeView):
 
-    class ContextMenu(QtWidgets.QMenu):
-        def __init__(self, pos, view: "FunctionalUnitView"):
-            super().__init__(view)
-            cs_name = view.parent().calculation_setup_name
+    class ContextMenu(widgets.ABMenu):
+        menuSetup = [
+            lambda m, p: m.add(actions.ActivityOpen, m.selected_processes,
+                               text="Open process" if len(m.selected_processes) == 1 else "Open processes",
+                               enable=len(m.selected_processes) > 0
+                               ),
+            lambda m: m.addSeparator(),
+            lambda m, p: m.add(actions.CSDeleteFunctionalUnit, m.cs_name, m.selected_fus,
+                               text="Delete Functional Unit" if len(m.selected_fus) == 1 else "Delete Functional Units",
+                               enable=len(m.selected_fus) > 0
+                               ),
 
-            if not view.selectedIndexes():
-                return
+        ]
 
-            indices = [index.internalPointer().key() for index in view.selectedIndexes()]
+        @property
+        def selected_fus(self):
+            return list(set([index.internalPointer().key() for index in self.parent().selectedIndexes()]))
 
-            self.delete_fu_action = actions.CSDeleteFunctionalUnit.get_QAction(cs_name, indices)
-            self.addAction(self.delete_fu_action)
+        @property
+        def selected_processes(self):
+            return list(set([index.internalPointer()["_processor_key"] for index in self.parent().selectedIndexes()]))
+
+        @property
+        def cs_name(self):
+            return self.parent().parent().calculation_setup_name
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setAcceptDrops(True)
         self.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
         self.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
+
+    def mouseDoubleClickEvent(self, event) -> None:
+        """
+        Handles the mouse double click event to open the selected activities.
+
+        Args:
+            event: The mouse double click event.
+        """
+        if self.selectedIndexes():
+            activities = [index.internalPointer()["_processor_key"] for index in self.selectedIndexes()]
+            actions.ActivityOpen.run(list(set(activities)))
 
     def dragMoveEvent(self, event) -> None:
         pass
@@ -106,6 +156,8 @@ class FunctionalUnitItem(widgets.ABDataItem):
     def decorationData(self, col: int, key: str):
         if key == "product":
             return icons.qicons.product
+        if key == "process":
+            return icons.qicons.process
 
 
 class FunctionalUnitModel(widgets.ABItemModel):

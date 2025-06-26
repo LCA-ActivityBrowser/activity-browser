@@ -9,17 +9,25 @@ from activity_browser.ui import widgets, delegates
 
 class CalculationSetupsPane(widgets.ABAbstractPane):
     title = "Calculation Setups"
-    hideMode = widgets.ABDockWidget.HideMode.Hide
+    unique = True
 
     def __init__(self, parent):
+        """
+        Initializes the CalculationSetupsPane.
+
+        This constructor sets up the view and model for displaying calculation setups,
+        configures the view's appearance and behavior, and builds the layout while
+        connecting necessary signals.
+
+        Args:
+            parent (QtWidgets.QWidget): The parent widget for this pane.
+        """
         super().__init__(parent)
         self.view = CalculationSetupsView()
         self.model = CalculationSetupsModel()
         self.view.setModel(self.model)
 
         self.view.setAlternatingRowColors(True)
-        self.view.setSelectionMode(QtWidgets.QTableView.SingleSelection)
-        self.view.setIndentation(0)
 
         self.build_layout()
         self.connect_signals()
@@ -42,18 +50,17 @@ class CalculationSetupsPane(widgets.ABAbstractPane):
 
     def sync(self):
         """
-        Synchronizes the model with the current state of the databases.
+        Synchronizes the model with the current state of the calculation setups.
         """
         self.model.setDataFrame(self.build_df())
         self.view.resizeColumnToContents(0)
-        self.view.header().setSectionResizeMode(0, QtWidgets.QHeaderView.Fixed)
 
     def build_df(self) -> pd.DataFrame:
         """
-        Builds a DataFrame from the databases.
+        Builds a DataFrame from the calculation setups.
 
         Returns:
-            pd.DataFrame: The DataFrame containing the databases data.
+            pd.DataFrame: The DataFrame containing the calculation setups data.
         """
         data = []
         for cs in bd.calculation_setups:
@@ -72,7 +79,7 @@ class CalculationSetupsPane(widgets.ABAbstractPane):
 
 class CalculationSetupsView(widgets.ABTreeView):
     """
-    A view that displays the databases in a tree structure.
+    A view that displays the calculation setups in a tree structure.
 
     Attributes:
         defaultColumnDelegates (dict): The default column delegates for the view.
@@ -81,28 +88,27 @@ class CalculationSetupsView(widgets.ABTreeView):
         "name": delegates.StringDelegate,
     }
 
-    class ContextMenu(QtWidgets.QMenu):
+    class ContextMenu(widgets.ABMenu):
+        menuSetup = [
+            lambda menu: menu.add(actions.CSNew),
+            lambda menu: menu.add(actions.CSOpen, menu.calculation_setups,
+                                  enable=bool(menu.calculation_setups)),
+            lambda menu: menu.add(actions.CSDelete, menu.calculation_setups,
+                                  enable=bool(menu.calculation_setups)),
+            lambda menu: menu.add(actions.CSRename, menu.calculation_setups[0] if menu.single_selection else None,
+                                  enable=menu.single_selection),
+            lambda menu: menu.addSeparator(),
+            lambda menu: menu.add(actions.CSCalculate, menu.calculation_setups[0] if menu.single_selection else None,
+                                  enable=menu.single_selection),
+        ]
 
-        def __init__(self, pos, view: "DatabasesView"):
-            super().__init__(view)
-            self.new_cs_action = actions.CSNew.get_QAction()
-            self.addAction(self.new_cs_action)
+        @property
+        def calculation_setups(self):
+            return [item["name"] for item in {index.internalPointer() for index in self.parent().selectedIndexes()}]
 
-            if view.selectedIndexes():
-                items = {index.internalPointer() for index in view.selectedIndexes()}
-
-                self.open_action = actions.CSOpen.get_QAction([item["name"] for item in items])
-                self.delete_action = actions.CSDelete.get_QAction([item["name"] for item in items])
-
-                self.addAction(self.open_action)
-                self.addAction(self.delete_action)
-
-                if len(items) == 1:
-                    self.rename_action = actions.CSRename.get_QAction([item["name"] for item in items][0])
-                    self.calculate_action = actions.CSCalculate.get_QAction([item["name"] for item in items][0])
-                    self.addAction(self.rename_action)
-                    self.addSeparator()
-                    self.addAction(self.calculate_action)
+        @property
+        def single_selection(self):
+            return len(self.calculation_setups) == 1
 
     class HeaderMenu(QtWidgets.QMenu):
         """
@@ -112,9 +118,13 @@ class CalculationSetupsView(widgets.ABTreeView):
         def __init__(self, *args, **kwargs):
             super().__init__()
 
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setAcceptDrops(True)
+
     def mouseDoubleClickEvent(self, event: QtGui.QMouseEvent):
         """
-        Handles the mouse double click event to toggle the read-only state or select the database.
+        Handles the mouse double click event to open the selected calculation setups.
 
         Args:
             event (QtGui.QMouseEvent): The mouse double click event.
@@ -127,9 +137,39 @@ class CalculationSetupsView(widgets.ABTreeView):
         actions.CSOpen.run(index.internalPointer()["name"])
 
 
+    def dragMoveEvent(self, event) -> None:
+        pass
+
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasFormat("application/bw-nodekeylist"):
+            keys: list = event.mimeData().retrievePickleData("application/bw-nodekeylist")
+            for key in keys:
+                act = bd.get_node(key=key)
+                if act["type"] not in bd.labels.product_node_types + ["processwithreferenceproduct"]:
+                    keys.remove(key)
+
+            if not keys:
+                return
+
+            event.accept()
+
+    def dropEvent(self, event) -> None:
+        event.accept()
+
+        keys: list = event.mimeData().retrievePickleData("application/bw-nodekeylist")
+        for key in keys:
+            act = bd.get_node(key=key)
+            if act["type"] not in bd.labels.product_node_types + ["processwithreferenceproduct"]:
+                keys.remove(key)
+
+        functional_units = [{key: 1.0} for key in keys]
+
+        actions.CSNew.run(functional_units=functional_units)
+
+
 class CalculationSetupsItem(widgets.ABDataItem):
     """
-    An item representing a database in the tree view.
+    An item representing a calculation setup in the tree view.
     """
     def fontData(self, col: int, key: str):
         """

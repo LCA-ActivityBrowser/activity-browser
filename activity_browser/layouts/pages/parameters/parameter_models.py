@@ -435,7 +435,7 @@ class ScenarioModel(PandasModel):
 
     def __init__(self, parent=None):
         super().__init__(parent=parent)
-        signals.project.changed.connect(self.sync)
+        signals.project.changed.connect(lambda: self.sync())
         signals.parameter.changed.connect(self.rebuild_table)
 
     @Slot(name="doCleanSync")

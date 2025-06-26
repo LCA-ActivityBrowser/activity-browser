@@ -9,7 +9,7 @@ class DatabaseProcess(ABAction):
     """
 
     icon = qicons.process
-    text = "Process database..."
+    text = "Process database"
     tool_tip = "Process database into datapackages"
 
     @staticmethod

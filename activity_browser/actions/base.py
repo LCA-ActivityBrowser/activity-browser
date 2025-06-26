@@ -23,8 +23,9 @@ class ABAction:
         cls.run(*args, **kwargs)
 
     @classmethod
-    def get_QAction(cls, *args, **kwargs) -> QtWidgets.QAction:
-        action = QtWidgets.QAction(cls.icon, cls.text, None)
+    def get_QAction(cls, *args, parent=None, text=None, enabled=True, **kwargs) -> QtWidgets.QAction:
+        text = text or cls.text
+        action = QtWidgets.QAction(cls.icon, text, parent, enabled=enabled)
         action.setToolTip(cls.tooltip)
 
         action.triggered.connect(lambda: cls.triggered(*args, **kwargs))
