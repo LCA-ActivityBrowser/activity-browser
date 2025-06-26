@@ -504,7 +504,7 @@ class ExchangesItem(widgets.ABDataItem):
         """
         flags = super().flags(col, key)
         # Check if the database is read-only. If it is, return the default flags.
-        if database_is_locked(self["database"]):
+        if database_is_locked(self.exchange.output["database"]):
             return flags
 
         # Allow editing for specific keys: "amount", "formula", and "uncertainty".
