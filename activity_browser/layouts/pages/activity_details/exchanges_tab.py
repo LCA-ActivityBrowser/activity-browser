@@ -5,6 +5,7 @@ from qtpy.QtCore import Qt
 
 import pandas as pd
 import bw2data as bd
+import bw_functional as bf
 
 from activity_browser import actions, bwutils
 from activity_browser.bwutils import refresh_node, AB_metadata, database_is_locked, database_is_legacy
@@ -556,7 +557,7 @@ class ExchangesItem(widgets.ABDataItem):
         """
         flags = super().flags(col, key)
         # Check if the database is read-only. If it is, return the default flags.
-        if database_is_locked(self["database"]):
+        if database_is_locked(self.exchange.output["database"]):
             return flags
 
         # Allow editing for specific keys: "amount", "formula", and "uncertainty".
@@ -702,56 +703,24 @@ class ExchangesItem(widgets.ABDataItem):
             actions.ActivityModify.run(act.key, key.lower(), value)
 
         if key.startswith("property_"):
-            act = self.exchange.input
-            prop_key = key[9:]
-            props = act["properties"]
-            props[prop_key].update({"amount": value})
+            # should move this process to a separate action
+            process = self.exchange.output
+            product = self.exchange.input
 
-            actions.ActivityModify.run(act.key, "properties", props)
+            if not isinstance(process, bf.Process) or not isinstance(product, bf.Product):
+                log.warning(f"Expected a Process and Product, got {type(process)} and {type(product)} instead.")
+                return False
+
+            prop_key = key[9:]
+
+            prop = process.property_template(prop_key, value)
+
+            props = product.get("properties", {})
+            props[prop_key] = prop
+
+            actions.ActivityModify.run(product, "properties", props)
 
         return False
-
-    def acceptsDragDrop(self, event) -> bool:
-        """
-        Determines if the item accepts the drag and drop event.
-
-        Args:
-            event: The drag and drop event.
-
-        Returns:
-            bool: True if the item accepts the drag and drop event, False otherwise.
-        """
-        if not self.functional or database_is_locked(self["database"]):
-            return False
-
-        if not event.mimeData().hasFormat("application/bw-nodekeylist"):
-            return False
-
-        keys = set(event.mimeData().retrievePickleData("application/bw-nodekeylist"))
-        acts = [bd.get_node(key=key) for key in keys]
-        acts = [act for act in acts if act["type"] in ["product", "waste", "processwithreferenceproduct"]]
-
-        if len(acts) != 1:
-            return False
-
-        act = acts[0]
-
-        if act["unit"] != self["unit"] or act.key == self.exchange.input.key:
-            return False
-
-        return True
-
-    def onDrop(self, event):
-        """
-        Handles the drop event.
-
-        Args:
-            event: The drop event.
-        """
-        keys = set(event.mimeData().retrievePickleData("application/bw-nodekeylist"))
-        acts = [bd.get_node(key=key) for key in keys]
-        act = [act for act in acts if act["type"] in ["product", "waste", "processwithreferenceproduct"]][0]
-        actions.FunctionSubstitute.run(self.exchange.input, act)
 
 
 class ExchangesModel(widgets.ABItemModel):

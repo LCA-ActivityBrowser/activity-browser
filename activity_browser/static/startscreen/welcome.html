@@ -1,85 +1,135 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
-<html><head>
-<meta content="text/html; charset=ISO-8859-1" http-equiv="content-type"><title>Welcome</title>
+<html>
+<head>
+    <meta content="text/html; charset=ISO-8859-1" http-equiv="content-type">
+    <title>Welcome</title>
 
-<style type="text/css"></style>
-<style>
-body {
-background-color: white; color: black; font-family:Calibri;}
-h1 {color: black; font-size: 300%; font-family:Calibri;}
-h2 {color: black; font-size: 200%; font-family:Calibri;}
-h3 {color: black; font-family:Calibri;}
-p {color: black; font-family:Calibri;}
-a {font-family:Calibri;}
-</style>
+    <style type="text/css"></style>
+    <style>
+        body, html{
+            margin: 0;
+            font-family: system-ui, sans-serif;
+        }
+        h1{
+            font-size: 2em;
+
+            margin-bottom: 0px;
+            margin-block-start: 0;
+            margin-block-end: 0;
+        }
+
+        h2{
+            font-size: 1em;
+            margin-block-end: 0;
+        }
+
+        p{
+            margin-block-start: 0.5em;
+        }
+
+        .container{
+            display: grid;
+            height: 100vh;
+            width: 100vw;
+            background: #FBFBFB;
+            grid-template-columns: auto 250px 250px auto;
+            grid-template-rows: auto 80px 250px 150px auto;
+        }
+        .update{
+            grid-column-start: 2;
+            grid-column-end: 4;
+            grid-row-start: 2;
+            grid-row-end: 3;
+        }
+
+        .logo{
+            align-self: center;
+            grid-column-start: 2;
+            grid-column-end: 3;
+            grid-row-start: 3;
+            grid-row-end: 4;
+        }
+        .links{
+            grid-column-start: 3;
+            grid-column-end: 4;
+            grid-row-start: 3;
+            grid-row-end: 4;
+
+            display: flex;
+            flex-direction: column;
+            justify-content: space-around;
+            align-items: flex-end;
+
+            padding: 28px 0px 34px 30px;
+        }
+
+        .linkitem{
+            background: black;
+            color: white;
+            font-size: smaller;
+            padding: 5px 10px 5px 10px;
+            text-decoration: none;
+        }
+
+        .projects{
+            grid-column-start: 2;
+            grid-column-end: 4;
+            grid-row-start: 4;
+            grid-row-end: 5;
+            background: #EFEFEF;
+            padding-left: 8px;
+        }
+
+        .projects a{
+            display: block;
+            padding-top: 3px;
+            cursor: pointer;
+            text-decoration: underline;
+            color: #007acc;
+            width: fit-content;
+        }
+    </style>
 </head>
 <body>
-<table style="text-align: left; width: 100%;" border="0" cellpadding="2" cellspacing="2">
-<tbody>
-<tr>
-<td><img style="width: 149px; height: 141px;" alt="logo" src="../icons/main/activitybrowser.png"></td>
-<td>
-<h1>Welcome to the Activity Browser !</h1>
-The <a href="https://github.com/LCA-ActivityBrowser/activity-browser">Activity
-Browser</a> is an open source graphical user interface designed to increase the productivity when working with the
-    <a href="https://brightway.dev/" rel="nofollow">Brightway2</a> LCA framework.
-</td>
-</tr>
-</tbody>
-</table>
+<div class="container">
+    <div class="update">
+        <h1>The Activity Browser</h1>
+        <p>Cutting-edge Life Cycle Assessment starts here</p>
+    </div>
+    <img class="logo" src="../icons/main/activitybrowser.png" width="230">
+    <div class="links">
+        <a class="linkitem" style="width: 90%" href="https://github.com/LCA-ActivityBrowser/activity-browser/wiki">Wiki</a>
+        <a class="linkitem" style="width: 80%" href="https://github.com/LCA-ActivityBrowser/activity-browser">Github</a>
+        <a class="linkitem" style="width: 70%" href="https://brightway.groups.io/g/AB-discussion/messages">Forum</a>
+        <a class="linkitem" style="width: 60%" href="https://docs.brightway.dev/en/latest/">Brightway25</a>
+    </div>
+    <div class="projects">
+        <h2>Recent projects:</h2>
+    </div>
+    <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
+    <script>
 
-<h3>Stay up-to-date</h3>
-The AB has two mailing lists:
- <ul>
-    <li> <a href="https://brightway.groups.io/g/AB-updates">Updates on AB development (e.g. new versions)</a></li>
-    <li> <a href="https://brightway.groups.io/g/AB-discussion">User channel for any topic related to the AB</a></li>
-</ul>
+        function addRecentProject(project_name){
+            let projectsEl = document.getElementsByClassName("projects")[0]
+            projectsEl.innerHTML = projectsEl.innerHTML + `<a onclick="projectClick('${project_name}')">${project_name}</a>`
+        }
 
-<h3>Some highlights</h3>
+        function projectClick(name){
+            console.log(name)
+            window.bridge.open_project(name)
+        }
 
- <ul>
-    <li><b>Fast LCA calculations:</b> for multiple reference flows, impact categories, and scenarios</li>
-    <li><b>A productivity tool for brightway:</b> model in brightway (python) and see the results in the AB or vice-versa</li>
-    <li><b>Advanced modeling:</b> Use parameters, scenarios (including prospective LCI databases from <a href="https://premise.readthedocs.io/">premise</a>), uncertainties and our Graph Explorer</li>
-    <li><b>Advanced analyses:</b> Contribution analyses, Sankey Diagrams, Monte Carlo, Global Sensitivity Analysis, and a Graph Explorer</li>
-</ul>
+        new QWebChannel(qt.webChannelTransport, function (channel) {
+            window.bridge = channel.objects.bridge
 
-<h3>Examples</h3>
- <table style="width:100%">
-  <tr>
-    <th><h4>LCA results overview</h4></th>
-    <th><h4>Monte Carlo simulation</h4></th>
-    <th><h4>Sankey diagrams</h4></th>
-  </tr>
-  <tr>
-      <!--alt="LCA results"-->
-    <td><img style="width: 100%" alt="LCA results" src="LCIA results.svg" onerror="this.src='LCIA results.png'"/></td>
-    <td><img style="width: 100%" alt="Monte Carlo" src="Monte Carlo.svg" onerror="this.src='Monte Carlo.png'"/></td>
-    <td><img style="width: 100%" alt="Sankey" src="Sankey1.png"><br></td>
-  </tr>
+            window.bridge.update.connect(function(data){
+                console.log(data)
+                data.forEach(addRecentProject)
+            })
+            window.bridge.is_ready()
+        })
+    </script>
+</div>
 
-</table>
-
-<h3>More information and resources</h3>
-See also the Activity Browser:
- <ul>
-    <li><a href="https://github.com/LCA-ActivityBrowser/activity-browser">GitHub page</a></li>
-    <li><a href="https://www.youtube.com/@activity-browser">YouTube Channel</a></li>
-    <li><a href="https://github.com/LCA-ActivityBrowser/activity-browser/wiki">Wiki</a></li>
-
-</ul>
-
-<h3>Contributing</h3>
-The Activity Browser is a true open source project and contributions are very welcome.
-Contributions can be made, e.g., by:<br>
-<ul>
-    <li>raising issues related to bugs or desirable features directly on our GitHub site (no programming skills required)</li>
-    <li>making a&nbsp;contribution to the code</li>
-</ul>
-Please see <a href="https://github.com/LCA-ActivityBrowser/activity-browser/blob/main/CONTRIBUTING.md">our
-page on contributing</a> for more detailed instructions.<br>
-
-<h3>Copyright and License</h3>
-For copyright information please see <a href="https://github.com/LCA-ActivityBrowser/activity-browser/tree/main#copyright">here</a>.<br><br>
-For license information please see <a href="https://github.com/LCA-ActivityBrowser/activity-browser/blob/main/LICENSE.txt">here</a>.<br><br>
-</body></html>
+</body>
+</html>

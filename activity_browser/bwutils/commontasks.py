@@ -1,5 +1,6 @@
 import hashlib
 import textwrap
+from datetime import datetime
 from logging import getLogger
 from collections import OrderedDict
 
@@ -105,6 +106,21 @@ def cleanup_deleted_bw_projects() -> None:
     """
     n_dir = bd.projects.purge_deleted_directories()
     log.info(f"Deleted {n_dir} unused project directories!")
+
+
+def projects_by_last_opened():
+    def key(ds):
+        if not ds.data or "last_opened" not in ds.data:
+            return 0
+        date = datetime.fromisoformat(ds.data["last_opened"])
+
+        return int(date.strftime("%Y%m%d%H%M%S"))
+
+    projects = list(bd.projects)
+    projects.sort(key=key, reverse=True)
+
+    return projects
+
 
 
 # Database

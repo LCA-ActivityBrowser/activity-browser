@@ -150,7 +150,7 @@ class GraphTab(QtWidgets.QWidget):
         """
         node_id = int(node_id)  # JS shenanigans can't deal with 64 bit strings
         node = bd.get_node(id=node_id)
-        if isinstance(node, bf.Function):
+        if isinstance(node, bf.Product):
             node = bd.get_node(key=node["processor"])
         self.expanded_nodes.add(node.id)
         self.sync()

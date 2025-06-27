@@ -157,11 +157,14 @@ class ActivityProperties(QtWidgets.QWidget):
         layout = QtWidgets.QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
 
-        for property_name in parent.activity.get("default_properties", {}):
+        if not isinstance(parent.activity, bf.Process):
+            return
+
+        for property_name in parent.activity.available_properties():
             layout.addWidget(ActivityProperty(parent.activity, property_name))
 
         add_label = QtWidgets.QLabel("<a style='text-decoration:underline;'>Add property</a>")
-        add_label.mouseReleaseEvent = lambda x: actions.ProcessDefaultPropertyModify.run(parent.activity)
+        add_label.mouseReleaseEvent = lambda x: actions.ProcessPropertyModify.run(parent.activity)
 
         layout.addWidget(add_label)
 
@@ -183,8 +186,8 @@ class ActivityProperty(QtWidgets.QPushButton):
         """
         super().__init__(property_name, None)
 
-        self.modify_action = actions.ProcessDefaultPropertyModify.get_QAction(activity, property_name)
-        self.remove_action = actions.ProcessDefaultPropertyRemove.get_QAction(activity, property_name)
+        self.modify_action = actions.ProcessPropertyModify.get_QAction(activity, property_name)
+        self.remove_action = actions.ProcessPropertyRemove.get_QAction(activity, property_name)
 
         self.menu = QtWidgets.QMenu(self)
         self.menu.addAction(self.modify_action)
@@ -224,9 +227,13 @@ class ActivityAllocation(QtWidgets.QComboBox):
         Args:
             parent (ActivityHeader): The parent widget.
         """
+        if not isinstance(parent.activity, bf.Process):
+            raise TypeError("ActivityAllocation can only be used with bf.Process instances.")
+
         super().__init__(parent)
+
         self.addItems(sorted(bf.allocation_strategies))
-        if props := parent.activity.get("default_properties", {}):
+        if props := parent.activity.available_properties():
             self.insertSeparator(1000)  # Large number to make sure it's appended at the end
             self.addItems(sorted(props))
 

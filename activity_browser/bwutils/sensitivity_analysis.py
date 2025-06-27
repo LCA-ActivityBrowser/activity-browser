@@ -226,7 +226,7 @@ def get_CF_dataframe(lca, only_uncertain_CFs=True):
 
 
 def get_parameters_DF(mc):
-    """Function to make parameters dataframe"""
+    """Product to make parameters dataframe"""
     if bool(mc.parameter_data):  # returns False if dict is empty
         dfp = pd.DataFrame(mc.parameter_data).T
         dfp["GSA name"] = "P: " + dfp["name"]

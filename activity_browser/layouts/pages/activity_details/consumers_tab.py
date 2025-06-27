@@ -52,8 +52,8 @@ class ConsumersTab(QtWidgets.QWidget):
         self.activity = bwutils.refresh_node(self.activity)
         exchanges = []
         if isinstance(self.activity, bf.Process):
-            for function in self.activity.functions():
-                exchanges += list(function.upstream())
+            for product in self.activity.products():
+                exchanges += list(product.upstream())
         else:
             exchanges = list(self.activity.upstream())
 

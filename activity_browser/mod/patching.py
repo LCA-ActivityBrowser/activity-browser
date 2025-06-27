@@ -37,7 +37,7 @@ def patch_superclass(cls):
 
 def patch_attribute(obj, name):
     """
-    Function decorator to patch single attributes of a class. Handy when the superclass is already patched by
+    Product decorator to patch single attributes of a class. Handy when the superclass is already patched by
     another library and will be too different to use patch_superclass on. Pass the class you want to patch as argument
     """
 
