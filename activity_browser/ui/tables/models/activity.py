@@ -61,8 +61,14 @@ class BaseExchangeModel(EditablePandasModel):
     def create_row(self, exchange) -> dict:
         """Take the given Exchange object and extract a number of attributes."""
         try:
+            # fixing a broken exchange
+            if not isinstance(exchange.get("amount"), float):
+                log.warning(f"Fixing broken exchange amount for {exchange.get('type', '')} exchange from: {exchange.input}")
+                exchange["amount"] = 1.0  # Ensure amount is a float
+                exchange.save()
+
             row = {
-                "Amount": float(exchange.get("amount", 1)),
+                "Amount": exchange.get("amount"),
                 "Unit": exchange.input.get("unit", "Unknown"),
                 "exchange": exchange,
             }
