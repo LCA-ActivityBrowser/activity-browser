@@ -1,5 +1,7 @@
 from typing import Any, List
 
+from bw2data.parameters import ParameterizedExchange
+
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.ui.icons import qicons
 
@@ -18,3 +20,5 @@ class ExchangeFormulaRemove(ABAction):
         for exchange in exchanges:
             del exchange["formula"]
             exchange.save()
+
+            ParameterizedExchange.delete().where(ParameterizedExchange.exchange == exchange._document.id).execute()
