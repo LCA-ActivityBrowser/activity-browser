@@ -64,7 +64,6 @@ class Bridge(QtCore.QObject):
         """
         Emits the ready signal.
         """
-        print("Opening project " + project_name)
         actions.ProjectSwitch.run(project_name)
 
 class WelcomeWebPage(QtWebEngineWidgets.QWebEnginePage):
