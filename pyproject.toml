@@ -95,7 +95,7 @@ log_cli = true
 
 [tool.pytest_env]
 AB_SIMPLE_CONSOLE = "1"
-JUST_TESTING = "1"
+JUST_TESTING = "2"
 
 [tool.black]
 line-length = 88
