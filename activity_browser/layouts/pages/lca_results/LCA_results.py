@@ -99,7 +99,7 @@ class LCAResultsPage(QtWidgets.QTabWidget):
 
         self.cs_name, self.mlca, self.contributions, self.mc = cs_name, mlca, contributions, mc
         self.cs = bd.calculation_setups[self.cs_name]
-        self.has_scenarios: bool = False
+        self.has_scenarios: bool = hasattr(mlca, "scenario_names")
         self.method_dict = bwutils.commontasks.get_LCIA_method_name_dict(self.mlca.methods)
         self.single_func_unit = len(self.mlca.func_units) == 1
         self.single_method = len(self.mlca.methods) == 1
