@@ -20,13 +20,8 @@ jobs:
     - uses: actions/checkout@v4
       with:
         fetch-depth: "0"
-        fetch-tags: true
-    - name: Explicitly fetch tags (just in case)
-      run: git fetch --tags
-    - name: List tags
-      run: git tag -l
     - name: Set version
-      run: echo "VERSION=3.b.$(git rev-list 2.11.0..HEAD --count)" >> $GITHUB_ENV
+      run: echo "VERSION=3.b.$(git rev-list 199b6c3..HEAD --count)" >> $GITHUB_ENV
     - name: Set up Python 3.11
       uses: actions/setup-python@v5
       with:
