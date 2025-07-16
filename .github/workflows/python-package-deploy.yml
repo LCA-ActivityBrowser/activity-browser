@@ -51,7 +51,7 @@ jobs:
       with:
         python-version: 3.11
         activate-environment: build
-        environment-file: .github/environments/build.yml
+        environment-file: .github/conda-envs/build.yml
     - name: Build a Conda tarbal
       run: |
         conda build -c conda-forge -c cmutel ./recipe/
