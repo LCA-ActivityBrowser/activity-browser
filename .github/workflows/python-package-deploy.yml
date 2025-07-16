@@ -21,6 +21,8 @@ jobs:
       with:
         fetch-depth: "0"
         fetch-tags: true
+    - name: Explicitly fetch tags (just in case)
+      run: git fetch --tags
     - name: List tags
       run: git tag -l
     - name: Set version
