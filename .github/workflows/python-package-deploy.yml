@@ -1,7 +1,7 @@
 ---
 # Inspired from:
 # https://packaging.python.org/en/latest/guides/publishing-package-distribution-releases-using-github-actions-ci-cd-workflows/
-name: Publish Python 🐍 distributions 📦 to PyPI and TestPyPI
+name: Publish beta to PyPI and Anaconda
 
 on:
   push:
@@ -9,7 +9,7 @@ on:
     tags: '*'
 jobs:
   build-n-publish:
-    name: Build and publish Python 🐍 distributions 📦 to PyPI and TestPyPI
+    name: Publish beta to PyPI and Anaconda
     runs-on: ubuntu-latest
     defaults:
       run:
