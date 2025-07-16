@@ -57,6 +57,6 @@ jobs:
         conda build -c conda-forge -c cmutel ./recipe/
     - name: Publish to Anaconda
       run: |
-        anaconda -t ${{ secrets.CONDA_MRVISSCHER }} upload \
+        anaconda -t ${{ secrets.CONDA_LCA }} upload \
         /usr/share/miniconda/envs/build/conda-bld/noarch/*.conda
 
