@@ -45,6 +45,8 @@ jobs:
         skip-existing: true
     - name: Publish distribution 📦 to PyPI
       uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        attestations: false
     - name: Set up Conda 3.11
       uses: conda-incubator/setup-miniconda@v3
       with:
