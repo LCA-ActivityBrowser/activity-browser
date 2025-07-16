@@ -1,15 +1,9 @@
-# conda recipe for stable release on bsteubing channel
-# https://anaconda.org/bsteubing/activity-browser
-# this is mainly used for development purposes, use the official release instead at
-# https://anaconda.org/conda-forge/activity-browser
 package:
   name: activity-browser
-  version: "{{ GIT_DESCRIBE_TAG }}"
+  version: "{{ os.environ.get('VERSION', 'dev') }}"
 
 source:
-  # Note for future: https://conda-forge.org/docs/maintainer/adding_pkgs.html#tarballs-no-repos
-  git_rev: major
-  git_url: https://github.com/LCA-ActivityBrowser/activity-browser.git
+  path: ..
 
 build:
   noarch: python
@@ -24,29 +18,17 @@ requirements:
     - python
     - setuptools
   run:
-    - python >=3.10, <3.12
-    - conda
+    - python >=3.10,<3.12
     - arrow
-    - bw2analyzer >=0.11.5
-    - bw2data >=4.1
-    - bw2parameters >=1.1
-    - bw2io >=0.9.3
-    - bw_graph_tools >=0.5
-    - bw_processing >=1.0
-    - bw_simapro_csv >=0.2.6
-    - bw_functional=0.b.67
-    - ecoinvent_interface
-    - matrix_utils >=0.5
-    - numpy >=1.23.5, <2
+    - brightway2 =2.4.6
+    - networkx
+    - numpy >=1.23.5
+    - pandas >=2.2.1
     - pint <=0.21
     - pyperclip
-    - pyprind
-    - networkx
-    - pandas >=2.2.1
     - pyside2 >=5.15.5
     - qt-webengine
-    - qtpy
-    - salib >=1.4, <1.5.1
+    - salib >=1.4
     - seaborn
 
 about:
