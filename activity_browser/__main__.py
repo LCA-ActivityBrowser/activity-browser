@@ -222,7 +222,7 @@ def check_conda_update():
     if ab_response.status_code != 200:
         print("Could not fetch latest Activity Browser version")
 
-    elif ab_current != "0.0.0" and ab_current != ab_response.json()['latest_version'].replace(".", ""):
+    elif ab_current != "0.0.0" and ab_current != ab_response.json()['latest_version']:
         print("There is an update available for the Activity Browser. Please update it using the following command: \n "
               "conda update activity-browser")
 
