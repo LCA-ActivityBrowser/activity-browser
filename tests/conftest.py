@@ -10,7 +10,6 @@ from activity_browser import application, signals
 from activity_browser.ui.widgets import MainWindow, CentralTabWidget
 from activity_browser.layouts import pages
 
-from fixtures.basic import DATA as BASIC_DATA
 
 
 @pytest.fixture(scope="session")
@@ -39,8 +38,19 @@ def clean_project(application_instance):
 
 @pytest.fixture
 def basic_database(clean_project):
+    from fixtures.basic import DATABASE, METHOD, CALCULATION_SETUP
+
     db = bf.FunctionalSQLiteDatabase("basic")
-    db.write(deepcopy(BASIC_DATA), process=False)
+    db.write(deepcopy(DATABASE), process=False)
     db.metadata["dirty"] = True
     bd.databases.flush()
+
+    mthd = bd.Method(("basic_method",))
+    mthd.register(unit="kilogram", num_cfs=1)
+    mthd.write(deepcopy(METHOD), process=False)
+
+    bd.calculation_setups["basic_calculation_setup"] = CALCULATION_SETUP
+    bd.calculation_setups.flush()
+
     return db
+

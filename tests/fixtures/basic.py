@@ -1,4 +1,4 @@
-DATA = {
+DATABASE = {
     ("basic", "elementary"): {
         "name": "elementary",
         "code": "elementary",
@@ -56,3 +56,8 @@ DATA = {
             },
         },
 }
+
+METHOD = [(('basic', 'elementary'), 1.0)]
+
+CALCULATION_SETUP = {'inv': [{('basic', 'product_1'): 1.0}], 'ia': [('METHOD',)]}
+
