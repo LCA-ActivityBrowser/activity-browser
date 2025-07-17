@@ -105,7 +105,7 @@ class MetaDataStore(QObject):
 
     @property
     def databases(self):
-        return set(self.dataframe["database"].unique())
+        return set(self.dataframe.get("database").unique())
 
     def sync_node(self, key: tuple) -> None:
         """Update metadata when an activity has changed.
