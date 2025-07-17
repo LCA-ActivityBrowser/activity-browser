@@ -42,7 +42,7 @@ dependencies = [
     "bw_simapro_csv >=0.2.6",
     "ecoinvent_interface",
     "matrix_utils>=0.5",
-    "multifunctional>=0.8.1",
+    "bw-functional==0b79",
     "networkx",
     "numpy>=1.23.5,<2",
     "pandas<=2.1.4",
