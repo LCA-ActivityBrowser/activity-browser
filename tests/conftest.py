@@ -9,7 +9,8 @@ from bw2data import projects, config
 import bw2io as bi
 import pytest
 
-from activity_browser import MainWindow, application
+from activity_browser import application
+from activity_browser.ui.widgets import MainWindow
 
 
 def create_temp_dirs(temp_dir: Optional[Path] = None):
@@ -29,6 +30,10 @@ def ab_app():
     """Initialize the application and yield it. Cleanup the 'test' project
     after session is complete.
     """
+    print("check")
+    from activity_browser.ui.widgets import MainWindow, CentralTabWidget
+    from activity_browser.layouts import panes, pages
+
     dir_base_data, dir_base_logs = create_temp_dirs()
     projects.change_base_directories(dir_base_data, dir_base_logs)
 
@@ -38,9 +43,18 @@ def ab_app():
         overwrite_existing=True,
     )
 
-    application.main_window = MainWindow(application)
-    application.show()
+    application.main_window = MainWindow()
+    application.main_window.setPanes([panes.DatabasesPane, panes.ImpactCategoriesPane, panes.CalculationSetupsPane])
+
+    central_widget = CentralTabWidget(application.main_window)
+    central_widget.addTab(pages.WelcomePage(), "Welcome")
+    central_widget.addTab(pages.ParametersPage(), "Parameters")
+
+    application.main_window.setCentralWidget(central_widget)
+    application.main_window.show()
+
     projects.set_current("default")
+
     yield application
     application.close()
 

@@ -6,9 +6,7 @@ from qtpy import QtWidgets
 
 from activity_browser import actions, application
 from activity_browser.actions.database.database_duplicate import DuplicateDatabaseDialog
-from activity_browser.ui.widgets.dialog import DatabaseLinkingDialog
-from activity_browser.ui.wizards.db_export_wizard import DatabaseExportWizard
-from activity_browser.ui.wizards.db_import_wizard import DatabaseImportWizard
+
 
 
 def test_database_delete(ab_app, monkeypatch):

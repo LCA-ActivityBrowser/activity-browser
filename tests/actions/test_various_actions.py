@@ -1,5 +1,4 @@
 from activity_browser import actions, application
-from activity_browser.ui.wizards.plugins_manager_wizard import PluginsManagerWizard
 from activity_browser.ui.wizards.settings_wizard import SettingsWizard
 
 ####### DEPRECATED IN BW25

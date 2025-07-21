@@ -10,7 +10,6 @@ from stats_arrays.distributions import (
 )
 
 from activity_browser import actions, application
-from activity_browser.ui.widgets.dialog import TupleNameDialog
 from activity_browser.ui.wizards import UncertaintyWizard
 
 
