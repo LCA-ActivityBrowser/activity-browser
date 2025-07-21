@@ -6,7 +6,7 @@ channels:
   - lca
 dependencies:
   - pytest
-  - pytest-qt
+  - pytest-qt =4.4.0
   - pytest-mock
   - pytest-env
   - pytest-cov
