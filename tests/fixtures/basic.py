@@ -26,6 +26,8 @@ DATABASE = {
                 "type": "biosphere",
                 "amount": 10,
                 "input": ("basic", "elementary"),
+                "formula": "5+5",
+                "uncertainty type": 1,
             },
         ],
     },
