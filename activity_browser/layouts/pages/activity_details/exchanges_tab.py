@@ -443,7 +443,6 @@ class ExchangesView(widgets.ABTreeView):
             parent (QtWidgets.QWidget): The parent widget.
         """
         super().__init__(parent)
-        self.setAcceptDrops(False)
         self.setSortingEnabled(True)
 
         self.drag_drop_hint = QtWidgets.QLabel("Drag products here to create new exchanges.", self)
@@ -451,6 +450,12 @@ class ExchangesView(widgets.ABTreeView):
         fnt.setPointSize(fnt.pointSize() + 2)
         fnt.setWeight(QtGui.QFont.Weight.ExtraLight)
         self.drag_drop_hint.setFont(fnt)
+
+        # Set up the layout
+        layout = QtWidgets.QVBoxLayout(self)
+        layout.addStretch()
+        layout.addWidget(self.drag_drop_hint, alignment=Qt.AlignCenter)  # Center horizontally
+        layout.addStretch()
 
         # Set the property delegate
         self.propertyDelegate = delegates.PropertyDelegate(self)
