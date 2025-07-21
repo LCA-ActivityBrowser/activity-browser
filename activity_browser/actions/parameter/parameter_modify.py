@@ -24,13 +24,13 @@ class ParameterModify(ABAction):
         param_model = parameter.to_peewee_model()
 
         if field == "data":
-            parameter.data.update(value)
+            param_model.data.update(value)
         elif field == "name":
             return ParameterRename.run(parameter, value)
         elif field in dir(param_model):
             setattr(param_model, field, value)
         else:
-            raise ValueError(f"Field {field} not recognized for {type(parameter)}")
+            param_model.data.update({field: value})
 
         param_model.save()
 
