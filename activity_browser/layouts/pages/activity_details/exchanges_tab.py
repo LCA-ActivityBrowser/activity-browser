@@ -40,6 +40,7 @@ class ExchangesTab(QtWidgets.QWidget):
             parent (QtWidgets.QWidget, optional): The parent widget. Defaults to None.
         """
         super().__init__(parent)
+        self.setAcceptDrops(True)
 
         # Refresh the activity node
         self.activity = refresh_node(activity)
@@ -59,6 +60,9 @@ class ExchangesTab(QtWidgets.QWidget):
 
         # Set indentation for input view
         self.input_view.setIndentation(0)
+
+        # Overlay for drag and drop
+        self.overlay = None
 
         # Build the layout of the widget
         self.build_layout()
@@ -184,6 +188,78 @@ class ExchangesTab(QtWidgets.QWidget):
 
         return df[cols]
 
+    def dragEnterEvent(self, event):
+        """
+        Handles the drag enter event.
+
+        Args:
+            event: The drag enter event.
+        """
+        if database_is_locked(self.activity["database"]):
+            return
+
+        if event.mimeData().hasFormat("application/bw-nodekeylist"):
+            self.overlay = DropOverlay(self)
+            self.overlay.show()
+            event.accept()
+
+    def dragLeaveEvent(self, event):
+        """
+        Handles the drag leave event.
+
+        Args:
+            event: The drag leave event.
+        """
+        # Reset the palette on drag leave
+        self.overlay.deleteLater()
+
+    def dropEvent(self, event):
+        """
+        Handles the drop event.
+
+        Args:
+            event: The drop event.
+        """
+        log.debug(f"Dropevent from: {type(event.source()).__name__} to: {self.__class__.__name__}")
+        # Reset the palette on drop
+        self.overlay.deleteLater()
+
+        keys: list = event.mimeData().retrievePickleData("application/bw-nodekeylist")
+        exchanges = {"technosphere": set(), "biosphere": set()}
+
+        for key in keys:
+            act = bd.get_node(key=key)
+            if act["type"] not in EXCHANGE_MAP:
+                continue
+            exc_type = EXCHANGE_MAP[act["type"]]
+            exchanges[exc_type].add(act.key)
+
+        # Run the action for new exchanges
+        for exc_type, keys in exchanges.items():
+            actions.ExchangeNew.run(keys, self.activity.key, exc_type)
+
+
+class DropOverlay(QtWidgets.QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setAttribute(Qt.WA_TransparentForMouseEvents)
+        self.setAttribute(Qt.WA_NoSystemBackground)
+        self.setAttribute(Qt.WA_TranslucentBackground)
+        self.setAutoFillBackground(False)
+        self.resize(parent.size())
+
+    def paintEvent(self, event):
+        painter = QtGui.QPainter(self)
+        painter.setRenderHint(QtGui.QPainter.Antialiasing)
+        painter.fillRect(self.rect(), QtGui.QColor(0, 100, 255, 200))  # Semi-transparent blue
+        painter.setPen(Qt.white)
+
+        font = self.font()
+        font.setBold(True)
+
+        painter.setFont(font)
+        painter.drawText(self.rect(), Qt.AlignCenter, "Drop here to create new exchanges")
+
 
 class ExchangeAmountDelegate(QtWidgets.QStyledItemDelegate):
     def displayText(self, value, locale):
@@ -258,7 +334,6 @@ class ExchangesView(widgets.ABTreeView):
         "comment": delegates.StringDelegate,
         "uncertainty": delegates.UncertaintyDelegate,
     }
-    hovered_item: "ExchangesItem" = None
 
     class HeaderMenu(widgets.ABMenu):
         menuSetup = [
@@ -368,7 +443,7 @@ class ExchangesView(widgets.ABTreeView):
             parent (QtWidgets.QWidget): The parent widget.
         """
         super().__init__(parent)
-        self.setAcceptDrops(True)
+        self.setAcceptDrops(False)
         self.setSortingEnabled(True)
 
         self.drag_drop_hint = QtWidgets.QLabel("Drag products here to create new exchanges.", self)
@@ -402,107 +477,6 @@ class ExchangesView(widgets.ABTreeView):
                 continue
             # Set the delegate for property columns
             self.setItemDelegateForColumn(i, self.propertyDelegate)
-
-    def dragMoveEvent(self, event) -> None:
-        """
-        Handles the drag move event.
-
-        Args:
-            event: The drag move event.
-        """
-        index = self.indexAt(event.pos())
-        item = index.internalPointer()
-
-        if self.hovered_item:
-            if item == self.hovered_item:
-                pass
-            elif isinstance(item, ExchangesItem):
-                self.hovered_item.background_color = None
-                self.hovered_item = item
-            else:
-                self.hovered_item.background_color = None
-                self.hovered_item = None
-        elif isinstance(item, ExchangesItem):
-            self.hovered_item = item
-
-        if self.hovered_item and self.hovered_item.acceptsDragDrop(event):
-            # Highlight the hovered item
-            self.hovered_item.background_color = "#ADD8E6"
-            self.setPalette(QtGui.QGuiApplication.palette())
-            event.acceptProposedAction()
-        else:
-            self.dragEnterEvent(event)
-            event.acceptProposedAction()
-
-    def dragEnterEvent(self, event):
-        """
-        Handles the drag enter event.
-
-        Args:
-            event: The drag enter event.
-        """
-        if database_is_locked(self.activity["database"]):
-            return
-
-        if event.mimeData().hasFormat("application/bw-nodekeylist"):
-            palette = self.palette()
-            # Change background color on drag enter
-            palette.setColor(palette.ColorGroup.All, palette.ColorRole.Base, QtGui.QColor("#e8f4f8"))
-            self.setPalette(palette)
-            event.accept()
-
-    def dragLeaveEvent(self, event):
-        """
-        Handles the drag leave event.
-
-        Args:
-            event: The drag leave event.
-        """
-        if self.hovered_item:
-            self.hovered_item.background_color = None
-            self.hovered_item = None
-        # Reset the palette on drag leave
-        self.setPalette(QtGui.QGuiApplication.palette())
-
-    def dropEvent(self, event):
-        """
-        Handles the drop event.
-
-        Args:
-            event: The drop event.
-        """
-        log.debug(f"Dropevent from: {type(event.source()).__name__} to: {self.__class__.__name__}")
-        # Reset the palette on drop
-        self.setPalette(QtGui.QGuiApplication.palette())
-
-        if self.hovered_item and self.hovered_item.acceptsDragDrop(event):
-            self.hovered_item.onDrop(event)
-            self.hovered_item.background_color = None
-            self.setPalette(QtGui.QGuiApplication.palette())
-            return
-
-        keys: list = event.mimeData().retrievePickleData("application/bw-nodekeylist")
-        exchanges = {"technosphere": set(), "biosphere": set()}
-
-        for key in keys:
-            act = bd.get_node(key=key)
-            if act["type"] not in EXCHANGE_MAP:
-                continue
-            exc_type = EXCHANGE_MAP[act["type"]]
-            exchanges[exc_type].add(act.key)
-
-        # Run the action for new exchanges
-        for exc_type, keys in exchanges.items():
-            actions.ExchangeNew.run(keys, self.activity.key, exc_type)
-
-    def move_hint(self):
-        x = self.width() / 2 - self.drag_drop_hint.width() / 2
-        y = self.height() / 2 - self.drag_drop_hint.height() / 2
-        self.drag_drop_hint.move(int(x), int(y))
-
-    def moveEvent(self, event):
-        super().moveEvent(event)
-        self.move_hint()
 
 
 class ExchangesItem(widgets.ABDataItem):
