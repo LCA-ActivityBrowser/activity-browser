@@ -59,7 +59,7 @@ DATABASE = {
         },
 }
 
-METHOD = [(('basic', 'elementary'), 1.0)]
+METHOD = [(('basic', 'elementary'), {"amount":1.0, "uncertainty type": 1})]
 
-CALCULATION_SETUP = {'inv': [{('basic', 'product_1'): 1.0}], 'ia': [('METHOD',)]}
+CALCULATION_SETUP = {'inv': [{('basic', 'product_1'): 1.0}], 'ia': [("basic_method",)]}
 
