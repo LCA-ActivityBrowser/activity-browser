@@ -126,7 +126,7 @@ class ExchangesTab(QtWidgets.QWidget):
                 "properties", "processor"]
 
         # Create a DataFrame from the exchanges
-        exc_df = pd.DataFrame(exchanges, columns=["amount", "input", "formula", "uncertainty type",])
+        exc_df = pd.DataFrame(exchanges, columns=["amount", "input", "formula", "uncertainty type", "comment"])
         act_df = AB_metadata.get_metadata(exc_df["input"].unique(), cols)
 
         # Merge the exchanges DataFrame with the metadata DataFrame
@@ -179,7 +179,7 @@ class ExchangesTab(QtWidgets.QWidget):
         cols += ["substitute_name", "substitution_factor"] if "substitute_name" in df.columns else []
         cols += ["allocation_factor"] if not database_is_legacy(self.activity.get("database")) else []
         cols += [col for col in df.columns if col.startswith("property")]
-        cols += ["formula", "uncertainty"]
+        cols += ["formula", "comment", "uncertainty"]
         cols += [col for col in df.columns if col.startswith("_")]
 
         return df[cols]
@@ -561,7 +561,7 @@ class ExchangesItem(widgets.ABDataItem):
             return flags
 
         # Allow editing for specific keys: "amount", "formula", and "uncertainty".
-        if key in ["amount", "formula", "uncertainty"]:
+        if key in ["amount", "formula", "uncertainty", "comment"]:
             return flags | Qt.ItemFlag.ItemIsEditable
 
         # Allow editing for "unit", "name", "location", and "substitution_factor" if the exchange is functional.
@@ -690,7 +690,7 @@ class ExchangesItem(widgets.ABDataItem):
         Returns:
             bool: True if the data was set successfully, False otherwise.
         """
-        if key in ["amount", "formula"]:
+        if key in ["amount", "formula", "comment"]:
             if key == "formula" and not str(value).strip():
                 actions.ExchangeFormulaRemove.run([self.exchange])
                 return True
