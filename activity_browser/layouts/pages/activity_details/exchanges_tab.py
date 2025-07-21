@@ -674,6 +674,11 @@ class ExchangesItem(widgets.ABDataItem):
 
         if key in ["unit", "name", "location", "substitution_factor", "allocation_factor"]:
             act = self.exchange.input
+
+            # if we're dealing with a legacy activity, we need to set to the product field here
+            if key == "name" and not isinstance(act, bf.Product):
+                key = "reference product"
+
             actions.ActivityModify.run(act.key, key.lower(), value)
 
         if key.startswith("property_"):
