@@ -3,6 +3,7 @@ channels:
   - conda-forge
   - cmutel
   - mrvisscher
+  - lca
 dependencies:
   - pytest
   - pytest-qt
