@@ -52,6 +52,7 @@ class ParametersTab(QtWidgets.QWidget):
         """
         Connects signals to their respective slots.
         """
+        signals.parameter.changed.connect(self.sync)
         signals.parameter.recalculated.connect(self.sync)
         signals.parameter.deleted.connect(self.sync)
 
@@ -77,6 +78,7 @@ class ParametersTab(QtWidgets.QWidget):
             row = param._asdict()
             row["uncertainty"] = param.data.get("uncertainty type")
             row["formula"] = param.data.get("formula")
+            row["comment"] = param.data.get("comment")
             row["_parameter"] = param
             row["_activity"] = self.activity
 
@@ -91,7 +93,7 @@ class ParametersTab(QtWidgets.QWidget):
 
             translated.append(row)
 
-        columns = ["name", "amount", "formula", "uncertainty", "_parameter", "_scope", "_activity"]
+        columns = ["name", "amount", "formula", "uncertainty", "comment", "_parameter", "_scope", "_activity"]
         return pd.DataFrame(translated, columns=columns)
 
 
@@ -175,7 +177,7 @@ class ParametersItem(widgets.ABDataItem):
         """
         flags = super().flags(col, key)
 
-        if key in ["amount", "formula", "uncertainty", "name"] and not database_is_locked(self["_activity"]["database"]):
+        if key in ["amount", "formula", "uncertainty", "name", "comment"] and not database_is_locked(self["_activity"]["database"]):
             return flags | QtCore.Qt.ItemFlag.ItemIsEditable
         return flags
 
@@ -191,7 +193,7 @@ class ParametersItem(widgets.ABDataItem):
         Returns:
             bool: True if the data was set successfully, False otherwise.
         """
-        if key in ["amount", "formula", "name"]:
+        if key in ["amount", "formula", "name", "comment"]:
             actions.ParameterModify.run(self.parameter, key, value)
 
         return False
