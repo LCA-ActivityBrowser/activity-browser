@@ -582,7 +582,7 @@ class ExchangesItem(widgets.ABDataItem):
                 "normalize": False,
             }
 
-        if key.startswith("property_") and self[key]["normalize"]:
+        if key.startswith("property_") and self[key].get("normalize", True):
             prop = self[key].copy()
             prop["unit"] = prop['unit'] + f" / {self['unit']}"
             return prop

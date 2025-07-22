@@ -124,6 +124,11 @@ class MainWindow(QtWidgets.QMainWindow):
         pane.sync()
 
     def writeState(self, directory):
+        if not directory.exists():
+            # project directory does not exist, may be temporary or because the project was deleted
+            log.debug(f"Project directory {directory} does not exist, skipping state save.")
+            return
+
         pane_data = []
         for pane in self.panes():
             pane_data.append({

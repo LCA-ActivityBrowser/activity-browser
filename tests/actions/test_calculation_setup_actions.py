@@ -1,14 +1,13 @@
-from bw2data.project import projects
-from bw2data.meta import calculation_setups
-
+import pytest
+import bw2data as bd
+from bw2data.errors import BW2Exception
 from qtpy import QtWidgets
 
 from activity_browser import actions
 
 
-def test_cs_delete(ab_app, monkeypatch):
-    cs = "cs_to_delete"
 
+def test_cs_delete(monkeypatch, basic_database):
     monkeypatch.setattr(
         QtWidgets.QMessageBox, "warning", staticmethod(lambda *args, **kwargs: True)
     )
@@ -17,68 +16,64 @@ def test_cs_delete(ab_app, monkeypatch):
         QtWidgets.QMessageBox, "information", staticmethod(lambda *args, **kwargs: True)
     )
 
-    assert projects.current == "default"
-    assert cs in calculation_setups
+    cs_name = "basic_calculation_setup"
 
-    actions.CSDelete.run(cs)
+    assert cs_name in bd.calculation_setups
 
-    assert cs not in calculation_setups
+    actions.CSDelete.run(cs_name)
+
+    assert cs_name not in bd.calculation_setups
 
 
-def test_cs_duplicate(ab_app, monkeypatch):
-    cs = "cs_to_duplicate"
-    dup_cs = "cs_that_is_duplicated"
-
+def test_cs_duplicate(monkeypatch, basic_database):
     monkeypatch.setattr(
         QtWidgets.QInputDialog,
         "getText",
-        staticmethod(lambda *args, **kwargs: ("cs_that_is_duplicated", True)),
+        staticmethod(lambda *args, **kwargs: ("duplicated", True)),
     )
 
-    assert projects.current == "default"
-    assert cs in calculation_setups
-    assert dup_cs not in calculation_setups
+    cs_name = "basic_calculation_setup"
+    duplicated = "duplicated"
 
-    actions.CSDuplicate.run(cs)
+    assert cs_name in bd.calculation_setups
+    assert duplicated not in bd.calculation_setups
 
-    assert cs in calculation_setups
-    assert dup_cs in calculation_setups
+    actions.CSDuplicate.run(cs_name)
+
+    assert cs_name in bd.calculation_setups
+    assert duplicated in bd.calculation_setups
 
 
-def test_cs_new(ab_app, monkeypatch):
+def test_cs_new(monkeypatch, basic_database):
     new_cs = "cs_that_is_new"
 
     monkeypatch.setattr(
         QtWidgets.QInputDialog,
         "getText",
-        staticmethod(lambda *args, **kwargs: ("cs_that_is_new", True)),
+        staticmethod(lambda *args, **kwargs: (new_cs, True)),
     )
 
-    assert projects.current == "default"
-    assert new_cs not in calculation_setups
+    assert new_cs not in bd.calculation_setups
 
     actions.CSNew.run()
 
-    assert new_cs in calculation_setups
-
-    return
+    assert new_cs in bd.calculation_setups
 
 
-def test_cs_rename(ab_app, monkeypatch):
-    cs = "cs_to_rename"
+def test_cs_rename(monkeypatch, basic_database):
+    cs_name = "basic_calculation_setup"
     renamed_cs = "cs_that_is_renamed"
 
     monkeypatch.setattr(
         QtWidgets.QInputDialog,
         "getText",
-        staticmethod(lambda *args, **kwargs: ("cs_that_is_renamed", True)),
+        staticmethod(lambda *args, **kwargs: (renamed_cs, True)),
     )
 
-    assert projects.current == "default"
-    assert cs in calculation_setups
-    assert renamed_cs not in calculation_setups
+    assert cs_name in bd.calculation_setups
+    assert renamed_cs not in bd.calculation_setups
 
-    actions.CSRename.run(cs)
+    actions.CSRename.run(cs_name)
 
-    assert cs not in calculation_setups
-    assert renamed_cs in calculation_setups
+    assert cs_name not in bd.calculation_setups
+    assert renamed_cs in bd.calculation_setups
