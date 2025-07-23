@@ -1,9 +1,7 @@
-import pytest
 import bw2data as bd
-from bw2data.errors import BW2Exception
 from qtpy import QtWidgets
 
-from activity_browser import actions
+from activity_browser import actions, application
 
 
 def test_database_delete(monkeypatch, basic_database):
@@ -18,7 +16,7 @@ def test_database_delete(monkeypatch, basic_database):
     assert basic_database.name not in bd.databases
 
 
-def test_database_duplicate(monkeypatch, qtbot, basic_database, application_instance):
+def test_database_duplicate(monkeypatch, qtbot, basic_database):
     from activity_browser.actions.database.database_duplicate import DuplicateDatabaseDialog
 
     dup_db = "db_that_is_duplicated"
@@ -33,7 +31,7 @@ def test_database_duplicate(monkeypatch, qtbot, basic_database, application_inst
 
     actions.DatabaseDuplicate.run(basic_database.name)
 
-    dialog = application_instance.main_window.findChild(DuplicateDatabaseDialog)
+    dialog = application.main_window.findChild(DuplicateDatabaseDialog)
     with qtbot.waitSignal(dialog.dup_thread.finished, timeout=60 * 1000):
         pass
 
@@ -41,18 +39,18 @@ def test_database_duplicate(monkeypatch, qtbot, basic_database, application_inst
     assert dup_db in bd.databases
 
 
-def test_database_export(application_instance):
+def test_database_export(main_window):
     # TODO: implement when we've redone the export wizard and actions
     from activity_browser.ui.wizards.db_export_wizard import DatabaseExportWizard
 
     actions.DatabaseExport.run()
 
-    wizard = application_instance.main_window.findChild(DatabaseExportWizard)
+    wizard = main_window.findChild(DatabaseExportWizard)
     assert wizard.isVisible()
     wizard.destroy()
 
 
-def test_database_new(monkeypatch, application_instance, clean_project):
+def test_database_new(monkeypatch, basic_database):
     from activity_browser.actions.database.database_new import NewDatabaseDialog
 
     new_db = "db_that_is_new"

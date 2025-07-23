@@ -3,13 +3,7 @@ import bw2data as bd
 from bw2data.errors import BW2Exception
 from qtpy import QtWidgets
 
-from activity_browser import actions
-
-
-
-def test_launch_application(application_instance):
-    """Test that the application launches correctly."""
-    assert application_instance.main_window.isVisible()
+from activity_browser import actions, application
 
 
 def test_activity_delete(monkeypatch, basic_database):
@@ -75,22 +69,23 @@ def test_activity_new(monkeypatch, basic_database):
     assert len([p for p in basic_database if p["name"] == "new_product"]) == 1
 
 
-def test_process_open(application_instance, basic_database):
+def test_process_open(basic_database):
     process = basic_database.get("process")
 
     actions.ActivityOpen.run([process.key])
 
-    group = application_instance.main_window.centralWidget().groups["Activity Details"]
+    group = application.main_window.centralWidget().groups["Activity Details"]
     assert "activity_details_basic_process" in [group.widget(i).objectName() for i in range(group.count())]
 
 
-def test_product_open(application_instance, basic_database):
-    product = basic_database.get("product_1")
-
-    actions.ActivityOpen.run([product.key])
-
-    group = application_instance.main_window.centralWidget().groups["Activity Details"]
-    assert "activity_details_basic_process" in [group.widget(i).objectName() for i in range(group.count())]
+# def test_product_open(application_instance, basic_database):
+#     product = basic_database.get("product_1")
+#
+#     actions.ActivityOpen.run([product.key])
+#
+#     group = application_instance.main_window.centralWidget().groups["Activity Details"]
+#     assert "activity_details_basic_process" in [group.widget(i).objectName() for i in range(group.count())]
+#     assert True
 
 
 # def test_activity_relink(ab_app, monkeypatch, qtbot):

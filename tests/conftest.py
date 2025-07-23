@@ -2,42 +2,44 @@ from copy import deepcopy
 
 import pytest
 
+import PySide6
+from qtpy import QtCore, QtGui, QtWidgets, QT_API
+
 import bw2data as bd
 import bw_functional as bf
 from bw2data.tests import bw2test
 
-from activity_browser import application, signals
+import activity_browser
+from activity_browser import application
+from activity_browser.signals import ABSignals
 from activity_browser.ui.widgets import MainWindow, CentralTabWidget
 from activity_browser.layouts import pages
 
 
+@pytest.fixture()
+def main_window(qtbot):
+    """Return the main window of the application instance."""
+    main_window = MainWindow()
+    central_widget = CentralTabWidget(main_window)
 
-@pytest.fixture(scope="session")
-def application_instance():
-    """Initialize the application and yield it. Cleanup the 'test' project
-    after session is complete.
-    """
-    application.main_window = MainWindow()
+    qtbot.addWidget(main_window)
+    setattr(application, "main_window", main_window)
 
-    central_widget = CentralTabWidget(application.main_window)
     central_widget.addTab(pages.WelcomePage(), "Welcome")
     central_widget.addTab(pages.ParametersPage(), "Parameters")
 
-    application.main_window.setCentralWidget(central_widget)
-    application.show()
+    main_window.setCentralWidget(central_widget)
+    main_window.show()
 
-    yield application
+    yield main_window
 
-    application.close()
+    # main_window.close()
+    main_window.deleteLater()
+    qtbot.wait(10)
 
 @pytest.fixture
 @bw2test
-def clean_project(application_instance):
-    return
-    # signals.project.changed.emit(bd.projects.dataset, bd.projects.dataset)
-
-@pytest.fixture
-def basic_database(clean_project):
+def basic_database(main_window):
     from fixtures.basic import DATABASE, METHOD, CALCULATION_SETUP
 
     db = bf.FunctionalSQLiteDatabase("basic")
