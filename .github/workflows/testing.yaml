@@ -29,12 +29,8 @@ jobs:
         if: ${{ matrix.os == 'ubuntu-latest' }}
         # https://pytest-qt.readthedocs.io/en/latest/troubleshooting.html#github-actions
         run: |
-          sudo apt install -y libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 \
-            libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-xinerama0 \
-            libxcb-xfixes0 xvfb x11-utils glibc-tools libgl1 libegl1 libdbus-1-3;
-          /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid \
-          --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 \
-          1920x1200x24 -ac +extension GLX +render -noreset;
+          sudo apt install libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-xinerama0 libxcb-xfixes0 x11-utils
+                  /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1920x1200x24 -ac +extension GLX
 
       - name: Update pip & install testing pkgs
         run: |
