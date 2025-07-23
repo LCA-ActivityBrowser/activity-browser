@@ -25,7 +25,7 @@ class CentralTabWidget(QtWidgets.QTabWidget):
         """
         super().__init__(*args)
         # Connect to the project changed signal to reset the current index to 0
-        signals.project.changed.connect(lambda: self.setCurrentIndex(0))
+        signals.project.changed.connect(self.reset)
 
     @property
     def groups(self):
@@ -66,6 +66,7 @@ class CentralTabWidget(QtWidgets.QTabWidget):
             # Add the page to the group if it does not exist
             name = page.windowTitle() or page.objectName()  # Use windowTitle if available
             page.setWindowTitle(name)  # make sure the page has a title
+            page.setParent(group)
             group.addTab(page, name)
 
             page.windowTitleChanged.connect(lambda title: group.setTabText(group.indexOf(page), title))
@@ -77,6 +78,9 @@ class CentralTabWidget(QtWidgets.QTabWidget):
         # Set the group and page as the current widgets
         self.setCurrentWidget(group)
         group.setCurrentWidget(page)
+
+    def reset(self):
+        self.setCurrentIndex(0)
 
 
 class GroupTabWidget(QtWidgets.QTabWidget):

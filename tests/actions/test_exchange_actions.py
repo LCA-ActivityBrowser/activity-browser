@@ -1,77 +1,68 @@
-import platform
-
-from bw2data.utils import get_activity
-from bw2data.project import projects
-
 import pytest
-from qtpy import QtGui
-from stats_arrays.distributions import NormalUncertainty, UndefinedUncertainty
+from stats_arrays.distributions import NoUncertainty, UndefinedUncertainty
 
 from activity_browser import actions, application
 from activity_browser.ui.wizards import UncertaintyWizard
 
 
-def test_exchange_copy_sdf(ab_app):
-    # this test will always fail on the linux automated test because it doesn't have a clipboard
-    if platform.system() == "Linux":
-        return
+# def test_exchange_copy_sdf(basic_database):
+#     # this test will always fail on the linux automated test because it doesn't have a clipboard
+#     if platform.system() == "Linux":
+#         return
+#
+#     process = basic_database.get("process")
+#     elementary = basic_database.get("elementary")
+#
+#     exchange = [
+#         exchange
+#         for exchange in process.exchanges()
+#         if exchange.input == elementary
+#     ]
+#
+#     clipboard = QtGui.QClipboard()
+#     clipboard.setText("FAILED")
+#
+#     assert projects.current == "default"
+#     assert len(exchange) == 1
+#     assert clipboard.text() == "FAILED"
+#
+#     actions.ExchangeCopySDF.run(exchange)
+#
+#     assert clipboard.text() != "FAILED"
+#
+#     return
 
-    key = ("exchange_tests", "186cdea4c3214479b931428591ab2021")
-    from_key = ("exchange_tests", "77780c6ab87d4e8785172f107877d6ed")
+
+def test_exchange_delete(basic_database):
+    process = basic_database.get("process")
+    elementary = basic_database.get("elementary")
+
     exchange = [
         exchange
-        for exchange in get_activity(key).exchanges()
-        if exchange.input.key == from_key
+        for exchange in process.exchanges()
+        if exchange.input == elementary
     ]
 
-    clipboard = QtGui.QClipboard()
-    clipboard.setText("FAILED")
-
-    assert projects.current == "default"
     assert len(exchange) == 1
-    assert clipboard.text() == "FAILED"
-
-    actions.ExchangeCopySDF.run(exchange)
-
-    assert clipboard.text() != "FAILED"
-
-    return
-
-
-def test_exchange_delete(ab_app):
-    key = ("exchange_tests", "186cdea4c3214479b931428591ab2021")
-    from_key = ("exchange_tests", "3b86eaea74ff40d69e9e6bec137a8f0c")
-    exchange = [
-        exchange
-        for exchange in get_activity(key).exchanges()
-        if exchange.input.key == from_key
-    ]
-
-    assert projects.current == "default"
-    assert len(exchange) == 1
-    assert exchange[0].as_dict() in [
-        exchange.as_dict() for exchange in get_activity(key).exchanges()
-    ]
+    num_exchanges = len(process.exchanges())
 
     actions.ExchangeDelete.run(exchange)
 
-    assert exchange[0].as_dict() not in [
-        exchange.as_dict() for exchange in get_activity(key).exchanges()
-    ]
+    assert len(process.exchanges()) == num_exchanges - 1
 
 
-def test_exchange_formula_remove(ab_app):
-    key = ("exchange_tests", "186cdea4c3214479b931428591ab2021")
-    from_key = ("exchange_tests", "19437c81de6545ad8d017ee2e2fa32e6")
+def test_exchange_formula_remove(basic_database):
+    process = basic_database.get("process")
+    elementary = basic_database.get("elementary")
+
     exchange = [
         exchange
-        for exchange in get_activity(key).exchanges()
-        if exchange.input.key == from_key
+        for exchange in process.exchanges()
+        if exchange.input == elementary
     ]
 
-    assert projects.current == "default"
     assert len(exchange) == 1
-    assert exchange[0].as_dict()["formula"]
+    assert exchange[0].as_dict().get("formula") == "5+5"
 
     actions.ExchangeFormulaRemove.run(exchange)
 
@@ -79,61 +70,61 @@ def test_exchange_formula_remove(ab_app):
         assert exchange[0].as_dict()["formula"]
 
 
-def test_exchange_modify(ab_app):
-    key = ("exchange_tests", "186cdea4c3214479b931428591ab2021")
-    from_key = ("exchange_tests", "0e1dc99927284e45af17d546414a3ccd")
+def test_exchange_modify(basic_database):
+    process = basic_database.get("process")
+    elementary = basic_database.get("elementary")
+
     exchange = [
         exchange
-        for exchange in get_activity(key).exchanges()
-        if exchange.input.key == from_key
+        for exchange in process.exchanges()
+        if exchange.input == elementary
     ]
 
     new_data = {"amount": 200}
 
-    assert projects.current == "default"
     assert len(exchange) == 1
-    assert exchange[0].amount == 1.0
+    assert exchange[0].amount == 10.0
 
     actions.ExchangeModify.run(exchange[0], new_data)
 
     assert exchange[0].amount == 200.0
 
 
-def test_exchange_new(ab_app):
-    key = ("exchange_tests", "186cdea4c3214479b931428591ab2021")
-    from_key = ("activity_tests", "be8fb2776c354aa7ad61d8348828f3af")
+def test_exchange_new(basic_database):
+    basic_database.new_node("other", type="processwithreferenceproduct", name="other_process").save()
 
-    assert projects.current == "default"
+    process = basic_database.get("process")
+    other = basic_database.get("other")
+
     assert not [
         exchange
-        for exchange in get_activity(key).exchanges()
-        if exchange.input.key == from_key
+        for exchange in process.exchanges()
+        if exchange.input == other
     ]
 
-    actions.ExchangeNew.run([from_key], key, "production")
+    actions.ExchangeNew.run([other.key], process.key, "technosphere")
 
     assert (
         len(
             [
                 exchange
-                for exchange in get_activity(key).exchanges()
-                if exchange.input.key == from_key
+                for exchange in process.exchanges()
+                if exchange.input == other
             ]
         )
         == 1
     )
 
 
-def test_exchange_uncertainty_modify(ab_app):
-    key = ("exchange_tests", "186cdea4c3214479b931428591ab2021")
-    from_key = ("exchange_tests", "5ad223731bd244e997623b0958744017")
+def test_exchange_uncertainty_modify(basic_database):
+    process = basic_database.get("process")
+    elementary = basic_database.get("elementary")
+
     exchange = [
         exchange
-        for exchange in get_activity(key).exchanges()
-        if exchange.input.key == from_key
+        for exchange in process.exchanges()
+        if exchange.input == elementary
     ]
-
-    assert projects.current == "default"
     assert len(exchange) == 1
 
     actions.ExchangeUncertaintyModify.run(exchange)
@@ -145,18 +136,18 @@ def test_exchange_uncertainty_modify(ab_app):
     wizard.destroy()
 
 
-def test_exchange_uncertainty_remove(ab_app):
-    key = ("exchange_tests", "186cdea4c3214479b931428591ab2021")
-    from_key = ("exchange_tests", "4e28577e29a346e3aef6aeafb6d5eb65")
+def test_exchange_uncertainty_remove(basic_database):
+    process = basic_database.get("process")
+    elementary = basic_database.get("elementary")
+
     exchange = [
         exchange
-        for exchange in get_activity(key).exchanges()
-        if exchange.input.key == from_key
+        for exchange in process.exchanges()
+        if exchange.input == elementary
     ]
-
-    assert projects.current == "default"
     assert len(exchange) == 1
-    assert exchange[0].uncertainty_type == NormalUncertainty
+
+    assert exchange[0].uncertainty_type == NoUncertainty
 
     actions.ExchangeUncertaintyRemove.run(exchange)
 

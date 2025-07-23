@@ -228,7 +228,7 @@ def check_conda_update():
 
 
 def check_pypi_update():
-    ab_url = "https://pypi.org/project/activity-browser/json"
+    ab_url = "https://pypi.org/pypi/activity-browser/json"
     ab_response = requests.get(ab_url)
     ab_current = metadata.version("activity_browser")
     print(f"Activity Browser version: {ab_current}")

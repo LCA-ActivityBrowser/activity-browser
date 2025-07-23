@@ -1,0 +1,45 @@
+name: Automated Testing
+on:
+  pull_request:
+    branches:
+      - major
+  push:
+    branches:
+      - major
+
+jobs:
+  tests:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-13, macos-latest]
+        py-version: ["3.10", "3.11", "3.12"]
+    env:
+      QT_QPA_PLATFORM: 'offscreen'
+    steps:
+      - uses: actions/checkout@v4
+
+      # general Python setup
+      - name: Set up Python ${{ matrix.py-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.py-version }}
+
+      - name: Install linux dependencies
+        if: ${{ matrix.os == 'ubuntu-latest' }}
+        uses: tlambert03/setup-qt-libs@v1
+
+      - name: Update pip & install testing pkgs
+        run: |
+          python -VV
+          python -m pip install --upgrade pip setuptools wheel
+
+      # install testing
+      - name: Install package and test deps
+        run: |
+          pip install .[testing] # install the package and the testing deps
+
+      - name: Test with pytest
+        run: |
+          pytest

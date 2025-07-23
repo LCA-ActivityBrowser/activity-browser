@@ -443,7 +443,6 @@ class ExchangesView(widgets.ABTreeView):
             parent (QtWidgets.QWidget): The parent widget.
         """
         super().__init__(parent)
-        self.setAcceptDrops(False)
         self.setSortingEnabled(True)
 
         self.drag_drop_hint = QtWidgets.QLabel("Drag products here to create new exchanges.", self)
@@ -451,6 +450,12 @@ class ExchangesView(widgets.ABTreeView):
         fnt.setPointSize(fnt.pointSize() + 2)
         fnt.setWeight(QtGui.QFont.Weight.ExtraLight)
         self.drag_drop_hint.setFont(fnt)
+
+        # Set up the layout
+        layout = QtWidgets.QVBoxLayout(self)
+        layout.addStretch()
+        layout.addWidget(self.drag_drop_hint, alignment=Qt.AlignCenter)  # Center horizontally
+        layout.addStretch()
 
         # Set the property delegate
         self.propertyDelegate = delegates.PropertyDelegate(self)
@@ -577,7 +582,7 @@ class ExchangesItem(widgets.ABDataItem):
                 "normalize": False,
             }
 
-        if key.startswith("property_") and self[key]["normalize"]:
+        if key.startswith("property_") and self[key].get("normalize", True):
             prop = self[key].copy()
             prop["unit"] = prop['unit'] + f" / {self['unit']}"
             return prop
@@ -674,6 +679,11 @@ class ExchangesItem(widgets.ABDataItem):
 
         if key in ["unit", "name", "location", "substitution_factor", "allocation_factor"]:
             act = self.exchange.input
+
+            # if we're dealing with a legacy activity, we need to set to the product field here
+            if key == "name" and not isinstance(act, bf.Product):
+                key = "reference product"
+
             actions.ActivityModify.run(act.key, key.lower(), value)
 
         if key.startswith("property_"):

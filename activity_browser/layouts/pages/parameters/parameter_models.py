@@ -435,7 +435,7 @@ class ScenarioModel(PandasModel):
 
     def __init__(self, parent=None):
         super().__init__(parent=parent)
-        signals.project.changed.connect(lambda: self.sync())
+        signals.project.changed.connect(self.sync)
         signals.parameter.changed.connect(self.rebuild_table)
 
     @Slot(name="doCleanSync")
@@ -444,7 +444,7 @@ class ScenarioModel(PandasModel):
         is given, perform a merge to possibly include additional columns.
         """
         data = [p[:3] for p in bwutils.utils.Parameters.from_bw_parameters()]
-        if df is None:
+        if not isinstance(df, pd.DataFrame):
             self._dataframe = pd.DataFrame(data, columns=self.HEADERS).set_index("Name")
         else:
             required = set(self.MATCH_COLS)
@@ -455,7 +455,7 @@ class ScenarioModel(PandasModel):
                     )
                 )
             assert df.columns.get_loc("Group") == 1
-            if include_default:
+            if isinstance(include_default, bool) and include_default:
                 new_df = pd.DataFrame(data, columns=self.HEADERS)
                 if "default" in df.columns:
                     df.drop(columns="default", inplace=True)
