@@ -118,6 +118,19 @@ class GroupTabWidget(QtWidgets.QTabWidget):
         self.tabCloseRequested.connect(self.tabClosed)
         signals.project.changed.connect(self.deleteLater)
 
+    def addTab(self, widget, *args, **kwargs):
+        super().addTab(widget, *args, **kwargs)
+        widget.destroyed.connect(self.checkEmpty)
+
+    def checkEmpty(self):
+        """
+        Check if the GroupTabWidget is empty (i.e., has no tabs).
+
+        If it is empty, delete the widget.
+        """
+        if self.count() == 1:
+            self.deleteLater()
+
     def tabClosed(self, index):
         """
         Handle the closing of a tab.
@@ -129,7 +142,4 @@ class GroupTabWidget(QtWidgets.QTabWidget):
             index (int): The index of the tab to be closed.
         """
         self.widget(index).deleteLater()  # Delete the widget associated with the tab.
-        self.removeTab(index)  # Remove the tab from the widget.
 
-        if self.count() == 0:  # If no tabs remain, delete the entire widget.
-            self.deleteLater()
