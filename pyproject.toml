@@ -67,14 +67,14 @@ testing = [
     "pytest",
     "pytest-cov",
     "pytest-env",
-    "pytest-qt==4.4.0",
+    "pytest-qt",
     "pytest-mock",
 ]
 dev = [
     "pytest",
     "pytest-cov",
     "pytest-env",
-    "pytest-qt==4.4.0",
+    "pytest-qt",
     "pytest-mock",
     "setuptools",
 ]
@@ -90,11 +90,7 @@ norecursedirs = [
     ".tox"
 ]
 testpaths = ["tests"]
-qt_api = "pyside2"
 log_cli = true
-
-[tool.pytest_env]
-AB_SIMPLE_CONSOLE = "1"
 
 [tool.black]
 line-length = 88
