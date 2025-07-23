@@ -1,7 +1,8 @@
 from itertools import permutations, chain
 import itertools
 import functools
-from collections import Counter, OrderedDict, Iterable
+from collections import Counter, OrderedDict
+from typing import Iterable
 import pandas as pd
 import numpy as np
 import re
@@ -15,7 +16,8 @@ class SearchEngine:
     There are three options for search:
         SearchEngine.literal_search(): searches for exact matches of the search query
         SearchEngine.fuzzy_search(): searches for approximate matches of search query, sorted by relevance
-        SearchEngine.search(): combines both of the above, literal matches are returned first, next all fuzzy results, buth subsets sorted by relevance
+        SearchEngine.search(): combines both of the above, literal matches are returned first, next all fuzzy results,
+        but subsets sorted by relevance.
     It is recommended to always use searchEngine.search(), but the other options are there.
 
     Initialization takes:
@@ -37,11 +39,15 @@ class SearchEngine:
         self.SPACE_PATTERN = re.compile(r"[-−:;]")  # for replacing with space
         self.ONE_SPACE_PATTERN = re.compile(r"\s+")  # for replacing multiple white space with 1 space
 
-        self.q = 2  # character lenght of q grams
-        self.base_weight = 10  # base weigthing for sorting results
+        self.q = 2  # character length of q grams
+        self.base_weight = 10  # base weighting for sorting results
 
-        assert identifier_name in df.columns  # make sure identifier col exist
-        assert df[identifier_name].nunique() == df.shape[0]  # make sure identifiers are all unique
+        if identifier_name not in df.columns:  # make sure identifier col exist
+            raise NameError(f"Identifier column {identifier_name} not found in dataframe. Use an existing column name.")
+        if df[identifier_name].nunique() != df.shape[0]:  # make sure identifiers are all unique
+            raise KeyError(
+                f"Identifier column {identifier_name} must only contain unique values. Found {df[identifier_name].nunique()} unique values for length {df.shape[0]}")
+
         self.identifier_name = identifier_name
 
         # ensure columns given actually exist
@@ -99,11 +105,11 @@ class SearchEngine:
         w2i = self.reverse_dict_many_to_one(i2w)
         self.word_to_identifier = update_dict(self.word_to_identifier, w2i)
 
-        # word to qgram
+        # word to q-gram
         w2q = self.list_to_q_grams(w2i.keys())
         self.word_to_q_grams = update_dict(self.word_to_q_grams, w2q)
 
-        # gram to word
+        # q-gram to word
         q2w = self.reverse_dict_many_to_one(w2q)
         self.q_gram_to_word = update_dict(self.q_gram_to_word, q2w)
 
@@ -115,20 +121,18 @@ class SearchEngine:
         return text
 
     def text_to_positional_q_gram(self, text: str) -> list:
-        """Return a positional list of qgrams for the given string.
+        """Return a positional list of q-grams for the given string.
 
-        https://en.wikipedia.org/wiki/N-gram
         q-grams are n-grams on character level.
+        q-grams at q=2 of "word" would be "wo", "or" and "rd"
+        https://en.wikipedia.org/wiki/N-gram
 
-        qgrams of "word" would be "wo", "or" and "rd" for q=2
-
-        Note: these are technically positional q grams, but we don't use their
-        positions currently
+        Note: these are technically _positional_ q-grams, but we don't use their positions currently.
         """
         q = self.q
 
         # just return a single-item list if the text is equal or shorter than q
-        # else, generate qgrams
+        # else, generate q-grams
         if len(text) <= q:
             return [text]
         else:
@@ -145,10 +149,9 @@ class SearchEngine:
         col = []
 
         for row in df.itertuples(index=True):
-            line = self.clean_text(" ".join(row[1:]))
+            line = self.clean_text(" | ".join(row[1:]))
             col.append(line)
             identifier_word_dict[row[0]] = Counter(line.split(" "))
-
         return_df["query_col"] = col
 
         return identifier_word_dict, return_df
@@ -166,6 +169,7 @@ class SearchEngine:
     def list_to_q_grams(self, word_list: Iterable) -> dict:
         """Convert a list of unique words to a dict with Counter objects.
 
+        Number will be the occurrences of that q-gram in that word.
 
         q_gram_dict = {
             "word": Counter(
@@ -191,9 +195,13 @@ class SearchEngine:
         identifier is expected to be a unique identifier that has not been used before
         data is expected to be a dict of column names and data
         """
-
-        # make sure we don't add an identifier that already exists
-        assert identifier not in self.df.index.to_list()
+        # make sure we the identifier does not yet exist
+        if identifier in self.df.index.to_list():
+            raise Exception(
+                f"Identifier '{identifier}' is already in use, use a different identifier or use the change_identifier function.")
+        if data[self.identifier_name] != identifier:
+            raise Exception(
+                f"Identifier argument '{identifier}' and data in identifier column '{data[self.identifier_name]}' must be the same.")
 
         df_cols = self.columns
 
@@ -217,6 +225,10 @@ class SearchEngine:
     def remove_identifier(self, identifier) -> None:
         """Remove this identifier from self.df and the search index.
         """
+        # make sure the identifier exists
+        if identifier not in self.df.index.to_list():
+            raise Exception(
+                f"Identifier '{identifier}' does not exist in the search data, cannot remove identifier that do not exist.")
 
         # remove from df
         self.df.drop(identifier, inplace=True)
@@ -238,7 +250,7 @@ class SearchEngine:
 
                 del self.word_to_q_grams[word]
             else:
-                # remove the identifier from the
+                # remove the identifier from the dict
                 del self.word_to_identifier[word][identifier]
         # finally, remove the identifier
         del self.identifier_to_word[identifier]
@@ -251,10 +263,17 @@ class SearchEngine:
 
         only changed data needs to be supplied
         """
-        assert identifier in self.df.index.to_list()
+        # make sure the identifier exists
+        if identifier not in self.df.index.to_list():
+            raise Exception(
+                f"Identifier '{identifier}' does not exist in the search data, use an existing identifier or use the add_identifier function.")
+        if data[self.identifier_name] != identifier:
+            raise Exception(
+                f"Identifier argument '{identifier}' and data in identifier column '{data[self.identifier_name]}' must be the same.")
 
         # get existing data
-        update_data = dict(self.df.loc[identifier].values)
+        update_data = {col: self.df.loc[identifier, col] for col in self.df.columns}
+        del update_data["query_col"]
 
         # overwrite new data where relevant
         for field, value in data.items():
@@ -297,34 +316,38 @@ class SearchEngine:
         """Calculate the Optimal String Alignment (OSA) edit distance between two strings, return edit distance.
 
         Has additional cutoff variable, if cutoff is higher than 0 and if the words have
-        a larger difference in length, immediately return a large number
+        a larger edit distance, return a large number (note: cutoff <= edit_dist, not cutoff < edit_dist)
 
         OSA is a restricted form of the Damerau–Levenshtein distance.
         https://en.wikipedia.org/wiki/Damerau%E2%80%93Levenshtein_distance#Optimal_string_alignment_distance
 
         The edit distance is how many operations (insert, delete, substitute or transpose a character) need to happen to convert one string to another.
         insert and delete are obvious operations, but substitute and transpose are explained:
-            substitute: replace one character with another: e.g. word1=cat word2=cab, t->b substitution is 1 operation
-            transpose: swap the places of two adjacent characters with each other: e.g. word1=coal word2=cola al -> la transposition is 1 operation
+            substitute: replace one character with another: e.g. word1='cat' word2='cab', 't'->'b' substitution is 1 operation
+            transpose: swap the places of two adjacent characters with each other: e.g. word1='coal' word2='cola' 'al' -> 'la' transposition is 1 operation
 
-        The minimum amount of operations (OSA edit distance) is returned.
+        The minimum amount of edit operations (OSA edit distance) is returned.
         """
-
         if word1 == word2:
             # if the strings are the same, immediately return 0
             return 0
 
         len1, len2 = len(word1), len(word2)
 
-        if 0 < cutoff < abs(len1 - len2):
+        if 0 < cutoff <= abs(len1 - len2):
             # if the length difference between 2 words is over the cutoff,
             # just return instead of calculating the edit distance
             return cutoff_return
 
         if len1 == 0 or len2 == 0:
             # in case (at least) one of the strings is empty,
-            # return the lenth of the longest string
+            # return the length of the longest string
             return max(len1, len2)
+
+        if len1 < len2 and cutoff > 0:
+            # make sure word1 is always the longest (required for early stopping with cutoff)
+            word1, word2 = word2, word1
+            len1, len2 = len2, len1
 
         # Initialize matrix
         distance = [[0] * len2 for _ in range(len1)]
@@ -346,9 +369,12 @@ class SearchEngine:
                     transposition = distance[i - 2][j - 2] + 1 if i > 1 and j > 1 else max(i, j) - 1
                     distance[i][j] = min(distance[i][j], transposition)
 
-        return distance[len1 - 1][len2 - 1]
+            # stop early if we surpass cutoff
+            if 0 < cutoff <= distance[i][j]:
+                return cutoff_return
+        return distance[i][j]
 
-    def find_q_gram_matches(self, q_grams: list) -> pd.DataFrame:
+    def find_q_gram_matches(self, q_grams: set) -> pd.DataFrame:
         """Find which of the given q_grams exist in self.q_gram_to_word,
         return a sorted dataframe of best matching words.
         """
@@ -356,7 +382,7 @@ class SearchEngine:
 
         matches = {}
 
-        # find words that match our qgrams
+        # find words that match our q-grams
         for q_gram in q_grams:
             if words := self.q_gram_to_word.get(q_gram, False):
                 # q_gram exists in our search index
@@ -371,12 +397,12 @@ class SearchEngine:
         # reduce search results to most relevant results
         matches = {"word": matches.keys(), "matches": matches.values()}
         matches = pd.DataFrame(matches)
-        max_q = max(matches["matches"])
+        max_q = max(matches["matches"])  # this has the most matching q-grams
 
         # determine how many results we want to keep based on how good our results are
-        min_q = max(max_q * 0.5,  # have at least half of qgrams of best match or...
-                    max(n_q_grams * 0.5,  # if more, at least half the qgrams in the query word?
-                        1))  # okay just do 1 qgram if there are no more in the word
+        min_q = max(max_q * 0.32,  # have at least a third of q-grams of best match or...
+                    max(n_q_grams * 0.5,  # if more, at least half the q-grams in the query word?
+                        1))  # okay just do 1 q-gram if there are no more in the word
 
         matches = matches[matches["matches"] >= min_q]
         matches = matches.sort_values(by="matches", ascending=False)
@@ -400,11 +426,9 @@ class SearchEngine:
             )
 
         """
-
         word_results = OrderedDict()
 
         matches_goal = 3  # ideally we have at least this many alternatives
-
         always_accept_this = 1  # values of this or lower always accepted
         never_accept_this = 4  # values this or over always rejected
 
@@ -420,12 +444,12 @@ class SearchEngine:
 
             # first, find possible matches quickly
             q_grams = self.text_to_positional_q_gram(word)
-            possible_matches = self.find_q_gram_matches(q_grams)
+            possible_matches = self.find_q_gram_matches(set(q_grams))
 
             matches = []
             other_matches = {}
 
-            # now, refine with levenshtein
+            # now, refine with edit distance
             for row in possible_matches.itertuples():
 
                 edit_distance = self.osa_distance(word, row[1], cutoff=never_accept_this)
@@ -443,13 +467,11 @@ class SearchEngine:
             # if we have fewer matches than goal, add more 'less good' matches
             if len(matches) < matches_goal:
                 for i in range(always_accept_this + 1, never_accept_this):
-                    # iteratively increate worse matches
+                    # iteratively increase 'worse' matches so we hit goal of minimum alternatives
                     if new := other_matches.get(i):
                         matches = matches + new
-
                         if len(matches) >= matches_goal:
                             break
-
             word_results[word] = matches
 
         return word_results
@@ -477,19 +499,17 @@ class SearchEngine:
 
         return all_queries
 
-    def weigh_identifiers(self, identifiers: Iterable, weight: int, weighted_ids: Counter) -> Counter:
-        """Add weights to identifier counter for these identifiers"""
-
-        for identifier in identifiers:
-            weighted_ids[identifier] += int(weight)
-
+    def weigh_identifiers(self, identifiers: Counter, weight: int, weighted_ids: Counter) -> Counter:
+        """Add weights to identifier counter for these identifiers times how often it occurs in identifier."""
+        for identifier, occurrences in identifiers.items():
+            weighted_ids[identifier] += (weight * occurrences)
         return weighted_ids
 
-    def search_size_1(self, queries: list, original_words: list, orig_word_weight=11, exact_word_weight=1) -> dict:
+    def search_size_1(self, queries: list, original_words: list, orig_word_weight=5, exact_word_weight=1) -> dict:
         """Return a dict of {query_word: Counter(identifier)}.
 
         queries: is a list of len 1 tuple/lists of words that are a searched word or a 'spell checked' similar word
-        original words: a list of words actually searched for (not including spellechecked)
+        original words: a list of words actually searched for (not including spellchecked)
 
         orig_word_weight: additional weight to add to original words
         exact_word_weight: additional weight to add to exact word matches (as opposed to be 'in' str)
@@ -514,7 +534,6 @@ class SearchEngine:
         for word, matching_words in matches.items():
             for matched_word in matching_words:
                 weight = self.base_weight
-
                 id_counter = matched_identifiers.get(word, Counter())
 
                 # add the word n times, where n is the weight, original search word is weighted higher than alternatives
@@ -531,6 +550,19 @@ class SearchEngine:
     def fuzzy_search(self, text: str) -> list:
         """Search the dataframe, finding approximate matches and return a list of identifiers,
         ranked by how well each identifier matches the search text.
+
+        1. First, identifiers matching single words (and spell-checked alternatives) are found and weighted.
+        2. If the search term consisted of multiple words, combinations of those words are checked next.
+            2.1 Increasing in size (first two words, then three etc.), we look for identifiers that contain that set of
+            words, these are also weighted, based on the sum of all one-word weights (from first step) and the length
+            of the sequence.
+            2.2 Next, we also look specifically for combinations occurring next to each other. And add more weight like
+            the step above (2.1).
+        We multiply the weighting of step 2 by the sequence length, based on the assumption that finding more search
+        words will be a more relevant result than just finding a single word, and again if they are in the
+        correct order.
+
+        Finally, all found identifiers are sorted on their weight and returned.
         """
 
         queries = self.build_queries(text)
@@ -569,12 +601,23 @@ class SearchEngine:
 
                 # get the intersection of all identifiers
                 # meaning, a set of identifiers that occur in ALL sets of len(1) for the individual words in the query
-                # this ensures we only ever search data where ALL items occur to reduce search-space
-                query_identifiers = set.intersection(*[set(query_to_identifier.get(q_word)) for q_word in query if
-                                                       query_to_identifier.get(q_word, False)])
-                if len(query_identifiers) == 0:
+                # this ensures we only ever search data where ALL items occur to substantially reduce search-space
+                # finally, make this a Counter (with each item=1) so we can properly weigh things later
+                query_identifier_set = set.intersection(*[set(query_to_identifier.get(q_word)) for q_word in query if
+                                                          query_to_identifier.get(q_word, False)])
+                if len(query_identifier_set) == 0:
                     # there is no match for this combination of query words, skip
                     break
+
+                # now we convert the query identifiers to a Counter of 'occurrence',
+                # where we weigh queries with only original words higher
+                query_identifiers = Counter()
+                for identifier in query_identifier_set:
+                    weight = 0
+                    for query_word in query:
+                        weight += query_to_identifier[query_word][identifier]
+
+                    query_identifiers[identifier] = weight
 
                 # we now add these identifiers to a counter for this query name,
                 query_name = " ".join(query)
@@ -590,12 +633,15 @@ class SearchEngine:
                     if len(new_df) == 0:
                         # there is no match for this permutation of words, skip
                         continue
-                    new_ids = list(new_df[self.identifier_name])
-                    # we weigh a combination of words and next to each other even higher than just the words separately
-                    weight = self.base_weight * q_len * q_len
+                    new_id_list = new_df[self.identifier_name]
+
+                    new_ids = Counter()
+                    for new_id in new_id_list:
+                        new_ids[new_id] = query_identifiers[new_id]
+
+                    # we weigh a combination of words that is next also to each other even higher than just the words separately
                     query_to_identifier[query_name] = self.weigh_identifiers(new_ids, weight,
                                                                              query_to_identifier[query_name])
-
         # now finally, move to one object sorted list by highest score
         all_identifiers = Counter()
         for identifiers in query_to_identifier.values():
