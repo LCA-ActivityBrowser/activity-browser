@@ -2,10 +2,15 @@ from itertools import permutations, chain
 import itertools
 import functools
 from collections import Counter, OrderedDict
+from logging import getLogger
+from time import time
 from typing import Iterable, Optional
 import pandas as pd
 import numpy as np
 import re
+
+
+log = getLogger(__name__)
 
 
 class SearchEngine:
@@ -33,7 +38,7 @@ class SearchEngine:
     """
 
     def __init__(self, df: pd.DataFrame, identifier_name: str, searchable_columns: list = []):
-
+        t = time()
         # compile regex patterns for cleaning
         self.SUB_PATTERN = re.compile(r"[,\(\)\[\]'\"]")  # for replacing with empty string
         self.SPACE_PATTERN = re.compile(r"[-−:;]")  # for replacing with space
@@ -70,7 +75,7 @@ class SearchEngine:
         # find the self.identifier_name column index and store as int
         self.identifier_column = self.columns.index(self.identifier_name)
 
-        # store all searchable columns except the identifier
+        # store all searchable column indices except the identifier
         self.regular_columns = [i for i in range(len(self.columns)) if i != self.identifier_column]
 
         # initialize search index dicts and update df
@@ -81,6 +86,7 @@ class SearchEngine:
         self.df = pd.DataFrame()
 
         self.update_index(df)
+        log.debug(f"Search engine initialized in {time() - t:.2f} seconds for {len(self.df)} items")
 
     #   +++ Utility functions
 
@@ -652,16 +658,21 @@ class SearchEngine:
         sorted_identifiers = [identifier[0] for identifier in all_identifiers.most_common()]
         return sorted_identifiers
 
-    def search(self, text) -> list:
+    def search(self, text, col_modifiers: Optional[dict] = None) -> list:
         """Search the dataframe on this text, return a sorted list of identifiers."""
+        t = time()
         fuzzy_identifiers = self.fuzzy_search(text)
         if len(fuzzy_identifiers) == 0:
+            log.debug(f"Found 0 search results for '{text}' in {len(self.df)} items in {time() - t:.2f} seconds")
             return []
 
         # take the fuzzy search sub-set of data and search it literally
         df = self.df.loc[fuzzy_identifiers].copy()
+
         literal_identifiers = self.literal_search(text, df)
         if len(literal_identifiers) == 0:
+            log.debug(
+                f"Found {len(fuzzy_identifiers)} search results for '{text}' in {len(self.df)} items in {time() - t:.2f} seconds")
             return fuzzy_identifiers
 
         # append any fuzzy identifiers that were not found in the literal search
@@ -669,4 +680,6 @@ class SearchEngine:
             _id for _id in fuzzy_identifiers if _id not in set(literal_identifiers)]
         identifiers = literal_identifiers + fuzzy_identifiers
 
+        log.debug(
+            f"Found {len(identifiers)} ({len(literal_identifiers)} literal) search results for '{text}' in {len(self.df)} items in {time() - t:.2f} seconds")
         return identifiers
