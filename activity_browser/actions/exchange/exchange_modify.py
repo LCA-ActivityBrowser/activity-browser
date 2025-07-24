@@ -10,6 +10,7 @@ from bw2data.parameters import ActivityParameter
 from activity_browser.ui.icons import qicons
 
 from ..parameter.parameter_new_automatic import ParameterNewAutomatic
+from .exchange_formula_remove import ExchangeFormulaRemove
 
 log = getLogger(__name__)
 
@@ -25,8 +26,14 @@ class ExchangeModify(ABAction):
     @classmethod
     @exception_dialogs
     def run(cls, exchange: ExchangeProxyBase, data: dict):
+        # remove the formula if it is an empty string
+        if "formula" in exchange and data.get("formula") == "":
+            del data["formula"]
+            ExchangeFormulaRemove.run([exchange])
+
         for key, value in data.items():
             exchange[key] = value
+
         exchange.save()
 
         if "formula" in data:
