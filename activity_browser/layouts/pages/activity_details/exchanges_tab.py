@@ -127,7 +127,7 @@ class ExchangesTab(QtWidgets.QWidget):
         """
         # Define the columns for the metadata
         cols = ["key", "unit", "name", "product", "location", "database", "substitute", "substitution_factor", "allocation_factor",
-                "properties", "processor"]
+                "properties", "processor", "categories"]
 
         # Create a DataFrame from the exchanges
         exc_df = pd.DataFrame(exchanges, columns=["amount", "input", "formula", "uncertainty type", "comment"])
@@ -179,7 +179,7 @@ class ExchangesTab(QtWidgets.QWidget):
             axis="columns", inplace=True)
 
         # Define the order of columns for the final DataFrame
-        cols = ["amount", "unit", "name", "location", "database"]
+        cols = ["amount", "unit", "name", "location", "categories", "database"]
         cols += ["substitute_name", "substitution_factor"] if "substitute_name" in df.columns else []
         cols += ["allocation_factor"] if not database_is_legacy(self.activity.get("database")) else []
         cols += [col for col in df.columns if col.startswith("property")]
@@ -333,6 +333,7 @@ class ExchangesView(widgets.ABTreeView):
         "formula": delegates.NewFormulaDelegate,
         "comment": delegates.StringDelegate,
         "uncertainty": delegates.UncertaintyDelegate,
+        "categories": delegates.ListDelegate,
     }
 
     class HeaderMenu(widgets.ABMenu):

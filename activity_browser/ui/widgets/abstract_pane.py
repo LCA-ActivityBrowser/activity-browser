@@ -14,6 +14,7 @@ class ABAbstractPane(QtWidgets.QWidget):
         super().__init__(parent)
         self.name = self.name or re.sub(r'([a-z])([A-Z])', r'\1_\2', self.__class__.__name__).lower()
         self.setObjectName(self.name)
+        self.setSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.Expanding)
 
     def getDockWidget(self, main_window: QtWidgets.QMainWindow):
 

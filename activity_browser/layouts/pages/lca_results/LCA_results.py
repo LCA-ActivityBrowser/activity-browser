@@ -2,6 +2,7 @@ from collections import namedtuple
 from copy import deepcopy
 from typing import List, Optional
 from logging import getLogger
+from datetime import datetime
 
 import numpy as np
 import pandas as pd
@@ -95,7 +96,8 @@ class LCAResultsPage(QtWidgets.QTabWidget):
 
     def __init__(self, cs_name, mlca, contributions, mc, parent=None):
         super().__init__(parent)
-        self.setObjectName(cs_name)
+        self.setObjectName(f"{cs_name}-{datetime.now().strftime('%H:%M:%S')}")
+        self.setWindowTitle(f"{cs_name} [{datetime.now().strftime('%H:%M')}]")
 
         self.cs_name, self.mlca, self.contributions, self.mc = cs_name, mlca, contributions, mc
         self.cs = bd.calculation_setups[self.cs_name]
