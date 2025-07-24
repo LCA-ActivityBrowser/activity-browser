@@ -143,7 +143,7 @@ class SuperstructureManager(object):
             )
             warning.dataframe(pd.DataFrame({"Scenarios": list(absent)}), ["Scenarios"])
             response = warning.exec_()
-            if response == warning.Rejected:
+            if response == warning.DialogCode.Rejected:
                 raise UnalignableScenarioColumnsWarning()
         return cols
 
@@ -650,7 +650,7 @@ class SuperstructureManager(object):
             QApplication.restoreOverrideCursor()
             response = warning.exec_()
             QApplication.setOverrideCursor(Qt.WaitCursor)
-            if response == warning.Rejected:
+            if response == warning.DialogCode.rejected:
                 raise ImportCanceledError
             data.drop_duplicates(index, keep="last", inplace=True)
         return data
