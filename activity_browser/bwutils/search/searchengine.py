@@ -658,7 +658,7 @@ class SearchEngine:
         sorted_identifiers = [identifier[0] for identifier in all_identifiers.most_common()]
         return sorted_identifiers
 
-    def search(self, text, col_modifiers: Optional[dict] = None) -> list:
+    def search(self, text) -> list:
         """Search the dataframe on this text, return a sorted list of identifiers."""
         t = time()
         fuzzy_identifiers = self.fuzzy_search(text)
