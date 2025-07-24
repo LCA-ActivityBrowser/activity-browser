@@ -4,6 +4,7 @@ from typing import Iterable
 from logging import getLogger
 
 import pandas as pd
+import numpy as np
 from asteval import Interpreter
 from bw2data.parameters import (ActivityParameter, DatabaseParameter, Group,
                                 ProjectParameter)
@@ -61,8 +62,18 @@ class BaseExchangeModel(EditablePandasModel):
     def create_row(self, exchange) -> dict:
         """Take the given Exchange object and extract a number of attributes."""
         try:
+            # fixing a broken exchange
+            if not isinstance(exchange.get("amount"), float) or pd.isna(exchange.get("amount")):
+                log.warning(f"Fixing broken exchange amount for {exchange.get('type', '')} exchange from: {exchange.input}")
+                try:
+                    amount = float(exchange.get("amount")) if exchange.get("amount") is not np.nan else 1.0
+                except TypeError:
+                    amount = 1.0
+                exchange["amount"] = amount
+                exchange.save()
+
             row = {
-                "Amount": float(exchange.get("amount", 1)),
+                "Amount": exchange.get("amount"),
                 "Unit": exchange.input.get("unit", "Unknown"),
                 "exchange": exchange,
             }
