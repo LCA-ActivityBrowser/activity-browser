@@ -650,7 +650,7 @@ class SuperstructureManager(object):
             QApplication.restoreOverrideCursor()
             response = warning.exec_()
             QApplication.setOverrideCursor(Qt.WaitCursor)
-            if response == warning.DialogCode.rejected:
+            if response == warning.DialogCode.Rejected:
                 raise ImportCanceledError
             data.drop_duplicates(index, keep="last", inplace=True)
         return data
