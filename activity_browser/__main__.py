@@ -208,9 +208,9 @@ def check_pyside_version():
     try:
         import PySide6
     except ImportError:
-        input("\033[93mPySide6 is not installed but highly recommended.\n\n"
+        input("\033[1;31mPySide6 is not installed but highly recommended.\n\n"
               "Please install it using 'pip install PySide6'.\n\n"
-              "Press Enter to continue without it.\033[0m")
+              "Press any key to continue...\033[0m")
 
 
 def check_conda_update():
@@ -223,8 +223,9 @@ def check_conda_update():
         print("Could not fetch latest Activity Browser version")
 
     elif ab_current != "0.0.0" and ab_current != ab_response.json()['latest_version']:
-        print("There is an update available for the Activity Browser. Please update it using the following command: \n "
-              "conda update activity-browser")
+        input("\033[1;31mThere is an update available for the Activity Browser. Please update it using the following command: \n "
+              "conda update activity-browser\n\n"
+              "Press any key to continue without updating...\033[0m")
 
 
 def check_pypi_update():
@@ -237,8 +238,9 @@ def check_pypi_update():
         print("Could not fetch latest Activity Browser version")
 
     elif ab_current != "0.0.0" and ab_current != ab_response.json()['info']['version']:
-        print("There is an update available for the Activity Browser. Please update it using the following command: \n "
-              "pip install --upgrade activity-browser")
+        input("\033[1;31mThere is an update available for the Activity Browser. Please update it using the following command: \n "
+              "pip install --upgrade activity-browser\n\n"
+              "Press any key to continue without updating...\033[0m")
 
 
 if "--no-launcher" in sys.argv:
