@@ -224,7 +224,7 @@ def check_conda_update():
 
     elif ab_current != "0.0.0" and ab_current != ab_response.json()['latest_version']:
         input("\033[1;31mThere is an update available for the Activity Browser. Please update it using the following command: \n "
-              "conda update activity-browser\n\n"
+              "conda update -c lca activity-browser\n\n"
               "Press any key to continue without updating...\033[0m")
 
 
