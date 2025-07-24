@@ -2,7 +2,7 @@ from itertools import permutations, chain
 import itertools
 import functools
 from collections import Counter, OrderedDict
-from typing import Iterable
+from typing import Iterable, Optional
 import pandas as pd
 import numpy as np
 import re
@@ -287,13 +287,12 @@ class SearchEngine:
 
     #   +++ Search
 
-    def filter_dataframe(self, df: pd.DataFrame, pattern: str, search_columns: list = None) -> pd.Series:
+    def filter_dataframe(self, df: pd.DataFrame, pattern: str, search_columns: Optional[list] = None) -> pd.Series:
         """Filter the search columns of a dataframe on a pattern.
 
         Returns a mask (true/false) pd.Series with matching items."""
 
         search_columns = search_columns if search_columns else self.columns
-
         mask = functools.reduce(
             np.logical_or,
             [
@@ -303,13 +302,15 @@ class SearchEngine:
         )
         return mask
 
-    def literal_search(self, text):
+    def literal_search(self, text, df: Optional[pd.DataFrame] = None) -> list:
         """Do literal search of the text in all original columns that were given."""
 
-        identifiers = self.filter_dataframe(self.df, text)
-        df = self.df.loc[identifiers]
-        identifiers = df.index.to_list()
+        if df is None:
+            df = self.df.copy()
 
+        identifiers = self.filter_dataframe(df, text)
+        df = df.loc[identifiers]
+        identifiers = df.index.to_list()
         return identifiers
 
     def osa_distance(self, word1: str, word2: str, cutoff: int = 0, cutoff_return: int = 1000) -> int:
@@ -652,22 +653,20 @@ class SearchEngine:
         return sorted_identifiers
 
     def search(self, text) -> list:
-        """Search the dataframe on this text, return a sorted list of identifiers"""
-
-        literal_identifiers = self.literal_search(text)
+        """Search the dataframe on this text, return a sorted list of identifiers."""
         fuzzy_identifiers = self.fuzzy_search(text)
+        if len(fuzzy_identifiers) == 0:
+            return []
 
-        ordered_literal_identifiers = []
-        other_identifiers = []
+        # take the fuzzy search sub-set of data and search it literally
+        df = self.df.loc[fuzzy_identifiers].copy()
+        literal_identifiers = self.literal_search(text, df)
+        if len(literal_identifiers) == 0:
+            return fuzzy_identifiers
 
-        # add all fuzzy identifiers to one of two lists, depending on whether they were found in literal search or not
-        # this guarantees we put the literal matches on top, but still sort within this group based on fuzzy scores
-        for identifier in fuzzy_identifiers:
-            if identifier in literal_identifiers:
-                ordered_literal_identifiers.append(identifier)
-            else:
-                other_identifiers.append(identifier)
-
-        identifiers = ordered_literal_identifiers + other_identifiers
+        # append any fuzzy identifiers that were not found in the literal search
+        fuzzy_identifiers = [
+            _id for _id in fuzzy_identifiers if _id not in set(literal_identifiers)]
+        identifiers = literal_identifiers + fuzzy_identifiers
 
         return identifiers
