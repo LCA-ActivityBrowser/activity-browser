@@ -676,9 +676,190 @@ class SearchEngine:
             return fuzzy_identifiers
 
         # append any fuzzy identifiers that were not found in the literal search
-        fuzzy_identifiers = [
+        remaining_fuzzy_identifiers = [
             _id for _id in fuzzy_identifiers if _id not in set(literal_identifiers)]
-        identifiers = literal_identifiers + fuzzy_identifiers
+        identifiers = literal_identifiers + remaining_fuzzy_identifiers
+
+        log.debug(
+            f"Found {len(identifiers)} ({len(literal_identifiers)} literal) search results for '{text}' in {len(self.df)} items in {time() - t:.2f} seconds")
+        return identifiers
+
+
+class MetaDataSearchEngine(SearchEngine):
+    def find_q_gram_matches(self, q_grams: set) -> pd.DataFrame:
+        """Overwritten for extra database specific reduction of results.
+        """
+        n_q_grams = len(q_grams)
+
+        matches = {}
+
+        # find words that match our q-grams
+        for q_gram in q_grams:
+            if words := self.q_gram_to_word.get(q_gram, False):
+                # q_gram exists in our search index
+                for word in words:
+                    if isinstance(self.database_ids, set):
+                        # DATABASE SPECIFIC now filter on whether word is in the database
+                        in_db = False
+                        for _id in self.word_to_identifier[word]:
+                            if _id in self.database_ids:
+                                in_db = True
+                                break
+                    else:
+                        in_db = True
+                    if in_db:
+                        matches[word] = matches.get(word, 0) + words[word]
+
+        # if we find no results, return an empty dataframe
+        if len(matches) == 0:
+            return pd.DataFrame({"word": [], "matches": []})
+
+        # otherwise, create a dataframe and
+        # reduce search results to most relevant results
+        matches = {"word": matches.keys(), "matches": matches.values()}
+        matches = pd.DataFrame(matches)
+        max_q = max(matches["matches"])  # this has the most matching q-grams
+
+        # determine how many results we want to keep based on how good our results are
+        min_q = max(max_q * 0.32,  # have at least a third of q-grams of best match or...
+                    max(n_q_grams * 0.5,  # if more, at least half the q-grams in the query word?
+                        1))  # okay just do 1 q-gram if there are no more in the word
+
+        matches = matches[matches["matches"] >= min_q]
+        matches = matches.sort_values(by="matches", ascending=False)
+        matches = matches.reset_index(drop=True)
+
+        return matches.iloc[:min(len(matches), 2500), :]  # return at most this many results
+
+    def fuzzy_search(self, text: str) -> list:
+        """Overwritten for extra database specific reduction of results.
+        """
+        queries = self.build_queries(text)
+
+        # make list of unique original words
+        orig_words = OrderedDict()
+        for word in text.split(" "):
+            orig_words[word] = False
+        orig_words = orig_words.keys()
+        orig_words = [self.clean_text(word) for word in orig_words]
+
+        # order the queries by the amount of words they contain
+        # we do this because longer queries (more words) are harder to find, but we have many alternatives so we search in a smaller search space
+        queries_by_size = OrderedDict()
+        longest_query = max([len(q) for q in queries])
+        for query_len in range(1, longest_query + 1):
+            queries_by_size[query_len] = [q for q in queries if len(q) == query_len]
+
+        # first handle queries of length 1
+        query_to_identifier = self.search_size_1(queries_by_size[1], orig_words)
+
+        # DATABASE SPECIFIC ensure all identifiers are in the database
+        if isinstance(self.database_ids, set):
+            new_q2i = {}
+            for word, _ids in query_to_identifier.items():
+                keep = set.intersection(set(_ids.keys()), self.database_ids)
+                new_id_counter = Counter()
+                for _id in keep:
+                    new_id_counter[_id] = _ids[_id]
+                if len(new_id_counter) > 0:
+                    new_q2i[word] = new_id_counter
+            query_to_identifier = new_q2i
+
+        # get all results into a df, we rank further later
+        all_identifiers = set()
+        for id_list in [id_list for id_list in query_to_identifier.values()]:
+            all_identifiers.update(id_list)
+        search_df = self.df.loc[list(all_identifiers)]
+
+        # now, we search for combinations of query words and get only those identifiers
+        # we then reduce de search_df further for only those matching identifiers
+        # we then search the permutations of that set of words
+        for q_len, query_set in queries_by_size.items():
+            if q_len == 1:
+                # we already did these above
+                continue
+            for query in query_set:
+
+                # get the intersection of all identifiers
+                # meaning, a set of identifiers that occur in ALL sets of len(1) for the individual words in the query
+                # this ensures we only ever search data where ALL items occur to substantially reduce search-space
+                # finally, make this a Counter (with each item=1) so we can properly weigh things later
+                query_identifier_set = set.intersection(*[set(query_to_identifier.get(q_word)) for q_word in query if
+                                                          query_to_identifier.get(q_word, False)])
+                if len(query_identifier_set) == 0:
+                    # there is no match for this combination of query words, skip
+                    break
+
+                # now we convert the query identifiers to a Counter of 'occurrence',
+                # where we weigh queries with only original words higher
+                query_identifiers = Counter()
+                for identifier in query_identifier_set:
+                    weight = 0
+                    for query_word in query:
+                        weight += query_to_identifier[query_word][identifier]
+
+                    query_identifiers[identifier] = weight
+
+                # we now add these identifiers to a counter for this query name,
+                query_name = " ".join(query)
+
+                weight = self.base_weight * q_len
+                query_to_identifier[query_name] = self.weigh_identifiers(query_identifiers, weight, Counter())
+
+                # now search for all permutations of this query combined with a space
+                query_df = search_df[search_df[self.identifier_name].isin(query_identifiers)]
+                for query_perm in permutations(query):
+                    mask = self.filter_dataframe(query_df, " ".join(query_perm), search_columns=["query_col"])
+                    new_df = query_df.loc[mask].reset_index(drop=True)
+                    if len(new_df) == 0:
+                        # there is no match for this permutation of words, skip
+                        continue
+                    new_id_list = new_df[self.identifier_name]
+
+                    new_ids = Counter()
+                    for new_id in new_id_list:
+                        new_ids[new_id] = query_identifiers[new_id]
+
+                    # we weigh a combination of words that is next also to each other even higher than just the words separately
+                    query_to_identifier[query_name] = self.weigh_identifiers(new_ids, weight,
+                                                                             query_to_identifier[query_name])
+        # now finally, move to one object sorted list by highest score
+        all_identifiers = Counter()
+        for identifiers in query_to_identifier.values():
+            all_identifiers += identifiers
+
+        # now sort on highest weights and make list type
+        sorted_identifiers = [identifier[0] for identifier in all_identifiers.most_common()]
+        return sorted_identifiers
+
+    def search(self, text, database: Optional[str] = None) -> list:
+        """Search the dataframe on this text, return a sorted list of identifiers."""
+        t = time()
+
+        # get the set of ids that is in this database
+        if database is not None:
+            self.database_ids = set(self.df[self.df["database"] == database].index.to_list())
+        else:
+            self.database_ids = None
+
+        fuzzy_identifiers = self.fuzzy_search(text)
+        if len(fuzzy_identifiers) == 0:
+            log.debug(f"Found 0 search results for '{text}' in {len(self.df)} items in {time() - t:.2f} seconds")
+            return []
+
+        # take the fuzzy search sub-set of data and search it literally
+        df = self.df.loc[fuzzy_identifiers].copy()
+
+        literal_identifiers = self.literal_search(text, df)
+        if len(literal_identifiers) == 0:
+            log.debug(
+                f"Found {len(fuzzy_identifiers)} search results for '{text}' in {len(self.df)} items in {time() - t:.2f} seconds")
+            return fuzzy_identifiers
+
+        # append any fuzzy identifiers that were not found in the literal search
+        remaining_fuzzy_identifiers = [
+            _id for _id in fuzzy_identifiers if _id not in set(literal_identifiers)]
+        identifiers = literal_identifiers + remaining_fuzzy_identifiers
 
         log.debug(
             f"Found {len(identifiers)} ({len(literal_identifiers)} literal) search results for '{text}' in {len(self.df)} items in {time() - t:.2f} seconds")

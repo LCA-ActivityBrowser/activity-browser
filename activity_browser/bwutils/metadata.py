@@ -7,8 +7,6 @@ from functools import lru_cache
 from typing import Set
 from logging import getLogger
 
-from playhouse.shortcuts import model_to_dict
-
 import pandas as pd
 
 from qtpy.QtCore import Qt, QObject, Signal, SignalInstance
@@ -16,6 +14,8 @@ from qtpy.QtCore import Qt, QObject, Signal, SignalInstance
 import bw2data as bd
 from bw2data.errors import UnknownObject
 from bw2data.backends import sqlite3_lci_db, ActivityDataset
+
+from activity_browser.bwutils.search import MetaDataSearchEngine
 
 from activity_browser import signals
 
@@ -190,6 +190,7 @@ class MetaDataStore(QObject):
         con.close()
 
         self.dataframe = self._parse_df(node_df)
+        self.init_search()  # init search index
 
         self.synced.emit()
 
@@ -332,6 +333,15 @@ class MetaDataStore(QObject):
                     break
             system_classifications.append(result)  # result is either "" or the classification
         return system_classifications
+
+    def init_search(self):
+        allowed_cols = [
+            "id", "name", "synonyms", "unit", "key", "database",  # generic
+            "CAS number", "categories",  # biosphere specific
+            "product", "reference product", "classifications", "location", "properties"  # activity specific
+        ]
+
+        MetaDataSearchEngine(self.dataframe, identifier_name="id", searchable_columns=allowed_cols)
 
 
 AB_metadata = MetaDataStore()
