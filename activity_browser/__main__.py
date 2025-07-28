@@ -97,8 +97,6 @@ class ABLoader(QtWidgets.QWidget):
 
         self.load_settings()
 
-        application.main_window.sync()
-
     def load_settings(self):
         self.text_label.setText("Loading project")
         thread = SettingsThread(self)
@@ -106,6 +104,7 @@ class ABLoader(QtWidgets.QWidget):
         thread.start()
 
     def load_finished(self):
+        application.main_window.sync()
         application.main_window.show()
         self.deleteLater()
 

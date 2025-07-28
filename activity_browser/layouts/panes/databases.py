@@ -81,7 +81,6 @@ class DatabasesPane(widgets.ABAbstractPane):
             dt = datetime.datetime.strptime(dt, "%Y-%m-%dT%H:%M:%S.%f")
 
             # final column includes interactive checkbox which shows read-only state of db
-            database_read_only = project_settings.db_is_readonly(name)
             data.append(
                 {
                     "name": name,
