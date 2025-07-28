@@ -6,7 +6,11 @@ from qtpy.QtCore import QObject, SignalInstance, Signal
 @patch_attribute(tqdm, "update")
 def update(self, n=1):
     patched[tqdm]["update"](self, n)
-    qt_tqdm.updated.emit(int(self.n/self.total * 100), self.desc)
+    try:
+        qt_tqdm.updated.emit(int(self.n/self.total * 100), self.desc)
+    except (TypeError, ZeroDivisionError):
+        # Handle case where total is None or zero
+        pass
 
 
 @patch_attribute(tqdm, "close")
