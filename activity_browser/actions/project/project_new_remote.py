@@ -1,10 +1,14 @@
 from qtpy import QtWidgets
 
+import bw2data as bd
+
 from activity_browser import application
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.mod.bw2io import remote
-from activity_browser.mod import bw2data as bd
 from activity_browser.ui.icons import qicons
+from activity_browser.ui.threading import ABThread
+
+from .project_switch import ProjectSwitch
 
 
 class ProjectNewRemote(ABAction):
@@ -36,5 +40,26 @@ class ProjectNewRemote(ABAction):
             )
             return
 
+        thread = InstallThread(application)
+        thread.start(project_key, name)
+
+        dialog = MigrateDialog(application.main_window)
+        dialog.show()
+
+        thread.finished.connect(dialog.close)
+        thread.finished.connect(lambda: ProjectSwitch.run(name))
+
+
+class MigrateDialog(QtWidgets.QProgressDialog):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.setWindowTitle("Installing project")
+        self.setLabelText("Restoring project from template, this may take a while...")
+        self.setRange(0, 0)
+        self.setCancelButton(None)
+
+
+class InstallThread(ABThread):
+    def run_safely(self, project_key: str, name: str):
         remote.install_project(project_key, name)
-        bd.projects.set_current(name)
+
