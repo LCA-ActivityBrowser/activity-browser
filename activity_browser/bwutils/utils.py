@@ -76,6 +76,8 @@ class Index(NamedTuple):
     input: Key
     output: Key
     flow_type: Optional[str] = None
+    input_id: Optional[int] = None
+    output_id: Optional[int] = None
 
     @classmethod
     def build_from_exchange(cls, exc: ExchangeDataset) -> "Index":
@@ -103,10 +105,16 @@ class Index(NamedTuple):
     def build_from_dict(cls, data: dict) -> "Index":
         in_key = data.get("input", ("", ""))
         out_key = data.get("output", ("", ""))
+
+        input_id = data.get("input_id", None)
+        output_id = data.get("output_id", None)
+
         return cls(
             input=Key(in_key[0], in_key[1]),
             output=Key(out_key[0], out_key[1]),
             flow_type=data.get("flow type", None),
+            input_id=input_id,
+            output_id=output_id,
         )
 
     @property

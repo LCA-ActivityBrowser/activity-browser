@@ -122,9 +122,18 @@ def arrays_from_indexed_superstructure(
     df: pd.DataFrame,
 ) -> Tuple[np.ndarray, np.ndarray]:
     result = np.zeros(df.shape[0], dtype=object)
-    for i, data in enumerate(df.index.to_flat_index()):
+
+    meta = AB_metadata.dataframe["id"]
+    meta.index = meta.index.to_flat_index()
+
+    id_df = pd.merge(df, meta, left_on="input", right_index=True).rename(columns={"id":"input_id"})
+    id_df = pd.merge(id_df, meta, left_on="output", right_index=True).rename(columns={"id": "output_id"})
+    id_df = id_df.reset_index()
+    id_df = id_df[["input", "output", "input_id", "flow", "output_id"]]
+
+    for i, data in enumerate(id_df.itertuples()):
         result[i] = Index.build_from_dict(
-            {"input": data[0], "output": data[1], "flow type": data[2]}
+            {"input": data.input, "output": data.output, "flow type": data.flow, "input_id": data.input_id, "output_id": data.output_id}
         )
     return result, df.to_numpy(dtype=float)
 

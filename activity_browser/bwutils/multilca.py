@@ -643,13 +643,17 @@ class Contributions(object):
     def _build_inventory(
         inventory: dict, indices: dict, columns: list, fields: list
     ) -> pd.DataFrame:
-        df = pd.DataFrame(inventory)
-        df.index = pd.MultiIndex.from_tuples(ids_to_keys(indices.values()))
-        df.columns = Contributions.get_labels(columns, max_length=30)
-        metadata = AB_metadata.get_metadata(list(ids_to_keys(indices.values())), fields)
-        joined = metadata.join(df)
-        joined.reset_index(inplace=True, drop=True)
-        return joined
+        data = pd.DataFrame(inventory)
+        data.index = indices.values()
+        data.columns = Contributions.get_labels(columns, max_length=30)
+
+        data = pd.merge(
+            AB_metadata.dataframe[fields + ["id"]], data, right_index=True, left_on="id", how="right"
+        )
+        data.reset_index(inplace=True, drop=True)
+        data.drop(columns="id", inplace=True)
+
+        return data
 
     def inventory_df(
         self, inventory_type: str, columns: set = {"name", "database", "code"}

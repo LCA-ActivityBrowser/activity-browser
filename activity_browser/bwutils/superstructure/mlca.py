@@ -6,6 +6,7 @@ import pandas as pd
 from qtpy.QtWidgets import QPushButton
 
 from activity_browser.mod import bw2data as bd
+from activity_browser.bwutils import AB_metadata
 
 from ..commontasks import format_activity_label
 from ..errors import ScenarioExchangeNotFoundError
@@ -132,8 +133,8 @@ class SuperstructureMLCA(MLCA):
                 else self.lca.product_dict
             )
             return (
-                in_dict.get(bd.mapping[idx.input]),
-                self.lca.activity_dict.get(bd.mapping[idx.output]),
+                in_dict.get(idx.input_id),
+                self.lca.activity_dict.get(idx.output_id),
                 idx.flip,
             )
 
