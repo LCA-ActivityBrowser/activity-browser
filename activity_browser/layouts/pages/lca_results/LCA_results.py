@@ -957,7 +957,7 @@ class ContributionTab(NewAnalysisTab):
         self.total_group.addButton(self.total_menu.score)
         self.total_group.addButton(self.total_menu.range)
 
-        self.score_marker = settings.project_settings.settings.get("analysis_tab", {}).get(f"{self.__class__.__name__}score_marker_enabled", True)
+        self.score_marker = settings.project_settings.settings.get("analysis_tab", {}).get(f"{self.__class__.__name__}score_marker_enabled", False)
         self.score_mrk_checkbox = QtWidgets.QCheckBox("Score Marker")
         self.score_mrk_checkbox.setToolTip(
             "Shows the score marker. When there are both positive and negative results,\n"
