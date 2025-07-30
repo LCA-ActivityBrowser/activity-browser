@@ -276,17 +276,7 @@ class SuperstructureManager(object):
         -------
         A pandas dataframe with the changes made to the scenario dataframe for these self referential flows
         """
-        self_referential_production_flows = df.loc[
-            df.apply(
-                lambda x: (
-                    True
-                    if x["from key"] == x["to key"] and x["flow type"] == "technosphere"
-                    else False
-                ),
-                axis=1,
-            ),
-            :,
-        ].copy()
+        self_referential_production_flows = df[(df["from key"] == df["to key"]) & (df["flow type"] == "technosphere")].copy()
         self_referential_production_flows.index = pd.MultiIndex.from_arrays(
             [
                 self_referential_production_flows.index.get_level_values(0),
