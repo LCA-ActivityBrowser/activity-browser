@@ -12,6 +12,7 @@ from .metadata import AB_metadata
 from .montecarlo import MonteCarloLCA
 from .multilca import MLCA, Contributions
 from .pedigree import PedigreeMatrix
+from .search import SearchEngine
 from .sensitivity_analysis import GlobalSensitivityAnalysis
 from .superstructure import SuperstructureContributions, SuperstructureMLCA
 from .uncertainty import (CFUncertaintyInterface, ExchangeUncertaintyInterface,
