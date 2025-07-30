@@ -823,6 +823,7 @@ class LCAScoresTab(NewAnalysisTab):
         ]
         idx = self.layout.indexOf(self.plot)
         self.plot.figure.clf()
+        self.plot.setVisible(False)
         self.plot.deleteLater()
         self.plot = LCAResultsBarChart(self.parent)
         self.layout.insertWidget(idx, self.plot)
@@ -891,6 +892,7 @@ class LCIAResultsTab(NewAnalysisTab):
         """Update the plot."""
         idx = self.pt_layout.indexOf(self.plot)
         self.plot.figure.clf()
+        self.plot.setVisible(False)
         self.plot.deleteLater()
         self.plot = LCAResultsPlot(self.parent)
         self.pt_layout.insertWidget(idx, self.plot)
@@ -1672,6 +1674,7 @@ class CorrelationsTab(NewAnalysisTab):
         """Update the plot."""
         idx = self.pt_layout.indexOf(self.plot)
         self.plot.figure.clf()
+        self.plot.setVisible(False)
         self.plot.deleteLater()
         self.plot = CorrelationPlot(self.parent)
         self.pt_layout.insertWidget(idx, self.plot)
@@ -1976,6 +1979,7 @@ class MonteCarloTab(NewAnalysisTab):
     def update_plot(self, method):
         idx = self.layout.indexOf(self.plot)
         self.plot.figure.clf()
+        self.plot.setVisible(False)
         self.plot.deleteLater()
         # name is already altered by update_mc before update_plot
         name = self.plot.plot_name
