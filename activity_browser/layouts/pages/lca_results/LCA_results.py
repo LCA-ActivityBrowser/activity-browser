@@ -237,7 +237,7 @@ class NewAnalysisTab(QtWidgets.QWidget):
         self.export_plot: Optional[ExportPlot] = None
         self.export_table: Optional[ExportTable] = None
 
-        self.scenario_box = QtWidgets.QComboBox()
+        self.scenario_box = SmallComboBox()
         self.pt_layout = QtWidgets.QVBoxLayout()
         self.layout = QtWidgets.QVBoxLayout()
         self.setLayout(self.layout)
@@ -903,6 +903,16 @@ class LCIAResultsTab(NewAnalysisTab):
     def update_table(self):
         super().update_table(self.df)
 
+class SmallComboBox(QtWidgets.QComboBox):
+    """A small combo box that does not expand to fill the available space."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        self.setMinimumWidth(100)
+        self.setMaximumWidth(200)
+        self.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToContentsOnFirstShow)
+
 
 class ContributionTab(NewAnalysisTab):
     """Parent class for any 'XXX Contributions' sub-tab."""
@@ -913,9 +923,9 @@ class ContributionTab(NewAnalysisTab):
         self.combobox_menu = Combobox(
             func=QtWidgets.QComboBox(self),
             func_label=QtWidgets.QLabel("Reference Flow:"),
-            method=QtWidgets.QComboBox(self),
+            method=SmallComboBox(self),
             method_label=QtWidgets.QLabel("Impact Category:"),
-            agg=QtWidgets.QComboBox(self),
+            agg=SmallComboBox(self),
             agg_label=QtWidgets.QLabel("Aggregate by:"),
             scenario=self.scenario_box,
             scenario_label=QtWidgets.QLabel("Scenario:"),
