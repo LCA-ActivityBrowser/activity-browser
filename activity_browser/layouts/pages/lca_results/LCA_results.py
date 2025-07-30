@@ -62,7 +62,7 @@ def get_unit(method: tuple, relative: bool = False) -> str:
 
 # Special namedtuple for the LCAResults TabWidget.
 Tabs = namedtuple(
-    "tabs", ("inventory", "results", "ef", "process", "ft", "sankey", "tree", "mc", "gsa")
+    "tabs", ("inventory", "results", "ef", "process", "sankey", "tree", "mc", "gsa")
 )
 Relativity = namedtuple("relativity", ("relative", "absolute"))
 TotalMenu = namedtuple("total_menu", ("score", "range"))
@@ -115,7 +115,7 @@ class LCAResultsPage(QtWidgets.QTabWidget):
             results=LCAResultsTab(self),
             ef=ElementaryFlowContributionTab(self),
             process=ProcessContributionsTab(self),
-            ft=FirstTierContributionsTab(self.cs_name, parent=self),
+            # ft=FirstTierContributionsTab(self.cs_name, parent=self),
             sankey=web.SankeyNavigatorWidget(self.cs_name, parent=self),
             tree=web.TreeNavigatorWidget(self.cs_name, parent=self),
             mc=MonteCarloTab(
@@ -128,7 +128,7 @@ class LCAResultsPage(QtWidgets.QTabWidget):
             results="LCA Results",
             ef="EF Contributions",
             process="Process Contributions",
-            ft="FT Contributions",
+            # ft="FT Contributions",
             sankey="Sankey",
             tree="Tree",
             mc="Monte Carlo",
@@ -169,11 +169,11 @@ class LCAResultsPage(QtWidgets.QTabWidget):
             if not self.tabs.sankey.has_sankey:
                 log.info("Generating Sankey Tab")
                 self.tabs.sankey.new_sankey()
-        elif index == self.indexOf(self.tabs.ft):
-            if not self.tabs.ft.has_been_opened:
-                log.info("Generating First Tier results")
-                self.tabs.ft.has_been_opened = True
-                self.tabs.ft.update_tab()
+        # elif index == self.indexOf(self.tabs.ft):
+        #     if not self.tabs.ft.has_been_opened:
+        #         log.info("Generating First Tier results")
+        #         self.tabs.ft.has_been_opened = True
+        #         self.tabs.ft.update_tab()
 
         if index == self.indexOf(self.tabs.tree):
             if not self.tabs.tree.has_rendered_once:
