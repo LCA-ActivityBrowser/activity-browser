@@ -200,6 +200,8 @@ class ContributionPlot(Plot):
         )  # get rid of all non-numeric columns (metadata)
         if "Score" in dfp.index:
             dfp.drop("Score", inplace=True)
+        if "id" in dfp:
+            dfp.drop(columns=["id"], inplace=True)
         # drop rows if all values are 0 except for "Rest (+)" and "Rest (-)"
         rows_to_drop = dfp.index[(dfp == 0).all(axis=1) & ~dfp.index.isin(["Rest (+)", "Rest (-)"])]
         # Drop those rows
