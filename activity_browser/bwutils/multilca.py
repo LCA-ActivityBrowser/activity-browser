@@ -648,15 +648,14 @@ class Contributions(object):
         data.columns = Contributions.get_labels(columns, max_length=30)
 
         data = pd.merge(
-            AB_metadata.dataframe[fields + ["id"]], data, right_index=True, left_on="id", how="right"
+            AB_metadata.dataframe[fields], data, right_index=True, left_on="id", how="right"
         )
         data.reset_index(inplace=True, drop=True)
-        data.drop(columns="id", inplace=True)
 
         return data
 
     def inventory_df(
-        self, inventory_type: str, columns: set = {"name", "database", "code"}
+        self, inventory_type: str, columns: set = {"name", "database", "code", "id"}
     ) -> pd.DataFrame:
         """Return an inventory dataframe with metadata of the given type."""
         try:

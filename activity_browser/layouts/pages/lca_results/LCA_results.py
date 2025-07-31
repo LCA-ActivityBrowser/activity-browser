@@ -613,9 +613,7 @@ class InventoryTab(NewAnalysisTab):
             flows = (
                 set(self.parent.contributions.inventory_data["biosphere"][1].values())
             ).difference(incl_flows)
-        new_flows = [flow[1] for flow in flows]
-
-        return data.loc[data["code"].isin(new_flows)]
+        return data.loc[data["id"].isin(flows)]
 
     def update_table(self):
         """Update the table."""
@@ -661,9 +659,9 @@ class InventoryTab(NewAnalysisTab):
         """Set the biosphere and technosphere to None."""
         self.df_biosphere, self.df_technosphere = None, None
 
-    def _update_table(self, table: pd.DataFrame, drop: str = "code"):
+    def _update_table(self, table: pd.DataFrame, drop: tuple = ("code", "id")):
         """Update the table."""
-        self.table.model.sync((table.drop(drop, axis=1)).reset_index(drop=True))
+        self.table.model.sync((table.drop(list(drop), axis=1)).reset_index(drop=True))
 
 
 class LCAResultsTab(NewAnalysisTab):
