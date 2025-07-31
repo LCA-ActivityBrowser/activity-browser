@@ -547,7 +547,7 @@ class Contributions(object):
         df.columns = cls.get_labels(df.columns, fields=y_fields)
         # Coerce index to MultiIndex if it currently isn't
         if not isinstance(df.index, pd.MultiIndex):
-            df.index = pd.MultiIndex.from_tuples(ids_to_keys(df.index))
+            df.index = pd.MultiIndex.from_tuples(ids_to_keys(df.index), names=[None, None])
 
         # get metadata for rows
         keys = [k for k in df.index if k in AB_metadata.index]

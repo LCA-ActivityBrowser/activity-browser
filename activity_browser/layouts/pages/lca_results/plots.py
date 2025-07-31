@@ -200,8 +200,10 @@ class ContributionPlot(Plot):
         )  # get rid of all non-numeric columns (metadata)
         if "Score" in dfp.index:
             dfp.drop("Score", inplace=True)
-        # drop rows if all values are 0
-        dfp = dfp.loc[~(dfp == 0).all(axis=1)]
+        # drop rows if all values are 0 except for "Rest (+)" and "Rest (-)"
+        rows_to_drop = dfp.index[(dfp == 0).all(axis=1) & ~dfp.index.isin(["Rest (+)", "Rest (-)"])]
+        # Drop those rows
+        dfp = dfp.drop(rows_to_drop)
 
         self.ax.clear()
         canvas_width_inches, canvas_height_inches = self.get_canvas_size_in_inches()
