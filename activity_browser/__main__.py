@@ -195,6 +195,10 @@ def run_activity_browser_no_launcher():
 
 
 def pre_flight_checks():
+
+    if "--no-checks" in sys.argv:
+        return
+
     check_pyside_version()
 
     if "CONDA_DEFAULT_ENV" in os.environ:
