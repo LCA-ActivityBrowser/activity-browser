@@ -659,7 +659,7 @@ class Contributions(object):
     ) -> pd.DataFrame:
         """Return an inventory dataframe with metadata of the given type."""
         try:
-            data = self.inventory_data[inventory_type]
+            data = deepcopy(self.inventory_data[inventory_type])
             appending = columns.difference(set(data[3]))
             for clmn in appending:
                 data[3].append(clmn)
@@ -762,10 +762,10 @@ class Contributions(object):
 
         df = pd.DataFrame(contributions).T
         columns = list(range(contributions.shape[0]))
-        df.index = pd.MultiIndex.from_tuples(rev_index.values())
-        metadata = AB_metadata.get_metadata(list(keys), fields)
+        df.index = rev_index.values()
+        metadata = AB_metadata.dataframe.loc[AB_metadata.dataframe["id"].isin(keys), fields + ["id"]]
 
-        joined = metadata.join(df)
+        joined = metadata.merge(df, left_on="id", right_index=True, how="left")
         joined.reset_index(inplace=True, drop=True)
         grouped = joined.groupby(parameters)
         aggregated = grouped[columns].sum()
