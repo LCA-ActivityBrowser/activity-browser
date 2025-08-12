@@ -3,6 +3,8 @@ from logging import getLogger
 from qtpy import QtWidgets
 from qtpy.QtCore import Signal, SignalInstance
 
+import bw2data as bd
+
 from activity_browser import application
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.ui import threading, widgets
@@ -83,6 +85,47 @@ class ImportSetup(widgets.ABWizard):
             context["database_name"] = self.db_name_edit.text()
 
         def nextPage(self):
+            return ImportSetup.DatabaseLink
+
+    class DatabaseLink(widgets.ABWizardPage):
+        title = "Link Databases"
+        subtitle = "Link the imported database to existing databases"
+
+        def __init__(self, parent=None):
+            super().__init__(parent)
+            layout = QtWidgets.QGridLayout(self)
+            self.setLayout(layout)
+            self.link_dict_edit = {}
+
+        def isComplete(self):
+            return True
+
+        def initializePage(self, context: dict):
+            # fetch the unlinked databases from the importer
+            link_dbs = set([exc["database"] for exc in context["importer"].unlinked])
+            layout = self.layout()
+
+            for i, db in enumerate(link_dbs):
+                if db == context["database_name"]:
+                    continue
+
+                layout.addWidget(QtWidgets.QLabel(db), i, 0)
+
+                drop_down = QtWidgets.QComboBox(self)
+                drop_down.addItems(sorted(bd.databases))
+
+                if db in bd.databases:
+                    drop_down.setCurrentText(db)
+
+                layout.addWidget(drop_down, i, 1)
+
+                self.link_dict_edit[db] = drop_down
+
+
+        def finalize(self, context: dict):
+            context["linking_dict"] = {k: v.currentText() for k, v in self.link_dict_edit.items()}
+
+        def nextPage(self):
             return ImportSetup.InstallPage
 
     class InstallPage(widgets.ABThreadedWizardPage):
@@ -98,6 +141,6 @@ class ImportSetup(widgets.ABWizard):
 
         def initializePage(self, context: dict):
             """Start the download thread"""
-            self.thread.start(context["importer"], context["database_name"], {})
+            self.thread.start(context["importer"], context["database_name"], context["linking_dict"])
 
-    pages = [ExtractPage, DatabaseName, InstallPage]
+    pages = [ExtractPage, DatabaseName, DatabaseLink, InstallPage]

@@ -72,7 +72,7 @@ def _relink_exchanges(data: list, other: str) -> list:
     if len(other) == 0:
         raise StrategyError("Cannot link to empty database")
     act = other.random()
-    is_technosphere = act.get("type", "process") == "process"
+    is_technosphere = act.get("type", "process") in ["process", "processwithreferenceproduct", "product"]
     kind = TECHNOSPHERE_TYPES if is_technosphere else BIOSPHERE_TYPES
     return link_iterable_by_fields(
         data, other=other, kind=kind, fields=RELINK_FIELDS, relink=True
