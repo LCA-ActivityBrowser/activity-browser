@@ -1,11 +1,17 @@
+from tqdm import tqdm
+from logging import getLogger
 from qtpy import QtWidgets, QtGui, QtCore
 
-from bw2data.project import projects
+import bw2data as bd
+import pandas as pd
 
-from activity_browser import application
+from activity_browser import application, signals
 from activity_browser.actions.base import ABAction, exception_dialogs
+from activity_browser.bwutils import AB_metadata
 from activity_browser.ui.icons import qicons
 from activity_browser.ui.threading import ABThread
+
+log = getLogger(__name__)
 
 
 class ProjectMigrate25(ABAction):
@@ -23,7 +29,7 @@ class ProjectMigrate25(ABAction):
     @exception_dialogs
     def run(name: str = None):
         if name is None:
-            name = projects.current
+            name = bd.projects.current
 
         dialog = MigrateDialog(name, application.main_window)
         dialog.exec_()
@@ -31,8 +37,8 @@ class ProjectMigrate25(ABAction):
         if dialog.result() == dialog.DialogCode.Rejected:
             return
 
-        if name != projects.current:
-            projects.set_current(name, update=False)
+        if name != bd.projects.current:
+            bd.projects.set_current(name, update=False)
 
         # setup dialog
         progress = QtWidgets.QProgressDialog(
@@ -51,6 +57,7 @@ class ProjectMigrate25(ABAction):
         thread = MigrateThread(application)
         thread.finished.connect(lambda: progress.deleteLater())
         thread.start()
+        thread.connect_progress_dialog(progress)
 
 
 class MigrateDialog(QtWidgets.QDialog):
@@ -85,6 +92,74 @@ class MigrateDialog(QtWidgets.QDialog):
 
 class MigrateThread(ABThread):
     def run_safely(self):
-        projects.migrate_project_25()
-        projects.set_current(projects.current)
+        self.pre_process_methods()
+
+        log.info("Updating and processing all datasets in the project")
+        bd.projects.set_current(bd.projects.current)
+
+        for db_name in bd.databases:
+            self.update_database_activity_types(db_name)
+
+        # set the bw25 flag in the project dataset
+        bd.projects.dataset.data["25"] = True
+        bd.projects.dataset.save()
+
+        # reloading project to ensure all changes are applied
+        bd.projects.set_current(bd.projects.current)
+
+    @classmethod
+    def pre_process_methods(cls):
+        log.info("Pre-processing methods for migration to bw25")
+        data = {m: bd.Method(m).load() for m in bd.methods}
+        df = pd.DataFrame([(k, v[0][0], v[0][1], v[1])
+                           for k, values in data.items() for v in values
+                           if isinstance(v[0], tuple) and len(v) == 2 and len(v[0]) == 2],
+                          columns=["method", "database", "code", "value"])
+
+        df = df.merge(AB_metadata.dataframe["id"], left_on=["database", "code"], right_index=True)
+
+        signals.method.blockSignals(True)
+        signals.meta.blockSignals(True)
+
+        for name in tqdm(df["method"].unique(), desc="Pre-processing methods", unit="method", total=len(df["method"].unique())):
+            method_df = df[df["method"] == name][["id", "value"]]
+            method_list = list(method_df.itertuples(index=False, name=None))
+            bd.Method(name).write(method_list, process=False)
+
+        signals.method.blockSignals(False)
+        signals.meta.blockSignals(False)
+
+        return
+
+    @classmethod
+    def update_database_activity_types(cls, db_name: str):
+        database = bd.Database(db_name)
+        write = False
+
+        if not isinstance(database, bd.backends.SQLiteBackend):
+            return
+
+        log.info(f"Updating activity types in {db_name}")
+        raw = database.load()
+
+        for key, ds in tqdm(raw.items(), desc=f"Updating activity types in {db_name}", unit="activity", total=len(raw)):
+            if cls.activity_is_processwithreferenceproduct(ds):
+                write = True
+                ds["type"] = "processwithreferenceproduct"
+
+        if write:
+            database.write(raw)
+
+    @staticmethod
+    def activity_is_processwithreferenceproduct(ds: dict) -> bool:
+        production = [exc for exc in ds.get("exchanges", []) if exc.get("type") == "production"]
+        return (
+            ds.get("type") in ["process", "processwithreferenceproduct"] and
+            (
+                len(production) == 0 or
+                production[0].get("input") == (ds["database"], ds["code"])
+            )
+        )
+
+
 

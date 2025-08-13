@@ -5,6 +5,7 @@ from activity_browser.mod import bw2data as bd
 from activity_browser.mod.tqdm.std import qt_tqdm
 
 from qtpy.QtCore import QThread, SignalInstance, Signal
+from qtpy import QtWidgets
 
 
 class ABThread(QThread):
@@ -52,6 +53,21 @@ class ABThread(QThread):
 
     def run_safely(self, *args, **kwargs):
         raise NotImplementedError
+
+    def connect_progress_dialog(self, progress_dialog: QtWidgets.QProgressDialog):
+        """
+        Connects the status signal to a progress dialog.
+        """
+        def slot(progress, message):
+            if progress == -1:
+                progress_dialog.setLabelText(message)
+                progress_dialog.setRange(0, 0)
+            else:
+                progress_dialog.setRange(0, 100)
+                progress_dialog.setValue(progress)
+                progress_dialog.setLabelText(message or "Working...")
+
+        self.status.connect(slot)
 
 
 class SafeBWConnection:
