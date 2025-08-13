@@ -50,9 +50,6 @@ class ImportSetup(widgets.ABWizard):
 
         def initializePage(self, context: dict):
             """Start the download thread"""
-            def set_importer(importer):
-                context.__setitem__("importer", importer)
-
             self.thread.start(context["path"])
             self.thread.loaded.connect(lambda i: context.__setitem__("importer", i))
 
@@ -102,11 +99,12 @@ class ImportSetup(widgets.ABWizard):
 
         def initializePage(self, context: dict):
             # fetch the unlinked databases from the importer
-            link_dbs = set([exc["database"] for exc in context["importer"].unlinked])
+            importer = context["importer"]
+            link_dbs = set([exc["database"] for exc in importer.unlinked])
             layout = self.layout()
 
             for i, db in enumerate(link_dbs):
-                if db == context["database_name"]:
+                if db == importer.db_name:
                     continue
 
                 layout.addWidget(QtWidgets.QLabel(db), i, 0)
