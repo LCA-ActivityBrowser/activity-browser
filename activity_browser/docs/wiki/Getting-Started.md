@@ -1,10 +1,16 @@
 [Learn how to install Activity Browser...](Installation-Guide)
 
-## Starting Activity Browser
-First activate the environment where the activity browser is installed:
+## Starting Activity Browser 3
+First activate the environment where the activity browser is installed. This may differ based on the installation method you used. If you installed Activity Browser with conda, you can activate the environment with:
 
 ```bash
 conda activate ab
+```
+
+If you installed Activity Browser in a virtual environment using pip, you can activate it with:
+
+```bash
+source /path/to/your/venv/bin/activate
 ```
 
 Then simply run `activity-browser` and the application will open.
@@ -34,127 +40,51 @@ Read more about how data is organized in the
 [Brightway documentation](https://docs.brightway.dev/en/latest/content/theory/structure.html#brightway-objects).
 
 ## User interface
-Activity Browser is organized in two panels, which themselves have tabs and a menu bar. 
-The left panel has a `Project` tab and an `Impact Categories` tab.
-The right panel has the `Welcome` screen, `LCA setup` tab, `Parameters` tab and -if used- an `LCA Results` tab.
+Activity Browser 3 is organized into `Panes` and `Pages`. `Panes` are the draggable windows that you can move around, and stack on top of each other (e.g. `Databases`, `Impact Categories`, `Calculation Setups`). `Pages` are central to the application and show specific content (e.g. `Activity Details`, `Parameters`, `LCA Results`).
 
-The [`Project`](Projects) tab shows your current project, the databases in that project and the contents of a database if it is open.
-The [`Impact Categories`](Impact-Categories) tab shows all impact categories that are installed in the current project.
-The [`LCA Setup`](LCA-Calculation-Setups) tab allows you to define reference flows, impact categories and scenarios for calculations.
-The [`Parameters`](Parameters) tab allows you to manage your parameters.
-The [`LCA Results`](LCA-Results) tab shows the results of the calculations you do.
-Finally, the menu bar at the top allows you to manage Activity Browser, Plugins and Project settings.
+
+### Panes
+The [`Databases`](Databases) pane shows the databases currently loaded into your project.
+The [`Impact Categories`](Impact-Categories) pane shows all impact categories that are installed in the current project.
+The [`Calculation Setups`](LCA-Calculation-Setups) pane allows you to open, create and delete new calculation setups.
+
+### Pages
+The [`Parameters`](Parameters) page allows you to manage your parameters.
+The [`LCA Setup`](LCA-Results) page allows you to create and manage your LCA calculation setups.
+The [`LCA Results`](LCA-Results) page shows the results of the calculations you do.
 
 ## Setting up a project
+When creating a new project you must first decide whether you want to create a project totally from scratch, or whether you want to set up a project from a Brightway template. Brightway templates are pre-configured projects that contain a biosphere database and impact categories. It is the recommended way to start a new project if you do not have e.g. an ecoinvent license to install the ecoinvent database, biosphere and impact categories.
 
-### Video overview of project setup
+You can create a new project from a template by navigating to the `Project` menu, selecting the `New Project` submenu, and then selecting your desired template from the `From template` submenu.
 
-[![Projects and Databases](https://img.youtube.com/vi/qWzaQjAf8ZU/hqdefault.jpg)](https://www.youtube.com/watch?v=qWzaQjAf8ZU)
-
-<sup>
-<b>Note:</b> some content of the video may be outdated. Written content should be more up-to-date.
-</sup>
-
-### Installing a biosphere and impact categories
-In the `Project` tab there is initially a button called `Set up your project with default data`. 
-Click this button to add the default data. 
-This adds a `biosphere` database which contains a number of standardized biosphere flows 
-and compatible impact categories.
-
-![project setup - choose type](./assets/project_setup_dialog_choose_type.png)
-
-#### Setting up with Biosphere3 data
-You can choose a biosphere version, which will install a biosphere database and compatible impact categories.
-
-> [!IMPORTANT]
-> In case you want to install ecoinvent later, choosing a biosphere version will make your project compatible with 
-> **only** the version of biosphere you install.
-> e.g. installing biosphere `3.6` will make your project only compatible with ecoinvent `3.6` databases.
-> 
-> Setting the biosphere version is **permanent** for a project, you cannot change this version later.
-> 
-> If you do not plan on using ecoinvent in this project, don't worry about this and choose the highest version.
-
-![project setup - choose biosphere version](./assets/project_setup_dialog_bio_vsn.png)
-
-#### Setting up with ecoinvent data
-If you have a valid ecoinvent license and login information, you can immediately set up ecoinvent in your project with all 
-relevant and compatible data. 
-You can then choose the database version and system model.
-
-![project setup - ecoinvent login](./assets/project_setup_dialog_ei_login.png) 
-![project setup - ecoinvent version and system model](./assets/project_setup_dialog_ei_vsn_and_model.png)
+If you want to create a project from scratch, you can select the `New Project` option in the `Project` menu. This will create a new project with no data, and you can then add databases, impact categories and calculation setups as needed.
 
 [Read more about projects...](Projects)
 
-## LCI databases
-After adding the default data, you can create or import a database with the `New` and `Import Database` buttons.
-
-![project tab until databases](./assets/project_tab_until_databases.png)
+## Databases
+You can add databases to your project in two ways: by creating a new database, or by importing an existing database.
+[Read more about databases...](Databases)
 
 ### New databases
-With `New` you can create a completely empty database with any given name and
-enter your own activity data.
+By clicking the `New database` button in either the `Project` menu or the context menu of the `Databases` pane, you can create a new database. This will open a dialog where you can enter the name of the new database and select the back-end of the database.
+
+You can choose between the following back-ends:
+- **sqlite** The standard back-end for Brightway databases.
+- **functional-sqlite** An experimental backend that allows for multifunctional processes.
 
 [Read more about activities...](Activities)
 
 ### Importing databases
-Clicking 'Import' will open a new dialog that will allow you to select how you want to import data into brightway 
-(and by extension, the Activity Browser).
-There are two main options: 'remote data' and 'local data':
+Clicking 'Import' will open a new dialog that will allow you to select how you want to import data into brightway (and by extension, the Activity Browser).
+There are three options: `.bw2package`, `.xlsx`and `ecoinvent`:
 
-<details><summary><b>Remote database import</b></summary>
-
-We currently support 2 remote databases, Ecoinvent and Forwast:
-
-#### Importing Ecoinvent
-[**Ecoinvent**](https://ecoinvent.org/) is a paid database you can install directly in Activity Browser if you have a 
-valid ecoinvent license and login information.
-
-#### Importing Forwast
-[**Forwast**](http://forwast.brgm.fr/) is a free database you can install directly in Activity Browser.
-___
-</details>
-
-<details><summary><b>Local database import</b></summary>
-
-We support various local import methods
-- Local 7z-archive of ecospold2 files
-- Local directory of ecospold2 files
-- Local Excel file
-- Local Brightway database file
-___
-</details>
-
-[Read more about databases...](Databases)
-
-### Video overview of working with Activities in Databases
-
-[![Projects and Databases](https://img.youtube.com/vi/2rmydYdscJY/hqdefault.jpg)](https://www.youtube.com/watch?v=2rmydYdscJY)
-
-<sup>
-<b>Note:</b> some content of the video may be outdated. Written content should be more up-to-date.
-</sup>
-
-[Read more about activities...](Activities)
+- **.bw2package**: This is the standard format for Brightway databases. You can import a `.bw2package` file by selecting the option in the import menu.
+- **.xlsx**: This is a spreadsheet format that can be used to import data into Brightway. You can import an `.xlsx` file by selecting the option in the import menu.
+- **ecoinvent**: If you have an ecoinvent license, you can import the ecoinvent database by selecting the `ecoinvent` option in the dialog. This will open a new dialog where you can login with your credentials and select the version of ecoinvent you want to import.
 
 ## Running an LCA calculation
-To run an LCA, you must first create a calculation setup, add at least one reference flow and one impact category 
-to be able to calculate results.
-
-### Video overview of calculating LCA results
-
-[![LCA results](https://img.youtube.com/vi/J94UehVQM-Q/hqdefault.jpg)](https://www.youtube.com/watch?v=J94UehVQM-Q)
-
-<sup>
-<b>Note:</b> some content of the video may be outdated. Written content should be more up-to-date.
-</sup>
-
-[Read more about LCA calculation setups...](LCA-Calculation-Setups)
-
-[Read more about LCA results...](LCA-Results)
-
-[Follow a tutorial to do your first LCA...](Tutorials#your-first-lca)
+To run an LCA, you must first create a calculation setup, add at least one reference flow and one impact category to be able to calculate results. You can do this by navigating to the `Calculation Setups` pane, clicking the `New Calculation Setup` button, and then adding reference flows and impact categories to the setup by dragging them into the page from the appropriate panes.
 
 ## Additional Resources
 - [Youtube tutorials](https://www.youtube.com/channel/UCsyySKrzEMsRFsWW1Oz-6aA/)
