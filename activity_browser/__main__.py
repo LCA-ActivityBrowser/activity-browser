@@ -155,40 +155,28 @@ def run_activity_browser():
 
 
 def run_activity_browser_no_launcher():
-    import sys
+    pre_flight_checks()
+    setup_ab_logging()
 
-    from activity_browser import settings, actions
-    import bw2data as bd
+    modules = ModuleThread()
+    modules.run()
 
     from .ui.widgets import MainWindow, CentralTabWidget
     from .layouts import panes, pages
-    from .logger import setup_ab_logging
-
-    setup_ab_logging()
+    from activity_browser.bwutils import AB_metadata
+    from activity_browser import signals
 
     application.main_window = MainWindow()
-    application.main_window.setPanes([panes.DatabasesPane, panes.ImpactCategoriesPane, panes.CalculationSetupsPane])
-
     central_widget = CentralTabWidget(application.main_window)
     central_widget.addTab(pages.WelcomePage(), "Welcome")
     central_widget.addTab(pages.ParametersPage(), "Parameters")
 
     application.main_window.setCentralWidget(central_widget)
 
-    if settings.ab_settings.settings:
-        from pathlib import Path
+    settings = SettingsThread()
+    settings.run()
 
-        base_dir = Path(settings.ab_settings.current_bw_dir)
-        project_name = settings.ab_settings.startup_project
-        bd.projects.change_base_directories(base_dir, project_name=project_name, update=False)
-
-    if not bd.projects.twofive:
-        log.warning(f"Project: {bd.projects.current} is not yet BW25 compatible")
-        actions.ProjectSwitch.set_warning_bar()
-
-    log.info(f"Brightway2 data directory: {bd.projects._base_data_dir}")
-    log.info(f"Brightway2 current project: {bd.projects.current}")
-
+    application.main_window.sync()
     application.main_window.show()
 
     sys.exit(application.exec_())
@@ -247,6 +235,9 @@ def check_pypi_update():
 
 
 if "--no-launcher" in sys.argv:
+    run_activity_browser_no_launcher()
+elif sys.version_info[1] == 10:
+    log.info("Running Activity Browser without launcher for Python 3.10")
     run_activity_browser_no_launcher()
 else:
     run_activity_browser()
