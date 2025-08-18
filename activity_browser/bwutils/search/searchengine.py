@@ -195,19 +195,19 @@ class SearchEngine:
 
     #   +++ Changes to searchable data
 
-    def add_identifier(self, identifier, data: dict) -> None:
+    def add_identifier(self, data: dict, make_searchable=[]) -> None:
         """Add this identifier to the search index.
 
         identifier is expected to be a unique identifier that has not been used before
         data is expected to be a dict of column names and data
         """
+        #TODO add ability to add new columns with make_searchable
+        identifier = data[self.identifier_name]
+
         # make sure we the identifier does not yet exist
         if identifier in self.df.index.to_list():
             raise Exception(
                 f"Identifier '{identifier}' is already in use, use a different identifier or use the change_identifier function.")
-        if data[self.identifier_name] != identifier:
-            raise Exception(
-                f"Identifier argument '{identifier}' and data in identifier column '{data[self.identifier_name]}' must be the same.")
 
         df_cols = self.columns
 
@@ -273,9 +273,12 @@ class SearchEngine:
         if identifier not in self.df.index.to_list():
             raise Exception(
                 f"Identifier '{identifier}' does not exist in the search data, use an existing identifier or use the add_identifier function.")
-        if data[self.identifier_name] != identifier:
+        if self.identifier_name in data.keys() and data[self.identifier_name] != identifier:
             raise Exception(
-                f"Identifier argument '{identifier}' and data in identifier column '{data[self.identifier_name]}' must be the same.")
+                "Identifier field cannot be changed, first remove item and then add new identifier")
+        if "query_col" in data.keys():
+            log.debug(
+                f"Field 'query_col' is a protected field for search engine and will be ignored for changing {identifier}")
 
         # get existing data
         update_data = {col: self.df.loc[identifier, col] for col in self.df.columns}
@@ -289,7 +292,7 @@ class SearchEngine:
         self.remove_identifier(identifier)
 
         # add entry with new data
-        self.add_identifier(identifier, update_data)
+        self.add_identifier(update_data)
 
     #   +++ Search
 
@@ -661,6 +664,11 @@ class SearchEngine:
     def search(self, text) -> list:
         """Search the dataframe on this text, return a sorted list of identifiers."""
         t = time()
+
+        if len(text) == 0:
+            log.debug(f"Empty search, returned all items")
+            return self.df.index.to_list()
+
         fuzzy_identifiers = self.fuzzy_search(text)
         if len(fuzzy_identifiers) == 0:
             log.debug(f"Found 0 search results for '{text}' in {len(self.df)} items in {time() - t:.2f} seconds")
@@ -835,6 +843,10 @@ class MetaDataSearchEngine(SearchEngine):
     def search(self, text, database: Optional[str] = None) -> list:
         """Search the dataframe on this text, return a sorted list of identifiers."""
         t = time()
+
+        if len(text) == 0:
+            log.debug(f"Empty search, returned all items")
+            return self.df.index.to_list()
 
         # get the set of ids that is in this database
         if database is not None:
