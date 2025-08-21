@@ -29,7 +29,7 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Mathematics",
     "Topic :: Scientific/Engineering :: Visualization",
 ]
-requires-python = ">=3.10, <=3.12"
+requires-python = ">=3.10, <=3.13"
 dependencies = [
     "arrow",
     "bw2analyzer>=0.11.5",
