@@ -54,7 +54,7 @@ class ABLoader(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint)
-        self.setWindowIcon(icons.qicons.ab)
+        self.setWindowTitle("Activity Browser Launcher")
         self.setFixedSize(500, 300)
 
         logo_pixmap = QtGui.QPixmap(os.path.join(main.__path__[0], "activitybrowser.png")).scaledToHeight(280, mode=Qt.TransformationMode.SmoothTransformation)

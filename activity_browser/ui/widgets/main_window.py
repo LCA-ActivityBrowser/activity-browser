@@ -5,7 +5,7 @@ from qtpy import QtCore, QtWidgets
 
 import bw2data as bd
 
-from activity_browser import signals, settings
+from activity_browser import signals, application
 from activity_browser.ui import icons
 
 from activity_browser.ui.menu_bar import MenuBar
@@ -20,7 +20,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.setLocale(QtCore.QLocale(QtCore.QLocale.English, QtCore.QLocale.UnitedStates))
         self.setWindowTitle("Activity Browser")
-        self.setWindowIcon(icons.qicons.ab)
         self.setDockNestingEnabled(True)
 
         # Layout: extra items outside main layout

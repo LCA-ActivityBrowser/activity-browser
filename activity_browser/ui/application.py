@@ -1,10 +1,13 @@
+import sys
+
+from pathlib import Path
 from logging import getLogger
 
 from qtpy import QtGui, QtWidgets, QtCore, PYSIDE6
 from qtpy.QtCore import Qt
 from qtpy.QtGui import QFontDatabase
 
-from activity_browser.static import fonts
+from activity_browser.static import fonts, icons
 
 log = getLogger(__name__)
 
@@ -24,6 +27,7 @@ class ABApplication(QtWidgets.QApplication):
         QtGui.QGuiApplication.setAttribute(Qt.AA_DontShowIconsInMenus, True)
 
         self.add_fonts()
+        self.set_icon()
 
         if PYSIDE6:
             self.pyside6_setup()
@@ -32,6 +36,13 @@ class ABApplication(QtWidgets.QApplication):
         QFontDatabase.addApplicationFont(fonts.__path__[0] + "/mono.ttf")
         QFontDatabase.addApplicationFont(fonts.__path__[0] + "/ptsans.ttf")
         QFontDatabase.addApplicationFont(fonts.__path__[0] + "/notosans.ttf")
+
+    def set_icon(self):
+        app_pix = QtGui.QPixmap(
+            str(Path(icons.__path__[0]).joinpath("main", "activitybrowser.png"))
+        ).scaledToHeight(150, mode=Qt.TransformationMode.SmoothTransformation)
+        app_icon = QtGui.QIcon(app_pix)
+        self.setWindowIcon(app_icon)
 
     def pyside6_setup(self):
         from qtpy.QtWebEngineQuick import QtWebEngineQuick
