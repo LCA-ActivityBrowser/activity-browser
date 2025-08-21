@@ -77,7 +77,7 @@ class SafeBWConnection:
         """
         Closes all connections for this thread
         """
-        for conn in thread_local.peewee_connections:
+        for conn in getattr(thread_local, "peewee_connections", []):
             if hasattr(conn, "conn") and hasattr(conn.conn, "close"):
                 conn.conn.close()
 
