@@ -29,7 +29,7 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Mathematics",
     "Topic :: Scientific/Engineering :: Visualization",
 ]
-requires-python = ">=3.10"
+requires-python = ">=3.10, <=3.12"
 dependencies = [
     "arrow",
     "bw2analyzer>=0.11.5",
@@ -42,12 +42,12 @@ dependencies = [
     "bw_simapro_csv >=0.2.6",
     "ecoinvent_interface",
     "matrix_utils>=0.5",
-    "bw-functional==0b79",
+    "bw-functional==0b80",
     "networkx",
     "numpy>=1.23.5,<2",
     "pandas>=2.2.1",
     "pint<=0.21",
-    "py7zr<=1.0.0rc1",
+    "py7zr<=0.22.0",
     "pyperclip",
     "pyside6",
     "pypardiso ; platform_system == 'Windows'",
