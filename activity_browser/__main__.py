@@ -57,7 +57,7 @@ class ABLoader(QtWidgets.QWidget):
         self.setWindowTitle("Activity Browser Launcher")
         self.setFixedSize(500, 300)
 
-        logo_pixmap = QtGui.QPixmap(os.path.join(main.__path__[0], "activitybrowser.png")).scaledToHeight(280, mode=Qt.TransformationMode.SmoothTransformation)
+        logo_pixmap = QtGui.QPixmap(os.path.join(main.__path__[0], "activitybrowser.png")).scaledToHeight(200, mode=Qt.TransformationMode.SmoothTransformation)
         logo_label = QtWidgets.QLabel(self)
         logo_label.setPixmap(logo_pixmap)
 
@@ -70,7 +70,7 @@ class ABLoader(QtWidgets.QWidget):
         layout.addWidget(logo_label, alignment=Qt.AlignCenter)
         layout.addWidget(self.text_label, alignment=Qt.AlignmentFlag.AlignRight)
         layout.addWidget(loading_bar)
-        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setContentsMargins(0, 35, 0, 0)
 
         self.setLayout(layout)
 
