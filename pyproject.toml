@@ -47,7 +47,7 @@ dependencies = [
     "numpy>=1.23.5,<2",
     "pandas>=2.2.1",
     "pint<=0.21",
-    "py7zr<=0.22.0",
+    "py7zr==0.22.0",
     "pyperclip",
     "pyside6",
     "pypardiso ; platform_system == 'Windows'",

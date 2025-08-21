@@ -5,6 +5,7 @@ import requests
 
 import ecoinvent_interface as ei
 import bw2data as bd
+import bw2io as bi
 
 from qtpy import QtWidgets, QtCore
 from qtpy.QtCore import Signal, SignalInstance
@@ -14,6 +15,7 @@ from activity_browser.ui import widgets, icons, threading
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.bwutils.io.ecoinvent_importer import Ecoinvent7zImporter
 from activity_browser.bwutils.io.ecoinvent_lcia_importer import EcoinventLCIAImporter
+from activity_browser.mod.bw2io.migrations import ab_create_core_migrations
 
 log = getLogger(__name__)
 
@@ -418,6 +420,10 @@ class EiWizard(widgets.ABWizard):
                 """Install the ecoinvent database"""
                 importer = Ecoinvent7zImporter(ei_filepath)
                 importer.install_ecoinvent(database_name, biosphere_name)
+
+                # Run migrations after installation
+                if len(bi.migrations) == 0:
+                    ab_create_core_migrations()
 
         def initializePage(self, context: dict):
             """Start the ecoinvent installation thread"""
