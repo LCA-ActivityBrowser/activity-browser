@@ -1,7 +1,6 @@
 import threading
 import logging
 
-from activity_browser.mod import bw2data as bd
 from activity_browser.mod.tqdm.std import qt_tqdm
 
 from qtpy.QtCore import QThread, SignalInstance, Signal
@@ -78,9 +77,9 @@ class SafeBWConnection:
         """
         Closes all connections for this thread
         """
-        for _, SubstitutableDatabase in bd.config.sqlite3_databases:
-            if not SubstitutableDatabase.db.is_closed():
-                SubstitutableDatabase.db.close()
+        for conn in thread_local.peewee_connections:
+            if hasattr(conn, "conn") and hasattr(conn.conn, "close"):
+                conn.conn.close()
 
 
 class InfoToSlot:

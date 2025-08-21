@@ -2,16 +2,11 @@ from copy import deepcopy
 
 import pytest
 
-import PySide6
-from qtpy import QtCore, QtGui, QtWidgets, QT_API
-
 import bw2data as bd
 import bw_functional as bf
 from bw2data.tests import bw2test
 
-import activity_browser
 from activity_browser import application
-from activity_browser.signals import ABSignals
 from activity_browser.ui.widgets import MainWindow, CentralTabWidget
 from activity_browser.layouts import pages
 
