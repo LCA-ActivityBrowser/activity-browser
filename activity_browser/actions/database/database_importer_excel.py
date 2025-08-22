@@ -128,7 +128,7 @@ class ImportSetup(widgets.ABWizard):
 
     class InstallPage(widgets.ABThreadedWizardPage):
         title = "Importing Database"
-        subtitle = "Importing database from .bw2package file"
+        subtitle = "Importing database from .xlsx file"
 
         class Thread(threading.ABThread):
             """Thread to handle the install process"""
