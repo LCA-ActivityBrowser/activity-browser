@@ -5,14 +5,28 @@ from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.mod import bw2data as bd
 from activity_browser.ui.icons import qicons
 
+from .database_open import DatabaseOpen
+
 
 class DatabaseNew(ABAction):
     """
-    ABAction to create a new database. First asks the user to provide a name for the new database. Returns if the user
-    cancels, or when an existing database already has the chosen name. Otherwise, instructs the controller to create a
-    new database with the chosen name.
-    """
+    Executes the process of creating a new database.
 
+    This method retrieves the database name and backend type from the `NewDatabaseDialog`.
+    It validates the input to ensure the name is not empty and does not already exist.
+    If the input is valid, it creates and registers a new database, then opens it.
+
+    Steps:
+    - Open the `NewDatabaseDialog` to get the database name and backend type.
+    - Return if the dialog is canceled or the name is empty.
+    - Check if the database name already exists and show an error message if it does.
+    - Create a new database with the specified name and backend type.
+    - Register the database with default settings (not searchable, not read-only).
+    - Open the newly created database.
+
+    Raises:
+        None
+    """
     icon = qicons.add
     text = "New database..."
     tool_tip = "Make a new database"
@@ -34,10 +48,9 @@ class DatabaseNew(ABAction):
             return
 
         db = bd.Database(name, backend if backend else "functional_sqlite")
-        db.register(searchable=False)
-        settings.project_settings.add_db(name, False)
+        db.register(searchable=False, read_only=False)
 
-        signals.database_selected.emit(name)
+        DatabaseOpen.run([name])
 
 
 class NewDatabaseDialog(QtWidgets.QDialog):
