@@ -40,7 +40,7 @@ class ABApplication(QtWidgets.QApplication):
     def set_icon(self):
         app_pix = QtGui.QPixmap(
             str(Path(icons.__path__[0]).joinpath("main", "activitybrowser.png"))
-        ).scaledToHeight(150, mode=Qt.TransformationMode.SmoothTransformation)
+        ).scaledToHeight(100, mode=Qt.TransformationMode.SmoothTransformation)
         app_icon = QtGui.QIcon(app_pix)
         self.setWindowIcon(app_icon)
 
