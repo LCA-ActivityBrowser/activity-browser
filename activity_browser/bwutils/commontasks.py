@@ -252,8 +252,7 @@ def parameters_in_scope(
     if node:
         node = refresh_node(node)
         database = node["database"]
-        ap = ActivityParameter.get_or_none(database=node["database"], code=node["code"])
-        group = ap.group if ap else None
+        group = node_group(node)
     else:  # if parameter
         parameter = refresh_parameter(parameter)
         group = parameter.group
@@ -283,6 +282,13 @@ def parameters_in_scope(
             data[name] = Parameter(name, dep, param.get("amount"), param, "activity")
 
     return data
+
+
+def node_group(node: tuple | int | bd.Node) -> str | None:
+    """Returns the group of the node, or None if it does not have a group."""
+    node = refresh_node(node)
+    ap = ActivityParameter.get_or_none(database=node["database"], code=node["code"])
+    return ap.group if ap else None
 
 
 def clean_activity_name(activity_name: str) -> str:
