@@ -23,11 +23,11 @@ class ABApplication(QtWidgets.QApplication):
         QtCore.QCoreApplication.setAttribute(Qt.AA_UseSoftwareOpenGL)
 
         super().__init__(*args, **kwargs)
+        self.set_icon()  # needs to be called right after super().__init__
 
         QtGui.QGuiApplication.setAttribute(Qt.AA_DontShowIconsInMenus, True)
 
         self.add_fonts()
-        self.set_icon()
 
         if PYSIDE6:
             self.pyside6_setup()
