@@ -12,8 +12,28 @@ from activity_browser.ui.icons import qicons
 
 class DatabaseDelete(ABAction):
     """
-    ABAction to delete a database from the project. Asks the user for confirmation. If confirmed, instructs the
-    DatabaseController to delete the database in question.
+    Deletes a specified database from the project after user confirmation.
+
+    This method performs the following steps:
+    - Displays a confirmation dialog to the user with the database name and record count.
+    - If the user confirms, deletes the database, its upstream exchanges, and associated parameters.
+    - Removes the database from the project settings.
+
+    Args:
+        db_name (str): The name of the database to be deleted.
+
+    Steps:
+    - Set the cursor to a waiting state while gathering data for large databases.
+    - Retrieve the record count for the specified database.
+    - Construct a warning message with the database name and record count.
+    - Display a confirmation dialog to the user.
+    - If the user cancels, exit the method.
+    - Set the cursor to a waiting state while performing the deletion.
+    - Delete upstream exchanges associated with the database.
+    - Remove the database from the Brightway2 project.
+    - Delete database parameters.
+    - Remove the database from the project settings.
+    - Restore the cursor to its default state.
     """
 
     icon = qicons.delete
@@ -30,20 +50,10 @@ class DatabaseDelete(ABAction):
         db_name = db_name
         n_records = AB_metadata.dataframe[AB_metadata.dataframe["database"] == db_name].shape[0]
 
-        # get any upstream exchanges (hacky because Brightway doesn't do this itself)
-        excs = Exchanges((db_name, None))
-        excs._args = [
-            ExchangeDataset.input_database == db_name,
-            ExchangeDataset.output_database != db_name,
-        ]
-        n_upstream_excs = len(excs)
-
         # construct warning text
         text = f"Are you sure you want to delete database '{db_name}'?"
         if n_records:
             text += f" It contains {n_records} activities"
-        if n_upstream_excs:
-            text += f" and {n_upstream_excs} exchanges to other databases"
 
         # ask the user for confirmation
         QtWidgets.QApplication.restoreOverrideCursor()
@@ -59,16 +69,10 @@ class DatabaseDelete(ABAction):
         QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
 
         # delete upstream exchanges
-        for edge in excs:
-            edge.delete()
+        ExchangeDataset.delete().where(ExchangeDataset.input_database == db_name).execute()
 
         # instruct the DatabaseController to delete the database from the project.
         del bd.databases[db_name]
-
-        # delete database search indices
-        # fix for: https://github.com/brightway-lca/brightway2-data/issues/219
-        # path = os.path.join(bd.projects.request_directory("search"), database.filename)
-        # os.remove(path)
 
         # delete database parameters
         Group.delete().where(Group.name == db_name).execute()
