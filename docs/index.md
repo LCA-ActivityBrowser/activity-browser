@@ -11,21 +11,15 @@ permalink: /
 Learn how to use the software, find tutorials, and get detailed information about all features.
 {: .fs-6 .fw-300 }
 
-{: .warning }
-> Creating this site is an ongoing project.
+[Install now](https://just-the-docs.com){: .btn .btn-primary .fs-5 .mb-4 .mb-md-0 .mr-2 }
 
-[Link button](https://just-the-docs.com){: .btn }
-
-[//]: # (> While we aim to have it as complete as possible, sections may be missing or incomplete.)
-
-[//]: # (> If you want to contribute to this documentation, please check out our )
-
-[//]: # (> [contributing guidelines]&#40;https://github.com/LCA-ActivityBrowser/activity-browser/blob/main/CONTRIBUTING.md#wiki&#41;.)
-
-The wiki aims to help users get started and to document all features in Activity Browser.
+{: .important }
+> Creating this site is an ongoing project. While we aim to have it as complete as possible, sections may be missing or incomplete. If you want to contribute to the wiki, please check out our [contributing guidelines](https://github.com/LCA-ActivityBrowser/activity-browser/blob/main/CONTRIBUTING.md#wiki).
 
 ## Getting started
-**Check out these resources to get you started with Activity Browser**
+
+
+Check out these resources to get you started with Activity Browser
 - [Installation guide](Installation-Guide)
 - [Updating Activity Browser](Installation-Guide#updating-activity-browser)
 - [Getting Started](Getting-Started)
