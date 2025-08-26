@@ -1,108 +1,103 @@
-## Quick Installation
-<details><summary><b>Familiar with Conda already? Do a quick install</b></summary>
+## Introduction
+Thank you for showing interesting in the Beta for Activity Browser 3.0. This release has been a year in the making and we're happy to 
+show of the hard work that's been put in and get it to a level where we're happy to show it to the wider public. Most notably AB3 will
+support Brightway25 and multifunctionality. But there have also been a lot of changes to the look and experience of the Activity Browser.
 
-You can install and start the activity-browser like this:
-1. Install [Miniconda](https://docs.anaconda.com/miniconda/#miniconda-latest-installer-links).
-2. ```bash 
-   conda create -n ab -c conda-forge activity-browser
-   conda activate ab
-   activity-browser
-   ```
-</details>
+Making so many changes inevitably also comes with creating a lot of bugs. We have tried to catch as may of them as we could, but in the 
+end noone is better at finding bugs than you, our users, are. We invite you to install the Activity Browser 3.0 Beta and break it in as 
+many ways as you possibly can. As long as you report the bugs you find back to us, so we can fix them.
 
-## The Anaconda package manager
-Skip this step if you already have a working installation of Anaconda or Miniconda, but make sure to keep your 
-conda installation up-to-date: `conda update -n base conda`.
+Thank you for your help, and enjoy the new Activity Browser!
 
-You need the python package manager [Anaconda](https://anaconda.org) to install Activity Browser.
-Anaconda is somewhat like an app-store for python programs.
-You can install the full [Anaconda user interface (navigator)](https://www.anaconda.com/download/success) 
-or just the minimal command-line installer,
-[Miniconda](https://docs.anaconda.com/miniconda/#miniconda-latest-installer-links).
-If needed, see also the 
-[conda user guide](https://docs.conda.io/projects/conda/en/latest/user-guide/index.html) 
-or the 
-[Conda cheat sheet](https://docs.conda.io/projects/conda/en/latest/_downloads/843d9e0198f2a193a3484886fa28163c/conda-cheatsheet.pdf).
+> [!IMPORTANT] 
+> This is a **beta installation**. As always use of the Activity Browser is **at your own risk**, but take extra care with this installation. Back-up critical projects before opening them. 
 
-- Install the Anaconda manager of your choice from the above options.
-- Start `Anaconda Prompt` from the start menu.
-  - This is a terminal window with `conda`, you will need this prompt for all next steps. 
+## Distributions on PyPI and Anaconda
+The Activity Browser 3 Beta is available both on [PyPI]() and [Anaconda](). Because not all necessary libraries are available on Anaconda
+right now you need to do an extra `pip install` inside your Conda environment. 
 
-## Add the conda-forge channel
-Open an Anaconda prompt window and type the following (and `Enter`):
-```bash
-conda config --prepend channels conda-forge
+#### Quick-Install PyPI
+```
+pip install activity-browser
 ```
 
-<details><summary><b>More information about this step</b></summary>
-
-Activity Browser has many dependencies that are managed by 
-[conda-forge](https://conda.io/docs/user-guide/tasks/manage-channels.html).
-By adding the channel you can install python packages from there.
-
-The line above means:
-- `conda`: a command for conda
-- `config`: change something in the configuration (settings) of `conda`
-- `--prepend channels`: in the channels from which conda can install things, add to the top (prepend)
-- `conda-forge`:  the channel name
-</details>
-
-## Creating an environment and Installing Activity Browser
-Next, we create a python environment, in which we install Activity Browser 
-
-```bash
-conda create -n ab -c conda-forge activity-browser
+#### Quick-Install Anaconda
+```
+conda create -n ab_beta -c conda-forge lca::activity-browser
+conda activate ab_beta
+pip install PySide6
 ```
 
-> [!NOTE]
-> Installing Activity Browser can take some time, this depends on the speed of your internet connection and computer.
+For more elaborate installing instructions check out the page below for both [installing from PyPI](#installing-from-pypi) and [installing from Anaconda](#installing-from-anaconda).
 
-<details><summary><b>More information about this step</b></summary>
+## Installing from PyPI
+Installing from the Python Package Index (PyPI) can be done using the standard `pip` command. We strongly recommended installing the
+Activity Browser into a separate [virtual environment](https://realpython.com/python-virtual-environments-a-primer/)
 
-We create a separate environment, this allows Activity Browser to work with the specific versions of other libraries 
-it needs without interfering with other python packages.
+First make sure you have Python installed on your PC by entering the following command into your terminal or command prompt.
 
-The line above means:
-- `conda`: a command for conda
-- `create -n ab`: create a new e**n**vironment (`-n`) with the name `ab`
-- `-c conda-forge`: from the **c**hannel (`-c`) `conda-forge`
-- `activity-browser`: install the package `activity-browser`
+```
+python --version
+```
+If you get an error please install Python [using their install instructions](https://www.python.org/downloads/).
 
-You can have as many environments as you like, you can also install different versions of Activity Browser 
-in different environments, for example for different [plugins](Plugins), or just for using different version of 
-Activity Browser. 
+### Creating a virtual environment
+Firstly, create a directory for your virtual environments, such as C:/Users/me/virtualenvs/. Then create a virtual environment in that 
+location using the following command:
+```
+python -m venv C:/Users/me/virtualenvs/ab-beta
+```
+Afterwards, you need to activate the virtual environment, which differs between operating systems and shells. Using Window Command Prompt
+activate the environment using this command:
+```
+C:\Users\me\virtualenvs\ab-beta\Scripts\activate.bat
+```
+For a full overview of activation commands, [check out the documentation here](https://docs.python.org/3/library/venv.html#how-venvs-work)
 
-All environments will have access to the same projects and databases in Activity Browser. 
-
-</details>
-
-## Activating and running Activity Browser
-To run Activity Browser, you need to activate your environment with
-```bash
-conda activate ab
+### Activity Browser Beta installation
+After creating the virtual environment, installing the Beta should be as simple as using the following command:
+```
+pip install activity-browser
 ```
 
-And then run activity browser 
-with.
-```bash
+### Launching the Activity Browser
+The Activity Browser can then be launched like so:
+```
 activity-browser
 ```
 
-Congratulations! You've started Activity Browser for the first time!
+## Installing from Anaconda
+First make sure you have Conda installed
 
-Every time you want to start Activity Browser, you need to start an anaconda prompt 
-and do `conda activate ab` and then `activity browser`.
-
-## Updating Activity Browser
-We recommend to regularly update Activity Browser to receive new features & bugfixes. 
-These commands will update the Activity Browser and all of its dependencies in the conda environment called `ab`.
-
-```bash
-conda activate ab
-conda update activity-browser
+```
+conda --version
 ```
 
-> [!IMPORTANT]
-> If you currently have a version <u>below</u> `2.10.0`, please consult 
-> [this guide](https://github.com/LCA-ActivityBrowser/activity-browser/discussions/1049)
-> to update.
+If you get an error, please download and install miniconda from anaconda.com https://www.anaconda.com/download/success
+
+### Activity Browser Beta installation
+Next we're going to create a new environment for the Activity Browser Beta release.
+
+```
+conda create -n ab_beta -c conda-forge lca::activity-browser
+```
+
+This will go through a few steps, some of which like `solving environment` may take a while. After installation has finished you can
+activate the environment like so:
+
+```
+conda activate ab_beta
+```
+
+### PySide6 installation
+We will need to install `PySide6` from a different source, as the fully functional version is not available on anaconda.
+
+```
+pip install PySide6
+```
+
+### Launching the Activity Browser
+Launch the Activity Browser like you would normally
+```
+activity-browser
+```

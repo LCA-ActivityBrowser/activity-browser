@@ -12,30 +12,22 @@ Use databases to organize your data in a meaningful way, for example by separati
 Brightway databases consist of two parts: 
 
 1. **Backend:** this is where the actual activity data lives. 
-   Most users will be using the SQLite backend, which stores data in the _databases.db_ found in the project folder.
+   Activity Browser 3 supports two backends for databases: `sqlite` and `functional-sqlite`. 
+
+[//]: # ([You can read more about their differences here.]&#40;Backends&#41;)
 2. **Metadata:** this is where database specific metadata is stored, such as dependent databases, number of activities,
    and time of last edit.
 
-Databases that are installed in a project may be found in the `Databases` section, part of the `Project` panel. 
-This section shows a table that displays a selection of the metadata for all the databases in the project. 
-
-> [!NOTE]
-> This panel is not yet visible when no databases have been installed into the project yet. 
-> Instead, a button to set up your project will be shown.
-> 
-> [Read more about setting up a project...](Getting-Started#setting-up-a-project)
+Databases that are installed in a project may be found in the `Databases` pane.
+This section shows a table that displays a selection of the metadata for all the databases in the project.
 
 ## Basic functions
 
 ### Opening a database
-You can open a database by double-clicking its entry within the `Databases` table. 
-This will open a tab at the bottom of the `Project` panel that contains a table showing all [activities](Activities) 
-that the database contains.
+You can open a database by double-clicking its entry within the `Databases` table. This will open a pane showing all [activities](Activities) that the database contains.
 
 ### Creating a new database
-You can create a new database by clicking the `New database...` button in the `Databases` table. 
-This will prompt you to enter a unique name for the database, after which the newly created database will open and you 
-can start adding activities as desired.
+You can create a new database by clicking the `New database...` button in the `Databases` pane contextmenu. This will prompt you to enter a unique name for the database, after which the newly created database will open and you can start adding activities as desired.
 
 ### Deleting a database
 You can delete a database by right-clicking on its entry withing the `Databases` table and selecting `Delete database`, 
@@ -51,21 +43,6 @@ this will prompt you for a confirmation.
 You can duplicate a database by right-clicking on its entry withing the `Databases` table. 
 This will prompt to enter a unique name for the new database, after which the newly duplicated database will open.
 
-### Relinking a database
-Databases are often connected to other databases by exchanges. 
-Sometimes, you may want to replace the connections from a database to another, as an example:
-
-You have 2 databases, database _A_ and _B_, _B_ uses activities that are in _A_.
-You duplicated a database _A_ to make and test some changes to _A_copy_, and now want to change the links in _B_ to _A_copy_.
-
-To relink a database, you can right-click on its entry in the `Databases` table and choose `Relink the database`.
-In the pop-up, you can choose a new link for every database your database depends on.
-
-Relinking will only work if exact matches are found for the `name`, `reference product` adn `unit` for the activities. 
-Any activities not relinked will remain linked to the old database.
-
-> [!NOTE]
-> Relinking can be a slow process, as it needs to check every exchange in every activity in the database.
 
 [//]: # (# Importing)
 
