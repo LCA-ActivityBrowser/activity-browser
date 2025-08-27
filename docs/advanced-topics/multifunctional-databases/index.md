@@ -1,6 +1,7 @@
 ---
-title: Database backends
+title: Functional SQLite
 parent: Advanced topics
+nav_order: 1
 ---
 # Different database backends
 {: .fs-9 }
@@ -20,4 +21,11 @@ When these nodes and edges are processed into matrices for LCA calculations, the
 ### The multifunctionality problem
 If you have multifunctional processes in your database, the technosphere matrix will no longer be square. There are different ways to deal with multifunctionality in LCA (e.g. allocation), but for this we need to split multifunctional processes into multiple single-functional nodes.
 
-However, due to the way in which the matrices are built using the node IDs as indices, this cannot be done in a simple manner. As long as these single-functional nodes are not stored in the database with their own unique IDs, we cannot create a square technosphere matrix.
+However, due to the way in which the matrices are built using the node IDs as indices, this cannot be done in a simple manner. As long as the split single-functional nodes are not stored in the database with their own unique IDs, we cannot create a square technosphere matrix.
+
+## The FunctionalSqliteBackend
+The `FunctionalSqliteBackend` is an extension of the original `SQLiteBackend`. It stores nodes and edges in the same database and in the same tables. However, it comes with some additional functionality and constraints to deal with multifunctional processes.
+
+Most importantly, the backend distinguishes clearly between processes and products: each node in the database is either one or the other. A process can have multiple products, but a product can only belong to one process. There are no `processwithreferenceproduct` or other [chimaera processes](https://docs.brightway.dev/en/latest/content/overview/inventory.html#chimaera) in this backend.
+
+This solves the abovementioned multifunctionality problem: when building the technosphere matrix, the backend uses the product IDs as row and column indices instead of the process IDs. This means that each product has its own unique ID, even if it belongs to a multifunctional process.

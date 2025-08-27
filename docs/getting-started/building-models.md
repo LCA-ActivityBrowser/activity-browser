@@ -17,7 +17,7 @@ To create nodes in your database, you can use the Activity Browser interface. Op
 {: .note-title }
 > Implementation detail
 > 
-> This action will create two nodes: a **Process** node and a **Product** node. The Process node represents the activity or operation, while the Product node represents the output of that process. [Advanced info on backends and node types](../advanced-topics/database-backends.md).
+> This action will create two nodes: a **Process** node and a **Product** node. The Process node represents the activity or operation, while the Product node represents the output of that process. [Advanced info on backends and node types](../advanced-topics/multifunctional-databases/index.md).
 
 After creating the process, the **Process details page** will open. Here you can view and edit details of the process and see what it consumes and produces.
 
