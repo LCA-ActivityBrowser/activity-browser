@@ -64,7 +64,7 @@ class DataTab(QtWidgets.QWidget):
         Returns:
             pd.DataFrame: The DataFrame containing the activity data.
         """
-        df = pd.DataFrame.from_dict(self.activity.as_dict(), orient="index")
+        df = pd.Series(self.activity.as_dict(), name="value").to_frame()
         df["name"] = self.activity["name"] + " (" + str(self.activity["id"]) + ")"
         df["_activity_id"] = self.activity.id
         df["_activity_db"] = self.activity["database"]
