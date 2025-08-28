@@ -12,6 +12,7 @@ Learn how to use the software, find tutorials, and get detailed information abou
 {: .fs-6 .fw-300 }
 
 [Install now](getting-started/installation){: .btn .btn-primary .fs-5 .mb-4 .mb-md-0 .mr-2 }
+[Visit our GitHub](https://github.com/LCA-ActivityBrowser/activity-browser){: .btn .fs-5 .mb-4 .mb-md-0 }
 
 {: .important }
 > Creating this site is an ongoing project. While we aim to have it as complete as possible, sections may be missing or incomplete. If you want to contribute to the wiki, please check out our [contributing guidelines](https://github.com/LCA-ActivityBrowser/activity-browser/blob/main/CONTRIBUTING.md#wiki).
