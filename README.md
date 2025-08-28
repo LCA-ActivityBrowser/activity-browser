@@ -11,8 +11,13 @@
 
 
 > [!TIP]
-> **Activity Browser** now has an open beta for Version 3, which supports many new features such as Brightway 2.5 and Multi-functionality, learn more
-> [here](https://lca-activitybrowser.github.io/activity-browser/beta.html)!
+> **Activity Browser** now has an open beta for Version 3🚀.
+>
+> The beta supports many new features such as Multi-functionality and uses Brightway 2.5 under the hood.
+> Help us by making Activity Browser even better by using and providing feedback on Activity Browser.
+>
+> Learn more about the beta
+> [here](https://lca-activitybrowser.github.io/activity-browser/beta.html).
 
 <img src="https://user-images.githubusercontent.com/33026150/54299977-47a9f680-45bc-11e9-81c6-b99462f84d0b.png" width=100%/>
 
