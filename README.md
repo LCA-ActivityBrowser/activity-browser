@@ -9,6 +9,11 @@
 
 # Activity Browser
 
+
+> [!TIP]
+> **Activity Browser** now has an open beta for Version 3, which supports many new features such as Brightway 2.5 and Multi-functionality, learn more
+> [here](https://lca-activitybrowser.github.io/activity-browser/beta.html)!
+
 <img src="https://user-images.githubusercontent.com/33026150/54299977-47a9f680-45bc-11e9-81c6-b99462f84d0b.png" width=100%/>
 
 The **Activity Browser (AB) is an open source software for Life Cycle Assessment (LCA)** that builds on [Brightway2](https://brightway.dev).
