@@ -151,6 +151,7 @@ def run_activity_browser():
     setup_ab_logging()
     loader = ABLoader()
     loader.show()
+    application.set_icon()  # setting this here seems to fix the icon not showing sometimes
     sys.exit(application.exec_())
 
 
@@ -179,6 +180,7 @@ def run_activity_browser_no_launcher():
     application.main_window.sync()
     application.main_window.show()
 
+    application.set_icon()  # setting this here seems to fix the icon not showing sometimes
     sys.exit(application.exec_())
 
 

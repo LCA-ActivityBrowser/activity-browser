@@ -38,10 +38,7 @@ class ABApplication(QtWidgets.QApplication):
         QFontDatabase.addApplicationFont(fonts.__path__[0] + "/notosans.ttf")
 
     def set_icon(self):
-        app_pix = QtGui.QPixmap(
-            str(Path(icons.__path__[0]).joinpath("main", "activitybrowser.png"))
-        ).scaledToHeight(100, mode=Qt.TransformationMode.SmoothTransformation)
-        app_icon = QtGui.QIcon(app_pix)
+        app_icon = QtGui.QIcon(str(Path(icons.__path__[0]).joinpath("main", "ab-small.png")))
         self.setWindowIcon(app_icon)
 
     def pyside6_setup(self):
