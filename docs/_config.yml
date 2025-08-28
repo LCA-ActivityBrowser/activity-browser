@@ -20,6 +20,7 @@
 
 title: Activity Browser
 logo: "/assets/activitybrowser.png"
+favicon_ico: "/assets/activitybrowser.ico"
 email: your-email@example.com
 
 # Build settings
