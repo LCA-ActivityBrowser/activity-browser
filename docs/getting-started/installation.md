@@ -13,7 +13,7 @@ Install the Activity Browser 3 from either PyPI or Anaconda.
 This page provides step-by-step instructions to help you set up the Activity Browser 3 on your system. Whether you prefer using PyPI or Anaconda, we've got you covered with detailed instructions for both methods. 
 
 {: .important }
-> This is a **beta installation**. As always use of the Activity Browser is **at your own risk**, but take extra care with this installation. Back-up critical projects before opening them. 
+> This is a **beta installation**. As always, the use of the Activity Browser is **at your own risk**, but take extra care with this installation. Back-up critical projects before opening them. 
 
 ## Distributions on PyPI and Anaconda
 The Activity Browser 3 Beta is available both on [PyPI](#installing-from-pypi) and [Anaconda](#installing-from-anaconda). Because not all necessary libraries are available on Anaconda right now you need to do an extra `pip install` inside your Conda environment. 
@@ -53,14 +53,14 @@ C:\Users\me\virtualenvs\ab-beta\Scripts\activate.bat
 ```
 For a full overview of activation commands, [check out the documentation here](https://docs.python.org/3/library/venv.html#how-venvs-work)
 
-### Activity Browser Beta installation
-After creating the virtual environment, installing the Beta should be as simple as using the following command:
+### Activity Browser installation
+After creating and activating the virtual environment, installing the Beta should be as simple as using the following command:
 ```
 pip install activity-browser
 ```
 
 ### Launching the Activity Browser
-The Activity Browser can then be launched like so:
+The Activity Browser can then be launched by entering the following command:
 ```
 activity-browser
 ```
@@ -71,6 +71,13 @@ First make sure you have Conda installed
 ```
 conda --version
 ```
+
+And make sure your Conda is up to date
+
+```
+conda update conda
+```
+
 
 If you get an error, please download and install miniconda from anaconda.com https://www.anaconda.com/download/success
 
@@ -89,7 +96,7 @@ conda activate ab_beta
 ```
 
 ### PySide6 installation
-We will need to install `PySide6` from a different source, as the fully functional version is not available on anaconda.
+We will need to install `PySide6` from PyPI, as the fully functional version is not available on anaconda.
 
 ```
 pip install PySide6
