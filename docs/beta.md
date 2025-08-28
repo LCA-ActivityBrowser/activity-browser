@@ -1,6 +1,6 @@
 ---
 title: Beta
-nav_order: 1
+nav_order: 2
 ---
 # Activity Browser 3 Beta
 {: .fs-9 }
