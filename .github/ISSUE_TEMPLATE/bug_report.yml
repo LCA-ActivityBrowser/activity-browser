@@ -35,9 +35,10 @@ body:
       options:
         - Windows 10
         - Windows 11
-        - MacOS
+        - MacOS (Apple Silicon)
+        - MacOS (Intel)        
         - Linux/Other (please specify above)
-      default: 0
+      default: 1
   - type: textarea
     id: conda-env
     attributes:
