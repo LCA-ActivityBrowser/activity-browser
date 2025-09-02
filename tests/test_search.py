@@ -17,6 +17,7 @@ def data_for_test():
     columns = ["id", "col1", "col2"])
 
 
+# test standard init
 def test_search_init():
     """Do initialization tests."""
     df = data_for_test()
@@ -33,8 +34,90 @@ def test_search_init():
     se = SearchEngine(df, identifier_name="id")
 
 
+# test internals
+def test_reverse_dict():
+    """Do test to reverse the special Counter dict."""
+    df = data_for_test()
+    se = SearchEngine(df, identifier_name="id")
+
+    # reverse once and verify
+    w2i = se.reverse_dict_many_to_one(se.identifier_to_word)
+    assert w2i == se.word_to_identifier
+
+    # reverse same and verify is same as input
+    i2w = se.reverse_dict_many_to_one(w2i)
+    assert i2w == se.identifier_to_word
+
+
+def test_string_distance():
+    """Do tests specifically for string distance function."""
+    df = data_for_test()
+    se = SearchEngine(df, identifier_name="id")
+
+    # same word
+    assert se.osa_distance("coal", "coal") == 0
+    # empty string is length of other word
+    assert se.osa_distance("coal", "") == 4
+
+    # insert
+    assert se.osa_distance("coal", "coa") == 1
+    # delete
+    assert se.osa_distance("coal", "coall") == 1
+    # substitute
+    assert se.osa_distance("coal", "coat") == 1
+    # transpose
+    assert se.osa_distance("coal", "cola") == 1
+
+    # longer edit distance
+    assert se.osa_distance("coal", "chocolate") == 6
+    # reverse order gives same result
+    assert se.osa_distance("coal", "chocolate") == se.osa_distance("chocolate", "coal")
+    # cutoff
+    assert se.osa_distance("coal", "chocolate", cutoff=5, cutoff_return=1000) == 1000
+    assert se.osa_distance("coal", "chocolate", cutoff=6, cutoff_return=1000) == 1000
+    assert se.osa_distance("coal", "chocolate", cutoff=7, cutoff_return=1000) == 6
+    # length cutoff
+    assert se.osa_distance("coal", "coallongword") == 8
+    assert se.osa_distance("coal", "coallongword", cutoff=5, cutoff_return=1000) == 1000
+
+    # two entirely different words (test of early stopping)
+    assert se.osa_distance("brown", "jumped") == 6
+    assert se.osa_distance("brown", "jumped", cutoff=6, cutoff_return=1000) == 1000
+    assert se.osa_distance("brown", "jumped", cutoff=7, cutoff_return=1000) == 6
+
+
+# test functionality
+def test_in_index():
+    """Do checks for checking if word is in the index."""
+    df = data_for_test()
+    se = SearchEngine(df, identifier_name="id")
+
+    # use string with space
+    with pytest.raises(Exception):
+        se.word_in_index("coal and space")
+
+    assert se.word_in_index("coal")
+    assert not se.word_in_index("coa")
+
+
+def test_spellcheck():
+    """Do checks spell checking."""
+    df = data_for_test()
+    se = SearchEngine(df, identifier_name="id")
+
+    checked = se.spell_check("coa productions something flintstones")
+    # coal HAS to be first, it is found more often in the data
+    assert checked["coa"] == ["coal", "coat"]
+    # find production
+    assert checked["productions"] == ["production"]
+    # should be empty as there is no alternative (but this word occurs)
+    assert checked["something"] == []
+    # should be empty as there is no alternative (does not exist)
+    assert checked["flintstones"] == []
+
+
 def test_search_base():
-    """Do checks for search ranking."""
+    """Do checks for correct search ranking."""
 
     df = data_for_test()
 
@@ -147,35 +230,3 @@ def test_search_change_identifier():
     }
     se.change_identifier(identifier="a", data=new_edit_data)
     assert se.search("coal production") == ["c", "b", "d", "h", "a", "f", "g"]
-
-
-def test_string_distance():
-    """Do tests specifically for string distance function"""
-    df = data_for_test()
-    se = SearchEngine(df, identifier_name="id")
-
-    # same word
-    assert se.osa_distance("coal", "coal") == 0
-    # empty string is length of other word
-    assert se.osa_distance("coal", "") == 4
-
-    # insert
-    assert se.osa_distance("coal", "coa") == 1
-    # delete
-    assert se.osa_distance("coal", "coall") == 1
-    # substitute
-    assert se.osa_distance("coal", "coat") == 1
-    # transpose
-    assert se.osa_distance("coal", "cola") == 1
-
-    # longer edit distance
-    assert se.osa_distance("coal", "chocolate") == 6
-    # reverse order gives same result
-    assert se.osa_distance("coal", "chocolate") == se.osa_distance("chocolate", "coal")
-    # cutoff
-    assert se.osa_distance("coal", "chocolate", cutoff=5, cutoff_return=1000) == 1000
-    assert se.osa_distance("coal", "chocolate", cutoff=6, cutoff_return=1000) == 1000
-    assert se.osa_distance("coal", "chocolate", cutoff=7, cutoff_return=1000) == 6
-    # length cutoff
-    assert se.osa_distance("coal", "coallongword") == 8
-    assert se.osa_distance("coal", "coallongword", cutoff=5, cutoff_return=1000) == 1000

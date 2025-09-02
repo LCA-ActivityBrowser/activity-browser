@@ -39,6 +39,8 @@ class SearchEngine:
 
     def __init__(self, df: pd.DataFrame, identifier_name: str, searchable_columns: list = []):
         t = time()
+        log.debug(f"SearchEngine initializing for {len(df)} items")
+
         # compile regex patterns for cleaning
         self.SUB_PATTERN = re.compile(r"[,\(\)\[\]'\"]")  # for replacing with empty string
         self.SPACE_PATTERN = re.compile(r"[-−:;]")  # for replacing with space
@@ -86,7 +88,8 @@ class SearchEngine:
         self.df = pd.DataFrame()
 
         self.update_index(df)
-        log.debug(f"Search engine initialized in {time() - t:.2f} seconds for {len(self.df)} items")
+
+        log.debug(f"SearchEngine Initialized in {time() - t:.2f} seconds")
 
     #   +++ Utility functions
 
@@ -101,6 +104,9 @@ class SearchEngine:
                 else:
                     update_me[dict_key] = _counter
             return update_me
+
+        t = time()
+        size_old = len(self.df)
 
         # identifier to word and df
         i2w, update_df = self.words_in_df(update_df)
@@ -118,6 +124,13 @@ class SearchEngine:
         # q-gram to word
         q2w = self.reverse_dict_many_to_one(w2q)
         self.q_gram_to_word = update_dict(self.q_gram_to_word, q2w)
+
+        size_new = len(self.df)
+        size_dif = size_new - size_old
+        size_msg = (f"{size_dif} changed items at {round(size_dif/(time() - t), 0)} items/sec "
+                    f"({size_new} items currently)") if size_dif > 1 \
+            else f"1 changed item ({size_new} items currently)"
+        log.debug(f"Search index updated in {time() - t:.2f} seconds for {size_msg}.")
 
     def clean_text(self, text: str):
         """Clean a string so it doesn't contain weird characters or multiple spaces etc."""
@@ -193,6 +206,13 @@ class SearchEngine:
 
         return q_gram_dict
 
+    def word_in_index(self, word: str) -> bool:
+        """Convenience function to check if a single word is in the search index."""
+        if " " in word:
+            raise Exception(
+                f"Given word '{word}' must not contain spaces.")
+        return word in self.word_to_identifier.keys()
+
     #   +++ Changes to searchable data
 
     def add_identifier(self, data: dict, make_searchable=[]) -> None:
@@ -228,9 +248,12 @@ class SearchEngine:
         # update the search index data
         self.update_index(new_df)
 
-    def remove_identifier(self, identifier) -> None:
+    def remove_identifier(self, identifier, logging=True) -> None:
         """Remove this identifier from self.df and the search index.
         """
+        if logging:
+            t = time()
+
         # make sure the identifier exists
         if identifier not in self.df.index.to_list():
             raise Exception(
@@ -261,6 +284,10 @@ class SearchEngine:
         # finally, remove the identifier
         del self.identifier_to_word[identifier]
 
+        if logging:
+            log.debug(f"Search index updated in {time() - t:.2f} seconds "
+                      f"for 1 removed item ({len(self.df)} items currently).")
+
     def change_identifier(self, identifier, data: dict) -> None:
         """Change this identifier.
 
@@ -289,7 +316,7 @@ class SearchEngine:
             update_data[field] = value
 
         # remove the entry
-        self.remove_identifier(identifier)
+        self.remove_identifier(identifier, logging=False)
 
         # add entry with new data
         self.add_identifier(update_data)
@@ -380,7 +407,7 @@ class SearchEngine:
                     distance[i][j] = min(distance[i][j], transposition)
 
             # stop early if we surpass cutoff
-            if 0 < cutoff <= distance[i][j]:
+            if 0 < cutoff <= min(distance[i]):
                 return cutoff_return
         return distance[i][j]
 
@@ -428,19 +455,24 @@ class SearchEngine:
 
         We rank alternative words based on 1) edit distance 2) how often a word is used in an entry
         If too many results are found, we only keep edit distance 1,
-        if we want more results, we keep with longer edit distance up to ...
-
+        if we want more results, we keep with longer edit distance up to `never_accept_this`
 
         word_results = OrderedDict(
-            "word": [word, work]
+            "word": [work]
             )
 
+        NOTE: only ALTERNATIVES are ever returned, this function returns empty list for item BOTH when
+            1) the exact word is in the data
+            2) when there are no suitable alternatives
         """
+        count_occurence = lambda x: sum(self.word_to_identifier[x].values())  # count occurences of a word
+
         word_results = OrderedDict()
 
-        matches_goal = 3  # ideally we have at least this many alternatives
-        always_accept_this = 1  # values of this or lower always accepted
-        never_accept_this = 4  # values this or over always rejected
+        matches_min = 3  # ideally we have at least this many alternatives
+        matches_max = 10  # ideally don't much more than this many matches
+        always_accept_this = 1  # values of this edit distance or lower always accepted
+        never_accept_this = 4  # values this edit distance or over always rejected
 
         # make list of unique words
         words = OrderedDict()
@@ -451,12 +483,12 @@ class SearchEngine:
         words = [self.clean_text(word) for word in words]
 
         for word in words:
-
             # first, find possible matches quickly
             q_grams = self.text_to_positional_q_gram(word)
             possible_matches = self.find_q_gram_matches(set(q_grams))
 
             matches = []
+            first_matches = Counter()
             other_matches = {}
 
             # now, refine with edit distance
@@ -467,23 +499,33 @@ class SearchEngine:
                 if edit_distance == 0:
                     continue  # we are looking for alternatives only, not the exact word
                 elif edit_distance <= always_accept_this:
-                    matches.append(row[1])
+                    first_matches[row[1]] = count_occurence(row[1])
                 elif edit_distance < never_accept_this:
-                    if other_matches.get(edit_distance):
-                        other_matches[edit_distance].append(row[1])
-                    else:
-                        other_matches[edit_distance] = [row[1]]
+                    if not other_matches.get(edit_distance):
+                        other_matches[edit_distance] = Counter()
+                    other_matches[edit_distance][row[1]] = count_occurence(row[1])
+                else:
+                    continue
 
+            # add matches in correct order:
+            for match, _ in first_matches.most_common():
+                matches.append(match)
             # if we have fewer matches than goal, add more 'less good' matches
-            if len(matches) < matches_goal:
+            if len(matches) < matches_min:
                 for i in range(always_accept_this + 1, never_accept_this):
-                    # iteratively increase 'worse' matches so we hit goal of minimum alternatives
+                    # iteratively increase matches with 'worse' results so we hit goal of minimum alternatives
                     if new := other_matches.get(i):
-                        matches = matches + new
-                        if len(matches) >= matches_goal:
-                            break
-            word_results[word] = matches
+                        prev_num = 10e100
+                        for match, num in new.most_common():
+                            if num == prev_num:
+                                matches.append(match)
+                            elif num != prev_num and len(matches <= matches_max):
+                                matches.append(match)
+                            else:
+                                break
+                            prev_num = num
 
+            word_results[word] = matches
         return word_results
 
     def build_queries(self, query_text) -> list:
@@ -515,7 +557,7 @@ class SearchEngine:
             weighted_ids[identifier] += (weight * occurrences)
         return weighted_ids
 
-    def search_size_1(self, queries: list, original_words: list, orig_word_weight=5, exact_word_weight=1) -> dict:
+    def search_size_1(self, queries: list, original_words: set, orig_word_weight=5, exact_word_weight=1) -> dict:
         """Return a dict of {query_word: Counter(identifier)}.
 
         queries: is a list of len 1 tuple/lists of words that are a searched word or a 'spell checked' similar word
@@ -582,7 +624,7 @@ class SearchEngine:
         for word in text.split(" "):
             orig_words[word] = False
         orig_words = orig_words.keys()
-        orig_words = [self.clean_text(word) for word in orig_words]
+        orig_words = {self.clean_text(word) for word in orig_words}
 
         # order the queries by the amount of words they contain
         # we do this because longer queries (more words) are harder to find, but we have many alternatives so we search in a smaller search space
@@ -749,7 +791,7 @@ class MetaDataSearchEngine(SearchEngine):
         for word in text.split(" "):
             orig_words[word] = False
         orig_words = orig_words.keys()
-        orig_words = [self.clean_text(word) for word in orig_words]
+        orig_words = {self.clean_text(word) for word in orig_words}
 
         # order the queries by the amount of words they contain
         # we do this because longer queries (more words) are harder to find, but we have many alternatives so we search in a smaller search space
