@@ -1,3 +1,4 @@
+import re
 from logging import getLogger
 from copy import deepcopy
 
@@ -5,6 +6,7 @@ import requests
 
 import ecoinvent_interface as ei
 import bw2data as bd
+import bw2io as bi
 
 from qtpy import QtWidgets, QtCore
 from qtpy.QtCore import Signal, SignalInstance
@@ -14,12 +16,22 @@ from activity_browser.ui import widgets, icons, threading
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.bwutils.io.ecoinvent_importer import Ecoinvent7zImporter
 from activity_browser.bwutils.io.ecoinvent_lcia_importer import EcoinventLCIAImporter
+from activity_browser.mod.bw2io.migrations import ab_create_core_migrations
 
 log = getLogger(__name__)
 
 
 class DatabaseImportFromEcoinvent(ABAction):
-    """ABAction to open the DatabaseImportWizard"""
+    """
+    Launches the `EiWizard` dialog for importing a database from ecoinvent.
+
+    This method creates an instance of the `EiWizard` class, passing the
+    main application window as its parent, and executes the wizard dialog.
+
+    Raises:
+        Any exceptions encountered during the execution of the wizard
+        are handled by the `exception_dialogs` decorator.
+    """
 
     icon = icons.qicons.import_db
     text = "Import database from ecoinvent"
@@ -28,9 +40,8 @@ class DatabaseImportFromEcoinvent(ABAction):
     @staticmethod
     @exception_dialogs
     def run():
-        """Show the setup dialog in which the user can first login and then choose the name of the database
-        and whether to import the accompanied biosphere, or connect to an existing biosphere."""
         setup = EiWizard(application.main_window)
+        setup.setWindowTitle("Import from ecoinvent")
         setup.exec_()
 
 
@@ -78,7 +89,13 @@ class EiWizard(widgets.ABWizard):
 
         def finalize(self, context: dict):
             """Store the selected file path in the context"""
-            context["ei_filepath"] = self.file_selector.text()
+            path = self.file_selector.text()
+            context["ei_filepath"] = path
+            # Try to extract version and model from the filename
+            if version:= re.search(r'ecoinvent ([\d.]+)', path):
+                context["version"] = version.group(1)
+            if model:= re.search(r'ecoinvent [\d.]+_([^_]+)', path):
+                context["model"] = model.group(1)
 
         def isComplete(self):
             """Check if a file has been selected"""
@@ -262,6 +279,11 @@ class EiWizard(widgets.ABWizard):
             """Check if a biosphere option has been selected"""
             return self.biosphere_choice.currentOption() is not None
 
+        def initializePage(self, context: dict):
+            """Start the biosphere installation thread"""
+            if "version" in context:
+                self.biosphere_choice.view("import").setText(f"biosphere-{context['version']}")
+
         def finalize(self, context: dict):
             """Store the selected biosphere option in the context"""
             if self.biosphere_choice.currentOption() == "existing":
@@ -399,6 +421,11 @@ class EiWizard(widgets.ABWizard):
             """Check if a database name has been entered"""
             return bool(self.database_name.text())
 
+        def initializePage(self, context: dict):
+            """Start the biosphere installation thread"""
+            if "version" in context and "model" in context:
+                self.database_name.setText(f"ecoinvent-{context['version']}-{context['model']}")
+
         def finalize(self, context: dict):
             """Store the database name in the context"""
             context["database_name"] = self.database_name.text()
@@ -418,6 +445,10 @@ class EiWizard(widgets.ABWizard):
                 """Install the ecoinvent database"""
                 importer = Ecoinvent7zImporter(ei_filepath)
                 importer.install_ecoinvent(database_name, biosphere_name)
+
+                # Run migrations after installation
+                if len(bi.migrations) == 0:
+                    ab_create_core_migrations()
 
         def initializePage(self, context: dict):
             """Start the ecoinvent installation thread"""

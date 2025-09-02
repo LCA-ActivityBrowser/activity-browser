@@ -31,6 +31,15 @@ from ...bwutils.commontasks import identify_activity_type
 
 log = getLogger(__name__)
 
+class SmallComboBox(QtWidgets.QComboBox):
+    """A small combo box that does not expand to fill the available space."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        self.setMinimumWidth(100)
+        self.setMaximumWidth(200)
+        self.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToContentsOnFirstShow)
 
 class TreeNavigatorWidget(BaseNavigatorWidget):
     HELP_TEXT = """
@@ -58,9 +67,9 @@ class TreeNavigatorWidget(BaseNavigatorWidget):
 
         # Additional Qt objects
         self.scenario_label = QtWidgets.QLabel("Scenario: ")
-        self.func_unit_cb = QtWidgets.QComboBox()
-        self.method_cb = QtWidgets.QComboBox()
-        self.scenario_cb = QtWidgets.QComboBox()
+        self.func_unit_cb = SmallComboBox()
+        self.method_cb = SmallComboBox()
+        self.scenario_cb = SmallComboBox()
         self.tag_cb = CheckableComboBox()
         self.cutoff_sb = QtWidgets.QDoubleSpinBox()
         self.max_calc_sb = QtWidgets.QDoubleSpinBox()

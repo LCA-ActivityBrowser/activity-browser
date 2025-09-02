@@ -27,11 +27,12 @@ requirements:
     - bw_graph_tools >=0.5
     - bw_processing >=1.0
     - bw_simapro_csv >=0.2.6
-    - bw_functional=0.b.79
+    - bw_functional=0.b.82
     - ecoinvent_interface
     - matrix_utils >=0.5
     - numpy >=1.23.5, <2
     - pint <=0.21
+    - py7zr <=0.22.0
     - pyperclip
     - pyprind
     - networkx

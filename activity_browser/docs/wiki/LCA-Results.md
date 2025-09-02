@@ -18,6 +18,9 @@ Activity Browser has three contribution analysis approaches available to assess 
 `Elementary Flow (EF) Contributions`, `Process contributions` and `First Tier (FT) Contributions`.
 
 Before we discuss the different approaches, we introduce a small example for the production of _'steel'_:
+These approaches are extensively discussed independent of Activity Browser by 
+[van der Meide et al. (2025)](https://doi.org/10.31219/osf.io/sfgj6_v1) 
+if you want to learn more.
 
 ![steel production example](./assets/steel_production_example.svg)
 
@@ -33,7 +36,8 @@ The amounts we use are:
 <b>Note:</b> These numbers are used for ease of understanding, not for realism.
 </sup>
 
-To produce 1 kg of steel, we get a climate change impact of 1.6 kg CO2 eq with the _'IPCC 2021'_ impact category.
+To produce 1 kg of steel, we get a climate change impact of 1.6 kg CO<sub>2</sub> eq. with the 
+_'IPCC 2021 GWP 100'_ impact category.
 In the way Brightway (and thus Activity Browser) calculate results, a _contribution matrix_ is calculated with 
 all impacts _from_ all EFs and all activities. 
 For the system and functional unit above, this would be:
@@ -46,7 +50,7 @@ For the system and functional unit above, this would be:
 The _contribution matrix_ show the dis-aggregated results for each individual biosphere flow for each activity.
 
 #### Elementary Flow (EF) contributions
-If we take sum the _rows_ to one row, we get the EF contributions 
+If we take the sum the _rows_ to one column, we get the EF contributions 
 (the contribution of all CO<sub>2</sub> and CH<sub>4</sub> impacts together).
 
 In the case above, the EF contributions are:
@@ -54,7 +58,7 @@ In the case above, the EF contributions are:
 - CH<sub>4</sub>: 0.0596... (3.7%)
 
 #### Process contributions
-If we take the sum of the _columns_ to one column, we get the process contributions
+If we take the sum of the _columns_ to one row, we get the process contributions
 (the contribution of all coal, electricity and steel production impacts together).
 
 In the case above, the process contributions are:
@@ -115,9 +119,19 @@ in the next sections.
 ![contributions cutoff](./assets/contribution_manipulation.png)
 
 #### Cut-off
-You can manually change the `Cut-off type` of the results in two ways, `Relative` or `Top #`.
-- The `Relative` mode shows contributions _from_ entities of _x_% or higher.
+You can manually change the `Cut-off type` of the results in three ways:
+- The `Minimum %` mode shows contributions _from_ entities of at least _x_% or higher.
+  - For example: If the cut-off is set to 5% for process contribtions, then all contributions of at least 5% are shown.  
+- The `Cumulative %` mode shows contributions that cumulatively contribute at least _x_%.
+  - For example: If the cut-off is set to 80% for process contributions, then the first _n_ processes (sorted highest 
+  to lowest) that count up to 80% are shown.
 - The `Top #` mode shows contributions from the _x_ entities that contribute the most (as absolute).
+  - For example: If the cut-off is set to 5, then the first 5 processes (sorted highest 
+  to lowest) will be shown.
+
+The cut-off is applied per item (e.g. per reference flow or impact category, see [compare](#compare)) below).
+This means that if you want to see the top 5 contributors, you will only see the top 5 per item, even if a contributor would 
+also be present for another item. 
 
 You can adjust the `Cut-off level` to change how many results you see.
 
@@ -147,22 +161,22 @@ You can disable one of them if you want to focus on the other.
 
 #### Relative and Absolute
 You can choose between `Relative` and `Absolute` results.
-The `Relative` results will sum to 100% (the total `Range` or `Score`), 
+The `Relative` results will sum to 100% (the total `Score` or `Range`), 
 the `Absolute` results will sum to the impact score.
-For `Relative`, you can choose what you use as the 100% reference, the `Range` or the `Score`.
+For `Relative`, you can choose what you use as the 100% reference, the `Score` or the `Range`.
 
-#### Range and Score
-The `Range`/`Score` determines what you use as the _total_ to which the contributions are counted. 
-- For `Range`, this is the full _range_ of results
-  - For example, if all your negative results together have a score of -2 and all your positive results together have a 
-    score of 10, the _range_ is 12 (-2 * -1 + 10).
-  - An entity with a contribution of 4 would have a relative contribution of 4/12 = 33.3...%. 
+#### Score and Range
+The `Score`/`Range` determines what you use as the _total_ to which the contributions are counted. 
 - For `Score`, this is the total score (sum) of the results
   - For example, if all your negative results together have a score of -2 and all your positive results together have a 
     score of 10, the _score_ is 8 (-2 + 10).
   - An entity with a contribution of 4 would have a relative contribution of 4/8 = 50%.
+- For `Range`, this is the full _range_ of results
+  - For example, if all your negative results together have a score of -2 and all your positive results together have a 
+    score of 10, the _range_ is 12 (-2 * -1 + 10).
+  - An entity with a contribution of 4 would have a relative contribution of 4/12 = 33.3...%. 
 
-The `Range` or `Score` setting are only relevant when your results contain both positive and negative contributions.
+The `Score` or `Range` setting are only relevant when your results contain both positive and negative contributions.
 
 ### Positive and negative numbers in contribution results
 It can happen in LCA that you get both positive and negative numbers in your contribution results.
@@ -179,9 +193,11 @@ Below is a simple example (with unrealistic values) to demonstrate this:
 ## Sankey
 The `Sankey` tab shows results from [graph traversal](https://docs.brightway.dev/projects/graphtools/en/latest/index.html).
 Graph traversal calculates results step-by-step for _nodes_ (activites) in the _graph_ (supply chain/product system).
+This is explained in detail by 
+[van der Meide et al. (2025)](https://doi.org/10.31219/osf.io/sfgj6_v1) (path contributions).
 
 ### Sankey configuration
-In the `Sankey` tab, you can configure, you can set the 
+In the `Sankey` tab, you can set the 
 Reference flow, Impact category and Scenario (only available in scenario LCA, see [scenarios](#scenarios)) to be shown.
 you can also set a `cutoff` and `calculation depth` setting.
 

@@ -26,11 +26,23 @@ from .errors import LinkingFailed
 from .strategies import (alter_database_name, csv_rewrite_product_key,
                          hash_parameter_group, link_exchanges_without_db,
                          relink_exchanges_bw2package, relink_exchanges_with_db,
-                         rename_db_bw2package)
+                         rename_db_bw2package, parse_JSON_fields)
 
 
 class ABExcelImporter(ExcelImporter):
     """Customized Excel importer for the AB."""
+
+    def database_class(self, db_name: str, requested_backend: str = "sqlite") -> bd.ProcessedDataStore:
+        try:
+            from bw_functional import FunctionalSQLiteDatabase
+
+            if self.needs_multifunctional_database:
+                return FunctionalSQLiteDatabase(db_name)
+            else:
+                return bd.Database(db_name, backend=requested_backend)
+
+        except ImportError:
+            return bd.Database(db_name, backend=requested_backend)
 
     def write_database(self, **kwargs):
         """Go to the parent of the ExcelImporter class, not the ExcelImporter itself.
@@ -76,6 +88,7 @@ class ABExcelImporter(ExcelImporter):
             convert_uncertainty_types_to_integers,
             hash_parameter_group,
             convert_activity_parameters_to_list,
+            parse_JSON_fields,
         ]
         self.db_name = db_name
 

@@ -131,7 +131,10 @@ class ABDataItem(ABAbstractItem):
     def displayData(self, col: int, key: str):
         data = self[key]
 
-        if data is None or pd.isna(data):
+        if isinstance(data, (list, tuple)):
+            # skip isna check for lists/tuples
+            pass
+        elif data is None or pd.isna(data):
             return None
 
         if isinstance(data, str):

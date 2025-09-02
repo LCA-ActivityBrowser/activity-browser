@@ -5,7 +5,7 @@ from qtpy import QtCore, QtWidgets
 
 import bw2data as bd
 
-from activity_browser import signals, settings
+from activity_browser import signals, application
 from activity_browser.ui import icons
 
 from activity_browser.ui.menu_bar import MenuBar
@@ -20,7 +20,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.setLocale(QtCore.QLocale(QtCore.QLocale.English, QtCore.QLocale.UnitedStates))
         self.setWindowTitle("Activity Browser")
-        self.setWindowIcon(icons.qicons.ab)
         self.setDockNestingEnabled(True)
 
         # Layout: extra items outside main layout
@@ -29,40 +28,64 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.connect_signals()
 
-    def closeEvent(self, event):
-        """
-        Save the state of the main window when it is closed.
-        """
-        # Save the state of the main window
-        self.writeState(bd.projects.dir)
-        super().closeEvent(event)
-
     def sync(self):
+        """
+        Synchronizes the main window layout with the current Brightway2 project.
+
+        This method clears existing panes, initializes default panes, and arranges them
+        in the main window. Hidden panes are set to be invisible, and the first pane is
+        raised to the top. The window title is updated to reflect the current project.
+
+        Steps:
+        - Clear all existing panes.
+        - Create and add default panes as dock widgets.
+        - Hide panes that are marked as hidden.
+        - Tabify dock widgets for better organization.
+        - Raise the first dock widget to the top.
+        - Update the window title with the current project name.
+
+        Args:
+            self: The instance of the MainWindow class.
+        """
         from activity_browser.layouts import panes
 
+        # Clear all existing panes in the main window
         self.clearPanes()
 
-        data = self.getState(bd.projects.dir)
+        dws = []
+        # Iterate through the default panes and add them as dock widgets
+        for pane_class in panes.default_panes:
+            pane = pane_class(parent=self)
+            dockwidget = pane.getDockWidget(self)
+            dws.append(dockwidget)
 
-        unique_panes = [pane for pane in panes.registered_panes if pane.unique]
+            # Add the dock widget to the left dock area
+            self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, dockwidget)
+            # Add the toggle view action to the menu bar
+            self.menu_bar.view_menu.addAction(dockwidget.toggleViewAction())
 
-        for pane_state in data.get("panes", []):
-            self.restorePane(pane_state)
-            if pane_state.get("class") in unique_panes:
-                unique_panes.remove(pane_state.get("class"))
+            # Hide the dock widget if it is marked as hidden
+            if pane_class in panes.hidden_panes:
+                dockwidget.hide()
 
-        for pane in unique_panes:
-            self.addPane(pane(parent=self))
+            # Synchronize the pane
+            pane.sync()
 
-        success = self.restoreState(data.get("state"), 0)
-        log.debug(f"Restored main window state: {success}")
+        # Tabify the dock widgets for better organization
+        for dw in dws:
+            if dw == dws[0]:
+                continue
+            self.tabifyDockWidget(dws[0], dw)
 
+        # Raise the first dock widget to the top
+        dws[0].raise_()
+
+        # Update the window title to reflect the current project
         self.setWindowTitle(f"Activity Browser - {bd.projects.current}")
-
 
     def connect_signals(self):
         # Keyboard shortcuts
-        signals.project.changed.connect(self.on_project_changed)
+        signals.project.changed.connect(self.sync)
 
     def clearPanes(self):
         for pane in self.panes():
@@ -74,93 +97,6 @@ class MainWindow(QtWidgets.QMainWindow):
         """
         from activity_browser.ui import widgets
         return self.findChildren(widgets.ABAbstractPane)
-
-    def on_project_changed(self, new, old):
-        self.writeState(old.dir)
-        self.sync()
-
-    def restorePane(self, pane_state: dict):
-        """
-        Restore a pane in the main window based on its saved state.
-
-        Args:
-            pane_state (dict): A dictionary containing the class and state of the pane to restore.
-                - "class": The class of the pane to be restored.
-                - "state": The saved state of the pane.
-
-        Returns:
-            None
-        """
-        pane_class = pane_state.get("class")
-        if pane_class is None:
-            return
-
-        log.debug(f"Restoring pane {pane_class.__name__}")
-
-        try:
-            # Attempt to create an instance of the pane using its saved state
-            pane_instance = pane_class.fromState(pane_state.get("state"), self)
-        except Exception as e:
-            # Log an error if the pane cannot be restored
-            log.error(f"Error restoring pane {pane_class.__name__}: {e}")
-            return
-
-        self.addPane(pane_instance)
-
-    def addPane(self, pane: QtWidgets.QWidget):
-        """
-        Add a pane to the main window.
-
-        Args:
-            pane (QtWidgets.QWidget): The pane to add.
-
-        Returns:
-            None
-        """
-        dockwidget = pane.getDockWidget(self)
-        self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, dockwidget)
-        self.menu_bar.view_menu.addAction(dockwidget.toggleViewAction())
-
-        pane.sync()
-
-    def writeState(self, directory):
-        if not directory.exists():
-            # project directory does not exist, may be temporary or because the project was deleted
-            log.debug(f"Project directory {directory} does not exist, skipping state save.")
-            return
-
-        pane_data = []
-        for pane in self.panes():
-            pane_data.append({
-                "class": pane.__class__,
-                "state": pane.saveState(),
-            })
-        own_data = self.saveState(0)
-
-        data = {
-            "state": own_data,
-            "panes": pane_data,
-        }
-
-        # Save the state of the main window
-        path = directory.joinpath("activity_browser\\main_window_state.pickle")
-        with open(path, "wb") as f:
-            pickle.dump(data, f)
-
-    def getState(self, directory) -> dict:
-        """
-        Get the state of the main window.
-        """
-        path = directory.joinpath("activity_browser\\main_window_state.pickle")
-        if path.exists():
-            with open(path, "rb") as f:
-                data = pickle.load(f)
-        else:
-            data = {
-                "state": self.saveState(0),
-            }
-        return data
-
 
     def set_titlebar(self):
         self.setWindowTitle(f"Activity Browser - {bd.projects.current}")

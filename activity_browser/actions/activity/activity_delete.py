@@ -2,12 +2,15 @@ from typing import List
 
 from qtpy import QtWidgets
 
-from activity_browser import application
-from activity_browser.actions.base import ABAction, exception_dialogs
-from activity_browser.mod import bw2data as bd
+import bw2data as bd
+import bw_functional as bf
+
 from bw2data.parameters import (ActivityParameter, Group,
                                                      GroupDependency,
                                                      parameters)
+
+from activity_browser import application
+from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.ui.icons import qicons
 
 
@@ -27,15 +30,15 @@ class ActivityDelete(ABAction):
         # retrieve activity objects from the controller using the provided keys
         activities = [bd.get_activity(key) for key in activity_keys]
 
-        warning_text = f"Are you certain you want to delete {len(activities)} activity/activities?"
+        warnings = [f"Are you certain you want to delete {len(activities)} activity/activities?", ""]
 
-        # check for downstream processes
         if any(len(act.upstream()) > 0 for act in activities):
-            # warning text
-            warning_text += (
-                "\n\nOne or more activities have downstream processes. Deleting these activities will remove the "
-                "exchange from the downstream processes as well."
-            )
+            warnings.append("One or more of the activities you are trying to delete have consumers")
+
+        if any([act for act in activities if isinstance(act, bf.Process)]):
+            warnings.append("Products of processes will be removed as well")
+
+        warning_text = "\n".join(warnings)
 
         # alert the user
         choice = QtWidgets.QMessageBox.warning(
@@ -50,9 +53,6 @@ class ActivityDelete(ABAction):
         if choice == QtWidgets.QMessageBox.No:
             return
 
-
-
-        # use the activity controller to delete multiple activities
         for act in activities:
             db, code = act.key
 

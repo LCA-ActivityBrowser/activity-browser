@@ -1,7 +1,7 @@
 import datetime
 from logging import getLogger
 
-from qtpy import QtWidgets
+from qtpy import QtWidgets, QtCore
 
 import bw2data as bd
 
@@ -43,8 +43,14 @@ class ProjectSwitch(ABAction):
             log.debug(f"Brightway2 already selected: {project_name}")
             return
 
+        dialog = ProjectChangeDialog(project_name, application.main_window)
+        dialog.show()
+        application.thread().eventDispatcher().processEvents(QtCore.QEventLoop.ProcessEventsFlag.AllEvents)
+
         # switch to the new project, don't auto update to brightway25
         bd.projects.set_current(project_name, update=False)
+
+        dialog.close()
 
         if not bd.projects.twofive:
             log.warning(f"Project: {bd.projects.current} is not yet BW25 compatible")
@@ -59,6 +65,19 @@ class ProjectSwitch(ABAction):
     @staticmethod
     def set_warning_bar():
         application.main_window.addToolBar(ProjectWarningBar())
+
+
+class ProjectChangeDialog(QtWidgets.QDialog):
+    def __init__(self, project_name: str, parent=None):
+        super().__init__(parent, QtCore.Qt.WindowTitleHint)
+        self.setWindowTitle(f"Switching project")
+        self.setModal(True)
+
+        self.label = QtWidgets.QLabel(f"Switching to project: <b>{project_name}</b>", self)
+
+        layout = QtWidgets.QVBoxLayout(self)
+        layout.addWidget(self.label)
+        self.setLayout(layout)
 
 
 class ProjectWarningBar(QtWidgets.QToolBar):

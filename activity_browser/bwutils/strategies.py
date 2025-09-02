@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import hashlib
+import json
 from typing import Collection
 from logging import getLogger
 
@@ -72,7 +73,7 @@ def _relink_exchanges(data: list, other: str) -> list:
     if len(other) == 0:
         raise StrategyError("Cannot link to empty database")
     act = other.random()
-    is_technosphere = act.get("type", "process") == "process"
+    is_technosphere = act.get("type", "process") in ["process", "processwithreferenceproduct", "product"]
     kind = TECHNOSPHERE_TYPES if is_technosphere else BIOSPHERE_TYPES
     return link_iterable_by_fields(
         data, other=other, kind=kind, fields=RELINK_FIELDS, relink=True
@@ -284,4 +285,16 @@ def excel_error_detection(data: Collection):
                     f"An Exception has occurred for activity {ds['name']}"
                     + "with errors in the exchange flows"
                 )
+    return data
+
+
+def parse_JSON_fields(data: list) -> list:
+    """Parse JSON fields in the data."""
+    for ds in data:
+        for key, value in ds.items():
+            if isinstance(value, str) and value.startswith("{") and value.endswith("}"):
+                try:
+                    ds[key] = json.loads(value)
+                except json.JSONDecodeError:
+                    continue
     return data

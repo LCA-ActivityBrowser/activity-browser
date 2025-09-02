@@ -8,11 +8,32 @@ from activity_browser.ui.icons import qicons
 
 class ProjectDelete(ABAction):
     """
-    ABAction to delete the currently active project. Return if it's the startup project.
+    Deletes the specified projects or the currently active project if no project names are provided.
+
+    This method handles the deletion of Brightway2 projects. It ensures that the startup project
+    cannot be deleted, prompts the user for confirmation, and optionally deletes the project
+    directories from the hard disk.
+
+    Args:
+        project_names (list of str, optional): A list of project names to delete. If None, the
+                                               currently active project is selected.
+
+    Steps:
+    - If no project names are provided, use the currently active project.
+    - Return immediately if the project list is empty.
+    - Prevent deletion of the startup project and notify the user if attempted.
+    - Open a confirmation dialog for the user to approve the deletion.
+    - If the user cancels, return without deleting.
+    - If the currently active project is being deleted, switch to the startup project.
+    - Delete the specified projects, optionally removing their directories from the hard disk.
+    - Notify the user of successful deletion.
+
+    Raises:
+        None
     """
 
     icon = qicons.delete
-    text = "Delete"
+    text = "Delete this project"
     tool_tip = "Delete the project"
 
     @staticmethod

@@ -1,4 +1,5 @@
 import numbers
+import json
 from datetime import datetime as dt
 from pathlib import Path
 from typing import Union
@@ -21,6 +22,15 @@ from .pedigree import PedigreeMatrix
 #  messes with following import.
 
 
+def ab_reformat(value):
+    if isinstance(value, dict):
+        try:
+            return json.dumps(value)
+        except TypeError:
+            return "Non-serializable dictionary"
+    return reformat(value)
+
+
 class ABCSVFormatter(CSVFormatter):
     def get_activity_metadata(self, act):
         excluded = {"database", "name", "activity"}
@@ -28,9 +38,9 @@ class ABCSVFormatter(CSVFormatter):
             "name": act.get("name"),
             "metadata": sorted(
                 [
-                    (k, reformat(v))
+                    (k, ab_reformat(v))
                     for k, v in act.items()
-                    if k not in excluded and not isinstance(v, (dict, list))
+                    if k not in excluded and not isinstance(v, list)
                 ]
             ),
             "parameters": self.get_activity_parameters(act),

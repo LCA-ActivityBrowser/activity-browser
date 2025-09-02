@@ -3,6 +3,8 @@ from logging import getLogger
 import pandas as pd
 import bw2data as bd
 
+from qtpy import QtCore, QtWidgets
+
 from activity_browser import application, bwutils
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.ui.icons import qicons
@@ -33,6 +35,10 @@ class CSCalculate(ABAction):
         if not cs.get("ia"):
             raise Exception(f"Calculation setup '{cs_name}' has no impact assessment methods.")
 
+        dialog = CalculationDialog(cs_name, application.main_window)
+        dialog.show()
+        application.thread().eventDispatcher().processEvents(QtCore.QEventLoop.ProcessEventsFlag.AllEvents)
+
         if scenario_data is None:
             mlca = bwutils.MLCA(cs_name)
             contributions = bwutils.Contributions(mlca)
@@ -46,4 +52,18 @@ class CSCalculate(ABAction):
         page = pages.LCAResultsPage(cs_name, mlca, contributions, mc)
         central = application.main_window.centralWidget()
 
+        dialog.close()
         central.addToGroup("LCA Results", page)
+
+
+class CalculationDialog(QtWidgets.QDialog):
+    def __init__(self, cs_name: str, parent=None):
+        super().__init__(parent, QtCore.Qt.WindowTitleHint)
+        self.setWindowTitle(f"Running Calculations")
+        self.setModal(True)
+
+        self.label = QtWidgets.QLabel(f"Running calculations for setup: <b>{cs_name}</b>", self)
+
+        layout = QtWidgets.QVBoxLayout(self)
+        layout.addWidget(self.label)
+        self.setLayout(layout)

@@ -10,13 +10,29 @@ from .project_switch import ProjectSwitch
 
 class ProjectDuplicate(ABAction):
     """
-    ABAction to duplicate a project. Asks the user for a new name. Returns if no name is given, the user cancels, or
-    when the name is already in use by another project. Else, instructs the ProjectController to duplicate the current
-    project to the new name.
+    Duplicate the current project to a new name.
+
+    This method prompts the user to input a new name for duplicating the current project.
+    It performs validation to ensure the new name is not empty and does not already exist.
+    If the provided name is valid, the current project is duplicated to the new name, and
+    the application switches to the newly created project.
+
+    Args:
+        name (str, optional): The name of the current project to duplicate. Defaults to the
+                              currently active project.
+
+    Steps:
+    - If no name is provided, use the current project name.
+    - Prompt the user for a new project name.
+    - Return if the user cancels or provides an empty name.
+    - Check if the new name already exists and show an error message if it does.
+    - If the provided name is not the current project, set it as the current project.
+    - Duplicate the project to the new name without switching to it.
+    - Switch to the newly created project using the `ProjectSwitch` action.
     """
 
     icon = qicons.copy
-    text = "Duplicate"
+    text = "Duplicate this project"
     tool_tip = "Duplicate the project"
 
     @staticmethod

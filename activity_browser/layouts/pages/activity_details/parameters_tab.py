@@ -6,6 +6,7 @@ import bw2data as bd
 from activity_browser import signals, actions
 from activity_browser.ui import widgets, icons, delegates
 from activity_browser.bwutils import refresh_node, refresh_parameter, parameters_in_scope, Parameter, database_is_locked
+from activity_browser.bwutils import node_group
 
 
 class ParametersTab(QtWidgets.QWidget):
@@ -86,7 +87,7 @@ class ParametersTab(QtWidgets.QWidget):
                 row["_scope"] = f"Current project"
             elif param.param_type == "database":
                 row["_scope"] = f"This database"
-            elif param.group == f"{self.activity.id}":
+            elif param.group == node_group(self.activity):
                 row["_scope"] = "This activity"
             else:
                 row["_scope"] = f"Group: {param.group}"

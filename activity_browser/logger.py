@@ -43,7 +43,7 @@ class ABFileHandler(logging.Handler):
         log_file_location = self.filepath
 
         # create the logfile and write the headers
-        with open(self.filepath, "a", encoding="utf-8") as log_file:
+        with open(self.filepath, "a", encoding='utf-8') as log_file:
             log_file.write(";".join(self.headers) + "\n")
 
     def emit(self, record: logging.LogRecord):
@@ -52,7 +52,7 @@ class ABFileHandler(logging.Handler):
         message = self.format(record)
 
         # append to the logfile
-        with open(self.filepath, "a", encoding="utf-8") as log_file:
+        with open(self.filepath, "a", encoding='utf-8') as log_file:
             log_file.write(message)
 
             # if there's exception info, write the exception traceback to the file as well
@@ -136,7 +136,7 @@ class ABPycharmHandler(logging.Handler):
         message = self.format_log(record)
 
         # append to the logfile
-        with open(self.filepath, "a") as log_file:
+        with open(self.filepath, "a", encoding='utf-8') as log_file:
             log_file.write(message)
 
             # if there's exception info, write the exception traceback to the file as well

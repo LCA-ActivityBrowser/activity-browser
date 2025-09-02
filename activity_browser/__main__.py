@@ -54,10 +54,10 @@ class ABLoader(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint)
-        self.setWindowIcon(icons.qicons.ab)
+        self.setWindowTitle("Activity Browser Launcher")
         self.setFixedSize(500, 300)
 
-        logo_pixmap = QtGui.QPixmap(os.path.join(main.__path__[0], "activitybrowser.png")).scaledToHeight(280, mode=Qt.TransformationMode.SmoothTransformation)
+        logo_pixmap = QtGui.QPixmap(os.path.join(main.__path__[0], "activitybrowser.png")).scaledToHeight(200, mode=Qt.TransformationMode.SmoothTransformation)
         logo_label = QtWidgets.QLabel(self)
         logo_label.setPixmap(logo_pixmap)
 
@@ -70,7 +70,7 @@ class ABLoader(QtWidgets.QWidget):
         layout.addWidget(logo_label, alignment=Qt.AlignCenter)
         layout.addWidget(self.text_label, alignment=Qt.AlignmentFlag.AlignRight)
         layout.addWidget(loading_bar)
-        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setContentsMargins(0, 35, 0, 0)
 
         self.setLayout(layout)
 
@@ -97,8 +97,6 @@ class ABLoader(QtWidgets.QWidget):
 
         self.load_settings()
 
-        application.main_window.sync()
-
     def load_settings(self):
         self.text_label.setText("Loading project")
         thread = SettingsThread(self)
@@ -106,6 +104,7 @@ class ABLoader(QtWidgets.QWidget):
         thread.start()
 
     def load_finished(self):
+        application.main_window.sync()
         application.main_window.show()
         self.deleteLater()
 
@@ -152,50 +151,44 @@ def run_activity_browser():
     setup_ab_logging()
     loader = ABLoader()
     loader.show()
+    application.set_icon()  # setting this here seems to fix the icon not showing sometimes
     sys.exit(application.exec_())
 
 
 def run_activity_browser_no_launcher():
-    import sys
+    pre_flight_checks()
+    setup_ab_logging()
 
-    from activity_browser import settings, actions
-    import bw2data as bd
+    modules = ModuleThread()
+    modules.run()
 
     from .ui.widgets import MainWindow, CentralTabWidget
     from .layouts import panes, pages
-    from .logger import setup_ab_logging
-
-    setup_ab_logging()
+    from activity_browser.bwutils import AB_metadata
+    from activity_browser import signals
 
     application.main_window = MainWindow()
-    application.main_window.setPanes([panes.DatabasesPane, panes.ImpactCategoriesPane, panes.CalculationSetupsPane])
-
     central_widget = CentralTabWidget(application.main_window)
     central_widget.addTab(pages.WelcomePage(), "Welcome")
     central_widget.addTab(pages.ParametersPage(), "Parameters")
 
     application.main_window.setCentralWidget(central_widget)
 
-    if settings.ab_settings.settings:
-        from pathlib import Path
+    settings = SettingsThread()
+    settings.run()
 
-        base_dir = Path(settings.ab_settings.current_bw_dir)
-        project_name = settings.ab_settings.startup_project
-        bd.projects.change_base_directories(base_dir, project_name=project_name, update=False)
-
-    if not bd.projects.twofive:
-        log.warning(f"Project: {bd.projects.current} is not yet BW25 compatible")
-        actions.ProjectSwitch.set_warning_bar()
-
-    log.info(f"Brightway2 data directory: {bd.projects._base_data_dir}")
-    log.info(f"Brightway2 current project: {bd.projects.current}")
-
+    application.main_window.sync()
     application.main_window.show()
 
+    application.set_icon()  # setting this here seems to fix the icon not showing sometimes
     sys.exit(application.exec_())
 
 
 def pre_flight_checks():
+
+    if "--no-checks" in sys.argv:
+        return
+
     check_pyside_version()
 
     if "CONDA_DEFAULT_ENV" in os.environ:
@@ -208,9 +201,9 @@ def check_pyside_version():
     try:
         import PySide6
     except ImportError:
-        input("\033[93mPySide6 is not installed but highly recommended.\n\n"
+        input("\033[1;31mPySide6 is not installed but highly recommended.\n\n"
               "Please install it using 'pip install PySide6'.\n\n"
-              "Press Enter to continue without it.\033[0m")
+              "Press any key to continue...\033[0m")
 
 
 def check_conda_update():
@@ -223,8 +216,9 @@ def check_conda_update():
         print("Could not fetch latest Activity Browser version")
 
     elif ab_current != "0.0.0" and ab_current != ab_response.json()['latest_version']:
-        print("There is an update available for the Activity Browser. Please update it using the following command: \n "
-              "conda update activity-browser")
+        input("\033[1;31mThere is an update available for the Activity Browser. Please update it using the following command: \n "
+              "conda update -c lca activity-browser\n\n"
+              "Press any key to continue without updating...\033[0m")
 
 
 def check_pypi_update():
@@ -237,11 +231,15 @@ def check_pypi_update():
         print("Could not fetch latest Activity Browser version")
 
     elif ab_current != "0.0.0" and ab_current != ab_response.json()['info']['version']:
-        print("There is an update available for the Activity Browser. Please update it using the following command: \n "
-              "pip install --upgrade activity-browser")
+        input("\033[1;31mThere is an update available for the Activity Browser. Please update it using the following command: \n "
+              "pip install --upgrade activity-browser\n\n"
+              "Press any key to continue without updating...\033[0m")
 
 
 if "--no-launcher" in sys.argv:
+    run_activity_browser_no_launcher()
+elif sys.version_info[1] == 10:
+    log.info("Running Activity Browser without launcher for Python 3.10")
     run_activity_browser_no_launcher()
 else:
     run_activity_browser()

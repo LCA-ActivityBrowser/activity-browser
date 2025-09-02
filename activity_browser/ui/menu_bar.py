@@ -72,7 +72,7 @@ class ProjectNewMenu(QtWidgets.QMenu):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
 
-        self.setTitle("New Project")
+        self.setTitle("New project")
         self.new_proj_action = actions.ProjectNew.get_QAction()
         self.import_proj_action = actions.ProjectImport.get_QAction()
 

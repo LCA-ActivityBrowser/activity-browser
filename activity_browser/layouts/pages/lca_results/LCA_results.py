@@ -62,7 +62,7 @@ def get_unit(method: tuple, relative: bool = False) -> str:
 
 # Special namedtuple for the LCAResults TabWidget.
 Tabs = namedtuple(
-    "tabs", ("inventory", "results", "ef", "process", "ft", "sankey", "tree", "mc", "gsa")
+    "tabs", ("inventory", "results", "ef", "process", "sankey", "tree", "mc", "gsa")
 )
 Relativity = namedtuple("relativity", ("relative", "absolute"))
 TotalMenu = namedtuple("total_menu", ("score", "range"))
@@ -115,7 +115,7 @@ class LCAResultsPage(QtWidgets.QTabWidget):
             results=LCAResultsTab(self),
             ef=ElementaryFlowContributionTab(self),
             process=ProcessContributionsTab(self),
-            ft=FirstTierContributionsTab(self.cs_name, parent=self),
+            # ft=FirstTierContributionsTab(self.cs_name, parent=self),
             sankey=web.SankeyNavigatorWidget(self.cs_name, parent=self),
             tree=web.TreeNavigatorWidget(self.cs_name, parent=self),
             mc=MonteCarloTab(
@@ -128,7 +128,7 @@ class LCAResultsPage(QtWidgets.QTabWidget):
             results="LCA Results",
             ef="EF Contributions",
             process="Process Contributions",
-            ft="FT Contributions",
+            # ft="FT Contributions",
             sankey="Sankey",
             tree="Tree",
             mc="Monte Carlo",
@@ -169,11 +169,11 @@ class LCAResultsPage(QtWidgets.QTabWidget):
             if not self.tabs.sankey.has_sankey:
                 log.info("Generating Sankey Tab")
                 self.tabs.sankey.new_sankey()
-        elif index == self.indexOf(self.tabs.ft):
-            if not self.tabs.ft.has_been_opened:
-                log.info("Generating First Tier results")
-                self.tabs.ft.has_been_opened = True
-                self.tabs.ft.update_tab()
+        # elif index == self.indexOf(self.tabs.ft):
+        #     if not self.tabs.ft.has_been_opened:
+        #         log.info("Generating First Tier results")
+        #         self.tabs.ft.has_been_opened = True
+        #         self.tabs.ft.update_tab()
 
         if index == self.indexOf(self.tabs.tree):
             if not self.tabs.tree.has_rendered_once:
@@ -237,7 +237,7 @@ class NewAnalysisTab(QtWidgets.QWidget):
         self.export_plot: Optional[ExportPlot] = None
         self.export_table: Optional[ExportTable] = None
 
-        self.scenario_box = QtWidgets.QComboBox()
+        self.scenario_box = SmallComboBox()
         self.pt_layout = QtWidgets.QVBoxLayout()
         self.layout = QtWidgets.QVBoxLayout()
         self.setLayout(self.layout)
@@ -613,9 +613,7 @@ class InventoryTab(NewAnalysisTab):
             flows = (
                 set(self.parent.contributions.inventory_data["biosphere"][1].values())
             ).difference(incl_flows)
-        new_flows = [flow[1] for flow in flows]
-
-        return data.loc[data["code"].isin(new_flows)]
+        return data.loc[data["id"].isin(flows)]
 
     def update_table(self):
         """Update the table."""
@@ -661,9 +659,9 @@ class InventoryTab(NewAnalysisTab):
         """Set the biosphere and technosphere to None."""
         self.df_biosphere, self.df_technosphere = None, None
 
-    def _update_table(self, table: pd.DataFrame, drop: str = "code"):
+    def _update_table(self, table: pd.DataFrame, drop: tuple = ("code", "id")):
         """Update the table."""
-        self.table.model.sync((table.drop(drop, axis=1)).reset_index(drop=True))
+        self.table.model.sync((table.drop(list(drop), axis=1)).reset_index(drop=True))
 
 
 class LCAResultsTab(NewAnalysisTab):
@@ -823,6 +821,7 @@ class LCAScoresTab(NewAnalysisTab):
         ]
         idx = self.layout.indexOf(self.plot)
         self.plot.figure.clf()
+        self.plot.setVisible(False)
         self.plot.deleteLater()
         self.plot = LCAResultsBarChart(self.parent)
         self.layout.insertWidget(idx, self.plot)
@@ -891,6 +890,7 @@ class LCIAResultsTab(NewAnalysisTab):
         """Update the plot."""
         idx = self.pt_layout.indexOf(self.plot)
         self.plot.figure.clf()
+        self.plot.setVisible(False)
         self.plot.deleteLater()
         self.plot = LCAResultsPlot(self.parent)
         self.pt_layout.insertWidget(idx, self.plot)
@@ -900,6 +900,16 @@ class LCIAResultsTab(NewAnalysisTab):
 
     def update_table(self):
         super().update_table(self.df)
+
+class SmallComboBox(QtWidgets.QComboBox):
+    """A small combo box that does not expand to fill the available space."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        self.setMinimumWidth(100)
+        self.setMaximumWidth(200)
+        self.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToContentsOnFirstShow)
 
 
 class ContributionTab(NewAnalysisTab):
@@ -911,9 +921,9 @@ class ContributionTab(NewAnalysisTab):
         self.combobox_menu = Combobox(
             func=QtWidgets.QComboBox(self),
             func_label=QtWidgets.QLabel("Reference Flow:"),
-            method=QtWidgets.QComboBox(self),
+            method=SmallComboBox(self),
             method_label=QtWidgets.QLabel("Impact Category:"),
-            agg=QtWidgets.QComboBox(self),
+            agg=SmallComboBox(self),
             agg_label=QtWidgets.QLabel("Aggregate by:"),
             scenario=self.scenario_box,
             scenario_label=QtWidgets.QLabel("Scenario:"),
@@ -955,7 +965,7 @@ class ContributionTab(NewAnalysisTab):
         self.total_group.addButton(self.total_menu.score)
         self.total_group.addButton(self.total_menu.range)
 
-        self.score_marker = settings.project_settings.settings.get("analysis_tab", {}).get(f"{self.__class__.__name__}score_marker_enabled", True)
+        self.score_marker = settings.project_settings.settings.get("analysis_tab", {}).get(f"{self.__class__.__name__}score_marker_enabled", False)
         self.score_mrk_checkbox = QtWidgets.QCheckBox("Score Marker")
         self.score_mrk_checkbox.setToolTip(
             "Shows the score marker. When there are both positive and negative results,\n"
@@ -1539,7 +1549,10 @@ class FirstTierContributionsTab(ContributionTab):
 
             all_data[i] = item, data, col_name
 
-        self.unit = get_unit(self.parent.method_dict[self.combobox_menu.method.currentText()], self.relative)
+        if compare == "Impact Categories":
+            self.unit = get_unit(method=False, relative=self.relative)
+        else:
+            self.unit = get_unit(self.parent.method_dict[self.combobox_menu.method.currentText()], self.relative)
 
         # convert to dict format to feed into dataframe
         for key in unique_keys:
@@ -1669,6 +1682,7 @@ class CorrelationsTab(NewAnalysisTab):
         """Update the plot."""
         idx = self.pt_layout.indexOf(self.plot)
         self.plot.figure.clf()
+        self.plot.setVisible(False)
         self.plot.deleteLater()
         self.plot = CorrelationPlot(self.parent)
         self.pt_layout.insertWidget(idx, self.plot)
@@ -1973,6 +1987,7 @@ class MonteCarloTab(NewAnalysisTab):
     def update_plot(self, method):
         idx = self.layout.indexOf(self.plot)
         self.plot.figure.clf()
+        self.plot.setVisible(False)
         self.plot.deleteLater()
         # name is already altered by update_mc before update_plot
         name = self.plot.plot_name

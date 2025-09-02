@@ -143,7 +143,7 @@ class SuperstructureManager(object):
             )
             warning.dataframe(pd.DataFrame({"Scenarios": list(absent)}), ["Scenarios"])
             response = warning.exec_()
-            if response == warning.Rejected:
+            if response == warning.DialogCode.Rejected:
                 raise UnalignableScenarioColumnsWarning()
         return cols
 
@@ -276,17 +276,7 @@ class SuperstructureManager(object):
         -------
         A pandas dataframe with the changes made to the scenario dataframe for these self referential flows
         """
-        self_referential_production_flows = df.loc[
-            df.apply(
-                lambda x: (
-                    True
-                    if x["from key"] == x["to key"] and x["flow type"] == "technosphere"
-                    else False
-                ),
-                axis=1,
-            ),
-            :,
-        ].copy()
+        self_referential_production_flows = df[(df["from key"] == df["to key"]) & (df["flow type"] == "technosphere")].copy()
         self_referential_production_flows.index = pd.MultiIndex.from_arrays(
             [
                 self_referential_production_flows.index.get_level_values(0),
@@ -650,7 +640,7 @@ class SuperstructureManager(object):
             QApplication.restoreOverrideCursor()
             response = warning.exec_()
             QApplication.setOverrideCursor(Qt.WaitCursor)
-            if response == warning.Rejected:
+            if response == warning.DialogCode.Rejected:
                 raise ImportCanceledError
             data.drop_duplicates(index, keep="last", inplace=True)
         return data

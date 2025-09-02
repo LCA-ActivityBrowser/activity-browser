@@ -547,7 +547,7 @@ class Contributions(object):
         df.columns = cls.get_labels(df.columns, fields=y_fields)
         # Coerce index to MultiIndex if it currently isn't
         if not isinstance(df.index, pd.MultiIndex):
-            df.index = pd.MultiIndex.from_tuples(ids_to_keys(df.index))
+            df.index = pd.MultiIndex.from_tuples(ids_to_keys(df.index), names=[None, None])
 
         # get metadata for rows
         keys = [k for k in df.index if k in AB_metadata.index]
@@ -643,20 +643,23 @@ class Contributions(object):
     def _build_inventory(
         inventory: dict, indices: dict, columns: list, fields: list
     ) -> pd.DataFrame:
-        df = pd.DataFrame(inventory)
-        df.index = pd.MultiIndex.from_tuples(ids_to_keys(indices.values()))
-        df.columns = Contributions.get_labels(columns, max_length=30)
-        metadata = AB_metadata.get_metadata(list(ids_to_keys(indices.values())), fields)
-        joined = metadata.join(df)
-        joined.reset_index(inplace=True, drop=True)
-        return joined
+        data = pd.DataFrame(inventory)
+        data.index = indices.values()
+        data.columns = Contributions.get_labels(columns, max_length=30)
+
+        data = pd.merge(
+            AB_metadata.dataframe[fields], data, right_index=True, left_on="id", how="right"
+        )
+        data.reset_index(inplace=True, drop=True)
+
+        return data
 
     def inventory_df(
-        self, inventory_type: str, columns: set = {"name", "database", "code"}
+        self, inventory_type: str, columns: set = {"name", "database", "code", "id"}
     ) -> pd.DataFrame:
         """Return an inventory dataframe with metadata of the given type."""
         try:
-            data = self.inventory_data[inventory_type]
+            data = deepcopy(self.inventory_data[inventory_type])
             appending = columns.difference(set(data[3]))
             for clmn in appending:
                 data[3].append(clmn)
@@ -759,10 +762,10 @@ class Contributions(object):
 
         df = pd.DataFrame(contributions).T
         columns = list(range(contributions.shape[0]))
-        df.index = pd.MultiIndex.from_tuples(rev_index.values())
-        metadata = AB_metadata.get_metadata(list(keys), fields)
+        df.index = rev_index.values()
+        metadata = AB_metadata.dataframe.loc[AB_metadata.dataframe["id"].isin(keys), fields + ["id"]]
 
-        joined = metadata.join(df)
+        joined = metadata.merge(df, left_on="id", right_index=True, how="left")
         joined.reset_index(inplace=True, drop=True)
         grouped = joined.groupby(parameters)
         aggregated = grouped[columns].sum()

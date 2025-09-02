@@ -8,13 +8,21 @@ from activity_browser.ui.icons import qicons
 
 class ProjectNew(ABAction):
     """
-    ABAction to create a new project. Asks the user for a new name. Returns if no name is given, the user cancels, or
-    when the name is already in use by another project. Otherwise, instructs the ProjectController to create a new
-    project with the given name, and switch to it.
+    Prompts the user to create a new project by entering a name. If the name is valid and not already in use,
+    a new project is created and set as the current project.
+
+    Steps:
+    - Open a dialog to get the new project name from the user.
+    - Return if the user cancels or provides an empty name.
+    - Check if the name already exists and show an error message if it does.
+    - Create a new project with the given name and set it as the current project.
+
+    Raises:
+        None
     """
 
     icon = qicons.add
-    text = "New"
+    text = "New project"
     tool_tip = "Make a new project"
 
     @staticmethod

@@ -25,6 +25,7 @@
 
         p{
             margin-block-start: 0.5em;
+            margin-block-end: 0;
         }
 
         .container{
@@ -33,7 +34,7 @@
             width: 100vw;
             background: #FBFBFB;
             grid-template-columns: auto 250px 250px auto;
-            grid-template-rows: auto 80px 250px 150px auto;
+            grid-template-rows: auto 80px 250px 150px 45px auto;
         }
         .update{
             grid-column-start: 2;
@@ -64,11 +65,19 @@
         }
 
         .linkitem{
-            background: black;
-            color: white;
+            background: #0070c033;
+            color: black;
+            font-weight: bold;
             font-size: smaller;
             padding: 5px 10px 5px 10px;
             text-decoration: none;
+            border-bottom: 2px solid black;
+        }
+
+        .linkitem:hover{
+            background: #0070C0;
+            color: white;
+            cursor: pointer;
         }
 
         .projects{
@@ -88,23 +97,44 @@
             color: #007acc;
             width: fit-content;
         }
+
+        .subscribe {
+            grid-column-start: 2;
+            grid-column-end: 4;
+            grid-row-start: 5;
+            grid-row-end: 6;
+            background: #0070c033;
+            padding: 8px;
+            margin-top: 10px;
+            font-weight: bold;
+            font-size: smaller;
+            border-bottom: 2px solid black;
+        }
+        .subscribe:hover {
+            background: #0070C0;
+            color: white;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
 <div class="container">
     <div class="update">
+        <p>Welcome to</p>
         <h1>The Activity Browser</h1>
-        <p>Cutting-edge Life Cycle Assessment starts here</p>
     </div>
     <img class="logo" src="../icons/main/activitybrowser.png" width="230">
     <div class="links">
-        <a class="linkitem" style="width: 90%" href="https://github.com/LCA-ActivityBrowser/activity-browser/wiki">Wiki</a>
+        <a class="linkitem" style="width: 90%" href="https://lca-activitybrowser.github.io/activity-browser/">Documentation</a>
         <a class="linkitem" style="width: 80%" href="https://github.com/LCA-ActivityBrowser/activity-browser">Github</a>
-        <a class="linkitem" style="width: 70%" href="https://brightway.groups.io/g/AB-discussion/messages">Forum</a>
+        <a class="linkitem" style="width: 70%" href="https://brightway.groups.io/g/AB-discussion/messages">Groups.io</a>
         <a class="linkitem" style="width: 60%" href="https://docs.brightway.dev/en/latest/">Brightway25</a>
     </div>
     <div class="projects">
         <h2>Recent projects:</h2>
+    </div>
+    <div class="subscribe" onclick="window.open('https://brightway.groups.io/g/AB-updates', '_self')">
+        Subscribe to our mailing list to stay up to date!
     </div>
     <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
     <script>

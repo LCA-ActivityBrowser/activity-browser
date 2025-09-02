@@ -221,6 +221,16 @@ class MetaDataStore(QObject):
         df = self.dataframe.loc[pd.IndexSlice[keys], :]
         return df.reindex(columns, axis="columns")
 
+    def get_metadata_from_ids(self, ids: list, columns: list) -> pd.DataFrame:
+        """Return a slice of the dataframe matching row and column identifiers.
+
+        NOTE: https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#deprecate-loc-reindex-listlike
+        From pandas version 1.0 and onwards, attempting to select a column
+        with all NaN values will fail with a KeyError.
+        """
+        df = self.dataframe.loc[self.dataframe["id"].isin(ids), :]
+        return df.reindex(columns, axis="columns")
+
     def get_database_metadata(self, db_name: str) -> pd.DataFrame:
         """Return a slice of the dataframe matching the database.
 

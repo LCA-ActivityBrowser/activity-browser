@@ -15,9 +15,14 @@ registered_panes = [
     CalculationSetupsPane,
 ]
 
-default_panes = [
+shown_panes = [
     DatabasesPane,
     ImpactCategoriesPane,
     CalculationSetupsPane,
 ]
 
+hidden_panes = [
+    ProjectManagerPane,
+]
+
+default_panes = shown_panes + hidden_panes

@@ -7,8 +7,8 @@ import bw2data as bd
 import pandas as pd
 
 from activity_browser import signals, actions, bwutils
-from activity_browser.settings import project_settings
 from activity_browser.ui import widgets, icons, delegates
+from activity_browser.ui.menu_bar import ImportDatabaseMenu
 
 
 class DatabasesPane(widgets.ABAbstractPane):
@@ -35,7 +35,6 @@ class DatabasesPane(widgets.ABAbstractPane):
         self.view.setModel(self.model)
 
         self.view.setAlternatingRowColors(True)
-        # self.view.setSelectionMode(QtWidgets.QTableView.SingleSelection)
         self.view.setIndentation(0)
 
         self.build_layout()
@@ -81,7 +80,6 @@ class DatabasesPane(widgets.ABAbstractPane):
             dt = datetime.datetime.strptime(dt, "%Y-%m-%dT%H:%M:%S.%f")
 
             # final column includes interactive checkbox which shows read-only state of db
-            database_read_only = project_settings.db_is_readonly(name)
             data.append(
                 {
                     "name": name,
@@ -113,6 +111,7 @@ class DatabasesView(widgets.ABTreeView):
     class ContextMenu(widgets.ABMenu):
         menuSetup = [
             lambda m, p: m.add(actions.DatabaseNew),
+            lambda m: m.addMenu(ImportDatabaseMenu(m)),
             lambda m: m.addSeparator(),
             lambda m, p: m.add(actions.DatabaseDelete, p.selected_databases[0] if p.selected_databases else None,
                                enable=len(p.selected_databases) == 1),
