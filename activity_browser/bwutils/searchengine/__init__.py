@@ -1,2 +1,2 @@
-from base import SearchEngine
-from metadata_search import MetaDataSearchEngine
+from .base import SearchEngine
+from .metadata_search import MetaDataSearchEngine
