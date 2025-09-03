@@ -277,7 +277,9 @@ class ExchangeAmountDelegate(QtWidgets.QStyledItemDelegate):
         editor = QtWidgets.QLineEdit(parent)
         locale = QtCore.QLocale(QtCore.QLocale.English)
         locale.setNumberOptions(QtCore.QLocale.RejectGroupSeparator)
-        validator = QtGui.QRegularExpressionValidator(QtCore.QRegularExpression(r"^[+-]?([0-9]+([.][0-9]*)?|[.][0-9]+)$"), editor)
+        validator = QtGui.QRegularExpressionValidator(
+            QtCore.QRegularExpression(r"^[+-]?((\d+(\.\d*)?)|(\.\d+))([eE][+-]?\d+)?$"),
+            editor)
         validator.setLocale(locale)
         editor.setValidator(validator)
         return editor
