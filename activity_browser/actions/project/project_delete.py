@@ -10,6 +10,8 @@ from activity_browser import settings, application
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.ui.icons import qicons
 
+from .project_switch import ProjectSwitch
+
 
 class ProjectDelete(ABAction):
     """
@@ -67,12 +69,10 @@ class ProjectDelete(ABAction):
 
         # try to delete the project, delete directory if user specified so
         if bd.projects.current in project_names:
-            bd.projects.set_current(settings.ab_settings.startup_project)
+            ProjectSwitch.run(settings.ab_settings.startup_project)
 
         for project in project_names:
-            bd.projects.delete_project(
-                project, delete_dialog.deletion_warning_checked()
-            )
+            ProjectDelete.delete_project(project, delete_dialog.deletion_warning_checked())
 
         # inform the user of successful deletion
         QtWidgets.QMessageBox.information(
@@ -89,7 +89,7 @@ class ProjectDelete(ABAction):
             assert dir_path.is_dir(), "Can't find project directory"
             shutil.rmtree(dir_path)
 
-        ds.delete()
+        ds.delete_instance()
 
 
 class ProjectDeletionDialog(QtWidgets.QDialog):
