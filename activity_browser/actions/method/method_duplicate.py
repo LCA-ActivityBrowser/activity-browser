@@ -21,7 +21,7 @@ class MethodDuplicate(ABAction):
 
     @staticmethod
     @exception_dialogs
-    def run(methods: List[tuple], level: str):
+    def run(methods: List[tuple], level: str = None):
         # this action can handle only one selected method for now
         selected_method = methods[0]
 

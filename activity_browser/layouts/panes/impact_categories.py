@@ -78,6 +78,34 @@ class ImpactCategoriesView(widgets.ABTreeView):
         "groups": delegates.ListDelegate,
     }
 
+    class ContextMenu(widgets.ABMenu):
+        menuSetup = [
+            lambda m, p: m.add(actions.MethodOpen, p.selected_impact_categories,
+                               text="Open impact category" if len(p.selected_impact_categories) == 1 else "Open impact categories",
+                               enable=len(p.selected_impact_categories) > 0
+                               ),
+            lambda m, p: m.add(actions.MethodDelete, p.selected_impact_categories,
+                               text="Delete impact category" if len(
+                                   p.selected_impact_categories) == 1 else "Delete impact categories",
+                               enable=len(p.selected_impact_categories) > 0
+                               ),
+            lambda m, p: m.add(actions.MethodDuplicate, p.selected_impact_categories,
+                               text="Duplicate impact category",
+                               enable=len(p.selected_impact_categories) == 1
+                               ),
+        ]
+
+        @staticmethod
+        def get_functional_unit_amount(key):
+            from activity_browser.bwutils import refresh_node
+            excs = list(refresh_node(key).upstream(["production"]))
+            exc = excs[0] if len(excs) == 1 else {}
+            return exc.get("amount", 1.0)
+
+        @property
+        def database_name(self):
+            return self.parent().parent().database.name
+
     @property
     def selected_impact_categories(self):
         indices = [i for i in self.selectedIndexes() if i.column() == 0]
