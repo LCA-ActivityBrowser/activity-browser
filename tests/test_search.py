@@ -44,7 +44,7 @@ def test_reverse_dict():
     w2i = se.reverse_dict_many_to_one(se.identifier_to_word)
     assert w2i == se.word_to_identifier
 
-    # reverse same and verify is same as input
+    # reverse again and verify is same as original
     i2w = se.reverse_dict_many_to_one(w2i)
     assert i2w == se.identifier_to_word
 
