@@ -8,6 +8,8 @@ from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.mod import bw2data as bd
 from activity_browser.ui.icons import qicons
 
+from .method_open import MethodOpen
+
 log = getLogger(__name__)
 
 
@@ -56,6 +58,8 @@ class MethodDuplicate(ABAction):
                 raise Exception("New method name already in use")
             method.copy(new_name)
             log.info(f"Copied method {method.name} into {new_name}")
+
+        MethodOpen.run(new_names)
 
 
 class TupleNameDialog(QtWidgets.QDialog):
