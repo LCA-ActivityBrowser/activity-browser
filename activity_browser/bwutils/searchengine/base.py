@@ -8,6 +8,7 @@ from typing import Iterable, Optional
 import pandas as pd
 import numpy as np
 import re
+import sys
 
 
 log = getLogger(__name__)
@@ -128,9 +129,9 @@ class SearchEngine:
 
         size_new = len(self.df)
         size_dif = size_new - size_old
-        size_msg = (f"{size_dif} changed items at {round(size_dif/(time() - t), 0)} items/sec "
-                    f"({size_new} items currently)") if size_dif > 1 \
-            else f"1 changed item ({size_new} items currently)"
+        size_msg = (f"{size_dif} changed items at {int(round(size_dif/(time() - t), 0))} items/sec "
+                    f"({size_new} items ({self.size_of_index()}) currently)") if size_dif > 1 \
+            else f"1 changed item ({size_new} items ({self.size_of_index()}) currently)"
         log.debug(f"Search index updated in {time() - t:.2f} seconds for {size_msg}.")
 
     def clean_text(self, text: str):
@@ -214,6 +215,20 @@ class SearchEngine:
                 f"Given word '{word}' must not contain spaces.")
         return word in self.word_to_identifier.keys()
 
+    def size_of_index(self):
+        """return the size of the search index in MB or GB."""
+        s_df = sys.getsizeof(self.df)
+        s_i2w = sys.getsizeof(self.identifier_to_word)
+        s_w2i = sys.getsizeof(self.word_to_identifier)
+        s_w2q = sys.getsizeof(self.word_to_q_grams)
+        s_q2w = sys.getsizeof(self.q_gram_to_word)
+        size_bytes = s_df + s_i2w + s_w2i + s_w2q + s_q2w
+
+        if size_bytes < 1024 ** 3:
+            return f"{size_bytes / (1024 ** 2):.1f} MB"
+        else:
+            return f"{size_bytes / (1024 ** 3):.2f} GB"
+
     #   +++ Changes to searchable data
 
     def add_identifier(self, data: pd.DataFrame) -> None:
@@ -296,7 +311,7 @@ class SearchEngine:
 
         if logging:
             log.debug(f"Search index updated in {time() - t:.2f} seconds "
-                      f"for 1 removed item ({len(self.df)} items currently).")
+                      f"for 1 removed item ({len(self.df)} items ({self.size_of_index()}) currently).")
 
     def change_identifier(self, identifier, data: pd.DataFrame) -> None:
         """Change this identifier.

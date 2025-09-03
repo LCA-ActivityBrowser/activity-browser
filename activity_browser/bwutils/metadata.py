@@ -2,11 +2,13 @@
 import itertools
 import sqlite3
 import pickle
+import sys
 from time import time
 from functools import lru_cache
 from typing import Set
 from logging import getLogger
 
+from playhouse.shortcuts import model_to_dict
 import pandas as pd
 
 from qtpy.QtCore import Qt, QObject, Signal, SignalInstance
@@ -15,7 +17,7 @@ import bw2data as bd
 from bw2data.errors import UnknownObject
 from bw2data.backends import sqlite3_lci_db, ActivityDataset
 
-from activity_browser.bwutils.search import MetaDataSearchEngine
+from activity_browser.bwutils.searchengine import MetaDataSearchEngine
 
 from activity_browser import signals
 
@@ -183,6 +185,7 @@ class MetaDataStore(QObject):
 
     def sync(self) -> None:
         """Deletes metadata when the project is changed."""
+        t = time()
         log.debug("Synchronizing MetaDataStore")
 
         con = sqlite3.connect(sqlite3_lci_db._filepath)
@@ -190,8 +193,14 @@ class MetaDataStore(QObject):
         con.close()
 
         self.dataframe = self._parse_df(node_df)
-        self.init_search()  # init search index
 
+        size_bytes = sys.getsizeof(self.dataframe)
+        if size_bytes < 1024 ** 3:
+            size =  f"{size_bytes / (1024 ** 2):.1f} MB"
+        else:
+            size =  f"{size_bytes / (1024 ** 3):.2f} GB"
+        log.debug(f"MetaDataStore Synchronized in {time() - t:.2f} seconds for {len(self.dataframe)} items ({size}))")
+        self.init_search()  # init search index
         self.synced.emit()
 
     def _parse_df(self, raw_df: pd.DataFrame) -> pd.DataFrame:
@@ -351,7 +360,7 @@ class MetaDataStore(QObject):
             "product", "reference product", "classifications", "location", "properties"  # activity specific
         ]
 
-        MetaDataSearchEngine(self.dataframe, identifier_name="id", searchable_columns=allowed_cols)
+        self.search_engine = MetaDataSearchEngine(self.dataframe, identifier_name="id", searchable_columns=allowed_cols)
 
 
 AB_metadata = MetaDataStore()
