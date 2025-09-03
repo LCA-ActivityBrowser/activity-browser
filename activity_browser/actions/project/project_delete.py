@@ -1,8 +1,13 @@
+import shutil
+
 from qtpy import QtWidgets
+
+import bw2data as bd
+from bw2data.project import ProjectDataset
+from bw2data.utils import safe_filename
 
 from activity_browser import settings, application
 from activity_browser.actions.base import ABAction, exception_dialogs
-from activity_browser.mod import bw2data as bd
 from activity_browser.ui.icons import qicons
 
 
@@ -73,6 +78,18 @@ class ProjectDelete(ABAction):
         QtWidgets.QMessageBox.information(
             application.main_window, "Project(s) deleted", "Project(s) successfully deleted"
         )
+
+    @staticmethod
+    def delete_project(name: str, delete_dir: bool):
+
+        ds = ProjectDataset.get(ProjectDataset.name == name)
+
+        if delete_dir:
+            dir_path = bd.projects._base_data_dir / safe_filename(name, full=ds.full_hash)
+            assert dir_path.is_dir(), "Can't find project directory"
+            shutil.rmtree(dir_path)
+
+        ds.delete()
 
 
 class ProjectDeletionDialog(QtWidgets.QDialog):
