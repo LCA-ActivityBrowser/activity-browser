@@ -138,42 +138,43 @@ def test_search_add_identifier():
     df = data_for_test()
 
     # create base item to add
-    new_base_item = {
-        "id": "i",
-        "col1": "coal production",
-        "col2": "coal production"
-    }
-
-    # use mismatched identifier and fail
-    se = SearchEngine(df, identifier_name="id")
-    with pytest.raises(Exception):
-        se.add_identifier(identifier="j", data=new_base_item)
+    new_base_item = pd.DataFrame([
+        ["i", "coal production", "coal production"],
+    ],
+        columns=["id", "col1", "col2"])
 
     # use existing identifier and fail
     se = SearchEngine(df, identifier_name="id")
     wrong_id = new_base_item.copy()
-    wrong_id["id"] = "a"
+    wrong_id.iloc[0, 0] = "a"
     with pytest.raises(Exception):
-        se.add_identifier(identifier="a", data=wrong_id)
+        se.add_identifier(wrong_id)
 
-    # use column too many (should be removed)
+    # add data without identifier column
+    se = SearchEngine(df, identifier_name="id")
+    no_id = new_base_item.copy()
+    del no_id["id"]
+    with pytest.raises(Exception):
+        se.add_identifier(no_id)
+
+    # use column more (and find data in new col)
     se = SearchEngine(df, identifier_name="id")
     col_more = new_base_item.copy()
-    col_more["col3"] = "word"
-    se.add_identifier(identifier="i", data=col_more)
-    assert "col3" not in se.df.columns
+    col_more["col3"] = ["potatoes"]
+    se.add_identifier(col_more)
+    assert se.search("potatoes") == ["i"]
 
     # use column less (should be filled with empty string)
     se = SearchEngine(df, identifier_name="id")
     col_less = new_base_item.copy()
     del col_less["col2"]
-    se.add_identifier(identifier="i", data=col_less)
+    se.add_identifier(col_less)
     assert se.df.loc["i", "col2"] == ""
 
     # do search, add item and verify results are different
     se = SearchEngine(df, identifier_name="id")
     assert se.search("coal production") == ["a", "c", "b", "d", "h", "f", "g"]
-    se.add_identifier(identifier="i", data=new_base_item)
+    se.add_identifier(new_base_item)
     assert se.search("coal production") == ["i", "a", "c", "b", "d", "h", "f", "g"]
 
 
@@ -198,23 +199,22 @@ def test_search_change_identifier():
     df = data_for_test()
 
     # create base item to add
-    edit_data = {
-        "id": "a",
-        "col1": "cant find me anymore",
-        "col2": "something different"
-    }
+    edit_data = pd.DataFrame([
+        ["a", "cant find me anymore", "something different"],
+    ],
+        columns=["id", "col1", "col2"])
 
     # use non-existent identifier and fail
     se = SearchEngine(df, identifier_name="id")
     missing_id = edit_data.copy()
-    missing_id["id"] = "i"
+    missing_id["id"] = ["i"]
     with pytest.raises(Exception):
         se.change_identifier(identifier="i", data=missing_id)
 
     # use mismatched identifier and fail
     se = SearchEngine(df, identifier_name="id")
     wrong_id = edit_data.copy()
-    wrong_id["id"] = "i"
+    wrong_id["id"] = ["i"]
     with pytest.raises(Exception):
         se.change_identifier(identifier="a", data=wrong_id)
 
@@ -224,9 +224,9 @@ def test_search_change_identifier():
     se.change_identifier(identifier="a", data=edit_data)
     assert se.search("coal production") == ["c", "b", "d", "h", "f", "g"]
     # now change the same item partially and verify results are different
-    new_edit_data = {
-        "id": "a",
-        "col1": "coal"
-    }
+    new_edit_data = pd.DataFrame([
+        ["a", "coal"],
+    ],
+        columns=["id", "col1"])
     se.change_identifier(identifier="a", data=new_edit_data)
     assert se.search("coal production") == ["c", "b", "d", "h", "a", "f", "g"]

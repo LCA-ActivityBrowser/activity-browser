@@ -78,7 +78,7 @@ class SearchEngine:
         self.identifier_column = self.columns.index(self.identifier_name)
 
         # store all searchable column indices except the identifier
-        self.regular_columns = [i for i in range(len(self.columns)) if i != self.identifier_column]
+        self.searchable_columns = [i for i in range(len(self.columns)) if i != self.identifier_column]
 
         # initialize search index dicts and update df
         self.identifier_to_word = {}
@@ -112,6 +112,7 @@ class SearchEngine:
         i2w, update_df = self.words_in_df(update_df)
         self.identifier_to_word = update_dict(self.identifier_to_word, i2w)
         self.df = pd.concat([self.df, update_df])
+        self.df = self.df.fillna("")  # ensure we don't add unwanted NA through concatenations
 
         # word to identifier
         w2i = self.reverse_dict_many_to_one(i2w)
@@ -163,7 +164,7 @@ class SearchEngine:
         df = df if any(df) else self.df
         return_df = df.copy()
 
-        df = df.iloc[:, self.regular_columns]
+        df = df.iloc[:, self.searchable_columns]
         identifier_word_dict = {}
         col = []
 
@@ -215,38 +216,47 @@ class SearchEngine:
 
     #   +++ Changes to searchable data
 
-    def add_identifier(self, data: dict, make_searchable=[]) -> None:
-        """Add this identifier to the search index.
+    def add_identifier(self, data: pd.DataFrame) -> None:
+        """Add this data to the search index.
 
-        identifier is expected to be a unique identifier that has not been used before
-        data is expected to be a dict of column names and data
+        identifier column is REQUIRED to be present
+        ALL data in the given dataframe will be added, if columns should not be added, they should be removed before
+        calling this function
         """
-        #TODO add ability to add new columns with make_searchable
-        identifier = data[self.identifier_name]
+
+        # ensure we have identifier column
+        if self.identifier_name not in data.columns:
+            raise Exception(
+                f"Identifier column '{self.identifier_name}' not in new data, impossible to add data without identifier")
 
         # make sure we the identifier does not yet exist
-        if identifier in self.df.index.to_list():
-            raise Exception(
-                f"Identifier '{identifier}' is already in use, use a different identifier or use the change_identifier function.")
+        existing_ids = set(self.df.index.to_list())
+        for identifier in data[self.identifier_name]:
+            if identifier in existing_ids:
+                raise Exception(
+                    f"Identifier '{identifier}' is already in use, use a different identifier or use the change_identifier function.")
 
         df_cols = self.columns
-
-        # drop fields that are not in self.df
-        drop = [col for col in data if col not in df_cols]
-        for field in drop:
-            del data[field]
-
-        # add empty field for missing data
+        # add cols to new data that are missing
         for col in df_cols:
-            if col not in data:
-                data[col] = ""
+            if col not in data.columns:
+                data[col] = [""] * len(data)
+        # re-order cols, first existing, then new
+        new_cols = [col for col in data.columns if col not in self.columns if col not in set(df_cols)]
+        data_cols = df_cols + new_cols
+        data = data[data_cols]  # re-order new data to be in correct order
 
-        # convert to df
-        new_df = pd.DataFrame(data, index=[identifier])
-        new_df = new_df.astype(str)
+        # add cols from new data to correct places
+        self.columns.extend(new_cols)
+        self.searchable_columns.extend([i for i, col in enumerate(data_cols) if col in new_cols])
+
+        # convert df
+        data = data.set_index(self.identifier_name, drop=False)
+        data = data.fillna("")
+        data = data.astype(str)
 
         # update the search index data
-        self.update_index(new_df)
+        self.update_index(data)
 
     def remove_identifier(self, identifier, logging=True) -> None:
         """Remove this identifier from self.df and the search index.
@@ -288,37 +298,40 @@ class SearchEngine:
             log.debug(f"Search index updated in {time() - t:.2f} seconds "
                       f"for 1 removed item ({len(self.df)} items currently).")
 
-    def change_identifier(self, identifier, data: dict) -> None:
+    def change_identifier(self, identifier, data: pd.DataFrame) -> None:
         """Change this identifier.
 
-        identifier is expected to be a unique identifier that is in use
-        data is expected to be a dict of column names and data that change
-
-        only changed data needs to be supplied
+        identifier must be an identifier that is in use
+        data must be a dataframe of 1 row with all change data
+        data is overwritten with the new data in 'data', columns not given remain unchanged
         """
-        # make sure the identifier exists
+
+        # make sure only 1 change item is given
+        if len(data) > 1 or len(data) < 1:
+            raise Exception(
+                f"change data must be for exactly 1 identifier, but {len(data)} items were given.")
+        # make sure correct use of identifier
         if identifier not in self.df.index.to_list():
             raise Exception(
                 f"Identifier '{identifier}' does not exist in the search data, use an existing identifier or use the add_identifier function.")
-        if self.identifier_name in data.keys() and data[self.identifier_name] != identifier:
+        if self.identifier_name in data.columns and data[self.identifier_name].to_list() != [identifier]:
             raise Exception(
                 "Identifier field cannot be changed, first remove item and then add new identifier")
         if "query_col" in data.keys():
             log.debug(
                 f"Field 'query_col' is a protected field for search engine and will be ignored for changing {identifier}")
 
-        # get existing data
-        update_data = {col: self.df.loc[identifier, col] for col in self.df.columns}
-        del update_data["query_col"]
 
         # overwrite new data where relevant
-        for field, value in data.items():
-            update_data[field] = value
+        update_data = self.df.loc[[identifier], self.columns]
+        data = data.reset_index(drop=True)
+        for col in data.columns:
+            value = data.loc[0, col]
+            update_data[col] = [value]
 
         # remove the entry
         self.remove_identifier(identifier, logging=False)
-
-        # add entry with new data
+        # add entry with updated data
         self.add_identifier(update_data)
 
     #   +++ Search
