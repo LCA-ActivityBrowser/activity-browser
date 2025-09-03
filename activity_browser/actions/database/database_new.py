@@ -58,9 +58,9 @@ class NewDatabaseDialog(QtWidgets.QDialog):
     A dialog for creating a new database.
     """
 
-    def __init__(self, parent=None):
+    def __init__(self, window_title="New Database", backend="functional_sqlite", parent=None):
         super().__init__(parent)
-        self.setWindowTitle("New Database")
+        self.setWindowTitle(window_title)
         self.setModal(True)
 
         self.name_input = QtWidgets.QLineEdit(self)
@@ -69,6 +69,7 @@ class NewDatabaseDialog(QtWidgets.QDialog):
 
         self.backend_dropdown = QtWidgets.QComboBox(self)
         self.backend_dropdown.addItems(["functional_sqlite", "sqlite"])
+        self.backend_dropdown.setCurrentText(backend)
 
         self.create_button = QtWidgets.QPushButton("Create", self)
         self.create_button.setDisabled(True)
@@ -77,7 +78,7 @@ class NewDatabaseDialog(QtWidgets.QDialog):
         self.build_layout()
 
     @classmethod
-    def get_new_database_data(cls) -> tuple[str, str, bool]:
+    def get_new_database_data(cls, window_title="New Database", backend="functional_sqlite") -> tuple[str, str, bool]:
         """
         Opens a dialog to collect data for creating a new database.
 
@@ -87,7 +88,7 @@ class NewDatabaseDialog(QtWidgets.QDialog):
                 - The selected backend type (str).
                 - A boolean indicating whether the dialog was accepted (True) or canceled (False).
         """
-        dialog = cls(application.main_window)
+        dialog = cls(window_title, backend, application.main_window)
         result = dialog.exec_()
 
         return dialog.name_input.text(), dialog.backend_dropdown.currentText(), result == QtWidgets.QDialog.Accepted
