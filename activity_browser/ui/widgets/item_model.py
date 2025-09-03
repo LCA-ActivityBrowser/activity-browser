@@ -196,7 +196,7 @@ class ABItemModel(QtCore.QAbstractItemModel):
         else:
             df = self.dataframe.copy()
 
-        if self.sort_column - 1 >= len(self.columns()):
+        if not self.sort_column > len(self.columns()) - 1:
             # apply the sorting
             df.sort_values(
                 by=self.columns()[self.sort_column],
