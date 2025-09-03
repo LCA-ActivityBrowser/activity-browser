@@ -17,14 +17,14 @@ def test_database_delete(monkeypatch, basic_database):
 
 
 def test_database_duplicate(monkeypatch, qtbot, basic_database):
-    from activity_browser.actions.database.database_duplicate import DuplicateDatabaseDialog
+    from activity_browser.actions.database.database_duplicate import NewDatabaseDialog, DuplicateDatabaseDialog
 
     dup_db = "db_that_is_duplicated"
 
     monkeypatch.setattr(
-        QtWidgets.QInputDialog,
-        "getText",
-        staticmethod(lambda *args, **kwargs: (dup_db, True)),
+        NewDatabaseDialog,
+        "get_new_database_data",
+        staticmethod(lambda *args, **kwargs: (dup_db, "functional_sqlite", True)),
     )
 
     assert dup_db not in bd.databases
