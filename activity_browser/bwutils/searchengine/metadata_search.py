@@ -187,8 +187,9 @@ class MetaDataSearchEngine(SearchEngine):
             return fuzzy_identifiers
 
         # append any fuzzy identifiers that were not found in the literal search
+        literal_id_set = set(literal_identifiers)
         remaining_fuzzy_identifiers = [
-            _id for _id in fuzzy_identifiers if _id not in set(literal_identifiers)]
+            _id for _id in fuzzy_identifiers if _id not in literal_id_set]
         identifiers = literal_identifiers + remaining_fuzzy_identifiers
 
         log.debug(

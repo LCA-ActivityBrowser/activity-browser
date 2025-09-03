@@ -257,7 +257,8 @@ class SearchEngine:
             if col not in data.columns:
                 data[col] = [""] * len(data)
         # re-order cols, first existing, then new
-        new_cols = [col for col in data.columns if col not in self.columns if col not in set(df_cols)]
+        df_col_set = set(df_cols)
+        new_cols = [col for col in data.columns if col not in self.columns if col not in df_col_set]
         data_cols = df_cols + new_cols
         data = data[data_cols]  # re-order new data to be in correct order
 
@@ -285,7 +286,7 @@ class SearchEngine:
                 f"Identifier '{identifier}' does not exist in the search data, cannot remove identifier that do not exist.")
 
         # remove from df
-        self.df.drop(identifier, inplace=True)
+        self.df = self.df.drop(identifier)
 
         # find words that may need to be removed
         words = self.identifier_to_word[identifier]
@@ -547,7 +548,7 @@ class SearchEngine:
                         for match, num in new.most_common():
                             if num == prev_num:
                                 matches.append(match)
-                            elif num != prev_num and len(matches <= matches_max):
+                            elif num != prev_num and len(matches) <= matches_max:
                                 matches.append(match)
                             else:
                                 break
@@ -754,8 +755,9 @@ class SearchEngine:
             return fuzzy_identifiers
 
         # append any fuzzy identifiers that were not found in the literal search
+        literal_id_set = set(literal_identifiers)
         remaining_fuzzy_identifiers = [
-            _id for _id in fuzzy_identifiers if _id not in set(literal_identifiers)]
+            _id for _id in fuzzy_identifiers if _id not in literal_id_set]
         identifiers = literal_identifiers + remaining_fuzzy_identifiers
 
         log.debug(
