@@ -628,7 +628,7 @@ class SearchEngine:
 
         return matched_identifiers
 
-    def fuzzy_search(self, text: str) -> list:
+    def fuzzy_search(self, text: str, return_counter: bool = False) -> list:
         """Search the dataframe, finding approximate matches and return a list of identifiers,
         ranked by how well each identifier matches the search text.
 
@@ -728,6 +728,8 @@ class SearchEngine:
         for identifiers in query_to_identifier.values():
             all_identifiers += identifiers
 
+        if return_counter:
+            return all_identifiers
         # now sort on highest weights and make list type
         sorted_identifiers = [identifier[0] for identifier in all_identifiers.most_common()]
         return sorted_identifiers

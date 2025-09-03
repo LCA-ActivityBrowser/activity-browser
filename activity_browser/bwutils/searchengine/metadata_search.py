@@ -57,9 +57,20 @@ class MetaDataSearchEngine(SearchEngine):
 
         return matches.iloc[:min(len(matches), 2500), :]  # return at most this many results
 
-    def fuzzy_search(self, text: str) -> list:
+    def fuzzy_search(self, text: str, database: Optional[str] = None, return_counter: bool = False, logging: bool = True) -> list:
         """Overwritten for extra database specific reduction of results.
         """
+        if len(text) == 0:
+            log.debug(f"Empty search, returned all items")
+            return self.df.index.to_list()
+        t = time()
+
+        # DATABASE SPECIFIC get the set of ids that is in this database
+        if database is not None:
+            self.database_ids = set(self.df[self.df["database"] == database].index.to_list())
+        else:
+            self.database_ids = None
+
         queries = self.build_queries(text)
 
         # make list of unique original words
@@ -154,6 +165,11 @@ class MetaDataSearchEngine(SearchEngine):
         for identifiers in query_to_identifier.values():
             all_identifiers += identifiers
 
+        if logging:
+            log.debug(
+                f"Found {len(all_identifiers)} search results for '{text}' in {len(self.df)} items in {time() - t:.2f} seconds")
+        if return_counter:
+            return all_identifiers
         # now sort on highest weights and make list type
         sorted_identifiers = [identifier[0] for identifier in all_identifiers.most_common()]
         return sorted_identifiers
@@ -172,7 +188,7 @@ class MetaDataSearchEngine(SearchEngine):
         else:
             self.database_ids = None
 
-        fuzzy_identifiers = self.fuzzy_search(text)
+        fuzzy_identifiers = self.fuzzy_search(text, database=database, logging=False)
         if len(fuzzy_identifiers) == 0:
             log.debug(f"Found 0 search results for '{text}' in {len(self.df)} items in {time() - t:.2f} seconds")
             return []

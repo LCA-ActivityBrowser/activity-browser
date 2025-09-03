@@ -6,6 +6,7 @@ from qtpy import QtWidgets, QtCore, QtGui
 from qtpy.QtCore import Qt
 
 from .item_model import ABItemModel
+from activity_browser.ui import widgets
 
 log = getLogger(__name__)
 
@@ -25,11 +26,11 @@ class ABTreeView(QtWidgets.QTreeView):
             col_index = view.columnAt(pos.x())
             col_name = model.columns()[col_index]
 
-            search_box = QtWidgets.QLineEdit(self)
+            search_box = widgets.ABLineEdit(self)
             search_box.setText(view.columnFilters.get(col_name, ""))
             search_box.setPlaceholderText("Search")
             search_box.selectAll()
-            search_box.textChanged.connect(lambda query: view.setColumnFilter(col_name, query))
+            search_box.textChangedDebounce.connect(lambda query: view.setColumnFilter(col_name, query))
             widget_action = QtWidgets.QWidgetAction(self)
             widget_action.setDefaultWidget(search_box)
             self.addAction(widget_action)

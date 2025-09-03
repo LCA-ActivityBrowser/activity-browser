@@ -5,7 +5,7 @@ import pickle
 import sys
 from time import time
 from functools import lru_cache
-from typing import Set
+from typing import Set, Optional
 from logging import getLogger
 
 from playhouse.shortcuts import model_to_dict
@@ -362,5 +362,10 @@ class MetaDataStore(QObject):
 
         self.search_engine = MetaDataSearchEngine(self.dataframe, identifier_name="id", searchable_columns=allowed_cols)
 
+    def db_search(self, query:str, database: Optional[str] = None, return_counter: bool = False):
+        return self.search_engine.fuzzy_search(query, database=database, return_counter=return_counter)
+
+    def search(self, query:str):
+        return self.search_engine.search(query)
 
 AB_metadata = MetaDataStore()
