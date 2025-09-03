@@ -1,6 +1,6 @@
 import pytest
 import pandas as pd
-from activity_browser.bwutils.search import SearchEngine
+from activity_browser.bwutils import SearchEngine
 
 
 def data_for_test():
