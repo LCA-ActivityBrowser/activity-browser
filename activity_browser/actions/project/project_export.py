@@ -5,8 +5,10 @@ from logging import getLogger
 
 from qtpy import QtWidgets, QtCore
 
+import bw2data as bd
+from bw2data.project import ProjectDataset
+
 from activity_browser import application
-from activity_browser.mod import bw2data as bd
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.ui.threading import ABThread
 
@@ -65,7 +67,9 @@ class ExportThread(ABThread):
     project_name: str
 
     def run_safely(self):
-        project_dir = os.path.join(bd.projects._base_data_dir, bd.utils.safe_filename(self.project_name))
+        ds = ProjectDataset.get(ProjectDataset.name == self.project_name)
+        project_folder_name = bd.utils.safe_filename(self.project_name, full=ds.full_hash)
+        project_dir = os.path.join(bd.projects._base_data_dir, project_folder_name)
 
         with open(os.path.join(project_dir, ".project-name.json"), "w") as f:
             json.dump({"name": self.project_name}, f)
