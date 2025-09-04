@@ -244,12 +244,17 @@ class SearchEngine:
             raise Exception(
                 f"Identifier column '{self.identifier_name}' not in new data, impossible to add data without identifier")
 
-        # make sure we the identifier does not yet exist
+        # make sure we the new identifiers do not yet exist
         existing_ids = set(self.df.index.to_list())
         for identifier in data[self.identifier_name]:
             if identifier in existing_ids:
                 raise Exception(
                     f"Identifier '{identifier}' is already in use, use a different identifier or use the change_identifier function.")
+
+        # make sure all new identifiers given are unique
+        if data[self.identifier_name].nunique() != data.shape[0]:
+            raise KeyError(
+                f"Identifier column {self.identifier_name} must only contain unique values. Found {data[self.identifier_name].nunique()} unique values for length {data.shape[0]}")
 
         df_cols = self.columns
         # add cols to new data that are missing
