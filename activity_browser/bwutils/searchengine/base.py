@@ -43,8 +43,8 @@ class SearchEngine:
         log.debug(f"SearchEngine initializing for {len(df)} items")
 
         # compile regex patterns for cleaning
-        self.SUB_PATTERN = re.compile(r"[,\(\)\[\]'\"]")  # for replacing with empty string
-        self.SPACE_PATTERN = re.compile(r"[-−:;]")  # for replacing with space
+        self.SUB_PATTERN = re.compile(r"[,\(\)\[\]'\"…]")  # for replacing with empty string
+        self.SPACE_PATTERN = re.compile(r"[-−:;/+]")  # for replacing with space
         self.ONE_SPACE_PATTERN = re.compile(r"\s+")  # for replacing multiple white space with 1 space
 
         self.q = 2  # character length of q grams
@@ -471,9 +471,10 @@ class SearchEngine:
         max_q = max(matches["matches"])  # this has the most matching q-grams
 
         # determine how many results we want to keep based on how good our results are
-        min_q = max(max_q * 0.32,  # have at least a third of q-grams of best match or...
-                    max(n_q_grams * 0.5,  # if more, at least half the q-grams in the query word?
-                        1))  # okay just do 1 q-gram if there are no more in the word
+        min_q = min(max(max_q * 0.32,  # have at least a third of q-grams of best match or...
+                        max(n_q_grams * 0.5,  # if more, at least half the q-grams in the query word?
+                            1)),  # okay just do 1 q-gram if there are no more in the word
+                    max_q)  # never have min_q be over max_q
 
         matches = matches[matches["matches"] >= min_q]
         matches = matches.sort_values(by="matches", ascending=False)
@@ -650,6 +651,7 @@ class SearchEngine:
 
         Finally, all found identifiers are sorted on their weight and returned.
         """
+        text = text.strip()
 
         queries = self.build_queries(text)
 
@@ -684,13 +686,16 @@ class SearchEngine:
                 # we already did these above
                 continue
             for query in query_set:
-
                 # get the intersection of all identifiers
                 # meaning, a set of identifiers that occur in ALL sets of len(1) for the individual words in the query
                 # this ensures we only ever search data where ALL items occur to substantially reduce search-space
                 # finally, make this a Counter (with each item=1) so we can properly weigh things later
-                query_identifier_set = set.intersection(*[set(query_to_identifier.get(q_word)) for q_word in query if
-                                                          query_to_identifier.get(q_word, False)])
+                query_id_sets = [set(query_to_identifier.get(q_word)) for q_word in query if
+                                 query_to_identifier.get(q_word, False)]
+                if len(query_id_sets) > 0:
+                    query_identifier_set = set.intersection(*query_id_sets)
+                else:
+                    query_identifier_set = set()
                 if len(query_identifier_set) == 0:
                     # there is no match for this combination of query words, skip
                     break
@@ -701,7 +706,8 @@ class SearchEngine:
                 for identifier in query_identifier_set:
                     weight = 0
                     for query_word in query:
-                        weight += query_to_identifier[query_word][identifier]
+                        # if the query_word and identifier combination exist get score, otherwise 0
+                        weight += query_to_identifier.get(query_word, {}).get(identifier, 0)
 
                     query_identifiers[identifier] = weight
 
@@ -742,6 +748,7 @@ class SearchEngine:
     def search(self, text) -> list:
         """Search the dataframe on this text, return a sorted list of identifiers."""
         t = time()
+        text = text.strip()
 
         if len(text) == 0:
             log.debug(f"Empty search, returned all items")

@@ -127,6 +127,12 @@ def test_search_base():
     assert se.search("coal") == ["a", "h", "c", "b", "d", "g", "f"]
     # do search on other term
     assert se.search("coal production") == ["a", "c", "b", "d", "h", "f", "g"]
+    # do search on typo
+    assert se.search("cola") == ["a", "c", "h", "b", "d", "f", "g"]
+    # do search on longer typo
+    assert se.search("cola production") == ["c", "a", "b", "d", "h", "f", "g"]
+    # do search on something we will definitely not find
+    assert se.search("dontFindThis") == []
 
     # init search class with 1 col searchable
     se = SearchEngine(df, identifier_name="id", searchable_columns=["col2"])
