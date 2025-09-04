@@ -12,6 +12,78 @@ log = getLogger(__name__)
 
 
 class MetaDataSearchEngine(SearchEngine):
+
+    def auto_complete(self, text: str, database) -> OrderedDict:
+        """Based on spellchecker, make more useful for autocompletions
+        """
+        if database is not None:
+            self.database_ids = set(self.df[self.df["database"] == database].index.to_list())
+        else:
+            self.database_ids = None
+
+        count_occurence = lambda x: sum(self.word_to_identifier[x].values())  # count occurences of a word
+
+        word_results = OrderedDict()
+
+        matches_min = 3  # ideally we have at least this many alternatives
+        matches_max = 10  # ideally don't much more than this many matches
+        always_accept_this = 1  # values of this edit distance or lower always accepted
+        never_accept_this = 4  # values this edit distance or over always rejected
+
+        # make list of unique words
+        words = OrderedDict()
+        for word in text.split(" "):
+            words[word] = False
+        words = words.keys()
+
+        words = [self.clean_text(word) for word in words]
+
+        for word in words:
+            # first, find possible matches quickly
+            q_grams = self.text_to_positional_q_gram(word)
+            possible_matches = self.find_q_gram_matches(set(q_grams))
+
+            matches = []
+            first_matches = Counter()
+            other_matches = {}
+
+            # now, refine with edit distance
+            for row in possible_matches.itertuples():
+
+                edit_distance = self.osa_distance(word, row[1], cutoff=never_accept_this)
+
+                if edit_distance == 0:
+                    continue  # we are looking for alternatives only, not the exact word
+                elif edit_distance <= always_accept_this:
+                    first_matches[row[1]] = count_occurence(row[1])
+                elif edit_distance < never_accept_this:
+                    if not other_matches.get(edit_distance):
+                        other_matches[edit_distance] = Counter()
+                    other_matches[edit_distance][row[1]] = count_occurence(row[1])
+                else:
+                    continue
+
+            # add matches in correct order:
+            for match, _ in first_matches.most_common():
+                matches.append(match)
+            # if we have fewer matches than goal, add more 'less good' matches
+            if len(matches) < matches_min:
+                for i in range(always_accept_this + 1, never_accept_this):
+                    # iteratively increase matches with 'worse' results so we hit goal of minimum alternatives
+                    if new := other_matches.get(i):
+                        prev_num = 10e100
+                        for match, num in new.most_common():
+                            if num == prev_num:
+                                matches.append(match)
+                            elif num != prev_num and len(matches) <= matches_max:
+                                matches.append(match)
+                            else:
+                                break
+                            prev_num = num
+
+            word_results[word] = matches
+        return word_results
+
     def find_q_gram_matches(self, q_grams: set) -> pd.DataFrame:
         """Overwritten for extra database specific reduction of results.
         """

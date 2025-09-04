@@ -368,4 +368,9 @@ class MetaDataStore(QObject):
     def search(self, query:str):
         return self.search_engine.search(query)
 
+    def auto_complete(self, word:str, database: Optional[str] = None):
+        word = self.search_engine.clean_text(word)
+        completions = self.search_engine.auto_complete(word, database)
+        return completions
+
 AB_metadata = MetaDataStore()

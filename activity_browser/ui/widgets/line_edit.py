@@ -1,7 +1,9 @@
 from qtpy import QtWidgets
-from qtpy.QtCore import QTimer, Slot, Signal, SignalInstance
+from qtpy.QtCore import QTimer, Slot, Signal, SignalInstance, QStringListModel, Qt
 from qtpy.QtGui import QTextFormat
 from qtpy.QtWidgets import QCompleter
+
+from activity_browser.bwutils import AB_metadata
 
 
 class ABLineEdit(QtWidgets.QLineEdit):
@@ -120,3 +122,35 @@ class AutoCompleteLineEdit(QtWidgets.QLineEdit):
         super().__init__(parent=parent)
         completer = QCompleter(items, self)
         self.setCompleter(completer)
+
+class MetaDataAutoCompleteLineEdit(ABLineEdit):
+    """Line Edit with MetaDataStore completer attached"""
+    def __init__(self, parent=None):
+        super().__init__(parent=parent)
+        self.database_name = ""
+
+        self.textChanged.connect(self._set_items)
+
+        self.model = QStringListModel()
+        self.completer = QCompleter(self.model)
+        self.completer.setPopup(self.completer.popup())
+        self.completer.setCompletionMode(QCompleter.UnfilteredPopupCompletion)
+        self.setCompleter(self.completer)
+
+    def _set_items(self):
+        text = self.text()
+
+        words = text.split(" ")
+        if len(words) == 0:
+            self.model.setStringList([])
+            return
+
+        alternatives = AB_metadata.auto_complete(words[-1], database=self.database_name)
+        alternatives = alternatives[words[-1]][:5]  # allow for max n autocompletes
+        print(alternatives)
+
+        items = []
+        for alternative in alternatives:
+            line = " ".join(words[:-1] + [alternative])
+            items.append(line)
+        self.model.setStringList(items)
