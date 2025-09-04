@@ -203,13 +203,14 @@ class ABItemModel(QtCore.QAbstractItemModel):
         else:
             df = self.dataframe.copy()
 
-        if not self.sort_column > len(self.columns()) - 1:
-            # apply the sorting
-            df.sort_values(
-                by=self.columns()[self.sort_column],
-                ascending=(self.sort_order == Qt.SortOrder.AscendingOrder),
-                inplace=True, ignore_index=True
-            )
+        if not (self.has_external_search and self._external_query != ""):
+            if not self.sort_column > len(self.columns()) - 1:
+                # apply the sorting
+                df.sort_values(
+                    by=self.columns()[self.sort_column],
+                    ascending=(self.sort_order == Qt.SortOrder.AscendingOrder),
+                    inplace=True, ignore_index=True
+                )
 
         # rebuild the ABItem tree
         self.root = self.branchItemClass("root")
@@ -281,6 +282,8 @@ class ABItemModel(QtCore.QAbstractItemModel):
     def set_external_query(self, query: str):
         if not query.startswith("="):
             self._external_query = query
+        else:
+            self._external_query = ""
 
     def external_search(self, query):
         NotImplementedError
