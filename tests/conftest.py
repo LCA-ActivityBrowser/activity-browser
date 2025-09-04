@@ -11,8 +11,18 @@ from activity_browser.ui.widgets import MainWindow, CentralTabWidget
 from activity_browser.layouts import pages
 
 
+@pytest.fixture
+def no_exception_dialogs(monkeypatch):
+    """Monkeypatch QMessageBox.critical to do nothing, to avoid blocking tests."""
+    from qtpy import QtWidgets
+
+    monkeypatch.setattr(QtWidgets.QMessageBox, "critical", lambda *args, **kwargs: None)
+    yield
+    # No need to undo the monkeypatch, pytest does it automatically
+
+
 @pytest.fixture()
-def main_window(qtbot):
+def main_window(qtbot, monkeypatch, no_exception_dialogs):
     """Return the main window of the application instance."""
     main_window = MainWindow()
     central_widget = CentralTabWidget(main_window)

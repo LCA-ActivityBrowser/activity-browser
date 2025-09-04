@@ -1,10 +1,16 @@
+import copy
+
 from qtpy import QtWidgets
+
+import bw2data as bd
+import bw_functional as bf
 
 from activity_browser import application
 from activity_browser.actions.base import ABAction, exception_dialogs
-from activity_browser.mod import bw2data as bd
 from activity_browser.ui.icons import qicons
 from activity_browser.ui.threading import ABThread
+
+from .database_new import NewDatabaseDialog
 
 
 class DatabaseDuplicate(ABAction):
@@ -23,16 +29,22 @@ class DatabaseDuplicate(ABAction):
     @exception_dialogs
     def run(db_name: str):
         assert db_name in bd.databases
+        backend = bd.databases[db_name].get("backend", "undefined")
 
-        new_name, ok = QtWidgets.QInputDialog.getText(
-            application.main_window,
-            f"Copy {db_name}",
-            "Name of new database:" + " " * 25,
-        )
-        if not new_name or not ok:
+        if backend not in ["sqlite", "functional_sqlite"]:
+            QtWidgets.QMessageBox.information(
+                application.main_window,
+                "Not possible",
+                f"Unsupported database backend {backend}",
+            )
             return
 
-        if new_name in bd.databases:
+        name, backend, ok = NewDatabaseDialog.get_new_database_data(window_title="Duplicate database", backend=backend)
+
+        if not name or not ok:
+            return
+
+        if name in bd.databases:
             QtWidgets.QMessageBox.information(
                 application.main_window,
                 "Not possible",
@@ -40,11 +52,11 @@ class DatabaseDuplicate(ABAction):
             )
             return
 
-        DuplicateDatabaseDialog(db_name, new_name, application.main_window)
+        DuplicateDatabaseDialog(db_name, name, backend, application.main_window)
 
 
 class DuplicateDatabaseDialog(QtWidgets.QProgressDialog):
-    def __init__(self, from_db: str, to_db: str, parent=None):
+    def __init__(self, from_db: str, to_db: str, backend: str, parent=None):
         super().__init__(parent=parent)
         self.setWindowTitle("Duplicating database")
         self.setLabelText(
@@ -53,12 +65,12 @@ class DuplicateDatabaseDialog(QtWidgets.QProgressDialog):
         self.setModal(True)
         self.setRange(0, 0)
 
-        self.dup_thread = DuplicateDatabaseThread(from_db, to_db, self)
+        self.dup_thread = DuplicateDatabaseThread(application)
         self.dup_thread.finished.connect(self.thread_finished)
 
         self.show()
 
-        self.dup_thread.start()
+        self.dup_thread.start(from_db, to_db, backend)
 
     def thread_finished(self) -> None:
         self.dup_thread.exit(0)
@@ -67,11 +79,24 @@ class DuplicateDatabaseDialog(QtWidgets.QProgressDialog):
 
 
 class DuplicateDatabaseThread(ABThread):
-    def __init__(self, from_db, to_db, parent=None):
-        super().__init__(parent=parent)
-        self.copy_from = from_db
-        self.copy_to = to_db
 
-    def run_safely(self):
-        database = bd.Database(self.copy_from)
-        database.copy(self.copy_to)
+    def run_safely(self, copy_from, copy_to, backend):
+        database = bd.Database(copy_from)
+
+        data = database.load()
+        data = database.relabel_data(data, copy_from, copy_to)
+
+        new_database = bd.Database(copy_to, backend=backend)
+
+        metadata = copy.copy(database.metadata)
+        metadata["format"] = f"Copied from '{copy_from}'"
+        metadata["backend"] = backend
+        new_database.register(**metadata)
+
+        if database.backend == "sqlite" and backend == "functional_sqlite":
+            data = bf.convert_sqlite_to_functional_sqlite(data)
+        elif database.backend == "functional_sqlite" and backend == "sqlite":
+            data = bf.convert_functional_sqlite_to_sqlite(data)
+
+        new_database.write(data, searchable=metadata.get("searchable"))
+        return new_database
