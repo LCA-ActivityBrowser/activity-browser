@@ -40,14 +40,15 @@ class MetaDataSearchEngine(SearchEngine):
         super().change_identifier(identifier, data)
         self.reset_database_id_manager()
 
-    def auto_complete(self, word: str, database) -> OrderedDict:
+    def auto_complete(self, word: str, database) -> list:
         """Based on spellchecker, make more useful for autocompletions
         """
+        if len(word) <= 2:
+            return []
+
         self.database_id_manager(database)
 
         count_occurence = lambda x: sum(self.word_to_identifier[x].values())  # count occurences of a word
-
-        word_results = OrderedDict()
 
         matches_min = 2  # ideally we have at least this many alternatives
         matches_max = 4  # ideally don't much more than this many matches
@@ -63,13 +64,11 @@ class MetaDataSearchEngine(SearchEngine):
 
         # now, refine with edit distance
         for row in possible_matches.itertuples():
-
             if len(word) > len(row[1]) or word == row[1]:
                 continue
-            test_word = row[1][:len(word)]
+            test_word = row[1][:len(word)]  # only find edit distance of first part of word
 
             edit_distance = self.osa_distance(word, test_word, cutoff=min(never_accept_this, len(word)))
-
             if edit_distance == 0:
                 first_matches[row[1]] = count_occurence(row[1])
             elif edit_distance < never_accept_this:
@@ -97,8 +96,7 @@ class MetaDataSearchEngine(SearchEngine):
                             break
                         prev_num = num
 
-        word_results[word] = matches
-        return word_results
+        return matches
 
     def find_q_gram_matches(self, q_grams: set) -> pd.DataFrame:
         """Overwritten for extra database specific reduction of results.

@@ -123,34 +123,69 @@ class AutoCompleteLineEdit(QtWidgets.QLineEdit):
         completer = QCompleter(items, self)
         self.setCompleter(completer)
 
+
 class MetaDataAutoCompleteLineEdit(ABLineEdit):
     """Line Edit with MetaDataStore completer attached"""
+
+    textChangedAutoCompleteDebounce: SignalInstance = Signal()
+    _debounce_autocomplete_ms = 75
+
     def __init__(self, parent=None):
         super().__init__(parent=parent)
+
+        # debounce timer settings
+        self._debounce_autocomplete_timer = QTimer(self, singleShot=True)
+        # self.textChanged.connect(self._set_autocomplete_debounce)
+        self._debounce_autocomplete_timer.timeout.connect(self._emit_autocomplete_debounce)
+
         self.database_name = ""
 
-        self.textChanged.connect(self._set_items)
+        # trigger autocomplete list update
+        self.textChangedAutoCompleteDebounce.connect(self._set_items)
 
+        # autocompleter settings
         self.model = QStringListModel()
         self.completer = QCompleter(self.model)
-        self.completer.setPopup(self.completer.popup())
-        self.completer.setCompletionMode(QCompleter.UnfilteredPopupCompletion)
+        self.popup = self.completer.popup()
+        self.popup.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        self.popup.setMaximumHeight(20)
+        self.completer.setPopup(self.popup)
+        self.completer.setCompletionMode(QCompleter.UnfilteredPopupCompletion)  # allow all items in popup list
+
         self.setCompleter(self.completer)
 
     def _set_items(self):
         text = self.text()
-
+        self.popup.setMaximumHeight(self.popup.sizeHintForRow(0) * 3 + 2 * self.popup.frameWidth())
         words = text.split(" ")
         if len(words) == 0:
             self.model.setStringList([])
             return
 
         alternatives = AB_metadata.auto_complete(words[-1], database=self.database_name)
-        alternatives = alternatives[words[-1]][:5]  # allow for max n autocompletes
-        print(alternatives)
+        alternatives = alternatives[:5]  # allow for max n autocompletes
+        print(text, alternatives)
 
         items = []
         for alternative in alternatives:
             line = " ".join(words[:-1] + [alternative])
             items.append(line)
         self.model.setStringList(items)
+        self.completer.complete()
+
+    def _set_autocomplete_debounce(self):
+        self._debounce_autocomplete_timer.setInterval(self._debounce_autocomplete_ms)
+        self._debounce_autocomplete_timer.start()
+
+    def _emit_autocomplete_debounce(self):
+        self.textChangedAutoCompleteDebounce.emit()
+
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key_Escape:
+            if self.completer.popup().isVisible():
+                self.completer.popup().hide()
+                event.accept()
+                return
+        super().keyPressEvent(event)
+        if event.text().strip():
+            QTimer.singleShot(0, self._set_autocomplete_debounce)
