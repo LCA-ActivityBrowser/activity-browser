@@ -205,7 +205,6 @@ def test_search_remove_identifier():
     assert se.search("find") == []
 
 
-
 def test_search_change_identifier():
     """Do tests for changing identifier."""
     df = data_for_test()

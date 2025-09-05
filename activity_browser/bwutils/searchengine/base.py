@@ -262,7 +262,7 @@ class SearchEngine:
         # add cols to new data that are missing
         for col in df_cols:
             if col not in data.columns:
-                data[col] = [""] * len(data)
+                data.loc[:, col] = [""] * len(data)
         # re-order cols, first existing, then new
         df_col_set = set(df_cols)
         new_cols = [col for col in data.columns if col not in self.columns if col not in df_col_set]

@@ -67,6 +67,12 @@ class MetaDataStore(QObject):
         self.moveToThread(application.thread())
         self.connect_signals()
 
+        self.search_engine_whitelist = [
+            "id", "name", "synonyms", "unit", "key", "database",  # generic
+            "CAS number", "categories",  # biosphere specific
+            "product", "reference product", "classifications", "location", "properties"  # activity specific
+        ]
+
     def connect_signals(self):
         signals.project.changed.connect(self.sync)
         signals.node.changed.connect(self.on_node_changed)
@@ -76,10 +82,28 @@ class MetaDataStore(QObject):
 
     def on_node_deleted(self, ds):
         try:
-            self.dataframe.drop(ds.key, inplace=True)
+            self.dataframe = self.dataframe.drop(ds.key)
+            self.remove_identifier_from_search_engine(ds)
             self.synced.emit()
         except KeyError:
             pass
+
+    def remove_identifier_from_search_engine(self, ds, reset_db_ids=True, logging=True):
+        data = model_to_dict(ds)
+        identifier = data["id"]
+        if identifier in self.search_engine.database_id_manager(data["database"]):
+            self.search_engine.remove_identifier(identifier, logging=logging)
+            if reset_db_ids:
+                self.search_engine.reset_database_id_manager()
+
+    def remove_identifiers_from_search_engine(self, identifiers):
+        t = time()
+        for identifier in identifiers:
+            self.remove_identifier_from_search_engine(identifier, reset_db_ids=False, logging=False)
+        self.search_engine.reset_database_id_manager()
+        log.debug(f"Search index updated in {time() - t:.2f} seconds "
+                  f"for {len(identifiers)} removed items "
+                  f"({len(self.search_engine.df)} items ({self.search_engine.size_of_index()}) currently).")
 
     def on_node_changed(self, new, old):
         data_raw = model_to_dict(new)
@@ -98,12 +122,27 @@ class MetaDataStore(QObject):
             for col in [col for col in data.columns if col not in self.dataframe.columns]:
                 self.dataframe[col] = pd.NA
             self.dataframe.loc[new.key] = data.loc[new.key]
+            self.change_identifier_in_search_engine(identifier=data.loc[new.key, "id"], data=data.loc[[new.key]])
         elif self.dataframe.empty:  # an activity has been added and the dataframe was empty
             self.dataframe = data
+            self.add_identifier_to_search_engine(data)
         else:  # an activity has been added and needs to be concatenated to existing metadata
             self.dataframe = pd.concat([self.dataframe, data], join="outer")
+            self.add_identifier_to_search_engine(data)
 
         self.thread().eventDispatcher().awake.connect(self._emitSyncLater, Qt.ConnectionType.UniqueConnection)
+
+    def add_identifier_to_search_engine(self, data: pd.DataFrame):
+        search_engine_cols = list(set(data.columns) & set(self.search_engine_whitelist))  # intersection becomes columns
+        data = data[search_engine_cols]
+        self.search_engine.add_identifier(data.copy())
+        self.search_engine.reset_database_id_manager()
+
+    def change_identifier_in_search_engine(self, identifier, data: pd.DataFrame):
+        search_engine_cols = list(set(data.columns) & set(self.search_engine_whitelist))  # intersection becomes columns
+        data = data[search_engine_cols]
+        self.search_engine.change_identifier(identifier=identifier, data=data.copy())
+        self.search_engine.reset_database_id_manager()
 
     @property
     def databases(self):
@@ -354,13 +393,9 @@ class MetaDataStore(QObject):
         return system_classifications
 
     def init_search(self):
-        allowed_cols = [
-            "id", "name", "synonyms", "unit", "key", "database",  # generic
-            "CAS number", "categories",  # biosphere specific
-            "product", "reference product", "classifications", "location", "properties"  # activity specific
-        ]
 
-        self.search_engine = MetaDataSearchEngine(self.dataframe, identifier_name="id", searchable_columns=allowed_cols)
+
+        self.search_engine = MetaDataSearchEngine(self.dataframe, identifier_name="id", searchable_columns=self.search_engine_whitelist)
 
     def db_search(self, query:str, database: Optional[str] = None, return_counter: bool = False):
         return self.search_engine.fuzzy_search(query, database=database, return_counter=return_counter)

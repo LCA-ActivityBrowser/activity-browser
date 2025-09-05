@@ -23,17 +23,34 @@ class MetaDataSearchEngine(SearchEngine):
             self.all_database_ids[database] = self.database_ids
         else:
             self.database_ids = None
+        return self.database_ids
 
     def reset_database_id_manager(self):
-        del self.all_database_ids
-        del self.database_ids
+        if hasattr(self, "all_database_ids"):
+            del self.all_database_ids
+        if hasattr(self, "database_ids"):
+            del self.database_ids
 
     def add_identifier(self, data: pd.DataFrame) -> None:
         super().add_identifier(data)
         self.reset_database_id_manager()
 
-    def remove_identifier(self, identifier, logging=True) -> None:
-        super().remove_identifier(identifier, logging=logging)
+
+    def remove_identifiers(self, identifiers, logging=True) -> None:
+        t = time()
+
+        identifiers = set(identifiers)
+        current_identifiers = set(self.df.index.to_list())
+        identifiers = identifiers | current_identifiers  # only remove identifiers currently in the data
+        if len(identifiers) == 0:
+            return
+
+        for identifier in identifiers:
+            super().remove_identifier(identifier, logging=False)
+
+        if logging:
+            log.debug(f"Search index updated in {time() - t:.2f} seconds "
+                      f"for {len(identifiers)} removed items ({len(self.df)} items ({self.size_of_index()}) currently).")
         self.reset_database_id_manager()
 
     def change_identifier(self, identifier, data: pd.DataFrame) -> None:
