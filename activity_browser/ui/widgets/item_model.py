@@ -26,6 +26,9 @@ class ABItemModel(QtCore.QAbstractItemModel):
         self.sort_column: int = 0  # column that is currently sorted
         self.sort_order: Qt.SortOrder = Qt.SortOrder.AscendingOrder
         self._query = ""  # Pandas query currently applied to the dataframe
+        self.has_external_search = False
+        self._external_query = ""
+        self.external_col_name = ""
 
         self.setDataFrame(self.dataframe)
 
@@ -192,17 +195,22 @@ class ABItemModel(QtCore.QAbstractItemModel):
 
         # apply any queries to the dataframe
         if q := self.query():
-            df = self.dataframe.query(q).reset_index(drop=True).copy()
+            df = self.dataframe.copy()
+            if self.has_external_search and self._external_query != "":
+                indices = self.external_search(self._external_query)
+                df = df.loc[indices]
+            df = df.query(q).reset_index(drop=True)
         else:
             df = self.dataframe.copy()
 
-        if not self.sort_column > len(self.columns()) - 1:
-            # apply the sorting
-            df.sort_values(
-                by=self.columns()[self.sort_column],
-                ascending=(self.sort_order == Qt.SortOrder.AscendingOrder),
-                inplace=True, ignore_index=True
-            )
+        if not (self.has_external_search and self._external_query != ""):
+            if not self.sort_column > len(self.columns()) - 1:
+                # apply the sorting
+                df.sort_values(
+                    by=self.columns()[self.sort_column],
+                    ascending=(self.sort_order == Qt.SortOrder.AscendingOrder),
+                    inplace=True, ignore_index=True
+                )
 
         # rebuild the ABItem tree
         self.root = self.branchItemClass("root")
@@ -271,11 +279,17 @@ class ABItemModel(QtCore.QAbstractItemModel):
         self._query = query
         self.endResetModel()
 
+    def set_external_query(self, query: str):
+        if not query.startswith("="):
+            self._external_query = query
+        else:
+            self._external_query = ""
+
+    def external_search(self, query):
+        NotImplementedError
+
     def hasChildren(self, parent: QtCore.QModelIndex):
         item = parent.internalPointer()
         if isinstance(item, ABAbstractItem):
             return item.has_children()
         return super().hasChildren(parent)
-
-
-

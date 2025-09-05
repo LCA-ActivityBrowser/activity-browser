@@ -1,7 +1,9 @@
 from qtpy import QtWidgets
-from qtpy.QtCore import QTimer, Slot, Signal, SignalInstance
+from qtpy.QtCore import QTimer, Slot, Signal, SignalInstance, QStringListModel, Qt
 from qtpy.QtGui import QTextFormat
 from qtpy.QtWidgets import QCompleter
+
+from activity_browser.bwutils import AB_metadata
 
 
 class ABLineEdit(QtWidgets.QLineEdit):
@@ -120,3 +122,60 @@ class AutoCompleteLineEdit(QtWidgets.QLineEdit):
         super().__init__(parent=parent)
         completer = QCompleter(items, self)
         self.setCompleter(completer)
+
+
+class MetaDataAutoCompleteLineEdit(ABLineEdit):
+    """Line Edit with MetaDataStore completer attached"""
+
+    def __init__(self, parent=None):
+        super().__init__(parent=parent)
+        self.database_name = ""
+
+        # autocompleter settings
+        self.model = QStringListModel()
+        self.completer = QCompleter(self.model)
+        self.popup = self.completer.popup()
+        self.popup.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        self.completer.setPopup(self.popup)
+        # allow all items in popup list
+        self.completer.setCompletionMode(QCompleter.UnfilteredPopupCompletion)
+        self.setCompleter(self.completer)
+
+        # connect textEdited, this only triggers on user input, not Completer input
+        self.textEdited.connect(self._set_items)
+
+    def _set_items(self, text=None):
+        if text is None:
+            text = self.text()
+
+        # find the start and end of the word under the cursor
+        cursor_pos = self.cursorPosition()
+        start = cursor_pos
+        while start > 0 and text[start - 1] != " ":
+            start -= 1
+        end = cursor_pos
+        while end < len(text) and text[end] != " ":
+            end += 1
+        current_word = text[start:end]
+        if not current_word:
+            self.model.setStringList([])
+            return
+
+        # get suggestions for the current word
+        alternatives = AB_metadata.auto_complete(current_word, database=self.database_name)
+        alternatives = alternatives[:6]  # at most 6, though we should get ~3 usually
+        # replace the current word with each alternative
+        items = []
+        for alt in alternatives:
+            new_text = text[:start] + alt + text[end:]
+            items.append(new_text)
+        print(text, items)
+
+        self.model.setStringList(items)
+        # set correct height now that we have data
+        max_height = max(
+            20,
+            self.popup.sizeHintForRow(0) * 3 + 2 * self.popup.frameWidth()
+                         )
+        self.popup.setMaximumHeight(max_height)
+
