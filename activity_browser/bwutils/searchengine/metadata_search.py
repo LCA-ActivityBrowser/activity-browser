@@ -43,12 +43,11 @@ class MetaDataSearchEngine(SearchEngine):
     def auto_complete(self, word: str, database: Optional[str] = None) -> list:
         """Based on spellchecker, make more useful for autocompletions
         """
+        count_occurence = lambda x: sum(self.word_to_identifier[x].values())  # count occurences of a word
         if len(word) <= 1:
             return []
 
         self.database_id_manager(database)
-
-        count_occurence = lambda x: sum(self.word_to_identifier[x].values())  # count occurences of a word
 
         matches_min = 2  # ideally we have at least this many alternatives
         matches_max = 4  # ideally don't much more than this many matches
@@ -58,7 +57,7 @@ class MetaDataSearchEngine(SearchEngine):
 
         # first, find possible matches quickly
         q_grams = self.text_to_positional_q_gram(word)
-        possible_matches = self.find_q_gram_matches(set(q_grams))
+        possible_matches = self.find_q_gram_matches(set(q_grams), return_all=True)
 
         first_matches = Counter()
         other_matches = {}
@@ -68,9 +67,8 @@ class MetaDataSearchEngine(SearchEngine):
         for row in possible_matches.itertuples():
             if len(word) > len(row[1]) or word == row[1]:
                 continue
-            test_word = row[1][:len(word)]  # only find edit distance of first part of word
-
-            edit_distance = self.osa_distance(word, test_word, cutoff=never_accept_this)
+            # find edit distance of same size strings
+            edit_distance = self.osa_distance(word, row[1][:len(word)], cutoff=never_accept_this)
             if len(row[1]) == 32 and edit_distance <= 1:
                 probably_keys[row[1]] = 100 - edit_distance  # keys need to be sorted on edit distance, not on occurence
             elif edit_distance == 0:
@@ -102,7 +100,7 @@ class MetaDataSearchEngine(SearchEngine):
         matches = matches + [match for match, _ in probably_keys.most_common()]
         return matches
 
-    def find_q_gram_matches(self, q_grams: set) -> pd.DataFrame:
+    def find_q_gram_matches(self, q_grams: set, return_all: bool = False) -> pd.DataFrame:
         """Overwritten for extra database specific reduction of results.
         """
         n_q_grams = len(q_grams)
@@ -137,10 +135,13 @@ class MetaDataSearchEngine(SearchEngine):
         max_q = max(matches["matches"])  # this has the most matching q-grams
 
         # determine how many results we want to keep based on how good our results are
-        min_q = min(max(max_q * 0.32,  # have at least a third of q-grams of best match or...
-                        max(n_q_grams * 0.5,  # if more, at least half the q-grams in the query word?
-                            1)),  # okay just do 1 q-gram if there are no more in the word
-                    max_q)  # never have min_q be over max_q
+        if not return_all:
+            min_q = min(max(max_q * 0.32,  # have at least a third of q-grams of best match or...
+                            max(n_q_grams * 0.5,  # if more, at least half the q-grams in the query word?
+                                1)),  # okay just do 1 q-gram if there are no more in the word
+                        max_q)  # never have min_q be over max_q
+        else:
+            min_q = 0
 
         matches = matches[matches["matches"] >= min_q]
         matches = matches.sort_values(by="matches", ascending=False)
