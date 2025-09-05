@@ -127,65 +127,51 @@ class AutoCompleteLineEdit(QtWidgets.QLineEdit):
 class MetaDataAutoCompleteLineEdit(ABLineEdit):
     """Line Edit with MetaDataStore completer attached"""
 
-    textChangedAutoCompleteDebounce: SignalInstance = Signal()
-    _debounce_autocomplete_ms = 75
-
     def __init__(self, parent=None):
         super().__init__(parent=parent)
-
-        # debounce timer settings
-        self._debounce_autocomplete_timer = QTimer(self, singleShot=True)
-        # self.textChanged.connect(self._set_autocomplete_debounce)
-        self._debounce_autocomplete_timer.timeout.connect(self._emit_autocomplete_debounce)
-
         self.database_name = ""
-
-        # trigger autocomplete list update
-        self.textChangedAutoCompleteDebounce.connect(self._set_items)
 
         # autocompleter settings
         self.model = QStringListModel()
         self.completer = QCompleter(self.model)
         self.popup = self.completer.popup()
         self.popup.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-        self.popup.setMaximumHeight(20)
         self.completer.setPopup(self.popup)
-        self.completer.setCompletionMode(QCompleter.UnfilteredPopupCompletion)  # allow all items in popup list
-
+        # allow all items in popup list
+        self.completer.setCompletionMode(QCompleter.UnfilteredPopupCompletion)
         self.setCompleter(self.completer)
 
-    def _set_items(self):
-        text = self.text()
-        self.popup.setMaximumHeight(self.popup.sizeHintForRow(0) * 3 + 2 * self.popup.frameWidth())
-        words = text.split(" ")
-        if len(words) == 0:
+        # connect textEdited, this only triggers on user input, not Completer input
+        self.textEdited.connect(self._set_items)
+
+    def _set_items(self, text=None):
+        if text is None:
+            text = self.text()
+
+        # find the start and end of the word under the cursor
+        cursor_pos = self.cursorPosition()
+        start = cursor_pos
+        while start > 0 and text[start - 1] != " ":
+            start -= 1
+        end = cursor_pos
+        while end < len(text) and text[end] != " ":
+            end += 1
+        current_word = text[start:end]
+        if not current_word:
             self.model.setStringList([])
             return
 
-        alternatives = AB_metadata.auto_complete(words[-1], database=self.database_name)
-        alternatives = alternatives[:5]  # allow for max n autocompletes
-        print(text, alternatives)
-
+        # get suggestions for the current word
+        alternatives = AB_metadata.auto_complete(current_word, database=self.database_name)
+        alternatives = alternatives[:6]  # at most 6, though we should get ~3 usually
+        # replace the current word with each alternative
         items = []
-        for alternative in alternatives:
-            line = " ".join(words[:-1] + [alternative])
-            items.append(line)
+        for alt in alternatives:
+            new_text = text[:start] + alt + text[end:]
+            items.append(new_text)
+        print(text, items)
+
         self.model.setStringList(items)
-        self.completer.complete()
+        # set correct height now that we have data
+        self.popup.setMaximumHeight(self.popup.sizeHintForRow(0) * 3 + 2 * self.popup.frameWidth())
 
-    def _set_autocomplete_debounce(self):
-        self._debounce_autocomplete_timer.setInterval(self._debounce_autocomplete_ms)
-        self._debounce_autocomplete_timer.start()
-
-    def _emit_autocomplete_debounce(self):
-        self.textChangedAutoCompleteDebounce.emit()
-
-    def keyPressEvent(self, event):
-        if event.key() == Qt.Key_Escape:
-            if self.completer.popup().isVisible():
-                self.completer.popup().hide()
-                event.accept()
-                return
-        super().keyPressEvent(event)
-        if event.text().strip():
-            QTimer.singleShot(0, self._set_autocomplete_debounce)
