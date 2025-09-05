@@ -524,7 +524,6 @@ class SearchEngine:
             q_grams = self.text_to_positional_q_gram(word)
             possible_matches = self.find_q_gram_matches(set(q_grams))
 
-            matches = []
             first_matches = Counter()
             other_matches = {}
 
@@ -545,8 +544,7 @@ class SearchEngine:
                     continue
 
             # add matches in correct order:
-            for match, _ in first_matches.most_common():
-                matches.append(match)
+            matches = [match for match, _ in first_matches.most_common()]
             # if we have fewer matches than goal, add more 'less good' matches
             if len(matches) < matches_min:
                 for i in range(always_accept_this + 1, never_accept_this):
