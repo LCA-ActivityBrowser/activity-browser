@@ -43,9 +43,9 @@ class SearchEngine:
         log.debug(f"SearchEngine initializing for {len(df)} items")
 
         # compile regex patterns for cleaning
-        self.SUB_PATTERN = re.compile(r"[,\(\)\[\]'\"…]")  # for replacing with empty string
-        self.SPACE_PATTERN = re.compile(r"[-−:;/+]")  # for replacing with space
-        self.ONE_SPACE_PATTERN = re.compile(r"\s+")  # for replacing multiple white space with 1 space
+        self.SUB_END_PATTERN = re.compile(r"[,.\"'`)\[\]}\\/\-−_:;+…]+(?=\s|$)")  # remove these from end of word
+        self.SUB_START_PATTERN = re.compile(r"(?:^|\s)[,.\"'`(\[{\\/\-−_:;+]+")  # remove these from start of word
+        self.ONE_SPACE_PATTERN = re.compile(r"\s+")  # remove these multiple whitespaces
 
         self.q = 2  # character length of q grams
         self.base_weight = 10  # base weighting for sorting results
@@ -136,8 +136,10 @@ class SearchEngine:
 
     def clean_text(self, text: str):
         """Clean a string so it doesn't contain weird characters or multiple spaces etc."""
-        text = self.SUB_PATTERN.sub("", text.lower())
-        text = self.SPACE_PATTERN.sub(" ", text)
+        text = text.lower()
+        text = self.SUB_END_PATTERN.sub("", text)
+        text = self.SUB_START_PATTERN.sub(" ", text)
+
         text = self.ONE_SPACE_PATTERN.sub(" ", text).strip()
         return text
 

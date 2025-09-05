@@ -43,7 +43,7 @@ class MetaDataSearchEngine(SearchEngine):
     def auto_complete(self, word: str, database) -> list:
         """Based on spellchecker, make more useful for autocompletions
         """
-        if len(word) <= 2:
+        if len(word) <= 1:
             return []
 
         self.database_id_manager(database)
@@ -52,7 +52,7 @@ class MetaDataSearchEngine(SearchEngine):
 
         matches_min = 2  # ideally we have at least this many alternatives
         matches_max = 4  # ideally don't much more than this many matches
-        never_accept_this = 4  # values this edit distance or over always rejected
+        never_accept_this = 5  # values this edit distance or over always rejected
 
         # first, find possible matches quickly
         q_grams = self.text_to_positional_q_gram(word)
@@ -61,6 +61,7 @@ class MetaDataSearchEngine(SearchEngine):
         matches = []
         first_matches = Counter()
         other_matches = {}
+        probably_keys = []  # if we suspect it's a key hash, dump it at the end of the list
 
         # now, refine with edit distance
         for row in possible_matches.itertuples():
@@ -68,8 +69,11 @@ class MetaDataSearchEngine(SearchEngine):
                 continue
             test_word = row[1][:len(word)]  # only find edit distance of first part of word
 
-            edit_distance = self.osa_distance(word, test_word, cutoff=min(never_accept_this, len(word)))
-            if edit_distance == 0:
+            edit_distance = self.osa_distance(word, test_word, cutoff=min(never_accept_this, (len(word) * (2 / 3))))
+            if len(row[1]) == 32 and edit_distance < never_accept_this:
+                # dump any items that are likely to be keys at the end of the list
+                probably_keys.append(row[1])
+            elif edit_distance == 0:
                 first_matches[row[1]] = count_occurence(row[1])
             elif edit_distance < never_accept_this:
                 if not other_matches.get(edit_distance):
@@ -96,6 +100,7 @@ class MetaDataSearchEngine(SearchEngine):
                             break
                         prev_num = num
 
+        matches = matches + probably_keys
         return matches
 
     def find_q_gram_matches(self, q_grams: set) -> pd.DataFrame:

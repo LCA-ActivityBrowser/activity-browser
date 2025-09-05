@@ -173,5 +173,9 @@ class MetaDataAutoCompleteLineEdit(ABLineEdit):
 
         self.model.setStringList(items)
         # set correct height now that we have data
-        self.popup.setMaximumHeight(self.popup.sizeHintForRow(0) * 3 + 2 * self.popup.frameWidth())
+        max_height = max(
+            20,
+            self.popup.sizeHintForRow(0) * 3 + 2 * self.popup.frameWidth()
+                         )
+        self.popup.setMaximumHeight(max_height)
 
