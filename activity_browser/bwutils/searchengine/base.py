@@ -292,7 +292,6 @@ class SearchEngine:
             raise Exception(
                 f"Identifier '{identifier}' does not exist in the search data, cannot remove identifier that do not exist.")
 
-        # remove from df
         self.df = self.df.drop(identifier)
 
         # find words that may need to be removed
@@ -309,10 +308,15 @@ class SearchEngine:
                         # this q_gram is only used in this word,
                         #  remove it
                         del self.q_gram_to_word[q_gram]
+                    elif len(self.q_gram_to_word[q_gram]) > 1:
+                        # this q_gram is used in multiple words, only remove the word from the q_gram
+                        del self.q_gram_to_word[q_gram][word]
 
                 del self.word_to_q_grams[word]
             else:
-                # remove the identifier from the dict
+                # this word is found in multiple identifiers
+                # word_to_q_gram and q_gram_to_word do not need to be changed, the word still exists
+                # remove the identifier the word in word_to_identifier
                 del self.word_to_identifier[word][identifier]
         # finally, remove the identifier
         del self.identifier_to_word[identifier]

@@ -9,8 +9,8 @@ def data_for_test():
         ["b", "coal production", "something"],
         ["c", "coal production", "coat"],
         ["d", "coal hello production", "something"],
-        ["e", "dont find me", "hello world"],
-        ["f", "coat", "another word"],
+        ["e", "dont zzfind me", "hello world"],
+        ["f", "coat", "zzanother word"],
         ["g", "coalispartofthisword", "things"],
         ["h", "coal", "coal"],
     ],
@@ -198,6 +198,12 @@ def test_search_remove_identifier():
     assert se.search("coal production") == ["a", "c", "b", "d", "h", "f", "g"]
     se.remove_identifier(identifier="a")
     assert se.search("coal production") == ["c", "b", "d", "h", "f", "g"]
+
+    # now search on something only in a column we later remove
+    assert se.search("find") == ["e"]
+    se.remove_identifier(identifier="e")
+    assert se.search("find") == []
+
 
 
 def test_search_change_identifier():
