@@ -88,18 +88,17 @@ class MetaDataStore(QObject):
         except KeyError:
             pass
 
-    def remove_identifier_from_search_engine(self, ds, reset_db_ids=True, logging=True):
+    def remove_identifier_from_search_engine(self, ds):
         data = model_to_dict(ds)
         identifier = data["id"]
         if identifier in self.search_engine.database_id_manager(data["database"]):
-            self.search_engine.remove_identifier(identifier, logging=logging)
-            if reset_db_ids:
-                self.search_engine.reset_database_id_manager()
+            self.search_engine.remove_identifier(identifier)
+            self.search_engine.reset_database_id_manager()
 
     def remove_identifiers_from_search_engine(self, identifiers):
         t = time()
         for identifier in identifiers:
-            self.remove_identifier_from_search_engine(identifier, reset_db_ids=False, logging=False)
+            self.search_engine.remove_identifier(identifier, logging=False)
         self.search_engine.reset_database_id_manager()
         log.debug(f"Search index updated in {time() - t:.2f} seconds "
                   f"for {len(identifiers)} removed items "
@@ -195,7 +194,10 @@ class MetaDataStore(QObject):
 
         for db_name in [x for x in self.databases if x not in bd.databases]:
             # deleted databases
+            remove_search_engine = self.dataframe[self.dataframe["database"] == db_name]["id"]
             self.dataframe.drop(db_name, level=0, inplace=True)
+            if len(remove_search_engine) > 0:
+                self.remove_identifiers_from_search_engine(remove_search_engine)
             sync = True
 
         for db_name in [x for x in bd.databases if x not in self.databases]:
@@ -208,7 +210,7 @@ class MetaDataStore(QObject):
                 self.dataframe = data
             else:
                 self.dataframe = pd.concat([self.dataframe, data], join="outer")
-
+            self.add_identifier_to_search_engine(data)
             sync = True
 
         if sync:
