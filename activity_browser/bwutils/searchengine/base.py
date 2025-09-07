@@ -488,7 +488,7 @@ class SearchEngine:
 
         return matches.iloc[:min(len(matches), 2500), :]  # return at most this many results
 
-    def spell_check(self, text: str) -> OrderedDict:
+    def spell_check(self, text: str, skip_len=1) -> OrderedDict:
         """Create an OrderedDict of each word in the text (space separated)
         with as values possible alternatives.
 
@@ -524,6 +524,13 @@ class SearchEngine:
         words = [self.clean_text(word) for word in words]
 
         for word in words:
+            if len(word) <= skip_len:  # dont look for alternatives for text this short
+                word_results[word] = []
+                continue
+
+            # reduce acceptable edit distance with short words
+            dont_accept = int(round(max(1, min((len(word) * 0.66), never_accept_this)), 0))
+
             # first, find possible matches quickly
             q_grams = self.text_to_positional_q_gram(word)
             possible_matches = self.find_q_gram_matches(set(q_grams))
@@ -534,13 +541,13 @@ class SearchEngine:
             # now, refine with edit distance
             for row in possible_matches.itertuples():
 
-                edit_distance = self.osa_distance(word, row[1], cutoff=never_accept_this)
+                edit_distance = self.osa_distance(word, row[1], cutoff=dont_accept)
 
                 if edit_distance == 0:
                     continue  # we are looking for alternatives only, not the exact word
                 elif edit_distance <= always_accept_this:
                     first_matches[row[1]] = count_occurence(row[1])
-                elif edit_distance < never_accept_this:
+                elif edit_distance < dont_accept:
                     if not other_matches.get(edit_distance):
                         other_matches[edit_distance] = Counter()
                     other_matches[edit_distance][row[1]] = count_occurence(row[1])
@@ -551,7 +558,7 @@ class SearchEngine:
             matches = [match for match, _ in first_matches.most_common()]
             # if we have fewer matches than goal, add more 'less good' matches
             if len(matches) < matches_min:
-                for i in range(always_accept_this + 1, never_accept_this):
+                for i in range(always_accept_this + 1, dont_accept):
                     # iteratively increase matches with 'worse' results so we hit goal of minimum alternatives
                     if new := other_matches.get(i):
                         prev_num = 10e100

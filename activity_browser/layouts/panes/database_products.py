@@ -493,19 +493,18 @@ class ProductModel(ui.widgets.ABItemModel):
         df = AB_metadata.dataframe[AB_metadata.dataframe["id"].isin(result_ids)].loc[:, ["id", "key"]]
         df = df.set_index("key", drop=True)
         translate_dict = df.to_dict()["id"]
+        result_keys = set(translate_dict.keys())
 
         # convert the metadata id scores to row id scores
         row_scores = Counter()
-        df = self.dataframe.copy()
-        act_idx = set(df[df["activity_key"].isin(translate_dict.keys())].index.to_list())
-        prd_idx = set(df[df["product_key"].isin(translate_dict.keys())].index.to_list())
-        indices = act_idx | prd_idx  # combine the two sets ('|' is a set union)
-        # iterate over the indices
-        for index in indices:
-            act_score = results.get(translate_dict.get(df.loc[index, "activity_key"]), 0)
-            prd_score = results.get(translate_dict.get(df.loc[index, "product_key"]), 0)
-            row_scores[index] = act_score + prd_score
+        match_df = self.dataframe[self.dataframe["activity_key"].isin(result_keys) | self.dataframe["product_key"].isin(result_keys)]
+        match_df = match_df.loc[:, ["activity_key", "product_key"]]
+        for row in match_df.itertuples():
+            act_score = results.get(row[1], 0)
+            prd_score = results.get(row[2], 0)
+            row_scores[row[0]] = act_score + prd_score
 
         # finally only return the indices
         sorted_indices = [identifier[0] for identifier in row_scores.most_common()]
+
         return sorted_indices
