@@ -160,9 +160,10 @@ class MetaDataAutoCompleteLineEdit(ABLineEdit):
         if not current_word:
             self.model.setStringList([])
             return
+        context = set((text[:start] + text[end:]).split(" "))
 
         # get suggestions for the current word
-        alternatives = AB_metadata.auto_complete(current_word, database=self.database_name)
+        alternatives = AB_metadata.auto_complete(current_word, context=context, database=self.database_name)
         alternatives = alternatives[:6]  # at most 6, though we should get ~3 usually
         # replace the current word with each alternative
         items = []

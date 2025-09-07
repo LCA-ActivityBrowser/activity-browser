@@ -395,19 +395,19 @@ class MetaDataStore(QObject):
         return system_classifications
 
     def init_search(self):
-
-
         self.search_engine = MetaDataSearchEngine(self.dataframe, identifier_name="id", searchable_columns=self.search_engine_whitelist)
 
-    def db_search(self, query:str, database: Optional[str] = None, return_counter: bool = False):
-        return self.search_engine.fuzzy_search(query, database=database, return_counter=return_counter)
+    def db_search(self, query:str, database: Optional[str] = None, return_counter: bool = False, logging: bool = True):
+        # we do fuzzy search as we re-index results (combining products and activities) for database_products table
+        # anyway, so including literal results quite literally is a waste of time at this point
+        return self.search_engine.fuzzy_search(query, database=database, return_counter=return_counter, logging=logging)
 
     def search(self, query:str):
         return self.search_engine.search(query)
 
-    def auto_complete(self, word:str, database: Optional[str] = None):
+    def auto_complete(self, word:str, context: Optional[set] = None, database: Optional[str] = None):
         word = self.search_engine.clean_text(word)
-        completions = self.search_engine.auto_complete(word, database)
+        completions = self.search_engine.auto_complete(word, context=context, database=database)
         return completions
 
 AB_metadata = MetaDataStore()

@@ -87,7 +87,7 @@ class MetaDataSearchEngine(SearchEngine):
         if len(context) > 0:
             spell_checked_context = {}
             for context_word in context:
-                spell_checked_context[context_word] = self.spell_check(context_word)[context_word][:5]
+                spell_checked_context[context_word] = self.spell_check(context_word).get(context_word, [])[:5]
 
         matches_min = 2  # ideally we have at least this many alternatives
         matches_max = 4  # ideally don't much more than this many matches
