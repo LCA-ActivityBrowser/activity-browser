@@ -57,20 +57,43 @@ class MetaDataSearchEngine(SearchEngine):
         super().change_identifier(identifier, data)
         self.reset_database_id_manager()
 
-    def auto_complete(self, word: str, database: Optional[str] = None) -> list:
+    def auto_complete(self, word: str, context: Optional[set] = set(), database: Optional[str] = None) -> list:
         """Based on spellchecker, make more useful for autocompletions
         """
-        count_occurence = lambda x: sum(self.word_to_identifier[x].values())  # count occurences of a word
+        def word_to_identifier_to_word(check_word):
+            # assumes context words are correctly spelled
+            if len(context) == 0:
+                return 1
+            multiplier = 1
+            for identifier in self.word_to_identifier[check_word]:
+                for context_word in context:
+                    for spell_checked_context_word in spell_checked_context[context_word]:
+                        if spell_checked_context_word in self.identifier_to_word[identifier]:
+                            multiplier += 1
+                    if context_word not in self.word_to_identifier.keys():
+                        continue
+                    if context_word in self.identifier_to_word[identifier]:
+                        multiplier += 3
+            return multiplier
+
+        # count occurrences of a word, count double so word_to_identifier_to_word will never multiply by 1
+        count_occurrence = lambda x: sum(self.word_to_identifier[x].values()) * 2
+
         if len(word) <= 1:
             return []
 
         self.database_id_manager(database)
 
+        if len(context) > 0:
+            spell_checked_context = {}
+            for context_word in context:
+                spell_checked_context[context_word] = self.spell_check(context_word)[context_word][:5]
+
         matches_min = 2  # ideally we have at least this many alternatives
         matches_max = 4  # ideally don't much more than this many matches
-        never_accept_this = 5  # values this edit distance or over always rejected
+        never_accept_this = 4  # values this edit distance or over always rejected
         # or max 2/3 of len(word) if less than never_accept_this
-        never_accept_this = int(round(min(never_accept_this, max(1, len(word) * (2 / 3))), 0))
+        never_accept_this = int(round(max(1, min((len(word) * 0.66), never_accept_this)), 0))
 
         # first, find possible matches quickly
         q_grams = self.text_to_positional_q_gram(word)
@@ -89,11 +112,11 @@ class MetaDataSearchEngine(SearchEngine):
             if len(row[1]) == 32 and edit_distance <= 1:
                 probably_keys[row[1]] = 100 - edit_distance  # keys need to be sorted on edit distance, not on occurence
             elif edit_distance == 0:
-                first_matches[row[1]] = count_occurence(row[1])
-            elif edit_distance < never_accept_this:
+                first_matches[row[1]] = count_occurrence(row[1]) * word_to_identifier_to_word(row[1])
+            elif edit_distance < never_accept_this and len(first_matches) < matches_min:
                 if not other_matches.get(edit_distance):
                     other_matches[edit_distance] = Counter()
-                other_matches[edit_distance][row[1]] = count_occurence(row[1])
+                other_matches[edit_distance][row[1]] = count_occurrence(row[1]) * word_to_identifier_to_word(row[1])
             else:
                 continue
 

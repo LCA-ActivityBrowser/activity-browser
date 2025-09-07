@@ -753,7 +753,7 @@ class SearchEngine:
         if return_counter:
             return all_identifiers
         # now sort on highest weights and make list type
-        sorted_identifiers = [identifier[0] for identifier in all_identifiers.most_common()]
+        sorted_identifiers = [identifier for identifier, _ in all_identifiers.most_common()]
         return sorted_identifiers
 
     def search(self, text) -> list:
