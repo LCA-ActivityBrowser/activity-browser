@@ -180,3 +180,121 @@ class MetaDataAutoCompleteLineEdit(ABLineEdit):
                          )
         self.popup.setMaximumHeight(max_height)
 
+class ABTextEdit(QtWidgets.QTextEdit):
+    textChangedDebounce: SignalInstance = Signal(str)
+    _debounce_ms = 250
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self._debounce_timer = QTimer(self, singleShot=True)
+
+        self.textChanged.connect(self._set_debounce)
+        self._debounce_timer.timeout.connect(self._emit_debounce)
+
+    def _set_debounce(self):
+        self._debounce_timer.setInterval(self._debounce_ms)
+        self._debounce_timer.start()
+
+    def _emit_debounce(self):
+        self.textChangedDebounce.emit(self.toPlainText())
+
+    def debounce(self):
+        return self._debounce_ms
+
+    def setDebounce(self, ms: int):
+        self._debounce_ms = ms
+
+
+class MetaDataAutoCompleteLineEdit(ABTextEdit):
+    """Line Edit with MetaDataStore completer attached"""
+
+    def __init__(self, parent=None):
+        super().__init__(parent=parent)
+        self.database_name = ""
+
+        # autocompleter settings
+        self.model = QStringListModel()
+        self.completer = QCompleter(self.model)
+        self.completer.setWidget(self)
+        self.popup = self.completer.popup()
+        self.popup.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        self.completer.setPopup(self.popup)
+        # allow all items in popup list
+        self.completer.setCompletionMode(QCompleter.UnfilteredPopupCompletion)
+        self.completer.activated.connect(self._insert_auto_complete)
+
+        self.textChanged.connect(self.sanitize_input)
+
+    def sanitize_input(self):
+        text = self.toPlainText()
+        text = AB_metadata.search_engine.ONE_SPACE_PATTERN.sub(" ", text)
+        self.blockSignals(True)
+        self.clear()
+        self.insertPlainText(text)
+        self.blockSignals(False)
+        if len(text) == 0:
+            self.popup.close()
+
+    def _insert_auto_complete(self, completion):
+        self.clear()
+        self.insertPlainText(completion)
+        self.popup.close()
+        self._set_items()
+
+    def _set_items(self):
+        text = self.toPlainText()
+
+        # find the start and end of the word under the cursor
+        cursor_pos = self.textCursor().position()
+        start = cursor_pos
+        while start > 0 and text[start - 1] != " ":
+            start -= 1
+        end = cursor_pos
+        while end < len(text) and text[end] != " ":
+            end += 1
+        current_word = text[start:end]
+        if not current_word:
+            self.model.setStringList([])
+            return
+        context = set((text[:start] + text[end:]).split(" "))
+
+        # get suggestions for the current word
+        alternatives = AB_metadata.auto_complete(current_word, context=context, database=self.database_name)
+        alternatives = alternatives[:6]  # at most 6, though we should get ~3 usually
+        # replace the current word with each alternative
+        items = []
+        for alt in alternatives:
+            new_text = text[:start] + alt + text[end:]
+            items.append(new_text)
+        print(text, items)
+        if len(items) == 0:
+            return
+
+        self.model.setStringList(items)
+        # set correct height now that we have data
+        max_height = max(
+            20,
+            self.popup.sizeHintForRow(0) * 3 + 2 * self.popup.frameWidth()
+                         )
+        self.popup.setMaximumHeight(max_height)
+        self.completer.complete()
+
+    def keyPressEvent(self, event):
+        key = event.key()
+
+        if key in (Qt.Key_Enter, Qt.Key_Return, Qt.Key_Tab):
+            # insert an autocomplete item
+            # capture enter/return/tab key
+            index = self.popup.currentIndex()
+            selected_text = index.data(Qt.DisplayRole)
+            self.completer.activated.emit(selected_text + " ")
+            return
+        elif key in (Qt.Key_Space,):
+            self.popup.close()
+
+        super().keyPressEvent(event)
+
+        # trigger on text input keys
+        if event.text():  # filters out non-text keys like arrows, shift, etc.
+            self._set_items()
