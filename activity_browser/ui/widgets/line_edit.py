@@ -264,7 +264,7 @@ class MetaDataAutoCompleteLineEdit(ABTextEdit):
             self.clear()
             self.insertPlainText(clean_text)
             self.blockSignals(False)
-            cursor.setPosition(min(position, len(text)))
+            cursor.setPosition(min(position, len(clean_text)))
             self.setTextCursor(cursor)
 
         known_words = set()
@@ -317,6 +317,7 @@ class MetaDataAutoCompleteLineEdit(ABTextEdit):
         current_word = text[start:end]
         if not current_word:
             self.model.setStringList([])
+            self.popup.close()
             return
         if self.auto_complete_word == current_word:
             # avoid unnecessary auto_complete calls if the current word didnt change
