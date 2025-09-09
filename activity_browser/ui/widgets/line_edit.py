@@ -1,6 +1,6 @@
 from qtpy import QtWidgets
 from qtpy.QtCore import QTimer, Slot, Signal, SignalInstance, QStringListModel, Qt
-from qtpy.QtGui import QTextFormat
+from qtpy.QtGui import QTextFormat, QSyntaxHighlighter, QTextCharFormat, QTextDocument, QTextCursor
 from qtpy.QtWidgets import QCompleter
 
 from activity_browser.bwutils import AB_metadata
@@ -180,6 +180,29 @@ class MetaDataAutoCompleteLineEdit(ABLineEdit):
                          )
         self.popup.setMaximumHeight(max_height)
 
+
+class UnknownWordHighlighter(QSyntaxHighlighter):
+    def __init__(self, parent: QTextDocument, known_words: set):
+        super().__init__(parent)
+        self.known_words = known_words
+
+        # define the format for unknown words
+        self.unknown_format = QTextCharFormat()
+        self.unknown_format.setUnderlineStyle(QTextCharFormat.SpellCheckUnderline)
+        self.unknown_format.setUnderlineColor(Qt.red)
+
+    def highlightBlock(self, text: str):
+        if text.startswith("="):
+            return
+        words = text.split()
+        index = 0
+        for word in words:
+            word_len = len(word)
+            if word and word not in self.known_words:
+                self.setFormat(index, word_len, self.unknown_format)
+            index += word_len + 1  # +1 for the space
+
+
 class ABTextEdit(QtWidgets.QTextEdit):
     textChangedDebounce: SignalInstance = Signal(str)
     _debounce_ms = 250
@@ -212,6 +235,7 @@ class MetaDataAutoCompleteLineEdit(ABTextEdit):
     def __init__(self, parent=None):
         super().__init__(parent=parent)
         self.database_name = ""
+        self.auto_complete_word = ""
 
         # autocompleter settings
         self.model = QStringListModel()
@@ -225,27 +249,64 @@ class MetaDataAutoCompleteLineEdit(ABTextEdit):
         self.completer.activated.connect(self._insert_auto_complete)
 
         self.textChanged.connect(self.sanitize_input)
+        self.highlighter = UnknownWordHighlighter(self.document(), set())
+        self.cursorPositionChanged.connect(self._set_items)
 
     def sanitize_input(self):
+        self._debounce_timer.stop()
         text = self.toPlainText()
-        text = AB_metadata.search_engine.ONE_SPACE_PATTERN.sub(" ", text)
-        self.blockSignals(True)
-        self.clear()
-        self.insertPlainText(text)
-        self.blockSignals(False)
+        clean_text = AB_metadata.search_engine.ONE_SPACE_PATTERN.sub(" ", text)
+
+        if clean_text != text:
+            cursor = self.textCursor()
+            position = cursor.position()
+            self.blockSignals(True)
+            self.clear()
+            self.insertPlainText(clean_text)
+            self.blockSignals(False)
+            cursor.setPosition(min(position, len(text)))
+            self.setTextCursor(cursor)
+
+        known_words = set()
+        for identifier in AB_metadata.search_engine.database_id_manager(self.database_name):
+            known_words.update(AB_metadata.search_engine.identifier_to_word[identifier].keys())
+        self.highlighter.known_words = known_words
+
         if len(text) == 0:
             self.popup.close()
+        self._set_debounce()
 
     def _insert_auto_complete(self, completion):
-        self.clear()
-        self.insertPlainText(completion)
+        cursor = self.textCursor()
+        position = cursor.position()
+        text = self.toPlainText()
+
+        start = position
+        while start > 0 and text[start - 1] != " ":
+            start -= 1
+        new_position = start + len(completion) + 1
+
+        # select the word under the cursor
+        cursor.select(QTextCursor.WordUnderCursor)
+        # replace it with the completion
+        cursor.insertText(completion + " ")
+        # set the updated cursor to end of inserted word + space
+        cursor.setPosition(min(new_position, len(text[:start] + completion) + 1))
+        self.setTextCursor(cursor)
+
         self.popup.close()
-        self._set_items()
+        self.auto_complete_word = ""
+        self.model.setStringList([])
 
     def _set_items(self):
         text = self.toPlainText()
+        if text.startswith("="):
+            self.model.setStringList([])
+            self.auto_complete_word = ""
+            self.popup.close()
+            return
 
-        # find the start and end of the word under the cursor
+            # find the start and end of the word under the cursor
         cursor_pos = self.textCursor().position()
         start = cursor_pos
         while start > 0 and text[start - 1] != " ":
@@ -257,8 +318,12 @@ class MetaDataAutoCompleteLineEdit(ABTextEdit):
         if not current_word:
             self.model.setStringList([])
             return
-        context = set((text[:start] + text[end:]).split(" "))
+        if self.auto_complete_word == current_word:
+            # avoid unnecessary auto_complete calls if the current word didnt change
+            return
+        self.auto_complete_word = current_word
 
+        context = set((text[:start] + text[end:]).split(" "))
         # get suggestions for the current word
         alternatives = AB_metadata.auto_complete(current_word, context=context, database=self.database_name)
         alternatives = alternatives[:6]  # at most 6, though we should get ~3 usually
@@ -266,9 +331,11 @@ class MetaDataAutoCompleteLineEdit(ABTextEdit):
         items = []
         for alt in alternatives:
             new_text = text[:start] + alt + text[end:]
-            items.append(new_text)
-        print(text, items)
+            # items.append(new_text)
+            items.append(alt)
+        print(cursor_pos, text, items)
         if len(items) == 0:
+            self.popup.close()
             return
 
         self.model.setStringList(items)
@@ -287,8 +354,8 @@ class MetaDataAutoCompleteLineEdit(ABTextEdit):
             # insert an autocomplete item
             # capture enter/return/tab key
             index = self.popup.currentIndex()
-            selected_text = index.data(Qt.DisplayRole)
-            self.completer.activated.emit(selected_text + " ")
+            completion_text = index.data(Qt.DisplayRole)
+            self.completer.activated.emit(completion_text)
             return
         elif key in (Qt.Key_Space,):
             self.popup.close()
@@ -296,5 +363,5 @@ class MetaDataAutoCompleteLineEdit(ABTextEdit):
         super().keyPressEvent(event)
 
         # trigger on text input keys
-        if event.text():  # filters out non-text keys like arrows, shift, etc.
+        if event.text() or key in (Qt.LeftArrow, Qt.RightArrow):  # filters out non-text keys like arrows, shift, etc.
             self._set_items()
