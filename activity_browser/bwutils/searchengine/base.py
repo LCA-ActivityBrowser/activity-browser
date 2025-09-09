@@ -1,7 +1,7 @@
 from itertools import permutations, chain
 import itertools
 import functools
-from collections import Counter, OrderedDict
+from collections import Counter, OrderedDict, defaultdict
 from logging import getLogger
 from time import time
 from typing import Iterable, Optional
@@ -99,11 +99,17 @@ class SearchEngine:
 
         def update_dict(update_me: dict, new: dict) -> dict:
             """Update a dict of counters with new dict of counters."""
-            for dict_key, _counter in new.items():
-                if dict_key in update_me:
-                    update_me[dict_key].update(_counter)
-                else:
-                    update_me[dict_key] = _counter
+            # set to empty set if we know update_me is empty, otherwise, find set intersection
+            update_keys = set() if len(update_me) == 0 else new.keys() & update_me.keys()
+            if len(update_keys) == 0:
+                new_data = new
+            else:
+                for update_key in update_keys:
+                    update_me[update_key].update(new[update_key])
+                new_data = {key: value for key, value in new.items() if key not in update_keys}
+            # finally add any completely new data
+            # update_me.update(new_data)
+            update_me = update_me | new_data
             return update_me
 
         t = time()
@@ -112,8 +118,10 @@ class SearchEngine:
         # identifier to word and df
         i2w, update_df = self.words_in_df(update_df)
         self.identifier_to_word = update_dict(self.identifier_to_word, i2w)
+        for col in [col for col in update_df.columns if col not in self.df]:
+            col_data = [""] * len(self.df)
+            self.df[col] = col_data
         self.df = pd.concat([self.df, update_df])
-        self.df = self.df.fillna("")  # ensure we don't add unwanted NA through concatenations
 
         # word to identifier
         w2i = self.reverse_dict_many_to_one(i2w)
@@ -126,7 +134,6 @@ class SearchEngine:
         # q-gram to word
         q2w = self.reverse_dict_many_to_one(w2q)
         self.q_gram_to_word = update_dict(self.q_gram_to_word, q2w)
-
         size_new = len(self.df)
         size_dif = size_new - size_old
         size_msg = (f"{size_dif} changed items at {int(round(size_dif/(time() - t), 0))} items/sec "
@@ -153,13 +160,12 @@ class SearchEngine:
         Note: these are technically _positional_ q-grams, but we don't use their positions currently.
         """
         q = self.q
-
+        n = len(text)
         # just return a single-item list if the text is equal or shorter than q
         # else, generate q-grams
-        if len(text) <= q:
+        if n <= q:
             return [text]
-        else:
-            return [text[i:i + q] for i in range(len(text) - q + 1)]
+        return list(text[i:i + q] for i in range(n - q + 1))
 
     def words_in_df(self, df: pd.DataFrame = None) -> tuple[dict, pd.DataFrame]:
         """Return a dict of {identifier: word} for df."""
@@ -176,39 +182,37 @@ class SearchEngine:
             col.append(line)
             identifier_word_dict[row[0]] = Counter(line.split(" "))
         return_df["query_col"] = col
+        return_df = return_df.fillna("")   # ensure we don't add unwanted NA in new data
 
         return identifier_word_dict, return_df
 
     def reverse_dict_many_to_one(self, dictionary: dict) -> dict:
         """Reverse a dictionary of Counter objects."""
-        reverse = {}
+        reverse = defaultdict(Counter)
         for identifier, counter_object in dictionary.items():
             for countable, count in counter_object.items():
-                if countable not in reverse:
-                    reverse[countable] = Counter()
                 reverse[countable][identifier] += count
-        return reverse
+        return dict(reverse)
 
     def list_to_q_grams(self, word_list: Iterable) -> dict:
         """Convert a list of unique words to a dict with Counter objects.
 
         Number will be the occurrences of that q-gram in that word.
 
-        q_gram_dict = {
+        return = {
             "word": Counter(
                 "wo": 1
                 "or": 1
                 "rd": 1
-                )
+                ),
+            ...
             }
-
         """
-        q_gram_dict = {}
-
-        for word in word_list:
-            q_gram_dict[word] = Counter(self.text_to_positional_q_gram(word))
-
-        return q_gram_dict
+        text_to_q_gram = self.text_to_positional_q_gram
+        return {
+            word: Counter(text_to_q_gram(word))
+            for word in word_list
+        }
 
     def word_in_index(self, word: str) -> bool:
         """Convenience function to check if a single word is in the search index."""
