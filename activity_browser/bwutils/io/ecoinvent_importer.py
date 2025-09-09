@@ -42,17 +42,21 @@ class Ecoinvent7zImporter:
 
     def __init__(self, archive_path: str) -> None:
         self.archive_path = archive_path
+        self.is_compressed = archive_path.endswith('.7z')
 
     def install_biosphere(self, biosphere_name: str = "biosphere3") -> None:
         """
         Installs the biosphere that is bundled in the ecoinvent .7z. Simple extraction and installing through the
         standard bw2io importer is quick enough because we're talking about a single file.
         """
-        # extract the elementary exchanges to a temporary location
-        with py7zr.SevenZipFile(self.archive_path, mode='r') as archive:
-            temp = tempfile.gettempdir()
-            archive.extract(temp, ["MasterData/ElementaryExchanges.xml"])
-            bio_file = os.path.join(temp, "MasterData/ElementaryExchanges.xml")
+        if self.is_compressed:
+            # extract the elementary exchanges to a temporary location
+            with py7zr.SevenZipFile(self.archive_path, mode='r') as archive:
+                temp = tempfile.gettempdir()
+                archive.extract(temp, ["MasterData/ElementaryExchanges.xml"])
+                bio_file = os.path.join(temp, "MasterData", "ElementaryExchanges.xml")
+        else:
+            bio_file = os.path.join(self.archive_path, "MasterData", "ElementaryExchanges.xml")
 
         # initiate the importer with the elementary exchanges file
         importer = Ecospold2BiosphereImporter(biosphere_name, None, bio_file)
@@ -71,11 +75,16 @@ class Ecoinvent7zImporter:
             log.warning(f"Database already exists, overwriting {db_name}")
             bd.Database(db_name).delete(warn=False)
 
-        # load the spold files into memory
-        spold_bytes = self.read_archive_to_bytes()
+        if self.is_compressed:
+            # load the spold files into memory
+            spold_bytes = self.read_archive_to_bytes()
 
-        # process the in-memory data to a dict format and applying strategies
-        db_data = self.process_bytes(spold_bytes, db_name)
+            # process the in-memory data to a dict format and applying strategies
+            db_data = self.process_bytes(spold_bytes, db_name)
+        else:
+            # if the archive is not compressed, we can use the standard importer
+            db_data = Ecospold2DataExtractor.extract(os.path.join(self.archive_path, "datasets"), db_name)
+
         db_data = self.apply_strategies(db_data, biosphere_name)
 
         # rewrite into an ingestible format
