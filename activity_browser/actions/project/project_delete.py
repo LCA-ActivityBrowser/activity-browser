@@ -1,9 +1,16 @@
+import shutil
+
 from qtpy import QtWidgets
+
+import bw2data as bd
+from bw2data.project import ProjectDataset
+from bw2data.utils import safe_filename
 
 from activity_browser import settings, application
 from activity_browser.actions.base import ABAction, exception_dialogs
-from activity_browser.mod import bw2data as bd
 from activity_browser.ui.icons import qicons
+
+from .project_switch import ProjectSwitch
 
 
 class ProjectDelete(ABAction):
@@ -62,17 +69,27 @@ class ProjectDelete(ABAction):
 
         # try to delete the project, delete directory if user specified so
         if bd.projects.current in project_names:
-            bd.projects.set_current(settings.ab_settings.startup_project)
+            ProjectSwitch.run(settings.ab_settings.startup_project)
 
         for project in project_names:
-            bd.projects.delete_project(
-                project, delete_dialog.deletion_warning_checked()
-            )
+            ProjectDelete.delete_project(project, delete_dialog.deletion_warning_checked())
 
         # inform the user of successful deletion
         QtWidgets.QMessageBox.information(
             application.main_window, "Project(s) deleted", "Project(s) successfully deleted"
         )
+
+    @staticmethod
+    def delete_project(name: str, delete_dir: bool):
+
+        ds = ProjectDataset.get(ProjectDataset.name == name)
+
+        if delete_dir:
+            dir_path = bd.projects._base_data_dir / safe_filename(name, full=ds.full_hash)
+            assert dir_path.is_dir(), "Can't find project directory"
+            shutil.rmtree(dir_path)
+
+        ds.delete_instance()
 
 
 class ProjectDeletionDialog(QtWidgets.QDialog):

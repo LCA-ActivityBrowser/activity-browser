@@ -4,3 +4,4 @@ from .calculation_setup import CalculationSetupPage
 from .impact_category_details import ImpactCategoryDetailsPage
 from .lca_results import LCAResultsPage
 from .parameters import ParametersPage
+from .metadatastore import MetaDataStorePage
