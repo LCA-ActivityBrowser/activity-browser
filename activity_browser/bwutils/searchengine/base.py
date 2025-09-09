@@ -3,6 +3,8 @@ import itertools
 import functools
 from collections import Counter, OrderedDict, defaultdict
 from logging import getLogger
+import math
+import multiprocessing as mp
 from time import time
 from typing import Iterable, Optional
 import pandas as pd
@@ -114,26 +116,16 @@ class SearchEngine:
 
         t = time()
         size_old = len(self.df)
-
         # identifier to word and df
-        t2 = time()
         i2w, update_df = self.words_in_df(update_df)
-        log.debug(f">>> DF {time() - t2:.2f}.")
         self.identifier_to_word = update_dict(self.identifier_to_word, i2w)
-        for col in [col for col in update_df.columns if col not in self.df]:
-            col_data = [""] * len(self.df)
-            self.df[col] = col_data
         self.df = pd.concat([self.df, update_df])
-        log.debug(f">>> tot {time() - t2:.2f}.")
-
         # word to identifier
         w2i = self.reverse_dict_many_to_one(i2w)
         self.word_to_identifier = update_dict(self.word_to_identifier, w2i)
-
         # word to q-gram
         w2q = self.list_to_q_grams(w2i.keys())
         self.word_to_q_grams = update_dict(self.word_to_q_grams, w2q)
-
         # q-gram to word
         q2w = self.reverse_dict_many_to_one(w2q)
         self.q_gram_to_word = update_dict(self.q_gram_to_word, q2w)
@@ -170,6 +162,38 @@ class SearchEngine:
             return [text]
         return list(text[i:i + q] for i in range(n - q + 1))
 
+    def df_clean_worker(self, df):
+        """Clean the text in query_col."""
+        df["query_col"] = df["query_col"].apply(self.clean_text)
+        return df
+
+    def df_clean(self, df):
+        """Clean the text in query_col.
+
+        apply multi-processing when the computer is able and its relevant
+        """
+        def chunk_dataframe(df: pd.DataFrame, chunk_size: int):
+            """Split DataFrame into chunks of specified size."""
+            return [df.iloc[i:i + chunk_size] for i in range(0, len(df), chunk_size)]
+
+        max_cores = max(1, mp.cpu_count() - 1)  # leave at least 1 core for other processes
+        min_chunk_size = 2500
+        if max_cores > 1 and len(df) > min_chunk_size * 2:
+            for i in range(max_cores, 0, -1):
+                chunk_size = int(math.ceil(len(df) / i))
+                if chunk_size >= min_chunk_size:
+                    break
+            use_cores = i
+        else:
+            use_cores = 1
+        if use_cores == 1:
+            return self.df_clean_worker(df)
+
+        chunks = chunk_dataframe(df, chunk_size)
+        with mp.Pool(processes=use_cores) as pool:
+            results = pool.starmap(self.df_clean_worker, [(chunk,) for chunk in chunks])
+        return pd.concat(results)
+
     def words_in_df(self, df: pd.DataFrame = None) -> tuple[dict, pd.DataFrame]:
         """Return a dict of {identifier: word} for df."""
 
@@ -178,7 +202,7 @@ class SearchEngine:
         # assemble query_col
         df["query_col"] = df.iloc[:, self.searchable_columns].astype(str).agg(" | ".join, axis=1)
         # clean all text at once using vectorized operations
-        df["query_col"] = df["query_col"].apply(self.clean_text)
+        df["query_col"] = self.df_clean(df.loc[:, ["query_col"]])
         # build the identifier_word_dict dictionary
         identifier_word_dict = df["query_col"].apply(lambda text: Counter(text.split(" "))).to_dict()
         return identifier_word_dict, df
