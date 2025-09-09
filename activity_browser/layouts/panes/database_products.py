@@ -498,33 +498,20 @@ class ProductModel(ui.widgets.ABItemModel):
         result_keys = set(translate_dict.keys())
 
         # convert the metadata id scores to row id scores
-        best_row_scores = Counter()
-        remain_row_scores = Counter()
+        row_scores = Counter()
         match_df = self.dataframe[self.dataframe["activity_key"].isin(result_keys) | self.dataframe["product_key"].isin(result_keys)]
         cols = ["activity_key", "product_key"]
-        cols = cols + [col for col in match_df.columns if col not in cols]
         match_df = match_df.loc[:, cols]
         for row in match_df.itertuples():
-            # score higher if exact words occur
             act_score = results.get(translate_dict.get(row[1]), 0)
             prd_score = results.get(translate_dict.get(row[2]), 0)
-            row_text = str(row[1:])
-            for query_word in query.split(" "):
-                if amt := query.count(query_word) > 0 and len(query_word) > 0:
-                    best_row_scores[row[0]] = (act_score + prd_score) * amt
-            if query in row_text:
-                score = (best_row_scores.get(row[0], 0) + act_score + prd_score) * 2
-                best_row_scores[row[0]] = score
-            else:
-                remain_row_scores[row[0]] = act_score + prd_score
+            row_scores[row[0]] = act_score + prd_score
 
         # finally only return the indices
-        best_sorted_indices = [identifier for identifier, _ in best_row_scores.most_common()]
-        remain_sorted_indices = [identifier for identifier, _ in remain_row_scores.most_common()]
-        sorted_indices = best_sorted_indices + remain_sorted_indices
+        sorted_indices = [identifier for identifier, _ in row_scores.most_common()]
         log.debug(
         f"ProductModel search in '{self.external_col_name}' ({len(self.dataframe)} items) "
-        f"found {len(sorted_indices)} ({len(best_sorted_indices)} literal) results "
+        f"found {len(sorted_indices)} results "
         f"for '{query}' in {time() - t:.2f} seconds ({t2 - t:.2f}s actual search, {time() - t2:.2f}s reorder for table)"
         )
         return sorted_indices

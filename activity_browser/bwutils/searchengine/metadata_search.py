@@ -61,7 +61,6 @@ class MetaDataSearchEngine(SearchEngine):
         """Based on spellchecker, make more useful for autocompletions
         """
         def word_to_identifier_to_word(check_word):
-            # assumes context words are correctly spelled
             if len(context) == 0:
                 return 1
             multiplier = 1
@@ -73,7 +72,7 @@ class MetaDataSearchEngine(SearchEngine):
                     if context_word not in self.word_to_identifier.keys():
                         continue
                     if context_word in self.identifier_to_word[identifier]:
-                        multiplier += 3
+                        multiplier += 4
             return multiplier
 
         # count occurrences of a word, count double so word_to_identifier_to_word will never multiply by 1
@@ -105,7 +104,7 @@ class MetaDataSearchEngine(SearchEngine):
 
         # now, refine with edit distance
         for row in possible_matches.itertuples():
-            if len(word) > len(row[1]) or word == row[1]:
+            if word == row[1]:
                 continue
             # find edit distance of same size strings
             edit_distance = self.osa_distance(word, row[1][:len(word)], cutoff=never_accept_this)
@@ -253,10 +252,9 @@ class MetaDataSearchEngine(SearchEngine):
                 # finally, make this a Counter (with each item=1) so we can properly weigh things later
                 query_id_sets = [set(query_to_identifier.get(q_word)) for q_word in query if
                                  query_to_identifier.get(q_word, False)]
-                if len(query_id_sets) > 0:
-                    query_identifier_set = set.intersection(*query_id_sets)
-                else:
-                    query_identifier_set = set()
+                if len(query_id_sets) == 0:
+                    continue
+                query_identifier_set = set.intersection(*query_id_sets)
                 if len(query_identifier_set) == 0:
                     # there is no match for this combination of query words, skip
                     break

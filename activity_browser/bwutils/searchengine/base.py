@@ -516,12 +516,12 @@ class SearchEngine:
         never_accept_this = 4  # values this edit distance or over always rejected
 
         # make list of unique words
+        text = self.clean_text(text)
         words = OrderedDict()
         for word in text.split(" "):
-            words[word] = False
+            if len(word) != 0:
+                words[word] = False
         words = words.keys()
-
-        words = [self.clean_text(word) for word in words]
 
         for word in words:
             if len(word) <= skip_len:  # dont look for alternatives for text this short
@@ -703,10 +703,9 @@ class SearchEngine:
                 # finally, make this a Counter (with each item=1) so we can properly weigh things later
                 query_id_sets = [set(query_to_identifier.get(q_word)) for q_word in query if
                                  query_to_identifier.get(q_word, False)]
-                if len(query_id_sets) > 0:
-                    query_identifier_set = set.intersection(*query_id_sets)
-                else:
-                    query_identifier_set = set()
+                if len(query_id_sets) == 0:
+                    continue
+                query_identifier_set = set.intersection(*query_id_sets)
                 if len(query_identifier_set) == 0:
                     # there is no match for this combination of query words, skip
                     break
