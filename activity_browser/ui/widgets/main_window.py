@@ -27,7 +27,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setMenuBar(self.menu_bar)
 
         self.connect_signals()
-        self.connect_shortcuts()
 
     def sync(self):
         """
@@ -88,12 +87,6 @@ class MainWindow(QtWidgets.QMainWindow):
         # Keyboard shortcuts
         signals.project.changed.connect(self.sync)
 
-    def connect_shortcuts(self):
-        """Connect global keyboard shortcuts to their respective functions. Only called once during initialization."""
-        for seq, func in _main_window_shortcuts.items():
-            shortcut = QtWidgets.QShortcut(QtGui.QKeySequence(seq), self)
-            shortcut.activated.connect(func)
-
     def clearPanes(self):
         for pane in self.panes():
             pane.deleteLater()
@@ -116,16 +109,3 @@ class MainWindow(QtWidgets.QMainWindow):
             QtWidgets.QMessageBox.Ok,
         )
 
-
-def global_shortcut(key_sequence):
-    """
-    Decorator to register a global keyboard shortcut for the main window. Decorate a function with e.g.
-    @global_shortcut("Ctrl+S") to register it as a shortcut. Also works on the run method of actions as long as the
-    parameters of said action are taken care of.
-    """
-    def decorator(func):
-        _main_window_shortcuts[key_sequence] = func
-        return func
-    return decorator
-
-_main_window_shortcuts = {}
