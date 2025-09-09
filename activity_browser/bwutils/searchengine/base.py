@@ -116,12 +116,15 @@ class SearchEngine:
         size_old = len(self.df)
 
         # identifier to word and df
+        t2 = time()
         i2w, update_df = self.words_in_df(update_df)
+        log.debug(f">>> DF {time() - t2:.2f}.")
         self.identifier_to_word = update_dict(self.identifier_to_word, i2w)
         for col in [col for col in update_df.columns if col not in self.df]:
             col_data = [""] * len(self.df)
             self.df[col] = col_data
         self.df = pd.concat([self.df, update_df])
+        log.debug(f">>> tot {time() - t2:.2f}.")
 
         # word to identifier
         w2i = self.reverse_dict_many_to_one(i2w)
@@ -170,21 +173,15 @@ class SearchEngine:
     def words_in_df(self, df: pd.DataFrame = None) -> tuple[dict, pd.DataFrame]:
         """Return a dict of {identifier: word} for df."""
 
-        df = df if any(df) else self.df
-        return_df = df.copy()
-
-        df = df.iloc[:, self.searchable_columns]
-        identifier_word_dict = {}
-        col = []
-
-        for row in df.itertuples(index=True):
-            line = self.clean_text(" | ".join(row[1:]))
-            col.append(line)
-            identifier_word_dict[row[0]] = Counter(line.split(" "))
-        return_df["query_col"] = col
-        return_df = return_df.fillna("")   # ensure we don't add unwanted NA in new data
-
-        return identifier_word_dict, return_df
+        df = df if df is not None else self.df.copy()
+        df = df.fillna("")  # avoid nan
+        # assemble query_col
+        df["query_col"] = df.iloc[:, self.searchable_columns].astype(str).agg(" | ".join, axis=1)
+        # clean all text at once using vectorized operations
+        df["query_col"] = df["query_col"].apply(self.clean_text)
+        # build the identifier_word_dict dictionary
+        identifier_word_dict = df["query_col"].apply(lambda text: Counter(text.split(" "))).to_dict()
+        return identifier_word_dict, df
 
     def reverse_dict_many_to_one(self, dictionary: dict) -> dict:
         """Reverse a dictionary of Counter objects."""
