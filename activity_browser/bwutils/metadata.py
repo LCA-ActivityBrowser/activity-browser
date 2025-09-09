@@ -89,6 +89,8 @@ class MetaDataStore(QObject):
             pass
 
     def remove_identifier_from_search_engine(self, ds):
+        if not hasattr(self, "search_engine"):
+            return
         data = model_to_dict(ds)
         identifier = data["id"]
         if identifier in self.search_engine.database_id_manager(data["database"]):
@@ -96,6 +98,8 @@ class MetaDataStore(QObject):
             self.search_engine.reset_database_id_manager()
 
     def remove_identifiers_from_search_engine(self, identifiers):
+        if not hasattr(self, "search_engine"):
+            return
         t = time()
         for identifier in identifiers:
             self.search_engine.remove_identifier(identifier, logging=False)
@@ -132,12 +136,16 @@ class MetaDataStore(QObject):
         self.thread().eventDispatcher().awake.connect(self._emitSyncLater, Qt.ConnectionType.UniqueConnection)
 
     def add_identifier_to_search_engine(self, data: pd.DataFrame):
+        if not hasattr(self, "search_engine"):
+            return
         search_engine_cols = list(set(data.columns) & set(self.search_engine_whitelist))  # intersection becomes columns
         data = data[search_engine_cols]
         self.search_engine.add_identifier(data.copy())
         self.search_engine.reset_database_id_manager()
 
     def change_identifier_in_search_engine(self, identifier, data: pd.DataFrame):
+        if not hasattr(self, "search_engine"):
+            return
         search_engine_cols = list(set(data.columns) & set(self.search_engine_whitelist))  # intersection becomes columns
         data = data[search_engine_cols]
         self.search_engine.change_identifier(identifier=identifier, data=data.copy())
