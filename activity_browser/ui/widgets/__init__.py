@@ -1,8 +1,8 @@
 from .abstract_pane import ABAbstractPane
 from .comparison_switch import SwitchComboBox
 from .cutoff_menu import CutoffMenu
-from .line_edit import (ABLineEdit, SignalledComboEdit, SignalledLineEdit,
-                        SignalledPlainTextEdit, MetaDataAutoCompleteLineEdit)
+from .line_edit import ABLineEdit, SignalledComboEdit, SignalledLineEdit, SignalledPlainTextEdit
+from .text_edit import MetaDataAutoCompleteTextEdit
 from .treeview import ABTreeView
 from .item_model import ABItemModel
 from .item import ABAbstractItem, ABBranchItem, ABDataItem
