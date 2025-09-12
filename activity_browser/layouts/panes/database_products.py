@@ -60,7 +60,7 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
         self.model.has_external_search = True
         self.model.external_col_name = db_name
 
-        self.search = widgets.MetaDataAutoCompleteLineEdit(self)
+        self.search = widgets.MetaDataAutoCompleteTextEdit(self)
         self.search.database_name = db_name
         self.search.setMaximumHeight(30)
         self.search.setPlaceholderText("Quick Search")
