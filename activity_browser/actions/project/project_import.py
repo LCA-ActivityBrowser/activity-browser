@@ -95,7 +95,7 @@ class ProjectImport(ABAction):
             for member in tar:
                 if member.name[-17:] == "project-name.json":
                     return json.load(reader(tar.extractfile(member)))["name"]
-            raise ValueError("Couldn't find project name file in archive")
+            return ""
 
 
 class ImportThread(ABThread):
