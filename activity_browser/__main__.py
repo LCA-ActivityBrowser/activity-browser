@@ -208,7 +208,11 @@ def check_pyside_version():
 
 def check_conda_update():
     ab_url = "https://api.anaconda.org/package/lca/activity-browser"
-    ab_response = requests.get(ab_url)
+    try:
+        ab_response = requests.get(ab_url)
+    except:
+        print("Could not fetch latest Activity Browser version")
+        return
     ab_current = metadata.version("activity_browser")
     print(f"Activity Browser version: {ab_current}")
 
@@ -223,7 +227,11 @@ def check_conda_update():
 
 def check_pypi_update():
     ab_url = "https://pypi.org/pypi/activity-browser/json"
-    ab_response = requests.get(ab_url)
+    try:
+        ab_response = requests.get(ab_url)
+    except:
+        print("Could not fetch latest Activity Browser version")
+        return
     ab_current = metadata.version("activity_browser")
     print(f"Activity Browser version: {ab_current}")
 
