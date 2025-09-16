@@ -114,6 +114,9 @@ class SearchEngine:
             update_me = update_me | new_data
             return update_me
 
+        if len(update_df) == 0:
+            return
+
         t = time()
         size_old = len(self.df)
         # identifier to word and df
