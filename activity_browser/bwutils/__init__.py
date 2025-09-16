@@ -8,7 +8,7 @@ import bw_functional
 from .commontasks import cleanup_deleted_bw_projects as cleanup
 from .commontasks import (refresh_node, refresh_node_or_none, refresh_parameter, refresh_edge, refresh_edge_or_none,
                           parameters_in_scope, exchanges_to_sdf, database_is_locked, database_is_legacy, projects_by_last_opened,
-                          node_group)
+                          node_group, is_node_product, is_node_biosphere)
 from .metadata import AB_metadata
 from .montecarlo import MonteCarloLCA
 from .multilca import MLCA, Contributions

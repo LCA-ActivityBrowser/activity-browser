@@ -228,15 +228,20 @@ class ExchangesTab(QtWidgets.QWidget):
         exchanges = {"technosphere": set(), "biosphere": set()}
 
         for key in keys:
-            act = bd.get_node(key=key)
-            if act["type"] not in EXCHANGE_MAP:
-                continue
-            exc_type = EXCHANGE_MAP[act["type"]]
-            exchanges[exc_type].add(act.key)
+            if exc_type := get_exchange_type(key):
+                exchanges[exc_type].add(key)
 
         # Run the action for new exchanges
         for exc_type, keys in exchanges.items():
             actions.ExchangeNew.run(keys, self.activity.key, exc_type)
+
+def get_exchange_type(activity_key: tuple) -> str | None:
+    if bwutils.is_node_product(activity_key):
+        return "technosphere"
+    elif bwutils.is_node_biosphere(activity_key):
+        return "biosphere"
+    return None
+
 
 
 class DropOverlay(QtWidgets.QWidget):
