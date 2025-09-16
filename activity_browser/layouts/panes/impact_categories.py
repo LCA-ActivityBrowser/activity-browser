@@ -52,6 +52,7 @@ class ImpactCategoriesPane(widgets.ABAbstractPane):
         self.view.setColumnHidden(1, True)
         self.view.setColumnHidden(2, True)
         self.view.setColumnHidden(3, True)
+        self.view.sortByColumn(1, Qt.SortOrder.AscendingOrder)
 
     def sync(self):
         self.model.setDataFrame(self.build_df())
