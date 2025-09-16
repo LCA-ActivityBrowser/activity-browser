@@ -12,17 +12,22 @@ log = getLogger(__name__)
 
 
 class MetaDataSearchEngine(SearchEngine):
+
+    # caching for faster operation
     def database_id_manager(self, database):
         if not hasattr(self, "all_database_ids"):
             self.all_database_ids = {}
 
         if database_ids := self.all_database_ids.get(database):
             self.database_ids = database_ids
+            self.current_database = database
         elif database is not None:
             self.database_ids = set(self.df[self.df["database"] == database].index.to_list())
             self.all_database_ids[database] = self.database_ids
+            self.current_database = database
         else:
             self.database_ids = None
+            self.current_database = "_@@NO_DB_"
         return self.database_ids
 
     def reset_database_id_manager(self):
@@ -31,10 +36,54 @@ class MetaDataSearchEngine(SearchEngine):
         if hasattr(self, "database_ids"):
             del self.database_ids
 
+    def database_word_manager(self, database):
+        if not hasattr(self, "all_database_words"):
+            self.all_database_words = {}
+
+        if database_words := self.all_database_words.get(database):
+            self.database_words = database_words
+        elif database is not None:
+            ids = self.database_id_manager(database)
+            self.database_words = self.reverse_dict_many_to_one({_id: self.identifier_to_word[_id] for _id in ids})
+            self.all_database_words[database] = self.database_words
+        else:
+            self.database_words = None
+        return self.database_words
+
+    def reset_database_word_manager(self, database):
+        if hasattr(self, "all_database_words") and self.all_database_words.get(database):
+            del self.all_database_words[database]
+        if hasattr(self, "database_words"):
+            del self.database_words
+
+    def database_search_cache(self, database, query, result = None):
+        if not hasattr(self, "search_cache"):
+            self.search_cache = {}
+
+        if result:
+            if self.search_cache.get(database):
+                self.search_cache[database][query] = result
+            else:
+                self.search_cache[database] = {query: result}
+            return
+        if db_cache := self.search_cache.get(database):
+            if cached_result := db_cache.get(query):
+                return cached_result
+        return
+
+    def reset_search_cache(self, database):
+        if hasattr(self, "search_cache") and self.search_cache.get(database):
+            del self.search_cache[database]
+
+    def reset_all_caches(self, databases):
+        self.reset_database_id_manager()
+        for database in databases:
+            self.reset_database_word_manager(database)
+            self.reset_search_cache(database)
+
     def add_identifier(self, data: pd.DataFrame) -> None:
         super().add_identifier(data)
-        self.reset_database_id_manager()
-
+        self.reset_all_caches(data["database"].unique())
 
     def remove_identifiers(self, identifiers, logging=True) -> None:
         t = time()
@@ -42,6 +91,7 @@ class MetaDataSearchEngine(SearchEngine):
         identifiers = set(identifiers)
         current_identifiers = set(self.df.index.to_list())
         identifiers = identifiers | current_identifiers  # only remove identifiers currently in the data
+        databases = self.df.loc[identifiers, ["databases"]].unique()  # extract databases for cache cleaning
         if len(identifiers) == 0:
             return
 
@@ -51,11 +101,11 @@ class MetaDataSearchEngine(SearchEngine):
         if logging:
             log.debug(f"Search index updated in {time() - t:.2f} seconds "
                       f"for {len(identifiers)} removed items ({len(self.df)} items ({self.size_of_index()}) currently).")
-        self.reset_database_id_manager()
+        self.reset_all_caches(databases)
 
     def change_identifier(self, identifier, data: pd.DataFrame) -> None:
         super().change_identifier(identifier, data)
-        self.reset_database_id_manager()
+        self.reset_all_caches(data["database"].unique())
 
     def auto_complete(self, word: str, context: Optional[set] = set(), database: Optional[str] = None) -> list:
         """Based on spellchecker, make more useful for autocompletions
@@ -188,6 +238,53 @@ class MetaDataSearchEngine(SearchEngine):
 
         return matches.iloc[:min(len(matches), 2500), :]  # return at most this many results
 
+    def search_size_1(self, queries: list, original_words: set, orig_word_weight=5, exact_word_weight=1) -> dict:
+        """Return a dict of {query_word: Counter(identifier)}.
+
+        queries: is a list of len 1 tuple/lists of words that are a searched word or a 'spell checked' similar word
+        original words: a list of words actually searched for (not including spellchecked)
+
+        orig_word_weight: additional weight to add to original words
+        exact_word_weight: additional weight to add to exact word matches (as opposed to be 'in' str)
+
+        First, we find all matching words, creating a dict of words in 'queries' as keys and words matching that query word as list of values
+        Next, we convert this to identifiers and add weights:
+            Weight will be increased if matching 'orig_word_weight' or 'exact_word_weight'
+        """
+        matches = {}
+        t2 = time()
+        # add each word in search index if query_word in word
+        for word in self.database_words.keys():
+            for query in queries:
+                # query is list/tuple of len 1
+                query_word = query[0]  # only use the word
+                if query_word in word:
+                    words = matches.get(query_word, [])
+                    words.extend([word])
+                    matches[query_word] = words
+
+        # now convert matched words to matched identifiers
+        matched_identifiers = {}
+        for word, matching_words in matches.items():
+            if result := self.database_search_cache(self.current_database, word):
+                matched_identifiers[word] = result
+                continue
+            id_counter = matched_identifiers.get(word, Counter())
+            for matched_word in matching_words:
+                weight = self.base_weight
+
+                # add the word n times, where n is the weight, original search word is weighted higher than alternatives
+                if matched_word in original_words:
+                    weight += orig_word_weight  # increase weight for original word
+                if matched_word == word:
+                    weight += exact_word_weight  # increase weight for exact matching word
+
+                id_counter = self.weigh_identifiers(self.database_words[matched_word], weight, id_counter)
+                matched_identifiers[word] = id_counter
+            self.database_search_cache(self.current_database, word, matched_identifiers[word])
+
+        return matched_identifiers
+
     def fuzzy_search(self, text: str, database: Optional[str] = None, return_counter: bool = False, logging: bool = True) -> list:
         """Overwritten for extra database specific reduction of results.
         """
@@ -200,6 +297,7 @@ class MetaDataSearchEngine(SearchEngine):
 
         # DATABASE SPECIFIC get the set of ids that is in this database
         self.database_id_manager(database)
+        self.database_word_manager(database)
 
         queries = self.build_queries(text)
 
@@ -279,17 +377,21 @@ class MetaDataSearchEngine(SearchEngine):
                 # now search for all permutations of this query combined with a space
                 query_df = search_df[search_df[self.identifier_name].isin(query_identifiers)]
                 for query_perm in permutations(query):
-                    mask = self.filter_dataframe(query_df, " ".join(query_perm), search_columns=["query_col"])
-                    new_df = query_df.loc[mask].reset_index(drop=True)
-                    if len(new_df) == 0:
-                        # there is no match for this permutation of words, skip
-                        continue
-                    new_id_list = new_df[self.identifier_name]
+                    query_perm_str = " ".join(query_perm)
+                    if result := self.database_search_cache(self.current_database, query_perm_str):
+                        new_ids = result
+                    else:
+                        mask = self.filter_dataframe(query_df, query_perm_str, search_columns=["query_col"])
+                        new_df = query_df.loc[mask].reset_index(drop=True)
+                        if len(new_df) == 0:
+                            # there is no match for this permutation of words, skip
+                            continue
+                        new_id_list = new_df[self.identifier_name]
 
-                    new_ids = Counter()
-                    for new_id in new_id_list:
-                        new_ids[new_id] = query_identifiers[new_id]
-
+                        new_ids = Counter()
+                        for new_id in new_id_list:
+                            new_ids[new_id] = query_identifiers[new_id]
+                        self.database_search_cache(self.current_database, query_perm_str, new_ids)
                     # we weigh a combination of words that is next also to each other even higher than just the words separately
                     query_to_identifier[query_name] = self.weigh_identifiers(new_ids, weight,
                                                                              query_to_identifier[query_name])
@@ -298,14 +400,15 @@ class MetaDataSearchEngine(SearchEngine):
         for identifiers in query_to_identifier.values():
             all_identifiers += identifiers
 
+        if return_counter:
+           return_this = all_identifiers
+        else:
+            # now sort on highest weights and make list type
+            return_this = [identifier[0] for identifier in all_identifiers.most_common()]
         if logging:
             log.debug(
                 f"Found {len(all_identifiers)} search results for '{text}' in {len(self.df)} items in {time() - t:.2f} seconds")
-        if return_counter:
-            return all_identifiers
-        # now sort on highest weights and make list type
-        sorted_identifiers = [identifier[0] for identifier in all_identifiers.most_common()]
-        return sorted_identifiers
+        return return_this
 
     def search(self, text, database: Optional[str] = None) -> list:
         """Search the dataframe on this text, return a sorted list of identifiers."""
