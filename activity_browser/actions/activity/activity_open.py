@@ -50,7 +50,7 @@ class ActivityOpen(ABAction):
 
         for act in activities:
             # Check if the activity type is supported
-            if act.get("type") not in ["process", "nonfunctional", "multifunctional", "processwithreferenceproduct"]:
+            if not bwutils.is_node_process(act):
                 log.warning(f"Can't open activity {act.key} - opening type: `{act.get('type')}` not supported")
                 continue
 

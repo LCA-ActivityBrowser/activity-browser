@@ -216,6 +216,14 @@ def is_node_biosphere(node: tuple | int | bd.Node) -> bool:
         return True
     return False
 
+def is_node_process(node: tuple | int | bd.Node) -> bool:
+    node = refresh_node(node)
+    raw_type = node._document.type
+
+    if raw_type in ["process", "nonfunctional", "multifunctional", "processwithreferenceproduct"]:
+        return True
+    return False
+
 
 def refresh_node(node: tuple | int | bd.Node) -> bd.Node:
     if isinstance(node, bd.Node):
