@@ -57,10 +57,8 @@ class ImpactCategoriesPane(widgets.ABAbstractPane):
         self.model.setDataFrame(self.build_df())
 
     def build_df(self):
-        df = pd.DataFrame.from_dict(bd.methods, orient="index")
-        df.index = df.index.to_flat_index()
-        df.index.name = "_method_name"
-        df = df.reset_index()
+        df = pd.DataFrame(bd.methods.values())
+        df["_method_name"] = bd.methods.keys()
 
         df["name"] = df["_method_name"].apply(lambda x: x[-1])
         df["groups"] = df["_method_name"].apply(lambda x: x[:-1])
@@ -91,6 +89,10 @@ class ImpactCategoriesView(widgets.ABTreeView):
                                ),
             lambda m, p: m.add(actions.MethodDuplicate, p.selected_impact_categories,
                                text="Duplicate impact category",
+                               enable=len(p.selected_impact_categories) == 1
+                               ),
+            lambda m, p: m.add(actions.MethodRename, p.selected_impact_categories,
+                               text="Rename impact category",
                                enable=len(p.selected_impact_categories) == 1
                                ),
         ]
