@@ -53,7 +53,7 @@ class SpecialProgressBar(QtWidgets.QWidget):
 class ABLoader(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
-        self.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint)
+        self.setWindowFlags(Qt.FramelessWindowHint)
         self.setWindowTitle("Activity Browser Launcher")
         self.setFixedSize(500, 300)
 
