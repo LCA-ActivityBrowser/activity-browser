@@ -1,7 +1,7 @@
 import pickle
 from logging import getLogger
 
-from qtpy import QtCore, QtWidgets
+from qtpy import QtCore, QtWidgets, QtGui
 
 import bw2data as bd
 
@@ -108,3 +108,4 @@ class MainWindow(QtWidgets.QMainWindow):
             f"An error occurred, check the logs for more information \n\n {str(exception)}",
             QtWidgets.QMessageBox.Ok,
         )
+

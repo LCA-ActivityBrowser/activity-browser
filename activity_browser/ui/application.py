@@ -82,6 +82,11 @@ class ABApplication(QtWidgets.QApplication):
     def main_window(self, widget: QtWidgets.QMainWindow):
         self._main_window = widget
 
+        # connect global keyboard shortcuts to their respective functions
+        for seq, func in _global_shortcuts.items():
+            shortcut = QtWidgets.QShortcut(QtGui.QKeySequence(seq), widget)
+            shortcut.activated.connect(func)
+
     def show(self):
         self.main_window.showMaximized()
 
@@ -92,6 +97,20 @@ class ABApplication(QtWidgets.QApplication):
 
     def deleteLater(self):
         self.main_window.deleteLater()
+
+
+def global_shortcut(key_sequence):
+    """
+    Decorator to register a global keyboard shortcut for the main window. Decorate a function with e.g.
+    @global_shortcut("Ctrl+S") to register it as a shortcut. Also works on the run method of actions as long as the
+    parameters of said action are taken care of.
+    """
+    def decorator(func):
+        _global_shortcuts[key_sequence] = func
+        return func
+    return decorator
+
+_global_shortcuts = {}
 
 
 application = ABApplication()

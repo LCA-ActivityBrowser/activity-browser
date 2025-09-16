@@ -1,6 +1,6 @@
 name: Feature request
 description: File a feature request for AB.
-labels: ["feature"]
+type: Feature
 body:
   - type: markdown
     attributes:

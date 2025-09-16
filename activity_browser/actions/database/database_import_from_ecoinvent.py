@@ -1,4 +1,5 @@
 import re
+import os
 from logging import getLogger
 from copy import deepcopy
 
@@ -223,7 +224,7 @@ class EiWizard(widgets.ABWizard):
                     fix_version=False
                 )
                 path = str(path)
-                if not path.endswith(".7z"):
+                if not path.endswith(".7z") and os.path.exists(path + ".7z"):
                     path = path + ".7z"
                 self.download_ready.emit(path)
 
