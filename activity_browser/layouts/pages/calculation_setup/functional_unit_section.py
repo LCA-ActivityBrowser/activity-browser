@@ -1,11 +1,10 @@
 from qtpy import QtWidgets
-from qtpy.QtCore import Qt
 
 import bw2data as bd
 import pandas as pd
 
 from activity_browser import actions
-from activity_browser.ui import widgets, icons, delegates
+from activity_browser.ui import widgets, icons
 from activity_browser.bwutils import AB_metadata
 
 
@@ -47,7 +46,6 @@ class FunctionalUnitSection(QtWidgets.QWidget):
         act_df = AB_metadata.get_metadata(keys, cols)
         act_df["amount"] = amounts
         act_df["_activity_key"] = keys
-        act_df["_cs_name"] = self.calculation_setup_name
 
         act_df["_processor_key"] = act_df["processor"]
         act_df["_processor_key"] = act_df["_processor_key"].fillna(act_df["_activity_key"])
@@ -75,15 +73,12 @@ class FunctionalUnitSection(QtWidgets.QWidget):
         act_df.update(act_df["product"].rename("name"))
         act_df["product"] = act_df["name"]
 
-        cols = ["amount", "unit", "product", "process", "database", "location", "_processor_key", "_activity_key", "_cs_name"]
+        cols = ["amount", "unit", "product", "process", "database", "location", "_processor_key", "_activity_key"]
 
         return act_df[cols].reset_index(drop=True)
 
 
 class FunctionalUnitView(widgets.ABTreeView):
-    defaultColumnDelegates = {
-        "amount": delegates.AmountDelegate
-    }
 
     class ContextMenu(widgets.ABMenu):
         menuSetup = [
@@ -124,15 +119,9 @@ class FunctionalUnitView(widgets.ABTreeView):
         Args:
             event: The mouse double click event.
         """
-        index = self.indexAt(event.pos())
-        if index.column() == 0:
-            return super().mouseDoubleClickEvent(event)
-
         if self.selectedIndexes():
             activities = [index.internalPointer()["_processor_key"] for index in self.selectedIndexes()]
             actions.ActivityOpen.run(list(set(activities)))
-
-        return None
 
     def dragMoveEvent(self, event) -> None:
         pass
@@ -142,7 +131,7 @@ class FunctionalUnitView(widgets.ABTreeView):
             keys: list = event.mimeData().retrievePickleData("application/bw-nodekeylist")
             for key in keys:
                 act = bd.get_node(key=key)
-                if act["type"] not in bd.labels.product_node_types + ["processwithreferenceproduct"]:
+                if act["type"] not in bd.labels.product_node_types + ["processwithreferenceproduct", "process"]:
                     keys.remove(key)
 
             if not keys:
@@ -157,7 +146,7 @@ class FunctionalUnitView(widgets.ABTreeView):
         keys: list = event.mimeData().retrievePickleData("application/bw-nodekeylist")
         for key in keys:
             act = bd.get_node(key=key)
-            if act["type"] not in bd.labels.product_node_types + ["processwithreferenceproduct"]:
+            if act["type"] not in bd.labels.product_node_types + ["processwithreferenceproduct", "process"]:
                 keys.remove(key)
 
         actions.CSAddFunctionalUnit.run(cs_name, keys)
@@ -169,45 +158,6 @@ class FunctionalUnitItem(widgets.ABDataItem):
             return icons.qicons.product
         if key == "process":
             return icons.qicons.process
-        return super().decorationData(col, key)
-
-    def flags(self, col: int, key: str):
-        """
-        Returns the item flags for the given column and key.
-
-        Args:
-            col (int): The column index.
-            key (str): The key for which to return the flags.
-
-        Returns:
-            QtCore.Qt.ItemFlags: The item flags.
-        """
-        flags = super().flags(col, key)
-        if key in ["amount"]:
-            return flags | Qt.ItemFlag.ItemIsEditable
-        return flags
-
-    def setData(self, col: int, key: str, value) -> bool:
-        """
-        Sets the data for the given column and key.
-
-        Args:
-            col (int): The column index.
-            key (str): The key for which to set the data.
-            value: The value to set.
-
-        Returns:
-            bool: True if the data was set successfully, False otherwise.
-        """
-        if key not in ["amount"]:
-            return False
-
-        cs_name = self["_cs_name"]
-        index = self.key()
-
-        actions.CSChangeFunctionalUnit.run(cs_name, index, value)
-
-
 
 
 class FunctionalUnitModel(widgets.ABItemModel):
