@@ -47,7 +47,7 @@ class ImpactCategoryHeader(QtWidgets.QWidget):
         grid.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop)
 
         setup = [
-            ("Name:", QtWidgets.QLabel(str(self.impact_category.name)),),
+            ("Name:", QtWidgets.QLabel(" | ".join(self.impact_category.name)),),
             ("Unit:", QtWidgets.QLabel(str(self.impact_category.metadata.get("unit", "Undefined"))),),
         ]
 

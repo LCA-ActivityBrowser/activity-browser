@@ -8,6 +8,8 @@ from activity_browser import actions, signals
 from activity_browser.ui import widgets, icons, delegates
 from activity_browser.bwutils import AB_metadata
 
+from .impact_category_header import ImpactCategoryHeader
+
 
 class ImpactCategoryDetailsPage(QtWidgets.QWidget):
     def __init__(self, name: tuple, parent=None):
@@ -17,16 +19,19 @@ class ImpactCategoryDetailsPage(QtWidgets.QWidget):
 
         self.setObjectName(" | ".join(name))
 
-        self.model = CharacterizationFactorsModel(self, self.build_df())
+        self.header = ImpactCategoryHeader(self)
+
+        self.model = CharacterizationFactorsModel(self)
         self.view = CharacterizationFactorsView(self)
         self.view.setModel(self.model)
+
+        self.build_layout()
+        self.connect_signals()
+        self.sync()
 
         # resizing name and categories columns
         self.view.resizeColumnToContents(0)
         self.view.resizeColumnToContents(1)
-
-        self.build_layout()
-        self.connect_signals()
 
     def connect_signals(self):
         signals.method.deleted.connect(self.on_method_deleted)
@@ -37,12 +42,17 @@ class ImpactCategoryDetailsPage(QtWidgets.QWidget):
             self.deleteLater()
 
     def sync(self):
+        if self.name not in bd.methods:
+            self.deleteLater()
+            return
+
         self.impact_category = bd.Method(self.name)
         self.model.setDataFrame(self.build_df())
+        self.header.sync()
 
     def build_layout(self):
         layout = QtWidgets.QVBoxLayout()
-        layout.addWidget(widgets.ABLabel.demiBold("Impact Category: " + " - ".join(self.name), self))
+        layout.addWidget(self.header)
         layout.addWidget(widgets.ABHLine(self))
         layout.addWidget(self.view)
         self.setLayout(layout)
