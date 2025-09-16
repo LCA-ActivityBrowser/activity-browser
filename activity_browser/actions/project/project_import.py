@@ -3,6 +3,7 @@ import json
 import tarfile
 from logging import getLogger
 
+import bw2data as bd
 from qtpy import QtWidgets, QtCore
 from bw2io import backup
 
@@ -95,7 +96,7 @@ class ProjectImport(ABAction):
             for member in tar:
                 if member.name[-17:] == "project-name.json":
                     return json.load(reader(tar.extractfile(member)))["name"]
-            raise ValueError("Couldn't find project name file in archive")
+            return ""
 
 
 class ImportThread(ABThread):
@@ -105,5 +106,11 @@ class ImportThread(ABThread):
                   f'\nPATH: {self.path}'
                   f'\nNAME: {self.project_name}')
         backup.restore_project_directory(fp=self.path, project_name=self.project_name)
+
+        # fix wrong hashing
+        ds = bd.project.ProjectDataset.get(name=self.project_name)
+        ds.full_hash = False
+        ds.save()
+
         log.info(f"Project `{self.project_name}` imported.")
 
