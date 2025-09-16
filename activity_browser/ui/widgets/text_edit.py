@@ -29,14 +29,12 @@ class UnknownWordHighlighter(QSyntaxHighlighter):
 
 
 class AutoCompleteDelegate(QStyledItemDelegate):
-    def __init__(self, parent=None, get_bold_word_func=None):
+    def __init__(self, parent=None):
         super().__init__(parent)
-        self.get_bold_word_func = get_bold_word_func
+        self.current_word_index = -1
 
     def paint(self, painter, option, index):
         text = index.data(Qt.DisplayRole)
-        bold_words = self.get_bold_word_func()
-        bold_words = {word.lower() for word in bold_words}
 
         painter.save()
 
@@ -55,9 +53,9 @@ class AutoCompleteDelegate(QStyledItemDelegate):
         font = option.font
         metrics = painter.fontMetrics()
 
-        for word in words:
+        for i, word in enumerate(words):
             word_font = QFont(font)
-            if word.lower() in bold_words:
+            if i+1 == self.current_word_index:
                 word_font.setBold(True)
             painter.setFont(word_font)
 
@@ -97,16 +95,14 @@ class ABAutoCompleTextEdit(ABTextEdit):
     def __init__(self, parent=None, highlight_unknown=False):
         super().__init__(parent=parent)
         self.auto_complete_word = ""
-        self.auto_complete_suggestions = []
 
         # autocompleter settings
         self.model = QStringListModel()
         self.completer = QCompleter(self.model)
         self.completer.setWidget(self)
         self.popup = self.completer.popup()
-        # set custom delegate to bold the current word
-        delegate = AutoCompleteDelegate(self.popup, get_bold_word_func=lambda: self.auto_complete_suggestions)
-        self.popup.setItemDelegate(delegate)
+        self.delegate = AutoCompleteDelegate(self.popup) # set custom delegate to bold the current word
+        self.popup.setItemDelegate(self.delegate)
         self.popup.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         self.completer.setPopup(self.popup)
         self.completer.setCompletionMode(QCompleter.UnfilteredPopupCompletion) # allow all items in popup list
@@ -228,10 +224,10 @@ class MetaDataAutoCompleteTextEdit(ABAutoCompleTextEdit):
         self.auto_complete_word = current_word
 
         context = set((text[:start] + text[end:]).split(" "))
+        self.delegate.current_word_index = len(text[:start].split(" "))  # current word index for bolding
         # get suggestions for the current word
         suggestions = AB_metadata.auto_complete(current_word, context=context, database=self.database_name)
         suggestions = suggestions[:6]  # at most 6, though we should get ~3 usually
-        self.auto_complete_suggestions = suggestions  # set for bolding of autocomplete suggestions
         # replace the current word with each alternative
         items = []
         for alt in suggestions:
