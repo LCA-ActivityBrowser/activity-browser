@@ -131,7 +131,7 @@ class FunctionalUnitView(widgets.ABTreeView):
             keys: list = event.mimeData().retrievePickleData("application/bw-nodekeylist")
             for key in keys:
                 act = bd.get_node(key=key)
-                if act["type"] not in bd.labels.product_node_types + ["processwithreferenceproduct"]:
+                if act["type"] not in bd.labels.product_node_types + ["processwithreferenceproduct", "process"]:
                     keys.remove(key)
 
             if not keys:
@@ -146,7 +146,7 @@ class FunctionalUnitView(widgets.ABTreeView):
         keys: list = event.mimeData().retrievePickleData("application/bw-nodekeylist")
         for key in keys:
             act = bd.get_node(key=key)
-            if act["type"] not in bd.labels.product_node_types + ["processwithreferenceproduct"]:
+            if act["type"] not in bd.labels.product_node_types + ["processwithreferenceproduct", "process"]:
                 keys.remove(key)
 
         actions.CSAddFunctionalUnit.run(cs_name, keys)
