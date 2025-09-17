@@ -46,23 +46,23 @@ def get_lca(fu, method):
     return lca
 
 
-def filter_technosphere_exchanges(fu, method, cutoff=0.05, max_calc=1000):
+def filter_technosphere_exchanges(lca, cutoff=0.05, max_calc=1000):
     """Use brightway's GraphTraversal to identify the relevant
     technosphere exchanges in a non-stochastic LCA."""
     start = time()
-    res = NewNodeEachVisitGraphTraversal.calculate(fu, method, cutoff=cutoff, max_calc=int(max_calc))
+    res = NewNodeEachVisitGraphTraversal.calculate(lca, cutoff=cutoff, max_calc=int(max_calc))
 
     # get all edges
     technosphere_exchange_indices = []
     for e in res["edges"]:
-        if e["to"] != -1:  # filter out head introduced in graph traversal
-            technosphere_exchange_indices.append((e["from"], e["to"]))
+        if e.consumer_index != -1:  # filter out head introduced in graph traversal
+            technosphere_exchange_indices.append((e.producer_index, e.consumer_index))
     log.info(
         "TECHNOSPHERE {} filtering resulted in {} of {} exchanges and took {} iterations in {} seconds.".format(
-            res["lca"].technosphere_matrix.shape,
+            lca.technosphere_matrix.shape,
             len(technosphere_exchange_indices),
-            res["lca"].technosphere_matrix.getnnz(),
-            res["counter"],
+            lca.technosphere_matrix.getnnz(),
+            res["calculation_count"],
             np.round(time() - start, 2),
         )
     )
@@ -348,7 +348,7 @@ class GlobalSensitivityAnalysis(object):
         # technosphere
         if self.mc.include_technosphere:
             self.t_indices = filter_technosphere_exchanges(
-                self.fu, self.method, cutoff=cutoff_technosphere, max_calc=1e4
+                self.lca, cutoff=cutoff_technosphere, max_calc=1e4
             )
             self.t_exchanges, self.t_indices = get_exchanges(self.lca, self.t_indices)
             self.dft = get_exchanges_dataframe(self.t_exchanges, self.t_indices)

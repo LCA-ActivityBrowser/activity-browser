@@ -2164,7 +2164,9 @@ class GSATab(NewAnalysisTab):
                 cutoff_biosphere=cutoff_biosphere,
             )
             # self.update_mc()
-        except Exception as e:  # Catch any error...
+        except Exception as e:
+            import traceback
+            traceback.print_tb(e.__traceback__)
             log.error(e)
             message = str(e)
             message_addition = ""
