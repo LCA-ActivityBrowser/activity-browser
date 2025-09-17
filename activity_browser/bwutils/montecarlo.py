@@ -198,6 +198,7 @@ class MonteCarloLCA(object):
             technosphere=self.include_technosphere,
             biosphere=self.include_biosphere,
             characterization=self.include_cfs,
+            seed_override=self.seed,
         )
         self.lca.lci()
         self.lca.lcia()
