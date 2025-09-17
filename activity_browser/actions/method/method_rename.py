@@ -30,6 +30,9 @@ class MethodRename(ABAction):
                 raise ValueError("Can only rename one method at a time.")
             method_name = method_name[0]
 
+        if method_name not in bd.methods:
+            raise RuntimeError(f"Method {method_name} does not exist.")
+
         method = bd.Method(method_name)
 
         dialog = widgets.ABListEditDialog(method_name)

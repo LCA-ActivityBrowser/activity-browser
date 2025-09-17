@@ -48,8 +48,11 @@ class ImpactCategoryHeader(QtWidgets.QWidget):
         grid.setSpacing(10)
         grid.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop)
 
+        name_label = QtWidgets.QLabel(f"<a href='/'>{' | '.join(self.impact_category.name)}</a>",  self)
+        name_label.linkActivated.connect(lambda: actions.MethodRename.run(self.impact_category.name))
+
         setup = [
-            ("Name:", QtWidgets.QLabel(" | ".join(self.impact_category.name)),),
+            ("Name:", name_label,),
             ("Unit:", QtWidgets.QLabel(str(self.impact_category.metadata.get("unit", "Undefined"))),),
         ]
 
