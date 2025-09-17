@@ -34,8 +34,15 @@ class ImpactCategoryDetailsPage(QtWidgets.QWidget):
         self.view.resizeColumnToContents(1)
 
     def connect_signals(self):
+        signals.method.renamed.connect(self.on_method_renamed)
         signals.method.deleted.connect(self.on_method_deleted)
         signals.meta.methods_changed.connect(self.sync)
+
+    def on_method_renamed(self, old_name, new_name):
+        if self.name == old_name:
+            self.name = new_name
+            self.setObjectName(" | ".join(new_name))
+            self.setWindowTitle(" | ".join(new_name))
 
     def on_method_deleted(self, method):
         if method.name == self.name:

@@ -5,7 +5,7 @@ from qtpy import QtWidgets
 
 import bw2data as bd
 
-from activity_browser import application
+from activity_browser import signals
 from activity_browser.ui import widgets
 from activity_browser.actions.base import ABAction, exception_dialogs
 
@@ -48,4 +48,9 @@ class MethodRename(ABAction):
             raise RuntimeError(f"Method {new_name} already exists.")
 
         method.copy(new_name).process()
+
+        # this should not happen like this, as the model and therefore signals should be handled declaritavely,
+        # but since method renaming is not native to bw2data we have to do it manually here
+        signals.method.renamed.emit(method_name, new_name)
+
         method.deregister()

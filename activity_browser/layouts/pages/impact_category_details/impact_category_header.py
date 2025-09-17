@@ -23,6 +23,8 @@ class ImpactCategoryHeader(QtWidgets.QWidget):
         """
         Synchronizes the widget with the current state of the activity.
         """
+        self.impact_category = self.parent().impact_category
+
         self.clear_layout()
         self.layout().addLayout(self.build_grid())
 
