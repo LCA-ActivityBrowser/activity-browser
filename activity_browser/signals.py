@@ -23,6 +23,7 @@ class EdgeSignals(QObject):
 class MethodSignals(QObject):
     changed: SignalInstance = Signal(object)
     deleted: SignalInstance = Signal(object)
+    renamed: SignalInstance = Signal(tuple, tuple)
 
 
 class ParameterSignals(QObject):

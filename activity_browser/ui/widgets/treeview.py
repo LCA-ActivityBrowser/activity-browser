@@ -154,7 +154,7 @@ class ABTreeView(QtWidgets.QTreeView):
             formatted_filter = self.format_query(self.allFilter)
 
             for i, col in enumerate(self.model().columns()):
-                if self.isColumnHidden(i):
+                if self.isColumnHidden(i) and i not in self.model().grouped_columns:
                     continue
                 all_queries.append(f"(`{col}`.astype('str').str.contains('{formatted_filter}', False))")
 

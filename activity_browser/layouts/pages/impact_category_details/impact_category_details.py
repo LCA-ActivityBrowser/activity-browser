@@ -8,6 +8,8 @@ from activity_browser import actions, signals
 from activity_browser.ui import widgets, icons, delegates
 from activity_browser.bwutils import AB_metadata
 
+from .impact_category_header import ImpactCategoryHeader
+
 
 class ImpactCategoryDetailsPage(QtWidgets.QWidget):
     def __init__(self, name: tuple, parent=None):
@@ -17,44 +19,62 @@ class ImpactCategoryDetailsPage(QtWidgets.QWidget):
 
         self.setObjectName(" | ".join(name))
 
-        self.model = CharacterizationFactorsModel(self, self.build_df())
+        self.header = ImpactCategoryHeader(self)
+
+        self.model = CharacterizationFactorsModel(self)
         self.view = CharacterizationFactorsView(self)
         self.view.setModel(self.model)
+
+        self.build_layout()
+        self.connect_signals()
+        self.sync()
 
         # resizing name and categories columns
         self.view.resizeColumnToContents(0)
         self.view.resizeColumnToContents(1)
 
-        self.build_layout()
-        self.connect_signals()
-
     def connect_signals(self):
+        signals.method.renamed.connect(self.on_method_renamed)
         signals.method.deleted.connect(self.on_method_deleted)
         signals.meta.methods_changed.connect(self.sync)
+
+    def on_method_renamed(self, old_name, new_name):
+        if self.name == old_name:
+            self.name = new_name
+            self.setObjectName(" | ".join(new_name))
+            self.setWindowTitle(" | ".join(new_name))
 
     def on_method_deleted(self, method):
         if method.name == self.name:
             self.deleteLater()
 
     def sync(self):
+        if self.name not in bd.methods:
+            self.deleteLater()
+            return
+
         self.impact_category = bd.Method(self.name)
         self.model.setDataFrame(self.build_df())
+        self.header.sync()
 
     def build_layout(self):
         layout = QtWidgets.QVBoxLayout()
-        layout.addWidget(widgets.ABLabel.demiBold("Impact Category: " + " - ".join(self.name), self))
+        layout.addWidget(self.header)
         layout.addWidget(widgets.ABHLine(self))
         layout.addWidget(self.view)
         self.setLayout(layout)
 
     def build_df(self):
-        df = pd.DataFrame(self.impact_category.load(), columns=["id", "amount"])
+        df = pd.DataFrame(self.impact_category.load(), columns=["id", "data"])
+        df["amount"] = df["data"].apply(lambda x: x if isinstance(x, (float, int)) else x.get("amount"))
+        df["uncertainty"] = df["data"].apply(lambda x: 0 if isinstance(x, (float, int)) else x.get("uncertainty type"))
+
         other = AB_metadata.dataframe[["id", "name", "categories", "database", "unit"]]
 
-        df = df.merge(other, left_on="id", right_on="id").rename(columns={"id": "_id"})
+        df = df.merge(other, left_on="id", right_on="id").rename(columns={"id": "_id", "data": "_cf"})
         df["_impact_category_name"] = [self.name for i in range(len(df))]
 
-        cols = ["name", "categories", "database", "amount", "unit", "_id", "_impact_category_name"]
+        cols = ["name", "categories", "database", "amount", "unit", "uncertainty", "_id", "_impact_category_name", "_cf"]
         return df[cols]
 
 
@@ -62,7 +82,10 @@ class CharacterizationFactorsView(widgets.ABTreeView):
     defaultColumnDelegates = {
         "amount": delegates.FloatDelegate,
         "categories": delegates.ListDelegate,
+        "uncertainty": delegates.UncertaintyDelegate,
     }
+
+
 
 
 class ExchangesItem(widgets.ABDataItem):
@@ -78,7 +101,7 @@ class ExchangesItem(widgets.ABDataItem):
             QtCore.Qt.ItemFlags: The item flags.
         """
         flags = super().flags(col, key)
-        if key in ["amount"]:
+        if key in ["amount", "uncertainty"]:
             return flags | Qt.ItemFlag.ItemIsEditable
         return flags
 
