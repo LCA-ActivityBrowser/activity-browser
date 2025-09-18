@@ -154,7 +154,7 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
 
         # "product_key"
         #  product of an activity
-        df["product_key"] = df["key"]
+        df["product_key"] = df[df["type"] != "nonfunctional"]["key"]
 
         # drop all processes that have products
         df = df.drop(df[df.key.isin(df.processor)].index)
@@ -347,7 +347,7 @@ class ProductView(ui.widgets.ABTreeView):
             list[tuple]: The list of selected products.
         """
         items = [i.internalPointer() for i in self.selectedIndexes() if isinstance(i.internalPointer(), ProductItem)]
-        return list({item["product_key"] for item in items if item["product_key"] is not None})
+        return list({item["product_key"] for item in items if not pd.isna(item["product_key"])})
 
     @property
     def selected_activities(self) -> [tuple]:
