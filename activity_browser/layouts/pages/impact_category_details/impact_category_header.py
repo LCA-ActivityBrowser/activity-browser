@@ -52,8 +52,8 @@ class ImpactCategoryHeader(QtWidgets.QWidget):
         name_label.linkActivated.connect(lambda: actions.MethodRename.run(self.impact_category.name))
 
         setup = [
-            ("Name:", name_label,),
-            ("Unit:", QtWidgets.QLabel(str(self.impact_category.metadata.get("unit", "Undefined"))),),
+            ("Name:", name_label),
+            ("Unit:", ImpactCategoryUnit(self)),
         ]
 
         # Arrange widgets for display as a grid
@@ -64,25 +64,16 @@ class ImpactCategoryHeader(QtWidgets.QWidget):
         return grid
 
 
-class ImpactCategoryName(QtWidgets.QLineEdit):
-    """
-    A widget that displays and edits the name of the activity.
-    """
+class ImpactCategoryUnit(QtWidgets.QLineEdit):
 
     def __init__(self, parent: ImpactCategoryHeader):
-        """
-        Initializes the ActivityName widget.
+        name = parent.impact_category.metadata.get("unit", "Undefined")
 
-        Args:
-            parent (ActivityHeader): The parent widget.
-        """
-        super().__init__(str(parent.impact_category.name), parent)
-        self.editingFinished.connect(self.change_name)
+        super().__init__(name, parent)
 
-    def change_name(self):
-        """
-        Changes the name of the activity if it has been modified.
-        """
-        if self.text() == self.parent().impact_category.name:
+        self.editingFinished.connect(self.change_unit)
+
+    def change_unit(self):
+        if self.text() == self.parent().impact_category.metadata.get("unit", "Undefined"):
             return
-        # actions.ActivityModify.run(self.parent().activity, "name", self.text())
+        actions.MethodMetaModify.run(self.parent().impact_category.name, "unit", self.text())

@@ -56,6 +56,7 @@ from .method.method_duplicate import MethodDuplicate
 from .method.method_delete import MethodDelete
 from .method.method_open import MethodOpen
 from .method.method_rename import MethodRename
+from .method.method_meta_modify import MethodMetaModify
 
 from .method.importer.method_importer_ecoinvent import MethodImporterEcoinvent
 from .method.importer.method_importer_bw2io import MethodImporterBW2IO
