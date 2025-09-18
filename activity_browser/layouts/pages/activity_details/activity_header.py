@@ -93,8 +93,8 @@ class ActivityHeader(QtWidgets.QWidget):
 
     def disabled_setup(self):
         setup = [
-            ("Name:", QtWidgets.QLabel(self.activity.get("name"), self),),
-            ("Location:", QtWidgets.QLabel(self.activity.get("location"), self),),
+            ("Name:", QtWidgets.QLabel(self.activity.get("name", "unspecified"), self),),
+            ("Location:", QtWidgets.QLabel(self.activity.get("location", "unspecified"), self),),
         ]
 
         if isinstance(self.activity, bf.Process):
@@ -104,7 +104,7 @@ class ActivityHeader(QtWidgets.QWidget):
 
         # Add allocation strategy selector if the activity is multifunctional
         if self.activity.get("type") == "multifunctional":
-            setup.append(("Allocation:", QtWidgets.QLabel(self.activity.get("allocation"), self),),)
+            setup.append(("Allocation:", QtWidgets.QLabel(self.activity.get("allocation", "unspecified"), self),),)
 
         return setup
 
