@@ -46,4 +46,4 @@ class ProjectNew(ABAction):
             return
 
         bd.projects.create_project(name)
-        bd.projects.set_current(name)
+        bd.projects.set_current(name, update=False)

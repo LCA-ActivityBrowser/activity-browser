@@ -83,7 +83,7 @@ class ProjectImport(ABAction):
         setattr(thread, "project_name", project_name)
 
         thread.finished.connect(lambda: progress.deleteLater())
-        thread.finished.connect(lambda: bd.projects.set_current(project_name))
+        thread.finished.connect(lambda: bd.projects.set_current(project_name, update=False))
 
         # start the import
         thread.start()

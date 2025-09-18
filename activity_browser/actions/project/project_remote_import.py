@@ -292,7 +292,7 @@ class ProjectRemoteImportWindow(QtWidgets.QDialog):
                 overwrite_existing=self._overwrite_checkbox.isChecked()
             )
             if self._activate_project_checkbox.isChecked():
-                bd.projects.set_current(new_name)
+                bd.projects.set_current(new_name, update=False)
             self.setCursor(QtCore.Qt.ArrowCursor)
             self.accept()
         else:

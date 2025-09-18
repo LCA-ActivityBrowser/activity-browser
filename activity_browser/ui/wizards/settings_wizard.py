@@ -52,7 +52,7 @@ class SettingsWizard(QtWidgets.QWizard):
         if projects._base_data_dir != self.last_bwdir:
             projects.change_base_directories(Path(self.last_bwdir))
             projects.set_current(
-                self.last_project
+                self.last_project, update=False,
             )  # project changes only if directory is changed
 
 

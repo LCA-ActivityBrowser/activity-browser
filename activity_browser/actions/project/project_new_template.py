@@ -66,7 +66,7 @@ class ProjectNewFromTemplate(ABAction):
         setattr(thread, "project_name", name)
 
         thread.finished.connect(lambda: progress.deleteLater())
-        thread.finished.connect(lambda: bd.projects.set_current(name))
+        thread.finished.connect(lambda: bd.projects.set_current(name, update=False))
 
         # start the import
         thread.start()

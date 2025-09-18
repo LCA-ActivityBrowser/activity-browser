@@ -394,7 +394,7 @@ def perform_MonteCarlo_LCA(project="default", cs_name=None, iterations=10):
     """Performs Monte Carlo LCA based on a calculation setup and returns the
     Monte Carlo LCA object."""
     log.info(f"-- Monte Carlo LCA --\n Project: {project} CS: {cs_name}")
-    bd.projects.set_current(project)
+    bd.projects.set_current(project, update=False)
 
     # perform Monte Carlo simulation
     mc = MonteCarloLCA(cs_name)
