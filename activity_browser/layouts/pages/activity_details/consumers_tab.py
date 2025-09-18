@@ -74,7 +74,7 @@ class ConsumersTab(QtWidgets.QWidget):
         output_df = bwutils.AB_metadata.get_metadata(exc_df["output"].unique(), ["name", "type", "key"])
 
         df = exc_df.merge(
-            input_df.rename({"name": "producer", "type": "_producer_type"}, axis="columns"),
+            input_df.rename({"name": "product", "type": "_product_type"}, axis="columns"),
             left_on="input",
             right_on="key",
         ).drop(columns=["key"])
@@ -85,9 +85,9 @@ class ConsumersTab(QtWidgets.QWidget):
             right_on="key",
         ).drop(columns=["key"])
 
-        df = df.rename({"input": "_producer_key", "output": "_consumer_key"}, axis="columns")
+        df = df.rename({"input": "_product_key", "output": "_consumer_key"}, axis="columns")
 
-        cols = ["amount", "unit", "producer", "consumer"]
+        cols = ["amount", "unit", "product", "consumer"]
         cols += [col for col in df.columns if col.startswith("_")]
 
         return df[cols]
@@ -125,11 +125,11 @@ class ConsumersItem(widgets.ABDataItem):
         Returns:
             The decoration data for the item.
         """
-        if key not in ["producer", "consumer"]:
+        if key not in ["product", "consumer"]:
             return
 
-        if key == "producer":
-            activity_type = self["_producer_type"]
+        if key == "product":
+            activity_type = self["_product_type"]
         else:  # key is "consumer"
             activity_type = self["_consumer_type"]
 
