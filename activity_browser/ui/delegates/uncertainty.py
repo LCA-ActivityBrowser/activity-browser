@@ -36,6 +36,11 @@ class UncertaintyDelegate(QtWidgets.QStyledItemDelegate):
         elif hasattr(index.internalPointer(), "exchange"):
             item = index.internalPointer()
             actions.ExchangeUncertaintyModify.run([item.exchange])
+        elif index.internalPointer()["_impact_category_name"] is not None:
+            item = index.internalPointer()
+            actions.CFUncertaintyModify.run(
+                item["_impact_category_name"], [(item["_id"], item["_cf"]),]
+            )
 
     def setEditorData(self, editor: QtWidgets.QComboBox, index: QtCore.QModelIndex):
         """Simply use the wizard for updating uncertainties."""

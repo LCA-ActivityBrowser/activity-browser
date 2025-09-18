@@ -65,13 +65,16 @@ class ImpactCategoryDetailsPage(QtWidgets.QWidget):
         self.setLayout(layout)
 
     def build_df(self):
-        df = pd.DataFrame(self.impact_category.load(), columns=["id", "amount"])
+        df = pd.DataFrame(self.impact_category.load(), columns=["id", "data"])
+        df["amount"] = df["data"].apply(lambda x: x if isinstance(x, float) else x.get("amount"))
+        df["uncertainty"] = df["data"].apply(lambda x: 0 if isinstance(x, float) else x.get("uncertainty type"))
+
         other = AB_metadata.dataframe[["id", "name", "categories", "database", "unit"]]
 
-        df = df.merge(other, left_on="id", right_on="id").rename(columns={"id": "_id"})
+        df = df.merge(other, left_on="id", right_on="id").rename(columns={"id": "_id", "data": "_cf"})
         df["_impact_category_name"] = [self.name for i in range(len(df))]
 
-        cols = ["name", "categories", "database", "amount", "unit", "_id", "_impact_category_name"]
+        cols = ["name", "categories", "database", "amount", "unit", "uncertainty", "_id", "_impact_category_name", "_cf"]
         return df[cols]
 
 
@@ -79,7 +82,10 @@ class CharacterizationFactorsView(widgets.ABTreeView):
     defaultColumnDelegates = {
         "amount": delegates.FloatDelegate,
         "categories": delegates.ListDelegate,
+        "uncertainty": delegates.UncertaintyDelegate,
     }
+
+
 
 
 class ExchangesItem(widgets.ABDataItem):
@@ -95,7 +101,7 @@ class ExchangesItem(widgets.ABDataItem):
             QtCore.Qt.ItemFlags: The item flags.
         """
         flags = super().flags(col, key)
-        if key in ["amount"]:
+        if key in ["amount", "uncertainty"]:
             return flags | Qt.ItemFlag.ItemIsEditable
         return flags
 
