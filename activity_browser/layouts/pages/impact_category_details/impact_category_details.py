@@ -66,8 +66,8 @@ class ImpactCategoryDetailsPage(QtWidgets.QWidget):
 
     def build_df(self):
         df = pd.DataFrame(self.impact_category.load(), columns=["id", "data"])
-        df["amount"] = df["data"].apply(lambda x: x if isinstance(x, float) else x.get("amount"))
-        df["uncertainty"] = df["data"].apply(lambda x: 0 if isinstance(x, float) else x.get("uncertainty type"))
+        df["amount"] = df["data"].apply(lambda x: x if isinstance(x, (float, int)) else x.get("amount"))
+        df["uncertainty"] = df["data"].apply(lambda x: 0 if isinstance(x, (float, int)) else x.get("uncertainty type"))
 
         other = AB_metadata.dataframe[["id", "name", "categories", "database", "unit"]]
 
