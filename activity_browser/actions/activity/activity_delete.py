@@ -30,7 +30,13 @@ class ActivityDelete(ABAction):
         # retrieve activity objects from the controller using the provided keys
         activities = [bd.get_activity(key) for key in activity_keys]
 
-        warnings = [f"Are you certain you want to delete {len(activities)} activity/activities?", ""]
+        warnings = []
+        if len(activities) == 1:
+            warnings.append(f"Are you certain you want to delete <b>{activities[0]['name']}</b>?")
+        else:
+            warnings.append(f"Are you certain you want to delete {len(activities)} nodes?")
+
+        warnings.append("")  # add a blank line for readability
 
         if any(len(act.upstream()) > 0 for act in activities):
             warnings.append("One or more of the activities you are trying to delete have consumers")
@@ -38,12 +44,12 @@ class ActivityDelete(ABAction):
         if any([act for act in activities if isinstance(act, bf.Process)]):
             warnings.append("Products of processes will be removed as well")
 
-        warning_text = "\n".join(warnings)
+        warning_text = "<br>".join(warnings)
 
         # alert the user
         choice = QtWidgets.QMessageBox.warning(
             application.main_window,
-            "Deleting activity/activities",
+            build_title(activities),
             warning_text,
             QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
             QtWidgets.QMessageBox.No,
@@ -83,3 +89,9 @@ class ActivityDelete(ABAction):
             # act.upstream().delete()
 
             act.delete()
+
+
+def build_title(activities: List[bd.Node]) -> str:
+    if len(activities) == 1:
+        return "Delete node"
+    return "Delete nodes"
