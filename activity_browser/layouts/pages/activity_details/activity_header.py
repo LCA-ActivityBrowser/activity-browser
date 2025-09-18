@@ -66,23 +66,48 @@ class ActivityHeader(QtWidgets.QWidget):
         grid.setSpacing(10)
         grid.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop)
 
-        setup = [
-            ("Name:", ActivityName(self),),
-            ("Location:", ActivityLocation(self),),
-            ("Properties:", ActivityProperties(self),),
-        ]
-
-        # Add allocation strategy selector if the activity is multifunctional
-        if self.activity.get("type") == "multifunctional":
-            setup.append(("Allocation:", ActivityAllocation(self),))
+        db_locked = bwutils.database_is_locked(self.activity["database"])
+        setup = self.disabled_setup() if db_locked else self.enabled_setup()
 
         # Arrange widgets for display as a grid
         for i, (title, widget) in enumerate(setup):
             grid.addWidget(widgets.ABLabel.demiBold(title, self), i, 1)
             grid.addWidget(widget, i, 2, 1, 4)
-            widget.setDisabled(bwutils.database_is_locked(self.activity["database"]))
 
         return grid
+
+    def enabled_setup(self):
+        setup = [
+            ("Name:", ActivityName(self),),
+            ("Location:", ActivityLocation(self),),
+        ]
+
+        if isinstance(self.activity, bf.Process):
+            setup.append(("Properties:", ActivityProperties(self),),)
+
+        # Add allocation strategy selector if the activity is multifunctional
+        if self.activity.get("type") == "multifunctional":
+            setup.append(("Allocation:", ActivityAllocation(self),))
+
+        return setup
+
+    def disabled_setup(self):
+        setup = [
+            ("Name:", QtWidgets.QLabel(self.activity.get("name"), self),),
+            ("Location:", QtWidgets.QLabel(self.activity.get("location"), self),),
+        ]
+
+        if isinstance(self.activity, bf.Process):
+            props = self.activity.available_properties()
+            prop_text = ", ".join(props) if props else "None"
+            setup.append(("Properties:", QtWidgets.QLabel(prop_text, self),))
+
+        # Add allocation strategy selector if the activity is multifunctional
+        if self.activity.get("type") == "multifunctional":
+            setup.append(("Allocation:", QtWidgets.QLabel(self.activity.get("allocation"), self),),)
+
+        return setup
+
 
 
 
