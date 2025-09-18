@@ -131,7 +131,11 @@ class ExchangesTab(QtWidgets.QWidget):
 
         # Create a DataFrame from the exchanges
         exc_df = pd.DataFrame(exchanges, columns=["amount", "input", "formula", "uncertainty type", "comment"])
+        exc_df["type"] = [x["type"] for x in exchanges]
         act_df = AB_metadata.get_metadata(exc_df["input"].unique(), cols)
+
+        processor_keys = act_df["processor"].dropna().unique()
+        processor_df = AB_metadata.get_metadata(processor_keys, ["key", "name"]).rename({"name": "processor_name"}, axis="columns")
 
         # Merge the exchanges DataFrame with the metadata DataFrame
         df = exc_df.merge(
@@ -139,6 +143,17 @@ class ExchangesTab(QtWidgets.QWidget):
             left_on="input",
             right_on="key"
         ).drop(columns=["key"])
+
+        df = df.merge(
+            processor_df,
+            left_on="processor",
+            right_on="key",
+            how="left",
+        ).drop(columns=["key"])
+
+        # Use "product" if available otherwise use "name"
+        df["producer"] = df[df["type"].isin(["technosphere"])]["name"]
+        df.update(df["processor_name"].rename("producer"))
 
         # Use "product" if available otherwise use "name"
         df.update(df["product"].rename("name"))
@@ -179,7 +194,7 @@ class ExchangesTab(QtWidgets.QWidget):
             axis="columns", inplace=True)
 
         # Define the order of columns for the final DataFrame
-        cols = ["amount", "unit", "name", "location", "categories", "database"]
+        cols = ["amount", "unit", "name", "producer", "location", "categories", "database"]
         cols += ["substitute_name", "substitution_factor"] if "substitute_name" in df.columns else []
         cols += ["allocation_factor"] if not database_is_legacy(self.activity.get("database")) else []
         cols += [col for col in df.columns if col.startswith("property")]
@@ -241,7 +256,6 @@ def get_exchange_type(activity_key: tuple) -> str | None:
     elif bwutils.is_node_biosphere(activity_key):
         return "biosphere"
     return None
-
 
 
 class DropOverlay(QtWidgets.QWidget):
@@ -553,7 +567,7 @@ class ExchangesItem(widgets.ABDataItem):
         Returns:
             The decoration data for the item.
         """
-        if key not in ["name", "substitute_name", "amount"] or not self.displayData(col, key):
+        if key not in ["name", "substitute_name", "amount", "producer"] or not self.displayData(col, key):
             return
 
         if key == "amount":
@@ -561,6 +575,9 @@ class ExchangesItem(widgets.ABDataItem):
                 # empty icon to align the values
                 return icons.qicons.empty
             return icons.qicons.parameterized
+
+        if key == "producer" and self["producer"]:
+            return icons.qicons.process
 
         if key == "name":
             activity_type = self.exchange.input.get("type")
