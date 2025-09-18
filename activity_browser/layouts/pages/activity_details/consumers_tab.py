@@ -32,6 +32,7 @@ class ConsumersTab(QtWidgets.QWidget):
         self.view = ConsumersView(self)
         self.model = ConsumersModel(self)
         self.view.setModel(self.model)
+        self.view.setSortingEnabled(True)
 
         self.build_layout()
         self.sync()
