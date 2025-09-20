@@ -10,7 +10,7 @@ class AmountDelegate(QtWidgets.QStyledItemDelegate):
 
         if math.isnan(value):
             return ""
-        return str(abs(value))
+        return str(value)
 
     def createEditor(self, parent, option, index):
         editor = QtWidgets.QLineEdit(parent)
@@ -22,6 +22,37 @@ class AmountDelegate(QtWidgets.QStyledItemDelegate):
         validator.setLocale(locale)
         editor.setValidator(validator)
         return editor
+
+    def setEditorData(self, editor: QtWidgets.QLineEdit, index: QtCore.QModelIndex):
+        """Populate the editor with data if editing an existing field."""
+        import math
+
+        data = index.data(QtCore.Qt.DisplayRole)
+
+        try:
+            value = float(data)
+        except ValueError:
+            value = math.nan
+
+        editor.setText(format(value, '.10f').rstrip('0').rstrip('.'))
+
+    def setModelData(
+            self,
+            editor: QtWidgets.QLineEdit,
+            model: QtCore.QAbstractItemModel,
+            index: QtCore.QModelIndex,
+    ):
+        """Take the editor, read the given value and set it in the model"""
+        try:
+            value = float(editor.text())
+            model.setData(index, value, QtCore.Qt.EditRole)
+        except ValueError:
+            pass
+
+
+class AbsoluteAmountDelegate(AmountDelegate):
+    def displayText(self, value, locale):
+        return str(abs(float(super().displayText(value, locale))))
 
     def setEditorData(self, editor: QtWidgets.QLineEdit, index: QtCore.QModelIndex):
         """Populate the editor with data if editing an existing field."""

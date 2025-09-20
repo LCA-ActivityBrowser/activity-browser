@@ -16,7 +16,7 @@ class CSAddFunctionalUnit(ABAction):
         activities = [bwutils.refresh_node(node) for node in activities]
         calculation_setup = bd.calculation_setups[cs_name]
 
-        fus = [{act.key: 1.0} for act in activities]
+        fus = [{act.key: -1.0 if act.get("type") == "waste" else 1.0} for act in activities]
         calculation_setup['inv'] += fus
 
         bd.calculation_setups[cs_name] = calculation_setup

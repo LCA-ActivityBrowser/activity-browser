@@ -37,7 +37,7 @@ class FunctionalUnitSection(QtWidgets.QWidget):
 
     def build_df(self):
         keys, amounts = [], []
-        cols = ["unit", "name", "product", "location", "database", "processor"]
+        cols = ["unit", "name", "product", "location", "database", "processor", "type"]
 
         for fu in self.calculation_setup.get("inv", []):
             for key, amount in fu.items():
@@ -75,7 +75,9 @@ class FunctionalUnitSection(QtWidgets.QWidget):
         act_df.update(act_df["product"].rename("name"))
         act_df["product"] = act_df["name"]
 
-        cols = ["amount", "unit", "product", "process", "database", "location", "_processor_key", "_activity_key", "_cs_name"]
+        act_df.rename({"type": "_type"}, axis="columns", inplace=True)
+
+        cols = ["amount", "unit", "product", "process", "database", "location", "_processor_key", "_activity_key", "_cs_name", "_type"]
 
         return act_df[cols].reset_index(drop=True)
 
@@ -163,7 +165,11 @@ class FunctionalUnitView(widgets.ABTreeView):
 
 class FunctionalUnitItem(widgets.ABDataItem):
     def decorationData(self, col: int, key: str):
-        if key == "product":
+        if key == "product" and self["_type"] == "waste":
+            return icons.qicons.waste
+        elif key == "product" and self["type"] == "processwithreferenceproduct":
+            return icons.qicons.processproduct
+        elif key == "product":
             return icons.qicons.product
         if key == "process":
             return icons.qicons.process

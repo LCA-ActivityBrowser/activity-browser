@@ -14,10 +14,11 @@ from .viewonly import (ViewOnlyDelegate, ViewOnlyFloatDelegate,
 from .new_formula import NewFormulaDelegate
 from .date_time import DateTimeDelegate
 from .property import PropertyDelegate
-from .amount import AmountDelegate
+from .amount import AmountDelegate, AbsoluteAmountDelegate
 
 __all__ = [
     "AmountDelegate",
+    "AbsoluteAmountDelegate",
     "CheckboxDelegate",
     "ComboBoxDelegate",
     "DatabaseDelegate",

@@ -289,7 +289,7 @@ class ExchangesView(widgets.ABTreeView):
         hovered_item (ExchangesItem): The item currently being hovered over.
     """
     defaultColumnDelegates = {
-        "amount": delegates.AmountDelegate,
+        "amount": delegates.AbsoluteAmountDelegate,
         "allocation_factor": delegates.FloatDelegate,
         "substitution_factor": delegates.FloatDelegate,
         "unit": delegates.StringDelegate,
