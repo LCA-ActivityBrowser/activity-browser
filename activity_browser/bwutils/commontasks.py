@@ -199,7 +199,7 @@ def is_node_product(node: tuple | int | bd.Node) -> bool:
     node = refresh_node(node)
     raw_type = node._document.type
 
-    if raw_type in ["product", "processwithreferenceproduct"]:
+    if raw_type in ["product", "waste", "processwithreferenceproduct"]:
         return True
 
     if raw_type == "process" and len(node.upstream(kinds=["production"])):

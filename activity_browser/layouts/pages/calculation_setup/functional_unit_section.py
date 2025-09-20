@@ -154,7 +154,7 @@ class FunctionalUnitView(widgets.ABTreeView):
         cs_name = self.parent().calculation_setup_name
 
         keys: list = event.mimeData().retrievePickleData("application/bw-nodekeylist")
-        for key in keys:
+        for key in keys.copy():
             if not is_node_product(key):
                 keys.remove(key)
 
