@@ -23,7 +23,7 @@ class ABItemModel(QtCore.QAbstractItemModel):
         self.root: ABBranchItem = self.branchItemClass("root")  # root ABItem for the object tree
         self.grouped_columns: [int] = list()  # list of columns that are currently being grouped
         self.filtered_columns: [int] = set()  # set of all columns that have filters applied
-        self.sort_column: int = 0  # column that is currently sorted
+        self.sort_column: int = -1  # column that is currently sorted
         self.sort_order: Qt.SortOrder = Qt.SortOrder.AscendingOrder
         self._query = ""  # Pandas query currently applied to the dataframe
 
@@ -196,7 +196,7 @@ class ABItemModel(QtCore.QAbstractItemModel):
         else:
             df = self.dataframe.copy()
 
-        if not self.sort_column > len(self.columns()) - 1:
+        if not self.sort_column > len(self.columns()) - 1 and self.sort_column != -1:
             # apply the sorting
             df.sort_values(
                 by=self.columns()[self.sort_column],
