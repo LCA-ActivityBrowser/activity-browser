@@ -31,7 +31,7 @@ class ActivitySDFToClipboard(ABAction):
                 for product in activity.products():
                     exchanges += product.virtual_exchanges
             else:
-                exchanges += [exc.to_dict() for exc in activity.exchanges()]
+                exchanges += [exc.as_dict() for exc in activity.exchanges()]
 
         df = bwutils.exchanges_to_sdf(exchanges)
         df.to_clipboard(excel=True, index=False)
