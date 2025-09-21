@@ -1,7 +1,6 @@
 from qtpy import QtWidgets
 from qtpy.QtCore import QTimer, Slot, Signal, SignalInstance
 from qtpy.QtGui import QTextFormat
-from qtpy.QtWidgets import QCompleter
 
 
 class ABLineEdit(QtWidgets.QLineEdit):
@@ -111,12 +110,3 @@ class SignalledComboEdit(QtWidgets.QComboBox):
             self._before = after
             actions.ActivityModify.run(self._key, self._field, after)
         super(SignalledComboEdit, self).focusOutEvent(event)
-
-
-class AutoCompleteLineEdit(QtWidgets.QLineEdit):
-    """Line Edit with a completer attached"""
-
-    def __init__(self, items: list[str], parent=None):
-        super().__init__(parent=parent)
-        completer = QCompleter(items, self)
-        self.setCompleter(completer)

@@ -1,5 +1,6 @@
 from logging import getLogger
 from time import time
+from collections import Counter
 
 import pandas as pd
 from qtpy import QtWidgets, QtCore, QtGui
@@ -56,8 +57,11 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
         self.table_view = ProductView(self)
         self.table_view.setModel(self.model)
         self.model.setDataFrame(self.build_df())
+        self.model.has_external_search = True
+        self.model.external_col_name = db_name
 
-        self.search = widgets.ABLineEdit(self)
+        self.search = widgets.MetaDataAutoCompleteTextEdit(self)
+        self.search.database_name = db_name
         self.search.setMaximumHeight(30)
         self.search.setPlaceholderText("Quick Search")
 
@@ -81,7 +85,11 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
         signals.database.deleted.connect(self.on_database_deleted)
 
         self.table_view.filtered.connect(self.search_error)
-        self.search.textChangedDebounce.connect(self.table_view.setAllFilter)
+        self.search.textChangedDebounce.connect(self.set_queries)
+
+    def set_queries(self, query: str) -> None:
+        self.model.set_external_query(query)
+        self.table_view.setAllFilter(query)
 
     def saveState(self):
         """
@@ -360,6 +368,27 @@ class ProductView(ui.widgets.ABTreeView):
         items = [i.internalPointer() for i in self.selectedIndexes() if isinstance(i.internalPointer(), ProductItem)]
         return list({item["activity_key"] for item in items if item["activity_key"] is not None})
 
+    def buildQuery(self) -> str:
+        queries = ["(index == index)"]
+
+        # query for the column filters
+        for col in list(self.columnFilters):
+            if col not in self.model().columns():
+                del self.columnFilters[col]
+
+        for col, query in self.columnFilters.items():
+            q = f"({col}.astype('str').str.contains('{self.format_query(query)}'))"
+            queries.append(q)
+
+        # query for the all filter
+        if self.allFilter.startswith('='):
+            queries.append(f"({self.allFilter[1:]})")
+
+        query = " & ".join(queries)
+        log.debug(f"{self.__class__.__name__} built query: {query}")
+
+        return query
+
 
 class ProductItem(ui.widgets.ABDataItem):
     """
@@ -454,3 +483,35 @@ class ProductModel(ui.widgets.ABItemModel):
                 continue
             values.append(item[key])
         return values
+
+    def external_search(self, query):
+        t = time()
+        results = AB_metadata.db_search(query, database=self.external_col_name, return_counter=True, logging=False)
+        t2 = time()
+
+        # extract a dict with 'key' as key and 'id' as values from the metadata
+        result_ids = set(results.keys())
+        # extract df with only result IDs and columns 'id' and 'key'
+        df = AB_metadata.dataframe[AB_metadata.dataframe["id"].isin(result_ids)].loc[:, ["id", "key"]]
+        df = df.set_index("key", drop=True)
+        translate_dict = df.to_dict()["id"]
+        result_keys = set(translate_dict.keys())
+
+        # convert the metadata id scores to row id scores
+        row_scores = Counter()
+        match_df = self.dataframe[self.dataframe["activity_key"].isin(result_keys) | self.dataframe["product_key"].isin(result_keys)]
+        cols = ["activity_key", "product_key"]
+        match_df = match_df.loc[:, cols]
+        for row in match_df.itertuples():
+            act_score = results.get(translate_dict.get(row[1]), 0)
+            prd_score = results.get(translate_dict.get(row[2]), 0)
+            row_scores[row[0]] = act_score + prd_score
+
+        # finally only return the indices
+        sorted_indices = [identifier for identifier, _ in row_scores.most_common()]
+        log.debug(
+        f"ProductModel search in '{self.external_col_name}' ({len(self.dataframe)} items) "
+        f"found {len(sorted_indices)} results "
+        f"for '{query}' in {time() - t:.2f} seconds ({t2 - t:.2f}s actual search, {time() - t2:.2f}s reorder for table)"
+        )
+        return sorted_indices
