@@ -85,16 +85,8 @@ class BaseParameterModel(EditablePandasModel):
         param = self.get_parameter(index)
         field = self._dataframe.columns[index.column()]
 
-        try:
-            actions.ParameterModify.run(param, field, index.data())
-        except Exception as e:
-            QtWidgets.QMessageBox.warning(
-                application.main_window,
-                "Could not save changes",
-                str(e),
-                QtWidgets.QMessageBox.Ok,
-                QtWidgets.QMessageBox.Ok,
-            )
+        actions.ParameterModify.run(param, field, index.data())
+
 
     @Slot(QModelIndex, name="startRenameParameter")
     def handle_parameter_rename(self, proxy: QModelIndex) -> None:
