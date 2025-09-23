@@ -116,6 +116,10 @@ def rename_db_bw2package(data: dict, old: str, new: str) -> dict:
         for exc in value.get("exchanges", []):
             exc["input"] = swap(exc.get("input", ("", "")))
             exc["output"] = swap(exc.get("output", ("", "")))
+
+        if value.get("processor", (None, None))[0] == old:
+            value["processor"] = (new, value["processor"][1])
+
         new_data[new_key] = value
     return new_data
 
