@@ -8,7 +8,8 @@ from qtpy.QtCore import QObject, Qt, QUrl, Signal, SignalInstance, Slot
 import bw2data as bd
 import bw_functional as bf
 
-from activity_browser import static, bwutils
+from activity_browser import static, bwutils, actions
+from .exchanges_tab import DropOverlay, get_exchange_type
 
 log = getLogger(__name__)
 
@@ -36,6 +37,8 @@ class GraphTab(QtWidgets.QWidget):
             parent (QtWidgets.QWidget, optional): The parent widget. Defaults to None.
         """
         super().__init__(parent)
+        self.setAcceptDrops(True)
+
         self.activity = bwutils.refresh_node(activity)
         self.expanded_nodes = {self.activity.id}
 
@@ -52,14 +55,12 @@ class GraphTab(QtWidgets.QWidget):
         self.page = Page()
         self.page.setWebChannel(self.channel)
 
-        self.view = QtWebEngineWidgets.QWebEngineView(self)
-        self.view.setContextMenuPolicy(Qt.PreventContextMenu)
+        self.view = GraphView(self)
         self.view.setPage(self.page)
         self.view.setUrl(self.url)
 
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.view)
-        # layout.addWidget(self.button)
         self.setLayout(layout)
 
         self.bridge.ready.connect(self.sync)
@@ -186,6 +187,62 @@ def get_processor_from_exchange(exchange):
         log.warning("Multiple processors, only taking first one")
     processor = processors[0]
     return processor.output
+
+
+class GraphView(QtWebEngineWidgets.QWebEngineView):
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setAcceptDrops(True)
+        self.setContextMenuPolicy(Qt.PreventContextMenu)
+        self.overlay = None
+
+    def dragEnterEvent(self, event):
+        """
+        Handles the drag enter event.
+
+        Args:
+            event: The drag enter event.
+        """
+        if bwutils.database_is_locked(self.parent().activity["database"]):
+            return
+
+        if event.mimeData().hasFormat("application/bw-nodekeylist"):
+            self.overlay = DropOverlay(self)
+            self.overlay.show()
+            event.accept()
+
+    def dragLeaveEvent(self, event):
+        """
+        Handles the drag leave event.
+
+        Args:
+            event: The drag leave event.
+        """
+        # Reset the palette on drag leave
+        self.overlay.deleteLater()
+
+    def dropEvent(self, event):
+        """
+        Handles the drop event.
+
+        Args:
+            event: The drop event.
+        """
+        log.debug(f"Dropevent from: {type(event.source()).__name__} to: {self.__class__.__name__}")
+        # Reset the palette on drop
+        self.overlay.deleteLater()
+
+        keys: list = event.mimeData().retrievePickleData("application/bw-nodekeylist")
+        exchanges = {"technosphere": set(), "biosphere": set()}
+
+        for key in keys:
+            if exc_type := get_exchange_type(key):
+                exchanges[exc_type].add(key)
+
+        # Run the action for new exchanges
+        for exc_type, keys in exchanges.items():
+            actions.ExchangeNew.run(keys, self.parent().activity.key, exc_type)
 
 
 class Bridge(QObject):
