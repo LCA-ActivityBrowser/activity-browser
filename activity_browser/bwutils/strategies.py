@@ -253,6 +253,8 @@ def alter_database_name(data: list, old: str, new: str) -> list:
             # Any parameters found here are activity parameters and we can
             # overwrite the database without issue.
             d["database"] = new
+        if ds.get("processor", (None, None))[0] == old:
+            ds["processor"] = (new, ds["processor"][1])
     return data
 
 

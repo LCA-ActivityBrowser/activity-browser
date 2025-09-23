@@ -44,6 +44,10 @@ class ABExcelImporter(ExcelImporter):
         except ImportError:
             return bd.Database(db_name, backend=requested_backend)
 
+    @property
+    def needs_multifunctional_database(self) -> bool:
+        return any(ds.get("processor") for ds in self.data)
+
     def write_database(self, **kwargs):
         """Go to the parent of the ExcelImporter class, not the ExcelImporter itself.
 
@@ -65,8 +69,8 @@ class ABExcelImporter(ExcelImporter):
 
     def automated_import(self, db_name: str, relink: dict = None) -> list:
         self.strategies = [
-            functools.partial(alter_database_name, old=self.db_name, new=db_name),
             csv_restore_tuples,
+            functools.partial(alter_database_name, old=self.db_name, new=db_name),
             csv_restore_booleans,
             csv_numerize,
             csv_drop_unknown,
