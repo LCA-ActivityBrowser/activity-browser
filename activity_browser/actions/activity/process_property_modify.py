@@ -94,6 +94,7 @@ class PropertyDialog(QtWidgets.QDialog):
         self.normalize_label = QtWidgets.QLabel(" / amount", self)
         self.normalize_label.setVisible(False)
         self.normalize_check = QtWidgets.QCheckBox("per amount")
+        self.normalize_check.setChecked(True)
         self.normalize_check.toggled.connect(self.normalize_label.setVisible)
         self.normalize_check.toggled.connect(self.validate)
 
