@@ -71,19 +71,24 @@ class ExchangesTab(QtWidgets.QWidget):
         """
         Builds the layout of the widget.
         """
-        layout = QtWidgets.QVBoxLayout()
-        layout.setContentsMargins(0, 10, 0, 1)
-
         # Add output label and view to the layout
-        layout.addWidget(widgets.ABLabel.demiBold(" Output:", self))
-        layout.addWidget(self.output_view)
+        output = QtWidgets.QWidget(self)
+        output_layout = QtWidgets.QVBoxLayout(output)
+        output_layout.addWidget(widgets.ABLabel.demiBold(" Output:", self))
+        output_layout.addWidget(self.output_view)
 
         # Add input label and view to the layout
-        layout.addWidget(widgets.ABLabel.demiBold(" Input:", self))
-        layout.addWidget(self.input_view)
+        input = QtWidgets.QWidget(self)
+        input_layout = QtWidgets.QVBoxLayout(input)
+        input_layout.addWidget(widgets.ABLabel.demiBold(" Input:", self))
+        input_layout.addWidget(self.input_view)
 
-        # Set the layout for the widget
-        self.setLayout(layout)
+        layout = QtWidgets.QVBoxLayout(self)
+        layout.setContentsMargins(0, 10, 0, 1)
+        splitter = QtWidgets.QSplitter(Qt.Orientation.Vertical, self, childrenCollapsible=False)
+        splitter.addWidget(output)
+        splitter.addWidget(input)
+        layout.addWidget(splitter)
 
     def sync(self) -> None:
         """
@@ -381,6 +386,11 @@ class ExchangesView(widgets.ABTreeView):
             lambda m: m.add(actions.ActivityNewProduct, [m.activity.key],
                             enable=not m.locked and not database_is_legacy(m.activity["database"])
                             ),
+            lambda m: m.add(actions.ActivityNewProduct, [m.activity.key], "waste",
+                            enable=not m.locked and not database_is_legacy(m.activity["database"]),
+                            text="Create waste"
+                            ),
+            lambda m: m.addSeparator(),
             lambda m: m.add(actions.ExchangeDelete, m.exchanges, enable=bool(m.exchanges) and not m.locked),
             lambda m: m.add(actions.ExchangeSDFToClipboard, m.exchanges, enable=bool(m.exchanges)),
             lambda m: m.add(actions.ActivityOpen, [x.input for x in m.exchanges],
@@ -435,7 +445,7 @@ class ExchangesView(widgets.ABTreeView):
         Returns:
             The activity associated with the view.
         """
-        return self.parent().activity
+        return self.parent().parent().parent().activity
 
     def setDefaultColumnDelegates(self):
         """

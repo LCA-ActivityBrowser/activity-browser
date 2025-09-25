@@ -29,7 +29,7 @@ class ActivityNewProduct(ABAction):
 
     @staticmethod
     @exception_dialogs
-    def run(activities: list[tuple | int | bd.Node]):
+    def run(activities: list[tuple | int | bd.Node], product_type: str = "product"):
         """
         Execute the action to create a new product.
 
@@ -39,6 +39,7 @@ class ActivityNewProduct(ABAction):
 
         Args:
             activities (list[tuple | int | bd.Node]): A list of activities to process.
+            product_type (str, optional): The type of the new product. Defaults to "product".
 
         Raises:
             AssertionError: If an activity is not of type `Process`.
@@ -48,7 +49,7 @@ class ActivityNewProduct(ABAction):
         for act in activities:
             assert isinstance(act, Process), "Cannot create new product for non-process type"
             # Ask the user to provide a name for the new product
-            dialog = NewProductDialog(act, application.main_window)
+            dialog = NewProductDialog(act, product_type, application.main_window)
             # If the user cancels, skip to the next activity
             if dialog.exec_() != QtWidgets.QDialog.Accepted:
                 continue
@@ -62,7 +63,7 @@ class ActivityNewProduct(ABAction):
                 "name": name,
                 "unit": unit,
                 "location": location,
-                "type": "product",
+                "type": product_type,
             }
             new_product = act.new_product(code=uuid4().hex, **new_prod_data)
             new_product.save()
@@ -76,19 +77,20 @@ class NewProductDialog(QtWidgets.QDialog):
     It validates the input and provides options to either create the product or cancel the operation.
     """
 
-    def __init__(self, activity: bd.Node, parent: QtWidgets.QWidget = None):
+    def __init__(self, activity: bd.Node, product_type: str, parent: QtWidgets.QWidget = None):
         """
         Initialize the NewProductDialog.
 
         Args:
             activity (bd.Node): The activity for which the product is being created.
                              Used to prefill the location field and set the dialog title.
+            product_type (str): The type of the new product ("product", "waste").
             parent (QtWidgets.QWidget, optional): The parent widget for the dialog. Defaults to None.
         """
         super().__init__(parent)
 
         # Set the dialog window title
-        self.setWindowTitle(f"Create product for {activity['name']}")
+        self.setWindowTitle(f"Create {product_type} for {activity['name']}")
 
         # Input fields for product details
         self.name_edit = QtWidgets.QLineEdit()
@@ -123,7 +125,7 @@ class NewProductDialog(QtWidgets.QDialog):
         as well as "Create" and "Cancel" buttons.
         """
         layout = QtWidgets.QGridLayout()
-        layout.addWidget(QtWidgets.QLabel("Product name"), 0, 0)
+        layout.addWidget(QtWidgets.QLabel("Name"), 0, 0)
         layout.addWidget(self.name_edit, 0, 1)
 
         layout.addWidget(QtWidgets.QLabel("Unit"), 1, 0)
