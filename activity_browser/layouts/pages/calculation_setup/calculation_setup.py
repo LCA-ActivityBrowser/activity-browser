@@ -1,7 +1,7 @@
 from qtpy import QtWidgets
 
 from activity_browser import signals, actions
-from activity_browser.ui import widgets
+from activity_browser.ui import widgets, icons
 
 from .scenario_section import ScenarioSection
 from .functional_unit_section import FunctionalUnitSection
@@ -20,6 +20,9 @@ class CalculationSetupPage(QtWidgets.QWidget):
         self.type_dropdown.addItems(["Standard", "Scenario"])
 
         self.run_button = QtWidgets.QPushButton("Run", self)
+        self.run_button.setIcon(icons.qicons.forward)
+        self.run_button.setStyleSheet("background-color: #57965C;")
+
         self.functional_unit_section = FunctionalUnitSection(cs_name, self)
         self.impact_category_section = ImpactCategorySection(cs_name, self)
         self.scenario_section = ScenarioSection(self)
