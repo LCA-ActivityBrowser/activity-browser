@@ -39,18 +39,22 @@ class CSCalculate(ABAction):
         dialog.show()
         application.thread().eventDispatcher().processEvents(QtCore.QEventLoop.ProcessEventsFlag.AllEvents)
 
-        if scenario_data is None:
-            mlca = bwutils.MLCA(cs_name)
-            contributions = bwutils.Contributions(mlca)
-        else:
-            mlca = bwutils.SuperstructureMLCA(cs_name, scenario_data)
-            contributions = bwutils.SuperstructureContributions(mlca)
+        try:
+            if scenario_data is None:
+                mlca = bwutils.MLCA(cs_name)
+                contributions = bwutils.Contributions(mlca)
+            else:
+                mlca = bwutils.SuperstructureMLCA(cs_name, scenario_data)
+                contributions = bwutils.SuperstructureContributions(mlca)
 
-        mlca.calculate()
-        mc = bwutils.MonteCarloLCA(cs_name)
+            mlca.calculate()
+            mc = bwutils.MonteCarloLCA(cs_name)
 
-        page = pages.LCAResultsPage(cs_name, mlca, contributions, mc)
-        central = application.main_window.centralWidget()
+            page = pages.LCAResultsPage(cs_name, mlca, contributions, mc)
+            central = application.main_window.centralWidget()
+        except:
+            dialog.close()
+            raise
 
         dialog.close()
         central.addToGroup("LCA Results", page)
