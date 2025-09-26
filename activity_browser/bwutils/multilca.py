@@ -351,8 +351,9 @@ class Contributions(object):
         self.mlca = mlca
 
         # Set default metadata keys (those not in the dataframe will be eliminated)
-        self.act_fields = AB_metadata.get_existing_fields(self.DEFAULT_ACT_FIELDS)
-        self.ef_fields = AB_metadata.get_existing_fields(self.DEFAULT_EF_FIELDS)
+
+        self.act_fields = [fn for fn in self.DEFAULT_ACT_FIELDS if fn in AB_metadata.dataframe.columns]
+        self.ef_fields = [fn for fn in self.DEFAULT_EF_FIELDS if fn in AB_metadata.dataframe.columns]
 
         # Specific datastructures for retrieving relevant MLCA data
         # inventory: inventory, reverse index, metadata keys, metadata fields

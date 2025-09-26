@@ -198,7 +198,7 @@ class TreeNavigatorWidget(BaseNavigatorWidget):
 
         # tags
         self.tag_cb.clear()
-        self.tag_cb.addItems(sorted(list(AB_metadata.get_tag_names())))
+        self.tag_cb.addItems([])
 
         # unblock signals
         for b in block_signals:
