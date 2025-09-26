@@ -1,49 +1,18 @@
-# -*- coding: utf-8 -*-
-import itertools
 import sqlite3
 import pickle
 from time import time
-from functools import lru_cache
-from typing import Set
 from logging import getLogger
 
-from playhouse.shortcuts import model_to_dict
-
 import pandas as pd
+import bw2data as bd
+from bw2data.backends import sqlite3_lci_db
+from playhouse.shortcuts import model_to_dict
 
 from qtpy.QtCore import Qt, QObject, Signal, SignalInstance
 
-import bw2data as bd
-from bw2data.errors import UnknownObject
-from bw2data.backends import sqlite3_lci_db, ActivityDataset
-
-from activity_browser import signals
-
+from .fields import all, all_types
 
 log = getLogger(__name__)
-
-class Fields:
-    primary_types = {
-        "id": int,
-        "code": str,
-        "database": "category",
-        "location": "category",
-        "name": str,
-        "product": str,
-        "type": "category",
-    }
-    secondary_types = {
-        "synonyms": object,
-        "unit": "category",
-        "CAS number": "category",
-        "categories": object,
-        "processor": object,
-    }
-    all_types = {**primary_types, **secondary_types}
-
-    primary = list(primary_types.keys())
-    secondary = list(secondary_types.keys())
-    all = primary + secondary
 
 
 class MetaDataStore(QObject):
@@ -51,9 +20,11 @@ class MetaDataStore(QObject):
 
     def __init__(self, parent=None):
         from activity_browser import application
+        from .loader import MDSLoader
+
         super().__init__(parent)
 
-        self._dataframe = pd.DataFrame(columns=Fields.all).astype(Fields.all_types)
+        self._dataframe = pd.DataFrame(columns=all)
 
         self.moveToThread(application.thread())
         self.loader = MDSLoader(self)
@@ -65,11 +36,9 @@ class MetaDataStore(QObject):
     @dataframe.setter
     def dataframe(self, df: pd.DataFrame) -> None:
         # Ensure all expected columns are present, in the correct order, and with the correct types
-        df = df.reindex(columns=Fields.all)[Fields.all].astype(Fields.all_types)
-
-        # Ensure the index is a MultiIndex with the correct names
-        if not df.index.names == ["database", "code"]:
-            df.index = df.index = pd.MultiIndex.from_frame(df[["database", "code"]])
+        df = df.reindex(columns=all)[all].astype(all_types)
+        df["key"] = list(zip(df["database"], df["code"]))
+        df.index = pd.MultiIndex.from_tuples(df["key"], names=["database", "code"])
 
         # Set the internal dataframe
         self._dataframe = df
@@ -159,64 +128,5 @@ class MetaDataStore(QObject):
         if db_name not in self.databases:
             return pd.DataFrame(columns=["name", "type", "location", "database", "code", "key", ])
         return self.dataframe.loc[self.dataframe["database"] == db_name].copy(deep=True).dropna(how='all', axis=1)
-
-
-class MDSLoader:
-    def __init__(self, mds: MetaDataStore):
-        self.mds = mds
-        self.connect_signals()
-        self.primary_load_project()
-
-    def connect_signals(self):
-        signals.project.changed.connect(self.on_project_changed)
-        #
-        # signals.node.changed.connect(self.on_node_changed)
-        # signals.node.deleted.connect(self.on_node_deleted)
-
-        # signals.meta.databases_changed.connect(self.sync_databases)
-        # signals.database.deleted.connect(self.sync_databases)
-
-    def on_project_changed(self):
-        self.primary_load_project()
-
-    def on_node_changed(self, new, old):
-        data_raw = model_to_dict(new)
-        data = data_raw.pop("data")
-        data.update(data_raw)
-        data["key"] = new.key
-        data = pd.DataFrame([data], index=pd.MultiIndex.from_tuples([new.key]))
-
-        if new.key in self.dataframe.index:  # the activity has been modified
-
-            compare_old = self.dataframe.loc[new.key].dropna().sort_index()
-            compare_new = data.loc[new.key].dropna().sort_index()
-
-            if list(compare_new.index) == list(compare_old.index) and (compare_new == compare_old).all():
-                return  # but it is the same as the current DF, so no sync necessary
-            for col in [col for col in data.columns if col not in self.dataframe.columns]:
-                self.dataframe[col] = pd.NA
-            self.dataframe.loc[new.key] = data.loc[new.key]
-        elif self.dataframe.empty:  # an activity has been added and the dataframe was empty
-            self.dataframe = data
-        else:  # an activity has been added and needs to be concatenated to existing metadata
-            self.dataframe = pd.concat([self.dataframe, data], join="outer")
-
-        self.thread().eventDispatcher().awake.connect(self._emitSyncLater, Qt.ConnectionType.UniqueConnection)
-
-    def on_node_deleted(self, ds):
-        try:
-            self.mds.dataframe = self.mds.dataframe.drop(ds.key, inplace=True)
-        except KeyError:
-            pass
-
-    def primary_load_project(self):
-        con = sqlite3.connect(sqlite3_lci_db._filepath)
-        primary_df = pd.read_sql(f"SELECT {', '.join(Fields.primary)} FROM activitydataset", con)
-        primary_df.index = pd.MultiIndex.from_frame(primary_df[["database", "code"]])
-        con.close()
-
-        self.mds.dataframe = pd.concat([self.mds.dataframe, primary_df])
-
-
 
 AB_metadata = MetaDataStore()

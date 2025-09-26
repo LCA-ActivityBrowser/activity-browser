@@ -1,8 +1,6 @@
 import threading
 import logging
 
-from activity_browser.mod.tqdm.std import qt_tqdm
-
 from qtpy.QtCore import QThread, SignalInstance, Signal
 from qtpy import QtWidgets
 
@@ -30,6 +28,8 @@ class ABThread(QThread):
 
     def run(self):
         """Reimplemented from QThread to close any database connections before finishing."""
+        from activity_browser.mod.tqdm.std import qt_tqdm
+
         qt_tqdm.updated.connect(self._emit_status)
 
         # call run_safely and finish by closing the connections
