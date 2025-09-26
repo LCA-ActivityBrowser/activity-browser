@@ -13,8 +13,8 @@ def load(fp: str, database_name: str, fields: list[str]):
     if df.empty:
         return df
 
-    df["key"] = df.loc[:, ["database", "code"]].apply(tuple, axis=1)
-    df.index = pd.MultiIndex.from_tuples(df["key"])
+    df["key"] = list(zip(df["database"], df["code"]))
+    df.index = pd.MultiIndex.from_tuples(df["key"], names=["database", "code"])
     df = df.reindex(columns=fields)[fields]
     return df
 
