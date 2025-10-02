@@ -8,6 +8,10 @@ import requests
 from qtpy import QtWidgets, QtCore, QtGui
 from qtpy.QtCore import Qt
 
+# this will enable the AB icon to show in the taskbar under Windows 11 (instead of the default python icon)
+import ctypes
+ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("company.app.1")
+
 from activity_browser import application
 from activity_browser.ui import icons
 
