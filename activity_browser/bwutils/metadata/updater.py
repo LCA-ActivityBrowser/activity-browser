@@ -64,7 +64,7 @@ class MDSUpdater(QtCore.QObject):
 
     def add_node(self, ds: pd.Series):
         self._fix_categories(ds)
-        self.mds.dataframe.loc[ds.key] = ds
+        self.mds.dataframe.loc[ds.key, :] = ds
         self.mds.register_mutation(ds.key, "add")
 
     def delete_node(self, ds: pd.Series):
@@ -88,11 +88,11 @@ class MDSUpdater(QtCore.QObject):
 
             if pd.isna(category):
                 # cannot add NaN as a category
-                return
+                continue
 
             if category in self.mds.dataframe[category_col].cat.categories:
                 # category already exists
-                return
+                continue
 
             # add new category to column
             self.mds.dataframe[category_col] = self.mds.dataframe[category_col].cat.add_categories([category])
