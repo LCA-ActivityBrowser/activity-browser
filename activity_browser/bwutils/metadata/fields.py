@@ -5,7 +5,7 @@ primary_types = {
     "database": "category",
     "location": "category",
     "name": str,
-    "product": str,
+    "product": object,
     "type": "category",
 }
 secondary_types = {
