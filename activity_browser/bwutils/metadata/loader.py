@@ -53,10 +53,16 @@ class MDSLoader(QtCore.QObject):
         log.debug(f"Primary metadata loaded with {len(primary_df)} rows")
         self.mds.dataframe = primary_df
 
+        for idx in primary_df.index:
+            self.mds.register_mutation(idx, "add")
+
     def secondary_load_project(self, secondary_df: pd.DataFrame):
         assert len(secondary_df) == len(self.mds.dataframe)
         log.debug(f"Secondary metadata loaded with {len(secondary_df)} rows")
         self.mds.dataframe = pd.concat([self.mds.dataframe[primary], secondary_df], axis=1)
+
+        for idx in secondary_df.index:
+            self.mds.register_mutation(idx, "update")
 
     def load_database(self, database_name: str):
         # start loading threads
@@ -78,6 +84,9 @@ class MDSLoader(QtCore.QObject):
         log.debug(f"Primary metadata loaded with {len(primary_df)} rows")
         self.mds.dataframe = pd.concat([self.mds.dataframe, primary_df])
 
+        for idx in primary_df.index:
+            self.mds.register_mutation(idx, "add")
+
     def secondary_load_database(self, secondary_df: pd.DataFrame):
         if secondary_df.empty:
             return
@@ -90,6 +99,9 @@ class MDSLoader(QtCore.QObject):
         metadata = self.mds.dataframe.copy()
         metadata.update(secondary_df)
         self.mds.dataframe = metadata
+
+        for idx in secondary_df.index:
+            self.mds.register_mutation(idx, "update")
 
 
 class SecondaryLoadThread(threading.ABThread):

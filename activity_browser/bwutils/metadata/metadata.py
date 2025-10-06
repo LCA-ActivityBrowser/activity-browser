@@ -1,16 +1,13 @@
-import sqlite3
-import pickle
 from time import time
 from logging import getLogger
+from typing import Literal
 
 import pandas as pd
-import bw2data as bd
-from bw2data.backends import sqlite3_lci_db
-from playhouse.shortcuts import model_to_dict
 
-from qtpy.QtCore import Qt, QObject, Signal, SignalInstance
+from qtpy.QtCore import Qt, QObject, Signal, SignalInstance, QTimer
 
 from .fields import all, all_types
+
 
 log = getLogger(__name__)
 
@@ -27,10 +24,15 @@ class MetaDataStore(QObject):
 
         self._dataframe = pd.DataFrame()
 
+        self._updated: set[tuple[str, str]] = set()
+        self._added: set[tuple[str, str]] = set()
+        self._deleted: set[tuple[str, str]] = set()
+
         self.moveToThread(application.thread())
 
         self.loader = MDSLoader(self)
         self.updater = MDSUpdater(self)
+        self.flusher: QTimer | None = None
 
     @property
     def dataframe(self) -> pd.DataFrame:
@@ -44,61 +46,44 @@ class MetaDataStore(QObject):
         # Set the internal dataframe
         self._dataframe = df
 
-        self.thread().eventDispatcher().awake.connect(self._emitSyncLater, Qt.ConnectionType.UniqueConnection)
-
     @property
     def databases(self):
         return set(self.dataframe.get("database", []))
 
-    def _emitSyncLater(self):
+    def register_mutation(self, key: tuple[str, str], action: Literal["add", "update", "delete"]):
+        if action == "add":
+            self._added.add(key)
+            self._updated.discard(key)
+            self._deleted.discard(key)
+
+        elif action == "update":
+            if key not in self._added:
+                self._updated.add(key)
+
+        elif action == "delete":
+            if key in self._added:
+                self._added.discard(key)
+            else:
+                self._deleted.add(key)
+            self._updated.discard(key)
+        else:
+            raise ValueError(f"Unknown action: {action}")
+
+        if not self.flusher:
+            self.flusher = QTimer(self, interval=100)
+            self.flusher.timeout.connect(self.flush_mutations)
+            self.flusher.start()
+
+    def flush_mutations(self):
+        if not (self._added or self._updated or self._deleted):
+            return
+
         t = time()
         self.synced.emit()
+
+        self._added.clear(), self._updated.clear(), self._deleted.clear()
+
         log.debug(f"Metadatastore sync signal completed in {time() - t:.2f} seconds")
-        self.thread().eventDispatcher().awake.disconnect(self._emitSyncLater)
-
-    def sync_databases(self) -> None:
-        sync = False
-
-        for db_name in [x for x in self.databases if x not in bd.databases]:
-            # deleted databases
-            self.dataframe.drop(db_name, level=0, inplace=True)
-            sync = True
-
-        for db_name in [x for x in bd.databases if x not in self.databases]:
-            # new databases
-            data = self._get_database(db_name)
-            if data is None:
-                continue
-
-            if self.dataframe.empty:
-                self.dataframe = data
-            else:
-                self.dataframe = pd.concat([self.dataframe, data], join="outer")
-
-            sync = True
-
-        if sync:
-            self.thread().eventDispatcher().awake.connect(self._emitSyncLater, Qt.ConnectionType.UniqueConnection)
-
-    def _get_database(self, db_name: str) -> pd.DataFrame | None:
-        con = sqlite3.connect(sqlite3_lci_db._filepath)
-        node_df = pd.read_sql(f"SELECT * FROM activitydataset WHERE database = '{db_name}'", con)
-        con.close()
-        if node_df.empty:
-            return None
-        return self._parse_df(node_df)
-
-    def _parse_df(self, raw_df: pd.DataFrame) -> pd.DataFrame:
-        data_df = pd.DataFrame([pickle.loads(x) for x in raw_df["data"]]).drop(columns=["id"], errors="ignore")
-
-        df = raw_df.combine_first(data_df)
-        df.drop(columns=["data"], inplace=True)
-
-        df["key"] = df.loc[:, ["database", "code"]].apply(tuple, axis=1)
-        if df.empty:
-            return df
-        df.index = pd.MultiIndex.from_tuples(df["key"])
-        return df
 
     def get_metadata(self, keys: list, columns: list) -> pd.DataFrame:
         """Return a slice of the dataframe matching row and column identifiers.

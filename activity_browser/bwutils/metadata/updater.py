@@ -2,14 +2,14 @@ from logging import getLogger
 
 import pandas as pd
 import numpy as np
-import bw2data as bd
+import timeit
 
 from qtpy import QtCore
 
 from activity_browser import signals, application
 
 from .metadata import MetaDataStore
-from .fields import primary, secondary
+from .fields import primary, secondary, all_types
 
 log = getLogger(__name__)
 
@@ -58,23 +58,45 @@ class MDSUpdater(QtCore.QObject):
 
     # node methods
     def modify_node(self, ds: pd.Series):
-        drop = self.mds.dataframe.drop(ds.key)
-        ds = pd.DataFrame(ds).transpose()
-        self.mds.dataframe = pd.concat([drop, ds])
+        self._fix_categories(ds)
+        self.mds.dataframe.loc[ds.key] = ds
+        self.mds.register_mutation(ds.key, "update")
 
     def add_node(self, ds: pd.Series):
-        ds = pd.DataFrame(ds).transpose()
-        self.mds.dataframe = pd.concat([self.mds.dataframe, ds])
+        self._fix_categories(ds)
+        self.mds.dataframe.loc[ds.key] = ds
+        self.mds.register_mutation(ds.key, "add")
 
     def delete_node(self, ds: pd.Series):
         self.mds.dataframe = self.mds.dataframe.drop(ds.key)
+        self.mds.register_mutation(ds.key, "delete")
 
     # database methods
     def add_database(self, db_name: str):
         self.mds.loader.load_database(db_name)
 
     def delete_database(self, db_name: str):
+        for code in self.mds.dataframe.loc[db_name].index:
+            self.mds.register_mutation((db_name, code), "delete")
+
         self.mds.dataframe = self.mds.dataframe.drop(db_name, level=0)
+
+    # utility functions
+    def _fix_categories(self, ds: pd.Series):
+        for category_col in [k for k, v in all_types.items() if k in ds and v == "category"]:
+            category = ds[category_col]
+
+            if pd.isna(category):
+                # cannot add NaN as a category
+                return
+
+            if category in self.mds.dataframe[category_col].cat.categories:
+                # category already exists
+                return
+
+            # add new category to column
+            self.mds.dataframe[category_col] = self.mds.dataframe[category_col].cat.add_categories([category])
+
 
 
 def databases_in_sqlite() -> set[str]:
