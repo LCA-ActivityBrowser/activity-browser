@@ -21,13 +21,16 @@ class MetaDataStore(QObject):
     def __init__(self, parent=None):
         from activity_browser import application
         from .loader import MDSLoader
+        from .updater import MDSUpdater
 
         super().__init__(parent)
 
-        self._dataframe = pd.DataFrame(columns=all)
+        self._dataframe = pd.DataFrame()
 
         self.moveToThread(application.thread())
+
         self.loader = MDSLoader(self)
+        self.updater = MDSUpdater(self)
 
     @property
     def dataframe(self) -> pd.DataFrame:
@@ -37,13 +40,11 @@ class MetaDataStore(QObject):
     def dataframe(self, df: pd.DataFrame) -> None:
         # Ensure all expected columns are present, in the correct order, and with the correct types
         df = df.reindex(columns=all)[all].astype(all_types)
-        df["key"] = list(zip(df["database"], df["code"]))
-        df.index = pd.MultiIndex.from_tuples(df["key"], names=["database", "code"])
 
         # Set the internal dataframe
         self._dataframe = df
 
-        self.synced.emit()
+        self.thread().eventDispatcher().awake.connect(self._emitSyncLater, Qt.ConnectionType.UniqueConnection)
 
     @property
     def databases(self):

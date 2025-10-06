@@ -29,73 +29,74 @@ class MDSLoader(QtCore.QObject):
 
     def connect_signals(self):
         signals.project.changed.connect(self.on_project_changed)
-        #
-        # signals.node.changed.connect(self.on_node_changed)
-        # signals.node.deleted.connect(self.on_node_deleted)
-
-        # signals.meta.databases_changed.connect(self.sync_databases)
-        # signals.database.deleted.connect(self.sync_databases)
 
     def on_project_changed(self):
-        # clear existing metadata
-        self.mds.dataframe = pd.DataFrame()
+        self.load_project()
 
+    def load_project(self):
         # start loading threads
         thread = SecondaryLoadThread(self)
         thread.done.connect(self.secondary_load_project)
-        thread.start()
+        thread.start(databases=list(bd.databases))
 
         # load primary metadata in the main thread
         self.primary_load_project()
 
-    def on_node_changed(self, new, old):
-        data_raw = model_to_dict(new)
-        data = data_raw.pop("data")
-        data.update(data_raw)
-        data["key"] = new.key
-        data = pd.DataFrame([data], index=pd.MultiIndex.from_tuples([new.key]))
-
-        if new.key in self.dataframe.index:  # the activity has been modified
-
-            compare_old = self.dataframe.loc[new.key].dropna().sort_index()
-            compare_new = data.loc[new.key].dropna().sort_index()
-
-            if list(compare_new.index) == list(compare_old.index) and (compare_new == compare_old).all():
-                return  # but it is the same as the current DF, so no sync necessary
-            for col in [col for col in data.columns if col not in self.dataframe.columns]:
-                self.dataframe[col] = pd.NA
-            self.dataframe.loc[new.key] = data.loc[new.key]
-        elif self.dataframe.empty:  # an activity has been added and the dataframe was empty
-            self.dataframe = data
-        else:  # an activity has been added and needs to be concatenated to existing metadata
-            self.dataframe = pd.concat([self.dataframe, data], join="outer")
-
-        self.thread().eventDispatcher().awake.connect(self._emitSyncLater, Qt.ConnectionType.UniqueConnection)
-
-    def on_node_deleted(self, ds):
-        try:
-            self.mds.dataframe = self.mds.dataframe.drop(ds.key, inplace=True)
-        except KeyError:
-            pass
-
     def primary_load_project(self):
-        con = sqlite3.connect(sqlite3_lci_db._filepath)
-        primary_df = pd.read_sql(f"SELECT {', '.join(primary)} FROM activitydataset", con)
-        con.close()
+        with sqlite3.connect(sqlite3_lci_db._filepath) as con:
+            fields = ', '.join(primary[1:])  # Exclude 'key' as it's constructed
+            primary_df = pd.read_sql(f"SELECT {fields} FROM activitydataset", con)
+
+        primary_df["key"] = list(zip(primary_df["database"], primary_df["code"]))
+        primary_df.index = pd.MultiIndex.from_tuples(primary_df["key"], names=["database", "code"])
+
         log.debug(f"Primary metadata loaded with {len(primary_df)} rows")
-        self.mds.dataframe = pd.concat([self.mds.dataframe, primary_df])
+        self.mds.dataframe = primary_df
 
     def secondary_load_project(self, secondary_df: pd.DataFrame):
         assert len(secondary_df) == len(self.mds.dataframe)
         log.debug(f"Secondary metadata loaded with {len(secondary_df)} rows")
         self.mds.dataframe = pd.concat([self.mds.dataframe[primary], secondary_df], axis=1)
 
+    def load_database(self, database_name: str):
+        # start loading threads
+        thread = SecondaryLoadThread(self)
+        thread.done.connect(self.secondary_load_database)
+        thread.start(databases=[database_name])
+
+        # load primary metadata in the main thread
+        self.primary_load_database(database_name)
+
+    def primary_load_database(self, database_name: str):
+        with sqlite3.connect(sqlite3_lci_db._filepath) as con:
+            fields = ', '.join(primary[1:])  # Exclude 'key' as it's constructed
+            primary_df = pd.read_sql(f"SELECT {fields} FROM activitydataset WHERE database = '{database_name}'", con)
+
+        primary_df["key"] = list(zip(primary_df["database"], primary_df["code"]))
+        primary_df.index = pd.MultiIndex.from_tuples(primary_df["key"], names=["database", "code"])
+
+        log.debug(f"Primary metadata loaded with {len(primary_df)} rows")
+        self.mds.dataframe = pd.concat([self.mds.dataframe, primary_df])
+
+    def secondary_load_database(self, secondary_df: pd.DataFrame):
+        if secondary_df.empty:
+            return
+
+        database = secondary_df.index[0][0]
+        assert len(secondary_df) == len(self.mds.dataframe.loc[database])
+
+        log.debug(f"Secondary metadata loaded with {len(secondary_df)} rows")
+
+        metadata = self.mds.dataframe.copy()
+        metadata.update(secondary_df)
+        self.mds.dataframe = metadata
+
 
 class SecondaryLoadThread(threading.ABThread):
     done: QtCore.SignalInstance = QtCore.Signal(pd.DataFrame)
 
-    def run_safely(self, *args, **kwargs):
-        processes = [self.open_load_process(db) for db in bd.databases]
+    def run_safely(self, databases: list[str], *args, **kwargs):
+        processes = [self.open_load_process(db) for db in databases]
 
         full_df = pd.DataFrame()
         for proc in processes:
