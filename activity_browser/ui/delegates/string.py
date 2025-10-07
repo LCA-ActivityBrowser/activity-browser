@@ -6,6 +6,9 @@ class StringDelegate(QtWidgets.QStyledItemDelegate):
     """For managing and validating entered string values."""
 
     def displayText(self, value, locale):
+        if isinstance(value, (list, tuple)):
+            return ", ".join(value)
+
         return str(value)
 
     def createEditor(self, parent, option, index):

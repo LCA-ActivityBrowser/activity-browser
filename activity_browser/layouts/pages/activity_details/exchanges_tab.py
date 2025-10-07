@@ -1,10 +1,13 @@
 from logging import getLogger
 
+from playhouse.signals import pre_delete
 from qtpy import QtWidgets, QtCore, QtGui
 from qtpy.QtCore import Qt
 
 import pandas as pd
 import bw2data as bd
+from scipy.fft import ifft2
+
 import bw_functional as bf
 
 from activity_browser import actions, bwutils
@@ -260,6 +263,59 @@ class DropOverlay(QtWidgets.QWidget):
         painter.drawText(self.rect(), Qt.AlignCenter, "Drop here to create new exchanges")
 
 
+class RelinkDelegate(delegates.StringDelegate):
+    matched: pd.DataFrame
+    column: str
+    item: "ExchangesItem"
+
+    def createEditor(self, parent, option, index):
+        self.item = index.internalPointer()
+        self.column = index.model().columns()[index.column()]
+        self.column = "name" if self.column == "producer" else self.column
+
+        if self.column == "product" and self.item.functional:
+            return super().createEditor(parent, option, index)
+
+        setup = {
+            "database": self.item["database"],
+            "name": self.item["producer"],
+            "product": self.item["product"],
+            "categories": self.item["categories"],
+            "location": self.item["location"],
+            "type": self.item.exchange.input["type"],
+        }
+
+        del setup[self.column]
+
+        self.matched = AB_metadata.match(**setup)
+
+        combo = QtWidgets.QComboBox(parent)
+        combo.addItems(list(self.matched.get(self.column, []).astype(str)))
+        return combo
+
+    def setEditorData(self, editor: QtWidgets.QComboBox, index):
+        if self.column == "product" and self.item.functional:
+            return super().setEditorData(editor, index)
+
+        value = index.model().data(index, 0)
+        if value:
+            i = editor.findText(str(value))
+            if i >= 0:
+                editor.setCurrentIndex(i)
+
+    def setModelData(self, editor: QtWidgets.QComboBox, model, index):
+        if self.column == "product" and self.item.functional:
+            return super().setModelData(editor, model, index)
+
+        choice = editor.currentIndex()
+        key = self.matched.iloc[choice].key
+
+        actions.ExchangeModify.run(
+            index.internalPointer().exchange,
+            {"input": key}
+        )
+
+
 class ExchangesView(widgets.ABTreeView):
     """
     A view that displays the exchanges in a tree structure.
@@ -273,13 +329,14 @@ class ExchangesView(widgets.ABTreeView):
         "allocation_factor": delegates.FloatDelegate,
         "substitution_factor": delegates.FloatDelegate,
         "unit": delegates.StringDelegate,
-        "name": delegates.StringDelegate,
-        "location": delegates.StringDelegate,
-        "product": delegates.StringDelegate,
+        "producer": RelinkDelegate,
+        "location": RelinkDelegate,
+        "product": RelinkDelegate,
+        "database": RelinkDelegate,
+        "categories": RelinkDelegate,
         "formula": delegates.NewFormulaDelegate,
         "comment": delegates.StringDelegate,
         "uncertainty": delegates.UncertaintyDelegate,
-        "categories": delegates.ListDelegate,
     }
 
     class HeaderMenu(widgets.ABMenu):
@@ -495,8 +552,11 @@ class ExchangesItem(widgets.ABDataItem):
         if key in ["amount", "formula", "uncertainty", "comment"]:
             return flags | Qt.ItemFlag.ItemIsEditable
 
-        # Allow editing for "unit", "name", "location", and "substitution_factor" if the exchange is functional.
-        if key in ["unit", "product", "location", "substitution_factor"] and self.functional:
+        # Allow editing for "unit", "name", and "substitution_factor" if the exchange is functional.
+        if key in ["unit", "product", "substitution_factor"] and self.functional:
+            return flags | Qt.ItemFlag.ItemIsEditable
+
+        if key in ["producer", "product", "location", "categories", "database"] and not self.functional:
             return flags | Qt.ItemFlag.ItemIsEditable
 
         # Allow editing for properties (keys starting with "property_") if the exchange is functional.
@@ -561,20 +621,19 @@ class ExchangesItem(widgets.ABDataItem):
                 return icons.qicons.empty
             return icons.qicons.parameterized
 
-        if key == "producer" and self["producer"]:
-            return icons.qicons.process
-
-        if key == "product":
-            activity_type = self.exchange.input.get("type")
-        else:  # key is "substitute_name"
-            activity_type = bd.get_node(key=self["_substitute_key"])["type"]
+        activity_type = self.exchange.input.get("type")
 
         if activity_type in ["natural resource", "emission", "inventory indicator", "economic", "social"]:
             return icons.qicons.biosphere
-        if activity_type in ["product", "processwithreferenceproduct"]:
+        if activity_type == "product":
             return icons.qicons.product
+        if activity_type == "processwithreferenceproduct":
+            return icons.qicons.processproduct
+        if activity_type == "process":
+            return icons.qicons.process
         if activity_type == "waste":
             return icons.qicons.waste
+        return None
 
     def fontData(self, col: int, key: str):
         """

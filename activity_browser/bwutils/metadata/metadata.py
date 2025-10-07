@@ -85,6 +85,19 @@ class MetaDataStore(QObject):
 
         log.debug(f"Metadatastore sync signal completed in {time() - t:.2f} seconds")
 
+    def match(self, **kwargs: dict[str, str]) -> pd.DataFrame:
+        """Return a slice of the dataframe matching the criteria.
+        """
+        df = self.dataframe.query(
+            " and ".join(
+                [
+                    f"`{key}` == '{value}'" if not pd.isna(value) else f"`{key}`.isnull()"
+                    for key, value in kwargs.items()
+                ])
+        )
+
+        return df
+
     def get_metadata(self, keys: list, columns: list) -> pd.DataFrame:
         """Return a slice of the dataframe matching row and column identifiers.
 

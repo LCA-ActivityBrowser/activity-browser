@@ -79,7 +79,7 @@ class ListDelegate(QtWidgets.QStyledItemDelegate):
         values = [] if not value else [i.lstrip() for i in value.split(",")]
 
         parent = self.parent()
-        if getattr(parent, "table_name") == "activity_parameter":
+        if getattr(parent, "table_name", None) == "activity_parameter":
             groups = parent.get_activity_groups(index, values)
             unchecked = dialog.add_items_value(groups)
             checked = dialog.add_items_value(values, True)
