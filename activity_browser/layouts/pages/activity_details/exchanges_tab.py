@@ -131,7 +131,7 @@ class ExchangesTab(QtWidgets.QWidget):
             pd.DataFrame: The DataFrame containing the exchanges data.
         """
         # Define the columns for the metadata
-        cols = ["key", "unit", "name", "product", "location", "database", "substitute", "substitution_factor", "allocation_factor",
+        cols = ["key", "unit", "name", "product", "location", "database", "allocation_factor",
                 "properties", "processor", "categories"]
 
         # Create a DataFrame from the exchanges
@@ -139,40 +139,12 @@ class ExchangesTab(QtWidgets.QWidget):
         exc_df["type"] = [x["type"] for x in exchanges]
         act_df = AB_metadata.get_metadata(exc_df["input"].unique(), cols)
 
-        processor_keys = act_df["processor"].dropna().unique()
-        processor_df = AB_metadata.get_metadata(processor_keys, ["key", "name"]).rename({"name": "processor_name"}, axis="columns")
-
         # Merge the exchanges DataFrame with the metadata DataFrame
         df = exc_df.merge(
             act_df,
             left_on="input",
             right_on="key"
         ).drop(columns=["key"])
-
-        df = df.merge(
-            processor_df,
-            left_on="processor",
-            right_on="key",
-            how="left",
-        ).drop(columns=["key"])
-
-        # Use "product" if available otherwise use "name"
-        df["producer"] = df[df["type"].isin(["technosphere"])]["name"]
-        df.update(df["processor_name"].rename("producer"))
-
-        # Use "product" if available otherwise use "name"
-        df.update(df["product"].rename("name"))
-
-        # Handle substitute data if available
-        if not df["substitute"].isna().all():
-            df = df.merge(
-                AB_metadata.dataframe[["key", "name"]].rename({"name": "substitute_name"}, axis="columns"),
-                left_on="substitute",
-                right_on="key",
-                how="left",
-            ).drop(columns=["key"])
-        else:
-            df.drop(columns=["substitute", "substitution_factor"], inplace=True)
 
         # Handle properties data if available
         if not act_df.properties.isna().all():
@@ -194,12 +166,15 @@ class ExchangesTab(QtWidgets.QWidget):
 
         # Drop the properties column and rename some columns
         df.drop(columns=["properties"], inplace=True)
-        df.rename({"input": "_input_key", "substitute": "_substitute_key", "processor": "_processor_key",
-                   "uncertainty type": "uncertainty"},
-            axis="columns", inplace=True)
+        df.rename({
+            "input": "_input_key",
+            "processor": "_processor_key",
+            "uncertainty type": "uncertainty",
+            "name": "producer",
+        }, axis="columns", inplace=True)
 
         # Define the order of columns for the final DataFrame
-        cols = ["amount", "unit", "name", "producer", "location", "categories", "database"]
+        cols = ["amount", "unit", "product", "producer", "location", "categories", "database"]
         cols += ["substitute_name", "substitution_factor"] if "substitute_name" in df.columns else []
         cols += ["allocation_factor"] if not database_is_legacy(self.activity.get("database")) else []
         cols += [col for col in df.columns if col.startswith("property")]
@@ -521,7 +496,7 @@ class ExchangesItem(widgets.ABDataItem):
             return flags | Qt.ItemFlag.ItemIsEditable
 
         # Allow editing for "unit", "name", "location", and "substitution_factor" if the exchange is functional.
-        if key in ["unit", "name", "location", "substitution_factor"] and self.functional:
+        if key in ["unit", "product", "location", "substitution_factor"] and self.functional:
             return flags | Qt.ItemFlag.ItemIsEditable
 
         # Allow editing for properties (keys starting with "property_") if the exchange is functional.
@@ -577,7 +552,7 @@ class ExchangesItem(widgets.ABDataItem):
         Returns:
             The decoration data for the item.
         """
-        if key not in ["name", "substitute_name", "amount", "producer"] or not self.displayData(col, key):
+        if key not in ["product", "substitute_name", "amount", "producer"] or not self.displayData(col, key):
             return
 
         if key == "amount":
@@ -589,7 +564,7 @@ class ExchangesItem(widgets.ABDataItem):
         if key == "producer" and self["producer"]:
             return icons.qicons.process
 
-        if key == "name":
+        if key == "product":
             activity_type = self.exchange.input.get("type")
         else:  # key is "substitute_name"
             activity_type = bd.get_node(key=self["_substitute_key"])["type"]
@@ -657,13 +632,8 @@ class ExchangesItem(widgets.ABDataItem):
             actions.ExchangeModify.run(self.exchange, {key.lower(): value})
             return True
 
-        if key in ["unit", "name", "location", "substitution_factor", "allocation_factor"]:
+        if key in ["unit", "product", "location", "substitution_factor", "allocation_factor"]:
             act = self.exchange.input
-
-            # if we're dealing with a legacy activity, we need to set to the product field here
-            if key == "name" and not isinstance(act, bf.Product):
-                key = "reference product"
-
             actions.ActivityModify.run(act.key, key.lower(), value)
 
         if key.startswith("property_"):

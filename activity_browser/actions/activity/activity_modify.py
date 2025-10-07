@@ -21,5 +21,9 @@ class ActivityModify(ABAction):
     def run(activity: tuple | int | Node, field: str, value: any):
         activity = bwutils.refresh_node(activity)
 
+        if field == "product":
+            # for some reason product needs to be set like this
+            field = "reference product"
+
         activity[field] = value
         activity.save()
