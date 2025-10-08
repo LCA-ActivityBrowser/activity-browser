@@ -13,7 +13,7 @@ log = getLogger(__name__)
 
 
 class MetaDataStore(QObject):
-    synced: SignalInstance = Signal()
+    synced: SignalInstance = Signal(set, set, set)  # added, updated, deleted
 
     def __init__(self, parent=None):
         from activity_browser import application
@@ -24,8 +24,8 @@ class MetaDataStore(QObject):
 
         self._dataframe = pd.DataFrame()
 
-        self._updated: set[tuple[str, str]] = set()
         self._added: set[tuple[str, str]] = set()
+        self._updated: set[tuple[str, str]] = set()
         self._deleted: set[tuple[str, str]] = set()
 
         self.moveToThread(application.thread())
@@ -79,7 +79,7 @@ class MetaDataStore(QObject):
             return
 
         t = time()
-        self.synced.emit()
+        self.synced.emit(self._added, self._updated, self._deleted)
 
         self._added.clear(), self._updated.clear(), self._deleted.clear()
 
