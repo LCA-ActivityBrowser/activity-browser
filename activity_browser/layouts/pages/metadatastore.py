@@ -1,6 +1,6 @@
 from qtpy import QtWidgets
 
-from activity_browser.ui import widgets
+from activity_browser.ui import widgets, delegates
 from activity_browser.bwutils import AB_metadata
 
 
@@ -29,8 +29,9 @@ class MetaDataStorePage(QtWidgets.QWidget):
 
 
 class MDSView(widgets.ABTreeView):
-    pass
-
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setItemDelegate(delegates.StringDelegate(self))
 
 class MDSItem(widgets.ABDataItem):
     pass
