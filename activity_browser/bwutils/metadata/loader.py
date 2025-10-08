@@ -14,7 +14,7 @@ from activity_browser import signals, application
 from activity_browser.ui import threading
 
 from .metadata import MetaDataStore
-from .fields import all, primary, secondary
+from .fields import secondary_types, primary, secondary
 
 log = getLogger(__name__)
 
@@ -96,12 +96,22 @@ class MDSLoader(QtCore.QObject):
 
         log.debug(f"Secondary metadata loaded with {len(secondary_df)} rows")
 
-        metadata = self.mds.dataframe.copy()
-        metadata.update(secondary_df)
-        self.mds.dataframe = metadata
+        self._fix_categories(secondary_df)
+        self.mds.dataframe.update(secondary_df)
 
         for idx in secondary_df.index:
             self.mds.register_mutation(idx, "update")
+
+    # utility functions
+    def _fix_categories(self, df: pd.DataFrame):
+        category_columns = [k for k, v in secondary_types.items() if v == "category"]
+
+        for col in category_columns:
+            categories = df[col].dropna().unique()
+            categories = [c for c in categories if c not in self.mds.dataframe[col].cat.categories]
+
+            # add new category to column
+            self.mds.dataframe[col] = self.mds.dataframe[col].cat.add_categories(categories)
 
 
 class SecondaryLoadThread(threading.ABThread):
