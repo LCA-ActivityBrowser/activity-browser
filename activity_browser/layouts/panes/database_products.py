@@ -65,16 +65,16 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
         self.connect_signals()
 
     def build_layout(self):
-            table_layout = QtWidgets.QHBoxLayout()
-            table_layout.setSpacing(0)
-            table_layout.addWidget(self.table_view)
+        table_layout = QtWidgets.QHBoxLayout()
+        table_layout.setSpacing(0)
+        table_layout.addWidget(self.table_view)
 
-            layout = QtWidgets.QVBoxLayout(self)
-            layout.addWidget(self.search)
-            layout.addLayout(table_layout)
+        layout = QtWidgets.QVBoxLayout(self)
+        layout.addWidget(self.search)
+        layout.addLayout(table_layout)
 
-            # Set the table view as the central widget of the window
-            self.setLayout(layout)
+        # Set the table view as the central widget of the window
+        self.setLayout(layout)
 
     def connect_signals(self):
         AB_metadata.synced.connect(self.sync)
@@ -82,28 +82,6 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
 
         self.table_view.filtered.connect(self.search_error)
         self.search.textChangedDebounce.connect(self.table_view.setAllFilter)
-
-    def saveState(self):
-        """
-        Save the state of the pane.
-        """
-        return {
-            "database_name": self.database.name,
-            "header_state": self.table_view.header().saveState(),
-            "group_by": self.model.grouped_columns,
-        }
-
-    @classmethod
-    def fromState(cls, state: dict, parent=None):
-        """
-        Restore the state of the pane.
-        """
-        pane = cls(parent, state["database_name"])
-        pane.model.grouped_columns = state.get("group_by", [])
-        if "header_state" in state:
-            pane.table_view.header().restoreState(state["header_state"])
-        return pane
-
 
     def sync(self):
         """
@@ -122,42 +100,10 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
         """
         t = time()
         cols = ["name", "key", "processor", "product", "type", "unit", "location", "id", "categories", "properties"]
-        if self.database.name in AB_metadata.databases:
-            full_df = AB_metadata.dataframe.loc[self.database.name].reindex(cols, axis="columns")
-        else:
-            full_df = pd.DataFrame(columns=cols)
-        full_df["processor"] = full_df["processor"].astype(object)
+        df = AB_metadata.get_database_metadata(self.database.name, cols)
 
-        df = full_df.merge(
-            full_df[["name", "key"]].rename({"name": "processor_name", "key": "processor_key"}, axis="columns"),
-            left_on="processor",
-            right_on="processor_key",
-            how="left",
-        )
-
-        # "activity"
-        # node.name by default, but processor.name in case of a Product
-        df["activity"] = df["name"]
-        df.update(df["processor_name"].rename("activity"))
-
-        # "product"
-        # node.name for "product"-types, overwritten by node.product
-        df["product_name"] = df[df.type.isin(["product", "waste"])]["name"]
-        df.update(df["product"].rename("product_name"))
-        df["product"] = df["product_name"]
-
-        # "activity_key"
-        # activity that's opened on double click
-        # node.key by default, but node.processor in case of a Product
-        df["activity_key"] = df["key"]
-        df.update(df["processor"].rename("activity_key"))
-
-        # "product_key"
-        #  product of an activity
-        df["product_key"] = df[df["type"] != "nonfunctional"]["key"]
-
-        # drop all processes that have products
-        df = df.drop(df[df.key.isin(df.processor)].index)
+        processors = set(df["processor"].dropna().unique())
+        df = df.drop(processors)
 
         if not df.properties.isna().all():
             props_df = df[df.properties.notna()]
@@ -171,7 +117,7 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
                 how="left",
             )
 
-        cols = ["activity", "product", "type", "unit", "location", "categories", "activity_key", "product_key"]
+        cols = ["name", "product", "unit", "location", "categories", "key", "processor", "type",]
         cols += [col for col in df.columns if col.startswith("property")]
 
         log.debug(f"Built DatabaseProductsPane dataframe in {time() - t:.2f} seconds")
@@ -343,7 +289,7 @@ class ProductView(ui.widgets.ABTreeView):
             actions.ActivityOpen.run(self.selected_activities)
 
     @property
-    def selected_products(self) -> [tuple]:
+    def selected_products(self) -> list[tuple]:
         """
         Returns the selected products.
 
@@ -351,10 +297,10 @@ class ProductView(ui.widgets.ABTreeView):
             list[tuple]: The list of selected products.
         """
         items = [i.internalPointer() for i in self.selectedIndexes() if isinstance(i.internalPointer(), ProductItem)]
-        return list({item["product_key"] for item in items if not pd.isna(item["product_key"])})
+        return list({item["key"] for item in items if not item["type"] == "nonfunctional"})
 
     @property
-    def selected_activities(self) -> [tuple]:
+    def selected_activities(self) -> list[tuple]:
         """
         Returns the selected activities.
 
@@ -362,7 +308,7 @@ class ProductView(ui.widgets.ABTreeView):
             list[tuple]: The list of selected activities.
         """
         items = [i.internalPointer() for i in self.selectedIndexes() if isinstance(i.internalPointer(), ProductItem)]
-        return list({item["activity_key"] for item in items if item["activity_key"] is not None})
+        return list({item["processor"] if not pd.isna(item["processor"]) else item["key"] for item in items})
 
 
 class ProductItem(ui.widgets.ABDataItem):
@@ -380,7 +326,7 @@ class ProductItem(ui.widgets.ABDataItem):
         Returns:
             The decoration data for the item.
         """
-        if key == "activity" and self["activity"]:
+        if key == "name" and self["name"]:
             if self["type"] == "processwithreferenceproduct":
                 return ui.icons.qicons.processproduct
             if self["type"] in NODETYPES["biosphere"]:

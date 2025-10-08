@@ -108,24 +108,9 @@ class MetaDataStore(QObject):
         df = self.dataframe.loc[pd.IndexSlice[keys], :]
         return df.reindex(columns, axis="columns")
 
-    def get_database_metadata(self, db_name: str) -> pd.DataFrame:
-        """Return a slice of the dataframe matching the database.
-
-        If the database does not exist in the metadata, attempt to add it.
-
-        Parameters
-        ----------
-        db_name : str
-            Name of the database to be retrieved
-
-        Returns
-        -------
-        pd.DataFrame
-            Slice of the metadata matching the database name
-
-        """
+    def get_database_metadata(self, db_name: str, columns: list = None) -> pd.DataFrame:
         if db_name not in self.databases:
-            return pd.DataFrame(columns=["name", "type", "location", "database", "code", "key", ])
-        return self.dataframe.loc[self.dataframe["database"] == db_name].copy(deep=True).dropna(how='all', axis=1)
+            return pd.DataFrame(columns=all)
+        return self.dataframe.loc[[db_name], columns or all]
 
 AB_metadata = MetaDataStore()
