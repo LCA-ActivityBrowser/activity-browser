@@ -77,11 +77,15 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
         self.setLayout(layout)
 
     def connect_signals(self):
-        AB_metadata.synced.connect(self.sync)
+        AB_metadata.synced.connect(self.on_metadata_changed)
         signals.database.deleted.connect(self.on_database_deleted)
 
         self.table_view.filtered.connect(self.search_error)
         self.search.textChangedDebounce.connect(self.table_view.setAllFilter)
+
+    def on_metadata_changed(self, added, updated, deleted):
+        if any(db == self.database.name for db, code in added | updated | deleted):
+            self.sync()
 
     def sync(self):
         """
