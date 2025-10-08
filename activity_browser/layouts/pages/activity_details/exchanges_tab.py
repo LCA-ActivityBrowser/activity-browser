@@ -1,12 +1,10 @@
 from logging import getLogger
 
-from playhouse.signals import pre_delete
-from qtpy import QtWidgets, QtCore, QtGui
+from qtpy import QtWidgets, QtGui
 from qtpy.QtCore import Qt
 
 import pandas as pd
 import bw2data as bd
-from scipy.fft import ifft2
 
 import bw_functional as bf
 

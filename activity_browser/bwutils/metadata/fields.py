@@ -16,6 +16,7 @@ secondary_types = {
     "processor": object,
     "allocation": "category",
     "allocation_factor": float,
+    "properties": object,
 }
 all_types = {**primary_types, **secondary_types}
 
