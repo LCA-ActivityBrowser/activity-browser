@@ -45,12 +45,12 @@ class SettingsWizard(QtWidgets.QWizard):
             log.info(f"Saved startup project as: {new_startup_project}")
 
         ab_settings.write_settings()
-        projects.change_base_directories(Path(field))
+        projects.change_base_directories(Path(field), update=False)
 
     def cancel(self):
         log.info("Going back to before settings were changed.")
         if projects._base_data_dir != self.last_bwdir:
-            projects.change_base_directories(Path(self.last_bwdir))
+            projects.change_base_directories(Path(self.last_bwdir), update=False)
             projects.set_current(
                 self.last_project, update=False,
             )  # project changes only if directory is changed
