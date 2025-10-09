@@ -339,7 +339,7 @@ class Contributions(object):
     TECH = "technosphere"
     BIOS = "biosphere"
 
-    DEFAULT_ACT_FIELDS = ["reference product", "name", "location", "unit", "database"]
+    DEFAULT_ACT_FIELDS = ["product", "name", "location", "unit", "database"]
     DEFAULT_EF_FIELDS = ["name", "categories", "type", "unit", "database"]
 
     DEFAULT_ACT_AGGREGATES = ["none"] + DEFAULT_ACT_FIELDS
@@ -503,7 +503,7 @@ class Contributions(object):
                 translated_keys.append(k)
             elif isinstance(k, str):
                 translated_keys.append(k)
-            elif k in AB_metadata.index:
+            elif k in AB_metadata.dataframe.index:
                 translated_keys.append(
                     separator.join(
                         [str(l) for l in list(AB_metadata.get_metadata(k, fields))]
@@ -548,11 +548,13 @@ class Contributions(object):
         df.columns = cls.get_labels(df.columns, fields=y_fields)
         # Coerce index to MultiIndex if it currently isn't
         if not isinstance(df.index, pd.MultiIndex):
-            df.index = pd.MultiIndex.from_tuples(ids_to_keys(df.index), names=[None, None])
+            df.index = pd.MultiIndex.from_tuples(ids_to_keys(df.index), names=["database", "code"])
+        else:
+            df.index.names = ["database", "code"]
 
         # get metadata for rows
-        keys = [k for k in df.index if k in AB_metadata.index]
-        metadata = AB_metadata.get_metadata(keys, x_fields)
+        keys = [k for k in df.index if k in AB_metadata.dataframe.index]
+        metadata = AB_metadata.get_metadata(keys, x_fields).astype(object)
 
         # join data with metadata
         joined = metadata.join(df, how="outer")
@@ -768,7 +770,7 @@ class Contributions(object):
 
         joined = metadata.merge(df, left_on="id", right_index=True, how="left")
         joined.reset_index(inplace=True, drop=True)
-        grouped = joined.groupby(parameters)
+        grouped = joined.groupby(parameters, observed=False)
         aggregated = grouped[columns].sum()
         mask_index = {i: m for i, m in enumerate(aggregated.index)}
 

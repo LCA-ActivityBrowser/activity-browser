@@ -383,8 +383,8 @@ class ProductModel(ui.widgets.ABItemModel):
             core.ABMimeData: The mime data.
         """
         data = core.ABMimeData()
-        keys = set(self.values_from_indices("activity_key", indices))
-        keys.update(self.values_from_indices("product_key", indices))
+        keys = set(self.values_from_indices("key", indices))
+        keys.update(self.values_from_indices("processor", indices))
         keys = {key for key in keys if isinstance(key, tuple)}
         data.setPickleData("application/bw-nodekeylist", list(keys))
         return data
