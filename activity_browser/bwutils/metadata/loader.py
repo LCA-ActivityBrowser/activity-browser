@@ -37,7 +37,7 @@ class MDSLoader(QtCore.QObject):
         # start loading threads
         thread = SecondaryLoadThread(self)
         thread.done.connect(self.secondary_load_project)
-        thread.start(databases=list(bd.databases))
+        thread.start(databases=list(bd.databases), sqlite_db=str(sqlite3_lci_db._filepath))
 
         # load primary metadata in the main thread
         self.primary_load_project()
@@ -56,8 +56,11 @@ class MDSLoader(QtCore.QObject):
         for idx in primary_df.index:
             self.mds.register_mutation(idx, "add")
 
-    def secondary_load_project(self, secondary_df: pd.DataFrame):
-        assert len(secondary_df) == len(self.mds.dataframe)
+    def secondary_load_project(self, secondary_df: pd.DataFrame, sqlite_db: str):
+        if sqlite_db != str(sqlite3_lci_db._filepath):
+            return
+
+        assert all(secondary_df.index.isin(self.mds.dataframe.index))
         log.debug(f"Secondary metadata loaded with {len(secondary_df)} rows")
         self.mds.dataframe = pd.concat([self.mds.dataframe[primary], secondary_df], axis=1)
 
@@ -68,7 +71,7 @@ class MDSLoader(QtCore.QObject):
         # start loading threads
         thread = SecondaryLoadThread(self)
         thread.done.connect(self.secondary_load_database)
-        thread.start(databases=[database_name])
+        thread.start(databases=[database_name], sqlite_db=str(sqlite3_lci_db._filepath))
 
         # load primary metadata in the main thread
         self.primary_load_database(database_name)
@@ -87,8 +90,8 @@ class MDSLoader(QtCore.QObject):
         for idx in primary_df.index:
             self.mds.register_mutation(idx, "add")
 
-    def secondary_load_database(self, secondary_df: pd.DataFrame):
-        if secondary_df.empty:
+    def secondary_load_database(self, secondary_df: pd.DataFrame, sqlite_db: str):
+        if secondary_df.empty or sqlite_db != str(sqlite3_lci_db._filepath):
             return
 
         database = secondary_df.index[0][0]
@@ -115,10 +118,10 @@ class MDSLoader(QtCore.QObject):
 
 
 class SecondaryLoadThread(threading.ABThread):
-    done: QtCore.SignalInstance = QtCore.Signal(pd.DataFrame)
+    done: QtCore.SignalInstance = QtCore.Signal(pd.DataFrame, str)
 
-    def run_safely(self, databases: list[str], *args, **kwargs):
-        processes = [self.open_load_process(db) for db in databases]
+    def run_safely(self, databases: list[str], sqlite_db: str):
+        processes = [self.open_load_process(db, sqlite_db) for db in databases]
 
         full_df = pd.DataFrame()
         for proc in processes:
@@ -132,13 +135,13 @@ class SecondaryLoadThread(threading.ABThread):
 
             full_df = pd.concat([full_df, df])
 
-        self.done.emit(full_df)
+        self.done.emit(full_df, sqlite_db)
 
-    def open_load_process(self, database_name: str):
+    def open_load_process(self, database_name: str, sqlite_db: str) -> subprocess.Popen:
         import activity_browser.bwutils.metadata._sub_loader as sl
 
         return subprocess.Popen(
-            [sys.executable, sl.__file__, str(sqlite3_lci_db._filepath), database_name] + secondary,
+            [sys.executable, sl.__file__, str(sqlite_db), database_name] + secondary,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE
         )
