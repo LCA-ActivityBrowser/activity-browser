@@ -62,7 +62,7 @@ class ActivityNewProcess(ABAction):
         if not legacy_backend:
             # create reference product
             new_ref_prod_data = {
-                "name": ref_product,
+                "product": ref_product,
                 "unit": unit,
                 "location": location,
                 "type": "product",

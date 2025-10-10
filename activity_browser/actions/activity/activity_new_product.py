@@ -60,7 +60,7 @@ class ActivityNewProduct(ABAction):
 
             # Create the new product
             new_prod_data = {
-                "name": name,
+                "product": name,
                 "unit": unit,
                 "location": location,
                 "type": product_type,

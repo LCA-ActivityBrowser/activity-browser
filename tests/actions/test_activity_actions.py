@@ -65,8 +65,8 @@ def test_activity_new(monkeypatch, basic_database):
     actions.ActivityNewProcess.run(basic_database.name)
 
     assert len(basic_database) == 6
-    assert len([p for p in basic_database if p["name"] == "new_process"]) == 1
-    assert len([p for p in basic_database if p["name"] == "new_product"]) == 1
+    assert len([p for p in basic_database if p["name"] == "new_process"]) == 2
+    assert len([p for p in basic_database if p.get("product") == "new_product"]) == 1
 
 
 def test_process_open(basic_database):
