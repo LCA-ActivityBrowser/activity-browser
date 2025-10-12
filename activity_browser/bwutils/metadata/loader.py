@@ -95,7 +95,7 @@ class MDSLoader(QtCore.QObject):
             return
 
         database = secondary_df.index[0][0]
-        indices = self.mds.dataframe.loc[database].index
+        indices = self.mds.dataframe.loc[[database]].index
 
         if not all(secondary_df.index.isin(indices)):
             log.debug("Secondary database metadata dropping rows")
