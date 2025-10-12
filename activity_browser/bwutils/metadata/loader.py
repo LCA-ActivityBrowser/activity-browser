@@ -95,7 +95,11 @@ class MDSLoader(QtCore.QObject):
             return
 
         database = secondary_df.index[0][0]
-        assert len(secondary_df) == len(self.mds.dataframe.loc[database])
+        indices = self.mds.dataframe.loc[database].index
+
+        if not all(secondary_df.index.isin(indices)):
+            log.debug("Secondary database metadata dropping rows")
+            secondary_df = secondary_df[secondary_df.index.isin(indices)]
 
         log.debug(f"Secondary metadata loaded with {len(secondary_df)} rows")
 
