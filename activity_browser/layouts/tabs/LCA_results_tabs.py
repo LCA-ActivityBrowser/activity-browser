@@ -1430,7 +1430,9 @@ class FirstTierContributionsTab(ContributionTab):
 
             amounts = [exch.amount * scale for exch in technosphere if
                        exch.input.key != exch.output.key]
-            demands = {keys[i]: amounts[i] for i, _ in enumerate(keys)}
+            demands = {}
+            for key, amount in zip(keys, amounts):
+                demands[key] = demands.get(key, 0) + amount
             return demands
 
         def get_scenario_demands() -> dict:
@@ -1452,7 +1454,10 @@ class FirstTierContributionsTab(ContributionTab):
                     amounts.append(_lca.technosphere_matrix[exch_idx, demand_idx] * scale)
 
             # write al non-zero exchanges to demand dict
-            demands = {keys[i]: amounts[i] for i, _ in enumerate(keys) if amounts[i] != 0}
+            demands = {}
+            for key, amount in zip(keys, amounts):
+                if amount != 0:
+                    demands[key] = demands.get(key, 0) + amount
             return demands
 
         # reuse LCA object from original calculation to skip 1 LCA
