@@ -13,7 +13,41 @@ parent: Panes
 
 ## Elements
 ### Quick Search
-A search bar at the top of the pane allows you to quickly filter and find specific database products by typing keywords. You can also build complex queries by using an equal sign (`=`) before a Pandas query syntax.
+A search bar at the top of the pane allows you to quickly filter and find specific database products by typing keywords. 
+You can also build complex queries by using an equal sign (`=`) before a Pandas query syntax.
+
+#### Query Search
+You can search for exact items by writing queries using the 
+[pandas query language](https://pandas.pydata.org/docs/dev/reference/api/pandas.DataFrame.query.html).
+To do this, you must start your search with `=` and then write the query.
+If the query is incorrect, the search bar will turn red and no search is done.
+
+> [!TIP]
+> A [pandas query](https://pandas.pydata.org/docs/dev/reference/api/pandas.DataFrame.query.html)
+> makes use of logical operations like:
+> - `==` equals
+> - `!=` does not equal 
+> - `~` NOT
+> - `&` AND
+> - `|` OR
+> - `(` and `)` to chain logical operations
+> 
+> You can also make use of other pandas operations to check for data like:
+> - `column.str` to ensure all content of that column is interpreted as text
+> - `column.str.contains()` to search within text (use `.contains("text", False)` for case in-sensitive)
+> - `column.isin()` to check if values are in a list of items
+
+Below are some examples of queries, getting progressively more complex:
+
+| Query                                                                 | Description                                                                                                  |
+|-----------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------|
+| `=product=="apple"`                                                   | Find all rows where column `product` is (`==`) **Exactly** `apple`                                           |
+| `=product!="apple"`                                                   | Find all rows where column `product` is (`!=`) **not** `apple`                                               |  
+| `=product.str.contains("apple")`                                      | Find all rows where column `product` contains `apple`                                                        |
+| `=~product.str.contains("apple")`                                     | Find all rows where column `product` does not (`~`) contain `apple`                                          |
+| `=product.isin(["apple", "pear"])`                                    | Find all rows where column `product` matches **Exactly** an item in `["apple", "pear"]`                      |
+| `=(product.str.contains("apple") \| product.str.contains("pear"))`    | Find all rows where column `product` contains `apple` OR (`\|`) `pear`                                       |
+| `=(product.str.contains("apple") & ~activity.str.contains("market"))` | Find all rows where column `product` contains `apple` AND (`&`) column `activity` does not contain `market`  |
 
 ### Products View
 The Products view displays a list of all the products in the currently selected database, along with some key attributes like: type, unit, and location. If the database is based on the [Functional SQLite backend](../../advanced-topics/multifunctional-databases), only products are shown, grouped by their processors.
