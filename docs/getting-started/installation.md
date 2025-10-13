@@ -27,7 +27,7 @@ pip install activity-browser
 ```
 conda create -n ab_beta -c conda-forge lca::activity-browser
 conda activate ab_beta
-pip install PySide6
+pip install PySide6==6.9.3
 ```
 
 For more elaborate installing instructions check out the page below for both [installing from PyPI](#installing-from-pypi) and [installing from Anaconda](#installing-from-anaconda).
@@ -96,10 +96,10 @@ conda activate ab_beta
 ```
 
 ### PySide6 installation
-We will need to install `PySide6` from PyPI, as the fully functional version is not available on anaconda.
+We will need to install a specific version of `PySide6` from PyPI, as the fully functional version is not available on anaconda.
 
 ```
-pip install PySide6
+pip install PySide6==6.9.3
 ```
 
 ### Launching the Activity Browser
