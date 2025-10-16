@@ -12,9 +12,10 @@ log = getLogger(__name__)
 
 class CSDuplicate(ABAction):
     """
-    ABAction to duplicate a calculation setup. Prompts the user for a new name. Returns if the user cancels, or if a CS
-    with the same name is already present within the project. If all is right, instructs the CalculationSetupController
-    to duplicate the CS.
+    ABAction to duplicate a calculation setup. Prompts the user for a new
+    name. Returns if the user cancels, or if a CS with the same name is
+    already present within the project. If all is right, instructs the
+    CalculationSetupController to duplicate the CS.
     """
 
     icon = qicons.copy

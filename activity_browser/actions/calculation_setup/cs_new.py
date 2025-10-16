@@ -16,20 +16,26 @@ class CSNew(ABAction):
     """
     Create a new Calculation Setup.
 
-    This method prompts the user for a name for the new Calculation Setup (CS) if not provided.
-    It validates the name to ensure it is unique within the project and creates a new CS
-    with the specified functional units and impact categories.
+    This method prompts the user for a name for the new Calculation Setup
+    (CS) if not provided. It validates the name to ensure it is unique
+    within the project and creates a new CS with the specified functional
+    units and impact categories.
 
     Args:
-        name (str, optional): The name of the new Calculation Setup. If not provided, the user is prompted.
-        functional_units (list[dict[tuple | int | bd.Node, float]], optional): A list of functional units to include in the CS.
-        impact_categories (list[tuple], optional): A list of impact categories to include in the CS.
+        name (str, optional): The name of the new Calculation Setup. If not
+            provided, the user is prompted.
+        functional_units (list[dict[tuple | int | bd.Node, float]],
+            optional): A list of functional units to include in the CS.
+        impact_categories (list[tuple], optional): A list of impact
+            categories to include in the CS.
 
     Returns:
-        None: Returns early if the user cancels, provides no name, or if the name already exists.
+        None: Returns early if the user cancels, provides no name, or if
+            the name already exists.
 
     Raises:
-        None: This method does not raise exceptions but logs errors and shows warnings for invalid inputs.
+        None: This method does not raise exceptions but logs errors and
+            shows warnings for invalid inputs.
     """
 
     icon = qicons.add
@@ -80,9 +86,10 @@ class CSNew(ABAction):
     def get_cs_name(default_name: str = "") -> str | None:
         """
         Prompt the user for a name for the new calculation setup.
-        
+
         Args:
-            default_name (str, optional): Default name to pre-populate in the dialog.
+            default_name (str, optional): Default name to pre-populate in
+                the dialog.
         """
         # prompt the user to give a name for the new calculation setup
         name, ok = QtWidgets.QInputDialog.getText(
