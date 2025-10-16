@@ -203,7 +203,7 @@ class CutoffMenu(QWidget):
             self.cutoff_value = 0.05
             self.sliders.percent.log_value = 5.0
             self.cutoff_slider_line.setText("5.0")
-        if self.limit_type == "cum_percent":
+        elif self.limit_type == "cum_percent":
             self.sliders.percent.setVisible(False)
             self.sliders.cum_percent.setVisible(True)
             self.sliders.number.setVisible(False)
