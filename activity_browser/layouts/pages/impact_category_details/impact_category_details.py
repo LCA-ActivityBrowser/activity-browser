@@ -58,16 +58,6 @@ class ImpactCategoryDetailsPage(QtWidgets.QWidget):
         self.model.setDataFrame(self.build_df())
         self.header.sync()
 
-    def on_editable_changed(self, is_editable):
-        """
-        Called when the editable checkbox state changes.
-        Updates the editable state and refreshes the model.
-        """
-        self.is_editable = is_editable
-        # Trigger a model reset to update the item flags
-        self.model.beginResetModel()
-        self.model.endResetModel()
-
     def build_layout(self):
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.header)
@@ -84,8 +74,9 @@ class ImpactCategoryDetailsPage(QtWidgets.QWidget):
 
         df = df.merge(other, left_on="id", right_on="id").rename(columns={"id": "_id", "data": "_cf"})
         df["_impact_category_name"] = [self.name for i in range(len(df))]
+        df["_editable"] = self.is_editable
 
-        cols = ["name", "categories", "database", "amount", "unit", "uncertainty", "_id", "_impact_category_name", "_cf"]
+        cols = ["name", "categories", "database", "amount", "unit", "uncertainty", "_id", "_impact_category_name", "_cf", "_editable"]
         return df[cols]
 
 
@@ -121,26 +112,49 @@ class CharacterizationFactorsView(widgets.ABTreeView):
         super().__init__(parent)
         self.setAcceptDrops(True)
         self.setSortingEnabled(True)
+        self.overlay = None
 
     def dragEnterEvent(self, event):
-        """Handle drag enter event for biosphere flows."""
+        """
+        Handles the drag enter event.
+
+        Args:
+            event: The drag enter event.
+        """
         if not self.parent().is_editable:
             return
 
         if event.mimeData().hasFormat("application/bw-nodekeylist"):
+            self.overlay = widgets.ABDropOverlay(self)
+            self.overlay.show()
             event.accept()
 
+    def dragLeaveEvent(self, event):
+        """
+        Handles the drag leave event.
+
+        Args:
+            event: The drag leave event.
+        """
+        # Reset the palette on drag leave
+        self.overlay.deleteLater()
+
     def dropEvent(self, event):
-        """Handle drop event to add new characterization factors."""
-        keys = event.mimeData().retrievePickleData("application/bw-nodekeylist")
-        
+        """
+        Handles the drop event.
+
+        Args:
+            event: The drop event.
+        """
+        self.overlay.deleteLater()
+
+        keys: list = event.mimeData().retrievePickleData("application/bw-nodekeylist")
+
         # Filter to only biosphere flows
         biosphere_keys = [key for key in keys if is_node_biosphere(key)]
 
         if biosphere_keys:
             actions.CFNew.run(self.parent().name, biosphere_keys)
-
-
 
 
 class ExchangesItem(widgets.ABDataItem):
@@ -156,17 +170,8 @@ class ExchangesItem(widgets.ABDataItem):
             QtCore.Qt.ItemFlags: The item flags.
         """
         flags = super().flags(col, key)
-        
-        # Get the parent page to check if it's editable
-        try:
-            parent_page = self.model.parent()
-            if parent_page and hasattr(parent_page, 'is_editable'):
-                if not parent_page.is_editable:
-                    return flags
-        except:
-            pass
-        
-        if key in ["amount", "uncertainty"]:
+
+        if key in ["amount", "uncertainty"] and self["_editable"]:
             return flags | Qt.ItemFlag.ItemIsEditable
         return flags
 
