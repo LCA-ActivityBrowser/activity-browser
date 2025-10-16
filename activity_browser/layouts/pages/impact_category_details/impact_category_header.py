@@ -14,6 +14,7 @@ class ImpactCategoryHeader(QtWidgets.QWidget):
         """
         super().__init__(parent)
         self.impact_category = parent.impact_category
+        self.editable_checkbox = None
 
         layout = QtWidgets.QVBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
@@ -51,17 +52,31 @@ class ImpactCategoryHeader(QtWidgets.QWidget):
         name_label = QtWidgets.QLabel(f"<a href='/'>{' | '.join(self.impact_category.name)}</a>",  self)
         name_label.linkActivated.connect(lambda: actions.MethodRename.run(self.impact_category.name))
 
+        # Create editable checkbox
+        self.editable_checkbox = QtWidgets.QCheckBox("Editable", self)
+        self.editable_checkbox.setChecked(False)
+        self.editable_checkbox.stateChanged.connect(self.on_editable_changed)
+
         setup = [
             ("Name:", name_label),
             ("Unit:", ImpactCategoryUnit(self)),
+            ("", self.editable_checkbox),
         ]
 
         # Arrange widgets for display as a grid
         for i, (title, widget) in enumerate(setup):
-            grid.addWidget(widgets.ABLabel.demiBold(title, self), i, 1)
+            if title:
+                grid.addWidget(widgets.ABLabel.demiBold(title, self), i, 1)
             grid.addWidget(widget, i, 2, 1, 4)
 
         return grid
+
+    def on_editable_changed(self):
+        """
+        Called when the editable checkbox state changes.
+        Notifies the parent page to update the view accordingly.
+        """
+        self.parent().on_editable_changed(self.editable_checkbox.isChecked())
 
 
 class ImpactCategoryUnit(QtWidgets.QLineEdit):

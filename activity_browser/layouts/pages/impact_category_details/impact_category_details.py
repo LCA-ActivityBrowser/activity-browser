@@ -16,6 +16,7 @@ class ImpactCategoryDetailsPage(QtWidgets.QWidget):
         super().__init__(parent)
         self.name = name
         self.impact_category = bd.Method(name)
+        self.is_editable = False
 
         self.setObjectName(" | ".join(name))
 
@@ -57,6 +58,16 @@ class ImpactCategoryDetailsPage(QtWidgets.QWidget):
         self.model.setDataFrame(self.build_df())
         self.header.sync()
 
+    def on_editable_changed(self, is_editable):
+        """
+        Called when the editable checkbox state changes.
+        Updates the editable state and refreshes the model.
+        """
+        self.is_editable = is_editable
+        # Trigger a model reset to update the item flags
+        self.model.beginResetModel()
+        self.model.endResetModel()
+
     def build_layout(self):
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.header)
@@ -85,6 +96,57 @@ class CharacterizationFactorsView(widgets.ABTreeView):
         "uncertainty": delegates.UncertaintyDelegate,
     }
 
+    class ContextMenu(widgets.ABMenu):
+        menuSetup = [
+            lambda m: m.add(actions.CFRemove, m.impact_category_name, m.char_factors,
+                            enable=bool(m.char_factors) and m.is_editable,
+                            text="Remove characterization factor(s)"),
+        ]
+
+        @property
+        def is_editable(self):
+            return self.parent().parent().is_editable
+
+        @property
+        def impact_category_name(self):
+            return self.parent().parent().name
+
+        @property
+        def char_factors(self):
+            indexes = self.parent().selectedIndexes()
+            return [(idx.internalPointer()["_id"], idx.internalPointer()["_cf"]) 
+                    for idx in indexes if idx.isValid() and idx.column() == 0]
+
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.setAcceptDrops(True)
+        self.setSortingEnabled(True)
+
+    def dragEnterEvent(self, event):
+        """Handle drag enter event for biosphere flows."""
+        if not self.parent().is_editable:
+            return
+
+        if event.mimeData().hasFormat("application/bw-nodekeylist"):
+            event.accept()
+
+    def dropEvent(self, event):
+        """Handle drop event to add new characterization factors."""
+        keys = event.mimeData().retrievePickleData("application/bw-nodekeylist")
+        
+        # Filter to only biosphere flows
+        biosphere_keys = []
+        for key in keys:
+            try:
+                node = bd.get_node(id=key)
+                if node.get("type") in ["emission", "natural resource", "inventory indicator", "economic", "social"]:
+                    biosphere_keys.append(key)
+            except:
+                pass
+
+        if biosphere_keys:
+            actions.CFNew.run(self.parent().name, biosphere_keys)
+
 
 
 
@@ -101,6 +163,16 @@ class ExchangesItem(widgets.ABDataItem):
             QtCore.Qt.ItemFlags: The item flags.
         """
         flags = super().flags(col, key)
+        
+        # Get the parent page to check if it's editable
+        try:
+            parent_page = self.model.parent()
+            if parent_page and hasattr(parent_page, 'is_editable'):
+                if not parent_page.is_editable:
+                    return flags
+        except:
+            pass
+        
         if key in ["amount", "uncertainty"]:
             return flags | Qt.ItemFlag.ItemIsEditable
         return flags
