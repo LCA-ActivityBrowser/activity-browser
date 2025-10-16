@@ -48,14 +48,17 @@ class CSNew(ABAction):
         if not name:
             return
 
-        # throw error if the name is already present, and return
-        if name in bd.calculation_setups:
+        # throw error if the name is already present, and retry with the same name
+        while name in bd.calculation_setups:
             QtWidgets.QMessageBox.warning(
                 application.main_window,
                 "Not possible",
                 "A calculation setup with this name already exists.",
             )
-            return
+            name = CSNew.get_cs_name(default_name=name)
+            # return if the user cancels or gives no name
+            if not name:
+                return
 
         inv = functional_units or []
         for i, fu in enumerate(inv):
@@ -74,15 +77,19 @@ class CSNew(ABAction):
         actions.CSOpen.run(name)
 
     @staticmethod
-    def get_cs_name() -> str | None:
+    def get_cs_name(default_name: str = "") -> str | None:
         """
         Prompt the user for a name for the new calculation setup.
+        
+        Args:
+            default_name (str, optional): Default name to pre-populate in the dialog.
         """
         # prompt the user to give a name for the new calculation setup
         name, ok = QtWidgets.QInputDialog.getText(
             application.main_window,
             "Create new calculation setup",
             "Name of new calculation setup:" + " " * 10,
+            text=default_name,
         )
 
         # return if the user cancels or gives no name

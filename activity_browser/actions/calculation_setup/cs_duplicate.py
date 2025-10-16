@@ -34,14 +34,22 @@ class CSDuplicate(ABAction):
         if not ok or not new_name:
             return
 
-        # throw error if the name is already present, and return
-        if new_name in bd.calculation_setups:
+        # throw error if the name is already present, and retry with the same name
+        while new_name in bd.calculation_setups:
             QtWidgets.QMessageBox.warning(
                 application.main_window,
                 "Not possible",
                 "A calculation setup with this name already exists.",
             )
-            return
+            new_name, ok = QtWidgets.QInputDialog.getText(
+                application.main_window,
+                f"Duplicate '{cs_name}'",
+                "Name of the duplicated calculation setup:" + " " * 10,
+                text=new_name,
+            )
+            # return if the user cancels or gives no name
+            if not ok or not new_name:
+                return
 
         bd.calculation_setups[new_name] = bd.calculation_setups[cs_name].copy()
         signals.calculation_setup_selected.emit(new_name)
