@@ -6,7 +6,7 @@ import pandas as pd
 
 from activity_browser import actions, signals
 from activity_browser.ui import widgets, icons, delegates
-from activity_browser.bwutils import AB_metadata
+from activity_browser.bwutils import AB_metadata, is_node_biosphere
 
 from .impact_category_header import ImpactCategoryHeader
 
@@ -135,14 +135,7 @@ class CharacterizationFactorsView(widgets.ABTreeView):
         keys = event.mimeData().retrievePickleData("application/bw-nodekeylist")
         
         # Filter to only biosphere flows
-        biosphere_keys = []
-        for key in keys:
-            try:
-                node = bd.get_node(id=key)
-                if node.get("type") in ["emission", "natural resource", "inventory indicator", "economic", "social"]:
-                    biosphere_keys.append(key)
-            except:
-                pass
+        biosphere_keys = [key for key in keys if is_node_biosphere(key)]
 
         if biosphere_keys:
             actions.CFNew.run(self.parent().name, biosphere_keys)
