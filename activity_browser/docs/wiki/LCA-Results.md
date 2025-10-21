@@ -19,7 +19,7 @@ Activity Browser has three contribution analysis approaches available to assess 
 
 Before we discuss the different approaches, we introduce a small example for the production of _'steel'_:
 These approaches are extensively discussed independent of Activity Browser by 
-[van der Meide et al. (2025)](https://doi.org/10.31219/osf.io/sfgj6_v1) 
+[van der Meide et al. (2025)](https://doi.org/10.1007/s11367-025-02487-y) 
 if you want to learn more.
 
 ![steel production example](./assets/steel_production_example.svg)
@@ -194,7 +194,7 @@ Below is a simple example (with unrealistic values) to demonstrate this:
 The `Sankey` tab shows results from [graph traversal](https://docs.brightway.dev/projects/graphtools/en/latest/index.html).
 Graph traversal calculates results step-by-step for _nodes_ (activites) in the _graph_ (supply chain/product system).
 This is explained in detail by 
-[van der Meide et al. (2025)](https://doi.org/10.31219/osf.io/sfgj6_v1) (path contributions).
+[van der Meide et al. (2025)](https://doi.org/10.1007/s11367-025-02487-y) (path contributions).
 
 ### Sankey configuration
 In the `Sankey` tab, you can set the 
