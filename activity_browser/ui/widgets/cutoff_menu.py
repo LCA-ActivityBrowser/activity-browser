@@ -198,7 +198,12 @@ class CutoffMenu(QWidget):
             self.labels.min.setText("100%")
             self.labels.max.setText("0.001%")
             self.cutoff_slider_line.setValidator(self.validators.percent)
-        if self.limit_type == "cum_percent":
+            
+            # Set default value: 5%
+            self.cutoff_value = 0.05
+            self.sliders.percent.log_value = 5.0
+            self.cutoff_slider_line.setText("5.0")
+        elif self.limit_type == "cum_percent":
             self.sliders.percent.setVisible(False)
             self.sliders.cum_percent.setVisible(True)
             self.sliders.number.setVisible(False)
@@ -207,6 +212,11 @@ class CutoffMenu(QWidget):
             self.labels.min.setText("1%")
             self.labels.max.setText("100%")
             self.cutoff_slider_line.setValidator(self.validators.cum_percent)
+            
+            # Set default value: 50%
+            self.cutoff_value = 0.50
+            self.sliders.cum_percent.setValue(50)
+            self.cutoff_slider_line.setText("50")
         elif self.limit_type == "number":
             self.sliders.percent.setVisible(False)
             self.sliders.cum_percent.setVisible(False)
@@ -216,12 +226,20 @@ class CutoffMenu(QWidget):
             self.labels.min.setText(str(self.sliders.number.minimum()))
             self.labels.max.setText(str(self.sliders.number.maximum()))
             self.cutoff_slider_line.setValidator(self.validators.number)
+            
+            # Set default value: 5
+            self.cutoff_value = 5
+            self.sliders.number.setValue(5)
+            self.cutoff_slider_line.setText("5")
 
         # unblock signals
         self.sliders.percent.blockSignals(False)
         self.sliders.cum_percent.blockSignals(False)
         self.sliders.number.blockSignals(False)
         self.cutoff_slider_line.blockSignals(False)
+        
+        # Emit signal to update the tab with new cutoff value
+        self.slider_change.emit()
 
     @Slot(str, name="sliderPercentCheck")
     def cutoff_slider_percent_check(self, editor: str):
