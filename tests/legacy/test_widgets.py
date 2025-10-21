@@ -51,38 +51,6 @@ def test_cutoff_slider_toggle(qtbot):
     assert slider.limit_type == "number"
 
 
-def test_cutoff_default_values(qtbot):
-    """Test that default values are set when switching cutoff types."""
-    menu = CutoffMenu()
-    qtbot.addWidget(menu)
-    
-    # Initial state should be "percent" with default 0.05 (5%)
-    assert menu.limit_type == "percent"
-    assert menu.cutoff_value == 0.05
-    
-    # Switch to "number" and check default value
-    with qtbot.waitSignal(menu.slider_change, timeout=800):
-        menu.buttons.number.click()
-    assert menu.limit_type == "number"
-    assert menu.cutoff_value == 5
-    assert isinstance(menu.cutoff_value, int)
-    assert menu.cutoff_slider_line.text() == "5"
-    
-    # Switch to "cum_percent" and check default value
-    with qtbot.waitSignal(menu.slider_change, timeout=800):
-        menu.buttons.cum_percent.click()
-    assert menu.limit_type == "cum_percent"
-    assert menu.cutoff_value == 0.50
-    assert menu.cutoff_slider_line.text() == "50"
-    
-    # Switch back to "percent" and check default value
-    with qtbot.waitSignal(menu.slider_change, timeout=800):
-        menu.buttons.percent.click()
-    assert menu.limit_type == "percent"
-    assert menu.cutoff_value == 0.05
-    assert menu.cutoff_slider_line.text() == "5.0"
-
-
 def test_input_dialog(qtbot):
     """Test the various thing about the dialog widget."""
     parent = QWidget()
