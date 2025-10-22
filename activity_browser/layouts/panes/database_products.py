@@ -107,7 +107,7 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
         df = AB_metadata.get_database_metadata(self.database.name, cols)
 
         processors = set(df["processor"].dropna().unique())
-        df = df.drop(processors)
+        df = df.drop(processors, errors="ignore")
 
         if not df.properties.isna().all():
             props_df = df[df.properties.notna()]
