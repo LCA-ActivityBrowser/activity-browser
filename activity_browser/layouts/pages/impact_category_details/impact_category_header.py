@@ -46,6 +46,8 @@ class ImpactCategoryHeader(QtWidgets.QWidget):
         grid = QtWidgets.QGridLayout(self)
         grid.setContentsMargins(0, 5, 0, 5)
         grid.setSpacing(10)
+        grid.setColumnStretch(0, 0)  # Column 0 doesn't stretch
+        grid.setColumnStretch(1, 1)  # Column 1 takes remaining space
         grid.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop)
 
         # check if the method is editable
@@ -59,7 +61,7 @@ class ImpactCategoryHeader(QtWidgets.QWidget):
             unit = QtWidgets.QLabel(self.impact_category.metadata.get("unit", "Undefined"), self)
 
         # create edit button
-        editable_button = QtWidgets.QPushButton("Lock" if editable else "Unlock", self)
+        editable_button = QtWidgets.QPushButton("Done editing" if editable else "Edit Impact Category", self)
         editable_button.clicked.connect(self.on_editable_changed)
 
         setup = [
@@ -67,12 +69,12 @@ class ImpactCategoryHeader(QtWidgets.QWidget):
             ("Unit:", unit),
         ]
 
-        grid.addWidget(editable_button, 0, 8, len(setup), 1, QtCore.Qt.AlignmentFlag.AlignTop)
-
         # Arrange widgets for display as a grid
         for i, (title, widget) in enumerate(setup):
-            grid.addWidget(widgets.ABLabel.demiBold(title, self), i, 1, 1, 2)
-            grid.addWidget(widget, i, 2, 1, 5)
+            grid.addWidget(widgets.ABLabel.demiBold(title, self), i, 0)
+            grid.addWidget(widget, i, 1)
+        
+        grid.addWidget(editable_button, 0, 1, QtCore.Qt.AlignmentFlag.AlignRight)
 
         return grid
 
