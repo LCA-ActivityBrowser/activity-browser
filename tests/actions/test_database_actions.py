@@ -39,50 +39,60 @@ def test_database_duplicate(monkeypatch, qtbot, basic_database):
     assert dup_db in bd.databases
 
 
-def test_database_export_excel(monkeypatch, qtbot, basic_database):
+def test_database_export_excel(monkeypatch, qtbot, basic_database, tmp_path):
     """Test exporting a database to Excel format."""
+    from activity_browser.actions.database.database_export_excel import ExportExcelSetup
+    
     # Mock the file dialog to return a path
-    test_path = "test_export.xlsx"
+    test_path = str(tmp_path / "test_export.xlsx")
     monkeypatch.setattr(
         QtWidgets.QFileDialog,
         "getSaveFileName",
         staticmethod(lambda *args, **kwargs: (test_path, "")),
     )
     
-    # Mock the confirmation dialog
-    monkeypatch.setattr(
-        QtWidgets.QMessageBox,
-        "question",
-        staticmethod(lambda *args, **kwargs: QtWidgets.QMessageBox.Yes),
-    )
-    
+    # Call the action
     actions.DatabaseExportExcel.run([basic_database.name])
     
-    # The export happens in a thread, so we need to wait for it
-    # For now, just check that no error was raised
+    # Find the wizard dialog and wait for the export thread to finish
+    wizard = application.main_window.findChild(ExportExcelSetup)
+    assert wizard is not None
+    
+    # Wait for the export thread to finish
+    export_page = wizard.currentPage()
+    with qtbot.waitSignal(export_page.thread.finished, timeout=10 * 1000):
+        pass
+    
+    # Close the wizard
+    wizard.close()
 
 
-def test_database_export_bw2package(monkeypatch, qtbot, basic_database):
+def test_database_export_bw2package(monkeypatch, qtbot, basic_database, tmp_path):
     """Test exporting a database to BW2Package format."""
+    from activity_browser.actions.database.database_export_bw2package import ExportBW2PackageSetup
+    
     # Mock the file dialog to return a path
-    test_path = "test_export.bw2package"
+    test_path = str(tmp_path / "test_export.bw2package")
     monkeypatch.setattr(
         QtWidgets.QFileDialog,
         "getSaveFileName",
         staticmethod(lambda *args, **kwargs: (test_path, "")),
     )
     
-    # Mock the confirmation dialog
-    monkeypatch.setattr(
-        QtWidgets.QMessageBox,
-        "question",
-        staticmethod(lambda *args, **kwargs: QtWidgets.QMessageBox.Yes),
-    )
-    
+    # Call the action
     actions.DatabaseExportBW2Package.run([basic_database.name])
     
-    # The export happens in a thread, so we need to wait for it
-    # For now, just check that no error was raised
+    # Find the wizard dialog and wait for the export thread to finish
+    wizard = application.main_window.findChild(ExportBW2PackageSetup)
+    assert wizard is not None
+    
+    # Wait for the export thread to finish
+    export_page = wizard.currentPage()
+    with qtbot.waitSignal(export_page.thread.finished, timeout=10 * 1000):
+        pass
+    
+    # Close the wizard
+    wizard.close()
 
 
 def test_database_new(monkeypatch, basic_database):

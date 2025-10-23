@@ -66,7 +66,7 @@ class DatabaseExportExcel(ABAction):
             title="Export to Excel",
             context=context
         )
-        export_dialog.exec_()
+        export_dialog.show()
 
 
 class ExportExcelSetup(widgets.ABWizard):

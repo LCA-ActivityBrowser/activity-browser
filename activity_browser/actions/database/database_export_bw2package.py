@@ -65,7 +65,7 @@ class DatabaseExportBW2Package(ABAction):
             title="Export to BW2Package",
             context=context
         )
-        export_dialog.exec_()
+        export_dialog.show()
 
 
 class ExportBW2PackageSetup(widgets.ABWizard):
