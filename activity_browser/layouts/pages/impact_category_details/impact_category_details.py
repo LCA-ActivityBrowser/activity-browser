@@ -6,7 +6,7 @@ import pandas as pd
 
 from activity_browser import actions, signals
 from activity_browser.ui import widgets, icons, delegates
-from activity_browser.bwutils import AB_metadata
+from activity_browser.bwutils import AB_metadata, is_node_biosphere
 
 from .impact_category_header import ImpactCategoryHeader
 
@@ -16,6 +16,7 @@ class ImpactCategoryDetailsPage(QtWidgets.QWidget):
         super().__init__(parent)
         self.name = name
         self.impact_category = bd.Method(name)
+        self.is_editable = False
 
         self.setObjectName(" | ".join(name))
 
@@ -74,8 +75,9 @@ class ImpactCategoryDetailsPage(QtWidgets.QWidget):
 
         df = df.merge(other, left_on="id", right_on="id").rename(columns={"id": "_id", "data": "_cf"})
         df["_impact_category_name"] = [self.name for i in range(len(df))]
+        df["_editable"] = self.is_editable
 
-        cols = ["name", "categories", "database", "amount", "unit", "uncertainty", "_id", "_impact_category_name", "_cf"]
+        cols = ["name", "categories", "database", "amount", "unit", "uncertainty", "_id", "_impact_category_name", "_cf", "_editable"]
         return df[cols]
 
 
@@ -86,7 +88,91 @@ class CharacterizationFactorsView(widgets.ABTreeView):
         "uncertainty": delegates.UncertaintyDelegate,
     }
 
+    class ContextMenu(widgets.ABMenu):
+        menuSetup = [
+            lambda m: m.add(actions.CFRemove, m.impact_category_name, m.char_factors,
+                            enable=bool(m.char_factors) and m.is_editable,
+                            text="Remove characterization factor(s)"),
+        ]
 
+        @property
+        def is_editable(self):
+            return self.parent().parent().is_editable
+
+        @property
+        def impact_category_name(self):
+            return self.parent().parent().name
+
+        @property
+        def char_factors(self):
+            indexes = self.parent().selectedIndexes()
+            return [(idx.internalPointer()["_id"], idx.internalPointer()["_cf"]) 
+                    for idx in indexes if idx.isValid() and idx.column() == 0]
+
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.setAcceptDrops(True)
+        self.setSortingEnabled(True)
+        self.overlay = None
+
+    def dragEnterEvent(self, event):
+        """
+        Handles the drag enter event.
+
+        Args:
+            event: The drag enter event.
+        """
+        if not self.parent().is_editable:
+            event.ignore()
+            return
+
+        if event.mimeData().hasFormat("application/bw-nodekeylist"):
+            self.overlay = widgets.ABDropOverlay(self)
+            self.overlay.show()
+            event.accept()
+        else:
+            event.ignore()
+    
+    def dragMoveEvent(self, event):
+        """Handles the drag move event - required for proper drop indicator."""
+        if not self.parent().is_editable:
+            event.ignore()
+            return
+
+        if event.mimeData().hasFormat("application/bw-nodekeylist"):
+            event.accept()
+        else:
+            event.ignore()
+
+    def dragLeaveEvent(self, event):
+        """
+        Handles the drag leave event.
+
+        Args:
+            event: The drag leave event.
+        """
+        if not self.overlay is None:
+            # Reset the palette on drag leave
+            self.overlay.deleteLater()
+            self.overlay = None
+
+    def dropEvent(self, event):
+        """
+        Handles the drop event.
+
+        Args:
+            event: The drop event.
+        """
+        self.overlay.deleteLater()
+        self.overlay = None
+
+        keys: list = event.mimeData().retrievePickleData("application/bw-nodekeylist")
+
+        # Filter to only biosphere flows
+        biosphere_keys = [key for key in keys if is_node_biosphere(key)]
+
+        if biosphere_keys:
+            actions.CFNew.run(self.parent().name, biosphere_keys)
 
 
 class ExchangesItem(widgets.ABDataItem):
@@ -102,7 +188,8 @@ class ExchangesItem(widgets.ABDataItem):
             QtCore.Qt.ItemFlags: The item flags.
         """
         flags = super().flags(col, key)
-        if key in ["amount", "uncertainty"]:
+
+        if key in ["amount", "uncertainty"] and self["_editable"]:
             return flags | Qt.ItemFlag.ItemIsEditable
         return flags
 
