@@ -154,6 +154,7 @@ class CharacterizationFactorsView(widgets.ABTreeView):
         if not self.overlay is None:
             # Reset the palette on drag leave
             self.overlay.deleteLater()
+            self.overlay = None
 
     def dropEvent(self, event):
         """
@@ -163,6 +164,7 @@ class CharacterizationFactorsView(widgets.ABTreeView):
             event: The drop event.
         """
         self.overlay.deleteLater()
+        self.overlay = None
 
         keys: list = event.mimeData().retrievePickleData("application/bw-nodekeylist")
 
