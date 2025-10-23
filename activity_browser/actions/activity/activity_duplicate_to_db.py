@@ -9,6 +9,7 @@ from activity_browser import application
 from activity_browser.bwutils import refresh_node
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.ui.icons import qicons
+from bw_functional import Product
 
 from .activity_open import ActivityOpen
 
@@ -131,4 +132,27 @@ class ActivityDuplicateToDB(ABAction):
 
     @staticmethod
     def duplicate_functional_sqlite_to_sqlite(nodes: list[bd.Node], to_db_name: str) -> list[bd.Node]:
-        raise NotImplementedError("Duplicating from functional_sqlite to sqlite is not yet implemented.")
+        new_nodes = []
+        products = [prod for node in nodes if isinstance(node, bf.Process) for prod in node.products()]
+
+        for product in products:
+            dataset = product.as_dict()
+            dataset.pop("id", None)
+            dataset.pop("key", None)
+
+            exchanges = product.virtual_edges
+            dataset["database"] = to_db_name
+            dataset["type"] = "processwithreferenceproduct"
+
+            new_node = bd.Node(**dataset)
+            new_node.save()
+            new_nodes.append(new_node)
+
+            for exc in exchanges:
+                exc["output"] = (to_db_name, exc["output"][1])
+                if exc["type"] == "production":
+                    exc["input"] = (to_db_name, new_node.key[1])
+                new_exc = bd.Edge(**exc)
+                new_exc.save()
+
+        return new_nodes
