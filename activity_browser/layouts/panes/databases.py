@@ -170,6 +170,20 @@ class DatabasesView(widgets.ABTreeView):
 
         actions.DatabaseOpen.run([db_name])
 
+    def keyPressEvent(self, event: QtGui.QKeyEvent):
+        """
+        Handles key press events. Specifically handles the Delete key to delete selected databases.
+
+        Args:
+            event (QtGui.QKeyEvent): The key press event.
+        """
+        if event.key() == Qt.Key_Delete:
+            if self.selected_databases:
+                actions.DatabaseDelete.run(self.selected_databases)
+                return
+        
+        super().keyPressEvent(event)
+
     @property
     def selected_databases(self) -> list:
         """
