@@ -26,7 +26,6 @@ class MDSLoader(QtCore.QObject):
 
     def __init__(self, mds: MetaDataStore):
         super().__init__(mds)
-        self.moveToThread(application.thread())
 
         self.mds = mds
         self.connect_signals()
@@ -44,6 +43,7 @@ class MDSLoader(QtCore.QObject):
 
         # start loading threads
         thread = SecondaryLoadThread(self)
+        thread.setObjectName("SecondaryLoadThread-MDSLoader")
         thread.done.connect(self.secondary_load_project)
         thread.start(databases=list(bd.databases), sqlite_db=str(sqlite3_lci_db._filepath))
 

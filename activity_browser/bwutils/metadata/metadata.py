@@ -28,11 +28,11 @@ class MetaDataStore(QObject):
         self._updated: set[tuple[str, str]] = set()
         self._deleted: set[tuple[str, str]] = set()
 
-        self.moveToThread(application.thread())
-
         self.loader = MDSLoader(self)
         self.updater = MDSUpdater(self)
         self.flusher: QTimer | None = None
+        
+        self.moveToThread(application.thread())
 
     @property
     def dataframe(self) -> pd.DataFrame:

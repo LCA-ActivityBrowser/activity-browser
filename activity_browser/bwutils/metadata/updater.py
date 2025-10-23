@@ -17,7 +17,6 @@ log = getLogger(__name__)
 class MDSUpdater(QtCore.QObject):
     def __init__(self, mds: MetaDataStore):
         super().__init__(mds)
-        self.moveToThread(application.thread())
 
         self.mds = mds
         self.connect_signals()
