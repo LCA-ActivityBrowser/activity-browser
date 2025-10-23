@@ -84,7 +84,7 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
         self.stacked_layout = QtWidgets.QStackedLayout()
         
         # Page 0: Loading indicator with spinner
-        loading_widget = QtWidgets.QWidget()
+        loading_widget = QtWidgets.QWidget(self)
         loading_layout = QtWidgets.QVBoxLayout(loading_widget)
         loading_layout.addStretch()
         loading_layout.addWidget(self.loading_spinner, alignment=Qt.AlignmentFlag.AlignCenter)
@@ -93,7 +93,7 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
         self.stacked_layout.addWidget(loading_widget)
         
         # Page 1: Table view
-        table_widget = QtWidgets.QWidget()
+        table_widget = QtWidgets.QWidget(self)
         table_layout = QtWidgets.QVBoxLayout(table_widget)
         table_layout.setSpacing(0)
         table_layout.setContentsMargins(0, 0, 0, 0)
