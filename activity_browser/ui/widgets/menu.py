@@ -7,7 +7,7 @@ class ABMenu(QtWidgets.QMenu):
     menuSetup: list[Callable[["ABMenu", Optional[QtWidgets.QWidget]], None]]
     title: str = None
 
-    def __init__(self, pos, parent=None):
+    def __init__(self, pos=None, parent=None, title: str = None):
         super().__init__(parent)
 
         for item in self.menuSetup:

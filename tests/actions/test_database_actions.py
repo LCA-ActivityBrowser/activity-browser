@@ -39,15 +39,50 @@ def test_database_duplicate(monkeypatch, qtbot, basic_database):
     assert dup_db in bd.databases
 
 
-def test_database_export(main_window):
-    # TODO: implement when we've redone the export wizard and actions
-    from activity_browser.ui.wizards.db_export_wizard import DatabaseExportWizard
+def test_database_export_excel(monkeypatch, qtbot, basic_database):
+    """Test exporting a database to Excel format."""
+    # Mock the file dialog to return a path
+    test_path = "test_export.xlsx"
+    monkeypatch.setattr(
+        QtWidgets.QFileDialog,
+        "getSaveFileName",
+        staticmethod(lambda *args, **kwargs: (test_path, "")),
+    )
+    
+    # Mock the confirmation dialog
+    monkeypatch.setattr(
+        QtWidgets.QMessageBox,
+        "question",
+        staticmethod(lambda *args, **kwargs: QtWidgets.QMessageBox.Yes),
+    )
+    
+    actions.DatabaseExportExcel.run([basic_database.name])
+    
+    # The export happens in a thread, so we need to wait for it
+    # For now, just check that no error was raised
 
-    actions.DatabaseExport.run()
 
-    wizard = main_window.findChild(DatabaseExportWizard)
-    assert wizard.isVisible()
-    wizard.destroy()
+def test_database_export_bw2package(monkeypatch, qtbot, basic_database):
+    """Test exporting a database to BW2Package format."""
+    # Mock the file dialog to return a path
+    test_path = "test_export.bw2package"
+    monkeypatch.setattr(
+        QtWidgets.QFileDialog,
+        "getSaveFileName",
+        staticmethod(lambda *args, **kwargs: (test_path, "")),
+    )
+    
+    # Mock the confirmation dialog
+    monkeypatch.setattr(
+        QtWidgets.QMessageBox,
+        "question",
+        staticmethod(lambda *args, **kwargs: QtWidgets.QMessageBox.Yes),
+    )
+    
+    actions.DatabaseExportBW2Package.run([basic_database.name])
+    
+    # The export happens in a thread, so we need to wait for it
+    # For now, just check that no error was raised
 
 
 def test_database_new(monkeypatch, basic_database):

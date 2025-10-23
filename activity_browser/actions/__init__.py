@@ -28,7 +28,8 @@ from .calculation_setup.cs_calculate import CSCalculate
 from .calculation_setup.cs_open import CSOpen
 
 from .database.database_open import DatabaseOpen
-from .database.database_export import DatabaseExport
+from .database.database_export_excel import DatabaseExportExcel
+from .database.database_export_bw2package import DatabaseExportBW2Package
 from .database.database_new import DatabaseNew
 from .database.database_delete import DatabaseDelete
 from .database.database_duplicate import DatabaseDuplicate

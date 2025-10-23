@@ -108,10 +108,24 @@ class DatabasesView(widgets.ABTreeView):
         "modified": delegates.DateTimeDelegate,
     }
 
+    class ExportDatabaseContextMenu(widgets.ABMenu):
+        menuSetup = [
+            lambda m: m.setTitle("Export database" if len(m.parent().selected_databases) == 1 else "Export databases"),
+            lambda m, p: m.add(actions.DatabaseExportExcel, p.selected_databases if p.selected_databases else [],
+                               enable=len(p.selected_databases) >= 1,
+                               text="to .xlsx",
+                               ),
+            lambda m, p: m.add(actions.DatabaseExportBW2Package, p.selected_databases if p.selected_databases else [],
+                               enable=len(p.selected_databases) >= 1,
+                               text="to .bw2package",
+                               ),
+        ]
+
     class ContextMenu(widgets.ABMenu):
         menuSetup = [
             lambda m, p: m.add(actions.DatabaseNew),
             lambda m: m.addMenu(ImportDatabaseMenu(m)),
+            lambda m, p: m.addMenu(DatabasesView.ExportDatabaseContextMenu(parent=p)),
             lambda m: m.addSeparator(),
             lambda m, p: m.add(actions.DatabaseDelete, p.selected_databases if p.selected_databases else [],
                                enable=len(p.selected_databases) >= 1,

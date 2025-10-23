@@ -46,8 +46,6 @@ class ProjectMenu(QtWidgets.QMenu):
         self.import_proj_action = actions.ProjectImport.get_QAction()
         self.export_proj_action = actions.ProjectExport.get_QAction()
 
-        self.export_db_action = actions.DatabaseExport.get_QAction()
-
         self.manage_settings_action = actions.SettingsWizardOpen.get_QAction()
         self.manage_projects_action = actions.ProjectManagerOpen.get_QAction()
 
@@ -60,7 +58,7 @@ class ProjectMenu(QtWidgets.QMenu):
         self.addAction(self.export_proj_action)
         self.addSeparator()
         self.addMenu(ImportDatabaseMenu(self))
-        self.addAction(self.export_db_action)
+        self.addMenu(ExportDatabaseMenu(self))
         self.addSeparator()
         self.addMenu(ImportICMenu(self))
         self.addSeparator()
@@ -284,6 +282,21 @@ class ImportDatabaseMenu(QtWidgets.QMenu):
         self.addAction(self.import_from_bw2package_action)
         self.addSeparator()
         self.addAction(self.import_from_ecoinvent_action)
+
+
+class ExportDatabaseMenu(QtWidgets.QMenu):
+    def __init__(self, parent=None) -> None:
+        super().__init__(parent=parent)
+        self.setTitle("Export database")
+
+        self.export_to_excel_action = actions.DatabaseExportExcel.get_QAction()
+        self.export_to_bw2package_action = actions.DatabaseExportBW2Package.get_QAction()
+
+        self.export_to_excel_action.setText("to .xlsx")
+        self.export_to_bw2package_action.setText("to .bw2package")
+
+        self.addAction(self.export_to_excel_action)
+        self.addAction(self.export_to_bw2package_action)
 
 
 class ImportICMenu(QtWidgets.QMenu):
