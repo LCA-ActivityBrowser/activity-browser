@@ -123,12 +123,26 @@ class CharacterizationFactorsView(widgets.ABTreeView):
             event: The drag enter event.
         """
         if not self.parent().is_editable:
+            event.ignore()
             return
 
         if event.mimeData().hasFormat("application/bw-nodekeylist"):
             self.overlay = widgets.ABDropOverlay(self)
             self.overlay.show()
             event.accept()
+        else:
+            event.ignore()
+    
+    def dragMoveEvent(self, event):
+        """Handles the drag move event - required for proper drop indicator."""
+        if not self.parent().is_editable:
+            event.ignore()
+            return
+
+        if event.mimeData().hasFormat("application/bw-nodekeylist"):
+            event.accept()
+        else:
+            event.ignore()
 
     def dragLeaveEvent(self, event):
         """
@@ -137,8 +151,9 @@ class CharacterizationFactorsView(widgets.ABTreeView):
         Args:
             event: The drag leave event.
         """
-        # Reset the palette on drag leave
-        self.overlay.deleteLater()
+        if not self.overlay is None:
+            # Reset the palette on drag leave
+            self.overlay.deleteLater()
 
     def dropEvent(self, event):
         """
