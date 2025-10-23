@@ -23,7 +23,7 @@ def test_database_delete(ab_app, monkeypatch):
     assert projects.current == "default"
     assert db in databases
 
-    actions.DatabaseDelete.run(db)
+    actions.DatabaseDelete.run([db])
 
     assert db not in databases
 
