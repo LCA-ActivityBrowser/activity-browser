@@ -22,4 +22,5 @@ from .main_window import MainWindow
 from .central import CentralTabWidget
 from .menu import ABMenu
 from .list_edit_dialog import ABListEditDialog
+from .drop_overlay import ABDropOverlay
 from .database_selection_dialog import ABDatabaseSelectionDialog
