@@ -22,3 +22,4 @@ test/.logs
 .venv*
 *.prof
 /venv/
+uv.lock

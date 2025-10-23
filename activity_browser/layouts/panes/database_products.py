@@ -372,7 +372,7 @@ class ProductModel(ui.widgets.ABItemModel):
     """
     dataItemClass = ProductItem
 
-    def mimeData(self, indices: [QtCore.QModelIndex]):
+    def mimeData(self, indices: list[QtCore.QModelIndex]):
         """
         Returns the mime data for the given indices.
 
