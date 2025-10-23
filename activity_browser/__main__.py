@@ -8,6 +8,11 @@ import requests
 from qtpy import QtWidgets, QtCore, QtGui
 from qtpy.QtCore import Qt
 
+# this will enable the AB icon to show in the taskbar under Windows 11 (instead of the default python icon)
+if sys.platform == "win32":
+    import ctypes
+    ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("activity.browser.1")
+
 from activity_browser import application
 from activity_browser.ui import icons
 
@@ -202,7 +207,7 @@ def check_pyside_version():
         import PySide6
     except ImportError:
         input("\033[1;31mPySide6 is not installed but highly recommended.\n\n"
-              "Please install it using 'pip install PySide6'.\n\n"
+              "Please install it using 'pip install PySide6==6.9.3'.\n\n"
               "Press any key to continue...\033[0m")
 
 

@@ -25,6 +25,7 @@ class ImpactCategoryDetailsPage(QtWidgets.QWidget):
         self.model = CharacterizationFactorsModel(self)
         self.view = CharacterizationFactorsView(self)
         self.view.setModel(self.model)
+        self.view.setSortingEnabled(True)
 
         self.build_layout()
         self.connect_signals()
