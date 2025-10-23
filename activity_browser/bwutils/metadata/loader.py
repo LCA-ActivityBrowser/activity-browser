@@ -3,6 +3,7 @@ import sqlite3
 import sys
 import pickle
 from logging import getLogger
+from typing import Literal
 
 import pandas as pd
 import bw2data as bd
@@ -20,6 +21,9 @@ log = getLogger(__name__)
 
 
 class MDSLoader(QtCore.QObject):
+    primary_status: Literal["idle", "loading", "done"] = "idle"
+    secondary_status: Literal["idle", "loading", "done"] = "idle"
+
     def __init__(self, mds: MetaDataStore):
         super().__init__(mds)
         self.moveToThread(application.thread())
@@ -34,6 +38,10 @@ class MDSLoader(QtCore.QObject):
         self.load_project()
 
     def load_project(self):
+        # set statuses
+        self.primary_status = "loading"
+        self.secondary_status = "loading"
+
         # start loading threads
         thread = SecondaryLoadThread(self)
         thread.done.connect(self.secondary_load_project)
@@ -55,6 +63,8 @@ class MDSLoader(QtCore.QObject):
 
         for idx in primary_df.index:
             self.mds.register_mutation(idx, "add")
+        
+        self.primary_status = "done"
 
     def secondary_load_project(self, secondary_df: pd.DataFrame, sqlite_db: str):
         if sqlite_db != str(sqlite3_lci_db._filepath):
@@ -66,6 +76,8 @@ class MDSLoader(QtCore.QObject):
 
         for idx in secondary_df.index:
             self.mds.register_mutation(idx, "update")
+        
+        self.secondary_status = "done"
 
     def load_database(self, database_name: str):
         # start loading threads

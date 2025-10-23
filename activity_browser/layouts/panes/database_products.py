@@ -61,17 +61,48 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
         self.search.setMaximumHeight(30)
         self.search.setPlaceholderText("Quick Search")
 
+        # Create loading indicator with spinner
+        self.loading_spinner = QtWidgets.QProgressBar()
+        self.loading_spinner.setRange(0, 0)  # Indeterminate/busy indicator
+        self.loading_spinner.setTextVisible(False)
+        self.loading_spinner.setMaximumWidth(200)
+        self.loading_spinner.setMaximumHeight(20)
+        
+        self.loading_label = widgets.ABLabel("Loading database...")
+        self.loading_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        font = self.loading_label.font()
+        font.setPointSize(14)
+        self.loading_label.setFont(font)
+        self.loading_label.setStyleSheet("color: gray; padding: 10px;")
+
         self.build_layout()
         self.connect_signals()
+        self.update_loading_state()
 
     def build_layout(self):
-        table_layout = QtWidgets.QHBoxLayout()
+        # Create a stacked layout to switch between loading and table view
+        self.stacked_layout = QtWidgets.QStackedLayout()
+        
+        # Page 0: Loading indicator with spinner
+        loading_widget = QtWidgets.QWidget()
+        loading_layout = QtWidgets.QVBoxLayout(loading_widget)
+        loading_layout.addStretch()
+        loading_layout.addWidget(self.loading_spinner, alignment=Qt.AlignmentFlag.AlignCenter)
+        loading_layout.addWidget(self.loading_label)
+        loading_layout.addStretch()
+        self.stacked_layout.addWidget(loading_widget)
+        
+        # Page 1: Table view
+        table_widget = QtWidgets.QWidget()
+        table_layout = QtWidgets.QVBoxLayout(table_widget)
         table_layout.setSpacing(0)
+        table_layout.setContentsMargins(0, 0, 0, 0)
         table_layout.addWidget(self.table_view)
+        self.stacked_layout.addWidget(table_widget)
 
         layout = QtWidgets.QVBoxLayout(self)
         layout.addWidget(self.search)
-        layout.addLayout(table_layout)
+        layout.addLayout(self.stacked_layout)
 
         # Set the table view as the central widget of the window
         self.setLayout(layout)
@@ -84,8 +115,23 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
         self.search.textChangedDebounce.connect(self.table_view.setAllFilter)
 
     def on_metadata_changed(self, added, updated, deleted):
+        # Check if primary data has finished loading
+        self.update_loading_state()
+        
         if any(db == self.database.name for db, code in added | updated | deleted):
             self.sync()
+
+    def update_loading_state(self):
+        """
+        Updates the loading state based on whether primary metadata has loaded.
+        Shows the loading indicator if primary data is still loading, otherwise shows the table.
+        """
+        if AB_metadata.loader.secondary_status == "done":
+            # Show table view
+            self.stacked_layout.setCurrentIndex(1)
+        else:
+            # Show loading indicator
+            self.stacked_layout.setCurrentIndex(0)
 
     def sync(self):
         """
