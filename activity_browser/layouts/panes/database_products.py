@@ -53,7 +53,7 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
         self.model = ProductModel(self)
 
         # Create the QTableView and set the model
-        self.table_view = ProductView(self)
+        self.table_view = ProductView(self, db_name=db_name)
         self.table_view.setModel(self.model)
         self.model.setDataFrame(self.build_df())
 
@@ -255,27 +255,27 @@ class ProductView(ui.widgets.ABTreeView):
                                enable=len(p.selected_activities) > 0,
                                ),
             lambda m: m.addSeparator(),
-            lambda m, p: m.add(actions.ActivityNewProcess, m.database_name,
-                               enable=not database_is_locked(m.database_name),
+            lambda m, p: m.add(actions.ActivityNewProcess, p.db_name,
+                               enable=not database_is_locked(p.db_name),
                                ),
             lambda m, p: m.add(actions.ActivityDuplicate, p.selected_activities,
                                text="Duplicate process" if len(p.selected_activities) == 1 else "Duplicate processes",
-                               enable=len(p.selected_activities) > 0 and not database_is_locked(m.database_name),
+                               enable=len(p.selected_activities) > 0 and not database_is_locked(p.db_name),
                                ),
             lambda m, p: m.add(actions.ActivityDuplicateToDB, p.selected_activities,
                                text="Move process" if len(p.selected_activities) == 1 else "Move processes",
-                               enable=len(p.selected_activities) > 0 and not database_is_locked(m.database_name),
+                               enable=len(p.selected_activities) > 0 and not database_is_locked(p.db_name),
                                ),
             lambda m: m.addSeparator(),
             lambda m, p: m.add(actions.ActivityDelete, p.selected_activities,
                                text="Delete process" if len(p.selected_activities) == 1 else "Delete processes",
-                               enable=len(p.selected_activities) > 0 and not database_is_locked(m.database_name),
+                               enable=len(p.selected_activities) > 0 and not database_is_locked(p.db_name),
                                ),
             lambda m, p: m.add(actions.ActivityDelete, p.selected_products,
                                text="Delete product" if len(p.selected_products) == 1 else "Delete products",
                                enable=len(p.selected_products) > 0 and not
-                               database_is_locked(m.database_name) and not
-                               database_is_legacy(m.database_name),
+                               database_is_locked(p.db_name) and not
+                               database_is_legacy(p.db_name),
                                ),
             lambda m: m.addSeparator(),
             lambda m, p: m.add(actions.CSNew,
@@ -295,16 +295,13 @@ class ProductView(ui.widgets.ABTreeView):
             exc = excs[0] if len(excs) == 1 else {}
             return exc.get("amount", 1.0)
 
-        @property
-        def database_name(self):
-            return self.parent().parent().database.name
-
-    def __init__(self, parent: DatabaseProductsPane):
+    def __init__(self, parent: DatabaseProductsPane, db_name: str):
         """
         Initializes the ProductView.
 
         Args:
             parent (DatabaseProductsPane): The parent widget.
+            db_name (str): The name of the database.
         """
         super().__init__(parent)
         self.setSortingEnabled(True)
@@ -312,6 +309,8 @@ class ProductView(ui.widgets.ABTreeView):
         self.setDragDropMode(QtWidgets.QTableView.DragDropMode.DragOnly)
         self.setSelectionBehavior(ui.widgets.ABTreeView.SelectionBehavior.SelectRows)
         self.setSelectionMode(ui.widgets.ABTreeView.SelectionMode.ExtendedSelection)
+
+        self.db_name = db_name
 
         self.propertyDelegate = delegates.PropertyDelegate(self)
 

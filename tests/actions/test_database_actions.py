@@ -11,7 +11,7 @@ def test_database_delete(monkeypatch, basic_database):
         staticmethod(lambda *args, **kwargs: QtWidgets.QMessageBox.Yes),
     )
 
-    actions.DatabaseDelete.run(basic_database.name)
+    actions.DatabaseDelete.run([basic_database.name])
 
     assert basic_database.name not in bd.databases
 
@@ -39,15 +39,60 @@ def test_database_duplicate(monkeypatch, qtbot, basic_database):
     assert dup_db in bd.databases
 
 
-def test_database_export(main_window):
-    # TODO: implement when we've redone the export wizard and actions
-    from activity_browser.ui.wizards.db_export_wizard import DatabaseExportWizard
+def test_database_export_excel(monkeypatch, qtbot, basic_database, tmp_path):
+    """Test exporting a database to Excel format."""
+    from activity_browser.actions.database.database_export_excel import ExportExcelSetup
+    
+    # Mock the file dialog to return a path
+    test_path = str(tmp_path / "test_export.xlsx")
+    monkeypatch.setattr(
+        QtWidgets.QFileDialog,
+        "getSaveFileName",
+        staticmethod(lambda *args, **kwargs: (test_path, "")),
+    )
+    
+    # Call the action
+    actions.DatabaseExportExcel.run([basic_database.name])
+    
+    # Find the wizard dialog and wait for the export thread to finish
+    wizard = application.main_window.findChild(ExportExcelSetup)
+    assert wizard is not None
+    
+    # Wait for the export thread to finish
+    export_page = wizard.currentPage()
+    with qtbot.waitSignal(export_page.thread.finished, timeout=10 * 1000):
+        pass
+    
+    # Close the wizard
+    wizard.close()
 
-    actions.DatabaseExport.run()
 
-    wizard = main_window.findChild(DatabaseExportWizard)
-    assert wizard.isVisible()
-    wizard.destroy()
+def test_database_export_bw2package(monkeypatch, qtbot, basic_database, tmp_path):
+    """Test exporting a database to BW2Package format."""
+    from activity_browser.actions.database.database_export_bw2package import ExportBW2PackageSetup
+    
+    # Mock the file dialog to return a path
+    test_path = str(tmp_path / "test_export.bw2package")
+    monkeypatch.setattr(
+        QtWidgets.QFileDialog,
+        "getSaveFileName",
+        staticmethod(lambda *args, **kwargs: (test_path, "")),
+    )
+    
+    # Call the action
+    actions.DatabaseExportBW2Package.run([basic_database.name])
+    
+    # Find the wizard dialog and wait for the export thread to finish
+    wizard = application.main_window.findChild(ExportBW2PackageSetup)
+    assert wizard is not None
+    
+    # Wait for the export thread to finish
+    export_page = wizard.currentPage()
+    with qtbot.waitSignal(export_page.thread.finished, timeout=10 * 1000):
+        pass
+    
+    # Close the wizard
+    wizard.close()
 
 
 def test_database_new(monkeypatch, basic_database):
@@ -76,6 +121,42 @@ def test_database_new(monkeypatch, basic_database):
     actions.DatabaseNew.run()
 
     assert db_number == len(bd.databases)
+
+
+def test_database_delete_multiple(monkeypatch, basic_database):
+    """Test that multiple databases can be deleted at once."""
+    from activity_browser.actions.database.database_new import NewDatabaseDialog
+
+    # Create two additional databases
+    db2 = "test_db_2"
+    db3 = "test_db_3"
+
+    for db_name in [db2, db3]:
+        monkeypatch.setattr(
+            NewDatabaseDialog,
+            "get_new_database_data",
+            staticmethod(lambda *args, db=db_name, **kwargs: (db, "functional_sqlite", True)),
+        )
+        monkeypatch.setattr(
+            QtWidgets.QMessageBox, "information", staticmethod(lambda *args, **kwargs: True)
+        )
+        actions.DatabaseNew.run()
+
+    assert db2 in bd.databases
+    assert db3 in bd.databases
+
+    # Mock the confirmation dialog
+    monkeypatch.setattr(
+        QtWidgets.QMessageBox,
+        "question",
+        staticmethod(lambda *args, **kwargs: QtWidgets.QMessageBox.Yes),
+    )
+
+    # Delete both databases at once
+    actions.DatabaseDelete.run([db2, db3])
+
+    assert db2 not in bd.databases
+    assert db3 not in bd.databases
 #
 #
 # def test_database_relink(ab_app, monkeypatch):
@@ -106,3 +187,4 @@ def test_database_new(monkeypatch, basic_database):
 #     assert to_db in databases
 #     assert from_db not in Database(db).find_dependents()
 #     assert to_db in Database(db).find_dependents()
+
