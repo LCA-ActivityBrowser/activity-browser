@@ -55,7 +55,6 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
         # Create the QTableView and set the model
         self.table_view = ProductView(self, db_name=db_name)
         self.table_view.setModel(self.model)
-        self.model.setDataFrame(self.build_df())
 
         self.search = widgets.ABLineEdit(self)
         self.search.setMaximumHeight(30)
@@ -78,6 +77,7 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
         self.build_layout()
         self.connect_signals()
         self.update_loading_state()
+        self.sync()
 
     def build_layout(self):
         # Create a stacked layout to switch between loading and table view
@@ -138,7 +138,12 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
         Synchronizes the widget with the current state of the database.
         """
         t = time()
-        self.model.setDataFrame(self.build_df())
+        df = self.build_df()
+        self.model.setDataFrame(df)
+        for col in [col for col in df.columns if not df[col].notna().any()]:
+            index = self.model.columns().index(col)
+            self.table_view.hideColumn(index)
+
         log.debug(f"Synced DatabaseProductsPane in {time() - t:.2f} seconds")
 
     def build_df(self) -> pd.DataFrame:
@@ -167,7 +172,7 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
                 how="left",
             )
 
-        cols = ["name", "product", "unit", "location", "categories", "key", "processor", "type",]
+        cols = ["name", "product", "categories", "unit", "location", "key", "processor", "type",]
         cols += [col for col in df.columns if col.startswith("property")]
 
         log.debug(f"Built DatabaseProductsPane dataframe in {time() - t:.2f} seconds")
@@ -241,8 +246,8 @@ class ProductView(ui.widgets.ABTreeView):
     """
     defaultColumnDelegates = {
         "categories": delegates.ListDelegate,
-        "activity_key": delegates.StringDelegate,
-        "product_key": delegates.StringDelegate,
+        "key": delegates.StringDelegate,
+        "processor": delegates.StringDelegate,
     }
 
     class ContextMenu(ui.widgets.ABMenu):
