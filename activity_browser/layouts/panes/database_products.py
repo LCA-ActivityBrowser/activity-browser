@@ -140,9 +140,12 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
         t = time()
         df = self.build_df()
         self.model.setDataFrame(df)
-        for col in [col for col in df.columns if not df[col].notna().any()]:
+        for col in df.columns:
             index = self.model.columns().index(col)
-            self.table_view.hideColumn(index)
+            if df[col].isna().all():
+                self.table_view.hideColumn(index)
+            else:
+                self.table_view.showColumn(index)
 
         log.debug(f"Synced DatabaseProductsPane in {time() - t:.2f} seconds")
 
