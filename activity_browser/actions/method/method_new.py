@@ -31,7 +31,7 @@ class MethodNew(ABAction):
     """
 
     icon = qicons.add
-    text = "New Impact Category..."
+    text = "New impact category"
 
     @staticmethod
     @exception_dialogs
