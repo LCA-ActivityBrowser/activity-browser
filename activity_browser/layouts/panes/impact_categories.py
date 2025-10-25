@@ -79,6 +79,8 @@ class ImpactCategoriesView(widgets.ABTreeView):
 
     class ContextMenu(widgets.ABMenu):
         menuSetup = [
+            lambda m, p: m.add(actions.MethodNew),
+            lambda m: m.addSeparator(),
             lambda m, p: m.add(actions.MethodOpen, p.selected_impact_categories,
                                text="Open impact category" if len(p.selected_impact_categories) == 1 else "Open impact categories",
                                enable=len(p.selected_impact_categories) > 0
@@ -158,7 +160,7 @@ class ImpactCategoriesModel(widgets.ABItemModel):
     dataItemClass = ImpactCategoriesItem
     branchItemClass = ImpactCategoriesBranchItem
 
-    def mimeData(self, indices: [QtCore.QModelIndex]):
+    def mimeData(self, indices: list[QtCore.QModelIndex]):
         """
         Returns the mime data for the given indices.
 

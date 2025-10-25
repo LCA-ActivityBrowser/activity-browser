@@ -152,3 +152,32 @@ def test_method_duplicate(monkeypatch, basic_database):
 
     assert method in methods
     assert duplicated_method in methods
+
+
+def test_method_new(monkeypatch, basic_database):
+    from activity_browser.ui.widgets import ABListEditDialog
+
+    new_method = ("New Test Method", "Test Category")
+
+    # Mock the dialog to accept and return the new method name
+    monkeypatch.setattr(
+        ABListEditDialog,
+        "exec_",
+        lambda *args, **kwargs: QtWidgets.QDialog.Accepted,
+    )
+
+    monkeypatch.setattr(
+        ABListEditDialog,
+        "get_data",
+        lambda *args, **kwargs: new_method,
+    )
+
+    assert new_method not in methods
+
+    actions.MethodNew.run()
+
+    assert new_method in methods
+    
+    # Verify the method is empty
+    method_obj = Method(new_method)
+    assert len(method_obj.load()) == 0
