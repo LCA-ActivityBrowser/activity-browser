@@ -271,7 +271,7 @@ class ProductView(ui.widgets.ABTreeView):
                                enable=len(p.selected_activities) > 0 and not database_is_locked(p.db_name),
                                ),
             lambda m, p: m.add(actions.ActivityDuplicateToDB, p.selected_activities,
-                               text="Move process" if len(p.selected_activities) == 1 else "Move processes",
+                               text="Duplicate process to database" if len(p.selected_activities) == 1 else "Duplicate processes to database",
                                enable=len(p.selected_activities) > 0 and not database_is_locked(p.db_name),
                                ),
             lambda m: m.addSeparator(),
