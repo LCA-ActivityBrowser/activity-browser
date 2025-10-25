@@ -5,7 +5,7 @@ from qtpy import QtWidgets
 
 import bw2data as bd
 
-from activity_browser import signals
+from activity_browser import application, signals
 from activity_browser.ui import widgets
 from activity_browser.actions.base import ABAction, exception_dialogs
 
@@ -56,7 +56,11 @@ class MethodRename(ABAction):
         method = bd.Method(method_name)
 
         # open dialog to get new name
-        dialog = widgets.ABListEditDialog(method_name)
+        dialog = widgets.ABListEditDialog(
+            method_name, 
+            title="Rename Impact Category", 
+            parent=application.main_window
+        )
         dialog.exec_()
 
         # if dialog was cancelled, do nothing
@@ -66,6 +70,9 @@ class MethodRename(ABAction):
         new_name = dialog.get_data(as_tuple=True)
 
         # check new name validity
+        if new_name == method_name:
+            return  # no change
+
         if len(new_name) == 0:
             raise RuntimeError("Method name cannot be empty.")
 
