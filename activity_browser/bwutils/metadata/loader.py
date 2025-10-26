@@ -12,7 +12,7 @@ from bw2data.backends import sqlite3_lci_db
 from qtpy import QtCore
 
 from activity_browser import signals, application
-from activity_browser.ui import threading
+from activity_browser.ui.core import threading
 
 from .metadata import MetaDataStore
 from .fields import secondary_types, primary, secondary

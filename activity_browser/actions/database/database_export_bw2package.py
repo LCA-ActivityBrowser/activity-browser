@@ -5,8 +5,9 @@ from qtpy import QtWidgets
 
 from activity_browser import application
 from activity_browser.actions.base import ABAction, exception_dialogs
-from activity_browser.ui import widgets, threading
+from activity_browser.ui import widgets
 from activity_browser.bwutils import exporters
+from activity_browser.ui.core import threading
 
 log = getLogger(__name__)
 

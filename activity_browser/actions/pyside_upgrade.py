@@ -6,10 +6,12 @@ import time
 
 from activity_browser import application
 from activity_browser.actions.base import ABAction, exception_dialogs
-from activity_browser.ui import threading, icons
+from activity_browser.ui import icons
 
 from qtpy import QtWidgets
 from qtpy.QtCore import Signal, SignalInstance
+
+from activity_browser.ui.core import threading
 
 
 class PysideUpgrade(ABAction):

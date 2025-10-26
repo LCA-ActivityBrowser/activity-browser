@@ -2,8 +2,9 @@ from qtpy import QtWidgets
 
 from activity_browser import application
 from activity_browser.actions.base import ABAction, exception_dialogs
-from activity_browser.ui import icons, threading
+from activity_browser.ui import icons
 from activity_browser.mod.bw2io.migrations import ab_create_core_migrations
+from activity_browser.ui.core import threading
 
 
 class MigrationsInstall(ABAction):

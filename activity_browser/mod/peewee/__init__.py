@@ -4,7 +4,7 @@ from peewee import _ConnectionState
 import threading
 
 from activity_browser.mod.patching import patch_superclass, patched
-from activity_browser.ui.threading import thread_local
+from activity_browser.ui.core.threading import thread_local
 
 
 @patch_superclass

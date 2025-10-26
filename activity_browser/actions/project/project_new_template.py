@@ -7,7 +7,7 @@ from bw2io import backup
 from activity_browser import application, utils
 from activity_browser.actions.base import ABAction, exception_dialogs
 
-from activity_browser.ui.threading import ABThread
+from activity_browser.ui.core.threading import ABThread
 from activity_browser.ui.icons import qicons
 
 log = getLogger(__name__)

@@ -5,8 +5,9 @@ from qtpy.QtCore import Signal, SignalInstance
 
 from activity_browser import application
 from activity_browser.actions.base import exception_dialogs
-from activity_browser.ui import icons, widgets, threading
+from activity_browser.ui import icons, widgets
 from activity_browser.bwutils.io.ecoinvent_lcia_importer import EcoinventLCIAImporter
+from activity_browser.ui.core import threading
 
 from .method_importer_ecoinvent import ExtractExcelThread, MethodImporterEcoinvent
 

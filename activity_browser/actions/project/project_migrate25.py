@@ -9,7 +9,7 @@ from activity_browser import application, signals
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.bwutils import AB_metadata
 from activity_browser.ui.icons import qicons
-from activity_browser.ui.threading import ABThread
+from activity_browser.ui.core.threading import ABThread
 
 log = getLogger(__name__)
 

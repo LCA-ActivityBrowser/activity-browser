@@ -10,7 +10,7 @@ from bw2data.project import ProjectDataset
 
 from activity_browser import application
 from activity_browser.actions.base import ABAction, exception_dialogs
-from activity_browser.ui.threading import ABThread
+from activity_browser.ui.core.threading import ABThread
 
 log = getLogger(__name__)
 

@@ -7,8 +7,9 @@ import bw2data as bd
 
 from activity_browser import application
 from activity_browser.actions.base import ABAction, exception_dialogs
-from activity_browser.ui import threading, widgets
+from activity_browser.ui import widgets
 from activity_browser.bwutils.importers import ABExcelImporter
+from activity_browser.ui.core import threading
 
 log = getLogger(__name__)
 

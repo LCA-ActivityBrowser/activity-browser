@@ -3,7 +3,7 @@ from qtpy import QtWidgets
 
 if TYPE_CHECKING:
     from activity_browser.ui.widgets import ABWizard
-    from activity_browser.ui.threading import ABThread
+    from activity_browser.ui.core.threading import ABThread
 
 
 class ABWizardPage(QtWidgets.QWizardPage):
