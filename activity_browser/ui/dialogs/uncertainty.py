@@ -11,7 +11,7 @@ from ..core import application
 
 from ...bwutils import PedigreeMatrix, get_uncertainty_interface
 from ...bwutils.uncertainty import EMPTY_UNCERTAINTY
-from ..figures.figures import SimpleDistributionPlot
+from ..figures import SimpleDistributionPlot
 
 log = getLogger(__name__)
 
