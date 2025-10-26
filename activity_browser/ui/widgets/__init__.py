@@ -24,3 +24,4 @@ from .menu import ABMenu
 from ..dialogs.list_edit_dialog import ABListEditDialog
 from .drop_overlay import ABDropOverlay
 from ..dialogs.database_selection_dialog import ABDatabaseSelectionDialog
+from .plot import ABPlot
