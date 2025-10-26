@@ -3,7 +3,7 @@ from logging import getLogger
 from activity_browser import application
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.ui.icons import qicons
-from activity_browser.ui.application import global_shortcut
+from activity_browser.ui.core.application import global_shortcut
 
 log = getLogger(__name__)
 

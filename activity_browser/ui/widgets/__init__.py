@@ -8,7 +8,7 @@ from .item_model import ABItemModel
 from .item import ABAbstractItem, ABBranchItem, ABDataItem
 from .line import ABHLine, ABVLine
 from .formula_edit import ABFormulaEdit
-from .progress_dialog import ABProgressDialog
+from ..dialogs.progress_dialog import ABProgressDialog
 
 from .combobox import ABComboBox
 from .button_collapser import ABRadioButtonCollapser
@@ -21,6 +21,6 @@ from .label import ABLabel
 from .main_window import MainWindow
 from .central import CentralTabWidget
 from .menu import ABMenu
-from .list_edit_dialog import ABListEditDialog
+from ..dialogs.list_edit_dialog import ABListEditDialog
 from .drop_overlay import ABDropOverlay
-from .database_selection_dialog import ABDatabaseSelectionDialog
+from ..dialogs.database_selection_dialog import ABDatabaseSelectionDialog

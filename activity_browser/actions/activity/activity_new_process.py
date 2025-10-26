@@ -6,7 +6,7 @@ import bw2data as bd
 from activity_browser import application, bwutils
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.ui.icons import qicons
-from activity_browser.ui.widgets.new_node_dialog import NewNodeDialog
+from activity_browser.ui.dialogs.new_node_dialog import NewNodeDialog
 
 from .activity_open import ActivityOpen
 

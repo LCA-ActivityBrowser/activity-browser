@@ -7,7 +7,8 @@ import bw2data as bd
 
 from activity_browser import signals
 from activity_browser.bwutils import AB_metadata
-from activity_browser.ui import widgets, application
+from activity_browser.ui import widgets
+from activity_browser.ui.core import application
 
 log = getLogger(__name__)
 
