@@ -150,20 +150,6 @@ class CalculateMenu(QtWidgets.QMenu):
             self.addAction(action)
 
 
-# class ToolsMenu(QtWidgets.QMenu):
-#     """
-#     Tools Menu: contains actions in regard to special tooling aspects of the AB
-#     """
-#
-#     def __init__(self, parent=None) -> None:
-#         super().__init__(parent)
-#         self.setTitle("&Tools")
-#
-#         self.manage_plugins_action = actions.PluginWizardOpen.get_QAction()
-#
-#         self.addAction(self.manage_plugins_action)
-
-
 class HelpMenu(QtWidgets.QMenu):
     """
     Help Menu: contains actions that show info to the user or redirect them to online resources

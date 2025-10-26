@@ -1,5 +1,3 @@
-import sys
-
 from pathlib import Path
 from logging import getLogger
 
@@ -114,25 +112,3 @@ _global_shortcuts = {}
 
 
 application = ABApplication()
-
-
-
-#
-# if QSysInfo.productType() == "osx":
-#     # https://bugreports.qt.io/browse/QTBUG-87014
-#     # https://bugreports.qt.io/browse/QTBUG-85546
-#     # https://github.com/mapeditor/tiled/issues/2845
-#     # https://doc.qt.io/qt-5/qoperatingsystemversion.html#MacOSBigSur-var
-#     supported = {"10.10", "10.11", "10.12", "10.13", "10.14", "10.15", "13.6"}
-#     if QSysInfo.productVersion() not in supported:
-#         os.environ["QT_MAC_WANTS_LAYER"] = "1"
-#         os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = "--disable-gpu"
-#         log.info("Info: GPU hardware acceleration disabled")
-#
-# # on macos buttons silently crashes the renderer without any logs
-# # confirmed that buttons works on the latest version of qt using pyside6
-# if QSysInfo.productType() in ["arch", "nixos", "osx"]:
-#     os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = "{} --no-sandbox".format(
-#         os.getenv("QTWEBENGINE_CHROMIUM_FLAGS")
-#     )
-#     log.info("Info: QtWebEngine sandbox disabled")
