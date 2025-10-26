@@ -9,7 +9,7 @@ from stats_arrays.distributions import (
 )
 
 from activity_browser import actions
-from activity_browser.ui.wizards import UncertaintyWizard
+from activity_browser.ui.dialogs import UncertaintyWizard
 
 
 def test_cf_amount_modify(basic_database):
