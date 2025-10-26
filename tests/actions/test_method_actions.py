@@ -181,3 +181,66 @@ def test_method_new(monkeypatch, basic_database):
     # Verify the method is empty
     method_obj = Method(new_method)
     assert len(method_obj.load()) == 0
+
+
+def test_calculation_setups_updated_on_method_delete(monkeypatch, basic_database):
+    # ensure method exists and is present in calculation setup
+    method = ("basic_method",)
+
+    from bw2data import methods as bw_methods
+    import bw2data as bd
+
+    assert method in bw_methods
+    # Ensure the calculation setup references the method (arrange precondition)
+    cs = bd.calculation_setups["basic_calculation_setup"]
+    cs["ia"] = [method]
+    bd.calculation_setups["basic_calculation_setup"] = cs
+    bd.calculation_setups.serialize()
+
+    # auto-confirm deletion
+    monkeypatch.setattr(
+        QtWidgets.QMessageBox,
+        "warning",
+        staticmethod(lambda *args, **kwargs: QtWidgets.QMessageBox.Yes),
+    )
+
+    actions.MethodDelete.run([method])
+
+    # method removed
+    assert method not in bw_methods
+    # calculation setup no longer references deleted method
+    cs = bd.calculation_setups["basic_calculation_setup"]
+    assert method not in cs.get("ia", [])
+
+
+def test_calculation_setups_updated_on_method_rename(monkeypatch, basic_database):
+    # prepare rename dialog to accept and return new name
+    from activity_browser.ui.widgets import ABListEditDialog
+    import bw2data as bd
+
+    old = ("basic_method",)
+    new = ("renamed_method",)
+
+    # Ensure the calculation setup references the old method (arrange precondition)
+    cs = bd.calculation_setups["basic_calculation_setup"]
+    cs["ia"] = [old]
+    bd.calculation_setups["basic_calculation_setup"] = cs
+    bd.calculation_setups.serialize()
+
+    monkeypatch.setattr(
+        ABListEditDialog,
+        "exec_",
+        staticmethod(lambda *args, **kwargs: QtWidgets.QDialog.Accepted),
+    )
+    monkeypatch.setattr(
+        ABListEditDialog,
+        "get_data",
+        staticmethod(lambda *args, **kwargs: new),
+    )
+
+    actions.MethodRename.run(old)
+
+    # setups reference the new method name
+    cs = bd.calculation_setups["basic_calculation_setup"]
+    assert new in cs.get("ia", [])
+    assert old not in cs.get("ia", [])

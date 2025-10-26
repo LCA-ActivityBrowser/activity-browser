@@ -14,28 +14,19 @@ log = getLogger(__name__)
 
 class MethodRename(ABAction):
     """
-    Renames an existing method in the Brightway2 data structure.
+    Rename an existing impact assessment method (impact category).
 
-    This method allows renaming a single method by prompting the user for a new name.
-    It ensures that only one method is renamed at a time, validates the new name, and
-    updates the method in the Brightway2 database.
-
-    Args:
-        method_name (tuple[str] | list[tuple[str]]): The name of the method to rename.
-            If a list is provided, it must contain exactly one tuple.
-
-    Steps:
-    - Ensure only one method is being renamed at a time.
-    - Check if the method exists in the Brightway2 database.
-    - Open a dialog to prompt the user for the new method name.
-    - Validate the new name to ensure it is not empty and does not already exist.
+    Flow:
+    - Ensure only one method is selected and it exists.
+    - Prompt the user for the new name and validate it.
     - Copy the method to the new name and process it.
-    - Emit a signal to notify that the method has been renamed.
-    - Deregister the old method.
+    - Update all Brightway calculation setups by replacing the old method in 'ia' lists with
+      the new name and serialize the updates.
+    - Emit a rename signal and deregister the old method.
 
     Raises:
-        ValueError: If more than one method is provided for renaming.
-        RuntimeError: If the method does not exist, the new name is empty, or the new name already exists.
+    - ValueError: If more than one method is provided for renaming.
+    - RuntimeError: If the method does not exist, the new name is empty, or the new name already exists.
     """
 
     text = "Rename Impact Category"
@@ -57,14 +48,13 @@ class MethodRename(ABAction):
 
         # open dialog to get new name
         dialog = widgets.ABListEditDialog(
-            method_name, 
-            title="Rename Impact Category", 
-            parent=application.main_window
+            method_name,
+            title="Rename Impact Category",
+            parent=application.main_window,
         )
-        dialog.exec_()
 
-        # if dialog was cancelled, do nothing
-        if not dialog.result() == QtWidgets.QDialog.Accepted:
+        # execute the dialog and check for acceptance
+        if dialog.exec_() != QtWidgets.QDialog.Accepted:
             return
 
         new_name = dialog.get_data(as_tuple=True)
@@ -82,9 +72,41 @@ class MethodRename(ABAction):
         # copy method to new name and process
         method.copy(new_name).process()
 
+        # Update any calculation setups that reference this method
+        MethodRename.rename_method_in_calculation_setups(method_name, new_name)
+
         # this should not happen like this, as the model and therefore signals should be handled declaritavely,
         # but since method renaming is not native to bw2data we have to do it manually here
         signals.method.renamed.emit(method_name, new_name)
 
         # deregister old method
         method.deregister()
+
+    @staticmethod
+    def rename_method_in_calculation_setups(old_name: tuple, new_name: tuple) -> None:
+        """Replace occurrences of old_name with new_name in all CS 'ia' lists and serialize.
+
+        Handles both tuple and single-string method keys. Best-effort: logs on failure
+        without blocking the rename flow.
+        """
+        try:
+            changed_any = False
+
+            for cs_name, cs in bd.calculation_setups.items():
+                ia = cs.get("ia", [])
+                
+                if old_name not in ia:
+                    continue
+
+                i = ia.index(old_name)
+                ia[i] = new_name
+
+                changed_any = True
+                log.info(
+                    f"Updated calculation setup '{cs_name}': renamed impact category {old_name} -> {new_name}"
+                )
+            
+            if changed_any:
+                bd.calculation_setups.serialize()
+        except Exception:
+            log.exception("Failed to update calculation setups after method rename")
