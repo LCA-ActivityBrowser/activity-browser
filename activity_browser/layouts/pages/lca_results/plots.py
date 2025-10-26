@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import math
 from logging import getLogger
 
@@ -6,85 +5,16 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
-from matplotlib.figure import Figure
-from qtpy import QtWidgets
 
 from bw2data import methods
-from activity_browser.utils import savefilepath
+from activity_browser.ui.widgets import ABPlot
 from activity_browser.bwutils.commontasks import wrap_text
 
 
 log = getLogger(__name__)
 
-# todo: sizing of the figures needs to be improved and systematized...
-# todo: Bokeh is a potential alternative as it allows interactive visualizations,
-#  but this issue needs to be resolved first: https://github.com/bokeh/bokeh/issues/8169
 
-
-class Plot(QtWidgets.QWidget):
-    ALL_FILTER = "All Files (*.*)"
-    PNG_FILTER = "PNG (*.png)"
-    SVG_FILTER = "SVG (*.svg)"
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        # create figure, canvas, and axis
-        # self.figure = Figure(tight_layout=True)
-        self.figure = Figure(constrained_layout=True)
-        self.canvas = FigureCanvasQTAgg(self.figure)
-        self.canvas.setMinimumHeight(0)
-
-        self.canvas.destroyed.connect(self.check)
-
-        self.ax = self.figure.add_subplot(111)  # create an axis
-        self.plot_name = "Figure"
-
-        # set the layout
-        layout = QtWidgets.QVBoxLayout()
-        layout.addWidget(self.canvas)
-        self.setLayout(layout)
-        self.setSizePolicy(
-            QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding
-        )
-        self.updateGeometry()
-
-    def check(self):
-        print("WHY DELETE")
-
-    def plot(self, *args, **kwargs):
-        raise NotImplementedError
-
-    def reset_plot(self) -> None:
-        self.figure.clf()
-        self.ax = self.figure.add_subplot(111)
-
-    def get_canvas_size_in_inches(self):
-        # print("Canvas size:", self.canvas.get_width_height())
-        return tuple(x / self.figure.dpi for x in self.canvas.get_width_height())
-
-    def to_png(self):
-        """Export to .png format."""
-        filepath = savefilepath(
-            default_file_name=self.plot_name, file_filter=self.PNG_FILTER
-        )
-        if filepath:
-            if not filepath.endswith(".png"):
-                filepath += ".png"
-            self.figure.savefig(filepath)
-
-    def to_svg(self):
-        """Export to .svg format."""
-        filepath = savefilepath(
-            default_file_name=self.plot_name, file_filter=self.SVG_FILTER
-        )
-        if filepath:
-            if not filepath.endswith(".svg"):
-                filepath += ".svg"
-            self.figure.savefig(filepath)
-
-
-class LCAResultsBarChart(Plot):
+class LCAResultsBarChart(ABPlot):
     """ " Generate a bar chart comparing the absolute LCA scores of the products"""
 
     def __init__(self, parent=None):
@@ -116,7 +46,7 @@ class LCAResultsBarChart(Plot):
         self.canvas.draw()
 
 
-class LCAResultsPlot(Plot):
+class LCAResultsPlot(ABPlot):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.plot_name = "LCA heatmap"
@@ -180,7 +110,7 @@ class LCAResultsPlot(Plot):
         self.canvas.draw()
 
 
-class ContributionPlot(Plot):
+class ContributionPlot(ABPlot):
     MAX_LEGEND = 30
 
     def __init__(self, parent=None):
@@ -280,7 +210,7 @@ class ContributionPlot(Plot):
         self.canvas.draw()
 
 
-class CorrelationPlot(Plot):
+class CorrelationPlot(ABPlot):
     def __init__(self, parent=None):
         super().__init__(parent)
         sns.set(style="darkgrid")
@@ -344,7 +274,7 @@ class CorrelationPlot(Plot):
         self.canvas.draw()
 
 
-class MonteCarloPlot(Plot):
+class MonteCarloPlot(ABPlot):
     """Monte Carlo plot."""
 
     def __init__(self, parent=None):
