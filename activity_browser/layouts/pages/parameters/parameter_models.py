@@ -14,7 +14,7 @@ from bw2data.parameters import ActivityParameter, DatabaseParameter, Group, Proj
 
 from activity_browser import actions, signals, application, bwutils
 from activity_browser.mod import bw2data as bd
-from activity_browser.ui.wizards import UncertaintyWizard
+from activity_browser.ui.dialogs import UncertaintyWizard
 
 from .base import BaseTreeModel, EditablePandasModel, TreeItem, PandasModel
 

@@ -3,7 +3,7 @@ from typing import Any, List
 from activity_browser import application
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.ui.icons import qicons
-from activity_browser.ui.wizards import UncertaintyWizard
+from activity_browser.ui.dialogs import UncertaintyWizard
 
 
 class ExchangeUncertaintyModify(ABAction):
