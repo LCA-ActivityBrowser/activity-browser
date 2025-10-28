@@ -45,6 +45,7 @@ class UncertaintyDialog(QtWidgets.QDialog):
 		# State
 		self.dist = None
 		self.result_array = None  # Filled on accept
+		self.result_dict = None  # Filled on accept
 		self.previous_dist_id: Optional[int] = None
 		self.mean_is_calculated = {
 			sa.TriangularUncertainty.id,
@@ -165,12 +166,20 @@ class UncertaintyDialog(QtWidgets.QDialog):
 
 	# ---------- Public API ----------
 	@staticmethod
-	def get_uncertainty(
+	def get_uncertainty_array(
 		parent=None, initial: Optional[dict] = None
 	) -> Tuple[bool, Optional[np.ndarray]]:
 		dlg = UncertaintyDialog(parent, initial=initial)
 		ok = dlg.exec_() == QtWidgets.QDialog.Accepted
 		return ok, dlg.result_array if ok else None
+	
+	@staticmethod
+	def get_uncertainty_dict(
+		parent=None, initial: Optional[dict] = None
+	) -> Tuple[bool, Optional[dict]]:
+		dlg = UncertaintyDialog(parent, initial=initial)
+		ok = dlg.exec_() == QtWidgets.QDialog.Accepted
+		return ok, dlg.result_dict if ok else None
 
 	# ---------- Internal helpers ----------
 	def _apply_initial(self, initial: dict) -> None:
@@ -225,7 +234,7 @@ class UncertaintyDialog(QtWidgets.QDialog):
 			self.maximum.setHidden(hide)
 
 	def _on_distribution_changed(self, index: int) -> None:
-		self.dist = sa.uncertainty.id_dict[index]
+		self.dist = sa.uncertainty_choices[index]
 
 		# Show/hide fields per distribution (mirror wizard)
 		if self.dist.id in {0, 1}:  # Undefined / NoUncertainty
@@ -438,6 +447,7 @@ class UncertaintyDialog(QtWidgets.QDialog):
 
 	def _on_accept(self) -> None:
 		try:
+			self.result_dict = self._uncertainty_info
 			self.result_array = self.dist.from_dicts(self._uncertainty_info)
 		except Exception as e:
 			QtWidgets.QMessageBox.warning(
