@@ -7,7 +7,7 @@ from qtpy.QtCore import QSize, QUrl
 
 from activity_browser import actions, signals, utils, application
 
-from .icons import qicons
+from ..ui.icons import qicons
 
 
 class MenuBar(QtWidgets.QMenuBar):

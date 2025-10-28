@@ -8,7 +8,7 @@ import bw2data as bd
 from activity_browser import signals, application
 from activity_browser.ui import icons
 
-from activity_browser.ui.menu_bar import MenuBar
+from activity_browser.layouts.menu_bar import MenuBar
 
 log = getLogger(__name__)
 

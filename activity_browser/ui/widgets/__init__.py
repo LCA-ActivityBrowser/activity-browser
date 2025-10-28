@@ -17,7 +17,6 @@ from .file_selector import ABFileSelector
 from .database_name_edit import DatabaseNameEdit
 from .dock_widget import ABDockWidget
 from .label import ABLabel
-from .main_window import MainWindow
 from .central import CentralTabWidget
 from .menu import ABMenu
 from .drop_overlay import ABDropOverlay

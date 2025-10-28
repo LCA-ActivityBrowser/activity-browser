@@ -8,7 +8,7 @@ import pandas as pd
 
 from activity_browser import signals, actions, bwutils
 from activity_browser.ui import widgets, icons, delegates
-from activity_browser.ui.menu_bar import ImportDatabaseMenu
+from activity_browser.layouts.menu_bar import ImportDatabaseMenu
 
 
 class DatabasesPane(widgets.ABAbstractPane):

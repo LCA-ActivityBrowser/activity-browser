@@ -97,7 +97,7 @@ class ProjectView(widgets.ABTreeView):
 
     class ContextMenu(widgets.ABTreeView.ContextMenu):
         def __init__(self, pos, view: "FunctionView"):
-            from activity_browser.ui.menu_bar import ProjectNewMenu
+            from activity_browser.layouts.menu_bar import ProjectNewMenu
 
             super().__init__(pos, view)
             items = list({index.internalPointer() for index in view.selectedIndexes()})
