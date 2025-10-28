@@ -5,12 +5,12 @@ from activity_browser import application
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.mod import bw2data as bd
 from activity_browser.ui.icons import qicons
-from activity_browser.ui.dialogs import UncertaintyWizard
+from activity_browser.ui.dialogs import UncertaintyDialog
 
 
 class CFUncertaintyModify(ABAction):
     """
-    ABAction to launch the UncertaintyWizard for Characterization Factor and handles the output by writing the
+    ABAction to launch the UncertaintyDialog for Characterization Factor and handles the output by writing the
     uncertainty data using the ImpactCategoryController to the Characterization Factor in question.
     """
 
@@ -20,23 +20,27 @@ class CFUncertaintyModify(ABAction):
     @classmethod
     @exception_dialogs
     def run(cls, method_name: tuple, char_factors: List[tuple]):
-        wizard = UncertaintyWizard(char_factors[0], application.main_window)
-        wizard.complete.connect(partial(cls.wizard_done, method_name))
-        wizard.show()
 
-    @staticmethod
-    def wizard_done(method_name: tuple, cf: tuple, uncertainty: dict):
-        """Update the CF with new uncertainty information, possibly converting
-        the second item in the tuple to a dictionary without losing information.
-        """
+        initial = char_factors[0][1]
+        initial = initial if isinstance(initial, dict) else {}
+        
+        ok, uc_dict = UncertaintyDialog.get_uncertainty_dict(
+            parent=application.main_window,
+            initial=initial,
+            )
+        
+        if not ok:
+            return
+        
         method = bd.Method(method_name)
         method_dict = {cf[0]: cf[1] for cf in method.load()}
 
-        if isinstance(cf[1], dict):
-            cf[1].update(uncertainty)
-            method_dict[cf[0]] = cf[1]
-        else:
-            uncertainty["amount"] = cf[1]
-            method_dict[cf[0]] = uncertainty
-
+        for cf in char_factors:
+            if isinstance(cf[1], dict):
+                cf[1].update(uc_dict)
+                method_dict[cf[0]] = cf[1]
+            else:
+                uc_dict["amount"] = cf[1]
+                method_dict[cf[0]] = uc_dict
+        
         method.write(list(method_dict.items()))
