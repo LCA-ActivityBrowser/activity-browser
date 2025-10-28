@@ -6,7 +6,7 @@ from activity_browser import application
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.mod import bw2data as bd
 from activity_browser.ui.icons import qicons
-from activity_browser.ui import widgets
+from activity_browser.ui import dialogs
 
 from .method_open import MethodOpen
 
@@ -37,7 +37,7 @@ class MethodNew(ABAction):
     @exception_dialogs
     def run():
         # Open dialog to get new method name
-        dialog = widgets.ABListEditDialog(("New Impact Category",), parent=application.main_window)
+        dialog = dialogs.ABListEditDialog(("New Impact Category",), parent=application.main_window)
         dialog.setWindowTitle("New Impact Category")
         
         if dialog.exec_() != QtWidgets.QDialog.Accepted:
