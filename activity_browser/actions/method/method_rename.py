@@ -6,7 +6,7 @@ from qtpy import QtWidgets
 import bw2data as bd
 
 from activity_browser import application, signals
-from activity_browser.ui import widgets
+from activity_browser.ui import dialogs
 from activity_browser.actions.base import ABAction, exception_dialogs
 
 log = getLogger(__name__)
@@ -47,7 +47,7 @@ class MethodRename(ABAction):
         method = bd.Method(method_name)
 
         # open dialog to get new name
-        dialog = widgets.ABListEditDialog(
+        dialog = dialogs.ABListEditDialog(
             method_name,
             title="Rename Impact Category",
             parent=application.main_window,

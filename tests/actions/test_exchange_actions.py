@@ -1,8 +1,8 @@
 import pytest
-from stats_arrays.distributions import NoUncertainty, UndefinedUncertainty
+from stats_arrays.distributions import NoUncertainty, UndefinedUncertainty, UniformUncertainty
 
 from activity_browser import actions, application
-from activity_browser.ui.dialogs import UncertaintyWizard
+from activity_browser.ui.dialogs import UncertaintyDialog
 
 
 # def test_exchange_copy_sdf(basic_database):
@@ -116,7 +116,7 @@ def test_exchange_new(basic_database):
     )
 
 
-def test_exchange_uncertainty_modify(basic_database):
+def test_exchange_uncertainty_modify(monkeypatch, basic_database):
     process = basic_database.get("process")
     elementary = basic_database.get("elementary")
 
@@ -126,14 +126,35 @@ def test_exchange_uncertainty_modify(basic_database):
         if exchange.input == elementary
     ]
     assert len(exchange) == 1
+    
+    # Initial state: should have NoUncertainty
+    assert exchange[0].uncertainty_type == NoUncertainty
+    
+    # Create mock uncertainty data to be returned by the dialog
+    mock_uncertainty = {
+        "uncertainty type": UniformUncertainty.id,
+        "loc": float("nan"),
+        "scale": float("nan"),
+        "shape": float("nan"),
+        "minimum": 5.0,
+        "maximum": 15.0,
+        "negative": False,
+    }
+    
+    # Monkeypatch the dialog to return our mock data
+    monkeypatch.setattr(
+        UncertaintyDialog,
+        "get_uncertainty_dict",
+        lambda *args, **kwargs: (True, mock_uncertainty),
+    )
 
     actions.ExchangeUncertaintyModify.run(exchange)
 
-    wizard = application.main_window.findChild(UncertaintyWizard)
-
-    assert wizard.isVisible()
-
-    wizard.destroy()
+    # Verify the exchange was updated with the new uncertainty values
+    assert exchange[0].uncertainty_type == UniformUncertainty
+    assert exchange[0]["minimum"] == 5.0
+    assert exchange[0]["maximum"] == 15.0
+    assert exchange[0]["negative"] == False
 
 
 def test_exchange_uncertainty_remove(basic_database):

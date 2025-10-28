@@ -155,7 +155,7 @@ def test_method_duplicate(monkeypatch, basic_database):
 
 
 def test_method_new(monkeypatch, basic_database):
-    from activity_browser.ui.widgets import ABListEditDialog
+    from activity_browser.ui.dialogs import ABListEditDialog
 
     new_method = ("New Test Method", "Test Category")
 
@@ -215,7 +215,7 @@ def test_calculation_setups_updated_on_method_delete(monkeypatch, basic_database
 
 def test_calculation_setups_updated_on_method_rename(monkeypatch, basic_database):
     # prepare rename dialog to accept and return new name
-    from activity_browser.ui.widgets import ABListEditDialog
+    from activity_browser.ui.dialogs import ABListEditDialog
     import bw2data as bd
 
     old = ("basic_method",)

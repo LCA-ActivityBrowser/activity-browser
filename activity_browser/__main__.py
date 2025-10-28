@@ -89,11 +89,11 @@ class ABLoader(QtWidgets.QWidget):
 
     def load_layout(self):
         from .ui.widgets import CentralTabWidget
-        from .layouts import panes, pages, main_window
+        from .layouts import panes, pages, MainWindow
         from activity_browser.bwutils import AB_metadata
         from activity_browser import signals
 
-        application.main_window = main_window.MainWindow()
+        application.main_window = MainWindow()
         central_widget = CentralTabWidget(application.main_window)
         central_widget.addTab(pages.WelcomePage(), "Welcome")
         central_widget.addTab(pages.ParametersPage(), "Parameters")
