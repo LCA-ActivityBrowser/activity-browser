@@ -6,10 +6,10 @@ from qtpy.QtCore import Qt
 
 import pandas as pd
 import bw2data as bd
+from activity_browser.bwutils import superstructure as ss
 
 from activity_browser import signals
 from activity_browser.ui import icons, widgets
-from activity_browser.bwutils import superstructure as ss
 from activity_browser.bwutils import errors
 
 log = getLogger(__name__)
@@ -295,98 +295,72 @@ class ScenarioImportWidget(QtWidgets.QWidget):
 
     def load_action(self) -> None:
         dialog = ExcelReadDialog(self)
-        if dialog.exec_() == ExcelReadDialog.DialogCode.Accepted:
+        if dialog.exec_() != ExcelReadDialog.DialogCode.Accepted:
+            return
 
-            try:
-                path = dialog.path
-                idx = dialog.import_sheet.currentIndex()
-                file_type_suffix = dialog.path.suffix
-                separator = dialog.field_separator.currentData()
-                log.debug("separator == '{}'".format(separator))
-                QtWidgets.QApplication.setOverrideCursor(Qt.WaitCursor)
-                log.info("Loading Scenario file. This may take a while for large files")
-                # Try and read as a superstructure file
-                # Choose a different routine for reading the file dependent on file type
-                if file_type_suffix == ".feather":
-                    df = ss.ABFeatherImporter.read_file(path)
-                elif file_type_suffix.startswith(".xls"):
-                    df = ss.import_from_excel(path, idx)
-                else:
-                    df = ss.ABCSVImporter.read_file(path, separator=separator)
-                # Read in the file as a scenario flow table if the file is arranged as one
-                if len(df.columns.intersection(ss.SUPERSTRUCTURE)) >= 12:
-                    if df is None:
-                        QtWidgets.QApplication.restoreOverrideCursor()
-                        return
-                    self.sync_superstructure(df)
-                # Read the file as a parameter scenario file if it is correspondingly arranged
-                elif len(df.columns.intersection({"Name", "Group"})) == 2:
-                    # Try and read as parameter scenario file.
-                    log.info(
-                        "Superstructure: Attempting to read as parameter scenario file."
-                    )
-
-                    if not df["Group"].dtype == object:
-                        df["Group"] = df["Group"].astype(str)
-
-                    include_default = True
-                    if "default" not in df.columns:
-                        query = QtWidgets.QMessageBox.question(
-                            self,
-                            "Default column not found",
-                            "Attempt to load and include the 'default' scenario column?",
-                            QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
-                            QtWidgets.QMessageBox.No,
-                        )
-                        if query == QtWidgets.QMessageBox.No:
-                            include_default = False
-                    signals.parameter_scenario_sync.emit(
-                        self.index, df, include_default
-                    )
-                else:
-                    # this is a wrong file type
-                    msg = (
-                        "The Activity-Browser is attempting to import a scenario file.<p>During the attempted import"
-                        " another file type was detected. Please check the file type of the attempted import, if it is"
-                        " a scenario file make sure it contains a valid format.</p>"
-                        "<p>A flow exchange scenario file requires the following headers:<br>"
-                        + ss.edit_superstructure_for_string(sep=", ", fhighlight='"')
-                        + "</p>"
-                        "<p>A parameter scenario file requires the following:<br>"
-                        + ss.edit_superstructure_for_string(
-                            ["name", "group"], sep=", ", fhighlight='"'
-                        )
-                        + "</p>"
-                    )
-                    critical = ss.ABPopup.abCritical(
-                        "Wrong file type", msg, QtWidgets.QPushButton("Cancel")
-                    )
+        try:
+            path = dialog.path
+            idx = dialog.import_sheet.currentIndex()
+            file_type_suffix = dialog.path.suffix
+            separator = dialog.field_separator.currentData()
+            log.debug("separator == '{}'".format(separator))
+            QtWidgets.QApplication.setOverrideCursor(Qt.WaitCursor)
+            log.info("Loading Scenario file. This may take a while for large files")
+            # Try and read as a superstructure file
+            # Choose a different routine for reading the file dependent on file type
+            if file_type_suffix == ".feather":
+                df = ss.ABFeatherImporter.read_file(path)
+            elif file_type_suffix.startswith(".xls"):
+                df = ss.import_from_excel(path, idx)
+            else:
+                df = ss.ABCSVImporter.read_file(path, separator=separator)
+            # Read in the file as a scenario flow table if the file is arranged as one
+            if len(df.columns.intersection(ss.SUPERSTRUCTURE)) >= 12:
+                if df is None:
                     QtWidgets.QApplication.restoreOverrideCursor()
-                    critical.exec_()
                     return
-            except errors.CriticalScenarioExtensionError as e:
-                # Triggered when combining different scenario files by extension leads to no scenario columns
+                self.sync_superstructure(df)
+            # Read the file as a parameter scenario file if it is correspondingly arranged
+            elif len(df.columns.intersection({"Name", "Group"})) == 2:
+                # Try and read as parameter scenario file.
+                log.info("Superstructure: Attempting to read as parameter scenario file.")
+
+                if not df["Group"].dtype == object:
+                    df["Group"] = df["Group"].astype(str)
+
+                df = ss.parameters_to_sdf(df)
+                self.sync_superstructure(df)
+
+            else:
+                # this is a wrong file type
+                msg = (
+                    "The Activity-Browser is attempting to import a scenario file.<p>During the attempted import"
+                    " another file type was detected. Please check the file type of the attempted import, if it is"
+                    " a scenario file make sure it contains a valid format.</p>"
+                    "<p>A flow exchange scenario file requires the following headers:<br>"
+                    + ss.edit_superstructure_for_string(sep=", ", fhighlight='"')
+                    + "</p>"
+                    "<p>A parameter scenario file requires the following:<br>"
+                    + ss.edit_superstructure_for_string(
+                        ["name", "group"], sep=", ", fhighlight='"'
+                    )
+                    + "</p>"
+                )
+                critical = ss.ABPopup.abCritical(
+                    "Wrong file type", msg, QtWidgets.QPushButton("Cancel")
+                )
                 QtWidgets.QApplication.restoreOverrideCursor()
+                critical.exec_()
                 return
-            except errors.ScenarioDatabaseNotFoundError as e:
-                QtWidgets.QApplication.restoreOverrideCursor()
-                return
-            except errors.ScenarioExchangeNotFoundError as e:
-                QtWidgets.QApplication.restoreOverrideCursor()
-                return
-            except errors.ImportCanceledError as e:
-                QtWidgets.QApplication.restoreOverrideCursor()
-                return
-            except errors.ScenarioExchangeDataNotFoundError as e:
-                QtWidgets.QApplication.restoreOverrideCursor()
-                return
-            except errors.UnalignableScenarioColumnsWarning as e:
-                QtWidgets.QApplication.restoreOverrideCursor()
-                return
-            self.scenario_name.setText(path.name)
-            self.scenario_name.setToolTip(path.name)
-            self._parent.save_button(True)
+        except:
             QtWidgets.QApplication.restoreOverrideCursor()
+            raise
+
+        self.scenario_name.setText(path.name)
+        self.scenario_name.setToolTip(path.name)
+        self._parent.save_button(True)
+
+        QtWidgets.QApplication.restoreOverrideCursor()
 
     def sync_superstructure(self, df: pd.DataFrame) -> None:
         """synchronizes the contents of either a single, or multiple scenario files to create a single scenario

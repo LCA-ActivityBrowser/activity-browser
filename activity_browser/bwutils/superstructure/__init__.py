@@ -6,4 +6,4 @@ from .file_dialogs import ABPopup
 from .file_imports import ABCSVImporter, ABFeatherImporter, ABFileImporter
 from .manager import SuperstructureManager
 from .mlca import SuperstructureContributions, SuperstructureMLCA
-from .utils import SUPERSTRUCTURE, _time_it_, edit_superstructure_for_string
+from .utils import SUPERSTRUCTURE, _time_it_, edit_superstructure_for_string, parameters_to_sdf
