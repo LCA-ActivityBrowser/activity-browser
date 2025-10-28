@@ -7,13 +7,22 @@ import numpy as np
 import seaborn as sns
 
 from qtpy import QtCore, QtGui, QtWidgets
-from stats_arrays import uncertainty_choices as uncertainty
-from stats_arrays.distributions import *  # noqa: F401,F403 - mirror wizard usage
+import stats_arrays as sa
 
-from ...ui.widgets.plot import ABPlot
-from ...bwutils.uncertainty import EMPTY_UNCERTAINTY
+from activity_browser.ui.widgets import ABPlot
 
 log = getLogger(__name__)
+
+
+EMPTY_UNCERTAINTY = {
+    "uncertainty type": sa.UndefinedUncertainty.id,
+    "loc": np.NaN,
+    "scale": np.NaN,
+    "shape": np.NaN,
+    "minimum": np.NaN,
+    "maximum": np.NaN,
+    "negative": False,
+}
 
 
 class UncertaintyDialog(QtWidgets.QDialog):
@@ -38,16 +47,16 @@ class UncertaintyDialog(QtWidgets.QDialog):
 		self.result_array = None  # Filled on accept
 		self.previous_dist_id: Optional[int] = None
 		self.mean_is_calculated = {
-			TriangularUncertainty.id,
-			UniformUncertainty.id,
-			DiscreteUniform.id,
-			BetaUncertainty.id,
+			sa.TriangularUncertainty.id,
+			sa.UniformUncertainty.id,
+			sa.DiscreteUniform.id,
+			sa.BetaUncertainty.id,
 		}
 
 		# Top: distribution selection
 		box1 = QtWidgets.QGroupBox("Select the uncertainty distribution")
 		self.distribution = QtWidgets.QComboBox(box1)
-		self.distribution.addItems([ud.description for ud in uncertainty.choices])
+		self.distribution.addItems([ud.description for ud in sa.uncertainty_choices])
 		self.distribution.currentIndexChanged.connect(self._on_distribution_changed)
 
 		header_layout = QtWidgets.QGridLayout()
@@ -187,13 +196,13 @@ class UncertaintyDialog(QtWidgets.QDialog):
 
 	@property
 	def _distribution_loc_label(self) -> str:
-		if self.dist.id == LognormalUncertainty.id:
+		if self.dist.id == sa.LognormalUncertainty.id:
 			return "Loc (ln(mean)):"
-		elif self.dist.id == TriangularUncertainty.id:
+		elif self.dist.id == sa.TriangularUncertainty.id:
 			return "Mode:"
-		elif self.dist.id == BetaUncertainty.id:
+		elif self.dist.id == sa.BetaUncertainty.id:
 			return "Loc / alpha:"
-		elif self.dist.id in {GammaUncertainty.id, WeibullUncertainty.id}:
+		elif self.dist.id in {sa.GammaUncertainty.id, sa.WeibullUncertainty.id}:
 			return "Loc / offset:"
 		else:
 			return "Mean:"
@@ -216,7 +225,7 @@ class UncertaintyDialog(QtWidgets.QDialog):
 			self.maximum.setHidden(hide)
 
 	def _on_distribution_changed(self, index: int) -> None:
-		self.dist = uncertainty.id_dict[index]
+		self.dist = sa.uncertainty.id_dict[index]
 
 		# Show/hide fields per distribution (mirror wizard)
 		if self.dist.id in {0, 1}:  # Undefined / NoUncertainty
@@ -235,18 +244,18 @@ class UncertaintyDialog(QtWidgets.QDialog):
 			self._hide_params("loc", "scale", "shape", hide=False)
 
 		# Special handling (lognormal and calculated mean label)
-		if self.dist.id == LognormalUncertainty.id:
+		if self.dist.id == sa.LognormalUncertainty.id:
 			self.mean.setHidden(False)
 			self.mean_label.setHidden(False)
 			# Convert existing loc to log-space if coming from non-lognormal
-			if self.previous_dist_id is not None and self.previous_dist_id != LognormalUncertainty.id:
+			if self.previous_dist_id is not None and self.previous_dist_id != sa.LognormalUncertainty.id:
 				self._extract_lognormal_loc_from_mean()
 				self._sync_mean_from_loc()
 		else:
 			self.mean.setHidden(True)
 			self.mean_label.setHidden(True)
 			# If switching away from lognormal, set loc to linear amount if mean present
-			if self.previous_dist_id == LognormalUncertainty.id:
+			if self.previous_dist_id == sa.LognormalUncertainty.id:
 				try:
 					mean_val = float(self.mean.text()) if self.mean.text() else np.nan
 					if not np.isnan(mean_val):
@@ -385,7 +394,7 @@ class UncertaintyDialog(QtWidgets.QDialog):
 		# Update calculated mean if applicable and render sample
 		if self.dist is None:
 			return
-		complete = self._completed_active_fields() or self.dist.id in {UndefinedUncertainty.id, NoUncertainty.id}
+		complete = self._completed_active_fields() or self.dist.id in {sa.UndefinedUncertainty.id, sa.NoUncertainty.id}
 		if not complete:
 			self._update_ok_state()
 			return
@@ -401,9 +410,9 @@ class UncertaintyDialog(QtWidgets.QDialog):
 			calc = calc.mean() if isinstance(calc, np.ndarray) else calc
 			self.calc_mean.setText(str(float(calc)))
 		# Vertical line value
-		if self.dist.id == LognormalUncertainty.id:
+		if self.dist.id == sa.LognormalUncertainty.id:
 			vline = self.dist.statistics(array).get("median")
-		elif self.dist.id in {UndefinedUncertainty.id, NoUncertainty.id}:
+		elif self.dist.id in {sa.UndefinedUncertainty.id, sa.NoUncertainty.id}:
 			# Best effort: use loc as "mean" placeholder
 			try:
 				vline = float(self.loc.text()) if self.loc.text() else np.nan
