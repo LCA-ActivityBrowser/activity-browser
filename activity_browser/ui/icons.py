@@ -39,74 +39,68 @@ def empty_icon(size: QSize = QSize(32, 32)) -> QIcon:
 # switch = create_path('main', 'switch-state.png')
 
 
-class Icons(object):
+icons = dict(
     # Icons from href="https://www.flaticon.com/
 
     # MAIN
-    ab = create_path("main", "activitybrowser.png")
+    ab = create_path("main", "activitybrowser.png"),
 
     # arrows
-    right = create_path("main", "right.png")
-    left = create_path("main", "left.png")
-    forward = create_path("main", "forward.png")
-    backward = create_path("main", "backward.png")
+    right = create_path("main", "right.png"),
+    left = create_path("main", "left.png"),
+    forward = create_path("main", "forward.png"),
+    backward = create_path("main", "backward.png"),
 
     # Simple actions
-    delete = create_path("context", "delete.png")
-    clear = create_path("context", "clear.png")
-    copy = create_path("context", "copy.png")
-    add = create_path("context", "add.png")
-    edit = create_path("main", "edit.png")
-    calculate = create_path("main", "calculate.png")
-    question = create_path("context", "question.png")
-    search = create_path("main", "search.png")
-    filter = create_path("main", "filter.png")
-    filter_outline = create_path("main", "filter_outline.png")
+    delete = create_path("context", "delete.png"),
+    clear = create_path("context", "clear.png"),
+    copy = create_path("context", "copy.png"),
+    add = create_path("context", "add.png"),
+    edit = create_path("main", "edit.png"),
+    calculate = create_path("main", "calculate.png"),
+    question = create_path("context", "question.png"),
+    search = create_path("main", "search.png"),
+    filter = create_path("main", "filter.png"),
+    filter_outline = create_path("main", "filter_outline.png"),
 
     # database
-    import_db = create_path("main", "import_database.png")
-    duplicate_database = create_path("main", "duplicate_database.png")
+    import_db = create_path("main", "import_database.png"),
+    duplicate_database = create_path("main", "duplicate_database.png"),
 
     # activity
-    duplicate_activity = create_path("main", "duplicate_activity.png")
-    duplicate_to_other_database = create_path("main", "import_database.png")
-    parameterized = create_path("main", "parameterized.png")
+    duplicate_activity = create_path("main", "duplicate_activity.png"),
+    duplicate_to_other_database = create_path("main", "import_database.png"),
+    parameterized = create_path("main", "parameterized.png"),
 
     # windows
-    graph_explorer = create_path("main", "graph_explorer.png")
-    issue = create_path("main", "idea.png")
-    settings = create_path("main", "settings.png")
-    history = create_path("main", "history.png")
-    welcome = create_path("main", "welcome.png")
-    main_window = create_path("main", "home.png")
+    graph_explorer = create_path("main", "graph_explorer.png"),
+    issue = create_path("main", "idea.png"),
+    settings = create_path("main", "settings.png"),
+    history = create_path("main", "history.png"),
+    welcome = create_path("main", "welcome.png"),
+    main_window = create_path("main", "home.png"),
 
     # plugins
-    plugin = create_path("main", "plugin.png")
+    plugin = create_path("main", "plugin.png"),
 
     # nodes
-    process = create_path("nodes", "process.png")
-    product = create_path("nodes", "product.png")
-    waste = create_path("nodes", "waste.png")
-    processproduct = create_path("nodes", "processproduct.png")
-    biosphere = create_path("nodes", "biosphere.png")
-    readonly_process = create_path("nodes", "read-only-process.png")
+    process = create_path("nodes", "process.png"),
+    product = create_path("nodes", "product.png"),
+    waste = create_path("nodes", "waste.png"),
+    processproduct = create_path("nodes", "processproduct.png"),
+    biosphere = create_path("nodes", "biosphere.png"),
+    readonly_process = create_path("nodes", "read-only-process.png"),
 
     # other
-    superstructure = create_path("main", "superstructure.png")
-    copy_to_clipboard = create_path("main", "copy_to_clipboard.png")
-    warning = create_path("context", "warning.png")
-    critical = create_path("context", "critical.png")
-    locked = create_path("main", "locked.png")
-    unlocked = create_path("main", "unlocked.png")
+    superstructure = create_path("main", "superstructure.png"),
+    copy_to_clipboard = create_path("main", "copy_to_clipboard.png"),
+    warning = create_path("context", "warning.png"),
+    critical = create_path("context", "critical.png"),
+    locked = create_path("main", "locked.png"),
+    unlocked = create_path("main", "unlocked.png"),
+)
 
 
-class QIcons(Icons):
-    """Using the Icons class, returns the same attributes, but as QIcon type"""
-    empty = empty_icon()
+qicons = type("QIcons", (object,), {k: QIcon(v) for k, v in icons.items()})
+qicons.empty = empty_icon()
 
-    def __getattribute__(self, item):
-        return QIcon(Icons.__getattribute__(self, item))
-
-
-icons = Icons()
-qicons = QIcons()
