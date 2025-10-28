@@ -175,7 +175,7 @@ class CharacterizationFactorsView(widgets.ABTreeView):
             actions.CFNew.run(self.parent().name, biosphere_keys)
 
 
-class ExchangesItem(widgets.ABDataItem):
+class CharacterizationFactorsItem(widgets.ABDataItem):
     def flags(self, col: int, key: str):
         """
         Returns the item flags for the given column and key.
@@ -244,4 +244,4 @@ class ExchangesItem(widgets.ABDataItem):
 
 
 class CharacterizationFactorsModel(widgets.ABItemModel):
-    dataItemClass = ExchangesItem
+    dataItemClass = CharacterizationFactorsItem

@@ -31,13 +31,14 @@ class UncertaintyDelegate(QtWidgets.QStyledItemDelegate):
 
     def createEditor(self, parent, option, index):
         """Simply use the wizard for updating uncertainties. Send a signal."""
-        if hasattr(self.parent(), "modify_uncertainty_action"):
-            self.parent().modify_uncertainty_action.trigger()
-        elif hasattr(index.internalPointer(), "exchange"):
-            item = index.internalPointer()
+        item = index.internalPointer()
+        item_name = item.__class__.__name__
+
+        if item_name == "ParametersItem":
+            actions.ParameterUncertaintyModify.run(item["_parameter"].to_peewee_model())
+        elif item_name == "ExchangesItem":
             actions.ExchangeUncertaintyModify.run([item.exchange])
-        elif index.internalPointer()["_impact_category_name"] is not None:
-            item = index.internalPointer()
+        elif item_name == "CharacterizationFactorsItem":
             actions.CFUncertaintyModify.run(
                 item["_impact_category_name"], [(item["_id"], item["_cf"]),]
             )
