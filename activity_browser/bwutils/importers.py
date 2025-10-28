@@ -86,7 +86,6 @@ class ABExcelImporter(ExcelImporter):
                 other=bd.Database(bd.config.biosphere),
                 kind="biosphere",
             ),
-            assign_only_product_as_production,
             link_technosphere_by_activity_hash,
             drop_falsey_uncertainty_fields_but_keep_zeros,
             convert_uncertainty_types_to_integers,
