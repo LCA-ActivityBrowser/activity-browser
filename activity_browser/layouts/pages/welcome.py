@@ -20,7 +20,6 @@ class WelcomePage(QtWidgets.QWidget):
 
         self.url = QtCore.QUrl.fromLocalFile(self.html_file)
         self.page.setWebChannel(self.channel)
-        self.page.allowed_pages.append(self.url)
         self.page.load(self.url)
 
         # associate page with view
@@ -67,19 +66,9 @@ class Bridge(QtCore.QObject):
         actions.ProjectSwitch.run(project_name)
 
 class WelcomeWebPage(QtWebEngineWidgets.QWebEnginePage):
-    """Filters links so that users cannot just navigate to any page on the web,
-    but just to those pages, that are listed in allowed_pages.
-    This is achieved by re-implementing acceptNavigationRequest.
-    The latter could also be adapted to accept, e.g. URLs within a domain.
-    """
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.allowed_pages = []
-
     def acceptNavigationRequest(self, qurl, navtype, mainframe):
         # print("Navigation Request intercepted:", qurl)
-        if qurl in self.allowed_pages:  # open in Activity Browser QWebEngineView
+        if qurl.isLocalFile():  # open in Activity Browser QWebEngineView
             return True
         else:  # delegate link to default browser
             QtGui.QDesktopServices.openUrl(qurl)
