@@ -4,4 +4,5 @@ from .progress_dialog import ABProgressDialog
 from .uncertainty import UncertaintyWizard
 from .new_node_dialog import NewNodeDialog
 from .progress_dialog import ABProgressDialog
+from .uncertainty_dialog import UncertaintyDialog
 
