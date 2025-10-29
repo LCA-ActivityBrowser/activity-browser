@@ -333,6 +333,7 @@ class ABFormulaEdit(QWidget):
         painter.setPen(Qt.NoPen)
         painter.fillRect(self.rect(), background_color)
         self.paint_text(painter)
+        painter.end()
 
     def paint_text(self, painter: QPainter):
         painter.setFont(self.font())
