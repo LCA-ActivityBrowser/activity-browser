@@ -3,8 +3,6 @@ from bw2data import get_node, Node
 from activity_browser.ui.icons import qicons
 from activity_browser import bwutils
 
-from .activity_redo_allocation import MultifunctionalProcessRedoAllocation
-
 
 class ActivityModify(ABAction):
     """

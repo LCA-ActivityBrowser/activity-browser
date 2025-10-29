@@ -1,8 +1,6 @@
 from .activity.activity_relink import ActivityRelink
 from .activity.activity_duplicate import ActivityDuplicate
 from .activity.activity_open import ActivityOpen
-from .activity.activity_graph import ActivityGraph
-from .activity.activity_duplicate_to_loc import ActivityDuplicateToLoc
 from .activity.activity_delete import ActivityDelete
 from .activity.activity_duplicate_to_db import ActivityDuplicateToDB
 from .activity.activity_modify import ActivityModify
@@ -11,7 +9,6 @@ from .activity.activity_new_product import ActivityNewProduct
 from .activity.activity_open import ActivityOpen
 from .activity.activity_relink import ActivityRelink
 from .activity.activity_sdf_to_clipboard import ActivitySDFToClipboard
-from .activity.activity_redo_allocation import MultifunctionalProcessRedoAllocation
 from .activity.process_property_modify import ProcessPropertyModify
 from .activity.process_property_remove import ProcessPropertyRemove
 
@@ -34,7 +31,6 @@ from .database.database_new import DatabaseNew
 from .database.database_delete import DatabaseDelete
 from .database.database_duplicate import DatabaseDuplicate
 from .database.database_relink import DatabaseRelink
-from .database.database_redo_allocation import DatabaseRedoAllocation
 from .database.database_explorer_open import DatabaseExplorerOpen
 from .database.database_process import DatabaseProcess
 from .database.database_import_from_ecoinvent import DatabaseImportFromEcoinvent
