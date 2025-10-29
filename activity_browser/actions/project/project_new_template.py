@@ -1,5 +1,5 @@
 from qtpy import QtWidgets, QtCore
-from logging import getLogger
+from loguru import logger
 
 import bw2data as bd
 from bw2io import backup
@@ -10,7 +10,7 @@ from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.ui.core.threading import ABThread
 from activity_browser.ui.icons import qicons
 
-log = getLogger(__name__)
+
 
 
 class ProjectNewFromTemplate(ABAction):
@@ -77,10 +77,10 @@ class ImportThread(ABThread):
     project_name: str
 
     def run_safely(self):
-        log.debug('Creating project from template:'
+        logger.debug('Creating project from template:'
                   f'\nPATH: {self.path}'
                   f'\nNAME: {self.project_name}')
         backup.restore_project_directory(fp=self.path, project_name=self.project_name)
-        log.info(f"Project `{self.project_name}` created.")
+        logger.info(f"Project `{self.project_name}` created.")
 
 

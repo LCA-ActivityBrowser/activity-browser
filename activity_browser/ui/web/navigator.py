@@ -3,7 +3,7 @@ import json
 import os
 from copy import deepcopy
 from typing import Optional
-from logging import getLogger
+from loguru import logger
 
 import networkx as nx
 from qtpy import QtWidgets
@@ -16,7 +16,7 @@ from bw2data.backends import ExchangeDataset, ActivityDataset
 from ...bwutils.commontasks import identify_activity_type, get_activity_name
 from .base import BaseGraph, BaseNavigatorWidget
 
-log = getLogger(__name__)
+
 
 
 # TODO:
@@ -126,7 +126,7 @@ class GraphNavigatorWidget(BaseNavigatorWidget):
         try:
             self.setObjectName(get_activity_name(get_activity(self.key), str_length=30))
         except ActivityDataset.DoesNotExist:
-            log.debug("Graph activity no longer exists. Closing tab.")
+            logger.debug("Graph activity no longer exists. Closing tab.")
             self.tab.close_tab_by_tab_name(self.tab.get_tab_name(self))
 
     def construct_layout(self) -> None:
@@ -187,12 +187,12 @@ class GraphNavigatorWidget(BaseNavigatorWidget):
     def toggle_navigation_mode(self):
         mode = next(self.navigation_label)
         self.button_navigation_mode.setText(mode)
-        log.info(f"Switched to: {mode}")
+        logger.info(f"Switched to: {mode}")
         self.checkbox_remove_orphaned_nodes.setVisible(self.is_expansion_mode)
         self.checkbox_direct_only.setVisible(self.is_expansion_mode)
 
     def new_graph(self, key: tuple) -> None:
-        log.info(f"New Graph for key: {key}")
+        logger.info(f"New Graph for key: {key}")
         self.graph.new_graph(key)
         self.send_json()
 
@@ -221,15 +221,15 @@ class GraphNavigatorWidget(BaseNavigatorWidget):
             self.new_graph(key)
         else:
             if keyboard["alt"]:  # delete node
-                log.info(f"Deleting node: {key}")
+                logger.info(f"Deleting node: {key}")
                 self.graph.reduce_graph(key)
             else:  # expansion mode
-                log.info(f"Expanding graph: {key}")
+                logger.info(f"Expanding graph: {key}")
                 if keyboard["shift"]:  # downstream expansion
-                    log.info("Adding downstream nodes.")
+                    logger.info("Adding downstream nodes.")
                     self.graph.expand_graph(key, down=True)
                 else:  # upstream expansion
-                    log.info("Adding upstream nodes.")
+                    logger.info("Adding upstream nodes.")
                     self.graph.expand_graph(key, up=True)
             self.send_json()
 
@@ -280,7 +280,7 @@ class Graph(BaseGraph):
                 get_activity(self.central_activity.key)  # test whether the activity still exists
                 self.new_graph(self.central_activity.key)  # if so, create a new graph
             except ActivityDataset.DoesNotExist:
-                log.warning("Graph activity no longer exists.")
+                logger.warning("Graph activity no longer exists.")
                 self.nodes = []
                 self.edges = []
 
@@ -387,7 +387,7 @@ class Graph(BaseGraph):
         Can lead to orphaned nodes, which can be removed or kept.
         """
         if key == self.central_activity.key:
-            log.warning("Cannot remove central activity.")
+            logger.warning("Cannot remove central activity.")
             return
         act = get_activity(key)
         self.nodes.remove(act)
@@ -433,7 +433,7 @@ class Graph(BaseGraph):
         for count, key in enumerate(orphaned_node_ids, 1):
             act = get_activity(key)
             self.nodes.remove(act)
-        log.info(f"Removed ORPHANED nodes: {count}")
+        logger.info(f"Removed ORPHANED nodes: {count}")
 
         # update edges again to remove those that link to nodes that have been deleted
         self.remove_outside_exchanges()
@@ -449,7 +449,7 @@ class Graph(BaseGraph):
             A JSON representation of this.
         """
         if not self.nodes:
-            log.info("Graph has no nodes (activities).")
+            logger.info("Graph has no nodes (activities).")
             return
 
         data = {

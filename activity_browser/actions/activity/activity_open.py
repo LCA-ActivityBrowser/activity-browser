@@ -1,4 +1,4 @@
-from logging import getLogger
+from loguru import logger
 
 import bw2data as bd
 import bw_functional as bf
@@ -7,7 +7,7 @@ from activity_browser import signals, bwutils, application
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.ui.icons import qicons
 
-log = getLogger(__name__)
+
 
 
 class ActivityOpen(ABAction):
@@ -51,7 +51,7 @@ class ActivityOpen(ABAction):
         for act in activities:
             # Check if the activity type is supported
             if not bwutils.is_node_process(act):
-                log.warning(f"Can't open activity {act.key} - opening type: `{act.get('type')}` not supported")
+                logger.warning(f"Can't open activity {act.key} - opening type: `{act.get('type')}` not supported")
                 continue
 
             # Create a details page for the activity

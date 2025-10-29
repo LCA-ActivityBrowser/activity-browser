@@ -1,4 +1,4 @@
-from logging import getLogger
+from loguru import logger
 from typing import List
 
 from qtpy import QtWidgets
@@ -9,7 +9,7 @@ from activity_browser.ui import widgets
 from activity_browser.bwutils import exporters
 from activity_browser.ui.core import threading
 
-log = getLogger(__name__)
+
 
 
 class DatabaseExportBW2Package(ABAction):
@@ -86,12 +86,12 @@ class ExportBW2PackageSetup(widgets.ABWizard):
                     try:
                         success = exporters.store_database_as_package(db_name, path)
                         if success:
-                            log.info(f"Successfully exported database '{db_name}' to BW2Package")
+                            logger.info(f"Successfully exported database '{db_name}' to BW2Package")
                         else:
-                            log.error(f"Failed to export database '{db_name}'")
+                            logger.error(f"Failed to export database '{db_name}'")
                             raise RuntimeError(f"Database '{db_name}' not found")
                     except Exception as e:
-                        log.error(f"Failed to export database '{db_name}': {e}")
+                        logger.error(f"Failed to export database '{db_name}': {e}")
                         raise
 
         def initializePage(self, context: dict):

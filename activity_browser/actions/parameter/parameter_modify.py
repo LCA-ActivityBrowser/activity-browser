@@ -1,4 +1,4 @@
-from logging import getLogger
+from loguru import logger
 
 import bw2data as bd
 from bw2data.parameters import ParameterBase, parameters, ActivityParameter, Group, GroupDependency
@@ -10,7 +10,7 @@ from activity_browser.actions.base import ABAction, exception_dialogs
 
 from .parameter_rename import ParameterRename
 
-log = getLogger(__name__)
+
 
 
 class ParameterModify(ABAction):
@@ -51,6 +51,6 @@ class ParameterModify(ABAction):
             try:
                 ActivityParameter._static_dependencies(group.name)
             except DoesNotExist:
-                log.warning(f"Removing broken parameter group {group.name}")
+                logger.warning(f"Removing broken parameter group {group.name}")
                 GroupDependency.get(GroupDependency.group == group.name).delete_instance()
                 group.delete_instance()

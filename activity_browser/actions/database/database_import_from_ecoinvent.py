@@ -1,6 +1,6 @@
 import re
 import os
-from logging import getLogger
+from loguru import logger
 from copy import deepcopy
 
 import requests
@@ -20,7 +20,7 @@ from activity_browser.bwutils.io.ecoinvent_lcia_importer import EcoinventLCIAImp
 from activity_browser.mod.bw2io.migrations import ab_create_core_migrations
 from activity_browser.ui.core import threading
 
-log = getLogger(__name__)
+
 
 
 class DatabaseImportFromEcoinvent(ABAction):

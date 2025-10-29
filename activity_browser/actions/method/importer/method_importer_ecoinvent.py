@@ -1,4 +1,4 @@
-from logging import getLogger
+from loguru import logger
 
 from qtpy import QtWidgets, QtCore
 from qtpy.QtCore import Signal, SignalInstance
@@ -10,7 +10,7 @@ from activity_browser.ui import icons, widgets
 from activity_browser.bwutils.io.ecoinvent_lcia_importer import EcoinventLCIAImporter
 from activity_browser.ui.core import threading
 
-log = getLogger(__name__)
+
 
 
 class MethodImporterEcoinvent(ABAction):

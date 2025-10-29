@@ -1,4 +1,4 @@
-from logging import getLogger
+from loguru import logger
 
 from activity_browser import bwutils
 from activity_browser.actions.base import ABAction, exception_dialogs
@@ -7,7 +7,7 @@ from activity_browser.ui.icons import qicons
 from bw_functional import Process
 from bw2data import databases
 
-log = getLogger(__name__)
+
 
 
 class ProcessPropertyRemove(ABAction):
@@ -43,7 +43,7 @@ class ProcessPropertyRemove(ABAction):
         allocate = property_name == process.get("allocation")
 
         if property_name not in process.available_properties():
-            log.warning(f"Property '{property_name}' not found in process {process.key}.")
+            logger.warning(f"Property '{property_name}' not found in process {process.key}.")
             return
 
         if allocate:

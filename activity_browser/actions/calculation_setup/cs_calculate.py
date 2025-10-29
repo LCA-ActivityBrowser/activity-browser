@@ -1,4 +1,4 @@
-from logging import getLogger
+from loguru import logger
 
 import pandas as pd
 import bw2data as bd
@@ -9,7 +9,7 @@ from activity_browser import application, bwutils
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.ui.icons import qicons
 
-log = getLogger(__name__)
+
 
 
 class CSCalculate(ABAction):

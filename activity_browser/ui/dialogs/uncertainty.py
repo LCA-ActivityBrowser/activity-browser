@@ -1,4 +1,4 @@
-from logging import getLogger
+from loguru import logger
 
 import numpy as np
 import seaborn as sns
@@ -14,7 +14,7 @@ from activity_browser.ui.widgets.plot import ABPlot
 from ...bwutils import PedigreeMatrix, get_uncertainty_interface
 from ...bwutils.uncertainty import EMPTY_UNCERTAINTY
 
-log = getLogger(__name__)
+
 
 
 class UncertaintyWizard(QtWidgets.QWizard):
@@ -637,7 +637,7 @@ class PedigreeMatrixPage(QtWidgets.QWizardPage):
             matrix = PedigreeMatrix.from_dict(obj.uncertainty.get("pedigree", {}))
             self.pedigree = matrix.factors
         except AssertionError as e:
-            log.info("Could not extract pedigree data: {}".format(str(e)))
+            logger.info("Could not extract pedigree data: {}".format(str(e)))
             self.pedigree = {}
         self.check_complete()
 
@@ -722,7 +722,7 @@ class SimpleDistributionPlot(ABPlot):
         try:
             sns.histplot(data.T, kde=True, stat="density", ax=self.ax, edgecolor="none")
         except RuntimeError as e:
-            log.error("{}: Plotting without KDE.".format(e))
+            logger.error("{}: Plotting without KDE.".format(e))
             sns.histplot(
                 data.T, kde=False, stat="density", ax=self.ax, edgecolor="none"
             )

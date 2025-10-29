@@ -1,5 +1,5 @@
 import math
-from logging import getLogger
+from loguru import logger
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -11,7 +11,7 @@ from activity_browser.ui.widgets import ABPlot
 from activity_browser.bwutils.commontasks import wrap_text
 
 
-log = getLogger(__name__)
+
 
 
 class LCAResultsBarChart(ABPlot):

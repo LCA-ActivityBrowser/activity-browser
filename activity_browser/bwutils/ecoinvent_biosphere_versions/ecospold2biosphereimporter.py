@@ -1,6 +1,6 @@
 import os
 from zipfile import ZipFile
-from logging import getLogger
+from loguru import logger
 
 from bw2io.importers import Ecospold2BiosphereImporter
 from bw2io.importers.ecospold2_biosphere import EMISSIONS_CATEGORIES
@@ -11,7 +11,7 @@ from activity_browser.mod import bw2data as bd
 from ...info import __ei_versions__
 from ...utils import sort_semantic_versions
 
-log = getLogger(__name__)
+
 
 
 def create_default_biosphere3(version) -> None:
@@ -20,11 +20,11 @@ def create_default_biosphere3(version) -> None:
     version = version[:3]
 
     if version == sort_semantic_versions(__ei_versions__)[0][:3]:
-        log.debug(f"Installing biosphere version >{version}<")
+        logger.debug(f"Installing biosphere version >{version}<")
         # most recent version
         eb = Ecospold2BiosphereImporter()
     else:
-        log.debug(f"Installing legacy biosphere version >{version}<")
+        logger.debug(f"Installing legacy biosphere version >{version}<")
         # not most recent version, import legacy biosphere from AB
         eb = ABEcospold2BiosphereImporter(version=version)
     eb.apply_strategies()
@@ -74,7 +74,7 @@ class ABEcospold2BiosphereImporter(Ecospold2BiosphereImporter):
             ) as file:
                 root = objectify.parse(file).getroot()
 
-        log.debug(f"Installing biosphere {use_version} for chosen version {version}")
+        logger.debug(f"Installing biosphere {use_version} for chosen version {version}")
         flow_data = bd.utils.recursive_str_to_unicode(
             [extract_flow_data(ds) for ds in root.iterchildren()]
         )

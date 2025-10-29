@@ -1,7 +1,7 @@
 import hashlib
 import textwrap
 from datetime import datetime
-from logging import getLogger
+from loguru import logger
 from collections import OrderedDict
 
 import arrow
@@ -17,7 +17,7 @@ from functools import lru_cache
 from .metadata import AB_metadata
 from .utils import Parameter
 
-log = getLogger(__name__)
+
 
 """
 bwutils is a collection of methods that build upon brightway2 and are generic enough to provide here so that we avoid
@@ -105,7 +105,7 @@ def cleanup_deleted_bw_projects() -> None:
     NOTE: This cannot be done from within the AB.
     """
     n_dir = bd.projects.purge_deleted_directories()
-    log.info(f"Deleted {n_dir} unused project directories!")
+    logger.info(f"Deleted {n_dir} unused project directories!")
 
 
 def projects_by_last_opened():
@@ -452,7 +452,7 @@ def get_exchanges_in_scenario_difference_file_notation(exchanges):
 
         except:
             # The input activity does not exist. remove the exchange.
-            log.error(
+            logger.error(
                 "Something did not work with the following exchange: {}. It was removed from the list.".format(
                     exc
                 )

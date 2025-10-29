@@ -1,5 +1,5 @@
 from time import time
-from logging import getLogger
+from loguru import logger
 from typing import Literal
 
 import pandas as pd
@@ -9,7 +9,7 @@ from qtpy.QtCore import Qt, QObject, Signal, SignalInstance, QTimer
 from .fields import all, all_types
 
 
-log = getLogger(__name__)
+
 
 
 class MetaDataStore(QObject):
@@ -83,7 +83,7 @@ class MetaDataStore(QObject):
 
         self._added.clear(), self._updated.clear(), self._deleted.clear()
 
-        log.debug(f"Metadatastore sync signal completed in {time() - t:.2f} seconds")
+        logger.debug(f"Metadatastore sync signal completed in {time() - t:.2f} seconds")
 
     def match(self, **kwargs: dict[str, str]) -> pd.DataFrame:
         """Return a slice of the dataframe matching the criteria.

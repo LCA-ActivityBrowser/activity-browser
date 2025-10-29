@@ -1,4 +1,4 @@
-from logging import getLogger
+from loguru import logger
 
 from qtpy import QtWidgets
 
@@ -10,7 +10,7 @@ from activity_browser.ui import dialogs
 
 from .method_open import MethodOpen
 
-log = getLogger(__name__)
+
 
 
 class MethodNew(ABAction):
@@ -67,7 +67,7 @@ class MethodNew(ABAction):
         method.register()
         method.write([])  # Write empty list of characterization factors
         
-        log.info(f"Created new impact category: {new_name}")
+        logger.info(f"Created new impact category: {new_name}")
 
         # Open the method in the ImpactCategoryDetails page
         from activity_browser.layouts import pages

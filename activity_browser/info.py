@@ -1,11 +1,11 @@
 import ast
 import os.path
 from importlib.metadata import PackageNotFoundError, version
-from logging import getLogger
+from loguru import logger
 
 from .utils import safe_link_fetch, sort_semantic_versions
 
-log = getLogger(__name__)
+
 
 # get AB version
 try:
@@ -30,7 +30,7 @@ def get_compatible_versions() -> list:
             file = page.text
         else:
             # silently try a local fallback:
-            log.debug(
+            logger.debug(
                 f"Reading online compatible ecoinvent versions failed "
                 f"-attempting local fallback- with this error: {error}"
             )
@@ -54,13 +54,13 @@ def get_compatible_versions() -> list:
         else:
             ei_versions = all_versions[sorted_versions[-1]]
 
-        log.debug(
+        logger.debug(
             f"Following versions of ecoinvent are compatible with AB {__version__}: {ei_versions}"
         )
         return ei_versions
 
     except Exception as error:
-        log.debug(f"Reading local fallback failed with: {error}")
+        logger.debug(f"Reading local fallback failed with: {error}")
         return ["3.4", "3.5", "3.6", "3.7", "3.7.1", "3.8", "3.9", "3.9.1"]
 
 

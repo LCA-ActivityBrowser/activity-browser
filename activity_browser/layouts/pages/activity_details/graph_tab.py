@@ -1,6 +1,6 @@
 import json
 import os
-from logging import getLogger
+from loguru import logger
 
 from qtpy import QtWebChannel, QtWebEngineWidgets, QtWidgets
 from qtpy.QtCore import QObject, Qt, QUrl, Signal, SignalInstance, Slot
@@ -12,7 +12,7 @@ from activity_browser import static, bwutils, actions
 from activity_browser.ui import widgets
 from .exchanges_tab import get_exchange_type
 
-log = getLogger(__name__)
+
 
 
 class GraphTab(QtWidgets.QWidget):
@@ -185,7 +185,7 @@ def get_processor_from_exchange(exchange):
     source = exchange.input
     processors = list(source.upstream(kinds=["production"]))
     if len(processors) > 1:
-        log.warning("Multiple processors, only taking first one")
+        logger.warning("Multiple processors, only taking first one")
     processor = processors[0]
     return processor.output
 
@@ -230,7 +230,7 @@ class GraphView(QtWebEngineWidgets.QWebEngineView):
         Args:
             event: The drop event.
         """
-        log.debug(f"Dropevent from: {type(event.source()).__name__} to: {self.__class__.__name__}")
+        logger.debug(f"Dropevent from: {type(event.source()).__name__} to: {self.__class__.__name__}")
         # Reset the palette on drop
         self.overlay.deleteLater()
 
@@ -283,10 +283,10 @@ class Page(QtWebEngineWidgets.QWebEnginePage):
             _ (str): Unused parameter.
         """
         if level == QtWebEngineWidgets.QWebEnginePage.InfoMessageLevel:
-            log.info(f"JS Info (Line {line}): {message}")
+            logger.info(f"JS Info (Line {line}): {message}")
         elif level == QtWebEngineWidgets.QWebEnginePage.WarningMessageLevel:
-            log.warning(f"JS Warning (Line {line}): {message}")
+            logger.warning(f"JS Warning (Line {line}): {message}")
         elif level == QtWebEngineWidgets.QWebEnginePage.ErrorMessageLevel:
-            log.error(f"JS Error (Line {line}): {message}")
+            logger.error(f"JS Error (Line {line}): {message}")
         else:
-            log.debug(f"JS Log (Line {line}): {message}")
+            logger.debug(f"JS Log (Line {line}): {message}")

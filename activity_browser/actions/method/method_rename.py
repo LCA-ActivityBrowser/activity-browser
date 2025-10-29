@@ -1,5 +1,5 @@
 from typing import List
-from logging import getLogger
+from loguru import logger
 
 from qtpy import QtWidgets
 
@@ -9,7 +9,7 @@ from activity_browser import application, signals
 from activity_browser.ui import dialogs
 from activity_browser.actions.base import ABAction, exception_dialogs
 
-log = getLogger(__name__)
+
 
 
 class MethodRename(ABAction):
@@ -102,11 +102,11 @@ class MethodRename(ABAction):
                 ia[i] = new_name
 
                 changed_any = True
-                log.info(
+                logger.info(
                     f"Updated calculation setup '{cs_name}': renamed impact category {old_name} -> {new_name}"
                 )
             
             if changed_any:
                 bd.calculation_setups.serialize()
         except Exception:
-            log.exception("Failed to update calculation setups after method rename")
+            logger.exception("Failed to update calculation setups after method rename")

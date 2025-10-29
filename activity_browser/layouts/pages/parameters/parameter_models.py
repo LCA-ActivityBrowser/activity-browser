@@ -1,6 +1,6 @@
 import itertools
 from typing import Iterable, Tuple
-from logging import getLogger
+from loguru import logger
 
 import pandas as pd
 import numpy as np
@@ -18,7 +18,7 @@ from activity_browser.ui.dialogs import UncertaintyWizard
 
 from .base import BaseTreeModel, EditablePandasModel, TreeItem, PandasModel
 
-log = getLogger(__name__)
+
 
 
 class BaseParameterModel(EditablePandasModel):
@@ -237,7 +237,7 @@ class ActivityParameterModel(BaseParameterModel):
             act = bd.get_activity(row["key"])
         except:
             # Can occur if an activity parameter exists for a removed activity.
-            log.info(
+            logger.info(
                 "Activity {} no longer exists, removing parameter.".format(row["key"])
             )
             actions.ParameterClearBroken.run(parameter)
@@ -363,7 +363,7 @@ class ParameterItem(TreeItem):
                 parent.appendChild(item)
             except DoesNotExist as e:
                 # The exchange is coming from a deleted database, remove it
-                log.warning(f"Broken exchange: {exc}, removing.")
+                logger.warning(f"Broken exchange: {exc}, removing.")
                 actions.ExchangeDelete.run([exc])
 
 

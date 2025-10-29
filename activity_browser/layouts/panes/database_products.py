@@ -1,4 +1,4 @@
-from logging import getLogger
+from loguru import logger
 from time import time
 
 import pandas as pd
@@ -12,7 +12,7 @@ from activity_browser.settings import project_settings
 from activity_browser.ui import core, widgets, delegates
 from activity_browser.bwutils import AB_metadata, database_is_locked, database_is_legacy
 
-log = getLogger(__name__)
+
 
 DEFAULT_STATE = {
     "columns": ["activity", "product", "Type", "Unit", "Location"],
@@ -147,7 +147,7 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
             else:
                 self.table_view.showColumn(index)
 
-        log.debug(f"Synced DatabaseProductsPane in {time() - t:.2f} seconds")
+        logger.debug(f"Synced DatabaseProductsPane in {time() - t:.2f} seconds")
 
     def build_df(self) -> pd.DataFrame:
         """
@@ -178,7 +178,7 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
         cols = ["name", "product", "categories", "unit", "location", "key", "processor", "type",]
         cols += [col for col in df.columns if col.startswith("property")]
 
-        log.debug(f"Built DatabaseProductsPane dataframe in {time() - t:.2f} seconds")
+        logger.debug(f"Built DatabaseProductsPane dataframe in {time() - t:.2f} seconds")
 
         return df[cols]
 

@@ -1,4 +1,4 @@
-from logging import getLogger
+from loguru import logger
 
 from qtpy import QtWidgets
 from qtpy.QtCore import Signal, SignalInstance
@@ -11,7 +11,7 @@ from activity_browser.ui import widgets
 from activity_browser.bwutils.importers import ABExcelImporter
 from activity_browser.ui.core import threading
 
-log = getLogger(__name__)
+
 
 
 class DatabaseImporterExcel(ABAction):

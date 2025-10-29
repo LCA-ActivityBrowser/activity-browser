@@ -1,5 +1,5 @@
 import datetime
-from logging import getLogger
+from loguru import logger
 
 from qtpy import QtWidgets, QtCore
 
@@ -10,7 +10,7 @@ from activity_browser.actions.base import ABAction, exception_dialogs
 
 from .project_migrate25 import ProjectMigrate25
 
-log = getLogger(__name__)
+
 
 
 class ProjectSwitch(ABAction):
@@ -40,7 +40,7 @@ class ProjectSwitch(ABAction):
     def run(project_name: str):
         # compare the new to the current project name and switch to the new one if the two are not the same
         if project_name == bd.projects.current:
-            log.debug(f"Brightway2 already selected: {project_name}")
+            logger.debug(f"Brightway2 already selected: {project_name}")
             return
 
         dialog = ProjectChangeDialog(project_name, application.main_window)
@@ -53,10 +53,10 @@ class ProjectSwitch(ABAction):
         dialog.close()
 
         if not bd.projects.twofive:
-            log.warning(f"Project: {bd.projects.current} is not yet BW25 compatible")
+            logger.warning(f"Project: {bd.projects.current} is not yet BW25 compatible")
             ProjectSwitch.set_warning_bar()
 
-        log.info(f"Brightway2 current project: {project_name}")
+        logger.info(f"Brightway2 current project: {project_name}")
 
         # update the last opened timestamp
         bd.projects.dataset.data["last_opened"] = datetime.datetime.now().isoformat()

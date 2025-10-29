@@ -1,4 +1,4 @@
-from logging import getLogger
+from loguru import logger
 
 from qtpy import QtWidgets, QtGui
 from qtpy.QtCore import Qt
@@ -12,7 +12,7 @@ from activity_browser import actions, bwutils
 from activity_browser.bwutils import refresh_node, AB_metadata, database_is_locked, database_is_legacy
 from activity_browser.ui import widgets, icons, delegates
 
-log = getLogger(__name__)
+
 
 EXCHANGE_MAP = {
     "natural resource": "biosphere", "emission": "biosphere", "inventory indicator": "biosphere",
@@ -216,7 +216,7 @@ class ExchangesTab(QtWidgets.QWidget):
         Args:
             event: The drop event.
         """
-        log.debug(f"Dropevent from: {type(event.source()).__name__} to: {self.__class__.__name__}")
+        logger.debug(f"Dropevent from: {type(event.source()).__name__} to: {self.__class__.__name__}")
         # Reset the palette on drop
         self.overlay.deleteLater()
 
@@ -677,7 +677,7 @@ class ExchangesItem(widgets.ABDataItem):
             product = self.exchange.input
 
             if not isinstance(process, bf.Process) or not isinstance(product, bf.Product):
-                log.warning(f"Expected a Process and Product, got {type(process)} and {type(product)} instead.")
+                logger.warning(f"Expected a Process and Product, got {type(process)} and {type(product)} instead.")
                 return False
 
             prop_key = key[9:]

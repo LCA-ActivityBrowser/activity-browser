@@ -1,6 +1,6 @@
 from typing import Any
 from urllib.parse import urljoin
-from logging import getLogger
+from loguru import logger
 
 from qtpy import QtWidgets, QtCore
 
@@ -11,7 +11,7 @@ from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.mod import bw2data as bd
 from activity_browser.ui import icons, widgets
 
-log = getLogger(__name__)
+
 
 
 class CatalogueModel(QtCore.QAbstractTableModel):
@@ -278,7 +278,7 @@ class ProjectRemoteImportWindow(QtWidgets.QDialog):
         original_name = self._selected_project_name()
         new_name = self._project_name()
         if original_name and new_name:
-            log.info(f"Importing project with name {new_name} "
+            logger.info(f"Importing project with name {new_name} "
                         f"(original name {original_name})")
             self.import_button.setText("Creating project...")
             self.import_button.setEnabled(False)
@@ -296,7 +296,7 @@ class ProjectRemoteImportWindow(QtWidgets.QDialog):
             self.setCursor(QtCore.Qt.ArrowCursor)
             self.accept()
         else:
-            log.error(f"Project name ({new_name}) or import name ({original_name}) is not valid.")
+            logger.error(f"Project name ({new_name}) or import name ({original_name}) is not valid.")
 
 
 

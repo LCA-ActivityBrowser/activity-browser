@@ -1,5 +1,5 @@
 from tqdm import tqdm
-from logging import getLogger
+from loguru import logger
 from qtpy import QtWidgets, QtGui, QtCore
 
 import bw2data as bd
@@ -11,7 +11,7 @@ from activity_browser.bwutils import AB_metadata
 from activity_browser.ui.icons import qicons
 from activity_browser.ui.core.threading import ABThread
 
-log = getLogger(__name__)
+
 
 
 class ProjectMigrate25(ABAction):
@@ -94,7 +94,7 @@ class MigrateThread(ABThread):
     def run_safely(self):
         self.pre_process_methods()
 
-        log.info("Updating and processing all datasets in the project")
+        logger.info("Updating and processing all datasets in the project")
         bd.projects.set_current(bd.projects.current)
 
         for db_name in bd.databases:
@@ -109,7 +109,7 @@ class MigrateThread(ABThread):
 
     @classmethod
     def pre_process_methods(cls):
-        log.info("Pre-processing methods for migration to bw25")
+        logger.info("Pre-processing methods for migration to bw25")
         data = {m: bd.Method(m).load() for m in bd.methods}
         df = pd.DataFrame([(k, v[0][0], v[0][1], v[1])
                            for k, values in data.items() for v in values
@@ -139,7 +139,7 @@ class MigrateThread(ABThread):
         if not isinstance(database, bd.backends.SQLiteBackend):
             return
 
-        log.info(f"Updating activity types in {db_name}")
+        logger.info(f"Updating activity types in {db_name}")
         raw = database.load()
 
         for key, ds in tqdm(raw.items(), desc=f"Updating activity types in {db_name}", unit="activity", total=len(raw)):

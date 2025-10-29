@@ -1,4 +1,4 @@
-from logging import getLogger
+from loguru import logger
 from pathlib import Path
 
 from qtpy import QtWidgets
@@ -12,7 +12,7 @@ from activity_browser import signals
 from activity_browser.ui import icons, widgets
 from activity_browser.bwutils import errors
 
-log = getLogger(__name__)
+
 
 
 class ScenarioSection(QtWidgets.QWidget):
@@ -303,9 +303,9 @@ class ScenarioImportWidget(QtWidgets.QWidget):
             idx = dialog.import_sheet.currentIndex()
             file_type_suffix = dialog.path.suffix
             separator = dialog.field_separator.currentData()
-            log.debug("separator == '{}'".format(separator))
+            logger.debug("separator == '{}'".format(separator))
             QtWidgets.QApplication.setOverrideCursor(Qt.WaitCursor)
-            log.info("Loading Scenario file. This may take a while for large files")
+            logger.info("Loading Scenario file. This may take a while for large files")
             # Try and read as a superstructure file
             # Choose a different routine for reading the file dependent on file type
             if file_type_suffix == ".feather":
@@ -323,7 +323,7 @@ class ScenarioImportWidget(QtWidgets.QWidget):
             # Read the file as a parameter scenario file if it is correspondingly arranged
             elif len(df.columns.intersection({"Name", "Group"})) == 2:
                 # Try and read as parameter scenario file.
-                log.info("Superstructure: Attempting to read as parameter scenario file.")
+                logger.info("Superstructure: Attempting to read as parameter scenario file.")
 
                 if not df["Group"].dtype == object:
                     df["Group"] = df["Group"].astype(str)
@@ -398,7 +398,7 @@ class ScenarioImportWidget(QtWidgets.QWidget):
     @property
     def dataframe(self) -> pd.DataFrame:
         if self.scenario_df.empty:
-            log.debug("No data in scenario table {}, skipping".format(self.index + 1))
+            logger.debug("No data in scenario table {}, skipping".format(self.index + 1))
         return self.scenario_df
 
 

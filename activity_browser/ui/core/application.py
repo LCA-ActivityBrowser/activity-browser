@@ -1,5 +1,5 @@
 from pathlib import Path
-from logging import getLogger
+from loguru import logger
 
 from qtpy import QtGui, QtWidgets, QtCore, PYSIDE6
 from qtpy.QtCore import Qt
@@ -7,7 +7,7 @@ from qtpy.QtGui import QFontDatabase
 
 from activity_browser.static import fonts, icons
 
-log = getLogger(__name__)
+
 
 
 class ABApplication(QtWidgets.QApplication):

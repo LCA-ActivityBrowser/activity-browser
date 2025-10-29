@@ -1,7 +1,7 @@
 from collections import namedtuple
 from copy import deepcopy
 from typing import List, Optional
-from logging import getLogger
+from loguru import logger
 from datetime import datetime
 
 import numpy as np
@@ -21,7 +21,7 @@ from .plots import ContributionPlot, CorrelationPlot, LCAResultsBarChart, LCARes
 
 ca = ABContributionAnalysis()
 
-log = getLogger(__name__)
+
 
 
 def get_header_layout(header_text: str) -> QtWidgets.QVBoxLayout:
@@ -167,17 +167,17 @@ class LCAResultsPage(QtWidgets.QTabWidget):
     def generate_content_on_click(self, index):
         if index == self.indexOf(self.tabs.sankey):
             if not self.tabs.sankey.has_sankey:
-                log.info("Generating Sankey Tab")
+                logger.info("Generating Sankey Tab")
                 self.tabs.sankey.new_sankey()
         # elif index == self.indexOf(self.tabs.ft):
         #     if not self.tabs.ft.has_been_opened:
-        #         log.info("Generating First Tier results")
+        #         logger.info("Generating First Tier results")
         #         self.tabs.ft.has_been_opened = True
         #         self.tabs.ft.update_tab()
 
         if index == self.indexOf(self.tabs.tree):
             if not self.tabs.tree.has_rendered_once:
-                log.info("Generating Tree Tab")
+                logger.info("Generating Tree Tab")
                 self.tabs.tree.new_tree()
 
     @QtCore.Slot(name="lciaScenarioExport")
@@ -1860,11 +1860,11 @@ class MonteCarloTab(NewAnalysisTab):
         iterations = int(self.iterations.text())
         seed = None
         if self.seed.text():
-            log.info(f"SEED: {self.seed.text()}")
+            logger.info(f"SEED: {self.seed.text()}")
             try:
                 seed = int(self.seed.text())
             except ValueError as e:
-                log.error(
+                logger.error(
                     "Seed value must be an integer number or left empty.", exc_info=e
                 )
                 QtWidgets.QMessageBox.warning(
@@ -1890,7 +1890,7 @@ class MonteCarloTab(NewAnalysisTab):
             InvalidParamsError
         ) as e:  # This can occur if uncertainty data is missing or otherwise broken
             # print(e)
-            log.error(e)
+            logger.error(e)
             QtWidgets.QMessageBox.warning(
                 self, "Could not perform Monte Carlo simulation", str(e)
             )
@@ -2167,7 +2167,7 @@ class GSATab(NewAnalysisTab):
         except Exception as e:
             import traceback
             traceback.print_tb(e.__traceback__)
-            log.error(e)
+            logger.error(e)
             message = str(e)
             message_addition = ""
             if message == "singular matrix":
@@ -2197,7 +2197,7 @@ class GSATab(NewAnalysisTab):
         self.table.table_name = "gsa_output_" + self.GSA.get_save_name()
 
         if self.checkbox_export_data_automatically.isChecked():
-            log.info("EXPORTING DATA")
+            logger.info("EXPORTING DATA")
             self.GSA.export_GSA_input()
             self.GSA.export_GSA_output()
 
@@ -2246,10 +2246,10 @@ class MonteCarloWorkerThread(QtCore.QThread):
         self.iterations = iterations
 
     def run(self):
-        log.info(f"Starting new Worker Thread. Iterations: {self.iterations}")
+        logger.info(f"Starting new Worker Thread. Iterations: {self.iterations}")
         self.mc.calculate(iterations=self.iterations)
         # res = bw.GraphTraversal().calculate(self.demand, self.method, self.cutoff, self.max_calc)
-        log.info("in thread {}".format(QtCore.QThread.currentThread()))
+        logger.info("in thread {}".format(QtCore.QThread.currentThread()))
         signals.monte_carlo_ready.emit(self.mc.cs_name)
 
 

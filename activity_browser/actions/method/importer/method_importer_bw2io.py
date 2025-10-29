@@ -1,5 +1,5 @@
 import os.path
-from logging import getLogger
+from loguru import logger
 
 from qtpy.QtCore import Signal, SignalInstance
 
@@ -11,7 +11,7 @@ from activity_browser.ui.core import threading
 
 from .method_importer_ecoinvent import ExtractExcelThread, MethodImporterEcoinvent
 
-log = getLogger(__name__)
+
 
 
 class MethodImporterBW2IO(MethodImporterEcoinvent):

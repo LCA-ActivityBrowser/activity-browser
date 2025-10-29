@@ -1,4 +1,4 @@
-from logging import getLogger
+from loguru import logger
 
 import pandas as pd
 from qtpy import QtWidgets, QtCore
@@ -11,7 +11,7 @@ from activity_browser.settings import ab_settings
 from activity_browser.ui import widgets
 
 
-log = getLogger(__name__)
+
 
 
 class ProjectManagerPane(widgets.ABAbstractPane):
@@ -59,7 +59,7 @@ class ProjectManagerPane(widgets.ABAbstractPane):
         for proj_ds in sorted(bd.projects):
             # if for any reason the project data is not a dictionary, log a warning and set it to an empty dict
             if not isinstance(proj_ds.data, dict):
-                log.warning(f"Project {proj_ds.name} has no data dictionary")
+                logger.warning(f"Project {proj_ds.name} has no data dictionary")
                 proj_ds.data = {}
 
             data[proj_ds.name] = {

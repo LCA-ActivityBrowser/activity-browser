@@ -1,4 +1,4 @@
-from logging import getLogger
+from loguru import logger
 
 from qtpy.QtWidgets import QMessageBox
 from bw2data.proxies import ExchangeProxyBase
@@ -12,7 +12,7 @@ from activity_browser.ui.icons import qicons
 from ..parameter.parameter_new_automatic import ParameterNewAutomatic
 from .exchange_formula_remove import ExchangeFormulaRemove
 
-log = getLogger(__name__)
+
 
 
 class ExchangeModify(ABAction):

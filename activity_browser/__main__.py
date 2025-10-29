@@ -1,6 +1,5 @@
 import sys
 import os
-from logging import getLogger
 from importlib import metadata
 
 import requests
@@ -16,10 +15,11 @@ if sys.platform == "win32":
 from activity_browser import application
 from activity_browser.ui import icons
 
-from .logger import setup_ab_logging
+from loguru import logger
+import platformdirs
 from .static.icons import main
 
-log = getLogger(__name__)
+
 
 
 class SpecialProgressBar(QtWidgets.QWidget):
@@ -119,13 +119,13 @@ class ModuleThread(QtCore.QThread):
 
     def run(self):
         self.status.emit("Loading Numpy")
-        log.debug("ABLoader: Importing numpy")
+        logger.debug("ABLoader: Importing numpy")
         import numpy, pandas
         self.status.emit("Loading Brightway25")
-        log.debug("ABLoader: Importing brightway modules")
+        logger.debug("ABLoader: Importing brightway modules")
         import bw2data, bw2calc, bw2analyzer, bw2io, bw_functional, bw_processing, matrix_utils
         self.status.emit("Loading Activity Browser")
-        log.debug("ABLoader: Importing activity_browser")
+        logger.debug("ABLoader: Importing activity_browser")
         from activity_browser import actions, layouts, mod, settings, ui, signals
         from activity_browser.layouts import panes, pages
         from activity_browser.ui import core, widgets, web, wizards
@@ -144,16 +144,28 @@ class SettingsThread(QtCore.QThread):
             bd.projects.change_base_directories(base_dir, project_name=project_name, update=False)
 
         if not bd.projects.twofive:
-            log.warning(f"Project: {bd.projects.current} is not yet BW25 compatible")
+            logger.warning(f"Project: {bd.projects.current} is not yet BW25 compatible")
             actions.ProjectSwitch.set_warning_bar()
 
-        log.info(f"Brightway2 data directory: {bd.projects._base_data_dir}")
-        log.info(f"Brightway2 current project: {bd.projects.current}")
+        logger.info(f"Brightway2 data directory: {bd.projects._base_data_dir}")
+        logger.info(f"Brightway2 current project: {bd.projects.current}")
+
+
+def setup_logging():
+    """Configure loguru sinks for console and file logging."""
+    logger.remove()
+    logger.add(sys.stderr, level="DEBUG", colorize=True,
+               format="<green>{time:HH:mm:ss}</green> | <level>{level: <8}</level> | <level>{message}</level>")
+
+    log_dir = platformdirs.user_log_dir("ActivityBrowser", "ActivityBrowser")
+    os.makedirs(log_dir, exist_ok=True)
+    log_file = os.path.join(log_dir, "activity_browser.log")
+    logger.add(log_file, level="DEBUG", rotation="5 MB", retention=5)
 
 
 def run_activity_browser():
     pre_flight_checks()
-    setup_ab_logging()
+    setup_logging()
     loader = ABLoader()
     loader.show()
     application.set_icon()  # setting this here seems to fix the icon not showing sometimes
@@ -162,7 +174,7 @@ def run_activity_browser():
 
 def run_activity_browser_no_launcher():
     pre_flight_checks()
-    setup_ab_logging()
+    setup_logging()
 
     modules = ModuleThread()
     modules.run()
@@ -252,7 +264,7 @@ def check_pypi_update():
 if "--no-launcher" in sys.argv:
     run_activity_browser_no_launcher()
 elif sys.version_info[1] == 10:
-    log.info("Running Activity Browser without launcher for Python 3.10")
+    logger.info("Running Activity Browser without launcher for Python 3.10")
     run_activity_browser_no_launcher()
 else:
     run_activity_browser()

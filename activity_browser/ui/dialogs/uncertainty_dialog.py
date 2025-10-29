@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from logging import getLogger
+from loguru import logger
 from typing import Optional, Tuple
 
 import numpy as np
@@ -11,7 +11,7 @@ import stats_arrays as sa
 
 from activity_browser.ui.widgets import ABPlot
 
-log = getLogger(__name__)
+
 
 
 EMPTY_UNCERTAINTY = {
@@ -435,7 +435,7 @@ class UncertaintyDialog(QtWidgets.QDialog):
 			try:
 				self.plot.plot(data, vline)
 			except RuntimeError as e:
-				log.error("%s: plotting failed, retry without KDE", e)
+				logger.error("%s: plotting failed, retry without KDE", e)
 				try:
 					sns.histplot(data.T, kde=False, stat="density", ax=self.plot.ax, edgecolor="none")
 					self.plot.ax.axvline(vline, label="Mean / amount", c="r", ymax=0.98)
@@ -467,7 +467,7 @@ class SimpleDistributionPlot(ABPlot):
 		try:
 			sns.histplot(data.T, kde=True, stat="density", ax=self.ax, edgecolor="none")
 		except RuntimeError as e:
-			log.error("%s: Plotting without KDE.", e)
+			logger.error("%s: Plotting without KDE.", e)
 			sns.histplot(data.T, kde=False, stat="density", ax=self.ax, edgecolor="none")
 		self.ax.set_xlabel(label)
 		self.ax.set_ylabel("Probability density")

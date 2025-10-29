@@ -2,7 +2,7 @@ import subprocess
 import sqlite3
 import sys
 import pickle
-from logging import getLogger
+from loguru import logger
 from typing import Literal
 
 import pandas as pd
@@ -17,7 +17,7 @@ from activity_browser.ui.core import threading
 from .metadata import MetaDataStore
 from .fields import secondary_types, primary, secondary
 
-log = getLogger(__name__)
+
 
 
 class MDSLoader(QtCore.QObject):
@@ -58,7 +58,7 @@ class MDSLoader(QtCore.QObject):
         primary_df["key"] = list(zip(primary_df["database"], primary_df["code"]))
         primary_df.index = pd.MultiIndex.from_tuples(primary_df["key"], names=["database", "code"])
 
-        log.debug(f"Primary metadata loaded with {len(primary_df)} rows")
+        logger.debug(f"Primary metadata loaded with {len(primary_df)} rows")
         self.mds.dataframe = primary_df
 
         for idx in primary_df.index:
@@ -71,7 +71,7 @@ class MDSLoader(QtCore.QObject):
             return
 
         assert all(secondary_df.index.isin(self.mds.dataframe.index))
-        log.debug(f"Secondary metadata loaded with {len(secondary_df)} rows")
+        logger.debug(f"Secondary metadata loaded with {len(secondary_df)} rows")
         self.mds.dataframe = pd.concat([self.mds.dataframe[primary], secondary_df], axis=1)
 
         for idx in secondary_df.index:
@@ -96,7 +96,7 @@ class MDSLoader(QtCore.QObject):
         primary_df["key"] = list(zip(primary_df["database"], primary_df["code"]))
         primary_df.index = pd.MultiIndex.from_tuples(primary_df["key"], names=["database", "code"])
 
-        log.debug(f"Primary metadata loaded with {len(primary_df)} rows")
+        logger.debug(f"Primary metadata loaded with {len(primary_df)} rows")
         self.mds.dataframe = pd.concat([self.mds.dataframe, primary_df])
 
         for idx in primary_df.index:
@@ -110,10 +110,10 @@ class MDSLoader(QtCore.QObject):
         indices = self.mds.dataframe.loc[[database]].index
 
         if not all(secondary_df.index.isin(indices)):
-            log.debug("Secondary database metadata dropping rows")
+            logger.debug("Secondary database metadata dropping rows")
             secondary_df = secondary_df[secondary_df.index.isin(indices)]
 
-        log.debug(f"Secondary metadata loaded with {len(secondary_df)} rows")
+        logger.debug(f"Secondary metadata loaded with {len(secondary_df)} rows")
 
         self._fix_categories(secondary_df)
         self.mds.dataframe.update(secondary_df)
@@ -143,7 +143,7 @@ class SecondaryLoadThread(threading.ABThread):
         for proc in processes:
             stdout_data, stderr_data = proc.communicate()
             if proc.returncode != 0:
-                log.error(f"Error loading metadata: {stderr_data.decode()}")
+                logger.error(f"Error loading metadata: {stderr_data.decode()}")
                 continue
             df = pickle.loads(stdout_data)
             if df.empty:

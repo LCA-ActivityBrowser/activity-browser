@@ -2,7 +2,7 @@ from zipfile import ZipFile
 
 from bw2io.importers.ecospold2_biosphere import *
 import pyprind
-import logging
+from loguru import logger
 import os
 
 from activity_browser.info import __ei_versions__
@@ -111,5 +111,5 @@ class ABEcospold2BiosphereImporter(Ecospold2BiosphereImporter):
             self.apply_strategy(func, verbose)
 
     def write_database(self, *args, **kwargs):
-        logging.getLogger(__name__).info("Writing Biosphere database")
+        logger.info("Writing Biosphere database")
         super().write_database(*args, **kwargs)

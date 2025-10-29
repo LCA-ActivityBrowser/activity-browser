@@ -1,4 +1,4 @@
-from logging import getLogger
+from loguru import logger
 
 import pandas as pd
 import numpy as np
@@ -11,7 +11,7 @@ from activity_browser import signals, application
 from .metadata import MetaDataStore
 from .fields import primary, secondary, all_types
 
-log = getLogger(__name__)
+
 
 
 class MDSUpdater(QtCore.QObject):

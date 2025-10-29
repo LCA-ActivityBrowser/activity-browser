@@ -1,4 +1,4 @@
-from logging import getLogger
+from loguru import logger
 
 from qtpy import QtWidgets
 
@@ -7,7 +7,7 @@ from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.mod import bw2data as bd
 from activity_browser.ui.icons import qicons
 
-log = getLogger(__name__)
+
 
 
 class CSRename(ABAction):
@@ -47,4 +47,4 @@ class CSRename(ABAction):
         bd.calculation_setups[new_name] = bd.calculation_setups[cs_name].copy()
         del bd.calculation_setups[cs_name]
         signals.calculation_setup_selected.emit(new_name)
-        log.info(f"Renamed calculation setup from {cs_name} to {new_name}")
+        logger.info(f"Renamed calculation setup from {cs_name} to {new_name}")

@@ -1,4 +1,4 @@
-from logging import getLogger
+from loguru import logger
 from typing import List
 
 from qtpy import QtWidgets
@@ -10,7 +10,7 @@ from activity_browser.bwutils import exporters
 from activity_browser.ui.core import threading
 
 
-log = getLogger(__name__)
+
 
 
 class DatabaseExportExcel(ABAction):
@@ -86,9 +86,9 @@ class ExportExcelSetup(widgets.ABWizard):
                 for db_name in db_names:
                     try:
                         exporters.write_lci_excel(db_name, path)
-                        log.info(f"Successfully exported database '{db_name}' to Excel")
+                        logger.info(f"Successfully exported database '{db_name}' to Excel")
                     except Exception as e:
-                        log.error(f"Failed to export database '{db_name}': {e}")
+                        logger.error(f"Failed to export database '{db_name}': {e}")
                         raise
 
         def initializePage(self, context: dict):

@@ -1,4 +1,4 @@
-from logging import getLogger
+from loguru import logger
 
 from qtpy.QtCore import Qt, QEventLoop
 
@@ -6,7 +6,7 @@ from activity_browser import application
 from activity_browser.ui import widgets
 from activity_browser.actions.base import ABAction, exception_dialogs
 
-log = getLogger(__name__)
+
 
 
 class DatabaseOpen(ABAction):

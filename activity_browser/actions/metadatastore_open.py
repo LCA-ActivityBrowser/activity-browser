@@ -1,11 +1,11 @@
-from logging import getLogger
+from loguru import logger
 
 from activity_browser import application
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.ui.icons import qicons
 from activity_browser.ui.core.application import global_shortcut
 
-log = getLogger(__name__)
+
 
 
 class MetaDataStoreOpen(ABAction):

@@ -1,11 +1,11 @@
 from qtpy import QtGui
-from logging import getLogger
+from loguru import logger
 
 from activity_browser import signals
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.mod import bw2data as bd
 
-log = getLogger(__name__)
+
 
 class MultifunctionalProcessRedoAllocation(ABAction):
     """
@@ -27,9 +27,9 @@ class MultifunctionalProcessRedoAllocation(ABAction):
             signals.new_statusbar_message.emit(f"Allocation values for process {node} updated.")
         except KeyError as exc:
             signals.new_statusbar_message.emit("A property for the allocation calculation was not found!")
-            log.error(f"A property for the allocation calculation was not found: {node}")
+            logger.error(f"A property for the allocation calculation was not found: {node}")
             raise exc
         except ZeroDivisionError as exc:
             signals.new_statusbar_message.emit(str(exc))
-            log.error(f"Zero division in allocation calculation: {exc}")
+            logger.error(f"Zero division in allocation calculation: {exc}")
             raise exc

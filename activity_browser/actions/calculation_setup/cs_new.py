@@ -1,4 +1,4 @@
-from logging import getLogger
+from loguru import logger
 
 from qtpy import QtWidgets
 
@@ -9,7 +9,7 @@ from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.bwutils import refresh_node
 from activity_browser.ui.icons import qicons
 
-log = getLogger(__name__)
+
 
 
 class CSNew(ABAction):
@@ -69,7 +69,7 @@ class CSNew(ABAction):
         # instruct the CalculationSetupController to create a CS with the new name
         bd.calculation_setups[name] = {"inv": inv, "ia": ia}
 
-        log.info(f"New calculation setup: {name}")
+        logger.info(f"New calculation setup: {name}")
 
         actions.CSOpen.run(name)
 

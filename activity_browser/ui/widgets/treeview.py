@@ -1,4 +1,4 @@
-from logging import getLogger
+from loguru import logger
 
 import pandas as pd
 
@@ -7,7 +7,7 @@ from qtpy.QtCore import Qt
 
 from .item_model import ABItemModel
 
-log = getLogger(__name__)
+
 
 
 class ABTreeView(QtWidgets.QTreeView):
@@ -162,7 +162,7 @@ class ABTreeView(QtWidgets.QTreeView):
             queries.append(q)
 
         query = " & ".join(queries)
-        log.debug(f"{self.__class__.__name__} built query: {query}")
+        logger.debug(f"{self.__class__.__name__} built query: {query}")
 
         return query
 
@@ -172,7 +172,7 @@ class ABTreeView(QtWidgets.QTreeView):
             self.model().setQuery(query)
             self.filtered.emit(True)
         except Exception as e:
-            log.info(f"{self.__class__.__name__} {type(e).__name__} in query: {e}")
+            logger.info(f"{self.__class__.__name__} {type(e).__name__} in query: {e}")
             self.filtered.emit(False)
 
     @staticmethod
@@ -217,7 +217,7 @@ class ABTreeView(QtWidgets.QTreeView):
 
     def restoreSate(self, state: dict, dataframe: pd.DataFrame):
         if not self.model():
-            log.debug(f"{self.__class__.__name__}: Model must first be set on the treeview before using restoreState")
+            logger.debug(f"{self.__class__.__name__}: Model must first be set on the treeview before using restoreState")
             return
 
         columns = list(dataframe.columns)

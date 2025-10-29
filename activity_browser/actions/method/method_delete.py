@@ -1,6 +1,6 @@
 from os import name
 from typing import List
-from logging import getLogger
+from loguru import logger
 
 from qtpy import QtWidgets
 
@@ -9,7 +9,7 @@ from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.mod import bw2data as bd
 from activity_browser.ui.icons import qicons
 
-log = getLogger(__name__)
+
 
 
 class MethodDelete(ABAction):
@@ -59,7 +59,7 @@ class MethodDelete(ABAction):
         # delete all methods by deregistering them
         for method in all_methods:
             method.deregister()
-            log.info(f"Deleted method {method.name}")
+            logger.info(f"Deleted method {method.name}")
 
         # remove deleted methods from all calculation setups
         MethodDelete.remove_methods_from_calculation_setups(to_remove)
@@ -82,7 +82,7 @@ class MethodDelete(ABAction):
                     ia.remove(name)
                     changed_any = True
                     
-                    log.info(
+                    logger.info(
                         f"Updated calculation setup '{cs_name}': removed impact category {name}"
                     )
 
@@ -90,4 +90,4 @@ class MethodDelete(ABAction):
             if changed_any:
                 bd.calculation_setups.serialize()
         except Exception:
-            log.exception("Failed to update calculation setups after method rename")
+            logger.exception("Failed to update calculation setups after method rename")

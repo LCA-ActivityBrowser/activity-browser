@@ -1,10 +1,10 @@
-from logging import getLogger
+from loguru import logger
 
 import bw2data as bd
 
 from activity_browser.actions.base import ABAction, exception_dialogs
 
-log = getLogger(__name__)
+
 
 
 class CSDeleteFunctionalUnit(ABAction):

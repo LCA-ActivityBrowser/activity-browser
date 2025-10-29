@@ -1,4 +1,4 @@
-from logging import getLogger
+from loguru import logger
 
 import pandas as pd
 from qtpy import QtWidgets, QtCore, QtGui
@@ -10,7 +10,7 @@ from activity_browser.bwutils import AB_metadata
 from activity_browser.ui import widgets
 from activity_browser.ui.core import application
 
-log = getLogger(__name__)
+
 
 COLUMNS = ["name", "type", "exchanges", "database", "code"]
 DETAILS_COLUMNS = ["input", "output", "type", "amount"]

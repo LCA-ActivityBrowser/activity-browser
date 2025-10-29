@@ -1,11 +1,11 @@
-from logging import getLogger
+from loguru import logger
 
 from qtpy import QtWidgets
 
 from activity_browser import signals
 
 
-log = getLogger(__name__)
+
 
 
 class CentralTabWidget(QtWidgets.QTabWidget):

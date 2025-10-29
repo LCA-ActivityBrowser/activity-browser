@@ -1,6 +1,6 @@
 import json
 from tarfile import open as tar_open, TarFile, TarError
-from logging import getLogger
+from loguru import logger
 
 from qtpy import QtWidgets, QtCore
 from bw2io import restore_project_directory
@@ -9,7 +9,7 @@ from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.mod import bw2data as bd
 from activity_browser.ui import icons, widgets
 
-log = getLogger(__name__)
+
 
 
 class ProjectLocalImportWindow(QtWidgets.QDialog):
@@ -237,7 +237,7 @@ class ProjectLocalImportWindow(QtWidgets.QDialog):
         original_name = self._selected_project_name()
         new_name = self._project_name()
         if original_name and new_name:
-            log.info(f"Importing project with name {new_name} "
+            logger.info(f"Importing project with name {new_name} "
                      f"(original name {original_name})")
             self.import_button.setText("Creating project...")
             self.import_button.setEnabled(False)
@@ -254,7 +254,7 @@ class ProjectLocalImportWindow(QtWidgets.QDialog):
             self.setCursor(QtCore.Qt.ArrowCursor)
             self.accept()
         else:
-            log.error(
+            logger.error(
                 f"Project name ({new_name}) or "
                 f"import name ({original_name}) is not valid."
             )

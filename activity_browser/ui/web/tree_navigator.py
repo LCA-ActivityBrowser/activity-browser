@@ -1,7 +1,7 @@
 import json
 import time
 from typing import List, Optional
-from logging import getLogger
+from loguru import logger
 
 import bw2calc as bc
 import bw2data as bd
@@ -29,7 +29,7 @@ from ..widgets.combobox import CheckableComboBox
 from ...bwutils import AB_metadata
 from ...bwutils.commontasks import identify_activity_type
 
-log = getLogger(__name__)
+
 
 class SmallComboBox(QtWidgets.QComboBox):
     """A small combo box that does not expand to fill the available space."""
@@ -247,14 +247,14 @@ class TreeNavigatorWidget(BaseNavigatorWidget):
         )
         if data := self.cache.get(cache_key, False):
             # this Graph is already cached, generate the tree with Graph cached data
-            log.debug(f"CACHED tree for: {demand}, {method}, key: {cache_key}")
+            logger.debug(f"CACHED tree for: {demand}, {method}, key: {cache_key}")
             self.graph.new_graph(data)
             self.has_rendered_once = bool(self.graph.json_data)
             self.send_json()
             return
 
         start = time.time()
-        log.debug(f"CALCULATE tree for: {demand}, {method}, key: {cache_key}")
+        logger.debug(f"CALCULATE tree for: {demand}, {method}, key: {cache_key}")
 
         try:
             if scenario_lca:
@@ -291,7 +291,7 @@ class TreeNavigatorWidget(BaseNavigatorWidget):
             QtWidgets.QMessageBox.information(
                 None, "Nonsensical numeric result.", str(e)
             )
-        log.debug(f"Completed graph traversal ({round(time.time() - start, 2)} seconds")
+        logger.debug(f"Completed graph traversal ({round(time.time() - start, 2)} seconds")
 
         # cache the generated Graph data
         self.cache[cache_key] = data

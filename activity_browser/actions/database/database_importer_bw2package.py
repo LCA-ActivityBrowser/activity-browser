@@ -1,5 +1,5 @@
 import os
-from logging import getLogger
+from loguru import logger
 
 from qtpy import QtWidgets
 
@@ -9,7 +9,7 @@ from activity_browser.ui import icons, widgets
 from activity_browser.bwutils.importers import ABPackage
 from activity_browser.ui.core import threading
 
-log = getLogger(__name__)
+
 
 
 class DatabaseImporterBW2Package(ABAction):

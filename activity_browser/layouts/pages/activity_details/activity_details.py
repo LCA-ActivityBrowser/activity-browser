@@ -1,4 +1,4 @@
-from logging import getLogger
+from loguru import logger
 
 from qtpy import QtCore, QtWidgets
 
@@ -15,7 +15,7 @@ from .parameters_tab import ParametersTab
 from .data_tab import DataTab
 from .consumers_tab import ConsumersTab
 
-log = getLogger(__name__)
+
 
 
 class ActivityDetailsPage(QtWidgets.QWidget):

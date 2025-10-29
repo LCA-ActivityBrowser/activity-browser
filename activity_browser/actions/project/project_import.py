@@ -1,7 +1,7 @@
 import codecs
 import json
 import tarfile
-from logging import getLogger
+from loguru import logger
 
 import bw2data as bd
 from qtpy import QtWidgets, QtCore
@@ -13,7 +13,7 @@ from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.ui.icons import qicons
 from activity_browser.ui.core.threading import ABThread
 
-log = getLogger(__name__)
+
 
 
 class ProjectImport(ABAction):
@@ -102,7 +102,7 @@ class ProjectImport(ABAction):
 class ImportThread(ABThread):
 
     def run_safely(self):
-        log.debug('Starting project import:'
+        logger.debug('Starting project import:'
                   f'\nPATH: {self.path}'
                   f'\nNAME: {self.project_name}')
         backup.restore_project_directory(fp=self.path, project_name=self.project_name)
@@ -112,5 +112,5 @@ class ImportThread(ABThread):
         ds.full_hash = False
         ds.save()
 
-        log.info(f"Project `{self.project_name}` imported.")
+        logger.info(f"Project `{self.project_name}` imported.")
 

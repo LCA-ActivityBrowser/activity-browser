@@ -1,5 +1,5 @@
 from typing import List
-from logging import getLogger
+from loguru import logger
 
 from qtpy import QtWidgets
 
@@ -10,7 +10,7 @@ from activity_browser.ui.icons import qicons
 
 from .method_open import MethodOpen
 
-log = getLogger(__name__)
+
 
 
 class MethodDuplicate(ABAction):
@@ -57,7 +57,7 @@ class MethodDuplicate(ABAction):
             if new_name in methods:
                 raise Exception("New method name already in use")
             method.copy(new_name)
-            log.info(f"Copied method {method.name} into {new_name}")
+            logger.info(f"Copied method {method.name} into {new_name}")
 
         MethodOpen.run(new_names)
 

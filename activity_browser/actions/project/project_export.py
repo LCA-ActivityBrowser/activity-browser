@@ -1,7 +1,7 @@
 import os
 import json
 import tarfile
-from logging import getLogger
+from loguru import logger
 
 from qtpy import QtWidgets, QtCore
 
@@ -12,7 +12,7 @@ from activity_browser import application
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.ui.core.threading import ABThread
 
-log = getLogger(__name__)
+
 
 
 class ProjectExport(ABAction):
@@ -74,8 +74,8 @@ class ExportThread(ABThread):
         with open(os.path.join(project_dir, ".project-name.json"), "w") as f:
             json.dump({"name": self.project_name}, f)
 
-        log.info("Creating project backup archive - this could take a few minutes...")
+        logger.info("Creating project backup archive - this could take a few minutes...")
         with tarfile.open(self.save_path, "w:gz") as tar:
             tar.add(project_dir, arcname=bd.utils.safe_filename(self.project_name))
 
-        log.info(f"Project `{self.project_name}` exported.")
+        logger.info(f"Project `{self.project_name}` exported.")

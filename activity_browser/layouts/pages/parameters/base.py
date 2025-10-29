@@ -1,7 +1,7 @@
 import os
 import datetime
 from typing import Optional, Any
-from logging import getLogger
+from loguru import logger
 
 import arrow
 import numpy as np
@@ -16,7 +16,7 @@ from qtpy.QtWidgets import QApplication, QSizePolicy, QTableView
 from activity_browser.settings import ab_settings
 from activity_browser.ui import icons, widgets, delegates
 
-log = getLogger(__name__)
+
 
 
 class ABSortProxyModel(QSortFilterProxyModel):
@@ -628,7 +628,7 @@ class ABMultiColumnSortProxyModel(ABSortProxyModel):
         self.activate_filter = True
         self.invalidateFilter()
         self.activate_filter = False
-        log.info("{} filter matches found".format(self.matches))
+        logger.info("{} filter matches found".format(self.matches))
 
     def clear_filters(self) -> None:
         self.mask = None
@@ -772,7 +772,7 @@ class PandasModel(QAbstractTableModel):
             if role == Qt.ItemDataRole.CheckStateRole:
                 value = self._dataframe.iat[index.row(), index.column()]
                 if isinstance(value, str):
-                    log.error(f"Expected bool, received str: {value}!!")
+                    logger.error(f"Expected bool, received str: {value}!!")
                 true_value = self._checkbox_editors[index.column()][1]
                 # Convert the data to an appropriate value for the checkbox
                 return Qt.CheckState.Checked if value == true_value else Qt.CheckState.Unchecked
@@ -877,7 +877,7 @@ class PandasModel(QAbstractTableModel):
                 col_data.astype(float) <= float(query[1])
             )
         else:
-            log.warning("unknown filter type >{}<, assuming 'EQUALS'".format(test_type))
+            logger.warning("unknown filter type >{}<, assuming 'EQUALS'".format(test_type))
             return col_data == query
 
     def get_filter_mask(self, filters: dict) -> pd.Series:
@@ -917,7 +917,7 @@ class PandasModel(QAbstractTableModel):
                 new_mask = self.test_query_on_column(filt_type, col_data_, query)
                 if not any(new_mask):
                     # no matches for this mask, let user know:
-                    log.info(
+                    logger.info(
                         "There were no matches for filter: {}: '{}'".format(
                             col_filt[0], col_filt[1]
                         )

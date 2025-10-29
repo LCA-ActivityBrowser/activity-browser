@@ -1,4 +1,4 @@
-from logging import getLogger
+from loguru import logger
 
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
@@ -6,7 +6,7 @@ from qtpy import QtWidgets
 
 from activity_browser.utils import savefilepath
 
-log = getLogger(__name__)
+
 
 
 class ABPlot(QtWidgets.QWidget):

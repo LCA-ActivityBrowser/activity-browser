@@ -1,5 +1,5 @@
 import pickle
-from logging import getLogger
+from loguru import logger
 
 from qtpy import QtCore, QtWidgets, QtGui
 
@@ -10,7 +10,7 @@ from activity_browser.ui import icons
 
 from activity_browser.layouts.menu_bar import MenuBar
 
-log = getLogger(__name__)
+
 
 
 class MainWindow(QtWidgets.QMainWindow):

@@ -1,7 +1,7 @@
 from collections import OrderedDict
 from copy import deepcopy
 from typing import Iterable, Optional, Union
-from logging import getLogger
+from loguru import logger
 
 import bw2calc as bc
 import numpy as np
@@ -15,7 +15,7 @@ from .commontasks import wrap_text
 from .errors import ReferenceFlowValueError
 from .metadata import AB_metadata
 
-log = getLogger(__name__)
+
 ca = ABContributionAnalysis()
 
 
@@ -565,7 +565,7 @@ class Contributions(object):
                 complete_index = special_keys + keys
                 joined = joined.reindex(complete_index, axis="index", fill_value=0.0)
             except:
-                log.error(
+                logger.error(
                     "Could not put 'Total', 'Rest (+)' and 'Rest (-)' on positions 0, 1 and 2 in the dataframe."
                 )
         joined.index = cls.get_labels(joined.index, fields=x_fields)
