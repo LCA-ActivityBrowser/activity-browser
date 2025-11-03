@@ -1,4 +1,4 @@
-from qtpy import QtWidgets, QtCore, QtGui
+from qtpy import QtWidgets, QtCore
 
 import pandas as pd
 import bw2data as bd

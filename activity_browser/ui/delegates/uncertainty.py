@@ -34,7 +34,7 @@ class UncertaintyDelegate(QtWidgets.QStyledItemDelegate):
         item = index.internalPointer()
         item_name = item.__class__.__name__
 
-        if item_name == "ParametersItem":
+        if item_name == "ParametersItem" or item_name == "ProjectParametersItem":
             actions.ParameterUncertaintyModify.run(item["_parameter"].to_peewee_model())
         elif item_name == "ExchangesItem":
             actions.ExchangeUncertaintyModify.run([item.exchange])
