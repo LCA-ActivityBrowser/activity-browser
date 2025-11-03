@@ -116,10 +116,10 @@ class ABNewTreeView(QtWidgets.QTreeView):
 
         if query:
             self.columnFilters[column_name] = query
-            self.model().filtered_columns.add(col_index)
+            # self.model().filtered_columns.add(col_index)
         elif column_name in self.columnFilters:
             del self.columnFilters[column_name]
-            self.model().filtered_columns.discard(col_index)
+            # self.model().filtered_columns.discard(col_index)
 
         self.applyFilter()
 
