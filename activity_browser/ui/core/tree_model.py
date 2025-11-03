@@ -11,7 +11,7 @@ class ABTreeModel(QAbstractItemModel):
     def __init__(self, df: pd.DataFrame = None, parent: Optional[QWidget] = None, chunk_size: int = -1) -> None:
         super().__init__(parent)
         self.df = df if df is not None else pd.DataFrame()
-        self.df_query: str = "index == index"  # default query that matches all rows
+        self.df_query: dict[str, str] = {"model": "index == index"}  # dictionary where queries can be registered
         self.children_map = self.build_hierarchy_from_index(self.df.index)
         self.lazy = chunk_size > 0
         self.chunk_size = chunk_size
@@ -315,12 +315,14 @@ class ABTreeModel(QAbstractItemModel):
         self.df = self.df.loc[sorted_index]  # Update dataframe to new sorted order
         self.filter()
 
-    def filter(self, pandas_query: str = None) -> None:
+    def filter(self, key: str = None, query: str = None) -> None:
         """Filter the DataFrame based on a simple substring match across all columns."""
-        if pandas_query is None:
-            pandas_query = self.df_query
+        if query is not None and key is not None:
+            self.df_query[key] = query
+        
+        pandas_query = " & ".join(self.df_query.values())
         filtered_df = self.df.query(pandas_query)
-        self.df_query = pandas_query
+
         self.reset_hierarchy(filtered_df)
 
     def quick_filter(self, substring: str) -> None:

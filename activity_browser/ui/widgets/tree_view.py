@@ -92,7 +92,7 @@ class ABNewTreeView(QtWidgets.QTreeView):
 
         model.modelAboutToBeReset.connect(self.clearColumnDelegates)
         model.modelReset.connect(self.setDefaultColumnDelegates)
-        model.modelReset.connect(self.updateIndexColumnVisibility)
+        model.layoutChanged.connect(self.updateIndexColumnVisibility)
 
         self.setDefaultColumnDelegates()
         self.updateIndexColumnVisibility()
@@ -149,7 +149,7 @@ class ABNewTreeView(QtWidgets.QTreeView):
             formatted_filter = self.format_query(self.allFilter)
 
             for i, col in enumerate(self.model().columns()):
-                if self.isColumnHidden(i) and i not in self.model().grouped_columns:
+                if self.isColumnHidden(i):
                     continue
                 all_queries.append(f"(`{col}`.astype('str').str.contains('{formatted_filter}', False))")
 
@@ -164,7 +164,7 @@ class ABNewTreeView(QtWidgets.QTreeView):
     def applyFilter(self):
         query = self.buildQuery()
         try:
-            self.model().setQuery(query)
+            self.model().filter("ABNewTreeView", query)
             self.filtered.emit(True)
         except Exception as e:
             logger.info(f"{self.__class__.__name__} {type(e).__name__} in query: {e}")
