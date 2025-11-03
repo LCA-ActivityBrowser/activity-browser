@@ -21,3 +21,4 @@ from .central import CentralTabWidget
 from .menu import ABMenu
 from .drop_overlay import ABDropOverlay
 from .plot import ABPlot
+from .tree_view import ABNewTreeView

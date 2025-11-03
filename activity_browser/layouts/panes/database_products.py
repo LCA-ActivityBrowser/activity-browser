@@ -9,15 +9,9 @@ import bw2data as bd
 
 from activity_browser import actions, ui, signals, application
 from activity_browser.settings import project_settings
-from activity_browser.ui import core, widgets, delegates
+from activity_browser.ui import core, widgets, delegates, icons
 from activity_browser.bwutils import AB_metadata, database_is_locked, database_is_legacy
 
-
-
-DEFAULT_STATE = {
-    "columns": ["activity", "product", "Type", "Unit", "Location"],
-    "visible_columns": ["activity", "product", "type", "unit", "location"],
-}
 
 NODETYPES = {
     "all_nodes": [],
@@ -50,7 +44,7 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
         super().__init__(parent)
         self.database = bd.Database(db_name)
         self.title = db_name
-        self.model = ProductModel(self)
+        self.model = ProductModel(parent=self)
 
         # Create the QTableView and set the model
         self.table_view = ProductView(self, db_name=db_name)
@@ -139,7 +133,8 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
         """
         t = time()
         df = self.build_df()
-        self.model.setDataFrame(df)
+        df.reset_index(drop=True, inplace=True)
+        self.model.set_dataframe(df)
         for col in df.columns:
             index = self.model.columns().index(col)
             if df[col].isna().all():
@@ -207,23 +202,6 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
 
         return super().event(event)
 
-    def save_state_to_settings(self):
-        """
-        Saves the state of the table view to the project settings.
-        """
-        project_settings.settings["database_explorer"] = project_settings.settings.get("database_explorer", {})
-        project_settings.settings["database_explorer"][self.database.name] = self.table_view.saveState()
-        project_settings.write_settings()
-
-    def get_state_from_settings(self):
-        """
-        Gets the state from the project settings.
-
-        Returns:
-            dict: The state of the table view.
-        """
-        return DEFAULT_STATE
-
     def search_error(self, reset=False):
         """
         Handles the search error by changing the search bar color.
@@ -240,7 +218,7 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
         self.search.setPalette(palette)
 
 
-class ProductView(ui.widgets.ABTreeView):
+class ProductView(ui.widgets.ABNewTreeView):
     """
     A view that displays the products in a tree structure.
 
@@ -258,9 +236,6 @@ class ProductView(ui.widgets.ABTreeView):
             lambda m, p: m.add(actions.ActivityOpen, p.selected_activities,
                                text="Open process" if len(p.selected_activities) == 1 else "Open processes",
                                enable=len(p.selected_activities) > 0
-                               ),
-            lambda m, p: m.add(actions.ActivityGraph, p.selected_activities,
-                               enable=len(p.selected_activities) > 0,
                                ),
             lambda m: m.addSeparator(),
             lambda m, p: m.add(actions.ActivityNewProcess, p.db_name,
@@ -353,8 +328,10 @@ class ProductView(ui.widgets.ABTreeView):
         Returns:
             list[tuple]: The list of selected products.
         """
-        items = [i.internalPointer() for i in self.selectedIndexes() if isinstance(i.internalPointer(), ProductItem)]
-        return list({item["key"] for item in items if not item["type"] == "nonfunctional"})
+        keys = self.model().values_from_indices("key", self.selectedIndexes())
+        types = self.model().values_from_indices("type", self.selectedIndexes())
+
+        return list({key for key, type in zip(keys, types) if not type == "nonfunctional"})
 
     @property
     def selected_activities(self) -> list[tuple]:
@@ -364,66 +341,38 @@ class ProductView(ui.widgets.ABTreeView):
         Returns:
             list[tuple]: The list of selected activities.
         """
-        items = [i.internalPointer() for i in self.selectedIndexes() if isinstance(i.internalPointer(), ProductItem)]
-        return list({item["processor"] if not pd.isna(item["processor"]) else item["key"] for item in items})
+        processors = self.model().values_from_indices("processor", self.selectedIndexes())
+        keys = self.model().values_from_indices("key", self.selectedIndexes())
+
+        return list({processor if not pd.isna(processor) else key for processor, key in zip(processors, keys)})
 
 
-class ProductItem(ui.widgets.ABDataItem):
-    """
-    An item representing a product in the tree view.
-    """
-    def decorationData(self, col, key):
-        """
-        Provides decoration data for the item.
+class ProductModel(ui.core.ABTreeModel):
+    #-- flag overrides ---
+    def indexDragEnabled(self, index: QtCore.QModelIndex) -> bool:
+        return True
+    
+    #-- data overrides ---
+    def decorationData(self, index: QtCore.QModelIndex) -> any:
+        column_name = self.column_name(index)
+        row = self.row(index)
 
-        Args:
-            col: The column index.
-            key: The key for which to provide decoration data.
+        if row is None:
+            return None
 
-        Returns:
-            The decoration data for the item.
-        """
-        if key == "name" and self["name"]:
-            if self["type"] == "processwithreferenceproduct":
-                return ui.icons.qicons.processproduct
-            if self["type"] in NODETYPES["biosphere"]:
-                return ui.icons.qicons.biosphere
-            return ui.icons.qicons.process
-        if key == "product":
-            if self["type"] in ["product", "processwithreferenceproduct"]:
-                return ui.icons.qicons.product
-            elif self["type"] == "waste":
-                return ui.icons.qicons.waste
-
-    def flags(self, col: int, key: str):
-        """
-        Returns the item flags for the given column and key.
-
-        Args:
-            col (int): The column index.
-            key (str): The key for which to return the flags.
-
-        Returns:
-            QtCore.Qt.ItemFlags: The item flags.
-        """
-        return super().flags(col, key) | Qt.ItemFlag.ItemIsDragEnabled
-
-    def displayData(self, col: int, key: str):
-        if key.startswith("property_") and not pd.isna(self[key]) and self[key]["normalize"]:
-            prop = self[key].copy()
-            prop["unit"] = prop['unit'] + f" / {self['unit']}"
-            return prop
-        return super().displayData(col, key)
-
-
-class ProductModel(ui.widgets.ABItemModel):
-    """
-    A model representing the data for the products.
-
-    Attributes:
-        dataItemClass (type): The class of the data items.
-    """
-    dataItemClass = ProductItem
+        node_type = row.get("type", "").lower()
+        
+        if column_name not in ["name", "product"]:
+            return None
+        if column_name == "product" and node_type in ["product", "processwithreferenceproduct"]:
+            return icons.qicons.product
+        if column_name == "product" and node_type == "waste":
+            return icons.qicons.waste
+        if node_type == "processwithreferenceproduct":
+            return icons.qicons.processproduct
+        if node_type in NODETYPES["biosphere"]:
+            return icons.qicons.biosphere
+        return icons.qicons.process
 
     def mimeData(self, indices: list[QtCore.QModelIndex]):
         """
@@ -442,8 +391,7 @@ class ProductModel(ui.widgets.ABItemModel):
         data.setPickleData("application/bw-nodekeylist", list(keys))
         return data
 
-    @staticmethod
-    def values_from_indices(key: str, indices: list[QtCore.QModelIndex]):
+    def values_from_indices(self, key: str, indices: list[QtCore.QModelIndex]):
         """
         Returns the values from the given indices.
 
@@ -454,10 +402,6 @@ class ProductModel(ui.widgets.ABItemModel):
         Returns:
             list: The list of values.
         """
-        values = []
-        for index in indices:
-            item = index.internalPointer()
-            if not item or item[key] is None:
-                continue
-            values.append(item[key])
-        return values
+        column = self.df.columns.get_loc(key)
+        return [index.data(Qt.ItemDataRole.DisplayRole) for index in indices if index.column() == column]
+

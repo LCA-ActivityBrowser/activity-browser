@@ -1,5 +1,6 @@
 from typing import Optional
 
+from loguru import logger
 import pandas as pd
 from PySide6.QtCore import QModelIndex, Qt
 from PySide6.QtWidgets import QWidget
@@ -7,11 +8,11 @@ from PySide6.QtCore import QAbstractItemModel
 
 
 class ABTreeModel(QAbstractItemModel):
-    def __init__(self, df: pd.DataFrame, parent: Optional[QWidget] = None, chunk_size: int = -1) -> None:
+    def __init__(self, df: pd.DataFrame = None, parent: Optional[QWidget] = None, chunk_size: int = -1) -> None:
         super().__init__(parent)
-        self.df = df
+        self.df = df if df is not None else pd.DataFrame()
         self.df_query: str = "index == index"  # default query that matches all rows
-        self.children_map = self.build_hierarchy_from_index(df.index)
+        self.children_map = self.build_hierarchy_from_index(self.df.index)
         self.lazy = chunk_size > 0
         self.chunk_size = chunk_size
         
@@ -26,7 +27,27 @@ class ABTreeModel(QAbstractItemModel):
             # All rows are loaded
             for parent_path, children in self.children_map.items():
                 self.loaded_counts[parent_path] = len(children)
+    
+    def columns(self) -> list[str]:
+        """Return the list of column names, including the tree column."""
+        return ["index"] + list(self.df.columns)
 
+    def column_name(self, index: QModelIndex) -> str:
+        """Return the name of the column at the given index, including the tree column."""
+        return self.columns()[index.column()]
+    
+    def row(self, index: QModelIndex) -> pd.Series | None:
+        """Return the DataFrame row corresponding to the given index, or None for non-leaf nodes."""
+        if not index.isValid():
+            return None
+        
+        path = index.internalPointer()
+        
+        # Only return data for leaf nodes (full depth paths)
+        if len(path) < self.df.index.nlevels:
+            return None
+        
+        return self.df.loc[path]
 
     # --- required model overrides ---
     def index(self, row: int, column: int, parent: QModelIndex = QModelIndex()) -> QModelIndex:
@@ -80,11 +101,25 @@ class ABTreeModel(QAbstractItemModel):
         # Always return the full column count for consistent tree structure
         return len(self.df.columns) + 1  # +1 for tree column
 
+    #--- data overrides ---
     def data(self, index: QModelIndex, role: int = Qt.DisplayRole):
         if not index.isValid() or self.df.empty:
             return None
         
-        if role in (Qt.DisplayRole, Qt.EditRole, Qt.UserRole):
+        if role == Qt.DisplayRole:
+            return self.displayData(index)
+        elif role == Qt.EditRole:
+            return self.editData(index)
+        elif role == Qt.UserRole:
+            return self.userData(index)
+        elif role == Qt.DecorationRole:
+            return self.decorationData(index)
+        elif role == Qt.FontRole:
+            return self.fontData(index)
+
+        return None
+    
+    def displayData(self, index: QModelIndex) -> any:
             path = index.internalPointer()
             
             if index.column() == 0:
@@ -95,17 +130,63 @@ class ABTreeModel(QAbstractItemModel):
                 return None  # intermediate nodes have no data in non-tree columns
             
             col_name = self.headerData(index.column())
-            val = self.df.at[path, col_name]
+            val = self.df.at[path[0] if len(path) == 1 else path, col_name]
             return val
 
+    def editData(self, index: QModelIndex) -> any:
+        return self.displayData(index)
+    
+    def userData(self, index: QModelIndex) -> any:
+        return self.displayData(index)
+    
+    def decorationData(self, index: QModelIndex) -> any:
         return None
+    
+    def fontData(self, index: QModelIndex) -> any:
+        return None
+    
+    #--- flag overrides ---
+    def flags(self, index):
+        flags = Qt.ItemFlag.NoItemFlags
+        if self.indexEnabled(index):
+            flags |= Qt.ItemFlag.ItemIsEnabled
+        if self.indexSelectable(index):
+            flags |= Qt.ItemFlag.ItemIsSelectable
+        if self.indexEditable(index):
+            flags |= Qt.ItemFlag.ItemIsEditable
+        if self.indexDragEnabled(index):
+            flags |= Qt.ItemFlag.ItemIsDragEnabled
+        if self.indexDropEnabled(index):
+            flags |= Qt.ItemFlag.ItemIsDropEnabled
+        if self.indexUserCheckable(index):
+            flags |= Qt.ItemFlag.ItemIsUserCheckable
+        return flags
+    
+    def indexEnabled(self, index: QModelIndex) -> bool:
+        return True
+    
+    def indexSelectable(self, index: QModelIndex) -> bool:
+        return True
+    
+    def indexEditable(self, index: QModelIndex) -> bool:
+        return False
+    
+    def indexDragEnabled(self, index: QModelIndex) -> bool:
+        return False
+
+    def indexDropEnabled(self, index: QModelIndex) -> bool:
+        return False
+    
+    def indexUserCheckable(self, index: QModelIndex) -> bool:
+        return False
+    
 
     def headerData(self, section: int, orientation: Qt.Orientation = Qt.Horizontal, role: int = Qt.DisplayRole):
         if orientation == Qt.Vertical or not role == Qt.DisplayRole:
             return None
         
         if section == 0:
-            return "Hierarchy"
+            return "index"
               
         return self.df.columns[section - 1]
 
@@ -216,14 +297,18 @@ class ABTreeModel(QAbstractItemModel):
     def sort(self, column: int, order: Qt.SortOrder = Qt.SortOrder.AscendingOrder) -> None:
         # Extract the unique order of higher levels
         column_name = self.headerData(column) if column > 0 else self.df.index.names[-1]
-        higher_levels = self.df.index.droplevel(-1).unique()
+        higher_levels = self.df.index.droplevel(-1).unique() if self.df.index.nlevels > 1 else [None]
 
         # Build a new index by sorting only within each higher level
         sorted_index = []
         
         for lvl in higher_levels:
-            mask = self.df.index.droplevel(-1) == lvl
-            partial_df = self.df.loc[mask].sort_values(by=column_name, ascending=(order == Qt.SortOrder.AscendingOrder))
+            mask = self.df.index.droplevel(-1) == lvl if lvl is not None else self.df.index
+            partial_df = self.df.loc[mask]
+            if column_name is not None:
+                partial_df.sort_values(by=column_name, ascending=(order == Qt.SortOrder.AscendingOrder), inplace=True)
+            else:
+                partial_df = partial_df.sort_index(ascending=(order == Qt.SortOrder.AscendingOrder))
             sorted_index.append(partial_df.index)
 
         sorted_index = sorted_index[0].append(sorted_index[1:])  # Flatten
@@ -249,3 +334,34 @@ class ABTreeModel(QAbstractItemModel):
             for col in self.df.columns
         )
         self.filter(query)
+    
+    def set_dataframe(self, df: pd.DataFrame) -> None:
+        self.beginResetModel()
+        self.df = df
+        if not all(self.df.index.names):
+            logger.warning("DataFrame index has unnamed levels; resetting to default integer index.")
+            self.df.reset_index(drop=True, inplace=True)
+            self.df.index.name = "index"
+
+        self.df.index.names = [name + "_i" for name in self.df.index.names]  # append _i to index level names to avoid conflicts
+
+        self.reset_hierarchy()
+        self.endResetModel()
+    
+    def group(self, columns: list[str]) -> None:
+        """Regroup the DataFrame by the specified columns."""
+        # Set the new index with specified columns
+        current_index_names = self.df.index.names
+        new_index_names = columns + current_index_names
+        df = self.df.reset_index()
+        new_index = pd.MultiIndex.from_frame(df[new_index_names])
+        new_index.names = [i+"_i" if not i.endswith("_i") else i for i in new_index.names]
+
+        self.df.set_index(new_index, inplace=True)
+
+        self.reset_hierarchy()
+    
+    def ungroup(self) -> None:
+        """Ungroup the DataFrame by resetting the index."""
+        self.df.reset_index(drop=True, inplace=True)
+        self.reset_hierarchy()
