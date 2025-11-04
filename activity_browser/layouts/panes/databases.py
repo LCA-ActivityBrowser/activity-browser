@@ -1,13 +1,13 @@
 import datetime
 
-from qtpy import QtWidgets, QtGui
+from qtpy import QtWidgets, QtGui, QtCore
 from qtpy.QtCore import Qt
 
 import bw2data as bd
 import pandas as pd
 
 from activity_browser import signals, actions, bwutils
-from activity_browser.ui import widgets, icons, delegates
+from activity_browser.ui import widgets, icons, delegates, core
 from activity_browser.layouts.menu_bar import ImportDatabaseMenu
 
 
@@ -30,8 +30,8 @@ class DatabasesPane(widgets.ABAbstractPane):
             parent (QtWidgets.QWidget): The parent widget.
         """
         super().__init__(parent)
+        self.model = DatabasesModel(parent=self)
         self.view = DatabasesView()
-        self.model = DatabasesModel()
         self.view.setModel(self.model)
 
         self.view.setAlternatingRowColors(True)
@@ -62,9 +62,11 @@ class DatabasesPane(widgets.ABAbstractPane):
         """
         Synchronizes the model with the current state of the databases.
         """
-        self.model.setDataFrame(self.build_df())
-        self.view.resizeColumnToContents(0)
-        self.view.header().setSectionResizeMode(0, QtWidgets.QHeaderView.Fixed)
+        df = self.build_df()
+        df.reset_index(drop=True, inplace=True)
+        self.model.set_dataframe(df)
+        self.view.resizeColumnToContents(1)
+        self.view.header().setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeMode.Fixed)
 
     def build_df(self) -> pd.DataFrame:
         """
@@ -97,7 +99,7 @@ class DatabasesPane(widgets.ABAbstractPane):
         return pd.DataFrame(data, columns=cols)
 
 
-class DatabasesView(widgets.ABTreeView):
+class DatabasesView(widgets.ABNewTreeView):
     """
     A view that displays the databases in a tree structure.
 
@@ -153,7 +155,9 @@ class DatabasesView(widgets.ABTreeView):
             """
             if not self.parent().selected_databases:
                 return None
-            return self.parent().selectedIndexes()[0].internalPointer()["read_only"]
+            index = self.parent().selectedIndexes()[0]
+            row = self.parent().model().row(index)
+            return row.get("read_only") if row is not None else None
 
     class HeaderMenu(QtWidgets.QMenu):
         """
@@ -175,10 +179,14 @@ class DatabasesView(widgets.ABTreeView):
         if not index.isValid():
             return super().mouseDoubleClickEvent(event)
 
-        db_name = index.internalPointer()["name"]
+        row = self.model().row(index)
+        if row is None:
+            return super().mouseDoubleClickEvent(event)
 
-        if index.column() == 0:
-            read_only = index.internalPointer()["read_only"]
+        db_name = row.get("name")
+
+        if index.column() == 1:
+            read_only = row.get("read_only")
             actions.DatabaseSetReadonly.run(db_name, not read_only)
             return
 
@@ -208,69 +216,75 @@ class DatabasesView(widgets.ABTreeView):
         """
         if not self.selectedIndexes():
             return []
-        return list(set([i.internalPointer()["name"] for i in self.selectedIndexes()]))
+        names = self.model().values_from_indices("name", self.selectedIndexes())
+        return list(set(names))
 
 
-class DatabasesItem(widgets.ABDataItem):
-    """
-    An item representing a database in the tree view.
-    """
-
-    def decorationData(self, col: int, key: str):
-        """
-        Provides decoration data for the item.
-
-        Args:
-            col (int): The column index.
-            key (str): The key for which to provide decoration data.
-
-        Returns:
-            The decoration data for the item.
-        """
-        if key == "read_only":
-            return icons.qicons.locked if self["read_only"] else icons.qicons.empty
-        return super().decorationData(col, key)
-
-    def displayData(self, col: int, key: str):
-        """
-        Provides display data for the item.
-
-        Args:
-            col (int): The column index.
-            key (str): The key for which to provide display data.
-
-        Returns:
-            The display data for the item.
-        """
-        if key == "read_only":
-            return None
-        return super().displayData(col, key)
-
-    def fontData(self, col: int, key: str):
-        """
-        Provides font data for the item.
-
-        Args:
-            col (int): The column index.
-            key (str): The key for which to provide font data.
-
-        Returns:
-            QtGui.QFont: The font data for the item.
-        """
-        font = super().fontData(col, key)
-        if key == "name":
-            font.setWeight(QtGui.QFont.Weight.DemiBold)
-        return font
-
-
-class DatabasesModel(widgets.ABItemModel):
+class DatabasesModel(core.ABTreeModel):
     """
     A model representing the data for the databases.
-
-    Attributes:
-        dataItemClass (type): The class of the data items.
     """
-    dataItemClass = DatabasesItem
+
+    def decorationData(self, index: QtCore.QModelIndex) -> any:
+        """
+        Provides decoration data for the model.
+
+        Args:
+            index (QtCore.QModelIndex): The index for which to provide decoration data.
+
+        Returns:
+            The decoration data for the index.
+        """
+        column_name = self.column_name(index)
+        row = self.row(index)
+
+        if row is None:
+            return None
+
+        if column_name == "read_only":
+            return icons.qicons.locked if row.get("read_only") else icons.qicons.empty
+
+        return None
+
+    def displayData(self, index: QtCore.QModelIndex) -> any:
+        """
+        Provides display data for the model.
+
+        Args:
+            index (QtCore.QModelIndex): The index for which to provide display data.
+
+        Returns:
+            The display data for the index.
+        """
+        column_name = self.column_name(index)
+        row = self.row(index)
+
+        if row is None:
+            return None
+
+        if column_name == "read_only":
+            return None
+
+        return row.get(column_name)
+
+    def fontData(self, index: QtCore.QModelIndex) -> any:
+        """
+        Provides font data for the model.
+
+        Args:
+            index (QtCore.QModelIndex): The index for which to provide font data.
+
+        Returns:
+            QtGui.QFont: The font data for the index.
+        """
+        column_name = self.column_name(index)
+
+        if column_name == "name":
+            font = QtGui.QFont()
+            font.setWeight(QtGui.QFont.Weight.DemiBold)
+            return font
+
+        return None
 
     def headerData(self, section, orientation=Qt.Orientation.Horizontal, role=Qt.ItemDataRole.DisplayRole):
         """
@@ -284,8 +298,8 @@ class DatabasesModel(widgets.ABItemModel):
         Returns:
             The header data for the model.
         """
-        if section == 0 and role == Qt.ItemDataRole.DisplayRole:
+        if section == 1 and role == Qt.ItemDataRole.DisplayRole:
             return ""
-        if section == 0 and role == Qt.ItemDataRole.DecorationRole:
+        if section == 1 and role == Qt.ItemDataRole.DecorationRole:
             return icons.qicons.unlocked
         return super().headerData(section, orientation, role)

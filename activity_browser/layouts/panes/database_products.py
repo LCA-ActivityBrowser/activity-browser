@@ -390,18 +390,3 @@ class ProductModel(ui.core.ABTreeModel):
         keys = {key for key in keys if isinstance(key, tuple)}
         data.setPickleData("application/bw-nodekeylist", list(keys))
         return data
-
-    def values_from_indices(self, key: str, indices: list[QtCore.QModelIndex]):
-        """
-        Returns the values from the given indices.
-
-        Args:
-            key (str): The key to get the values for.
-            indices (list[QtCore.QModelIndex]): The indices to get the values for.
-
-        Returns:
-            list: The list of values.
-        """
-        column = self.df.columns.get_loc(key)
-        return [index.data(Qt.ItemDataRole.DisplayRole) for index in indices if index.column() == column]
-

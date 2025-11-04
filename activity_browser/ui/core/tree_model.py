@@ -134,7 +134,7 @@ class ABTreeModel(QAbstractItemModel):
                 return None  # leaf node tree column is empty
 
             col_name = self.headerData(index.column())
-            val = self.df.at[path[0] if len(path) == 1 else path, col_name]
+            val = self.df.at[path, col_name]
             return val
 
     def editData(self, index: QModelIndex) -> any:
@@ -348,8 +348,7 @@ class ABTreeModel(QAbstractItemModel):
         self.df = df
         if not all(self.df.index.names):
             logger.warning("DataFrame index has unnamed levels; resetting to default integer index.")
-            self.df.reset_index(drop=True, inplace=True)
-            self.df.index.name = "index"
+            self.df.index = pd.MultiIndex.from_arrays([range(len(self.df))], names=[f"index"])
 
         self.df.index.names = [name + "_i" for name in self.df.index.names]  # append _i to index level names to avoid conflicts
 
@@ -399,6 +398,22 @@ class ABTreeModel(QAbstractItemModel):
     
     def ungroup(self) -> None:
         """Ungroup the DataFrame by resetting the index."""
-        self.df.reset_index(drop=True, inplace=True)
+        self.df.index = pd.MultiIndex.from_arrays([range(len(self.df))], names=[f"index"])
         self.df.index.name = "index"
         self.reset_hierarchy()
+    
+    def values_from_indices(self, key: str, indices: list[QModelIndex]):
+        """
+        Returns the values from the given indices.
+
+        Args:
+            key (str): The key to get the values for.
+            indices (list[QtCore.QModelIndex]): The indices to get the values for.
+
+        Returns:
+            list: The list of values.
+        """
+        paths = {index.internalPointer() for index in indices if index.isValid()}
+        paths = [path for path in paths if len(path) == self.df.index.nlevels] # only leaf nodes
+        return self.df.loc[paths, key].tolist()
+
