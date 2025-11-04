@@ -1,4 +1,5 @@
 from typing import Optional
+from collections import defaultdict
 
 from loguru import logger
 import pandas as pd
@@ -75,17 +76,21 @@ class ABTreeModel(QAbstractItemModel):
 
         # Full path for the current index
         path = index.internalPointer()
-        parent_path = path[:-1]
+        parent_path = self.parent_path(path)
 
         if len(parent_path) == 0:
             return QModelIndex()
 
-        grandparent_path = parent_path[:-1]
+        grandparent_path = self.parent_path(parent_path)
         grandparent_children = self.children_map.get(grandparent_path, [])
         # children_map stores full paths; find the parent's row among its siblings
         row = grandparent_children.index(parent_path)
 
         return self.createIndex(row, 0, grandparent_children[row])
+    
+    def parent_path(self, path: tuple) -> tuple:
+        path = tuple(val for val in path if not pd.isna(val))
+        return path[:-1]
 
     def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:
         # For tree models, when the parent is valid and column > 0, return 0
@@ -230,13 +235,11 @@ class ABTreeModel(QAbstractItemModel):
 
     # --- helper functions ---
     def build_hierarchy_from_index(self, pandas_index: pd.Index) -> dict[tuple, list[tuple]]:
-        from collections import defaultdict
         children_map = defaultdict(list)
         
         # Convert index to frame once for all operations
         idx_df = pandas_index.to_frame(index=False)
-
-        
+ 
         # Process each level
         for level in range(idx_df.shape[1]):
             # Get unique child paths at this level (as tuples)
@@ -253,6 +256,10 @@ class ABTreeModel(QAbstractItemModel):
                 
                 # Build parent->children mapping efficiently with zip
                 for parent, child in zip(parent_tuples, child_tuples):
+                    if pd.isna(child[-1]):
+                        continue  # skip NaN children
+                    parent = tuple(val for val in parent if not pd.isna(val))
+
                     children_map[parent].append(child)
         
         return dict(children_map)
