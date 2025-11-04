@@ -44,7 +44,7 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
         super().__init__(parent)
         self.database = bd.Database(db_name)
         self.title = db_name
-        self.model = ProductModel(parent=self)
+        self.model = ProductModel(parent=self, chunk_size=100)
 
         # Create the QTableView and set the model
         self.table_view = ProductView(self, db_name=db_name)
