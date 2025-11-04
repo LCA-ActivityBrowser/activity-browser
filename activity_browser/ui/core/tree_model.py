@@ -127,13 +127,12 @@ class ABTreeModel(QAbstractItemModel):
     def displayData(self, index: QModelIndex) -> any:
             path = index.internalPointer()
             
-            if index.column() == 0:
-                return path[-1]  # last element in the path
-
-            # Only show data columns for leaf nodes (full depth paths)
-            if len(path) < self.df.index.nlevels:
-                return None  # intermediate nodes have no data in non-tree columns
+            if len(path) < self.df.index.nlevels: # branch node
+                return path[-1] if index.column() == 0 else None
             
+            if index.column() == 0:
+                return None  # leaf node tree column is empty
+
             col_name = self.headerData(index.column())
             val = self.df.at[path[0] if len(path) == 1 else path, col_name]
             return val
@@ -401,4 +400,5 @@ class ABTreeModel(QAbstractItemModel):
     def ungroup(self) -> None:
         """Ungroup the DataFrame by resetting the index."""
         self.df.reset_index(drop=True, inplace=True)
+        self.df.index.name = "index"
         self.reset_hierarchy()
