@@ -351,15 +351,43 @@ class ABTreeModel(QAbstractItemModel):
         self.endResetModel()
     
     def group(self, columns: list[str]) -> None:
-        """Regroup the DataFrame by the specified columns."""
-        # Set the new index with specified columns
-        current_index_names = self.df.index.names
-        new_index_names = columns + current_index_names
-        df = self.df.reset_index()
-        new_index = pd.MultiIndex.from_frame(df[new_index_names])
+        """Regroup the DataFrame by the specified columns.
+        
+        Unpacks columns containing iterables (lists, tuples, sets) by spreading them
+        into separate columns that become separate levels in the multiindex.
+        """
+        df = self.df[columns].copy()
+        
+        # Build the list of columns for the new index, unpacking iterables
+        for col in columns:              
+            # Check if the column contains iterables (excluding strings)
+            sample_val = df[col].dropna().iloc[0] if not df[col].dropna().empty else None
+
+            if not isinstance(sample_val, (list, tuple, set)):
+                continue
+
+            # Unpack the iterable into separate columns
+            unpacked = pd.DataFrame(df[col].tolist(), index=df.index)
+            
+            # Name the new columns
+            unpacked.columns = [f"{col}_{i}" for i in range(len(unpacked.columns))]
+           
+            # Add unpacked columns to the dataframe
+            for unpacked_col in unpacked.columns:
+                df[unpacked_col] = unpacked[unpacked_col]
+            
+            # Remove the original column from the dataframe
+            df = df.drop(columns=[col])
+        
+        levels = list(df.columns) + list(df.index.names)
+
+        df = df.reset_index()
+        df = df[levels]
+
+        new_index = pd.MultiIndex.from_frame(df)
         new_index.names = [i+"_i" if not i.endswith("_i") else i for i in new_index.names]
 
-        self.df.set_index(new_index, inplace=True)
+        self.df = self.df.set_index(new_index)
 
         self.reset_hierarchy()
     
