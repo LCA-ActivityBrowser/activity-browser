@@ -361,11 +361,7 @@ class ABTreeModel(QAbstractItemModel):
     def set_dataframe(self, df: pd.DataFrame) -> None:
         self.beginResetModel()
         self.df = df
-        if not all(self.df.index.names):
-            logger.warning("DataFrame index has unnamed levels; resetting to default integer index.")
-            self.df.index = pd.MultiIndex.from_arrays([range(len(self.df))], names=[f"index"])
-
-        self.df.index.names = [name + "_i" for name in self.df.index.names]  # append _i to index level names to avoid conflicts
+        self.df.index = pd.MultiIndex.from_arrays([range(len(self.df))], names=[f"index"])
 
         self.reset_hierarchy()
         self.endResetModel()
