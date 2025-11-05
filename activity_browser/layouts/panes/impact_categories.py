@@ -1,4 +1,4 @@
-from qtpy import QtWidgets, QtCore
+from qtpy import QtWidgets, QtCore, QtGui
 from qtpy.QtCore import Qt
 
 import bw2data as bd
@@ -14,8 +14,8 @@ class ImpactCategoriesPane(widgets.ABAbstractPane):
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.model = ImpactCategoriesModel(parent=self)
         self.view = ImpactCategoriesView()
-        self.model = ImpactCategoriesModel()
         self.view.setModel(self.model)
 
         self.view.setSelectionMode(QtWidgets.QTableView.SingleSelection)
@@ -47,24 +47,26 @@ class ImpactCategoriesPane(widgets.ABAbstractPane):
         signals.database_read_only_changed.connect(self.sync)
 
     def load(self):
-        self.model.setDataFrame(self.build_df())
-        self.model.group(1)
-        self.view.setColumnHidden(1, True)
-        self.view.setColumnHidden(2, True)
-        self.view.setColumnHidden(3, True)
-        self.view.sortByColumn(1, Qt.SortOrder.AscendingOrder)
+        df = self.build_df()
+        self.model.set_dataframe(df)
+        # self.view.setColumnHidden(1, True)
+        # self.view.setColumnHidden(2, True)
+        # self.view.setColumnHidden(3, True)
+        # self.view.sortByColumn(1, Qt.SortOrder.AscendingOrder)
 
     def sync(self):
-        self.model.setDataFrame(self.build_df())
+        df = self.build_df()
+        self.model.set_dataframe(df)
 
     def build_df(self):
         df = pd.DataFrame(bd.methods.values())
         df["_method_name"] = bd.methods.keys()
 
         df["name"] = df["_method_name"].apply(lambda x: x[-1])
-        df["groups"] = df["_method_name"].apply(lambda x: x[:-1])
+        df.index = pd.MultiIndex.from_tuples(df["_method_name"])
+        df.index.names = [f"index{i}" for i in range(df.index.nlevels)]
 
-        cols = ["name", "groups", "unit", "num_cfs", "_method_name"]
+        cols = ["name", "unit", "num_cfs", "_method_name"]
 
         if df.empty:
             return pd.DataFrame(columns=cols)
@@ -72,7 +74,7 @@ class ImpactCategoriesPane(widgets.ABAbstractPane):
         return df[cols]
 
 
-class ImpactCategoriesView(widgets.ABTreeView):
+class ImpactCategoriesView(widgets.ABNewTreeView):
     defaultColumnDelegates = {
         "groups": delegates.ListDelegate,
     }
@@ -100,19 +102,11 @@ class ImpactCategoriesView(widgets.ABTreeView):
                                ),
         ]
 
-        @staticmethod
-        def get_functional_unit_amount(key):
-            from activity_browser.bwutils import refresh_node
-            excs = list(refresh_node(key).upstream(["production"]))
-            exc = excs[0] if len(excs) == 1 else {}
-            return exc.get("amount", 1.0)
-
-        @property
-        def database_name(self):
-            return self.parent().parent().database.name
-
     @property
     def selected_impact_categories(self):
+        if not self.selectedIndexes():
+            return []
+        
         indices = [i for i in self.selectedIndexes() if i.column() == 0]
         impact_categories = []
 
@@ -126,39 +120,14 @@ class ImpactCategoriesView(widgets.ABTreeView):
             actions.MethodOpen.run(self.selected_impact_categories)
 
 
-class ImpactCategoriesItem(widgets.ABDataItem):
-    def flags(self, col: int, key: str):
-        """
-        Returns the item flags for the given column and key.
+class ImpactCategoriesModel(core.ABTreeModel):
+    """
+    A model representing the data for the impact categories.
+    """
 
-        Args:
-            col (int): The column index.
-            key (str): The key for which to return the flags.
-
-        Returns:
-            QtCore.Qt.ItemFlags: The item flags.
-        """
-        return super().flags(col, key) | Qt.ItemFlag.ItemIsDragEnabled
-
-
-class ImpactCategoriesBranchItem(widgets.ABBranchItem):
-    def flags(self, col: int, key: str):
-        """
-        Returns the item flags for the given column and key.
-
-        Args:
-            col (int): The column index.
-            key (str): The key for which to return the flags.
-
-        Returns:
-            QtCore.Qt.ItemFlags: The item flags.
-        """
-        return super().flags(col, key) | Qt.ItemFlag.ItemIsDragEnabled
-
-
-class ImpactCategoriesModel(widgets.ABItemModel):
-    dataItemClass = ImpactCategoriesItem
-    branchItemClass = ImpactCategoriesBranchItem
+    def indexDragEnabled(self, index: QtCore.QModelIndex) -> bool:
+        """Enable drag for all items."""
+        return True
 
     def mimeData(self, indices: list[QtCore.QModelIndex]):
         """
@@ -180,12 +149,38 @@ class ImpactCategoriesModel(widgets.ABItemModel):
         return data
 
     def get_impact_categories(self, index: QtCore.QModelIndex):
-        if isinstance(index.internalPointer(), self.dataItemClass):
-            return [index.internalPointer()["_method_name"]]
-
+        """
+        Get all impact category method names for the given index.
+        
+        For leaf nodes (full depth paths), returns the single method name.
+        For branch nodes (partial depth paths), returns all child method names.
+        
+        Args:
+            index: The index to get impact categories for.
+            
+        Returns:
+            list: List of method name tuples.
+        """
+        if not index.isValid():
+            return []
+        
+        path = index.internalPointer()
+        
+        # If this is a leaf node (full depth), return its method name
+        if len(path) == self.df.index.nlevels:
+            row = self.row(index)
+            if row is not None:
+                return [row["_method_name"]]
+            return []
+        
+        # If this is a branch node, collect all child method names
         ics = []
-        for i, child in enumerate(index.internalPointer().children().values()):
-            child_index = self.createIndex(i, 0, child)
+        children = self.children_map.get(path, [])
+        for child_path in children:
+            # Create an index for the child and recursively get its impact categories
+            row_idx = self.row_indices[path][child_path]
+            child_index = self.createIndex(row_idx, 0, child_path)
             ics += self.get_impact_categories(child_index)
+        
         return ics
 

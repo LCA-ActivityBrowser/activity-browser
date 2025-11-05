@@ -4,7 +4,7 @@ import bw2data as bd
 import pandas as pd
 
 from activity_browser import signals, actions
-from activity_browser.ui import widgets, delegates
+from activity_browser.ui import widgets, delegates, core
 
 
 class CalculationSetupsPane(widgets.ABAbstractPane):
@@ -23,8 +23,8 @@ class CalculationSetupsPane(widgets.ABAbstractPane):
             parent (QtWidgets.QWidget): The parent widget for this pane.
         """
         super().__init__(parent)
+        self.model = CalculationSetupsModel(parent=self)
         self.view = CalculationSetupsView()
-        self.model = CalculationSetupsModel()
         self.view.setModel(self.model)
 
         self.view.setAlternatingRowColors(True)
@@ -52,7 +52,9 @@ class CalculationSetupsPane(widgets.ABAbstractPane):
         """
         Synchronizes the model with the current state of the calculation setups.
         """
-        self.model.setDataFrame(self.build_df())
+        df = self.build_df()
+        df.reset_index(drop=True, inplace=True)
+        self.model.set_dataframe(df)
         self.view.resizeColumnToContents(0)
 
     def build_df(self) -> pd.DataFrame:
@@ -77,7 +79,7 @@ class CalculationSetupsPane(widgets.ABAbstractPane):
         return pd.DataFrame(data, columns=cols)
 
 
-class CalculationSetupsView(widgets.ABTreeView):
+class CalculationSetupsView(widgets.ABNewTreeView):
     """
     A view that displays the calculation setups in a tree structure.
 
@@ -90,25 +92,28 @@ class CalculationSetupsView(widgets.ABTreeView):
 
     class ContextMenu(widgets.ABMenu):
         menuSetup = [
-            lambda menu: menu.add(actions.CSNew),
-            lambda menu: menu.add(actions.CSOpen, menu.calculation_setups,
-                                  enable=bool(menu.calculation_setups)),
-            lambda menu: menu.add(actions.CSDelete, menu.calculation_setups,
-                                  enable=bool(menu.calculation_setups)),
-            lambda menu: menu.add(actions.CSRename, menu.calculation_setups[0] if menu.single_selection else None,
-                                  enable=menu.single_selection),
-            lambda menu: menu.addSeparator(),
-            lambda menu: menu.add(actions.CSCalculate, menu.calculation_setups[0] if menu.single_selection else None,
-                                  enable=menu.single_selection),
+            lambda m, p: m.add(actions.CSNew),
+            lambda m, p: m.add(actions.CSOpen, p.calculation_setups,
+                                  enable=bool(p.calculation_setups)),
+            lambda m, p: m.add(actions.CSDelete, p.calculation_setups,
+                                  enable=bool(p.calculation_setups)),
+            lambda m, p: m.add(actions.CSRename, p.calculation_setups[0] if p.single_selection else None,
+                                  enable=p.single_selection),
+            lambda m: m.addSeparator(),
+            lambda m, p: m.add(actions.CSCalculate, p.calculation_setups[0] if p.single_selection else None,
+                                  enable=p.single_selection),
         ]
 
-        @property
-        def calculation_setups(self):
-            return [item["name"] for item in {index.internalPointer() for index in self.parent().selectedIndexes()}]
+    @property
+    def calculation_setups(self):
+        if not self.selectedIndexes():
+            return []
+        names = self.model().values_from_indices("name", self.selectedIndexes())
+        return list(set(names))
 
-        @property
-        def single_selection(self):
-            return len(self.calculation_setups) == 1
+    @property
+    def single_selection(self):
+        return len(self.calculation_setups) == 1
 
     class HeaderMenu(QtWidgets.QMenu):
         """
@@ -129,12 +134,16 @@ class CalculationSetupsView(widgets.ABTreeView):
         Args:
             event (QtGui.QMouseEvent): The mouse double click event.
         """
-        if not self.selectedIndexes():
-            return
-
         index = self.indexAt(event.pos())
 
-        actions.CSOpen.run(index.internalPointer()["name"])
+        if not index.isValid():
+            return
+
+        row = self.model().row(index)
+        if row is None:
+            return
+
+        actions.CSOpen.run(row["name"])
 
 
     def dragMoveEvent(self, event) -> None:
@@ -167,33 +176,27 @@ class CalculationSetupsView(widgets.ABTreeView):
         actions.CSNew.run(functional_units=functional_units)
 
 
-class CalculationSetupsItem(widgets.ABDataItem):
+class CalculationSetupsModel(core.ABTreeModel):
     """
-    An item representing a calculation setup in the tree view.
+    A model representing the data for the calculation setups.
     """
-    def fontData(self, col: int, key: str):
+
+    def fontData(self, index):
         """
-        Provides font data for the item.
+        Provides font data for the model.
 
         Args:
-            col (int): The column index.
-            key (str): The key for which to provide font data.
+            index: The index for which to provide font data.
 
         Returns:
-            QtGui.QFont: The font data for the item.
+            QtGui.QFont: The font data for the index.
         """
-        font = super().fontData(col, key)
-        if key == "name":
+        column_name = self.column_name(index)
+
+        if column_name == "name":
+            font = QtGui.QFont()
             font.setWeight(QtGui.QFont.Weight.DemiBold)
-        return font
+            return font
 
-
-class CalculationSetupsModel(widgets.ABItemModel):
-    """
-    A model representing the data for the databases.
-
-    Attributes:
-        dataItemClass (type): The class of the data items.
-    """
-    dataItemClass = CalculationSetupsItem
+        return None
 
