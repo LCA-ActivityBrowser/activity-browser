@@ -71,7 +71,7 @@ class ABNewTreeView(QtWidgets.QTreeView):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-
+        self.setIndentation(10)
         self.setUniformRowHeights(True)
 
         self.setContextMenuPolicy(QtCore.Qt.ContextMenuPolicy.CustomContextMenu)
@@ -80,9 +80,8 @@ class ABNewTreeView(QtWidgets.QTreeView):
         self.setSelectionBehavior(QtWidgets.QTreeView.SelectionBehavior.SelectRows)
         self.setSelectionMode(QtWidgets.QTreeView.SelectionMode.ExtendedSelection)
 
-        header = self.header()
-        header.setContextMenuPolicy(QtCore.Qt.ContextMenuPolicy.CustomContextMenu)
-        header.customContextMenuRequested.connect(self.showHeaderMenu)
+        self.header().setContextMenuPolicy(QtCore.Qt.ContextMenuPolicy.CustomContextMenu)
+        self.header().customContextMenuRequested.connect(self.showHeaderMenu)
 
         self.columnFilters: dict[str, str] = {}  # dict[column_name, query] for filtering the dataframe
         self.allFilter: str = ""  # filter applied to the entire dataframe
@@ -90,12 +89,17 @@ class ABNewTreeView(QtWidgets.QTreeView):
     def setModel(self, model):
         super().setModel(model)
 
+        self.setColumnWidth(0, 30)
+        self.header().setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeMode.Fixed)
+
         model.modelAboutToBeReset.connect(self.clearColumnDelegates)
         model.modelReset.connect(self.setDefaultColumnDelegates)
         model.layoutChanged.connect(self.updateIndexColumnVisibility)
+        model.layoutChanged.connect(self.updateBranchSpanning)
 
         self.setDefaultColumnDelegates()
         self.updateIndexColumnVisibility()
+        self.updateBranchSpanning()
 
     def model(self) -> ABItemModel:
         return super().model()
@@ -199,4 +203,33 @@ class ABNewTreeView(QtWidgets.QTreeView):
             # Hide index column if it's only one level deep
             hide_index = model.df.index.nlevels == 1
             self.setColumnHidden(0, hide_index)
+    
+    def updateBranchSpanning(self):
+        """Enable spanning for branch nodes so they span across all columns."""
+        model = self.model()
+        if model is None or not hasattr(model, 'isBranchNode'):
+            return
+        
+        # Recursively set spanning for all branch nodes
+        self._setSpanningRecursive(QtCore.QModelIndex())
+    
+    def _setSpanningRecursive(self, parent: QtCore.QModelIndex):
+        """Recursively set first column spanning for branch nodes."""
+        model = self.model()
+        if model is None:
+            return
+        
+        row_count = model.rowCount(parent)
+        for row in range(row_count):
+            index = model.index(row, 0, parent)
+            if not index.isValid():
+                continue
+            
+            # Check if this is a branch node
+            if hasattr(model, 'isBranchNode') and model.isBranchNode(index):
+                self.setFirstColumnSpanned(row, parent, True)
+                # Recursively process children
+                self._setSpanningRecursive(index)
+            else:
+                self.setFirstColumnSpanned(row, parent, False)
 

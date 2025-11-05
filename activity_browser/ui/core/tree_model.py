@@ -128,6 +128,8 @@ class ABTreeModel(QAbstractItemModel):
             path = index.internalPointer()
             
             if len(path) < self.df.index.nlevels: # branch node
+                # For branch nodes, show the name in the first column only
+                # (spanning will be handled by the view)
                 return path[-1] if index.column() == 0 else None
             
             if index.column() == 0:
@@ -184,6 +186,12 @@ class ABTreeModel(QAbstractItemModel):
     def indexUserCheckable(self, index: QModelIndex) -> bool:
         return False
     
+    def isBranchNode(self, index: QModelIndex) -> bool:
+        """Check if the given index represents a branch node (non-leaf)."""
+        if not index.isValid():
+            return False
+        path = index.internalPointer()
+        return len(path) < self.df.index.nlevels
 
     def headerData(self, section: int, orientation: Qt.Orientation = Qt.Horizontal, role: int = Qt.DisplayRole):
         if orientation == Qt.Vertical or not role == Qt.DisplayRole:
