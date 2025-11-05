@@ -5,6 +5,7 @@ import pandas as pd
 from qtpy import QtWidgets, QtCore, QtGui
 from qtpy.QtCore import Qt
 
+from activity_browser.ui import delegates, core
 from .item_model import ABItemModel
 
 
@@ -73,6 +74,7 @@ class ABNewTreeView(QtWidgets.QTreeView):
         super().__init__(parent)
         self.setIndentation(10)
         self.setUniformRowHeights(True)
+        self.setItemDelegate(delegates.StringDelegate(self))
 
         self.setContextMenuPolicy(QtCore.Qt.ContextMenuPolicy.CustomContextMenu)
         self.customContextMenuRequested.connect(self.showContextMenu)
