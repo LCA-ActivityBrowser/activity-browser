@@ -187,21 +187,6 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
         if db_name == self.database.name:
             self.deleteLater()
 
-    def event(self, event):
-        """
-        Handles the event to save the state to settings on deferred delete.
-
-        Args:
-            event: The event to handle.
-
-        Returns:
-            bool: True if the event was handled, False otherwise.
-        """
-        if event.type() == QtCore.QEvent.Type.DeferredDelete:
-            self.save_state_to_settings()
-
-        return super().event(event)
-
     def search_error(self, reset=False):
         """
         Handles the search error by changing the search bar color.
