@@ -49,6 +49,7 @@ class ImpactCategoriesPane(widgets.ABAbstractPane):
     def load(self):
         df = self.build_df()
         self.model.set_dataframe(df)
+        self.model.group(["_method_name"])
         # self.view.setColumnHidden(1, True)
         # self.view.setColumnHidden(2, True)
         # self.view.setColumnHidden(3, True)
@@ -57,14 +58,13 @@ class ImpactCategoriesPane(widgets.ABAbstractPane):
     def sync(self):
         df = self.build_df()
         self.model.set_dataframe(df)
+        self.model.group(["_method_name"])
 
     def build_df(self):
         df = pd.DataFrame(bd.methods.values())
         df["_method_name"] = bd.methods.keys()
 
         df["name"] = df["_method_name"].apply(lambda x: x[-1])
-        df.index = pd.MultiIndex.from_tuples(df["_method_name"])
-        df.index.names = [f"index{i}" for i in range(df.index.nlevels)]
 
         cols = ["name", "unit", "num_cfs", "_method_name"]
 
