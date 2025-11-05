@@ -56,9 +56,6 @@ class ABTreeModel(QAbstractItemModel):
 
     # --- required model overrides ---
     def index(self, row: int, column: int, parent: QModelIndex = QModelIndex()) -> QModelIndex:
-        if not self.hasIndex(row, column, parent):
-            return QModelIndex()
-
         parent_path = parent.internalPointer() or tuple()
         all_children = self.children_map.get(parent_path, [])
                 
@@ -89,7 +86,7 @@ class ABTreeModel(QAbstractItemModel):
         # Use pre-computed row index for O(1) lookup instead of O(n) list.index()
         row = self.row_indices[grandparent_path][parent_path]
 
-        return self.createIndex(row, 0, parent_path)
+        return self.createIndex(row, 0, self.children_map[grandparent_path][row])
     
     def parent_path(self, path: tuple) -> tuple:
         path = tuple(val for val in path if not pd.isna(val))
