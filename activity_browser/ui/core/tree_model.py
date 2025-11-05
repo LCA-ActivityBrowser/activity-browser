@@ -304,7 +304,8 @@ class ABTreeModel(QAbstractItemModel):
             parent_path = path[:-1]
             if parent_path in self.row_indices and path in self.row_indices[parent_path]:
                 row = self.row_indices[parent_path][path]
-                new_index = self.createIndex(row, index.column(), path)
+                true_path = self.children_map[parent_path][row]
+                new_index = self.createIndex(row, index.column(), true_path)
                 new_persistent.append(new_index)
             else:
                 new_persistent.append(QModelIndex())
@@ -316,6 +317,8 @@ class ABTreeModel(QAbstractItemModel):
 
 
     def sort(self, column: int, order: Qt.SortOrder = Qt.SortOrder.AscendingOrder) -> None:
+        if self.df.empty:
+            return
         # Extract the unique order of higher levels
         column_name = self.headerData(column) if column > 0 else self.df.index.names[-1]
         higher_levels = self.df.index.droplevel(-1).unique() if self.df.index.nlevels > 1 else [None]
@@ -325,9 +328,9 @@ class ABTreeModel(QAbstractItemModel):
         
         for lvl in higher_levels:
             mask = self.df.index.droplevel(-1) == lvl if lvl is not None else self.df.index
-            partial_df = self.df.loc[mask]
+            partial_df = self.df.loc[mask, column_name].copy()
             if column_name is not None:
-                partial_df.sort_values(by=column_name, ascending=(order == Qt.SortOrder.AscendingOrder), inplace=True)
+                partial_df.sort_values(ascending=(order == Qt.SortOrder.AscendingOrder), inplace=True)
             else:
                 partial_df = partial_df.sort_index(ascending=(order == Qt.SortOrder.AscendingOrder))
             sorted_index.append(partial_df.index)
