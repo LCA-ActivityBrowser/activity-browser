@@ -17,6 +17,10 @@ class ABTreeModel(QAbstractItemModel):
         self.lazy = chunk_size > 0
         self.chunk_size = chunk_size
         
+        # Pre-compute row indices for O(1) lookups instead of O(n) list.index()
+        self.row_indices: dict[tuple, dict[tuple, int]] = {}
+        self.build_row_indices()
+        
         # Track how many children are currently loaded for each parent
         self.loaded_counts: dict[tuple, int] = {}
         if self.lazy:
@@ -82,11 +86,10 @@ class ABTreeModel(QAbstractItemModel):
             return QModelIndex()
 
         grandparent_path = self.parent_path(parent_path)
-        grandparent_children = self.children_map.get(grandparent_path, [])
-        # children_map stores full paths; find the parent's row among its siblings
-        row = grandparent_children.index(parent_path)
+        # Use pre-computed row index for O(1) lookup instead of O(n) list.index()
+        row = self.row_indices[grandparent_path][parent_path]
 
-        return self.createIndex(row, 0, grandparent_children[row])
+        return self.createIndex(row, 0, parent_path)
     
     def parent_path(self, path: tuple) -> tuple:
         path = tuple(val for val in path if not pd.isna(val))
@@ -263,6 +266,12 @@ class ABTreeModel(QAbstractItemModel):
         
         return dict(children_map)
     
+    def build_row_indices(self) -> None:
+        """Build a mapping of parent_path -> {child_path: row_index} for O(1) lookups."""
+        self.row_indices = {}
+        for parent_path, children in self.children_map.items():
+            self.row_indices[parent_path] = {child: idx for idx, child in enumerate(children)}
+    
     def reset_hierarchy(self, df: pd.DataFrame = None) -> None:
         df = df if df is not None else self.df
 
@@ -271,6 +280,7 @@ class ABTreeModel(QAbstractItemModel):
         old_persistent_paths = [idx.internalPointer() for idx in self.persistentIndexList()]
         
         self.children_map = self.build_hierarchy_from_index(df.index)
+        self.build_row_indices()
         
         # Reset loaded counts for lazy loading
         self.loaded_counts = {}
@@ -287,9 +297,9 @@ class ABTreeModel(QAbstractItemModel):
         new_persistent = []
         for path, index in zip(old_persistent_paths, self.persistentIndexList()):
             parent_path = path[:-1]
-            if parent_path in self.children_map and path in self.children_map[parent_path]:
-                row = self.children_map[parent_path].index(path)
-                new_index = self.createIndex(row, index.column(), self.children_map[parent_path][row])
+            if parent_path in self.row_indices and path in self.row_indices[parent_path]:
+                row = self.row_indices[parent_path][path]
+                new_index = self.createIndex(row, index.column(), path)
                 new_persistent.append(new_index)
             else:
                 new_persistent.append(QModelIndex())
