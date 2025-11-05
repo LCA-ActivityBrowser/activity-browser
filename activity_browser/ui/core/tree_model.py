@@ -320,7 +320,7 @@ class ABTreeModel(QAbstractItemModel):
         if self.df.empty:
             return
         # Extract the unique order of higher levels
-        column_name = self.headerData(column) if column > 0 else self.df.index.names[-1]
+        column_name = self.headerData(column) if column > 0 else None
         higher_levels = self.df.index.droplevel(-1).unique() if self.df.index.nlevels > 1 else [None]
 
         # Build a new index by sorting only within each higher level
@@ -328,7 +328,7 @@ class ABTreeModel(QAbstractItemModel):
         
         for lvl in higher_levels:
             mask = self.df.index.droplevel(-1) == lvl if lvl is not None else self.df.index
-            partial_df = self.df.loc[mask, column_name].copy()
+            partial_df = self.df.loc[mask, column_name or self.df.columns[0]].copy()
             if column_name is not None:
                 partial_df.sort_values(ascending=(order == Qt.SortOrder.AscendingOrder), inplace=True)
             else:
