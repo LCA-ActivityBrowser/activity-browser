@@ -1,6 +1,6 @@
 from qtpy import QtCore
 
-from activity_browser import application
+from activity_browser import app
 from activity_browser.actions.base import ABAction, exception_dialogs
 
 from activity_browser.ui.icons import qicons
@@ -18,9 +18,9 @@ class ProjectManagerOpen(ABAction):
     @staticmethod
     @exception_dialogs
     def run():
-        from activity_browser.layouts.panes import ProjectManagerPane
+        from activity_browser.app.panes import ProjectManagerPane
 
-        project_manager = ProjectManagerPane(application.main_window)
-        application.main_window.addDockWidget(
+        project_manager = ProjectManagerPane(app.main_window)
+        app.main_window.addDockWidget(
             QtCore.Qt.LeftDockWidgetArea,
-            project_manager.getDockWidget(application.main_window))
+            project_manager.getDockWidget(app.main_window))

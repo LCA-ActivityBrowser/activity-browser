@@ -275,12 +275,10 @@ def patch_projects():
     from bw2data.project import ProjectManager
 
     def delete_project(self, name=None, delete_dir=False):
+        from activity_browser.app import signals
         original_delete(self, name, delete_dir)
         signals.project.deleted.emit(name)
 
     original_delete = ProjectManager.delete_project
 
     setattr(ProjectManager, "delete_project", delete_project)
-
-
-signals = ABSignals()

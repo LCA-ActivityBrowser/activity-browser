@@ -7,7 +7,7 @@ import bw2data as bd
 from qtpy import QtWidgets, QtCore
 from bw2io import backup
 
-from activity_browser import application
+from activity_browser import app
 from activity_browser.mod import bw2data as bd
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.ui.icons import qicons
@@ -34,7 +34,7 @@ class ProjectImport(ABAction):
 
         # get the path from the user
         path, _ = QtWidgets.QFileDialog.getOpenFileName(
-            parent=application.main_window,
+            parent=app.main_window,
             caption='Choose project file to import',
             filter='Tar archive (*.tar.gz);; All files (*.*)'
         )
@@ -46,7 +46,7 @@ class ProjectImport(ABAction):
         # get a new project name from the user:
         while True:
             project_name, _ = QtWidgets.QInputDialog.getText(
-                application.main_window,
+                app.main_window,
                 'Choose project name',
                 'Choose a name for your project',
                 text=suggestion
@@ -57,7 +57,7 @@ class ProjectImport(ABAction):
             if project_name in bd.projects:
                 # this name already exists, inform user and ask again.
                 QtWidgets.QMessageBox.information(
-                    application.main_window,
+                    app.main_window,
                     "Not possible.",
                     "A project with this name already exists."
                 )
@@ -65,7 +65,7 @@ class ProjectImport(ABAction):
 
         # setup dialog
         progress = QtWidgets.QProgressDialog(
-            parent=application.main_window,
+            parent=app.main_window,
             labelText="Importing project",
             maximum=0
         )
@@ -78,7 +78,7 @@ class ProjectImport(ABAction):
         progress.show()
 
         # setup the import
-        thread = ImportThread(application)
+        thread = ImportThread(app.application)
         setattr(thread, "path", path)
         setattr(thread, "project_name", project_name)
 

@@ -6,7 +6,7 @@ from qtpy import QtWidgets, QtCore
 import bw2data as bd
 from bw2io import remote
 
-from activity_browser import actions, ui, signals, utils
+from activity_browser import actions, ui, app, utils
 from activity_browser.settings import ab_settings
 from activity_browser.ui import widgets
 
@@ -47,8 +47,8 @@ class ProjectManagerPane(widgets.ABAbstractPane):
         self.setLayout(layout)
 
         # connect signals
-        signals.project.changed.connect(self.sync)
-        signals.project.deleted.connect(self.sync)
+        app.signals.project.changed.connect(self.sync)
+        app.signals.project.deleted.connect(self.sync)
 
     def sync(self):
         self.project_model.setDataFrame(self.build_project_df())
@@ -97,7 +97,7 @@ class ProjectView(widgets.ABTreeView):
 
     class ContextMenu(widgets.ABTreeView.ContextMenu):
         def __init__(self, pos, view: "FunctionView"):
-            from activity_browser.layouts.menu_bar import ProjectNewMenu
+            from activity_browser.app.menu_bar import ProjectNewMenu
 
             super().__init__(pos, view)
             items = list({index.internalPointer() for index in view.selectedIndexes()})

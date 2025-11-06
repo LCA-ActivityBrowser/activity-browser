@@ -1,6 +1,6 @@
 from qtpy import QtWidgets, QtCore
 
-from activity_browser import application, bwutils
+from activity_browser import app, bwutils
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.ui.icons import qicons
 
@@ -78,7 +78,7 @@ class PropertyDialog(QtWidgets.QDialog):
     prop: dict | None = None
 
     def __init__(self, process: Process):
-        super().__init__(application.main_window)
+        super().__init__(app.main_window)
         self.process = process
 
         self.setWindowTitle("Add Property")

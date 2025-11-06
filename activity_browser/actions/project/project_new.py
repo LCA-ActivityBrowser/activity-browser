@@ -1,6 +1,6 @@
 from qtpy import QtWidgets
 
-from activity_browser import application
+from activity_browser import app
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.mod import bw2data as bd
 from activity_browser.ui.icons import qicons
@@ -29,7 +29,7 @@ class ProjectNew(ABAction):
     @exception_dialogs
     def run():
         name, ok = QtWidgets.QInputDialog.getText(
-            application.main_window,
+            app.main_window,
             "Create new project",
             "Name of new project:" + " " * 25,
         )
@@ -39,7 +39,7 @@ class ProjectNew(ABAction):
 
         if name in bd.projects:
             QtWidgets.QMessageBox.information(
-                application.main_window,
+                app.main_window,
                 "Not possible.",
                 "A project with this name already exists.",
             )

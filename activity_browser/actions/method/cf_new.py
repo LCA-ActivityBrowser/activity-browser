@@ -2,7 +2,7 @@ from typing import List
 
 from qtpy import QtWidgets
 
-from activity_browser import application
+from activity_browser import app
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.mod import bw2data as bd
 from activity_browser.ui.icons import qicons
@@ -28,7 +28,7 @@ class CFNew(ABAction):
         # if there are non-unique keys warn the user that these won't be added
         if len(unique_keys) < len(keys):
             QtWidgets.QMessageBox.warning(
-                application.main_window,
+                app.main_window,
                 "Duplicate characterization factors",
                 "One or more of these elementary flows already exist within this method. Duplicate flows will not be "
                 "added",

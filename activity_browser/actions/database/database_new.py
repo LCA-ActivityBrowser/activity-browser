@@ -1,6 +1,6 @@
 from qtpy import QtWidgets, QtCore
 
-from activity_browser import application, settings, signals
+from activity_browser import settings, app
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.mod import bw2data as bd
 from activity_browser.ui.icons import qicons
@@ -41,7 +41,7 @@ class DatabaseNew(ABAction):
 
         if name in bd.databases:
             QtWidgets.QMessageBox.information(
-                application.main_window,
+                app.main_window,
                 "Not possible",
                 "A database with this name already exists.",
             )
@@ -88,7 +88,7 @@ class NewDatabaseDialog(QtWidgets.QDialog):
                 - The selected backend type (str).
                 - A boolean indicating whether the dialog was accepted (True) or canceled (False).
         """
-        dialog = cls(window_title, backend, application.main_window)
+        dialog = cls(window_title, backend, app.main_window)
         result = dialog.exec_()
 
         return dialog.name_input.text(), dialog.backend_dropdown.currentText(), result == QtWidgets.QDialog.Accepted

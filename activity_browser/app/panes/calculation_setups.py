@@ -3,7 +3,7 @@ from qtpy import QtWidgets, QtGui
 import bw2data as bd
 import pandas as pd
 
-from activity_browser import signals, actions
+from activity_browser import app, actions
 from activity_browser.ui import widgets, delegates, core
 
 
@@ -36,8 +36,8 @@ class CalculationSetupsPane(widgets.ABAbstractPane):
         """
         Connects the signals to the appropriate slots.
         """
-        signals.meta.calculation_setups_changed.connect(self.sync)
-        signals.project.changed.connect(self.sync)
+        app.signals.meta.calculation_setups_changed.connect(self.sync)
+        app.signals.project.changed.connect(self.sync)
 
     def build_layout(self):
         """

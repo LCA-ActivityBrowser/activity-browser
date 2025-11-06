@@ -4,7 +4,7 @@ from qtpy.QtCore import Qt
 import bw2data as bd
 import pandas as pd
 
-from activity_browser import signals, actions
+from activity_browser import app, actions
 from activity_browser.ui import widgets, core, delegates
 
 
@@ -42,9 +42,9 @@ class ImpactCategoriesPane(widgets.ABAbstractPane):
         self.setLayout(layout)
 
     def connect_signals(self):
-        signals.meta.methods_changed.connect(self.sync)
-        signals.project.changed.connect(self.sync)
-        signals.database_read_only_changed.connect(self.sync)
+        app.signals.meta.methods_changed.connect(self.sync)
+        app.signals.project.changed.connect(self.sync)
+        app.signals.database_read_only_changed.connect(self.sync)
 
     def load(self):
         df = self.build_df()

@@ -14,8 +14,5 @@ try:
 except ImportError:
     import qtpy
 
-from .ui.core.application import application
-from .signals import signals
-
 def run_activity_browser():
     from .__main__ import run_activity_browser

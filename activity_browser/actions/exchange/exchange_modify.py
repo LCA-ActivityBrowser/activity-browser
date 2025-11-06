@@ -1,9 +1,5 @@
-from loguru import logger
-
-from qtpy.QtWidgets import QMessageBox
 from bw2data.proxies import ExchangeProxyBase
 
-from activity_browser import application
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.mod import bw2data as bd
 from bw2data.parameters import ActivityParameter

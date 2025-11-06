@@ -20,8 +20,7 @@ from bw_graph_tools.graph_traversal.graph_objects import (
     GroupedNodes as GraphGroupedNodes,
 )
 
-from activity_browser import signals
-from activity_browser.mod import bw2data as bd
+from activity_browser import app
 from bw2data.backends import ActivityDataset
 from activity_browser.utils import get_base_path
 from .base import BaseGraph, BaseNavigatorWidget
@@ -88,7 +87,7 @@ class TreeNavigatorWidget(BaseNavigatorWidget):
     def connect_signals(self):
         super().connect_signals()
         self.button_calculate.clicked.connect(self.new_tree)
-        signals.database_selected.connect(self.set_database)
+        app.signals.database_selected.connect(self.set_database)
         # checkboxes
         self.func_unit_cb.currentIndexChanged.connect(self.new_tree)
         self.method_cb.currentIndexChanged.connect(self.new_tree)

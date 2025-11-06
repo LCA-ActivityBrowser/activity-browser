@@ -5,10 +5,9 @@ from qtpy import QtWidgets, QtCore, QtGui
 
 import bw2data as bd
 
-from activity_browser import signals
 from activity_browser.bwutils import AB_metadata
 from activity_browser.ui import widgets
-from activity_browser.ui.core import application
+from activity_browser.app import application, signals
 
 
 

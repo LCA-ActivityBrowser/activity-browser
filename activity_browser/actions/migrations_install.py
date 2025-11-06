@@ -1,6 +1,6 @@
 from qtpy import QtWidgets
 
-from activity_browser import application
+from activity_browser import app
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.ui import icons
 from activity_browser.mod.bw2io.migrations import ab_create_core_migrations
@@ -23,12 +23,12 @@ class MigrationsInstall(ABAction):
             dialog.setLabelText(label)
 
 
-        dialog = QtWidgets.QProgressDialog(application.main_window)
+        dialog = QtWidgets.QProgressDialog(app.main_window)
         dialog.setWindowTitle("Installing migrations")
         dialog.setMaximum(100)
         dialog.setCancelButton(None)
 
-        thread = MigrationsInstallThread(application)
+        thread = MigrationsInstallThread(app.application)
 
         thread.status.connect(update_dialog_slot)
 

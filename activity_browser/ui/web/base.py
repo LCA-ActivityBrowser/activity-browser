@@ -8,7 +8,7 @@ from loguru import logger
 from qtpy import QtWebChannel, QtWebEngineWidgets, QtWidgets
 from qtpy.QtCore import QObject, Qt, QUrl, Signal, Slot
 
-from activity_browser import signals
+from activity_browser import app
 from activity_browser.settings import ab_settings
 from activity_browser.mod import bw2data as bd
 
@@ -78,17 +78,17 @@ class BaseNavigatorWidget(QtWidgets.QWidget):
 
     def go_forward(self) -> None:
         if self.graph.forward():
-            signals.new_statusbar_message.emit("Going forward.")
+            app.signals.new_statusbar_message.emit("Going forward.")
             self.send_json()
         else:
-            signals.new_statusbar_message.emit("No data to go forward to.")
+            app.signals.new_statusbar_message.emit("No data to go forward to.")
 
     def go_back(self) -> None:
         if self.graph.back():
-            signals.new_statusbar_message.emit("Going back.")
+            app.signals.new_statusbar_message.emit("Going back.")
             self.send_json()
         else:
-            signals.new_statusbar_message.emit("No data to go back to.")
+            app.signals.new_statusbar_message.emit("No data to go back to.")
 
     def send_json(self) -> None:
         if self.graph.json_data is None:

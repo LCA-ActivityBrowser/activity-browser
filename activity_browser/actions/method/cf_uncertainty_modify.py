@@ -1,7 +1,7 @@
 from functools import partial
 from typing import List
 
-from activity_browser import application
+from activity_browser import app
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.mod import bw2data as bd
 from activity_browser.ui.icons import qicons
@@ -25,7 +25,7 @@ class CFUncertaintyModify(ABAction):
         initial = initial if isinstance(initial, dict) else {}
         
         ok, uc_dict = UncertaintyDialog.get_uncertainty_dict(
-            parent=application.main_window,
+            parent=app.main_window,
             initial=initial,
             )
         

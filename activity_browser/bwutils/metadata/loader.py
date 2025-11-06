@@ -1,7 +1,6 @@
-import subprocess
 import sqlite3
-import sys
 import pickle
+from multiprocessing import Pool
 from loguru import logger
 from typing import Literal
 
@@ -11,7 +10,6 @@ from bw2data.backends import sqlite3_lci_db
 
 from qtpy import QtCore
 
-from activity_browser import signals, application
 from activity_browser.ui.core import threading
 
 from .metadata import MetaDataStore
@@ -31,7 +29,8 @@ class MDSLoader(QtCore.QObject):
         self.connect_signals()
 
     def connect_signals(self):
-        signals.project.changed.connect(self.on_project_changed)
+        from activity_browser import app
+        app.signals.project.changed.connect(self.on_project_changed)
 
     def on_project_changed(self):
         self.load_project()
@@ -137,28 +136,30 @@ class SecondaryLoadThread(threading.ABThread):
     done: QtCore.SignalInstance = QtCore.Signal(pd.DataFrame, str)
 
     def run_safely(self, databases: list[str], sqlite_db: str):
-        processes = [self.open_load_process(db, sqlite_db) for db in databases]
+        with Pool() as pool:
+            args = [(sqlite_db, db, secondary) for db in databases]
+            results = pool.starmap(load, args)
 
         full_df = pd.DataFrame()
-        for proc in processes:
-            stdout_data, stderr_data = proc.communicate()
-            if proc.returncode != 0:
-                logger.error(f"Error loading metadata: {stderr_data.decode()}")
+        for df in results:
+            if df is None or df.empty:
                 continue
-            df = pickle.loads(stdout_data)
-            if df.empty:
-                continue
-
             full_df = pd.concat([full_df, df])
 
         self.done.emit(full_df, sqlite_db)
 
-    def open_load_process(self, database_name: str, sqlite_db: str) -> subprocess.Popen:
-        import activity_browser.bwutils.metadata._sub_loader as sl
 
-        return subprocess.Popen(
-            [sys.executable, sl.__file__, str(sqlite_db), database_name] + secondary,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE
-        )
+def load(fp: str, database_name: str, fields: list[str]):
+    con = sqlite3.connect(fp)
+    sql = f"SELECT data FROM activitydataset WHERE database = '{database_name}'"
+    raw_df = pd.read_sql(sql, con)
+    con.close()
 
+    df = pd.DataFrame([pickle.loads(x) for x in raw_df["data"]])
+    if df.empty:
+        return df
+
+    df["key"] = list(zip(df["database"], df["code"]))
+    df.index = pd.MultiIndex.from_tuples(df["key"], names=["database", "code"])
+    df = df.reindex(columns=fields)[fields]
+    return df

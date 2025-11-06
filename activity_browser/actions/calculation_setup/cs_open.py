@@ -1,13 +1,8 @@
 from loguru import logger
 
-from qtpy import QtWidgets
-
-from activity_browser import application, signals
+from activity_browser import app
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.mod import bw2data as bd
-from activity_browser.ui.icons import qicons
-
-
 
 
 class CSOpen(ABAction):
@@ -16,8 +11,6 @@ class CSOpen(ABAction):
     @staticmethod
     @exception_dialogs
     def run(cs_names: str | list[str]):
-        from activity_browser.layouts import pages
-
         if isinstance(cs_names, str):
             cs_names = [cs_names]
 
@@ -26,7 +19,7 @@ class CSOpen(ABAction):
                 logger.warning(f"Calculation setup {cs_name} not found")
                 continue
 
-            page = pages.CalculationSetupPage(cs_name)
-            central = application.main_window.centralWidget()
+            page = app.pages.CalculationSetupPage(cs_name)
+            central = app.main_window.centralWidget()
 
             central.addToGroup("LCA Setup", page)

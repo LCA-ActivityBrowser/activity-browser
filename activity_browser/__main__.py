@@ -12,8 +12,7 @@ if sys.platform == "win32":
     import ctypes
     ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("activity.browser.1")
 
-from activity_browser import application
-from activity_browser.ui import icons
+from activity_browser import app
 
 from loguru import logger
 import platformdirs
@@ -89,11 +88,9 @@ class ABLoader(QtWidgets.QWidget):
 
     def load_layout(self):
         from .ui.widgets import CentralTabWidget
-        from .layouts import panes, pages, MainWindow
+        from .app import panes, pages, application
         from activity_browser.bwutils import AB_metadata
-        from activity_browser import signals
 
-        application.main_window = MainWindow()
         central_widget = CentralTabWidget(application.main_window)
         central_widget.addTab(pages.WelcomePage(), "Welcome")
         central_widget.addTab(pages.ParametersPage(), "Parameters")
@@ -109,8 +106,9 @@ class ABLoader(QtWidgets.QWidget):
         thread.start()
 
     def load_finished(self):
-        application.main_window.sync()
-        application.main_window.show()
+        from activity_browser import app
+        app.main_window.sync()
+        app.main_window.show()
         self.deleteLater()
 
 
@@ -126,8 +124,8 @@ class ModuleThread(QtCore.QThread):
         import bw2data, bw2calc, bw2analyzer, bw2io, bw_functional, bw_processing, matrix_utils
         self.status.emit("Loading Activity Browser")
         logger.debug("ABLoader: Importing activity_browser")
-        from activity_browser import actions, layouts, mod, settings, ui, signals
-        from activity_browser.layouts import panes, pages
+        from activity_browser import actions, app, mod, settings, ui
+        from activity_browser.app import panes, pages
         from activity_browser.ui import core, widgets, web, wizards
 
 
@@ -168,8 +166,9 @@ def run_activity_browser():
     setup_logging()
     loader = ABLoader()
     loader.show()
-    application.set_icon()  # setting this here seems to fix the icon not showing sometimes
-    sys.exit(application.exec_())
+
+    app.application.set_icon()  # setting this here seems to fix the icon not showing sometimes
+    sys.exit(app.application.exec_())
 
 
 def run_activity_browser_no_launcher():
@@ -179,12 +178,11 @@ def run_activity_browser_no_launcher():
     modules = ModuleThread()
     modules.run()
 
-    from .ui.widgets import MainWindow, CentralTabWidget
-    from .layouts import panes, pages
+    from .ui.widgets import CentralTabWidget
+    from .app import panes, pages, application
     from activity_browser.bwutils import AB_metadata
     from activity_browser import signals
 
-    application.main_window = MainWindow()
     central_widget = CentralTabWidget(application.main_window)
     central_widget.addTab(pages.WelcomePage(), "Welcome")
     central_widget.addTab(pages.ParametersPage(), "Parameters")

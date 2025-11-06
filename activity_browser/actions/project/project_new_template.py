@@ -4,7 +4,7 @@ from loguru import logger
 import bw2data as bd
 from bw2io import backup
 
-from activity_browser import application, utils
+from activity_browser import app, utils
 from activity_browser.actions.base import ABAction, exception_dialogs
 
 from activity_browser.ui.core.threading import ABThread
@@ -30,7 +30,7 @@ class ProjectNewFromTemplate(ABAction):
             raise ValueError(f"Template key '{template_key}' not found.")
 
         name, ok = QtWidgets.QInputDialog.getText(
-            application.main_window,
+            app.main_window,
             "Create project from template",
             "Name of new project:" + " " * 25,
         )
@@ -40,7 +40,7 @@ class ProjectNewFromTemplate(ABAction):
 
         if name in bd.projects:
             QtWidgets.QMessageBox.information(
-                application.main_window,
+                app.main_window,
                 "Not possible.",
                 "A project with this name already exists.",
             )
@@ -48,7 +48,7 @@ class ProjectNewFromTemplate(ABAction):
 
         # setup dialog
         progress = QtWidgets.QProgressDialog(
-            parent=application.main_window,
+            parent=app.main_window,
             labelText="Creating project from template",
             maximum=0
         )
@@ -61,7 +61,7 @@ class ProjectNewFromTemplate(ABAction):
         progress.show()
 
         # setup the import
-        thread = ImportThread(application)
+        thread = ImportThread(app.application)
         setattr(thread, "path", utils.get_templates()[template_key])
         setattr(thread, "project_name", name)
 

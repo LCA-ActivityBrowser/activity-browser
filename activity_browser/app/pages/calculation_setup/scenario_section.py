@@ -8,7 +8,7 @@ import pandas as pd
 import bw2data as bd
 from activity_browser.bwutils import superstructure as ss
 
-from activity_browser import signals
+from activity_browser import app
 from activity_browser.ui import icons, widgets
 from activity_browser.bwutils import errors
 
@@ -88,9 +88,9 @@ class ScenarioSection(QtWidgets.QWidget):
         self.connect_signals()
 
     def connect_signals(self) -> None:
-        signals.project.changed.connect(self.clear_tables)
-        signals.project.changed.connect(self.can_add_table)
-        signals.parameter_superstructure_built.connect(self.handle_superstructure_signal)
+        app.signals.project.changed.connect(self.clear_tables)
+        app.signals.project.changed.connect(self.can_add_table)
+        app.signals.parameter_superstructure_built.connect(self.handle_superstructure_signal)
 
         self.table_btn.clicked.connect(self.add_table)
         self.table_btn.clicked.connect(self.can_add_table)

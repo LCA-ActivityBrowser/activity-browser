@@ -4,7 +4,7 @@ from stats_arrays import uncertainty_choices as uc
 
 from activity_browser import actions
 
-from activity_browser.signals import signals
+from activity_browser.app import signals
 
 
 class UncertaintyDelegate(QtWidgets.QStyledItemDelegate):

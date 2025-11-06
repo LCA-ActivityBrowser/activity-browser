@@ -6,7 +6,7 @@ from loguru import logger
 from qtpy import QtWidgets, QtCore
 import platformdirs
 
-from activity_browser import application
+from activity_browser import app
 from activity_browser.mod import bw2data as bd
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.ui.core.threading import ABThread
@@ -19,7 +19,7 @@ class ProjectCreateTemplate(ABAction):
     ABAction to export the current project. Prompts the user to return a save-file location. And then start a thread to
     package the project and save it there. Saving code copied from bw2data.backup.
     """
-    icon = application.style().standardIcon(QtWidgets.QStyle.SP_DriveHDIcon)
+    icon = app.application.style().standardIcon(QtWidgets.QStyle.SP_DriveHDIcon)
     text = "Create template for project"
     tool_tip = "Export project to file"
 
@@ -32,7 +32,7 @@ class ProjectCreateTemplate(ABAction):
 
         # get target path from the user
         template_name, ok = QtWidgets.QInputDialog.getText(
-            parent if parent else application.main_window,
+            parent if parent else app.main_window,
             "Create template from project",
             f"Creating new template from project ({project_name}):"
             + " " * 10,
@@ -49,7 +49,7 @@ class ProjectCreateTemplate(ABAction):
 
         if os.path.exists(template_path):
             QtWidgets.QMessageBox.information(
-                application.main_window,
+                app.main_window,
                 "Not possible.",
                 "A template with this name already exists.",
             )
@@ -57,7 +57,7 @@ class ProjectCreateTemplate(ABAction):
 
         # setup dialog
         progress = QtWidgets.QProgressDialog(
-            parent=parent if parent else application.main_window,
+            parent=parent if parent else app.main_window,
             labelText="Creating template",
             maximum=0
         )
@@ -69,7 +69,7 @@ class ProjectCreateTemplate(ABAction):
         progress.resize(400, 100)
         progress.show()
 
-        thread = TemplateThread(application)
+        thread = TemplateThread(app.application)
         setattr(thread, "save_path", template_path)
         setattr(thread, "project_name", project_name)
         thread.finished.connect(lambda: progress.deleteLater())

@@ -4,7 +4,7 @@ import sys
 import subprocess
 import time
 
-from activity_browser import application
+from activity_browser import app
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.ui import icons
 
@@ -36,7 +36,7 @@ class PysideUpgrade(ABAction):
         assert cls.in_conda(), "Not inside a Conda environment"
 
         # setup a progress dialog to show the user we're doing something
-        dialog = QtWidgets.QProgressDialog(application.main_window)
+        dialog = QtWidgets.QProgressDialog(app.main_window)
         dialog.setWindowTitle("Upgrading GUI back-end")
         dialog.setMaximum(0)
         dialog.setCancelButton(None)
@@ -46,7 +46,7 @@ class PysideUpgrade(ABAction):
         lbl.setWordWrap(True)
 
         # initialize thread and connect signals
-        thread = PySideUpgradeThread(application)
+        thread = PySideUpgradeThread(app.application)
         thread.status.connect(update_dialog_slot)
         thread.exit.connect(sys.exit)
 

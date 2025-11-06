@@ -13,6 +13,7 @@ def create_path(folder: str, filename: str) -> str:
 
 
 def empty_icon(size: QSize = QSize(32, 32)) -> QIcon:
+    print("This it?")
     pixmap = QPixmap(size)
     pixmap.fill(Qt.transparent)  # Make the pixmap transparent
     return QIcon(pixmap)

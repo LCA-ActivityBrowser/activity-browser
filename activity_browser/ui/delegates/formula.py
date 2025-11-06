@@ -5,7 +5,7 @@ from asteval import Interpreter
 from qtpy import QtCore, QtGui, QtWidgets
 from qtpy.QtCore import Signal, Slot
 
-from activity_browser import actions, signals
+from activity_browser import actions, app
 
 
 class CalculatorButtons(QtWidgets.QWidget):
@@ -112,7 +112,7 @@ class FormulaDialog(QtWidgets.QDialog):
 
         self.buttons.accepted.connect(self.accept)
         self.buttons.rejected.connect(self.reject)
-        signals.added_parameter.connect(self.append_parameter)
+        app.signals.added_parameter.connect(self.append_parameter)
         self.show()
 
     def insert_parameters(self, items) -> None:

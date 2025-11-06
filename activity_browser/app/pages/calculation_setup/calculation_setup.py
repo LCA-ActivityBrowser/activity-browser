@@ -1,6 +1,6 @@
 from qtpy import QtWidgets
 
-from activity_browser import signals, actions
+from activity_browser import app, actions
 from activity_browser.ui import widgets, icons
 
 from .scenario_section import ScenarioSection
@@ -63,8 +63,8 @@ class CalculationSetupPage(QtWidgets.QWidget):
         self.setLayout(layout)
 
     def connect_signals(self):
-        signals.project.changed.connect(self.sync)
-        signals.meta.calculation_setups_changed.connect(self.sync)
+        app.signals.project.changed.connect(self.sync)
+        app.signals.meta.calculation_setups_changed.connect(self.sync)
 
         self.type_dropdown.currentTextChanged.connect(self.type_switch)
         self.run_button.released.connect(self.run_calculation)

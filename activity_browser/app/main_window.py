@@ -1,21 +1,14 @@
-import pickle
-from loguru import logger
-
-from qtpy import QtCore, QtWidgets, QtGui
+from qtpy import QtCore, QtWidgets
 
 import bw2data as bd
-
-from activity_browser import signals, application
-from activity_browser.ui import icons
-
-from activity_browser.layouts.menu_bar import MenuBar
-
-
+from activity_browser import app
 
 
 class MainWindow(QtWidgets.QMainWindow):
 
     def __init__(self, parent=None):
+        from activity_browser.app.menu_bar import MenuBar
+        
         super().__init__(parent)
 
         self.setLocale(QtCore.QLocale(QtCore.QLocale.English, QtCore.QLocale.UnitedStates))
@@ -47,7 +40,7 @@ class MainWindow(QtWidgets.QMainWindow):
         Args:
             self: The instance of the MainWindow class.
         """
-        from activity_browser.layouts import panes
+        from activity_browser.app import panes
 
         # Clear all existing panes in the main window
         self.clearPanes()
@@ -85,7 +78,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def connect_signals(self):
         # Keyboard shortcuts
-        signals.project.changed.connect(self.sync)
+        app.signals.project.changed.connect(self.sync)
 
     def clearPanes(self):
         for pane in self.panes():

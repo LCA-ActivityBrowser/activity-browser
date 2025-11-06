@@ -7,7 +7,7 @@ from qtpy.QtCore import Qt
 
 import bw2data as bd
 
-from activity_browser import actions, ui, signals, application
+from activity_browser import actions, ui, app
 from activity_browser.settings import project_settings
 from activity_browser.ui import core, widgets, delegates, icons
 from activity_browser.bwutils import AB_metadata, database_is_locked, database_is_legacy
@@ -103,7 +103,7 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
 
     def connect_signals(self):
         AB_metadata.synced.connect(self.on_metadata_changed)
-        signals.database.deleted.connect(self.on_database_deleted)
+        app.signals.database.deleted.connect(self.on_database_deleted)
 
         self.table_view.filtered.connect(self.search_error)
         self.search.textChangedDebounce.connect(self.table_view.setAllFilter)
@@ -195,7 +195,7 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
             reset (bool, optional): Whether to reset the search bar color. Defaults to False.
         """
         if reset:
-            self.search.setPalette(application.palette())
+            self.search.setPalette(app.application.palette())
             return
 
         palette = self.search.palette()

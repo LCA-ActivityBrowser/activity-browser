@@ -5,7 +5,7 @@ from qtpy import QtWidgets, QtGui, QtCore
 import bw2data as bd
 import pandas as pd
 
-from activity_browser import application, signals
+from activity_browser import app
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.bwutils import AB_metadata
 from activity_browser.ui.icons import qicons
@@ -31,7 +31,7 @@ class ProjectMigrate25(ABAction):
         if name is None:
             name = bd.projects.current
 
-        dialog = MigrateDialog(name, application.main_window)
+        dialog = MigrateDialog(name, app.main_window)
         dialog.exec_()
 
         if dialog.result() == dialog.DialogCode.Rejected:
@@ -42,7 +42,7 @@ class ProjectMigrate25(ABAction):
 
         # setup dialog
         progress = QtWidgets.QProgressDialog(
-            parent=application.main_window,
+            parent=app.main_window,
             labelText="Migrating project, this may take a while...",
             maximum=0
         )
@@ -54,7 +54,7 @@ class ProjectMigrate25(ABAction):
         progress.resize(400, 100)
         progress.show()
 
-        thread = MigrateThread(application)
+        thread = MigrateThread(app.application)
         thread.finished.connect(lambda: progress.deleteLater())
         thread.start()
         thread.connect_progress_dialog(progress)
@@ -118,16 +118,16 @@ class MigrateThread(ABThread):
 
         df = df.merge(AB_metadata.dataframe["id"], left_on=["database", "code"], right_index=True)
 
-        signals.method.blockSignals(True)
-        signals.meta.blockSignals(True)
+        app.signals.method.blockSignals(True)
+        app.signals.meta.blockSignals(True)
 
         for name in tqdm(df["method"].unique(), desc="Pre-processing methods", unit="method", total=len(df["method"].unique())):
             method_df = df[df["method"] == name][["id", "value"]]
             method_list = list(method_df.itertuples(index=False, name=None))
             bd.Method(name).write(method_list, process=False)
 
-        signals.method.blockSignals(False)
-        signals.meta.blockSignals(False)
+        app.signals.method.blockSignals(False)
+        app.signals.meta.blockSignals(False)
 
         return
 

@@ -3,7 +3,7 @@ from loguru import logger
 
 from qtpy import QtWidgets
 
-from activity_browser import application
+from activity_browser import app
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.mod import bw2data as bd
 from activity_browser.ui.icons import qicons
@@ -39,7 +39,7 @@ class MethodDuplicate(ABAction):
 
         # retrieve the new name(s) from the user and return if canceled
         dialog = TupleNameDialog.get_combined_name(
-            application.main_window,
+            app.main_window,
             "Impact category name",
             "Combined name:",
             selected_method,

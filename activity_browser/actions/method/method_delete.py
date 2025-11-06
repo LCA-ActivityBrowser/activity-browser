@@ -4,7 +4,7 @@ from loguru import logger
 
 from qtpy import QtWidgets
 
-from activity_browser import application
+from activity_browser import app
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.mod import bw2data as bd
 from activity_browser.ui.icons import qicons
@@ -43,7 +43,7 @@ class MethodDelete(ABAction):
 
         # warn the user about the pending deletion
         warning = QtWidgets.QMessageBox.warning(
-            application.main_window,
+            app.main_window,
             "Deleting Method",
             warning_text,
             QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,

@@ -4,7 +4,7 @@ from qtpy import QtCore, QtWidgets
 
 import bw2data as bd
 
-from activity_browser import signals, bwutils
+from activity_browser import app, bwutils
 from activity_browser.ui import widgets
 
 from .activity_header import ActivityHeader
@@ -103,11 +103,11 @@ class ActivityDetailsPage(QtWidgets.QWidget):
         """
         Connects signals to their respective slots.
         """
-        signals.node.deleted.connect(self.on_node_deleted)
-        signals.database.deleted.connect(self.on_database_deleted)
-        signals.meta.databases_changed.connect(self.syncLater)
-        signals.parameter.recalculated.connect(self.syncLater)
-        signals.node.changed.connect(self.syncLater)
+        app.signals.node.deleted.connect(self.on_node_deleted)
+        app.signals.database.deleted.connect(self.on_database_deleted)
+        app.signals.meta.databases_changed.connect(self.syncLater)
+        app.signals.parameter.recalculated.connect(self.syncLater)
+        app.signals.node.changed.connect(self.syncLater)
 
     def on_node_deleted(self, node):
         """

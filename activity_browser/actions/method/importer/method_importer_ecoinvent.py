@@ -3,7 +3,7 @@ from loguru import logger
 from qtpy import QtWidgets, QtCore
 from qtpy.QtCore import Signal, SignalInstance
 
-from activity_browser import application
+from activity_browser import app
 from activity_browser.mod import bw2data as bd
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.ui import icons, widgets
@@ -25,7 +25,7 @@ class MethodImporterEcoinvent(ABAction):
     def run(cls):
         # get the path from the user
         path, _ = QtWidgets.QFileDialog.getOpenFileName(
-            parent=application.main_window,
+            parent=app.main_window,
             caption='Choose ecoinvent methods excel to import',
             filter='excel spreadsheet (*.xlsx);; All files (*.*)'
         )
@@ -33,7 +33,7 @@ class MethodImporterEcoinvent(ABAction):
             return
 
         # initialize the import thread, setting needed attributes
-        extract_thread = ExtractExcelThread(application)
+        extract_thread = ExtractExcelThread(app.application)
         extract_thread.path = path
         extract_thread.loaded.connect(cls.write_database)
 
@@ -46,12 +46,12 @@ class MethodImporterEcoinvent(ABAction):
     @staticmethod
     def write_database(importer: EcoinventLCIAImporter):
         # show the import setup dialog
-        import_dialog = ImportSetupDialog(importer, application.main_window)
+        import_dialog = ImportSetupDialog(importer, app.main_window)
         if import_dialog.exec_() == QtWidgets.QDialog.Rejected:
             return
 
         # setup the importer thread
-        importer_thread = ImportExcelThread(application)
+        importer_thread = ImportExcelThread(app.application)
         importer_thread.importer = importer
         importer_thread.biosphere_name = import_dialog.biosphere_name
         importer_thread.prepend = import_dialog.prepend

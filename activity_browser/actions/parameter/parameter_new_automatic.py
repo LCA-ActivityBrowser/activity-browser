@@ -3,7 +3,7 @@ from typing import List, Tuple
 from peewee import IntegrityError
 from qtpy import QtWidgets
 
-from activity_browser import application
+from activity_browser import app
 from activity_browser.bwutils import refresh_node
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.mod import bw2data as bd
@@ -31,7 +31,7 @@ class ParameterNewAutomatic(ABAction):
             if act.get("type", "process") not in bd.labels.lci_node_types:
                 issue = f"Activity must be 'process' type, '{act.get('name')}' is type '{act.get('type')}'."
                 QtWidgets.QMessageBox.warning(
-                    application.main_window,
+                    app.main_window,
                     "Not allowed",
                     issue,
                     QtWidgets.QMessageBox.Ok,

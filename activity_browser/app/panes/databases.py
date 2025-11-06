@@ -6,9 +6,9 @@ from qtpy.QtCore import Qt
 import bw2data as bd
 import pandas as pd
 
-from activity_browser import signals, actions, bwutils
+from activity_browser import app, actions, bwutils
 from activity_browser.ui import widgets, icons, delegates, core
-from activity_browser.layouts.menu_bar import ImportDatabaseMenu
+from activity_browser.app.menu_bar import ImportDatabaseMenu
 
 
 class DatabasesPane(widgets.ABAbstractPane):
@@ -44,10 +44,10 @@ class DatabasesPane(widgets.ABAbstractPane):
         """
         Connects the signals to the appropriate slots.
         """
-        signals.meta.databases_changed.connect(self.sync)
-        signals.project.changed.connect(self.sync)
-        signals.database.deleted.connect(self.sync)
-        signals.database_read_only_changed.connect(self.sync)
+        app.signals.meta.databases_changed.connect(self.sync)
+        app.signals.project.changed.connect(self.sync)
+        app.signals.database.deleted.connect(self.sync)
+        app.signals.database_read_only_changed.connect(self.sync)
 
     def build_layout(self):
         """

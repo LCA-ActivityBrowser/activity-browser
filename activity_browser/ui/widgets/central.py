@@ -2,7 +2,7 @@ from loguru import logger
 
 from qtpy import QtWidgets
 
-from activity_browser import signals
+from activity_browser.app import signals
 
 
 

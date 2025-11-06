@@ -5,7 +5,7 @@ import bw2data as bd
 from qtpy import QtGui, QtWidgets
 from qtpy.QtCore import QSize, QUrl
 
-from activity_browser import actions, signals, utils, application
+from activity_browser import actions, utils, app
 
 from ..ui.icons import qicons
 
@@ -138,8 +138,8 @@ class CalculateMenu(QtWidgets.QMenu):
         self.addAction(self.new_cs_action)
         self.addSeparator()
 
-        signals.project.changed.connect(self.sync)
-        signals.meta.calculation_setups_changed.connect(self.sync)
+        app.signals.project.changed.connect(self.sync)
+        app.signals.meta.calculation_setups_changed.connect(self.sync)
 
     def sync(self):
         self.cs_actions.clear()
@@ -163,7 +163,7 @@ class HelpMenu(QtWidgets.QMenu):
             qicons.ab, "&About Activity Browser", self.about
         )
         self.addAction(
-            "&About Qt", lambda: QtWidgets.QMessageBox.aboutQt(application.main_window)
+            "&About Qt", lambda: QtWidgets.QMessageBox.aboutQt(app.main_window)
         )
         self.addAction(
             qicons.question, "&Get help on the wiki", self.open_wiki
@@ -187,7 +187,7 @@ class HelpMenu(QtWidgets.QMenu):
         """
 
         # set up the window
-        about_window = QtWidgets.QMessageBox(parent=application.main_window)
+        about_window = QtWidgets.QMessageBox(parent=app.main_window)
         about_window.setWindowTitle("About the Activity Browser")
         about_window.setIconPixmap(qicons.ab.pixmap(QSize(150, 150)))
         about_window.setText(text)
@@ -245,7 +245,7 @@ class ProjectSelectionMenu(QtWidgets.QMenu):
             action = QtWidgets.QAction(proj.name, self)
             action.setData(proj.name)
             action.setIcon(
-                application.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_MessageBoxWarning) if not bw_25 else qicons.empty)
+                app.application.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_MessageBoxWarning) if not bw_25 else qicons.empty)
 
             self.addAction(action)
 

@@ -2,7 +2,7 @@ from loguru import logger
 
 from qtpy import QtWidgets
 
-from activity_browser import application, signals
+from activity_browser.app import application, signals
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.mod import bw2data as bd
 from activity_browser.ui.icons import qicons

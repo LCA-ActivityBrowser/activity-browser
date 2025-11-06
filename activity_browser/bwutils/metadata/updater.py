@@ -2,11 +2,8 @@ from loguru import logger
 
 import pandas as pd
 import numpy as np
-import timeit
 
 from qtpy import QtCore
-
-from activity_browser import signals, application
 
 from .metadata import MetaDataStore
 from .fields import primary, secondary, all_types
@@ -22,6 +19,7 @@ class MDSUpdater(QtCore.QObject):
         self.connect_signals()
 
     def connect_signals(self):
+        from activity_browser.app import signals
         signals.node.changed.connect(self.on_node_changed)
         signals.node.deleted.connect(self.on_node_deleted)
 

@@ -1,7 +1,7 @@
 from loguru import logger
 from qtpy import QtCore, QtGui, QtWidgets
 
-from activity_browser import application
+from activity_browser import app
 
 
 
@@ -51,7 +51,7 @@ def exception_dialogs(func):
             if not hasattr(e, "dialog_flag"):
                 setattr(e, "dialog_flag", True)
                 QtWidgets.QMessageBox.critical(
-                    application.main_window,
+                    app.main_window,
                     f"An error occurred: {type(e).__name__}",
                     f"An error occurred, check the logs for more information \n\n {str(e)}",
                     QtWidgets.QMessageBox.Ok,

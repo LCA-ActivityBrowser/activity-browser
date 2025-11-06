@@ -109,6 +109,3 @@ def global_shortcut(key_sequence):
     return decorator
 
 _global_shortcuts = {}
-
-
-application = ABApplication()

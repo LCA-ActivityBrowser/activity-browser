@@ -6,7 +6,7 @@ import bw2data as bd
 from bw2data.parameters import Group
 from bw2data.backends.proxies import ExchangeDataset, Exchanges
 
-from activity_browser import application, settings
+from activity_browser import app, settings
 from activity_browser.bwutils import AB_metadata
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.ui.icons import qicons
@@ -67,7 +67,7 @@ class DatabaseDelete(ABAction):
         # ask the user for confirmation
         QtWidgets.QApplication.restoreOverrideCursor()
         response = QtWidgets.QMessageBox.question(
-            application.main_window, build_title(db_names), text
+            app.main_window, build_title(db_names), text
         )
 
         # return if the user cancels

@@ -8,7 +8,7 @@ from bw2data.tests import bw2test
 
 from activity_browser import application
 from activity_browser.ui.widgets import CentralTabWidget
-from activity_browser.layouts import pages, MainWindow
+from activity_browser.app import pages, MainWindow
 
 
 @pytest.fixture

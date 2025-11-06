@@ -5,7 +5,7 @@ from qtpy import QtWidgets
 
 import bw2data as bd
 
-from activity_browser import application, signals
+from activity_browser import app
 from activity_browser.ui import dialogs
 from activity_browser.actions.base import ABAction, exception_dialogs
 
@@ -50,7 +50,7 @@ class MethodRename(ABAction):
         dialog = dialogs.ABListEditDialog(
             method_name,
             title="Rename Impact Category",
-            parent=application.main_window,
+            parent=app.main_window,
         )
 
         # execute the dialog and check for acceptance
@@ -77,7 +77,7 @@ class MethodRename(ABAction):
 
         # this should not happen like this, as the model and therefore signals should be handled declaritavely,
         # but since method renaming is not native to bw2data we have to do it manually here
-        signals.method.renamed.emit(method_name, new_name)
+        app.signals.method.renamed.emit(method_name, new_name)
 
         # deregister old method
         method.deregister()

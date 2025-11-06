@@ -4,19 +4,16 @@ from typing import Literal
 
 import pandas as pd
 
-from qtpy.QtCore import Qt, QObject, Signal, SignalInstance, QTimer
+from qtpy.QtCore import QObject, Signal, SignalInstance, QTimer
 
 from .fields import all, all_types
-
-
-
 
 
 class MetaDataStore(QObject):
     synced: SignalInstance = Signal(set, set, set)  # added, updated, deleted
 
     def __init__(self, parent=None):
-        from activity_browser import application
+        from activity_browser import app
         from .loader import MDSLoader
         from .updater import MDSUpdater
 
@@ -32,7 +29,7 @@ class MetaDataStore(QObject):
         self.updater = MDSUpdater(self)
         self.flusher: QTimer | None = None
         
-        self.moveToThread(application.thread())
+        self.moveToThread(app.application.thread())
 
     @property
     def dataframe(self) -> pd.DataFrame:
@@ -112,5 +109,3 @@ class MetaDataStore(QObject):
         if db_name not in self.databases:
             return pd.DataFrame(columns=all)
         return self.dataframe.loc[[db_name], columns or all]
-
-AB_metadata = MetaDataStore()

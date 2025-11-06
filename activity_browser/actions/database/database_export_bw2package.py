@@ -3,7 +3,7 @@ from typing import List
 
 from qtpy import QtWidgets
 
-from activity_browser import application
+from activity_browser.app import application
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.ui import widgets
 from activity_browser.bwutils import exporters

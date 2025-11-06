@@ -12,7 +12,7 @@ import bw2io as bi
 from qtpy import QtWidgets, QtCore
 from qtpy.QtCore import Signal, SignalInstance
 
-from activity_browser import application, signals
+from activity_browser.app import application, signals
 from activity_browser.ui import widgets, icons
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.bwutils.io.ecoinvent_importer import Ecoinvent7zImporter

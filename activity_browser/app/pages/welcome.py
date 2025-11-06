@@ -2,7 +2,7 @@ import os
 
 from qtpy import QtWebEngineWidgets, QtWidgets, QtCore, QtGui, QtWebChannel
 
-from activity_browser import actions, signals
+from activity_browser import actions, app
 from activity_browser.static import startscreen
 from activity_browser.bwutils import projects_by_last_opened
 
@@ -31,7 +31,7 @@ class WelcomePage(QtWidgets.QWidget):
         self.setLayout(self.vl)
 
         self.bridge.ready.connect(self.update_welcome)
-        signals.project.changed.connect(lambda: self.page.load(self.url))
+        app.signals.project.changed.connect(lambda: self.page.load(self.url))
 
     def update_welcome(self):
         projects = projects_by_last_opened()

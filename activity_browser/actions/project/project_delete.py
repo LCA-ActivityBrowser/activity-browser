@@ -6,7 +6,7 @@ import bw2data as bd
 from bw2data.project import ProjectDataset
 from bw2data.utils import safe_filename
 
-from activity_browser import settings, application
+from activity_browser import settings, app
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.ui.icons import qicons
 
@@ -45,7 +45,7 @@ class ProjectDelete(ABAction):
 
     @staticmethod
     @exception_dialogs
-    def run(project_names: [str] = None):
+    def run(project_names: list[str] = None):
         if project_names is None:
             # get the current project
             project_names = [bd.projects.current]
@@ -56,14 +56,14 @@ class ProjectDelete(ABAction):
         # if it's the startup project: reject deletion and inform user
         if settings.ab_settings.startup_project in project_names:
             QtWidgets.QMessageBox.information(
-                application.main_window,
+                app.main_window,
                 "Not possible",
                 "Can't delete the startup project. Please select another startup project in the settings first.",
             )
             return
 
         # open a delete dialog for the user to confirm, return if user rejects
-        delete_dialog = ProjectDeletionDialog(project_names, application.main_window)
+        delete_dialog = ProjectDeletionDialog(project_names, app.main_window)
         if delete_dialog.exec_() != ProjectDeletionDialog.Accepted:
             return
 
@@ -76,7 +76,7 @@ class ProjectDelete(ABAction):
 
         # inform the user of successful deletion
         QtWidgets.QMessageBox.information(
-            application.main_window, "Project(s) deleted", "Project(s) successfully deleted"
+            app.main_window, "Project(s) deleted", "Project(s) successfully deleted"
         )
 
     @staticmethod
@@ -94,7 +94,7 @@ class ProjectDelete(ABAction):
 
 class ProjectDeletionDialog(QtWidgets.QDialog):
 
-    def __init__(self, projects: [str], parent=None):
+    def __init__(self, projects: list[str], parent=None):
         super().__init__(parent)
 
         self.title = "Confirm project deletion"

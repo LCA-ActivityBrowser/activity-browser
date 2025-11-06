@@ -3,7 +3,7 @@ from loguru import logger
 
 from qtpy import QtWidgets
 
-from activity_browser import application
+from activity_browser import app
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.ui import icons, widgets
 from activity_browser.bwutils.importers import ABPackage
@@ -24,7 +24,7 @@ class DatabaseImporterBW2Package(ABAction):
     def run(cls):
         # get the path from the user
         path, _ = QtWidgets.QFileDialog.getOpenFileName(
-            parent=application.main_window,
+            parent=app.main_window,
             caption='Choose .bw2package to import',
             filter='Brightway2 Database Package (*.bw2package);; All files (*.*)'
         )
@@ -38,7 +38,7 @@ class DatabaseImporterBW2Package(ABAction):
         }
 
         # show the import setup dialog
-        import_dialog = ImportSetup(parent=application.main_window, title="Import Database", context=context)
+        import_dialog = ImportSetup(parent=app.main_window, title="Import Database", context=context)
         import_dialog.exec_()
 
 

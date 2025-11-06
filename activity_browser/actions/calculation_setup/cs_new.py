@@ -4,7 +4,7 @@ from qtpy import QtWidgets
 
 import bw2data as bd
 
-from activity_browser import application, actions
+from activity_browser import app, actions
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.bwutils import refresh_node
 from activity_browser.ui.icons import qicons
@@ -51,7 +51,7 @@ class CSNew(ABAction):
         # throw error if the name is already present, and return
         if name in bd.calculation_setups:
             QtWidgets.QMessageBox.warning(
-                application.main_window,
+                app.main_window,
                 "Not possible",
                 "A calculation setup with this name already exists.",
             )
@@ -80,7 +80,7 @@ class CSNew(ABAction):
         """
         # prompt the user to give a name for the new calculation setup
         name, ok = QtWidgets.QInputDialog.getText(
-            application.main_window,
+            app.main_window,
             "Create new calculation setup",
             "Name of new calculation setup:" + " " * 10,
         )

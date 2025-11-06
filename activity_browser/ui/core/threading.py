@@ -15,8 +15,8 @@ class ABThread(QThread):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        from activity_browser import application
-        self.exception.connect(application.main_window.dialog_on_exception)
+        from activity_browser import app
+        self.exception.connect(app.main_window.dialog_on_exception)
 
     def start(self, *args, priority=QThread.NormalPriority, **kwargs):
         """

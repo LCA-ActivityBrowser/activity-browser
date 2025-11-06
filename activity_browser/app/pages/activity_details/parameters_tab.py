@@ -3,7 +3,7 @@ from qtpy import QtWidgets, QtCore
 import pandas as pd
 import bw2data as bd
 
-from activity_browser import signals, actions
+from activity_browser import app, actions
 from activity_browser.ui import widgets, icons, delegates
 from activity_browser.bwutils import refresh_node, refresh_parameter, parameters_in_scope, Parameter, database_is_locked
 from activity_browser.bwutils import node_group
@@ -53,9 +53,9 @@ class ParametersTab(QtWidgets.QWidget):
         """
         Connects signals to their respective slots.
         """
-        signals.parameter.changed.connect(self.sync)
-        signals.parameter.recalculated.connect(self.sync)
-        signals.parameter.deleted.connect(self.sync)
+        app.signals.parameter.changed.connect(self.sync)
+        app.signals.parameter.recalculated.connect(self.sync)
+        app.signals.parameter.deleted.connect(self.sync)
 
     def sync(self):
         """

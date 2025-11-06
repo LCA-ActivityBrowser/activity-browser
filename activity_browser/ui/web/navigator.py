@@ -9,7 +9,7 @@ import networkx as nx
 from qtpy import QtWidgets
 from qtpy.QtCore import Slot
 
-from activity_browser import signals
+from activity_browser import app
 from bw2data import Database, get_activity, databases, Edge
 from bw2data.backends import ExchangeDataset, ActivityDataset
 
@@ -198,7 +198,7 @@ class GraphNavigatorWidget(BaseNavigatorWidget):
 
     @Slot(name="reload_graph")
     def reload_graph(self) -> None:
-        signals.new_statusbar_message.emit("Reloading graph")
+        app.signals.new_statusbar_message.emit("Reloading graph")
         self.graph.update(delete_unstacked=False)
 
     @Slot(object, name="update_graph")

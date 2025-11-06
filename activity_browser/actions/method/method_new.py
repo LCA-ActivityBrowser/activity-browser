@@ -2,15 +2,11 @@ from loguru import logger
 
 from qtpy import QtWidgets
 
-from activity_browser import application
+from activity_browser import app
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.mod import bw2data as bd
 from activity_browser.ui.icons import qicons
 from activity_browser.ui import dialogs
-
-from .method_open import MethodOpen
-
-
 
 
 class MethodNew(ABAction):
@@ -37,7 +33,7 @@ class MethodNew(ABAction):
     @exception_dialogs
     def run():
         # Open dialog to get new method name
-        dialog = dialogs.ABListEditDialog(("New Impact Category",), parent=application.main_window)
+        dialog = dialogs.ABListEditDialog(("New Impact Category",), parent=app.main_window)
         dialog.setWindowTitle("New Impact Category")
         
         if dialog.exec_() != QtWidgets.QDialog.Accepted:
@@ -48,7 +44,7 @@ class MethodNew(ABAction):
         # Validate new name
         if len(new_name) == 0:
             QtWidgets.QMessageBox.warning(
-                application.main_window,
+                app.main_window,
                 "Invalid Name",
                 "Impact category name cannot be empty.",
             )
@@ -56,7 +52,7 @@ class MethodNew(ABAction):
 
         if new_name in bd.methods:
             QtWidgets.QMessageBox.warning(
-                application.main_window,
+                app.main_window,
                 "Name Already Exists",
                 f"An impact category with the name '{' | '.join(new_name)}' already exists.",
             )
@@ -70,10 +66,10 @@ class MethodNew(ABAction):
         logger.info(f"Created new impact category: {new_name}")
 
         # Open the method in the ImpactCategoryDetails page
-        from activity_browser.layouts import pages
+        from activity_browser.app import pages
         
         page = pages.ImpactCategoryDetailsPage(new_name)
-        central = application.main_window.centralWidget()
+        central = app.main_window.centralWidget()
         central.addToGroup("Characterization Factors", page)
         
         # Set the page to edit mode

@@ -1,4 +1,4 @@
-from activity_browser import application
+from activity_browser import app
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.ui.icons import qicons
 
@@ -16,6 +16,6 @@ class DatabaseExplorerOpen(ABAction):
     @staticmethod
     @exception_dialogs
     def run(db_name: str):
-        from activity_browser.layouts.panes import DatabaseExplorerPane
-        db_explorer = DatabaseExplorerPane(db_name, application.main_window)
+        from activity_browser.app.panes import DatabaseExplorerPane
+        db_explorer = DatabaseExplorerPane(db_name, app.main_window)
         db_explorer.show()

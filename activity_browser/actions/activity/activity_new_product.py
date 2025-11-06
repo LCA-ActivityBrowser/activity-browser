@@ -6,7 +6,7 @@ import bw2data as bd
 
 from bw_functional import Process
 
-from activity_browser import application, bwutils
+from activity_browser import app, bwutils
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.ui.icons import qicons
 
@@ -49,7 +49,7 @@ class ActivityNewProduct(ABAction):
         for act in activities:
             assert isinstance(act, Process), "Cannot create new product for non-process type"
             # Ask the user to provide a name for the new product
-            dialog = NewProductDialog(act, product_type, application.main_window)
+            dialog = NewProductDialog(act, product_type, app.main_window)
             # If the user cancels, skip to the next activity
             if dialog.exec_() != QtWidgets.QDialog.Accepted:
                 continue

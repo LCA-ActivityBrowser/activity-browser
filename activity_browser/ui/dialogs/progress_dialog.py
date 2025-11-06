@@ -1,6 +1,6 @@
 from qtpy.QtWidgets import QProgressDialog
 
-from activity_browser import application
+from activity_browser.app import application
 from activity_browser.mod.tqdm import qt_tqdm
 from activity_browser.mod.pyprind import qt_pyprind
 

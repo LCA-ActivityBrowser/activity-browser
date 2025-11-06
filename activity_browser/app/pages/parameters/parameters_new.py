@@ -5,7 +5,7 @@ import bw2data as bd
 from bw2data.parameters import ProjectParameter, DatabaseParameter, ActivityParameter, ParameterizedExchange
 from bw2data.backends import ExchangeDataset
 
-from activity_browser import signals, actions
+from activity_browser import app, actions
 from activity_browser.ui import widgets, icons, delegates
 from activity_browser.bwutils import refresh_parameter, refresh_node, Parameter, database_is_locked, AB_metadata
 
@@ -88,11 +88,11 @@ class ParametersPage(QtWidgets.QWidget):
         Connects signals to their respective slots.
         """
         AB_metadata.synced.connect(self.sync)
-        signals.parameter.changed.connect(self.sync)
-        signals.parameter.recalculated.connect(self.sync)
-        signals.parameter.deleted.connect(self.sync)
-        signals.project.changed.connect(self.sync)
-        signals.meta.databases_changed.connect(self.sync)
+        app.signals.parameter.changed.connect(self.sync)
+        app.signals.parameter.recalculated.connect(self.sync)
+        app.signals.parameter.deleted.connect(self.sync)
+        app.signals.project.changed.connect(self.sync)
+        app.signals.meta.databases_changed.connect(self.sync)
 
     def sync(self):
         """

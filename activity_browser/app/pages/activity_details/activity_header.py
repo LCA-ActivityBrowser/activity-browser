@@ -3,7 +3,7 @@ from qtpy import QtWidgets, QtCore, QtGui
 import bw2data as bd
 import bw_functional as bf
 
-from activity_browser import actions, bwutils, application
+from activity_browser import app, actions, bwutils
 from activity_browser.ui import widgets
 
 
@@ -290,7 +290,7 @@ class LockedWarningBar(QtWidgets.QToolBar):
         height = warning_label.minimumSizeHint().height()
 
         warning_icon = QtWidgets.QLabel(self)
-        qicon = application.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_MessageBoxWarning)
+        qicon = app.application.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_MessageBoxWarning)
         pixmap = qicon.pixmap(height, height)
         warning_icon.setPixmap(pixmap)
 

@@ -3,7 +3,7 @@ from loguru import logger
 import bw2data as bd
 import bw_functional as bf
 
-from activity_browser import signals, bwutils, application
+from activity_browser import bwutils, app
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.ui.icons import qicons
 
@@ -41,7 +41,7 @@ class ActivityOpen(ABAction):
         Logs:
             Warning: If an activity type is not supported.
         """
-        from activity_browser.layouts import pages
+        from activity_browser.app import pages
 
         # Refresh the activity nodes to ensure they are up-to-date
         activities = [bwutils.refresh_node(activity) for activity in activities]
@@ -56,7 +56,7 @@ class ActivityOpen(ABAction):
 
             # Create a details page for the activity
             page = pages.ActivityDetailsPage(act)
-            central = application.main_window.centralWidget()
+            central = app.main_window.centralWidget()
 
             # Add the details page to the "Activity Details" group in the central widget
             central.addToGroup("Activity Details", page)

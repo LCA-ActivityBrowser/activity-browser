@@ -5,7 +5,7 @@ from qtpy.QtCore import Signal, SignalInstance
 
 import bw2data as bd
 
-from activity_browser import application
+from activity_browser import app
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.ui import widgets
 from activity_browser.bwutils.importers import ABExcelImporter
@@ -25,7 +25,7 @@ class DatabaseImporterExcel(ABAction):
     def run(cls):
         # get the path from the user
         path, _ = QtWidgets.QFileDialog.getOpenFileName(
-            parent=application.main_window,
+            parent=app.main_window,
             caption='Choose brightway excel database to import',
             filter='excel spreadsheet (*.xlsx);; All files (*.*)'
         )

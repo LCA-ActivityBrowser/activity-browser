@@ -8,7 +8,7 @@ from qtpy.QtCore import Signal, Slot
 from stats_arrays import uncertainty_choices as uncertainty
 from stats_arrays.distributions import *
 
-from activity_browser import actions, application
+from activity_browser import actions, app
 from activity_browser.ui.widgets.plot import ABPlot
 
 from ...bwutils import PedigreeMatrix, get_uncertainty_interface
@@ -165,7 +165,7 @@ class UncertaintyWizard(QtWidgets.QWizard):
                         actions.ParameterModify.run(self.obj.data, "amount", mean)
                     except Exception as e:
                         QtWidgets.QMessageBox.warning(
-                            application.main_window,
+                            app.main_window,
                             "Could not save changes",
                             str(e),
                             QtWidgets.QMessageBox.Ok,

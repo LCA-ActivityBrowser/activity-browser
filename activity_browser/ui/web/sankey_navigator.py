@@ -15,7 +15,7 @@ from qtpy import QtWidgets
 from qtpy.QtCore import Slot
 from qtpy.QtWidgets import QComboBox
 
-from activity_browser import signals
+from activity_browser import app
 from activity_browser.mod import bw2data as bd
 from bw2data.backends import ActivityDataset
 
@@ -87,7 +87,7 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
     def connect_signals(self):
         super().connect_signals()
         self.button_calculate.clicked.connect(self.new_sankey)
-        signals.database_selected.connect(self.set_database)
+        app.signals.database_selected.connect(self.set_database)
         # checkboxes
         self.func_unit_cb.currentIndexChanged.connect(self.new_sankey)
         self.method_cb.currentIndexChanged.connect(self.new_sankey)

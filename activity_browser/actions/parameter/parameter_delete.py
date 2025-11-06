@@ -1,6 +1,6 @@
 from typing import Any
 
-from activity_browser import signals
+from activity_browser import app
 from activity_browser.actions.base import ABAction, exception_dialogs
 from bw2data import get_activity
 from bw2data.parameters import (ActivityParameter, Group,
@@ -56,4 +56,4 @@ class ParameterDelete(ABAction):
 
         # No fire when everything is still fresh after recalculation, so need to fire manually to be sure everything is
         # updated correctly.
-        signals.parameter.recalculated.emit()
+        app.signals.parameter.recalculated.emit()

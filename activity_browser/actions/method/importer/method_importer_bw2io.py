@@ -3,7 +3,7 @@ from loguru import logger
 
 from qtpy.QtCore import Signal, SignalInstance
 
-from activity_browser import application
+from activity_browser import app
 from activity_browser.actions.base import exception_dialogs
 from activity_browser.ui import icons, widgets
 from activity_browser.bwutils.io.ecoinvent_lcia_importer import EcoinventLCIAImporter
@@ -25,7 +25,7 @@ class MethodImporterBW2IO(MethodImporterEcoinvent):
     @exception_dialogs
     def run(cls):
         # initialize the import thread, setting needed attributes
-        extract_thread = ExtractMethodsThread(application)
+        extract_thread = ExtractMethodsThread(app.application)
         extract_thread.loaded.connect(cls.write_database)
 
         # show progress dialog for importing the excel

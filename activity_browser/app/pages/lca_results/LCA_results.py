@@ -11,7 +11,7 @@ from qtpy import QtCore, QtGui, QtWidgets
 
 from stats_arrays.errors import InvalidParamsError
 
-from activity_browser import signals, bwutils, settings
+from activity_browser import app, bwutils, settings
 from activity_browser.mod.bw2analyzer import ABContributionAnalysis
 from activity_browser.ui import icons, web, widgets
 
@@ -1884,7 +1884,7 @@ class MonteCarloTab(NewAnalysisTab):
         QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
         try:
             self.parent.mc.calculate(iterations=iterations, seed=seed, **includes)
-            signals.monte_carlo_finished.emit()
+            app.signals.monte_carlo_finished.emit()
             self.update_mc()
         except (
             InvalidParamsError
@@ -2053,7 +2053,7 @@ class GSATab(NewAnalysisTab):
 
     def connect_signals(self):
         self.button_run.clicked.connect(self.calculate_gsa)
-        signals.monte_carlo_finished.connect(self.monte_carlo_finished)
+        app.signals.monte_carlo_finished.connect(self.monte_carlo_finished)
 
     def add_GSA_ui_elements(self):
         # H-LAYOUT SETTINGS ROW 1
@@ -2250,7 +2250,7 @@ class MonteCarloWorkerThread(QtCore.QThread):
         self.mc.calculate(iterations=self.iterations)
         # res = bw.GraphTraversal().calculate(self.demand, self.method, self.cutoff, self.max_calc)
         logger.info("in thread {}".format(QtCore.QThread.currentThread()))
-        signals.monte_carlo_ready.emit(self.mc.cs_name)
+        app.signals.monte_carlo_ready.emit(self.mc.cs_name)
 
 
 worker_thread = MonteCarloWorkerThread()

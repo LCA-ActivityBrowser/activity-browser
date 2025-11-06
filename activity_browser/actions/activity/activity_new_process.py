@@ -3,7 +3,7 @@ from uuid import uuid4
 from qtpy.QtWidgets import QDialog
 import bw2data as bd
 
-from activity_browser import application, bwutils
+from activity_browser import app, bwutils
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.ui.icons import qicons
 from activity_browser.ui.dialogs.new_node_dialog import NewNodeDialog
@@ -24,7 +24,7 @@ class ActivityNewProcess(ABAction):
     @exception_dialogs
     def run(database_name: str):
         # ask the user to provide a name for the new activity
-        dialog = NewNodeDialog(application.main_window)
+        dialog = NewNodeDialog(app.main_window)
         # if the user cancels, return
         if dialog.exec_() != QDialog.Accepted:
             return

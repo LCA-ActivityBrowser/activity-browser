@@ -5,7 +5,7 @@ from qtpy import QtWidgets, QtCore
 
 import bw2data as bd
 
-from activity_browser import application, signals
+from activity_browser import app
 from activity_browser.actions.base import ABAction, exception_dialogs
 
 from .project_migrate25 import ProjectMigrate25
@@ -43,9 +43,9 @@ class ProjectSwitch(ABAction):
             logger.debug(f"Brightway2 already selected: {project_name}")
             return
 
-        dialog = ProjectChangeDialog(project_name, application.main_window)
+        dialog = ProjectChangeDialog(project_name, app.main_window)
         dialog.show()
-        application.thread().eventDispatcher().processEvents(QtCore.QEventLoop.ProcessEventsFlag.AllEvents)
+        app.application.thread().eventDispatcher().processEvents(QtCore.QEventLoop.ProcessEventsFlag.AllEvents)
 
         # switch to the new project, don't auto update to brightway25
         bd.projects.set_current(project_name, update=False)
@@ -64,7 +64,7 @@ class ProjectSwitch(ABAction):
 
     @staticmethod
     def set_warning_bar():
-        application.main_window.addToolBar(ProjectWarningBar())
+        app.main_window.addToolBar(ProjectWarningBar())
 
 
 class ProjectChangeDialog(QtWidgets.QDialog):
@@ -89,7 +89,7 @@ class ProjectWarningBar(QtWidgets.QToolBar):
         height = warning_label.minimumSizeHint().height()
 
         warning_icon = QtWidgets.QLabel(self)
-        qicon = application.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_MessageBoxWarning)
+        qicon = app.application.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_MessageBoxWarning)
         pixmap = qicon.pixmap(height, height)
         warning_icon.setPixmap(pixmap)
 
@@ -100,7 +100,7 @@ class ProjectWarningBar(QtWidgets.QToolBar):
         self.addWidget(warning_label)
         self.addWidget(migrate_label)
 
-        signals.project.changed.connect(self.deleteLater)
+        app.signals.project.changed.connect(self.deleteLater)
 
     def contextMenuEvent(self, event):
         return None

@@ -4,7 +4,7 @@ from qtpy.QtCore import Qt
 import bw2data as bd
 import pandas as pd
 
-from activity_browser import actions, signals
+from activity_browser import actions, app
 from activity_browser.ui import widgets, icons, delegates
 from activity_browser.bwutils import AB_metadata, is_node_biosphere
 
@@ -36,9 +36,9 @@ class ImpactCategoryDetailsPage(QtWidgets.QWidget):
         self.view.resizeColumnToContents(1)
 
     def connect_signals(self):
-        signals.method.renamed.connect(self.on_method_renamed)
-        signals.method.deleted.connect(self.on_method_deleted)
-        signals.meta.methods_changed.connect(self.sync)
+        app.signals.method.renamed.connect(self.on_method_renamed)
+        app.signals.method.deleted.connect(self.on_method_deleted)
+        app.signals.meta.methods_changed.connect(self.sync)
 
     def on_method_renamed(self, old_name, new_name):
         if self.name == old_name:

@@ -11,7 +11,7 @@ import bw2data as bd
 import platformdirs
 from qtpy.QtWidgets import QMessageBox
 
-from .signals import signals
+from .app import signals
 
 
 DEFAULT_BW_DATA_DIR = bd.projects._base_data_dir

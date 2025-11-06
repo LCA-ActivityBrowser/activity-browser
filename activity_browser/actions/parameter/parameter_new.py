@@ -2,7 +2,7 @@ from typing import Tuple
 
 from qtpy import QtCore, QtGui, QtWidgets
 
-from activity_browser import actions, application
+from activity_browser import actions, app
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.bwutils import commontasks as bc
 from activity_browser.mod import bw2data as bd
@@ -35,7 +35,7 @@ class ParameterNew(ABAction):
     @exception_dialogs
     def run(activity_key: Tuple[str, str]):
         # instantiate the ParameterWizard
-        wizard = ParameterWizard(activity_key, application.main_window)
+        wizard = ParameterWizard(activity_key, app.main_window)
 
         # return if the wizard is canceled
         if wizard.exec_() != QtWidgets.QWizard.Accepted:
