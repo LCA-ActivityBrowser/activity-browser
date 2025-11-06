@@ -6,13 +6,9 @@ from loguru import logger
 from typing import Literal, Callable
 
 import pandas as pd
-import bw2data as bd
-from bw2data.backends import sqlite3_lci_db
 
 from .metadata import MetaDataStore
 from .fields import secondary_types, primary, secondary
-
-
 
 
 class MDSLoader():
@@ -34,6 +30,8 @@ class MDSLoader():
         self.load_project()
 
     def load_project(self):
+        import bw2data as bd
+        from bw2data.backends import sqlite3_lci_db
         # set statuses
         self.primary_status = "loading"
         self.secondary_status = "loading"
@@ -50,6 +48,8 @@ class MDSLoader():
         self.primary_load_project()
 
     def primary_load_project(self):
+        from bw2data.backends import sqlite3_lci_db
+
         with sqlite3.connect(sqlite3_lci_db._filepath) as con:
             fields = ', '.join(primary[1:])  # Exclude 'key' as it's constructed
             primary_df = pd.read_sql(f"SELECT {fields} FROM activitydataset", con)
@@ -66,6 +66,8 @@ class MDSLoader():
         self.primary_status = "done"
 
     def secondary_load_project(self, secondary_df: pd.DataFrame, sqlite_db: str):
+        from bw2data.backends import sqlite3_lci_db
+
         if sqlite_db != str(sqlite3_lci_db._filepath):
             return
 
@@ -79,6 +81,8 @@ class MDSLoader():
         self.secondary_status = "done"
 
     def load_database(self, database_name: str):
+        from bw2data.backends import sqlite3_lci_db
+
         # start loading thread for secondary metadata
         thread = SecondaryLoadThread(
             databases=[database_name],
@@ -91,6 +95,8 @@ class MDSLoader():
         self.primary_load_database(database_name)
 
     def primary_load_database(self, database_name: str):
+        from bw2data.backends import sqlite3_lci_db
+
         with sqlite3.connect(sqlite3_lci_db._filepath) as con:
             fields = ', '.join(primary[1:])  # Exclude 'key' as it's constructed
             primary_df = pd.read_sql(f"SELECT {fields} FROM activitydataset WHERE database = '{database_name}'", con)
@@ -105,6 +111,8 @@ class MDSLoader():
             self.mds.register_mutation(idx, "add")
 
     def secondary_load_database(self, secondary_df: pd.DataFrame, sqlite_db: str):
+        from bw2data.backends import sqlite3_lci_db
+
         if secondary_df.empty or sqlite_db != str(sqlite3_lci_db._filepath):
             return
 
