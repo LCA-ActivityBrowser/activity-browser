@@ -1,7 +1,7 @@
 import bw2data as bd
 from qtpy import QtWidgets
 
-from activity_browser import actions, application
+from activity_browser import actions, app
 
 
 def test_database_delete(monkeypatch, basic_database):
@@ -31,7 +31,7 @@ def test_database_duplicate(monkeypatch, qtbot, basic_database):
 
     actions.DatabaseDuplicate.run(basic_database.name)
 
-    dialog = application.main_window.findChild(DuplicateDatabaseDialog)
+    dialog = app.main_window.findChild(DuplicateDatabaseDialog)
     with qtbot.waitSignal(dialog.dup_thread.finished, timeout=60 * 1000):
         pass
 
@@ -55,7 +55,7 @@ def test_database_export_excel(monkeypatch, qtbot, basic_database, tmp_path):
     actions.DatabaseExportExcel.run([basic_database.name])
     
     # Find the wizard dialog and wait for the export thread to finish
-    wizard = application.main_window.findChild(ExportExcelSetup)
+    wizard = app.main_window.findChild(ExportExcelSetup)
     assert wizard is not None
     
     # Wait for the export thread to finish
@@ -83,7 +83,7 @@ def test_database_export_bw2package(monkeypatch, qtbot, basic_database, tmp_path
     actions.DatabaseExportBW2Package.run([basic_database.name])
     
     # Find the wizard dialog and wait for the export thread to finish
-    wizard = application.main_window.findChild(ExportBW2PackageSetup)
+    wizard = app.main_window.findChild(ExportBW2PackageSetup)
     assert wizard is not None
     
     # Wait for the export thread to finish

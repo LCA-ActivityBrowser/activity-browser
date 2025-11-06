@@ -20,6 +20,9 @@ class MetaDataStore():
         from .loader import MDSLoader
         from .updater import MDSUpdater
 
+        if self._initialized:
+            return
+
         self._dataframe = pd.DataFrame()
 
         self._added: set[tuple[str, str]] = set()
@@ -28,6 +31,8 @@ class MetaDataStore():
 
         self.loader = MDSLoader(self)
         self.updater = MDSUpdater(self)
+
+        self._initialized = True
 
     @property
     def dataframe(self) -> pd.DataFrame:

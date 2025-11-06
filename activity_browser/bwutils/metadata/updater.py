@@ -95,6 +95,9 @@ class MDSUpdater():
         self.mds.loader.load_database(db_name)
 
     def delete_database(self, db_name: str):
+        if db_name not in self.mds.databases:
+            return
+
         for code in self.mds.dataframe.loc[db_name].index:
             self.mds.register_mutation((db_name, code), "delete")
 

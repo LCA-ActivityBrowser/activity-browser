@@ -1,7 +1,7 @@
 import pytest
 from stats_arrays.distributions import NoUncertainty, UndefinedUncertainty, UniformUncertainty
 
-from activity_browser import actions, application
+from activity_browser import actions
 from activity_browser.ui.dialogs import UncertaintyDialog
 
 

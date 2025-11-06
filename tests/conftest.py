@@ -6,10 +6,6 @@ import bw2data as bd
 import bw_functional as bf
 from bw2data.tests import bw2test
 
-from activity_browser import application
-from activity_browser.ui.widgets import CentralTabWidget
-from activity_browser.app import pages, MainWindow
-
 
 @pytest.fixture
 def no_exception_dialogs(monkeypatch):
@@ -24,13 +20,19 @@ def no_exception_dialogs(monkeypatch):
 @pytest.fixture()
 def main_window(qtbot, monkeypatch, no_exception_dialogs):
     """Return the main window of the application instance."""
-    main_window = MainWindow()
+    from activity_browser import app
+    from activity_browser.app import pages
+    from activity_browser.ui.widgets import CentralTabWidget
+
+    app.MainWindow._instance = None  # Reset singleton instance for testing
+    main_window = app.MainWindow()
     central_widget = CentralTabWidget(main_window)
 
     qtbot.addWidget(main_window)
-    setattr(application, "main_window", main_window)
+    setattr(app.application, "main_window", main_window)
+    setattr(app, "main_window", main_window)
 
-    central_widget.addTab(pages.WelcomePage(), "Welcome")
+    # central_widget.addTab(pages.WelcomePage(), "Welcome")
     central_widget.addTab(pages.ParametersPage(), "Parameters")
 
     main_window.setCentralWidget(central_widget)

@@ -3,7 +3,7 @@ import bw2data as bd
 from bw2data.errors import BW2Exception
 from qtpy import QtWidgets
 
-from activity_browser import actions, application
+from activity_browser import app, actions
 
 
 def test_activity_delete(monkeypatch, basic_database):
@@ -74,7 +74,7 @@ def test_process_open(basic_database):
 
     actions.ActivityOpen.run([process.key])
 
-    group = application.main_window.centralWidget().groups["Activity Details"]
+    group = app.main_window.centralWidget().groups["Activity Details"]
     assert "activity_details_basic_process" in [group.widget(i).objectName() for i in range(group.count())]
 
 

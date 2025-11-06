@@ -41,7 +41,7 @@ class ABThreadedWizardPage(ABWizardPage):
     Thread: type["ABThread"]
 
     def __init__(self, parent=None):
-        from activity_browser import application
+        from activity_browser.app import application
 
         super().__init__(parent)
 

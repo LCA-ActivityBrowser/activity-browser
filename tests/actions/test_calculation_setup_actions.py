@@ -1,6 +1,4 @@
-import pytest
 import bw2data as bd
-from bw2data.errors import BW2Exception
 from qtpy import QtWidgets
 
 from activity_browser import actions

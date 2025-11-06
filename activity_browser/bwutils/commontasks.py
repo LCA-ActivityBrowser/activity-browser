@@ -392,7 +392,7 @@ def generate_copy_code(key: tuple) -> str:
         .apply(lambda x: x[1] if code in x[1] and "_copy" in x[1] else None)
         .dropna()
         .to_list()
-        if not metadata.empty
+        if not meta.empty
         else []
     )
     if not copies:

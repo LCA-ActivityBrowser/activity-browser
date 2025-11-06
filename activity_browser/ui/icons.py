@@ -13,31 +13,9 @@ def create_path(folder: str, filename: str) -> str:
 
 
 def empty_icon(size: QSize = QSize(32, 32)) -> QIcon:
-    print("This it?")
     pixmap = QPixmap(size)
     pixmap.fill(Qt.transparent)  # Make the pixmap transparent
     return QIcon(pixmap)
-
-
-# CURRENTLY UNUSED ICONS
-
-# Modular LCA (keep until this is reintegrated)
-# add_db = create_path('metaprocess', 'add_database.png')
-# close_db = create_path('metaprocess', 'close_database.png')
-# cut = create_path('metaprocess', 'cut.png')
-# debug = create_path('main', 'ladybird.png')
-# duplicate = create_path('metaprocess', 'duplicate.png')
-# graph_lmp = create_path('metaprocess', 'graph_linkedmetaprocess.png')
-# graph_mp = create_path('metaprocess', 'graph_metaprocess.png')
-# load_db = create_path('metaprocess', 'open_database.png')
-# metaprocess = create_path('metaprocess', 'metaprocess.png')
-# new = create_path('metaprocess', 'new_metaprocess.png')
-# save_db = create_path('metaprocess', 'save_database.png')
-# save_mp = create_path('metaprocess', 'save_metaprocess.png')
-
-# key = create_path('main', 'key.png')
-# search = create_path('main', 'search.png')
-# switch = create_path('main', 'switch-state.png')
 
 
 icons = dict(
@@ -102,6 +80,15 @@ icons = dict(
 )
 
 
-qicons = type("QIcons", (object,), {k: QIcon(v) for k, v in icons.items()})
-qicons.empty = empty_icon()
+class QIcons:
+    """Lazily loads QIcon instances only when accessed."""
+    def __getattribute__(self, name):
+        if name == 'empty':
+            return empty_icon()
+        elif name in icons:
+            return QIcon(icons[name])
+        else:
+            raise AttributeError(f"QIcons has no icon '{name}'")
+
+qicons = QIcons()
 

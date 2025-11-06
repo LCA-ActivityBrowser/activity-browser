@@ -1,7 +1,8 @@
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
-from matplotlib.figure import Figure
+
 from qtpy import QtWidgets
 
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
+from matplotlib.figure import Figure
 
 class ABPlot(QtWidgets.QWidget):
     ALL_FILTER = "All Files (*.*)"
