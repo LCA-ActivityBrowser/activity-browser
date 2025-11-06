@@ -19,8 +19,7 @@ from bw2io.strategies import (assign_only_product_as_production,
                               normalize_biosphere_names, normalize_units,
                               set_code_by_activity_hash,
                               strip_biosphere_exc_locations)
-
-from activity_browser.mod import bw2data as bd
+import bw2data as bd
 
 from .errors import LinkingFailed
 from .strategies import (alter_database_name, csv_rewrite_product_key,

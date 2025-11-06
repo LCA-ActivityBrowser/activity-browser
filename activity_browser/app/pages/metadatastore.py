@@ -1,7 +1,7 @@
 from qtpy import QtWidgets
 
 from activity_browser.ui import widgets, delegates
-from activity_browser.bwutils import AB_metadata
+from activity_browser.app import metadata, signals
 
 
 class MetaDataStorePage(QtWidgets.QWidget):
@@ -9,7 +9,7 @@ class MetaDataStorePage(QtWidgets.QWidget):
         super().__init__(parent)
         self.setObjectName("MetaDataStorePage")
 
-        self.model = MDSModel(self, AB_metadata.dataframe)
+        self.model = MDSModel(self, metadata.dataframe)
         self.view = MDSView(self)
         self.view.setModel(self.model)
 
@@ -17,10 +17,10 @@ class MetaDataStorePage(QtWidgets.QWidget):
         self.connect_signals()
 
     def connect_signals(self):
-        AB_metadata.synced.connect(self.sync)
+        signals.metadata.synced.connect(self.sync)
 
     def sync(self):
-        self.model.setDataFrame(AB_metadata.dataframe)
+        self.model.setDataFrame(metadata.dataframe)
 
     def build_layout(self):
         layout = QtWidgets.QVBoxLayout()

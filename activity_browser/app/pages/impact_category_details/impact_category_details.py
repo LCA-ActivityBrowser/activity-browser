@@ -6,7 +6,7 @@ import pandas as pd
 
 from activity_browser import actions, app
 from activity_browser.ui import widgets, icons, delegates
-from activity_browser.bwutils import AB_metadata, is_node_biosphere
+from activity_browser.bwutils import is_node_biosphere
 
 from .impact_category_header import ImpactCategoryHeader
 
@@ -71,7 +71,7 @@ class ImpactCategoryDetailsPage(QtWidgets.QWidget):
         df["amount"] = df["data"].apply(lambda x: x if isinstance(x, (float, int)) else x.get("amount"))
         df["uncertainty"] = df["data"].apply(lambda x: 0 if isinstance(x, (float, int)) else x.get("uncertainty type"))
 
-        other = AB_metadata.dataframe[["id", "name", "categories", "database", "unit"]]
+        other = app.metadata.dataframe[["id", "name", "categories", "database", "unit"]]
 
         df = df.merge(other, left_on="id", right_on="id").rename(columns={"id": "_id", "data": "_cf"})
         df["_impact_category_name"] = [self.name for i in range(len(df))]

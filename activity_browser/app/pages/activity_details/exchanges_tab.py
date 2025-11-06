@@ -8,8 +8,8 @@ import bw2data as bd
 
 import bw_functional as bf
 
-from activity_browser import actions, bwutils
-from activity_browser.bwutils import refresh_node, AB_metadata, database_is_locked, database_is_legacy
+from activity_browser import actions, bwutils, app
+from activity_browser.bwutils import refresh_node, database_is_locked, database_is_legacy
 from activity_browser.ui import widgets, icons, delegates
 
 
@@ -138,7 +138,7 @@ class ExchangesTab(QtWidgets.QWidget):
         # Create a DataFrame from the exchanges
         exc_df = pd.DataFrame(exchanges, columns=["amount", "input", "formula", "uncertainty type", "comment"])
         exc_df["type"] = [x["type"] for x in exchanges]
-        act_df = AB_metadata.get_metadata(exc_df["input"].unique(), cols)
+        act_df = app.metadata.get_metadata(exc_df["input"].unique(), cols)
 
         # Merge the exchanges DataFrame with the metadata DataFrame
         df = exc_df.merge(
@@ -263,7 +263,7 @@ class RelinkDelegate(delegates.StringDelegate):
 
         del setup[self.column]
 
-        self.matched = AB_metadata.match(**setup)
+        self.matched = app.metadata.match(**setup)
 
         combo = QtWidgets.QComboBox(parent)
         combo.addItems(list(self.matched.get(self.column, []).astype(str)))

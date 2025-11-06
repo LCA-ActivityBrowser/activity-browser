@@ -12,8 +12,6 @@ if sys.platform == "win32":
     import ctypes
     ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("activity.browser.1")
 
-from activity_browser import app
-
 from loguru import logger
 import platformdirs
 from .static.icons import main
@@ -88,8 +86,7 @@ class ABLoader(QtWidgets.QWidget):
 
     def load_layout(self):
         from .ui.widgets import CentralTabWidget
-        from .app import panes, pages, application
-        from activity_browser.bwutils import AB_metadata
+        from .app import pages, application
 
         central_widget = CentralTabWidget(application.main_window)
         central_widget.addTab(pages.WelcomePage(), "Welcome")
@@ -122,12 +119,6 @@ class ModuleThread(QtCore.QThread):
         self.status.emit("Loading Brightway25")
         logger.debug("ABLoader: Importing brightway modules")
         import bw2data, bw2calc, bw2analyzer, bw2io, bw_functional, bw_processing, matrix_utils
-        self.status.emit("Loading Activity Browser")
-        logger.debug("ABLoader: Importing activity_browser")
-        from activity_browser import actions, app, mod, settings, ui
-        from activity_browser.app import panes, pages
-        from activity_browser.ui import core, widgets, web, wizards
-
 
 class SettingsThread(QtCore.QThread):
     def run(self):
@@ -162,13 +153,16 @@ def setup_logging():
 
 
 def run_activity_browser():
+    from activity_browser.ui.core.application import ABApplication
+    app = ABApplication()
+
     pre_flight_checks()
     setup_logging()
     loader = ABLoader()
     loader.show()
 
-    app.application.set_icon()  # setting this here seems to fix the icon not showing sometimes
-    sys.exit(app.application.exec_())
+    app.set_icon()  # setting this here seems to fix the icon not showing sometimes
+    sys.exit(app.exec_())
 
 
 def run_activity_browser_no_launcher():
@@ -179,8 +173,7 @@ def run_activity_browser_no_launcher():
     modules.run()
 
     from .ui.widgets import CentralTabWidget
-    from .app import panes, pages, application
-    from activity_browser.bwutils import AB_metadata
+    from .app import panes, pages, application, metadata
     from activity_browser import signals
 
     central_widget = CentralTabWidget(application.main_window)

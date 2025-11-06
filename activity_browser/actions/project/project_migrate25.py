@@ -7,7 +7,6 @@ import pandas as pd
 
 from activity_browser import app
 from activity_browser.actions.base import ABAction, exception_dialogs
-from activity_browser.bwutils import AB_metadata
 from activity_browser.ui.icons import qicons
 from activity_browser.ui.core.threading import ABThread
 
@@ -116,7 +115,7 @@ class MigrateThread(ABThread):
                            if isinstance(v[0], tuple) and len(v) == 2 and len(v[0]) == 2],
                           columns=["method", "database", "code", "value"])
 
-        df = df.merge(AB_metadata.dataframe["id"], left_on=["database", "code"], right_index=True)
+        df = df.merge(app.metadata.dataframe["id"], left_on=["database", "code"], right_index=True)
 
         app.signals.method.blockSignals(True)
         app.signals.meta.blockSignals(True)

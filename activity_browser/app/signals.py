@@ -1,7 +1,7 @@
 from loguru import logger
 from time import time
 
-from qtpy.QtCore import QObject, Signal, SignalInstance
+from qtpy.QtCore import QObject, Signal, SignalInstance, QTimer
 from blinker import signal as blinker_signal
 
 
@@ -50,6 +50,33 @@ class MetaSignals(QObject):
     calculation_setups_changed: SignalInstance = Signal(object, object)
 
 
+class MetaDataSignals(QObject):
+    """Signals for MetaDataStore updates."""
+    synced: SignalInstance = Signal(set, set, set)  # added, updated, deleted
+    
+    def __init__(self, parent=None):
+        from activity_browser.bwutils.metadata import MetaDataStore
+        super().__init__(parent)
+
+        self._metadata = MetaDataStore()
+        self._flusher = QTimer(self, interval=100)
+        self._flusher.timeout.connect(self._flush_metadata)
+        self._flusher.start()
+
+    def _flush_metadata(self):
+        if not (self._metadata._added or self._metadata._updated or self._metadata._deleted):
+            return
+
+        t = time()
+        self.synced.emit(self._metadata._added, self._metadata._updated, self._metadata._deleted)
+
+        self._metadata._added.clear()
+        self._metadata._updated.clear()
+        self._metadata._deleted.clear()
+
+        logger.debug(f"Metadatastore sync signal completed in {time() - t:.2f} seconds")
+
+
 class ABSignals(QObject):
     """Signals used for the Activity Browser should be defined here.
     While arguments can be passed to signals, it is good practice not to do this if possible.
@@ -62,6 +89,7 @@ class ABSignals(QObject):
     database = DatabaseSignals()
     project = ProjectSignals()
     meta = MetaSignals()
+    metadata = MetaDataSignals()
     parameter = ParameterSignals()
 
     import_project = Signal()  # Import a project

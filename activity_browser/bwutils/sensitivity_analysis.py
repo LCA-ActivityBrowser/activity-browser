@@ -13,11 +13,10 @@ from loguru import logger
 import bw2calc as bc
 import numpy as np
 import pandas as pd
+import bw2data as bd
 from SALib.analyze import delta
 
-from activity_browser.mod import bw2data as bd
-
-from ..settings import ab_settings
+# from ..settings import ab_settings
 from .montecarlo import MonteCarloLCA, perform_MonteCarlo_LCA
 
 try:
@@ -474,11 +473,15 @@ class GlobalSensitivityAnalysis(object):
         return save_name
 
     def export_GSA_output(self):
+        from ..settings import ab_settings
+
         save_name = "gsa_output_" + self.get_save_name()
         self.df_final.to_excel(os.path.join(ab_settings.data_dir, save_name))
 
     def export_GSA_input(self):
         """Export the input data to the GSA with a human readible index"""
+        from ..settings import ab_settings
+
         X_with_index = pd.DataFrame(self.X.T, index=self.metadata.index)
         save_name = "gsa_input_" + self.get_save_name()
         X_with_index.to_excel(os.path.join(ab_settings.data_dir, save_name))

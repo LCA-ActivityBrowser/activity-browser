@@ -7,7 +7,6 @@ from bw2data.parameters import Group
 from bw2data.backends.proxies import ExchangeDataset, Exchanges
 
 from activity_browser import app, settings
-from activity_browser.bwutils import AB_metadata
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.ui.icons import qicons
 
@@ -51,7 +50,7 @@ class DatabaseDelete(ABAction):
         # get the total record count from all databases
         total_records = 0
         for db_name in db_names:
-            n_records = AB_metadata.dataframe[AB_metadata.dataframe["database"] == db_name].shape[0]
+            n_records = app.metadata.dataframe[app.metadata.dataframe["database"] == db_name].shape[0]
             total_records += n_records
 
         # construct warning text

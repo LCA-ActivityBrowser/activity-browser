@@ -151,7 +151,7 @@ class ActivityLocation(QtWidgets.QLineEdit):
         super().__init__(parent.activity.get("location"), parent)
         self.editingFinished.connect(self.change_location)
 
-        locations = set(bwutils.AB_metadata.dataframe.get("location", ["GLO"]))
+        locations = set(app.metadata.dataframe.get("location", ["GLO"]))
         completer = QtWidgets.QCompleter(locations, self)
         self.setCompleter(completer)
 

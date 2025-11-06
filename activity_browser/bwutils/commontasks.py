@@ -14,7 +14,6 @@ from bw2data.errors import UnknownObject
 
 from functools import lru_cache
 
-from .metadata import AB_metadata
 from .utils import Parameter
 
 
@@ -165,8 +164,9 @@ def count_database_records(name: str) -> int:
     """To account for possible brightway database types that do not implement
     the __len__ method.
     """
+    from activity_browser.app import metadata
     try:
-        return len(AB_metadata.dataframe.loc[name])
+        return len(metadata.dataframe.loc[name])
     except KeyError:
         return 0
 
@@ -381,12 +381,14 @@ def identify_activity_type(activity):
 
 def generate_copy_code(key: tuple) -> str:
     """Generate a new code to use when copying an activity"""
+    from activity_browser.app import metadata
+    
     db, code = key
-    metadata = AB_metadata.get_database_metadata(db)
+    meta = metadata.get_database_metadata(db)
     if "_copy" in code:
         code = code.split("_copy")[0]
     copies = (
-        metadata["key"]
+        meta["key"]
         .apply(lambda x: x[1] if code in x[1] and "_copy" in x[1] else None)
         .dropna()
         .to_list()

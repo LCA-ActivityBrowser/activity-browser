@@ -25,7 +25,6 @@ from bw2data.backends import ActivityDataset
 from activity_browser.utils import get_base_path
 from .base import BaseGraph, BaseNavigatorWidget
 from ..widgets.combobox import CheckableComboBox
-from ...bwutils import AB_metadata
 from ...bwutils.commontasks import identify_activity_type
 
 

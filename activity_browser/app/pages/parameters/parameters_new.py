@@ -7,7 +7,7 @@ from bw2data.backends import ExchangeDataset
 
 from activity_browser import app, actions
 from activity_browser.ui import widgets, icons, delegates
-from activity_browser.bwutils import refresh_parameter, refresh_node, Parameter, database_is_locked, AB_metadata
+from activity_browser.bwutils import refresh_parameter, refresh_node, Parameter, database_is_locked
 
 
 class ParametersPage(QtWidgets.QWidget):
@@ -87,7 +87,7 @@ class ParametersPage(QtWidgets.QWidget):
         """
         Connects signals to their respective slots.
         """
-        AB_metadata.synced.connect(self.sync)
+        app.signals.metadata.synced.connect(self.sync)
         app.signals.parameter.changed.connect(self.sync)
         app.signals.parameter.recalculated.connect(self.sync)
         app.signals.parameter.deleted.connect(self.sync)
@@ -194,8 +194,8 @@ class ParametersPage(QtWidgets.QWidget):
                 output_key = exchange.get("output")
                 
                 # Get metadata from metadata store
-                input_meta = AB_metadata.get_metadata([input_key], ["name", "unit", "location", "database", "product"]).iloc[0]
-                output_meta = AB_metadata.get_metadata([output_key], ["name"]).iloc[0]
+                input_meta = app.metadata.get_metadata([input_key], ["name", "unit", "location", "database", "product"]).iloc[0]
+                output_meta = app.metadata.get_metadata([output_key], ["name"]).iloc[0]
                 
                 row = {
                     "amount": exchange.get("amount"),

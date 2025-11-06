@@ -3,7 +3,7 @@ from loguru import logger
 from activity_browser import app
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.ui.icons import qicons
-from activity_browser.app.application import global_shortcut
+from activity_browser.ui.core.application import global_shortcut
 
 
 

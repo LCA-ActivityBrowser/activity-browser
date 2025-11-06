@@ -3,17 +3,11 @@ from time import time
 from typing import Optional, Union
 from loguru import logger
 
+import bw2data as bd
 import bw2calc as bc
 import bw2data as bd
 import numpy as np
 import pandas as pd
-from stats_arrays import MCRandomNumberGenerator
-
-from activity_browser.mod import bw2data as bd
-
-from .manager import MonteCarloParameterManager
-
-
 
 
 class MonteCarloLCA(object):

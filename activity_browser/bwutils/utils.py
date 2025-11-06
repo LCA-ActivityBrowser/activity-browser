@@ -4,7 +4,6 @@ from typing import Iterable, List, NamedTuple, Optional
 
 import numpy as np
 import peewee as pw
-from stats_arrays import UncertaintyBase
 
 import bw2data as bd
 from bw2data.backends import ActivityDataset, ExchangeDataset

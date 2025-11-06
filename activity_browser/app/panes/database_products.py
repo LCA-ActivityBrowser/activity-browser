@@ -10,7 +10,7 @@ import bw2data as bd
 from activity_browser import actions, ui, app
 from activity_browser.settings import project_settings
 from activity_browser.ui import core, widgets, delegates, icons
-from activity_browser.bwutils import AB_metadata, database_is_locked, database_is_legacy
+from activity_browser.bwutils import database_is_locked, database_is_legacy
 
 
 NODETYPES = {
@@ -102,7 +102,7 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
         self.setLayout(layout)
 
     def connect_signals(self):
-        AB_metadata.synced.connect(self.on_metadata_changed)
+        app.signals.metadata.synced.connect(self.on_metadata_changed)
         app.signals.database.deleted.connect(self.on_database_deleted)
 
         self.table_view.filtered.connect(self.search_error)
@@ -120,7 +120,7 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
         Updates the loading state based on whether primary metadata has loaded.
         Shows the loading indicator if primary data is still loading, otherwise shows the table.
         """
-        if AB_metadata.loader.secondary_status == "done":
+        if app.metadata.loader.secondary_status == "done":
             # Show table view
             self.stacked_layout.setCurrentIndex(1)
         else:
@@ -153,7 +153,7 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
         """
         t = time()
         cols = ["name", "key", "processor", "product", "type", "unit", "location", "id", "categories", "properties"]
-        df = AB_metadata.get_database_metadata(self.database.name, cols)
+        df = app.metadata.get_database_metadata(self.database.name, cols)
 
         processors = set(df["processor"].dropna().unique())
         df = df.drop(processors, errors="ignore")

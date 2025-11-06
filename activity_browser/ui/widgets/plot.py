@@ -1,12 +1,6 @@
-from loguru import logger
-
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 from qtpy import QtWidgets
-
-from activity_browser.utils import savefilepath
-
-
 
 
 class ABPlot(QtWidgets.QWidget):
@@ -45,6 +39,8 @@ class ABPlot(QtWidgets.QWidget):
 
     def to_png(self):
         """Export to .png format."""
+        from activity_browser.utils import savefilepath
+
         filepath = savefilepath(
             default_file_name=self.plot_name, file_filter=self.PNG_FILTER
         )
@@ -54,7 +50,9 @@ class ABPlot(QtWidgets.QWidget):
             self.figure.savefig(filepath)
 
     def to_svg(self):
-        """Export to .svg format."""
+        """Export to .svg format."""      
+        from activity_browser.utils import savefilepath
+        
         filepath = savefilepath(
             default_file_name=self.plot_name, file_filter=self.SVG_FILTER
         )

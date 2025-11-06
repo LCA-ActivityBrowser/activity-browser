@@ -4,20 +4,21 @@ from typing import Literal
 
 import pandas as pd
 
-from qtpy.QtCore import QObject, Signal, SignalInstance, QTimer
-
 from .fields import all, all_types
 
 
-class MetaDataStore(QObject):
-    synced: SignalInstance = Signal(set, set, set)  # added, updated, deleted
-
-    def __init__(self, parent=None):
-        from activity_browser import app
+class MetaDataStore():
+    _instance = None
+    
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            cls._instance._initialized = False
+        return cls._instance
+    
+    def __init__(self):
         from .loader import MDSLoader
         from .updater import MDSUpdater
-
-        super().__init__(parent)
 
         self._dataframe = pd.DataFrame()
 
@@ -27,9 +28,6 @@ class MetaDataStore(QObject):
 
         self.loader = MDSLoader(self)
         self.updater = MDSUpdater(self)
-        self.flusher: QTimer | None = None
-        
-        self.moveToThread(app.application.thread())
 
     @property
     def dataframe(self) -> pd.DataFrame:
@@ -65,22 +63,6 @@ class MetaDataStore(QObject):
             self._updated.discard(key)
         else:
             raise ValueError(f"Unknown action: {action}")
-
-        if not self.flusher:
-            self.flusher = QTimer(self, interval=100)
-            self.flusher.timeout.connect(self.flush_mutations)
-            self.flusher.start()
-
-    def flush_mutations(self):
-        if not (self._added or self._updated or self._deleted):
-            return
-
-        t = time()
-        self.synced.emit(self._added, self._updated, self._deleted)
-
-        self._added.clear(), self._updated.clear(), self._deleted.clear()
-
-        logger.debug(f"Metadatastore sync signal completed in {time() - t:.2f} seconds")
 
     def match(self, **kwargs: dict[str, str]) -> pd.DataFrame:
         """Return a slice of the dataframe matching the criteria.

@@ -5,9 +5,8 @@ from qtpy import QtWidgets, QtCore, QtGui
 
 import bw2data as bd
 
-from activity_browser.bwutils import AB_metadata
 from activity_browser.ui import widgets
-from activity_browser.app import application, signals
+from activity_browser.app import application, signals, metadata
 
 
 
@@ -59,7 +58,7 @@ class DatabaseExplorerPane(widgets.ABAbstractPane):
         # connect signals
         signals.database.deleted.connect(self.deleteLater)
         signals.project.changed.connect(self.deleteLater)
-        AB_metadata.synced.connect(self.sync)
+        signals.metadata.synced.connect(self.sync)
         self.table_view.filtered.connect(self.search_error)
 
     def sync(self):
@@ -69,7 +68,7 @@ class DatabaseExplorerPane(widgets.ABAbstractPane):
         import sqlite3
         from bw2data.backends import sqlite3_lci_db
 
-        full_df = AB_metadata.get_database_metadata(self.database.name)
+        full_df = metadata.get_database_metadata(self.database.name)
 
         con = sqlite3.connect(sqlite3_lci_db._filepath)
         sql = f"SELECT output_code FROM exchangedataset WHERE output_database == '{self.database.name}'"

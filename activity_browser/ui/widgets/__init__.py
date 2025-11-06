@@ -1,3 +1,4 @@
+from .plot import ABPlot
 from .abstract_pane import ABAbstractPane
 from .comparison_switch import SwitchComboBox
 from .cutoff_menu import CutoffMenu
@@ -20,5 +21,4 @@ from .label import ABLabel
 from .central import CentralTabWidget
 from .menu import ABMenu
 from .drop_overlay import ABDropOverlay
-from .plot import ABPlot
 from .tree_view import ABNewTreeView

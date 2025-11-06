@@ -1514,7 +1514,7 @@ class FirstTierContributionsTab(ContributionTab):
         format:
         [reference product, activity name, location, unit, database]
         """
-        return list(bwutils.AB_metadata.get_metadata([key], ["reference product", "name", "location", "unit"]).iloc[0]) + [key[0]]
+        return list(app.metadata.get_metadata([key], ["reference product", "name", "location", "unit"]).iloc[0]) + [key[0]]
 
     def metadata_to_index(self, data: list) -> str:
         """Convert list to formatted index.

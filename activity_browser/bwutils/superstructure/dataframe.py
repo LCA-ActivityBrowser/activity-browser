@@ -10,12 +10,14 @@ import bw_functional as bf
 from qtpy.QtCore import Qt
 from qtpy.QtWidgets import QApplication, QPushButton
 
+from activity_browser.bwutils.metadata import MetaDataStore
 from ..errors import ScenarioDatabaseNotFoundError
-from ..metadata import AB_metadata
 from ..utils import Index
 from .activities import data_from_index
 from .file_dialogs import ABPopup
 from .utils import SUPERSTRUCTURE
+
+metadata = MetaDataStore()
 
 
 def superstructure_from_arrays(
@@ -123,7 +125,7 @@ def arrays_from_indexed_superstructure(
 ) -> Tuple[np.ndarray, np.ndarray]:
     result = np.zeros(df.shape[0], dtype=object)
 
-    meta = AB_metadata.dataframe["id"]
+    meta = metadata.dataframe["id"]
     meta.index = meta.index.to_flat_index()
 
     id_df = pd.merge(df, meta, left_on="input", right_index=True).rename(columns={"id":"input_id"})
@@ -285,8 +287,8 @@ def scenario_replace_databases(df_: pd.DataFrame, replacements: dict) -> pd.Data
     changes = ["from database", "from key", "to database", "to key"]
 
     # Load all required databases into the metadata
-    AB_metadata.add_metadata(replacements.values())
-    metadata = AB_metadata.dataframe
+    metadata.add_metadata(replacements.values())
+    meta = metadata.dataframe
 
     for idx in df.index:
         df.loc[idx, changes] = exchange_replace_database(

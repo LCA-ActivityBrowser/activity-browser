@@ -4,9 +4,9 @@ from qtpy.QtCore import Qt
 import bw2data as bd
 import pandas as pd
 
-from activity_browser import actions
+from activity_browser import actions, app
 from activity_browser.ui import widgets, icons, delegates
-from activity_browser.bwutils import AB_metadata, is_node_product
+from activity_browser.bwutils import is_node_product
 
 
 class FunctionalUnitSection(QtWidgets.QWidget):
@@ -44,7 +44,7 @@ class FunctionalUnitSection(QtWidgets.QWidget):
                 keys.append(key)
                 amounts.append(amount)
 
-        act_df = AB_metadata.get_metadata(keys, cols)
+        act_df = app.metadata.get_metadata(keys, cols)
         act_df["amount"] = amounts
         act_df["_activity_key"] = keys
         act_df["_cs_name"] = self.calculation_setup_name
@@ -53,7 +53,7 @@ class FunctionalUnitSection(QtWidgets.QWidget):
         act_df["_processor_key"] = act_df["_processor_key"].fillna(act_df["_activity_key"])
 
         # Retrieve metadata for unique processor keys, focusing on the "name" column.
-        processor_df = AB_metadata.get_metadata(act_df["_processor_key"].unique(), ["name"])
+        processor_df = app.metadata.get_metadata(act_df["_processor_key"].unique(), ["name"])
 
         # Flatten the index of the processor DataFrame to ensure compatibility with merging.
         processor_df.index = processor_df.index.to_flat_index()

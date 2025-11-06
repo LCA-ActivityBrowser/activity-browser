@@ -8,15 +8,22 @@ from qtpy.QtGui import QFontDatabase
 from activity_browser.static import fonts, icons
 
 
-
-
 class ABApplication(QtWidgets.QApplication):
     _main_window = None
-    _controllers = None
+    _instance = None
 
     windows = []
+        
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            cls._instance._initialized = False
+        return cls._instance
 
     def __init__(self, *args, **kwargs):
+        if self._initialized:
+            return
+
         QtCore.QCoreApplication.setAttribute(Qt.AA_ShareOpenGLContexts, True)
         QtCore.QCoreApplication.setAttribute(Qt.AA_UseSoftwareOpenGL)
 
@@ -29,6 +36,8 @@ class ABApplication(QtWidgets.QApplication):
 
         if PYSIDE6:
             self.pyside6_setup()
+        
+        self._initialized = True
 
     def add_fonts(self):
         QFontDatabase.addApplicationFont(fonts.__path__[0] + "/mono.ttf")

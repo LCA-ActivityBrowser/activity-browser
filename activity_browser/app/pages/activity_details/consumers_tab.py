@@ -4,7 +4,7 @@ import pandas as pd
 import bw2data as bd
 import bw_functional as bf
 
-from activity_browser import actions, bwutils
+from activity_browser import actions, bwutils, app
 from activity_browser.ui import widgets, icons
 
 
@@ -71,8 +71,8 @@ class ConsumersTab(QtWidgets.QWidget):
             pd.DataFrame: The DataFrame containing the exchanges data.
         """
         exc_df = pd.DataFrame(exchanges, columns=["amount", "input", "output"])
-        input_df = bwutils.AB_metadata.get_metadata(exc_df["input"].unique(), ["name", "type", "unit", "key"])
-        output_df = bwutils.AB_metadata.get_metadata(exc_df["output"].unique(), ["name", "type", "key"])
+        input_df = app.metadata.get_metadata(exc_df["input"].unique(), ["name", "type", "unit", "key"])
+        output_df = app.metadata.get_metadata(exc_df["output"].unique(), ["name", "type", "key"])
 
         df = exc_df.merge(
             input_df.rename({"name": "product", "type": "_product_type"}, axis="columns"),
