@@ -1,6 +1,5 @@
 from loguru import logger
 
-from activity_browser import bwutils
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.mod import bw2data as bd
 

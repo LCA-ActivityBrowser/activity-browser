@@ -3,7 +3,7 @@ from typing import List
 import bw2data as bd
 import bw_functional as bf
 
-from activity_browser import bwutils
+from activity_browser.bwutils.commontasks import refresh_edge, exchanges_to_sdf
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.ui.icons import qicons
 
@@ -21,7 +21,7 @@ class ExchangeSDFToClipboard(ABAction):
     @staticmethod
     @exception_dialogs
     def run(exchanges: List[int | bd.Edge]):
-        exchanges = [bwutils.refresh_edge(edge) for edge in exchanges]
+        exchanges = [refresh_edge(edge) for edge in exchanges]
 
         virtual_exchanges = []
         for exchange in exchanges:
@@ -30,5 +30,5 @@ class ExchangeSDFToClipboard(ABAction):
             else:
                 virtual_exchanges.append(exchange.as_dict())
 
-        df = bwutils.exchanges_to_sdf(virtual_exchanges)
+        df = exchanges_to_sdf(virtual_exchanges)
         df.to_clipboard(excel=True, index=False)

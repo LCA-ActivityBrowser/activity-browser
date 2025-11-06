@@ -1,6 +1,7 @@
 from qtpy import QtWidgets, QtCore
 
-from activity_browser import app, bwutils
+from activity_browser import app
+from activity_browser.bwutils.commontasks import refresh_node
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.ui.icons import qicons
 
@@ -18,7 +19,7 @@ class ProcessPropertyModify(ABAction):
 
     Args:
         process (tuple | int | Process): The process to modify. Can be a tuple, integer, or Process object.
-        property_name (str, optional): The name of the property to modify. Defaults to None.
+            property_name (str, optional): The name of the property to modify. Defaults to None.
 
     Raises:
         ValueError: If the provided process is not of type Process.
@@ -33,7 +34,7 @@ class ProcessPropertyModify(ABAction):
             property_name: str = None
             ):
 
-        process = bwutils.refresh_node(process)
+        process = refresh_node(process)
         if not isinstance(process, Process):
             raise ValueError(f"Expected a Process-type activity, got {type(process)} instead")
 

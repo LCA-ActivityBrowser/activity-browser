@@ -11,7 +11,9 @@ from qtpy import QtCore, QtGui, QtWidgets
 
 from stats_arrays.errors import InvalidParamsError
 
-from activity_browser import app, bwutils, settings
+from activity_browser import app, settings
+from activity_browser.bwutils.commontasks import unit_of_method, get_LCIA_method_name_dict, format_activity_label
+from activity_browser.bwutils.sensitivity_analysis import GlobalSensitivityAnalysis
 from activity_browser.mod.bw2analyzer import ABContributionAnalysis
 from activity_browser.ui import icons, web, widgets
 
@@ -56,7 +58,7 @@ def get_unit(method: tuple, relative: bool = False) -> str:
     if relative:
         return "relative share"
     if method:  # for all reference flows
-        return bwutils.commontasks.unit_of_method(method)
+        return unit_of_method(method)
     return "units of each impact category"
 
 
@@ -102,7 +104,7 @@ class LCAResultsPage(QtWidgets.QTabWidget):
         self.cs_name, self.mlca, self.contributions, self.mc = cs_name, mlca, contributions, mc
         self.cs = bd.calculation_setups[self.cs_name]
         self.has_scenarios: bool = hasattr(mlca, "scenario_names")
-        self.method_dict = bwutils.commontasks.get_LCIA_method_name_dict(self.mlca.methods)
+        self.method_dict = get_LCIA_method_name_dict(self.mlca.methods)
         self.single_func_unit = len(self.mlca.func_units) == 1
         self.single_method = len(self.mlca.methods) == 1
 
@@ -816,7 +818,7 @@ class LCAScoresTab(NewAnalysisTab):
         method = self.parent.mlca.methods[method_index]
         df = self.parent.mlca.get_results_for_method(method_index)
         labels = [
-            bwutils.commontasks.format_activity_label(next(iter(fu.keys())), style="pnld")
+            format_activity_label(next(iter(fu.keys())), style="pnld")
             for fu in self.parent.mlca.func_units
         ]
         idx = self.layout.indexOf(self.plot)
@@ -2008,7 +2010,7 @@ class GSATab(NewAnalysisTab):
         super(GSATab, self).__init__(parent)
         self.parent = parent
 
-        self.GSA = bwutils.GlobalSensitivityAnalysis(self.parent.mc)
+        self.GSA = GlobalSensitivityAnalysis(self.parent.mc)
 
         header_ = QtWidgets.QToolBar()
         _header = header("Global Sensitivity Analysis")

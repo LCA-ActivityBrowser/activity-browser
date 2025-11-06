@@ -6,7 +6,8 @@ from qtpy.QtCore import Qt
 import bw2data as bd
 import pandas as pd
 
-from activity_browser import app, actions, bwutils
+from activity_browser import app, actions
+from activity_browser.bwutils.commontasks import count_database_records
 from activity_browser.ui import widgets, icons, delegates, core
 from activity_browser.app.menu_bar import ImportDatabaseMenu
 
@@ -87,7 +88,7 @@ class DatabasesPane(widgets.ABAbstractPane):
                     "name": name,
                     "depends": ", ".join(bd.databases[name].get("depends", [])),
                     "modified": dt,
-                    "records": bwutils.commontasks.count_database_records(name),
+                    "records": count_database_records(name),
                     "read_only": bd.databases[name].get("read_only", True),
                     "default_allocation": bd.databases[name].get("default_allocation", "unspecified"),
                     "backend": bd.databases[name].get("backend")

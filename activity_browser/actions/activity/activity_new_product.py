@@ -6,7 +6,8 @@ import bw2data as bd
 
 from bw_functional import Process
 
-from activity_browser import app, bwutils
+from activity_browser import app
+from activity_browser.bwutils.commontasks import refresh_node
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.ui.icons import qicons
 
@@ -44,7 +45,7 @@ class ActivityNewProduct(ABAction):
         Raises:
             AssertionError: If an activity is not of type `Process`.
         """
-        activities = [bwutils.refresh_node(activity) for activity in activities]
+        activities = [refresh_node(activity) for activity in activities]
 
         for act in activities:
             assert isinstance(act, Process), "Cannot create new product for non-process type"

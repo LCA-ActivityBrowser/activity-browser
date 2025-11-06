@@ -4,7 +4,8 @@ import pandas as pd
 import bw2data as bd
 import bw_functional as bf
 
-from activity_browser import actions, bwutils, app
+from activity_browser import actions, app
+from activity_browser.bwutils.commontasks import refresh_node
 from activity_browser.ui import widgets, icons
 
 
@@ -27,7 +28,7 @@ class ConsumersTab(QtWidgets.QWidget):
         """
         super().__init__(parent)
 
-        self.activity = bwutils.refresh_node(activity)
+        self.activity = refresh_node(activity)
 
         self.view = ConsumersView(self)
         self.model = ConsumersModel(self)
@@ -50,7 +51,7 @@ class ConsumersTab(QtWidgets.QWidget):
         """
         Synchronizes the widget with the current state of the activity.
         """
-        self.activity = bwutils.refresh_node(self.activity)
+        self.activity = refresh_node(self.activity)
         exchanges = []
         if isinstance(self.activity, bf.Process):
             for product in self.activity.products():

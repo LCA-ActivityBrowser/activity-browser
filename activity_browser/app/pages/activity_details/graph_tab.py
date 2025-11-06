@@ -8,7 +8,8 @@ from qtpy.QtCore import QObject, Qt, QUrl, Signal, SignalInstance, Slot
 import bw2data as bd
 import bw_functional as bf
 
-from activity_browser import static, bwutils, actions
+from activity_browser import static, actions
+from activity_browser.bwutils.commontasks import refresh_node, database_is_locked
 from activity_browser.ui import widgets
 from .exchanges_tab import get_exchange_type
 
@@ -40,7 +41,7 @@ class GraphTab(QtWidgets.QWidget):
         super().__init__(parent)
         self.setAcceptDrops(True)
 
-        self.activity = bwutils.refresh_node(activity)
+        self.activity = refresh_node(activity)
         self.expanded_nodes = {self.activity.id}
 
         self.button = QtWidgets.QPushButton("CLICK ME")
@@ -70,7 +71,7 @@ class GraphTab(QtWidgets.QWidget):
         """
         Synchronizes the widget with the current state of the activity.
         """
-        self.activity = bwutils.refresh_node(self.activity)
+        self.activity = refresh_node(self.activity)
         json = self.build_json()
         self.bridge.update_graph.emit(json)
 
@@ -205,7 +206,7 @@ class GraphView(QtWebEngineWidgets.QWebEngineView):
         Args:
             event: The drag enter event.
         """
-        if bwutils.database_is_locked(self.parent().activity["database"]):
+        if database_is_locked(self.parent().activity["database"]):
             return
 
         if event.mimeData().hasFormat("application/bw-nodekeylist"):

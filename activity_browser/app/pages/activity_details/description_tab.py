@@ -2,7 +2,8 @@ from qtpy import QtWidgets, QtGui
 
 import bw2data as bd
 
-from activity_browser import bwutils, actions
+from activity_browser import actions
+from activity_browser.bwutils.commontasks import refresh_node, database_is_locked
 
 
 class DescriptionTab(QtWidgets.QTextEdit):
@@ -20,7 +21,7 @@ class DescriptionTab(QtWidgets.QTextEdit):
             activity (tuple | int | bd.Node): The activity to display and edit the description for.
             parent (QtWidgets.QWidget, optional): The parent widget. Defaults to None.
         """
-        self.activity = bwutils.refresh_node(activity)
+        self.activity = refresh_node(activity)
         super().__init__(parent, self.activity.get("comment", ""))
         self.setPlaceholderText("Click here to edit the description of this activity...")
 
@@ -28,12 +29,12 @@ class DescriptionTab(QtWidgets.QTextEdit):
         """
         Synchronizes the widget with the current state of the activity.
         """
-        self.activity = bwutils.refresh_node(self.activity)
+        self.activity = refresh_node(self.activity)
         self.setText(self.activity.get("comment", ""))
         self.moveCursor(QtGui.QTextCursor.MoveOperation.End)
 
         # Set the read-only state based on the activity's database
-        self.setReadOnly(bwutils.database_is_locked(self.activity["database"]))
+        self.setReadOnly(database_is_locked(self.activity["database"]))
 
     def focusOutEvent(self, e):
         """

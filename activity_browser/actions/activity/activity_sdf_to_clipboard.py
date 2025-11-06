@@ -3,7 +3,7 @@ from typing import List
 import bw2data as bd
 import bw_functional as bf
 
-from activity_browser import bwutils
+from activity_browser.bwutils.commontasks import refresh_node, exchanges_to_sdf
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.ui.icons import qicons
 
@@ -21,7 +21,7 @@ class ActivitySDFToClipboard(ABAction):
     @staticmethod
     @exception_dialogs
     def run(activities: List[tuple | int | bd.Node]):
-        activities = [bwutils.refresh_node(node) for node in activities]
+        activities = [refresh_node(node) for node in activities]
 
         exchanges = []
         for activity in activities:
@@ -33,5 +33,5 @@ class ActivitySDFToClipboard(ABAction):
             else:
                 exchanges += [exc.as_dict() for exc in activity.exchanges()]
 
-        df = bwutils.exchanges_to_sdf(exchanges)
+        df = exchanges_to_sdf(exchanges)
         df.to_clipboard(excel=True, index=False)

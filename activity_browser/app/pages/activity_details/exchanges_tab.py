@@ -8,8 +8,8 @@ import bw2data as bd
 
 import bw_functional as bf
 
-from activity_browser import actions, bwutils, app
-from activity_browser.bwutils.commontasks import refresh_node, database_is_locked, database_is_legacy
+from activity_browser import actions, app
+from activity_browser.bwutils.commontasks import refresh_node, database_is_locked, database_is_legacy, is_node_product, is_node_biosphere, parameters_in_scope
 from activity_browser.ui import widgets, icons, delegates
 
 
@@ -232,9 +232,9 @@ class ExchangesTab(QtWidgets.QWidget):
             actions.ExchangeNew.run(keys, self.activity.key, exc_type)
 
 def get_exchange_type(activity_key: tuple) -> str | None:
-    if bwutils.is_node_product(activity_key):
+    if is_node_product(activity_key):
         return "technosphere"
-    elif bwutils.is_node_biosphere(activity_key):
+    elif is_node_biosphere(activity_key):
         return "biosphere"
     return None
 
@@ -506,7 +506,7 @@ class ExchangesItem(widgets.ABDataItem):
         Returns:
             dict: The parameters in scope.
         """
-        return bwutils.parameters_in_scope(self["_exchange"].output)
+        return parameters_in_scope(self["_exchange"].output)
 
     def flags(self, col: int, key: str):
         """

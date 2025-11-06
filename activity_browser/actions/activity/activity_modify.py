@@ -1,7 +1,7 @@
 from activity_browser.actions.base import ABAction, exception_dialogs
 from bw2data import get_node, Node
 from activity_browser.ui.icons import qicons
-from activity_browser import bwutils
+from activity_browser.bwutils.commontasks import refresh_node
 
 
 class ActivityModify(ABAction):
@@ -17,7 +17,7 @@ class ActivityModify(ABAction):
     @staticmethod
     @exception_dialogs
     def run(activity: tuple | int | Node, field: str, value: any):
-        activity = bwutils.refresh_node(activity)
+        activity = refresh_node(activity)
 
         if field == "product":
             # for some reason product needs to be set like this

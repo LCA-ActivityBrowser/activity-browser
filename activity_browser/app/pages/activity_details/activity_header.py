@@ -3,7 +3,8 @@ from qtpy import QtWidgets, QtCore, QtGui
 import bw2data as bd
 import bw_functional as bf
 
-from activity_browser import app, actions, bwutils
+from activity_browser import app, actions
+from activity_browser.bwutils.commontasks import refresh_node, database_is_locked
 from activity_browser.ui import widgets
 
 
@@ -37,11 +38,11 @@ class ActivityHeader(QtWidgets.QWidget):
         """
         Synchronizes the widget with the current state of the activity.
         """
-        self.activity = bwutils.refresh_node(self.activity)
+        self.activity = refresh_node(self.activity)
 
         self.clear_layout()
 
-        if bwutils.database_is_locked(self.activity["database"]):
+        if database_is_locked(self.activity["database"]):
             self.layout().addWidget(LockedWarningBar(self))
 
         self.layout().addLayout(self.build_grid())
@@ -66,7 +67,7 @@ class ActivityHeader(QtWidgets.QWidget):
         grid.setSpacing(10)
         grid.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop)
 
-        db_locked = bwutils.database_is_locked(self.activity["database"])
+        db_locked = database_is_locked(self.activity["database"])
         setup = self.disabled_setup() if db_locked else self.enabled_setup()
 
         # Arrange widgets for display as a grid

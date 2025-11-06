@@ -4,7 +4,8 @@ from qtpy import QtCore, QtWidgets
 
 import bw2data as bd
 
-from activity_browser import app, bwutils
+from activity_browser import app
+from activity_browser.bwutils.commontasks import refresh_node_or_none
 from activity_browser.ui import widgets
 
 from .activity_header import ActivityHeader
@@ -149,7 +150,7 @@ class ActivityDetailsPage(QtWidgets.QWidget):
         """
         Synchronizes the widget with the current state of the activity.
         """
-        self.activity = bwutils.refresh_node_or_none(self.activity)
+        self.activity = refresh_node_or_none(self.activity)
 
         if self.activity is None:
             # Activity was already deleted

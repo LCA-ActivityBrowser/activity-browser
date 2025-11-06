@@ -12,7 +12,8 @@ from qtpy.QtCore import QModelIndex, Slot
 
 from bw2data.parameters import ActivityParameter, DatabaseParameter, Group, ProjectParameter
 
-from activity_browser import actions, signals, application, bwutils
+from activity_browser import actions, signals, application
+from activity_browser.bwutils.utils import Parameters
 from activity_browser.mod import bw2data as bd
 from activity_browser.ui.dialogs import UncertaintyWizard
 
@@ -435,7 +436,7 @@ class ScenarioModel(PandasModel):
         """Construct the dataframe from the existing parameters, if ``df``
         is given, perform a merge to possibly include additional columns.
         """
-        data = [p[:3] for p in bwutils.utils.Parameters.from_bw_parameters()]
+        data = [p[:3] for p in Parameters.from_bw_parameters()]
         if not isinstance(df, pd.DataFrame):
             self._dataframe = pd.DataFrame(data, columns=self.HEADERS).set_index("Name")
         else:
