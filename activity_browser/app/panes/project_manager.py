@@ -6,7 +6,7 @@ from qtpy import QtWidgets, QtCore
 import bw2data as bd
 from bw2io import remote
 
-from activity_browser import actions, ui, app, utils
+from activity_browser import app, ui, app, utils
 from activity_browser.settings import ab_settings
 from activity_browser.ui import widgets
 
@@ -108,16 +108,16 @@ class ProjectView(widgets.ABTreeView):
                 return
 
             if len(items) == 1:
-                self.dup_project = actions.ProjectDuplicate.get_QAction(items[0]["Name"])
-                self.template_project = actions.ProjectCreateTemplate.get_QAction(items[0]["Name"], view.parent())
+                self.dup_project = app.actions.ProjectDuplicate.get_QAction(items[0]["Name"])
+                self.template_project = app.actions.ProjectCreateTemplate.get_QAction(items[0]["Name"], view.parent())
                 self.addAction(self.dup_project)
                 self.addAction(self.template_project)
 
             if len(items) == 1 and len([i for i in items if i["Version"] == "Legacy"]) == 1:
-                self.migrate_project = actions.ProjectMigrate25.get_QAction(items[0]["Name"])
+                self.migrate_project = app.actions.ProjectMigrate25.get_QAction(items[0]["Name"])
                 self.addAction(self.migrate_project)
 
-            self.del_project = actions.ProjectDelete.get_QAction(view.selected_projects)
+            self.del_project = app.actions.ProjectDelete.get_QAction(view.selected_projects)
             self.addAction(self.del_project)
 
 

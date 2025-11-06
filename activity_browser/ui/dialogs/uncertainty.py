@@ -8,7 +8,7 @@ from qtpy.QtCore import Signal, Slot
 from stats_arrays import uncertainty_choices as uncertainty
 from stats_arrays.distributions import *
 
-from activity_browser import actions, app
+from activity_browser import app, app
 from activity_browser.ui.widgets.plot import ABPlot
 from activity_browser.bwutils.pedigree import PedigreeMatrix
 from activity_browser.bwutils.uncertainty import get_uncertainty_interface, EMPTY_UNCERTAINTY
@@ -81,15 +81,15 @@ class UncertaintyWizard(QtWidgets.QWizard):
         """
         self.amount_mean_test()
         if self.obj.data_type == "exchange":
-            actions.ExchangeModify.run(self.obj.data, self.uncertainty_info)
+            app.actions.ExchangeModify.run(self.obj.data, self.uncertainty_info)
             if self.using_pedigree:
-                actions.ExchangeModify.run(
+                app.actions.ExchangeModify.run(
                     self.obj.data, {"pedigree": self.pedigree.matrix.factors}
                 )
         elif self.obj.data_type == "parameter":
-            actions.ParameterModify.run(self.obj.data, "data", self.uncertainty_info)
+            app.actions.ParameterModify.run(self.obj.data, "data", self.uncertainty_info)
             if self.using_pedigree:
-                actions.ParameterModify.run(
+                app.actions.ParameterModify.run(
                     self.obj.data, "data", self.pedigree.matrix.factors
                 )
         elif self.obj.data_type == "cf":
@@ -156,11 +156,11 @@ class UncertaintyWizard(QtWidgets.QWizard):
             )
             if choice == QtWidgets.QMessageBox.Yes:
                 if self.obj.data_type == "exchange":
-                    actions.ExchangeModify.run(self.obj.data, {"amount": mean})
+                    app.actions.ExchangeModify.run(self.obj.data, {"amount": mean})
 
                 elif self.obj.data_type == "parameter":
                     try:
-                        actions.ParameterModify.run(self.obj.data, "amount", mean)
+                        app.actions.ParameterModify.run(self.obj.data, "amount", mean)
                     except Exception as e:
                         QtWidgets.QMessageBox.warning(
                             app.main_window,

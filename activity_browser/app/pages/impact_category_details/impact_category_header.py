@@ -1,5 +1,5 @@
 from qtpy import QtWidgets, QtCore
-from activity_browser import actions
+from activity_browser import app
 from activity_browser.ui import widgets
 
 
@@ -153,7 +153,7 @@ class EditableHeader(QtWidgets.QWidget):
         """
         Triggers the method rename action.
         """
-        actions.MethodRename.run(self.parent().impact_category.name)
+        app.actions.MethodRename.run(self.parent().impact_category.name)
 
 
 class ImpactCategoryUnit(QtWidgets.QLineEdit):
@@ -181,4 +181,4 @@ class ImpactCategoryUnit(QtWidgets.QLineEdit):
         if self.text() == current_unit:
             return
         
-        actions.MethodMetaModify.run(impact_category.name, "unit", self.text())
+        app.actions.MethodMetaModify.run(impact_category.name, "unit", self.text())

@@ -5,7 +5,7 @@ from asteval import Interpreter
 from qtpy import QtCore, QtGui, QtWidgets
 from qtpy.QtCore import Signal, Slot
 
-from activity_browser import actions, app
+from activity_browser import app, app
 
 
 class CalculatorButtons(QtWidgets.QWidget):
@@ -98,7 +98,7 @@ class FormulaDialog(QtWidgets.QDialog):
         self.text_field.setCompleter(completer)
         self.parameters.doubleClicked.connect(self.append_parameter_name)
 
-        self.new_parameter_button = actions.ParameterNew.get_QButton(self.get_key)
+        self.new_parameter_button = app.actions.ParameterNew.get_QButton(self.get_key)
 
         self.calculator = CalculatorButtons(self)
         self.calculator.button_press.connect(self.text_field.insert)

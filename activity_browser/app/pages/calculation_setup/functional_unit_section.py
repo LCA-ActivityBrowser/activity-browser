@@ -4,7 +4,7 @@ from qtpy.QtCore import Qt
 import bw2data as bd
 import pandas as pd
 
-from activity_browser import actions, app
+from activity_browser import app, app
 from activity_browser.ui import widgets, icons, delegates
 from activity_browser.bwutils.commontasks import is_node_product
 
@@ -89,12 +89,12 @@ class FunctionalUnitView(widgets.ABTreeView):
 
     class ContextMenu(widgets.ABMenu):
         menuSetup = [
-            lambda m, p: m.add(actions.ActivityOpen, m.selected_processes,
+            lambda m, p: m.add(app.actions.ActivityOpen, m.selected_processes,
                                text="Open process" if len(m.selected_processes) == 1 else "Open processes",
                                enable=len(m.selected_processes) > 0
                                ),
             lambda m: m.addSeparator(),
-            lambda m, p: m.add(actions.CSDeleteFunctionalUnit, m.cs_name, m.selected_fus,
+            lambda m, p: m.add(app.actions.CSDeleteFunctionalUnit, m.cs_name, m.selected_fus,
                                text="Delete Functional Unit" if len(m.selected_fus) == 1 else "Delete Functional Units",
                                enable=len(m.selected_fus) > 0
                                ),
@@ -132,7 +132,7 @@ class FunctionalUnitView(widgets.ABTreeView):
 
         if self.selectedIndexes():
             activities = [index.internalPointer()["_processor_key"] for index in self.selectedIndexes()]
-            actions.ActivityOpen.run(list(set(activities)))
+            app.actions.ActivityOpen.run(list(set(activities)))
 
         return None
 
@@ -160,7 +160,7 @@ class FunctionalUnitView(widgets.ABTreeView):
             if not is_node_product(key):
                 keys.remove(key)
 
-        actions.CSAddFunctionalUnit.run(cs_name, keys)
+        app.actions.CSAddFunctionalUnit.run(cs_name, keys)
 
 
 class FunctionalUnitItem(widgets.ABDataItem):
@@ -209,7 +209,7 @@ class FunctionalUnitItem(widgets.ABDataItem):
         cs_name = self["_cs_name"]
         index = self.key()
 
-        actions.CSChangeFunctionalUnit.run(cs_name, index, value)
+        app.actions.CSChangeFunctionalUnit.run(cs_name, index, value)
 
 
 

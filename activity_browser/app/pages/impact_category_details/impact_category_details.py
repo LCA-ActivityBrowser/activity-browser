@@ -4,7 +4,7 @@ from qtpy.QtCore import Qt
 import bw2data as bd
 import pandas as pd
 
-from activity_browser import actions, app
+from activity_browser import app, app
 from activity_browser.ui import widgets, icons, delegates
 from activity_browser.bwutils.commontasks import is_node_biosphere
 
@@ -90,7 +90,7 @@ class CharacterizationFactorsView(widgets.ABTreeView):
 
     class ContextMenu(widgets.ABMenu):
         menuSetup = [
-            lambda m: m.add(actions.CFRemove, m.impact_category_name, m.char_factors,
+            lambda m: m.add(app.actions.CFRemove, m.impact_category_name, m.char_factors,
                             enable=bool(m.char_factors) and m.is_editable,
                             text="Remove characterization factor(s)"),
         ]
@@ -172,7 +172,7 @@ class CharacterizationFactorsView(widgets.ABTreeView):
         biosphere_keys = [key for key in keys if is_node_biosphere(key)]
 
         if biosphere_keys:
-            actions.CFNew.run(self.parent().name, biosphere_keys)
+            app.actions.CFNew.run(self.parent().name, biosphere_keys)
 
 
 class CharacterizationFactorsItem(widgets.ABDataItem):
@@ -240,7 +240,7 @@ class CharacterizationFactorsItem(widgets.ABDataItem):
         if key not in ["amount"]:
             return False
 
-        actions.CFAmountModify.run(self["_impact_category_name"], self["_id"], value)
+        app.actions.CFAmountModify.run(self["_impact_category_name"], self["_id"], value)
 
 
 class CharacterizationFactorsModel(widgets.ABItemModel):

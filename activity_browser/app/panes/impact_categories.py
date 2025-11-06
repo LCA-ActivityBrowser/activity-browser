@@ -4,7 +4,7 @@ from qtpy.QtCore import Qt
 import bw2data as bd
 import pandas as pd
 
-from activity_browser import app, actions
+from activity_browser import app, app
 from activity_browser.ui import widgets, core, delegates
 
 
@@ -81,22 +81,22 @@ class ImpactCategoriesView(widgets.ABNewTreeView):
 
     class ContextMenu(widgets.ABMenu):
         menuSetup = [
-            lambda m, p: m.add(actions.MethodNew),
+            lambda m, p: m.add(app.actions.MethodNew),
             lambda m: m.addSeparator(),
-            lambda m, p: m.add(actions.MethodOpen, p.selected_impact_categories,
+            lambda m, p: m.add(app.actions.MethodOpen, p.selected_impact_categories,
                                text="Open impact category" if len(p.selected_impact_categories) == 1 else "Open impact categories",
                                enable=len(p.selected_impact_categories) > 0
                                ),
-            lambda m, p: m.add(actions.MethodDelete, p.selected_impact_categories,
+            lambda m, p: m.add(app.actions.MethodDelete, p.selected_impact_categories,
                                text="Delete impact category" if len(
                                    p.selected_impact_categories) == 1 else "Delete impact categories",
                                enable=len(p.selected_impact_categories) > 0
                                ),
-            lambda m, p: m.add(actions.MethodDuplicate, p.selected_impact_categories,
+            lambda m, p: m.add(app.actions.MethodDuplicate, p.selected_impact_categories,
                                text="Duplicate impact category",
                                enable=len(p.selected_impact_categories) == 1
                                ),
-            lambda m, p: m.add(actions.MethodRename, p.selected_impact_categories,
+            lambda m, p: m.add(app.actions.MethodRename, p.selected_impact_categories,
                                text="Rename impact category",
                                enable=len(p.selected_impact_categories) == 1
                                ),
@@ -117,7 +117,7 @@ class ImpactCategoriesView(widgets.ABNewTreeView):
 
     def mouseDoubleClickEvent(self, event) -> None:
         if self.selected_impact_categories:
-            actions.MethodOpen.run(self.selected_impact_categories)
+            app.actions.MethodOpen.run(self.selected_impact_categories)
 
 
 class ImpactCategoriesModel(core.ABTreeModel):

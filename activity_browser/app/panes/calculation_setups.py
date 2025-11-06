@@ -3,7 +3,7 @@ from qtpy import QtWidgets, QtGui
 import bw2data as bd
 import pandas as pd
 
-from activity_browser import app, actions
+from activity_browser import app, app
 from activity_browser.ui import widgets, delegates, core
 
 
@@ -92,15 +92,15 @@ class CalculationSetupsView(widgets.ABNewTreeView):
 
     class ContextMenu(widgets.ABMenu):
         menuSetup = [
-            lambda m, p: m.add(actions.CSNew),
-            lambda m, p: m.add(actions.CSOpen, p.calculation_setups,
+            lambda m, p: m.add(app.actions.CSNew),
+            lambda m, p: m.add(app.actions.CSOpen, p.calculation_setups,
                                   enable=bool(p.calculation_setups)),
-            lambda m, p: m.add(actions.CSDelete, p.calculation_setups,
+            lambda m, p: m.add(app.actions.CSDelete, p.calculation_setups,
                                   enable=bool(p.calculation_setups)),
-            lambda m, p: m.add(actions.CSRename, p.calculation_setups[0] if p.single_selection else None,
+            lambda m, p: m.add(app.actions.CSRename, p.calculation_setups[0] if p.single_selection else None,
                                   enable=p.single_selection),
             lambda m: m.addSeparator(),
-            lambda m, p: m.add(actions.CSCalculate, p.calculation_setups[0] if p.single_selection else None,
+            lambda m, p: m.add(app.actions.CSCalculate, p.calculation_setups[0] if p.single_selection else None,
                                   enable=p.single_selection),
         ]
 
@@ -143,7 +143,7 @@ class CalculationSetupsView(widgets.ABNewTreeView):
         if row is None:
             return
 
-        actions.CSOpen.run(row["name"])
+        app.actions.CSOpen.run(row["name"])
 
 
     def dragMoveEvent(self, event) -> None:
@@ -173,7 +173,7 @@ class CalculationSetupsView(widgets.ABNewTreeView):
 
         functional_units = [{key: 1.0} for key in keys]
 
-        actions.CSNew.run(functional_units=functional_units)
+        app.actions.CSNew.run(functional_units=functional_units)
 
 
 class CalculationSetupsModel(core.ABTreeModel):

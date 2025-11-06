@@ -6,7 +6,7 @@ from qtpy.QtWidgets import QAction, QMenu
 import bw2data as bd
 import bw_functional as bf
 
-from activity_browser import actions, signals
+from activity_browser import app, signals
 from activity_browser.ui import icons, delegates
 
 from .parameter_models import (
@@ -227,7 +227,7 @@ class ActivityParameterTable(BaseParameterTable):
                 continue
             processes.add(key)
         event.accept()
-        actions.ParameterNewAutomatic.run(processes)
+        app.actions.ParameterNewAutomatic.run(processes)
 
     def contextMenuEvent(self, event: QContextMenuEvent) -> None:
         """Override and activate QTableView.contextMenuEvent()

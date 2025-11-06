@@ -2,7 +2,7 @@ from qtpy import QtWidgets, QtGui
 
 import bw2data as bd
 
-from activity_browser import actions
+from activity_browser import app
 from activity_browser.bwutils.commontasks import refresh_node, database_is_locked
 
 
@@ -45,4 +45,4 @@ class DescriptionTab(QtWidgets.QTextEdit):
         """
         if self.toPlainText() == self.activity.get("comment", ""):
             return
-        actions.ActivityModify.run(self.activity, "comment", self.toPlainText())
+        app.actions.ActivityModify.run(self.activity, "comment", self.toPlainText())

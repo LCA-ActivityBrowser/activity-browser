@@ -8,7 +8,7 @@ import bw2data as bd
 
 import bw_functional as bf
 
-from activity_browser import actions, app
+from activity_browser import app, app
 from activity_browser.bwutils.commontasks import refresh_node, database_is_locked, database_is_legacy, is_node_product, is_node_biosphere, parameters_in_scope
 from activity_browser.ui import widgets, icons, delegates
 
@@ -229,7 +229,7 @@ class ExchangesTab(QtWidgets.QWidget):
 
         # Run the action for new exchanges
         for exc_type, keys in exchanges.items():
-            actions.ExchangeNew.run(keys, self.activity.key, exc_type)
+            app.actions.ExchangeNew.run(keys, self.activity.key, exc_type)
 
 def get_exchange_type(activity_key: tuple) -> str | None:
     if is_node_product(activity_key):
@@ -286,7 +286,7 @@ class RelinkDelegate(delegates.StringDelegate):
         choice = editor.currentIndex()
         key = self.matched.iloc[choice].key
 
-        actions.ExchangeModify.run(
+        app.actions.ExchangeModify.run(
             index.internalPointer().exchange,
             {"input": key}
         )
@@ -376,7 +376,7 @@ class ExchangesView(widgets.ABTreeView):
             if database_is_locked(table_view.activity["database"]) or not self.column.startswith("property"):
                 return
 
-            action = actions.ActivityModify.get_QAction(table_view.activity.key,
+            action = app.actions.ActivityModify.get_QAction(table_view.activity.key,
                                                         "allocation",
                                                         self.column[9:],
                                                         parent=self)
@@ -391,17 +391,17 @@ class ExchangesView(widgets.ABTreeView):
 
     class ContextMenu(widgets.ABMenu):
         menuSetup = [
-            lambda m: m.add(actions.ActivityNewProduct, [m.activity.key],
+            lambda m: m.add(app.actions.ActivityNewProduct, [m.activity.key],
                             enable=not m.locked and not database_is_legacy(m.activity["database"])
                             ),
-            lambda m: m.add(actions.ActivityNewProduct, [m.activity.key], "waste",
+            lambda m: m.add(app.actions.ActivityNewProduct, [m.activity.key], "waste",
                             enable=not m.locked and not database_is_legacy(m.activity["database"]),
                             text="Create waste"
                             ),
             lambda m: m.addSeparator(),
-            lambda m: m.add(actions.ExchangeDelete, m.exchanges, enable=bool(m.exchanges) and not m.locked),
-            lambda m: m.add(actions.ExchangeSDFToClipboard, m.exchanges, enable=bool(m.exchanges)),
-            lambda m: m.add(actions.ActivityOpen, [x.input for x in m.exchanges],
+            lambda m: m.add(app.actions.ExchangeDelete, m.exchanges, enable=bool(m.exchanges) and not m.locked),
+            lambda m: m.add(app.actions.ExchangeSDFToClipboard, m.exchanges, enable=bool(m.exchanges)),
+            lambda m: m.add(app.actions.ActivityOpen, [x.input for x in m.exchanges],
                             enable=bool(m.exchanges),
                             text="Open processs" if len(m.exchanges) == 1 else "Open processes",
                             ),
@@ -661,15 +661,15 @@ class ExchangesItem(widgets.ABDataItem):
         """
         if key in ["amount", "formula", "comment"]:
             if key == "formula" and not str(value).strip():
-                actions.ExchangeFormulaRemove.run([self.exchange])
+                app.actions.ExchangeFormulaRemove.run([self.exchange])
                 return True
 
-            actions.ExchangeModify.run(self.exchange, {key.lower(): value})
+            app.actions.ExchangeModify.run(self.exchange, {key.lower(): value})
             return True
 
         if key in ["unit", "product", "location", "substitution_factor", "allocation_factor"]:
             act = self.exchange.input
-            actions.ActivityModify.run(act.key, key.lower(), value)
+            app.actions.ActivityModify.run(act.key, key.lower(), value)
 
         if key.startswith("property_"):
             # should move this process to a separate action
@@ -687,7 +687,7 @@ class ExchangesItem(widgets.ABDataItem):
             props = product.get("properties", {})
             props[prop_key] = prop
 
-            actions.ActivityModify.run(product, "properties", props)
+            app.actions.ActivityModify.run(product, "properties", props)
 
         return False
 

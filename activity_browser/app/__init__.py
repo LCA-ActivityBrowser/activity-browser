@@ -1,16 +1,21 @@
 # -*- coding: utf-8 -*-
-__all__ = ["panes", "pages", "application", "signals", "metadata", "main_window"]
+__all__ = ["panes", "pages", "application", "signals", "metadata", "main_window", "actions"]
 
 from activity_browser.ui.core.application import ABApplication
+from activity_browser.bwutils.metadata import MetaDataStore
 from .main_window import MainWindow
-from .signals import ABSignals
 
 application = ABApplication()
+metadata = MetaDataStore()
+
+# modules dependent on application instance
+from .signalling import ABSignals
 
 signals = ABSignals()
+
+# modules dependent on application and signals
+from . import actions
 
 main_window = MainWindow()
 application.main_window = main_window
 
-from activity_browser.bwutils.metadata import MetaDataStore
-metadata = MetaDataStore()

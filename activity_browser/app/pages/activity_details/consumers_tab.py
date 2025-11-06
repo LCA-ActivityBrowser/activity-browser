@@ -4,7 +4,7 @@ import pandas as pd
 import bw2data as bd
 import bw_functional as bf
 
-from activity_browser import actions, app
+from activity_browser import app, app
 from activity_browser.bwutils.commontasks import refresh_node
 from activity_browser.ui import widgets, icons
 
@@ -109,7 +109,7 @@ class ConsumersView(widgets.ABTreeView):
         items = [i.internalPointer() for i in self.selectedIndexes() if isinstance(i.internalPointer(), ConsumersItem)]
         keys = list({i["_consumer_key"] for i in items})
         if keys:
-            actions.ActivityOpen.run(keys)
+            app.actions.ActivityOpen.run(keys)
 
 
 class ConsumersItem(widgets.ABDataItem):

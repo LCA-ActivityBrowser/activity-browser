@@ -2,7 +2,7 @@ import os
 
 from qtpy import QtWebEngineWidgets, QtWidgets, QtCore, QtGui, QtWebChannel
 
-from activity_browser import actions, app
+from activity_browser import app, app
 from activity_browser.static import startscreen
 from activity_browser.bwutils.commontasks import projects_by_last_opened
 
@@ -63,7 +63,7 @@ class Bridge(QtCore.QObject):
         """
         Emits the ready signal.
         """
-        actions.ProjectSwitch.run(project_name)
+        app.actions.ProjectSwitch.run(project_name)
 
 class WelcomeWebPage(QtWebEngineWidgets.QWebEnginePage):
     def acceptNavigationRequest(self, qurl, navtype, mainframe):

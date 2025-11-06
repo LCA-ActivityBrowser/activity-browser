@@ -7,7 +7,7 @@ from qtpy.QtCore import Qt
 
 import bw2data as bd
 
-from activity_browser import actions, ui, app
+from activity_browser import app, ui, app
 from activity_browser.settings import project_settings
 from activity_browser.ui import core, widgets, delegates, icons
 from activity_browser.bwutils.commontasks import database_is_locked, database_is_legacy
@@ -218,40 +218,40 @@ class ProductView(ui.widgets.ABNewTreeView):
 
     class ContextMenu(ui.widgets.ABMenu):
         menuSetup = [
-            lambda m, p: m.add(actions.ActivityOpen, p.selected_activities,
+            lambda m, p: m.add(app.actions.ActivityOpen, p.selected_activities,
                                text="Open process" if len(p.selected_activities) == 1 else "Open processes",
                                enable=len(p.selected_activities) > 0
                                ),
             lambda m: m.addSeparator(),
-            lambda m, p: m.add(actions.ActivityNewProcess, p.db_name,
+            lambda m, p: m.add(app.actions.ActivityNewProcess, p.db_name,
                                enable=not database_is_locked(p.db_name),
                                ),
-            lambda m, p: m.add(actions.ActivityDuplicate, p.selected_activities,
+            lambda m, p: m.add(app.actions.ActivityDuplicate, p.selected_activities,
                                text="Duplicate process" if len(p.selected_activities) == 1 else "Duplicate processes",
                                enable=len(p.selected_activities) > 0 and not database_is_locked(p.db_name),
                                ),
-            lambda m, p: m.add(actions.ActivityDuplicateToDB, p.selected_activities,
+            lambda m, p: m.add(app.actions.ActivityDuplicateToDB, p.selected_activities,
                                text="Duplicate process to database" if len(p.selected_activities) == 1 else "Duplicate processes to database",
                                enable=len(p.selected_activities) > 0 and not database_is_locked(p.db_name),
                                ),
             lambda m: m.addSeparator(),
-            lambda m, p: m.add(actions.ActivityDelete, p.selected_activities,
+            lambda m, p: m.add(app.actions.ActivityDelete, p.selected_activities,
                                text="Delete process" if len(p.selected_activities) == 1 else "Delete processes",
                                enable=len(p.selected_activities) > 0 and not database_is_locked(p.db_name),
                                ),
-            lambda m, p: m.add(actions.ActivityDelete, p.selected_products,
+            lambda m, p: m.add(app.actions.ActivityDelete, p.selected_products,
                                text="Delete product" if len(p.selected_products) == 1 else "Delete products",
                                enable=len(p.selected_products) > 0 and not
                                database_is_locked(p.db_name) and not
                                database_is_legacy(p.db_name),
                                ),
             lambda m: m.addSeparator(),
-            lambda m, p: m.add(actions.CSNew,
+            lambda m, p: m.add(app.actions.CSNew,
                                functional_units=[{prod: m.get_functional_unit_amount(prod)} for prod in p.selected_products],
                                enable=len(p.selected_products) > 0,
                                text="Create setup"
                                ),
-            lambda m, p: m.add(actions.ActivitySDFToClipboard, p.selected_products,
+            lambda m, p: m.add(app.actions.ActivitySDFToClipboard, p.selected_products,
                                enable=len(p.selected_products) > 0,
                                ),
         ]
@@ -303,7 +303,7 @@ class ProductView(ui.widgets.ABNewTreeView):
             event: The mouse double click event.
         """
         if self.selected_activities:
-            actions.ActivityOpen.run(self.selected_activities)
+            app.actions.ActivityOpen.run(self.selected_activities)
 
     @property
     def selected_products(self) -> list[tuple]:

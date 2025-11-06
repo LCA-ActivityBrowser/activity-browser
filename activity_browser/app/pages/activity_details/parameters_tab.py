@@ -3,7 +3,7 @@ from qtpy import QtWidgets, QtCore
 import pandas as pd
 import bw2data as bd
 
-from activity_browser import app, actions
+from activity_browser import app, app
 from activity_browser.ui import widgets, icons, delegates
 from activity_browser.bwutils.commontasks import refresh_node, refresh_parameter, parameters_in_scope, database_is_locked, node_group
 from activity_browser.bwutils.utils import Parameter
@@ -134,7 +134,7 @@ class ParametersView(widgets.ABTreeView):
             if index.isValid() and isinstance(index.internalPointer(), ParametersItem):
                 item = index.internalPointer()
                 param = item.parameter.to_peewee_model()
-                self.del_param_action = actions.ParameterDelete().get_QAction(param)
+                self.del_param_action = app.actions.ParameterDelete().get_QAction(param)
                 if not param.is_deletable() or param.name == "dummy_parameter":
                     self.del_param_action.setEnabled(False)
                 self.addAction(self.del_param_action)
@@ -195,7 +195,7 @@ class ParametersItem(widgets.ABDataItem):
             bool: True if the data was set successfully, False otherwise.
         """
         if key in ["amount", "formula", "name", "comment"]:
-            actions.ParameterModify.run(self.parameter, key, value)
+            app.actions.ParameterModify.run(self.parameter, key, value)
 
         return False
 
@@ -275,7 +275,7 @@ class NewParametersItem(widgets.ABDataItem):
             param_type=self["_parameter"]["param_type"]
         )
 
-        actions.ParameterNewFromParameter.run(parameter)
+        app.actions.ParameterNewFromParameter.run(parameter)
         return True
 
 

@@ -5,7 +5,7 @@ import bw2data as bd
 from qtpy import QtGui, QtWidgets
 from qtpy.QtCore import QSize, QUrl
 
-from activity_browser import actions, utils, app
+from activity_browser import app, utils, app
 
 from ..ui.icons import qicons
 
@@ -40,14 +40,14 @@ class ProjectMenu(QtWidgets.QMenu):
 
         self.setTitle("&Project")
 
-        self.dup_proj_action = actions.ProjectDuplicate.get_QAction()
-        self.delete_proj_action = actions.ProjectDelete.get_QAction()
+        self.dup_proj_action = app.actions.ProjectDuplicate.get_QAction()
+        self.delete_proj_action = app.actions.ProjectDelete.get_QAction()
 
-        self.import_proj_action = actions.ProjectImport.get_QAction()
-        self.export_proj_action = actions.ProjectExport.get_QAction()
+        self.import_proj_action = app.actions.ProjectImport.get_QAction()
+        self.export_proj_action = app.actions.ProjectExport.get_QAction()
 
-        self.manage_settings_action = actions.SettingsWizardOpen.get_QAction()
-        self.manage_projects_action = actions.ProjectManagerOpen.get_QAction()
+        self.manage_settings_action = app.actions.SettingsWizardOpen.get_QAction()
+        self.manage_projects_action = app.actions.ProjectManagerOpen.get_QAction()
 
         self.addMenu(ProjectSelectionMenu(self))
         self.addMenu(ProjectNewMenu(self))
@@ -71,8 +71,8 @@ class ProjectNewMenu(QtWidgets.QMenu):
         super().__init__(parent)
 
         self.setTitle("New project")
-        self.new_proj_action = actions.ProjectNew.get_QAction()
-        self.import_proj_action = actions.ProjectImport.get_QAction()
+        self.new_proj_action = app.actions.ProjectNew.get_QAction()
+        self.import_proj_action = app.actions.ProjectImport.get_QAction()
 
         self.new_proj_action.setText("Empty project")
         self.import_proj_action.setText("From .tar.gz file")
@@ -95,13 +95,13 @@ class ProjectNewTemplateMenu(QtWidgets.QMenu):
         self.actions = {}
 
         for key in utils.get_templates():
-            action = actions.ProjectNewFromTemplate.get_QAction(key)
+            action = app.actions.ProjectNewFromTemplate.get_QAction(key)
             action.setText(key)
             self.actions[key] = action
             self.addAction(action)
 
         for key in self.get_projects():
-            action = actions.ProjectNewRemote.get_QAction(key)
+            action = app.actions.ProjectNewRemote.get_QAction(key)
             action.setText(key)
             self.actions[key] = action
             self.addAction(action)
@@ -133,7 +133,7 @@ class CalculateMenu(QtWidgets.QMenu):
         self.setTitle("&Calculate")
         self.cs_actions = []
 
-        self.new_cs_action = actions.CSNew.get_QAction()
+        self.new_cs_action = app.actions.CSNew.get_QAction()
         self.new_cs_action.setText("New setup...")
         self.addAction(self.new_cs_action)
         self.addSeparator()
@@ -144,7 +144,7 @@ class CalculateMenu(QtWidgets.QMenu):
     def sync(self):
         self.cs_actions.clear()
         for cs in bd.calculation_setups:
-            action = actions.CSOpen.get_QAction(cs)
+            action = app.actions.CSOpen.get_QAction(cs)
             action.setText(cs)
             self.cs_actions.append(action)
             self.addAction(action)
@@ -220,7 +220,7 @@ class ProjectSelectionMenu(QtWidgets.QMenu):
         self.populate()
 
         self.aboutToShow.connect(self.populate)
-        self.triggered.connect(lambda act: actions.ProjectSwitch.run(act.data()))
+        self.triggered.connect(lambda act: app.actions.ProjectSwitch.run(act.data()))
 
     def populate(self):
         """
@@ -256,9 +256,9 @@ class ImportDatabaseMenu(QtWidgets.QMenu):
         self.setTitle("Import database")
         self.setIcon(qicons.import_db)
 
-        self.import_from_ecoinvent_action = actions.DatabaseImportFromEcoinvent.get_QAction()
-        self.import_from_excel_action = actions.DatabaseImporterExcel.get_QAction()
-        self.import_from_bw2package_action = actions.DatabaseImporterBW2Package.get_QAction()
+        self.import_from_ecoinvent_action = app.actions.DatabaseImportFromEcoinvent.get_QAction()
+        self.import_from_excel_action = app.actions.DatabaseImporterExcel.get_QAction()
+        self.import_from_bw2package_action = app.actions.DatabaseImporterBW2Package.get_QAction()
 
         self.import_from_ecoinvent_action.setText("ecoinvent...")
         self.import_from_excel_action.setText("from .xlsx")
@@ -275,8 +275,8 @@ class ExportDatabaseMenu(QtWidgets.QMenu):
         super().__init__(parent=parent)
         self.setTitle("Export database")
 
-        self.export_to_excel_action = actions.DatabaseExportExcel.get_QAction()
-        self.export_to_bw2package_action = actions.DatabaseExportBW2Package.get_QAction()
+        self.export_to_excel_action = app.actions.DatabaseExportExcel.get_QAction()
+        self.export_to_bw2package_action = app.actions.DatabaseExportBW2Package.get_QAction()
 
         self.export_to_excel_action.setText("to .xlsx")
         self.export_to_bw2package_action.setText("to .bw2package")
@@ -294,8 +294,8 @@ class ImportICMenu(QtWidgets.QMenu):
         self.beta_warning = QtWidgets.QWidgetAction(self)
         self.beta_warning.setDefaultWidget(QtWidgets.QLabel("Beta features, use at your own risk"))
 
-        self.import_from_ei_excel_action = actions.MethodImporterEcoinvent.get_QAction()
-        self.import_from_bw2io_action = actions.MethodImporterBW2IO.get_QAction()
+        self.import_from_ei_excel_action = app.actions.MethodImporterEcoinvent.get_QAction()
+        self.import_from_bw2io_action = app.actions.MethodImporterBW2IO.get_QAction()
 
         self.import_from_ei_excel_action.setText("from ecoinvent excel")
         self.import_from_bw2io_action.setText("from bw2io")

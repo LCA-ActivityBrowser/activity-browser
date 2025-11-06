@@ -3,7 +3,7 @@ from qtpy import QtWidgets
 import bw2data as bd
 import pandas as pd
 
-from activity_browser import actions
+from activity_browser import app
 from activity_browser.ui import widgets, delegates
 
 
@@ -59,7 +59,7 @@ class ImpactCategoryView(widgets.ABTreeView):
 
             indices = [index.internalPointer().key() for index in view.selectedIndexes()]
 
-            self.delete_ic_action = actions.CSDeleteImpactCategory.get_QAction(cs_name, indices)
+            self.delete_ic_action = app.actions.CSDeleteImpactCategory.get_QAction(cs_name, indices)
             print(self.delete_ic_action.text())
             self.addAction(self.delete_ic_action)
 
@@ -80,7 +80,7 @@ class ImpactCategoryView(widgets.ABTreeView):
         event.accept()
         cs_name = self.parent().calculation_setup_name
         method_names = event.mimeData().retrievePickleData("application/bw-methodnamelist")
-        actions.CSAddImpactCategory.run(cs_name, method_names)
+        app.actions.CSAddImpactCategory.run(cs_name, method_names)
 
 
 class ImpactCategoryItem(widgets.ABDataItem):

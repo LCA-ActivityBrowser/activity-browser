@@ -12,7 +12,7 @@ from qtpy.QtCore import QModelIndex, Slot
 
 from bw2data.parameters import ActivityParameter, DatabaseParameter, Group, ProjectParameter
 
-from activity_browser import actions, signals, application
+from activity_browser import app, signals, application
 from activity_browser.bwutils.utils import Parameters
 from activity_browser.mod import bw2data as bd
 from activity_browser.ui.dialogs import UncertaintyWizard
@@ -86,7 +86,7 @@ class BaseParameterModel(EditablePandasModel):
         param = self.get_parameter(index)
         field = self._dataframe.columns[index.column()]
 
-        actions.ParameterModify.run(param, field, index.data())
+        app.actions.ParameterModify.run(param, field, index.data())
 
 
     @Slot(QModelIndex, name="startRenameParameter")
@@ -94,11 +94,11 @@ class BaseParameterModel(EditablePandasModel):
         group = self.get_group(proxy)
         param = self.get_parameter(proxy)
 
-        actions.ParameterRename.run(param)
+        app.actions.ParameterRename.run(param)
 
     def delete_parameter(self, proxy: QModelIndex) -> None:
         param = self.get_parameter(proxy)
-        actions.ParameterDelete.run(param)
+        app.actions.ParameterDelete.run(param)
 
     @Slot(name="modifyParameterUncertainty")
     def modify_uncertainty(self, proxy: QModelIndex) -> None:
@@ -109,7 +109,7 @@ class BaseParameterModel(EditablePandasModel):
     @Slot(name="unsetParameterUncertainty")
     def remove_uncertainty(self, proxy: QModelIndex) -> None:
         param = self.get_parameter(proxy)
-        actions.ParameterUncertaintyRemove.run(param)
+        app.actions.ParameterUncertaintyRemove.run(param)
 
     def handle_double_click(self, proxy: QModelIndex) -> None:
         column = proxy.column()
@@ -241,7 +241,7 @@ class ActivityParameterModel(BaseParameterModel):
             logger.info(
                 "Activity {} no longer exists, removing parameter.".format(row["key"])
             )
-            actions.ParameterClearBroken.run(parameter)
+            app.actions.ParameterClearBroken.run(parameter)
             return {}
         row["product"] = act.get("reference product") or act.get("name")
         row["activity"] = act.get("name")
@@ -365,7 +365,7 @@ class ParameterItem(TreeItem):
             except DoesNotExist as e:
                 # The exchange is coming from a deleted database, remove it
                 logger.warning(f"Broken exchange: {exc}, removing.")
-                actions.ExchangeDelete.run([exc])
+                app.actions.ExchangeDelete.run([exc])
 
 
 class ParameterTreeModel(BaseTreeModel):

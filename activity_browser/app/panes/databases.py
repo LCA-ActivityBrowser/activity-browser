@@ -6,7 +6,7 @@ from qtpy.QtCore import Qt
 import bw2data as bd
 import pandas as pd
 
-from activity_browser import app, actions
+from activity_browser import app, app
 from activity_browser.bwutils.commontasks import count_database_records
 from activity_browser.ui import widgets, icons, delegates, core
 from activity_browser.app.menu_bar import ImportDatabaseMenu
@@ -114,11 +114,11 @@ class DatabasesView(widgets.ABNewTreeView):
     class ExportDatabaseContextMenu(widgets.ABMenu):
         menuSetup = [
             lambda m: m.setTitle("Export database" if len(m.parent().selected_databases) == 1 else "Export databases"),
-            lambda m, p: m.add(actions.DatabaseExportExcel, p.selected_databases if p.selected_databases else [],
+            lambda m, p: m.add(app.actions.DatabaseExportExcel, p.selected_databases if p.selected_databases else [],
                                enable=len(p.selected_databases) >= 1,
                                text="to .xlsx",
                                ),
-            lambda m, p: m.add(actions.DatabaseExportBW2Package, p.selected_databases if p.selected_databases else [],
+            lambda m, p: m.add(app.actions.DatabaseExportBW2Package, p.selected_databases if p.selected_databases else [],
                                enable=len(p.selected_databases) >= 1,
                                text="to .bw2package",
                                ),
@@ -126,20 +126,20 @@ class DatabasesView(widgets.ABNewTreeView):
 
     class ContextMenu(widgets.ABMenu):
         menuSetup = [
-            lambda m, p: m.add(actions.DatabaseNew),
+            lambda m, p: m.add(app.actions.DatabaseNew),
             lambda m: m.addMenu(ImportDatabaseMenu(m)),
             lambda m, p: m.addMenu(DatabasesView.ExportDatabaseContextMenu(parent=p)),
             lambda m: m.addSeparator(),
-            lambda m, p: m.add(actions.DatabaseDelete, p.selected_databases if p.selected_databases else [],
+            lambda m, p: m.add(app.actions.DatabaseDelete, p.selected_databases if p.selected_databases else [],
                                enable=len(p.selected_databases) >= 1,
                                text="Delete databases" if len(p.selected_databases) > 1 else "Delete database",
                                ),
-            lambda m, p: m.add(actions.DatabaseDuplicate, p.selected_databases[0] if p.selected_databases else None,
+            lambda m, p: m.add(app.actions.DatabaseDuplicate, p.selected_databases[0] if p.selected_databases else None,
                                enable=len(p.selected_databases) == 1),
-            lambda m, p: m.add(actions.DatabaseProcess, p.selected_databases[0] if p.selected_databases else None,
+            lambda m, p: m.add(app.actions.DatabaseProcess, p.selected_databases[0] if p.selected_databases else None,
                                enable=len(p.selected_databases) == 1),
             lambda m: m.addSeparator(),
-            lambda m, p: m.add(actions.DatabaseSetReadonly, p.selected_databases[0] if p.selected_databases else None,
+            lambda m, p: m.add(app.actions.DatabaseSetReadonly, p.selected_databases[0] if p.selected_databases else None,
                                not m.selected_readonly,
                                enable=len(p.selected_databases) == 1,
                                text="Unlock database" if m.selected_readonly else "Lock database",
@@ -188,10 +188,10 @@ class DatabasesView(widgets.ABNewTreeView):
 
         if index.column() == 1:
             read_only = row.get("read_only")
-            actions.DatabaseSetReadonly.run(db_name, not read_only)
+            app.actions.DatabaseSetReadonly.run(db_name, not read_only)
             return
 
-        actions.DatabaseOpen.run([db_name])
+        app.actions.DatabaseOpen.run([db_name])
 
     def keyPressEvent(self, event: QtGui.QKeyEvent):
         """
@@ -202,7 +202,7 @@ class DatabasesView(widgets.ABNewTreeView):
         """
         if event.key() == Qt.Key_Delete:
             if self.selected_databases:
-                actions.DatabaseDelete.run(self.selected_databases)
+                app.actions.DatabaseDelete.run(self.selected_databases)
                 return
         
         super().keyPressEvent(event)

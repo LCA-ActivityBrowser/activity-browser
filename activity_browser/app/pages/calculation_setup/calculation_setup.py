@@ -1,6 +1,6 @@
 from qtpy import QtWidgets
 
-from activity_browser import app, actions
+from activity_browser import app, app
 from activity_browser.ui import widgets, icons
 
 from .scenario_section import ScenarioSection
@@ -83,8 +83,8 @@ class CalculationSetupPage(QtWidgets.QWidget):
 
     def run_calculation(self):
         if self.type_dropdown.currentText() == "Standard":
-            actions.CSCalculate.run(self.calculation_setup_name)
+            app.actions.CSCalculate.run(self.calculation_setup_name)
         elif self.type_dropdown.currentText() == "Scenario":
             scenario_data = self.scenario_section.scenario_dataframe()
-            actions.CSCalculate.run(self.calculation_setup_name, scenario_data)
+            app.actions.CSCalculate.run(self.calculation_setup_name, scenario_data)
 

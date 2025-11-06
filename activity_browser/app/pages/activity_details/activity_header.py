@@ -3,7 +3,7 @@ from qtpy import QtWidgets, QtCore, QtGui
 import bw2data as bd
 import bw_functional as bf
 
-from activity_browser import app, actions
+from activity_browser import app, app
 from activity_browser.bwutils.commontasks import refresh_node, database_is_locked
 from activity_browser.ui import widgets
 
@@ -134,7 +134,7 @@ class ActivityName(QtWidgets.QLineEdit):
         """
         if self.text() == self.parent().activity["name"]:
             return
-        actions.ActivityModify.run(self.parent().activity, "name", self.text())
+        app.actions.ActivityModify.run(self.parent().activity, "name", self.text())
 
 
 class ActivityLocation(QtWidgets.QLineEdit):
@@ -162,7 +162,7 @@ class ActivityLocation(QtWidgets.QLineEdit):
         """
         if self.text() == self.parent().activity.get("location"):
             return
-        actions.ActivityModify.run(self.parent().activity, "location", self.text())
+        app.actions.ActivityModify.run(self.parent().activity, "location", self.text())
 
 
 class ActivityProperties(QtWidgets.QWidget):
@@ -190,7 +190,7 @@ class ActivityProperties(QtWidgets.QWidget):
             layout.addWidget(ActivityProperty(parent.activity, property_name))
 
         add_label = QtWidgets.QLabel("<a style='text-decoration:underline;'>Add property</a>")
-        add_label.mouseReleaseEvent = lambda x: actions.ProcessPropertyModify.run(parent.activity)
+        add_label.mouseReleaseEvent = lambda x: app.actions.ProcessPropertyModify.run(parent.activity)
 
         layout.addWidget(add_label)
 
@@ -212,8 +212,8 @@ class ActivityProperty(QtWidgets.QPushButton):
         """
         super().__init__(property_name, None)
 
-        self.modify_action = actions.ProcessPropertyModify.get_QAction(activity, property_name)
-        self.remove_action = actions.ProcessPropertyRemove.get_QAction(activity, property_name)
+        self.modify_action = app.actions.ProcessPropertyModify.get_QAction(activity, property_name)
+        self.remove_action = app.actions.ProcessPropertyRemove.get_QAction(activity, property_name)
 
         self.menu = QtWidgets.QMenu(self)
         self.menu.addAction(self.modify_action)
@@ -278,7 +278,7 @@ class ActivityAllocation(QtWidgets.QComboBox):
         act = self.parent().activity
         if act.get("allocation") == allocation:
             return
-        actions.ActivityModify.run(act, "allocation", allocation)
+        app.actions.ActivityModify.run(act, "allocation", allocation)
 
 
 class LockedWarningBar(QtWidgets.QToolBar):
@@ -296,7 +296,7 @@ class LockedWarningBar(QtWidgets.QToolBar):
         warning_icon.setPixmap(pixmap)
 
         migrate_label = QtWidgets.QLabel("<a style='text-decoration:underline;'>Unlock database</a>")
-        migrate_label.mouseReleaseEvent = lambda x: actions.DatabaseSetReadonly.run(parent.activity["database"], False)
+        migrate_label.mouseReleaseEvent = lambda x: app.actions.DatabaseSetReadonly.run(parent.activity["database"], False)
 
         self.addWidget(warning_icon)
         self.addWidget(warning_label)

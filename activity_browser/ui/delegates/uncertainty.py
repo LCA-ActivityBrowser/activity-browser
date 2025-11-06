@@ -2,7 +2,7 @@
 from qtpy import QtCore, QtWidgets
 from stats_arrays import uncertainty_choices as uc
 
-from activity_browser import actions
+from activity_browser import app
 
 from activity_browser.app import signals
 
@@ -35,11 +35,11 @@ class UncertaintyDelegate(QtWidgets.QStyledItemDelegate):
         item_name = item.__class__.__name__
 
         if item_name == "ParametersItem" or item_name == "ProjectParametersItem":
-            actions.ParameterUncertaintyModify.run(item["_parameter"].to_peewee_model())
+            app.actions.ParameterUncertaintyModify.run(item["_parameter"].to_peewee_model())
         elif item_name == "ExchangesItem":
-            actions.ExchangeUncertaintyModify.run([item.exchange])
+            app.actions.ExchangeUncertaintyModify.run([item.exchange])
         elif item_name == "CharacterizationFactorsItem":
-            actions.CFUncertaintyModify.run(
+            app.actions.CFUncertaintyModify.run(
                 item["_impact_category_name"], [(item["_id"], item["_cf"]),]
             )
 

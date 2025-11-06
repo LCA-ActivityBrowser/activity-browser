@@ -8,7 +8,7 @@ from qtpy.QtCore import QObject, Qt, QUrl, Signal, SignalInstance, Slot
 import bw2data as bd
 import bw_functional as bf
 
-from activity_browser import static, actions
+from activity_browser import static, app
 from activity_browser.bwutils.commontasks import refresh_node, database_is_locked
 from activity_browser.ui import widgets
 from .exchanges_tab import get_exchange_type
@@ -244,7 +244,7 @@ class GraphView(QtWebEngineWidgets.QWebEngineView):
 
         # Run the action for new exchanges
         for exc_type, keys in exchanges.items():
-            actions.ExchangeNew.run(keys, self.parent().activity.key, exc_type)
+            app.actions.ExchangeNew.run(keys, self.parent().activity.key, exc_type)
 
 
 class Bridge(QObject):

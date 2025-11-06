@@ -5,7 +5,7 @@ import bw2data as bd
 from bw2data.parameters import ProjectParameter, DatabaseParameter, ActivityParameter, ParameterizedExchange
 from bw2data.backends import ExchangeDataset
 
-from activity_browser import app, actions
+from activity_browser import app, app
 from activity_browser.ui import widgets, icons, delegates
 from activity_browser.bwutils.commontasks import refresh_parameter, refresh_node, database_is_locked
 from activity_browser.bwutils.utils import Parameter
@@ -257,7 +257,7 @@ class ProjectParametersView(widgets.ABTreeView):
             if index.isValid() and isinstance(index.internalPointer(), ProjectParametersItem):
                 item = index.internalPointer()
                 param = item.parameter.to_peewee_model()
-                self.del_param_action = actions.ParameterDelete().get_QAction(param)
+                self.del_param_action = app.actions.ParameterDelete().get_QAction(param)
                 if not param.is_deletable() or param.name == "dummy_parameter":
                     self.del_param_action.setEnabled(False)
                 self.addAction(self.del_param_action)
@@ -324,7 +324,7 @@ class ProjectParametersItem(widgets.ABDataItem):
             bool: True if the data was set successfully, False otherwise.
         """
         if key in ["amount", "formula", "name", "comment"]:
-            actions.ParameterModify.run(self.parameter, key, value)
+            app.actions.ParameterModify.run(self.parameter, key, value)
 
         return False
 
@@ -405,7 +405,7 @@ class NewProjectParametersItem(widgets.ABDataItem):
             param_type=self["_param_type"]
         )
 
-        actions.ParameterNewFromParameter.run(parameter)
+        app.actions.ParameterNewFromParameter.run(parameter)
         return True
 
 
@@ -549,7 +549,7 @@ class ParameterizedExchangesView(widgets.ABTreeView):
                 item = index.internalPointer()
                 
                 # Open activity action
-                open_action = actions.ActivityOpen.get_QAction([item["_output_key"]])
+                open_action = app.actions.ActivityOpen.get_QAction([item["_output_key"]])
                 open_action.setText("Open activity")
                 self.addAction(open_action)
 
@@ -617,10 +617,10 @@ class ParameterizedExchangesItem(widgets.ABDataItem):
         """
         if key in ["amount", "formula", "comment"]:
             if key == "formula" and not str(value).strip():
-                actions.ExchangeFormulaRemove.run([self.exchange])
+                app.actions.ExchangeFormulaRemove.run([self.exchange])
                 return True
 
-            actions.ExchangeModify.run(self.exchange, {key.lower(): value})
+            app.actions.ExchangeModify.run(self.exchange, {key.lower(): value})
             return True
 
         return False

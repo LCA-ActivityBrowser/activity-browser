@@ -8,7 +8,7 @@ import bw2data as bd
 from qtpy import QtWidgets, QtCore
 from qtpy.QtCore import Qt
 
-from activity_browser import actions, signals
+from activity_browser import app, signals
 from activity_browser.ui import icons, widgets
 from activity_browser.bwutils import manager, superstructure
 
@@ -84,7 +84,7 @@ class ABParameterTable(QtWidgets.QWidget):
 class ABProjectParameter(ABParameterTable):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.new_parameter_button = actions.ParameterNew.get_QButton(("", ""))
+        self.new_parameter_button = app.actions.ParameterNew.get_QButton(("", ""))
         self.header = "Project:"
         self.table = ProjectParameterTable(self)
 
@@ -98,7 +98,7 @@ class ABDatabaseParameter(ABParameterTable):
         super().__init__(parent)
         self.header = "Database:"
 
-        self.new_parameter_button = actions.ParameterNew.get_QButton(("db", ""))
+        self.new_parameter_button = app.actions.ParameterNew.get_QButton(("db", ""))
 
         self.table = DataBaseParameterTable(self)
 

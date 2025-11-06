@@ -123,7 +123,7 @@ class ModuleThread(QtCore.QThread):
 class SettingsThread(QtCore.QThread):
     def run(self):
         import bw2data as bd
-        from activity_browser import settings, actions
+        from activity_browser import settings, app
 
         if settings.ab_settings.settings:
             from pathlib import Path
@@ -134,7 +134,7 @@ class SettingsThread(QtCore.QThread):
 
         if not bd.projects.twofive:
             logger.warning(f"Project: {bd.projects.current} is not yet BW25 compatible")
-            actions.ProjectSwitch.set_warning_bar()
+            app.actions.ProjectSwitch.set_warning_bar()
 
         logger.info(f"Brightway2 data directory: {bd.projects._base_data_dir}")
         logger.info(f"Brightway2 current project: {bd.projects.current}")

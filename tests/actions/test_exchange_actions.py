@@ -1,7 +1,7 @@
 import pytest
 from stats_arrays.distributions import NoUncertainty, UndefinedUncertainty, UniformUncertainty
 
-from activity_browser import actions
+from activity_browser import app
 from activity_browser.ui.dialogs import UncertaintyDialog
 
 
@@ -26,7 +26,7 @@ from activity_browser.ui.dialogs import UncertaintyDialog
 #     assert len(exchange) == 1
 #     assert clipboard.text() == "FAILED"
 #
-#     actions.ExchangeCopySDF.run(exchange)
+#     app.actions.ExchangeCopySDF.run(exchange)
 #
 #     assert clipboard.text() != "FAILED"
 #
@@ -46,7 +46,7 @@ def test_exchange_delete(basic_database):
     assert len(exchange) == 1
     num_exchanges = len(process.exchanges())
 
-    actions.ExchangeDelete.run(exchange)
+    app.actions.ExchangeDelete.run(exchange)
 
     assert len(process.exchanges()) == num_exchanges - 1
 
@@ -64,7 +64,7 @@ def test_exchange_formula_remove(basic_database):
     assert len(exchange) == 1
     assert exchange[0].as_dict().get("formula") == "5+5"
 
-    actions.ExchangeFormulaRemove.run(exchange)
+    app.actions.ExchangeFormulaRemove.run(exchange)
 
     with pytest.raises(KeyError):
         assert exchange[0].as_dict()["formula"]
@@ -85,7 +85,7 @@ def test_exchange_modify(basic_database):
     assert len(exchange) == 1
     assert exchange[0].amount == 10.0
 
-    actions.ExchangeModify.run(exchange[0], new_data)
+    app.actions.ExchangeModify.run(exchange[0], new_data)
 
     assert exchange[0].amount == 200.0
 
@@ -102,7 +102,7 @@ def test_exchange_new(basic_database):
         if exchange.input == other
     ]
 
-    actions.ExchangeNew.run([other.key], process.key, "technosphere")
+    app.actions.ExchangeNew.run([other.key], process.key, "technosphere")
 
     assert (
         len(
@@ -148,7 +148,7 @@ def test_exchange_uncertainty_modify(monkeypatch, basic_database):
         lambda *args, **kwargs: (True, mock_uncertainty),
     )
 
-    actions.ExchangeUncertaintyModify.run(exchange)
+    app.actions.ExchangeUncertaintyModify.run(exchange)
 
     # Verify the exchange was updated with the new uncertainty values
     assert exchange[0].uncertainty_type == UniformUncertainty
@@ -170,6 +170,6 @@ def test_exchange_uncertainty_remove(basic_database):
 
     assert exchange[0].uncertainty_type == NoUncertainty
 
-    actions.ExchangeUncertaintyRemove.run(exchange)
+    app.actions.ExchangeUncertaintyRemove.run(exchange)
 
     assert exchange[0].uncertainty_type == UndefinedUncertainty

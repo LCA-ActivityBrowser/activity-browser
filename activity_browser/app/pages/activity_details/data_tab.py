@@ -4,7 +4,7 @@ import pandas as pd
 import bw2data as bd
 import bw_functional as bf
 
-from activity_browser import actions
+from activity_browser import app
 from activity_browser.bwutils.commontasks import refresh_node, database_is_locked
 from activity_browser.ui import widgets, delegates
 
@@ -152,7 +152,7 @@ class DataItem(widgets.ABDataItem):
         """
         if key in ["value"]:
             value = eval(value)
-            actions.ActivityModify.run(self["_activity_id"], self["field"], value)
+            app.actions.ActivityModify.run(self["_activity_id"], self["field"], value)
 
         return False
 
