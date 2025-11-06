@@ -7,12 +7,14 @@ import bw2data as bd
 import bw2calc as bc
 import numpy as np
 import pandas as pd
-from qtpy.QtWidgets import QApplication, QMessageBox
 
 from activity_browser.mod.bw2analyzer import ABContributionAnalysis
 
 from .commontasks import wrap_text
 from .errors import ReferenceFlowValueError
+from .metadata import MetaDataStore
+
+metadata = MetaDataStore()
 
 
 ca = ABContributionAnalysis()
@@ -109,6 +111,8 @@ class MLCA(object):
     """
 
     def __init__(self, cs_name: str, lca_class: bc.LCA = bc.LCA):
+        from qtpy.QtWidgets import QApplication, QMessageBox
+
         try:
             cs = bd.calculation_setups[cs_name]
         except KeyError:
@@ -802,7 +806,7 @@ class Contributions(object):
             conv_dict[mthd] = v
         return conv_dict
 
-    def _contribution_index_cols(self, **kwargs) -> (dict, Optional[Iterable]):
+    def _contribution_index_cols(self, **kwargs) -> tuple[dict, Optional[Iterable]]:
         if kwargs.get("method") is not None:
             return self.mlca.fu_index, self.act_fields
         return self._correct_method_index(self.mlca.methods), None

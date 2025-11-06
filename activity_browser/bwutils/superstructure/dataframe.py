@@ -47,7 +47,7 @@ def superstructure_from_arrays(
 
 
 def superstructure_from_scenario_exchanges(scenarios: dict[str, dict[int, float]]):
-    from activity_browser.bwutils import exchanges_to_sdf
+    from activity_browser.bwutils.commontasks import exchanges_to_sdf
     from bw2data import Edge
 
     scenarios = transpose_scenarios_to_exchange_ids(scenarios)
@@ -63,7 +63,7 @@ def superstructure_from_scenario_exchanges(scenarios: dict[str, dict[int, float]
 
 
 def regular_exchange_to_sdf(exchange_id: int, scenarios: dict[str, float]):
-    from activity_browser.bwutils import exchanges_to_sdf
+    from activity_browser.bwutils.commontasks import exchanges_to_sdf
 
     exc = bd.Edge(bd.Edge.ORMDataset.get_by_id(exchange_id)).as_dict()
     df = exchanges_to_sdf([exc])
@@ -75,7 +75,7 @@ def regular_exchange_to_sdf(exchange_id: int, scenarios: dict[str, float]):
 
 
 def mf_exchange_to_sdf(exchange_id: int, scenarios: dict[str, float]):
-    from activity_browser.bwutils import exchanges_to_sdf
+    from activity_browser.bwutils.commontasks import exchanges_to_sdf
 
     exc = bf.MFExchange(bf.MFExchange.ORMDataset.get_by_id(exchange_id))
 

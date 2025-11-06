@@ -5,8 +5,8 @@ import bw2data as bd
 
 from activity_browser import app, actions
 from activity_browser.ui import widgets, icons, delegates
-from activity_browser.bwutils import refresh_node, refresh_parameter, parameters_in_scope, Parameter, database_is_locked
-from activity_browser.bwutils import node_group
+from activity_browser.bwutils.commontasks import refresh_node, refresh_parameter, parameters_in_scope, database_is_locked, node_group
+from activity_browser.bwutils.utils import Parameter
 
 
 class ParametersTab(QtWidgets.QWidget):

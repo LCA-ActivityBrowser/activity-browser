@@ -4,7 +4,7 @@ from qtpy import QtWebEngineWidgets, QtWidgets, QtCore, QtGui, QtWebChannel
 
 from activity_browser import actions, app
 from activity_browser.static import startscreen
-from activity_browser.bwutils import projects_by_last_opened
+from activity_browser.bwutils.commontasks import projects_by_last_opened
 
 
 class WelcomePage(QtWidgets.QWidget):

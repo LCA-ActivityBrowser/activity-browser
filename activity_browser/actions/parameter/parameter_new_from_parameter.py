@@ -1,7 +1,7 @@
 from ast import literal_eval
 
 from activity_browser.actions.base import ABAction, exception_dialogs
-from activity_browser.bwutils import Parameter
+from activity_browser.bwutils.utils import Parameter
 from bw2data.parameters import ProjectParameter, DatabaseParameter, ActivityParameter, parameters
 from activity_browser.ui.icons import qicons
 

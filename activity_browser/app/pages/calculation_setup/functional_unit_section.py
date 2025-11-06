@@ -6,7 +6,7 @@ import pandas as pd
 
 from activity_browser import actions, app
 from activity_browser.ui import widgets, icons, delegates
-from activity_browser.bwutils import is_node_product
+from activity_browser.bwutils.commontasks import is_node_product
 
 
 class FunctionalUnitSection(QtWidgets.QWidget):

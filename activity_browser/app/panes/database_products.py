@@ -10,7 +10,7 @@ import bw2data as bd
 from activity_browser import actions, ui, app
 from activity_browser.settings import project_settings
 from activity_browser.ui import core, widgets, delegates, icons
-from activity_browser.bwutils import database_is_locked, database_is_legacy
+from activity_browser.bwutils.commontasks import database_is_locked, database_is_legacy
 
 
 NODETYPES = {
@@ -258,7 +258,7 @@ class ProductView(ui.widgets.ABNewTreeView):
 
         @staticmethod
         def get_functional_unit_amount(key):
-            from activity_browser.bwutils import refresh_node
+            from activity_browser.bwutils.commontasks import refresh_node
             excs = list(refresh_node(key).upstream(["production"]))
             exc = excs[0] if len(excs) == 1 else {}
             return exc.get("amount", 1.0)

@@ -7,7 +7,8 @@ from bw2data.backends import ExchangeDataset
 
 from activity_browser import app, actions
 from activity_browser.ui import widgets, icons, delegates
-from activity_browser.bwutils import refresh_parameter, refresh_node, Parameter, database_is_locked
+from activity_browser.bwutils.commontasks import refresh_parameter, refresh_node, database_is_locked
+from activity_browser.bwutils.utils import Parameter
 
 
 class ParametersPage(QtWidgets.QWidget):
@@ -275,7 +276,7 @@ class ProjectParametersItem(widgets.ABDataItem):
         Returns:
             dict: The parameters in scope.
         """
-        from activity_browser.bwutils import parameters_in_scope
+        from activity_browser.bwutils.commontasks import parameters_in_scope
         return parameters_in_scope(parameter=self["_parameter"])
 
     @property
@@ -576,7 +577,7 @@ class ParameterizedExchangesItem(widgets.ABDataItem):
         Returns:
             dict: The parameters in scope.
         """
-        from activity_browser.bwutils import parameters_in_scope
+        from activity_browser.bwutils.commontasks import parameters_in_scope
         return parameters_in_scope(node=self["_exchange"].output)
 
     def flags(self, col: int, key: str):

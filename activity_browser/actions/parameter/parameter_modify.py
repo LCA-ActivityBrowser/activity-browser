@@ -5,7 +5,8 @@ from bw2data.parameters import ParameterBase, parameters, ActivityParameter, Gro
 from peewee import DoesNotExist
 
 from activity_browser.ui.icons import qicons
-from activity_browser.bwutils import refresh_parameter, Parameter
+from activity_browser.bwutils.commontasks import refresh_parameter
+from activity_browser.bwutils.utils import Parameter
 from activity_browser.actions.base import ABAction, exception_dialogs
 
 from .parameter_rename import ParameterRename

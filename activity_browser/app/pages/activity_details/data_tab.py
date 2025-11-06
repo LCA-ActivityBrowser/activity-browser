@@ -5,7 +5,7 @@ import bw2data as bd
 import bw_functional as bf
 
 from activity_browser import actions
-from activity_browser.bwutils import refresh_node, database_is_locked
+from activity_browser.bwutils.commontasks import refresh_node, database_is_locked
 from activity_browser.ui import widgets, delegates
 
 

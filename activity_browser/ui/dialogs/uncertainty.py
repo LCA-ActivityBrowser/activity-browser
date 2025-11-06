@@ -10,10 +10,8 @@ from stats_arrays.distributions import *
 
 from activity_browser import actions, app
 from activity_browser.ui.widgets.plot import ABPlot
-
-from ...bwutils import PedigreeMatrix, get_uncertainty_interface
-from ...bwutils.uncertainty import EMPTY_UNCERTAINTY
-
+from activity_browser.bwutils.pedigree import PedigreeMatrix
+from activity_browser.bwutils.uncertainty import get_uncertainty_interface, EMPTY_UNCERTAINTY
 
 
 

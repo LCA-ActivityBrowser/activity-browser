@@ -12,5 +12,5 @@ signals = ABSignals()
 main_window = MainWindow()
 application.main_window = main_window
 
-from activity_browser.bwutils import MetaDataStore
+from activity_browser.bwutils.metadata import MetaDataStore
 metadata = MetaDataStore()
