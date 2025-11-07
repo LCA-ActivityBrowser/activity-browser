@@ -90,7 +90,6 @@ class ScenarioSection(QtWidgets.QWidget):
     def connect_signals(self) -> None:
         app.signals.project.changed.connect(self.clear_tables)
         app.signals.project.changed.connect(self.can_add_table)
-        app.signals.parameter_superstructure_built.connect(self.handle_superstructure_signal)
 
         self.table_btn.clicked.connect(self.add_table)
         self.table_btn.clicked.connect(self.can_add_table)
@@ -212,10 +211,6 @@ class ScenarioSection(QtWidgets.QWidget):
         a user can add.
         """
         self.table_btn.setEnabled(len(self.tables) < self.max_tables)
-
-    def handle_superstructure_signal(self, table_idx: int, df: pd.DataFrame) -> None:
-        table = self.tables[table_idx]
-        table.sync_superstructure(df)
 
     def save_action(self) -> None:
         """Creates and saves to file (.xlsx, or .csv) the scenario dataframe after the loaded scenarios have been
