@@ -6,7 +6,7 @@ import bw_functional as bf
 
 from activity_browser import app
 from activity_browser.bwutils.commontasks import refresh_node, database_is_locked
-from activity_browser.ui import widgets, delegates
+from activity_browser.ui import widgets, delegates, core
 
 
 class DataTab(QtWidgets.QWidget):
@@ -32,12 +32,14 @@ class DataTab(QtWidgets.QWidget):
 
         # Data TreeView
         self.data_view = DataView(self)
-        self.data_model = DataModel(self)
+        self.data_model = DataModel(parent=self)
         self.data_view.setModel(self.data_model)
 
-        self.data_model.setDataFrame(self.build_df())
-        self.data_model.group(2)
-        self.data_view.setColumnHidden(2, True)
+        df = self.build_df()
+        df.reset_index(drop=True, inplace=True)
+        self.data_model.set_dataframe(df)
+        self.data_model.group(["name"])
+        self.data_view.setColumnHidden(1, True)
         self.data_view.expandAll()
 
         self.build_layout()
@@ -55,7 +57,12 @@ class DataTab(QtWidgets.QWidget):
         Synchronizes the widget with the current state of the activity.
         """
         self.activity = refresh_node(self.activity)
-        self.data_model.setDataFrame(self.build_df())
+        df = self.build_df()
+        df.reset_index(drop=True, inplace=True)
+        self.data_model.set_dataframe(df)
+        self.data_model.group(["name"])
+        self.data_view.setColumnHidden(1, True)
+        self.data_view.expandAll()
 
     def build_df(self) -> pd.DataFrame:
         """
@@ -85,7 +92,7 @@ class DataTab(QtWidgets.QWidget):
         return df[cols]
 
 
-class DataView(widgets.ABTreeView):
+class DataView(widgets.ABNewTreeView):
     """
     A view that displays the data in a tree structure.
 
@@ -93,75 +100,87 @@ class DataView(widgets.ABTreeView):
         defaultColumnDelegates (dict): The default column delegates for the view.
     """
     defaultColumnDelegates = {
-        "key": delegates.StringDelegate,
+        "field": delegates.StringDelegate,
         "value": delegates.NewFormulaDelegate,
     }
 
 
-class DataItem(widgets.ABDataItem):
+class DataModel(core.ABTreeModel):
     """
-    An item representing a data entry in the tree view.
+    A model representing the data for the activity.
     """
-    def flags(self, col: int, key: str):
+    
+    def setData(self, index: QtCore.QModelIndex, value, role: int = QtCore.Qt.ItemDataRole.EditRole) -> bool:
         """
-        Returns the item flags for the given column and key.
+        Sets the data for the given index.
 
         Args:
-            col (int): The column index.
-            key (str): The key for which to return the flags.
-
-        Returns:
-            QtCore.Qt.ItemFlags: The item flags.
-        """
-        flags = super().flags(col, key)
-
-        if key == "value" and not database_is_locked(self["_activity_db"]):
-            return flags | QtCore.Qt.ItemFlag.ItemIsEditable
-        return flags
-
-    def displayData(self, col: int, key: str):
-        """
-        Returns the display data for the given column and key.
-
-        Args:
-            col (int): The column index.
-            key (str): The key for which to return the display data.
-
-        Returns:
-            str: The display data.
-        """
-        if key == "value":
-            data = self[key]
-            if isinstance(data, str):
-                return f"'{data}'"
-            return str(data)
-
-        return super().displayData(col, key)
-
-    def setData(self, col: int, key: str, value) -> bool:
-        """
-        Sets the data for the given column and key.
-
-        Args:
-            col (int): The column index.
-            key (str): The key for which to set the data.
+            index (QtCore.QModelIndex): The index to set data for.
             value: The value to set.
+            role (int): The role for which to set the data.
 
         Returns:
             bool: True if the data was set successfully, False otherwise.
         """
-        if key in ["value"]:
+        if role != QtCore.Qt.ItemDataRole.EditRole:
+            return False
+
+        column_name = self.column_name(index)
+        row = self.row(index)
+
+        if row is None:
+            return False
+
+        if column_name == "value":
             value = eval(value)
-            app.actions.ActivityModify.run(self["_activity_id"], self["field"], value)
+            app.actions.ActivityModify.run(row.get("_activity_id"), row.get("field"), value)
+            return True
 
         return False
+    
+    def indexEditable(self, index: QtCore.QModelIndex) -> bool:
+        """
+        Returns whether the index is editable.
 
+        Args:
+            index (QtCore.QModelIndex): The index to check.
 
-class DataModel(widgets.ABItemModel):
-    """
-    A model representing the data for the activity.
+        Returns:
+            bool: True if the index is editable, False otherwise.
+        """
+        column_name = self.column_name(index)
+        row = self.row(index)
 
-    Attributes:
-        dataItemClass (type): The class of the data items.
-    """
-    dataItemClass = DataItem
+        if row is None:
+            return False
+
+        if column_name == "value" and not database_is_locked(row.get("_activity_db")):
+            return True
+        
+        return False
+    
+    def displayData(self, index: QtCore.QModelIndex) -> any:
+        """
+        Provides display data for the model.
+
+        Args:
+            index (QtCore.QModelIndex): The index for which to provide display data.
+
+        Returns:
+            The display data for the index.
+        """
+        column_name = self.column_name(index)
+        row = self.row(index)
+
+        if row is None:
+            # Branch node
+            path = index.internalPointer()
+            return path[-1] if index.column() == 0 else None
+
+        if column_name == "value":
+            data = row.get(column_name)
+            if isinstance(data, str):
+                return f"'{data}'"
+            return str(data)
+
+        return row.get(column_name)

@@ -1,3 +1,4 @@
+from loguru import logger
 from qtpy import QtCore, QtWidgets
 from qtpy.QtGui import QFontMetrics, QFont
 from qtpy.QtCore import Qt
@@ -30,7 +31,10 @@ class NewFormulaDelegate(QtWidgets.QStyledItemDelegate):
 
         if hasattr(index.internalPointer(), 'scoped_parameters'):
             scope = index.internalPointer().scoped_parameters
+        elif hasattr(index.model(), 'scoped_parameters'):
+            scope = index.model().scoped_parameters(index)
         else:
+            logger.warning("No scope found for formula editor. Define `scoped_parameters` attribute in index model.")
             scope = {}
 
         from activity_browser.ui.widgets import ABFormulaEdit
@@ -49,7 +53,10 @@ class NewFormulaDelegate(QtWidgets.QStyledItemDelegate):
         from activity_browser.ui.widgets import ABFormulaEdit
         if hasattr(index.internalPointer(), 'scoped_parameters'):
             scope = index.internalPointer().scoped_parameters
+        elif hasattr(index.model(), 'scoped_parameters'):
+            scope = index.model().scoped_parameters(index)
         else:
+            logger.warning("No scope found for formula editor. Define `scoped_parameters` attribute in index model.")
             scope = {}
         editor = ABFormulaEdit(parent, scope)
         return editor

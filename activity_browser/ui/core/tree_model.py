@@ -35,7 +35,7 @@ class ABTreeModel(QAbstractItemModel):
     
     def columns(self) -> list[str]:
         """Return the list of column names, including the tree column."""
-        return ["index"] + list(self.df.columns)
+        return ["index"] + [col for col in self.df.columns if not col.startswith("_")]
 
     def column_name(self, index: QModelIndex) -> str:
         """Return the name of the column at the given index, including the tree column."""
@@ -52,7 +52,12 @@ class ABTreeModel(QAbstractItemModel):
         if len(path) < self.df.index.nlevels:
             return None
         
-        return self.df.loc[path]
+        row = self.df.loc[path]
+
+        if not isinstance(row, pd.Series):
+            pass
+        
+        return row
 
     # --- required model overrides ---
     def index(self, row: int, column: int, parent: QModelIndex = QModelIndex()) -> QModelIndex:
@@ -104,7 +109,7 @@ class ABTreeModel(QAbstractItemModel):
 
     def columnCount(self, parent: QModelIndex = QModelIndex()) -> int:  # noqa: N802 (Qt signature)      
         # Always return the full column count for consistent tree structure
-        return len(self.df.columns) + 1  # +1 for tree column
+        return len(self.columns())
 
     #--- data overrides ---
     def data(self, index: QModelIndex, role: int = Qt.DisplayRole):
@@ -137,6 +142,10 @@ class ABTreeModel(QAbstractItemModel):
 
             col_name = self.headerData(index.column())
             val = self.df.at[path, col_name]
+
+            if not hasattr(val, "__iter__") and pd.isna(val):
+                return None
+
             return val
 
     def editData(self, index: QModelIndex) -> any:

@@ -4,7 +4,7 @@ from inspect import signature
 
 
 class ABMenu(QtWidgets.QMenu):
-    menuSetup: list[Callable[["ABMenu", Optional[QtWidgets.QWidget]], None]]
+    menuSetup: list[Callable[["ABMenu", QtWidgets.QWidget], None]]
     title: str = None
 
     def __init__(self, pos=None, parent=None, title: str = None):

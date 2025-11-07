@@ -5,9 +5,6 @@ from qtpy import QtWidgets
 from activity_browser.app import signals
 
 
-
-
-
 class CentralTabWidget(QtWidgets.QTabWidget):
     """
     A custom QTabWidget that manages groups of tabs and their associated pages.
@@ -59,6 +56,7 @@ class CentralTabWidget(QtWidgets.QTabWidget):
             self.addTab(GroupTabWidget(group, self), group)
 
         group = self.groups[group]
+        self.setCurrentWidget(group)
 
         # Check if the page already exists in the group
         page_names = [group.widget(i).objectName() for i in range(group.count())]
@@ -68,16 +66,14 @@ class CentralTabWidget(QtWidgets.QTabWidget):
             page.setWindowTitle(name)  # make sure the page has a title
             page.setParent(group)
             group.addTab(page, name)
+            group.setCurrentWidget(page)
 
             page.windowTitleChanged.connect(lambda title: group.setTabText(group.indexOf(page), title))
         else:
             # Set the existing page as the current tab
             index = page_names.index(page.objectName())
             group.setCurrentIndex(index)
-
-        # Set the group and page as the current widgets
-        self.setCurrentWidget(group)
-        group.setCurrentWidget(page)
+            page.deleteLater()  # Clean up the newly created page since it already exists
 
     def reset(self):
         self.setCurrentIndex(0)

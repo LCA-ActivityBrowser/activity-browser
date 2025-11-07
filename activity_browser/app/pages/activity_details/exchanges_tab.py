@@ -1,6 +1,6 @@
 from loguru import logger
 
-from qtpy import QtWidgets, QtGui
+from qtpy import QtWidgets, QtGui, QtCore
 from qtpy.QtCore import Qt
 
 import pandas as pd
@@ -10,7 +10,7 @@ import bw_functional as bf
 
 from activity_browser import app, app
 from activity_browser.bwutils.commontasks import refresh_node, database_is_locked, database_is_legacy, is_node_product, is_node_biosphere, parameters_in_scope
-from activity_browser.ui import widgets, icons, delegates
+from activity_browser.ui import widgets, icons, delegates, core
 
 
 
@@ -48,7 +48,7 @@ class ExchangesTab(QtWidgets.QWidget):
 
         # Output Table
         self.output_view = ExchangesView(self)
-        self.output_model = ExchangesModel(self)
+        self.output_model = ExchangesModel(tab=self)
         self.output_view.setModel(self.output_model)
 
         # Set indentation for output view
@@ -56,7 +56,7 @@ class ExchangesTab(QtWidgets.QWidget):
 
         # Input Table
         self.input_view = ExchangesView(self)
-        self.input_model = ExchangesModel(self)
+        self.input_model = ExchangesModel(tab=self)
         self.input_view.setModel(self.input_model)
 
         # Set indentation for input view
@@ -114,11 +114,13 @@ class ExchangesTab(QtWidgets.QWidget):
 
         # Update the models with the new data
         output_df = self.build_df(outputs)
-        self.output_model.setDataFrame(output_df)
+        output_df.reset_index(drop=True, inplace=True)
+        self.output_model.set_dataframe(output_df)
         self.output_view.drag_drop_hint.setVisible(output_df.empty)
 
         input_df = self.build_df(inputs)
-        self.input_model.setDataFrame(input_df)
+        input_df.reset_index(drop=True, inplace=True)
+        self.input_model.set_dataframe(input_df)
         self.input_view.drag_drop_hint.setVisible(input_df.empty)
 
     def build_df(self, exchanges) -> pd.DataFrame:
@@ -133,12 +135,13 @@ class ExchangesTab(QtWidgets.QWidget):
         """
         # Define the columns for the metadata
         cols = ["key", "unit", "name", "product", "location", "database", "allocation_factor",
-                "properties", "processor", "categories"]
+                "properties", "processor", "categories", "type"]
 
         # Create a DataFrame from the exchanges
-        exc_df = pd.DataFrame(exchanges, columns=["amount", "input", "formula", "uncertainty type", "comment"])
+        exc_df = pd.DataFrame(exchanges, columns=["amount", "input", "formula", "comment"])
         exc_df["type"] = [x["type"] for x in exchanges]
-        act_df = app.metadata.get_metadata(exc_df["input"].unique(), cols)
+        exc_df["uncertainty"] = [x.uncertainty for x in exchanges]
+        act_df = app.metadata.get_metadata(exc_df["input"].unique(), cols).rename(columns={"type": "_producer_type"})
 
         # Merge the exchanges DataFrame with the metadata DataFrame
         df = exc_df.merge(
@@ -170,7 +173,7 @@ class ExchangesTab(QtWidgets.QWidget):
         df.rename({
             "input": "_input_key",
             "processor": "_processor_key",
-            "uncertainty type": "uncertainty",
+            "type": "_exchange_type",
             "name": "producer",
         }, axis="columns", inplace=True)
 
@@ -241,58 +244,68 @@ def get_exchange_type(activity_key: tuple) -> str | None:
 
 class RelinkDelegate(delegates.StringDelegate):
     matched: pd.DataFrame
-    column: str
-    item: "ExchangesItem"
 
     def createEditor(self, parent, option, index):
-        self.item = index.internalPointer()
-        self.column = index.model().columns()[index.column()]
-        self.column = "name" if self.column == "producer" else self.column
+        model: ExchangesModel = index.model()
+        
+        column = model.column_name(index)
+        column = "name" if column == "producer" else column
 
-        if self.column == "product" and self.item.functional:
+        if column == "product" and model.functional(index):
             return super().createEditor(parent, option, index)
+        
+        row = model.row(index)
 
         setup = {
-            "database": self.item["database"],
-            "name": self.item["producer"],
-            "product": self.item["product"],
-            "categories": self.item["categories"],
-            "location": self.item["location"],
-            "type": self.item.exchange.input["type"],
+            "database": row["database"],
+            "name": row["producer"],
+            "product": row["product"],
+            "categories": row["categories"],
+            "location": row["location"],
+            "type": row["_producer_type"],
         }
 
-        del setup[self.column]
+        del setup[column]  # remove the column being edited because we are looking for alternatives
 
         self.matched = app.metadata.match(**setup)
 
         combo = QtWidgets.QComboBox(parent)
-        combo.addItems(list(self.matched.get(self.column, []).astype(str)))
+        combo.addItems(list(self.matched.get(column, []).astype(str)))
         return combo
 
     def setEditorData(self, editor: QtWidgets.QComboBox, index):
-        if self.column == "product" and self.item.functional:
+        model: ExchangesModel = index.model()
+        column = model.column_name(index)
+        column = "name" if column == "producer" else column
+
+        if column == "product" and model.functional(index):
             return super().setEditorData(editor, index)
 
-        value = index.model().data(index, 0)
+        value = index.data()
         if value:
             i = editor.findText(str(value))
             if i >= 0:
                 editor.setCurrentIndex(i)
 
     def setModelData(self, editor: QtWidgets.QComboBox, model, index):
-        if self.column == "product" and self.item.functional:
+        model: ExchangesModel = index.model()
+        column = model.column_name(index)
+        column = "name" if column == "producer" else column
+
+        if column == "product" and model.functional(index):
             return super().setModelData(editor, model, index)
 
         choice = editor.currentIndex()
         key = self.matched.iloc[choice].key
+        row = model.row(index)
 
         app.actions.ExchangeModify.run(
-            index.internalPointer().exchange,
+            row.get("_exchange"),
             {"input": key}
         )
 
 
-class ExchangesView(widgets.ABTreeView):
+class ExchangesView(widgets.ABNewTreeView):
     """
     A view that displays the exchanges in a tree structure.
 
@@ -469,218 +482,62 @@ class ExchangesView(widgets.ABTreeView):
             self.setItemDelegateForColumn(i, self.propertyDelegate)
 
 
-class ExchangesItem(widgets.ABDataItem):
+class ExchangesModel(core.ABTreeModel):
     """
-    An item representing an exchange in the tree view.
-
-    Attributes:
-        background_color (str): The background color of the item.
+    A model representing the data for the exchanges.
     """
-    background_color = None
-
-    @property
-    def exchange(self):
+    def __init__(self, tab: ExchangesTab):
+        super().__init__(parent=tab)
+        self.tab = tab
+    
+    def setData(self, index: QtCore.QModelIndex, value, role: int = Qt.ItemDataRole.EditRole) -> bool:
         """
-        Returns the exchange associated with the item.
-
-        Returns:
-            The exchange associated with the item.
-        """
-        return self["_exchange"]
-
-    @property
-    def functional(self):
-        """
-        Returns whether the exchange is functional.
-
-        Returns:
-            bool: True if the exchange is functional, False otherwise.
-        """
-        return self["_exchange"].get("type") == "production"
-
-    @property
-    def scoped_parameters(self):
-        """
-        Returns the parameters in scope of the current exchange.
-
-        Returns:
-            dict: The parameters in scope.
-        """
-        return parameters_in_scope(self["_exchange"].output)
-
-    def flags(self, col: int, key: str):
-        """
-        Returns the item flags for the given column and key.
+        Sets the data for the given index.
 
         Args:
-            col (int): The column index.
-            key (str): The key for which to return the flags.
-
-        Returns:
-            QtCore.Qt.ItemFlags: The item flags.
-        """
-        flags = super().flags(col, key)
-        # Check if the database is read-only. If it is, return the default flags.
-        if database_is_locked(self.exchange.output["database"]):
-            return flags
-
-        # Allow editing for specific keys: "amount", "formula", and "uncertainty".
-        if key in ["amount", "formula", "uncertainty", "comment"]:
-            return flags | Qt.ItemFlag.ItemIsEditable
-
-        # Allow editing for "unit", "name", and "substitution_factor" if the exchange is functional.
-        if key in ["unit", "product", "substitution_factor"] and self.functional:
-            return flags | Qt.ItemFlag.ItemIsEditable
-
-        if key in ["producer", "product", "location", "categories", "database"] and not self.functional:
-            return flags | Qt.ItemFlag.ItemIsEditable
-
-        # Allow editing for properties (keys starting with "property_") if the exchange is functional.
-        if key.startswith("property_") and self.functional:
-            return flags | Qt.ItemFlag.ItemIsEditable
-
-        # Allow editing for "allocation_factor" if the allocation is manual and the exchange is functional.
-        if key == "allocation_factor" and self.exchange.output.get("allocation") == "manual" and self.functional:
-            return flags | Qt.ItemFlag.ItemIsEditable
-
-        # Return the default flags if none of the above conditions are met.
-        return flags
-
-    def displayData(self, col: int, key: str):
-        """
-        Returns the display data for the given column and key.
-
-        Args:
-            col (int): The column index.
-            key (str): The key for which to return the display data.
-
-        Returns:
-            str: The display data.
-        """
-        if key in ["allocation_factor", "substitute", "substitution_factor"] and not self.functional:
-            return None
-
-        if key.startswith("property_") and not self.functional:
-            return None
-
-        if key.startswith("property_") and isinstance(self[key], float):
-            return {
-                "amount": self[key],
-                "unit": "undefined",
-                "normalize": False,
-            }
-
-        if key.startswith("property_") and self[key].get("normalize", True):
-            prop = self[key].copy()
-            prop["unit"] = prop['unit'] + f" / {self['unit']}"
-            return prop
-
-        return super().displayData(col, key)
-
-    def decorationData(self, col, key):
-        """
-        Provides decoration data for the item.
-
-        Args:
-            col: The column index.
-            key: The key for which to provide decoration data.
-
-        Returns:
-            The decoration data for the item.
-        """
-        if key not in ["product", "substitute_name", "amount", "producer"] or not self.displayData(col, key):
-            return
-
-        if key == "amount":
-            if pd.isna(self["formula"]) or self["formula"] is None:
-                # empty icon to align the values
-                return icons.qicons.empty
-            return icons.qicons.parameterized
-
-        activity_type = self.exchange.input.get("type")
-
-        if activity_type in ["natural resource", "emission", "inventory indicator", "economic", "social"]:
-            return icons.qicons.biosphere
-        if activity_type == "product":
-            return icons.qicons.product
-        if activity_type == "processwithreferenceproduct":
-            return icons.qicons.processproduct
-        if activity_type == "process":
-            return icons.qicons.process
-        if activity_type == "waste":
-            return icons.qicons.waste
-        return None
-
-    def fontData(self, col: int, key: str):
-        """
-        Returns the font data for the given column and key.
-
-        Args:
-            col (int): The column index.
-            key (str): The key for which to return the font data.
-
-        Returns:
-            QtGui.QFont: The font data.
-        """
-        font = super().fontData(col, key)
-
-        # set the font to bold if it's a production/functional exchange
-        if self.functional:
-            font.setWeight(QtGui.QFont.Weight.DemiBold)
-        return font
-
-    def backgroundData(self, col: int, key: str):
-        """
-        Returns the background data for the given column and key.
-
-        Args:
-            col (int): The column index.
-            key (str): The key for which to return the background data.
-
-        Returns:
-            QtGui.QBrush: The background brush for the item.
-        """
-        if self.background_color:
-            return QtGui.QBrush(QtGui.QColor(self.background_color))
-
-        if key == f"property_{self['_allocate_by']}":
-            from activity_browser.app import application
-            return application.palette().alternateBase()
-
-    def setData(self, col: int, key: str, value) -> bool:
-        """
-        Sets the data for the given column and key.
-
-        Args:
-            col (int): The column index.
-            key (str): The key for which to set the data.
+            index (QtCore.QModelIndex): The index to set data for.
             value: The value to set.
+            role (int): The role for which to set the data.
 
         Returns:
             bool: True if the data was set successfully, False otherwise.
         """
-        if key in ["amount", "formula", "comment"]:
-            if key == "formula" and not str(value).strip():
-                app.actions.ExchangeFormulaRemove.run([self.exchange])
+        if role != Qt.ItemDataRole.EditRole:
+            return False
+
+        column_name = self.column_name(index)
+        row = self.row(index)
+
+        if row is None:
+            return False
+
+        exchange = row.get("_exchange")
+        if exchange is None:
+            return False
+
+        if column_name in ["amount", "formula", "comment"]:
+            if column_name == "formula" and not str(value).strip():
+                app.actions.ExchangeFormulaRemove.run([exchange])
                 return True
 
-            app.actions.ExchangeModify.run(self.exchange, {key.lower(): value})
+            app.actions.ExchangeModify.run(exchange, {column_name.lower(): value})
             return True
 
-        if key in ["unit", "product", "location", "substitution_factor", "allocation_factor"]:
-            act = self.exchange.input
-            app.actions.ActivityModify.run(act.key, key.lower(), value)
+        if column_name in ["unit", "product", "location", "substitution_factor", "allocation_factor"]:
+            act = exchange.input
+            app.actions.ActivityModify.run(act.key, column_name.lower(), value)
+            return True
 
-        if key.startswith("property_"):
+        if column_name.startswith("property_"):
             # should move this process to a separate action
-            process = self.exchange.output
-            product = self.exchange.input
+            process = exchange.output
+            product = exchange.input
 
             if not isinstance(process, bf.Process) or not isinstance(product, bf.Product):
                 logger.warning(f"Expected a Process and Product, got {type(process)} and {type(product)} instead.")
                 return False
 
-            prop_key = key[9:]
+            prop_key = column_name[9:]
 
             prop = process.property_template(prop_key, value)
 
@@ -688,16 +545,118 @@ class ExchangesItem(widgets.ABDataItem):
             props[prop_key] = prop
 
             app.actions.ActivityModify.run(product, "properties", props)
+            return True
 
         return False
+    
+    def decorationData(self, index: QtCore.QModelIndex) -> any:
+        """
+        Provides decoration data for the model.
 
+        Args:
+            index (QtCore.QModelIndex): The index for which to provide decoration data.
 
-class ExchangesModel(widgets.ABItemModel):
-    """
-    A model representing the data for the exchanges.
+        Returns:
+            The decoration data for the index.
+        """
+        column_name = self.column_name(index)
+        row = self.row(index)
 
-    Attributes:
-        dataItemClass (type): The class of the data items.
-    """
-    dataItemClass = ExchangesItem
+        if row is None:
+            return None
+        
+        if not isinstance(row, pd.Series):
+            pass
 
+        if column_name in ["product", "producer"]:
+            activity_type = row.get("_producer_type")
+            if activity_type in ["natural resource", "emission", "inventory indicator", "economic", "social"]:
+                return icons.qicons.biosphere if column_name == "producer" else None
+            if activity_type == "processwithreferenceproduct":
+                return icons.qicons.processproduct if column_name == "producer" else icons.qicons.product
+            if activity_type in ["product", "process", "multifunctional", "nonfunctional"]:
+                return icons.qicons.process if column_name == "producer" else icons.qicons.product
+            if activity_type == "waste":
+                return icons.qicons.process if column_name == "producer" else icons.qicons.waste
+
+        if column_name == "amount":
+            formula = row.get("formula")
+            if pd.isna(formula) or formula is None or formula == "":
+                return None
+            return icons.qicons.parameterized
+
+        return None
+    
+    def fontData(self, index: QtCore.QModelIndex) -> any:
+        """
+        Provides font data for the model.
+
+        Args:
+            index (QtCore.QModelIndex): The index for which to provide font data.
+
+        Returns:
+            QtGui.QFont: The font data for the index.
+        """
+        if self.functional(index):
+            font = QtGui.QFont()
+            font.setWeight(QtGui.QFont.Weight.DemiBold)
+            return font
+
+        return None
+
+    def indexEditable(self, index):
+        column_name = self.column_name(index)
+        row = self.row(index)
+        functional = self.functional(index)
+
+        # Prevent editing if the database is locked
+        if database_is_locked(row["_exchange"]["output"][0]):
+            return False
+
+        # Allow editing for specific keys: "amount", "formula", and "uncertainty".
+        if column_name in ["amount", "formula", "uncertainty", "comment"]:
+            return True
+
+        # Allow editing for "unit", "name", and "substitution_factor" if the exchange is functional.
+        if column_name in ["unit", "product"] and functional:
+            return True
+
+        # Allow editing for "producer", "location", "categories", and "database" if the exchange is not functional.
+        if column_name in ["producer", "product", "location", "categories", "database"] and not functional:
+            return True
+
+        # Allow editing for properties (keys starting with "property_") if the exchange is functional.
+        if column_name.startswith("property_") and functional:
+            return True
+        
+        # Allow editing for allocation_factor if functional and allocation is manual
+        if column_name == "allocation_factor" and functional and self.tab.activity.get("allocation") == "manual":
+            return True
+
+        return False
+    
+    def functional(self, index):
+        """
+        Returns whether the index is functional.
+
+        Args:
+            index (QtCore.QModelIndex): The index to check.
+
+        Returns:
+            bool: True if the index is functional, False otherwise.
+        """
+        return self.row(index).get("_exchange_type") == "production"
+    
+    def scoped_parameters(self, index):
+        """
+        Returns the scoped parameters for the index.
+
+        Args:
+            index (QtCore.QModelIndex): The index to get scoped parameters for.
+
+        Returns:
+            list: A list of scoped parameters for the index.
+        """
+        row = self.row(index)
+        return parameters_in_scope(row["_exchange"].output)
+    

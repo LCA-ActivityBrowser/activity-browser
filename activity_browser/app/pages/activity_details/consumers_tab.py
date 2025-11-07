@@ -6,7 +6,7 @@ import bw_functional as bf
 
 from activity_browser import app, app
 from activity_browser.bwutils.commontasks import refresh_node
-from activity_browser.ui import widgets, icons
+from activity_browser.ui import widgets, icons, core
 
 
 class ConsumersTab(QtWidgets.QWidget):
@@ -31,7 +31,7 @@ class ConsumersTab(QtWidgets.QWidget):
         self.activity = refresh_node(activity)
 
         self.view = ConsumersView(self)
-        self.model = ConsumersModel(self)
+        self.model = ConsumersModel(parent=self)
         self.view.setModel(self.model)
         self.view.setSortingEnabled(True)
 
@@ -59,7 +59,9 @@ class ConsumersTab(QtWidgets.QWidget):
         else:
             exchanges = list(self.activity.upstream())
 
-        self.model.setDataFrame(self.build_df(exchanges))
+        df = self.build_df(exchanges)
+        df.reset_index(drop=True, inplace=True)
+        self.model.set_dataframe(df)
 
     def build_df(self, exchanges: list[bd.Edge]) -> pd.DataFrame:
         """
@@ -95,7 +97,7 @@ class ConsumersTab(QtWidgets.QWidget):
         return df[cols]
 
 
-class ConsumersView(widgets.ABTreeView):
+class ConsumersView(widgets.ABNewTreeView):
     """
     A view that displays the consumers in a tree structure.
     """
@@ -106,34 +108,43 @@ class ConsumersView(widgets.ABTreeView):
         Args:
             event: The mouse event.
         """
-        items = [i.internalPointer() for i in self.selectedIndexes() if isinstance(i.internalPointer(), ConsumersItem)]
-        keys = list({i["_consumer_key"] for i in items})
+        indexes = self.selectedIndexes()
+        if not indexes:
+            return super().mouseDoubleClickEvent(event)
+        
+        keys = self.model().values_from_indices("_consumer_key", indexes)
         if keys:
             app.actions.ActivityOpen.run(keys)
 
 
-class ConsumersItem(widgets.ABDataItem):
+class ConsumersModel(core.ABTreeModel):
     """
-    An item representing a consumer in the tree view.
+    A model representing the data for the consumers.
     """
-    def decorationData(self, col, key):
+    
+    def decorationData(self, index):
         """
-        Provides decoration data for the item.
+        Provides decoration data for the model.
 
         Args:
-            col: The column index.
-            key: The key for which to provide decoration data.
+            index: The index for which to provide decoration data.
 
         Returns:
-            The decoration data for the item.
+            The decoration data for the model.
         """
-        if key not in ["product", "consumer"]:
-            return
+        column_name = self.column_name(index)
+        row = self.row(index)
 
-        if key == "product":
-            activity_type = self["_product_type"]
-        else:  # key is "consumer"
-            activity_type = self["_consumer_type"]
+        if row is None:
+            return None
+
+        if column_name not in ["product", "consumer"]:
+            return None
+
+        if column_name == "product":
+            activity_type = row.get("_product_type")
+        else:  # column_name == "consumer"
+            activity_type = row.get("_consumer_type")
 
         if activity_type in ["natural resource", "emission", "inventory indicator", "economic", "social"]:
             return icons.qicons.biosphere
@@ -146,12 +157,4 @@ class ConsumersItem(widgets.ABDataItem):
         if activity_type == "waste":
             return icons.qicons.waste
 
-
-class ConsumersModel(widgets.ABItemModel):
-    """
-    A model representing the data for the consumers.
-
-    Attributes:
-        dataItemClass (type): The class of the data items.
-    """
-    dataItemClass = ConsumersItem
+        return None

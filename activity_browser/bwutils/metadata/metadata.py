@@ -75,7 +75,7 @@ class MetaDataStore():
         df = self.dataframe.query(
             " and ".join(
                 [
-                    f"`{key}` == '{value}'" if not pd.isna(value) else f"`{key}`.isnull()"
+                    f"`{key}`.astype('str') == {str(value)!r}" if not pd.isna(value) else f"`{key}`.isnull()"
                     for key, value in kwargs.items()
                 ])
         )
