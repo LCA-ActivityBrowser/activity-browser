@@ -25,6 +25,7 @@ class GraphTab(QtWidgets.QWidget):
         expanded_nodes (set): A set of node IDs that are expanded in the graph.
         button (QtWidgets.QPushButton): A button to trigger synchronization.
         bridge (Bridge): A bridge object for communication between Python and JavaScript.
+        backend (GraphBackend): A backend object for communication between Python and JavaScript.
         url (QUrl): The URL of the HTML file to display.
         channel (QtWebChannel.QWebChannel): A web channel for communication between Python and JavaScript.
         page (Page): A web engine page to display the HTML content.
@@ -48,11 +49,12 @@ class GraphTab(QtWidgets.QWidget):
         self.button.clicked.connect(self.sync)
 
         self.bridge = Bridge(self)
+        self.backend = GraphBackend(self)
         self.url = QUrl.fromLocalFile(os.path.join(static.__path__[0], "activity_graph.html"))
 
         self.channel = QtWebChannel.QWebChannel(self)
         self.channel.registerObject("bridge", self.bridge)
-        self.channel.registerObject("backend", self)
+        self.channel.registerObject("backend", self.backend)
 
         self.page = Page()
         self.page.setWebChannel(self.channel)
@@ -143,7 +145,6 @@ class GraphTab(QtWidgets.QWidget):
 
         return json.dumps(full)
 
-    @Slot(str)
     def expand_node(self, node_id: str):
         """
         Expands a node in the graph.
@@ -158,7 +159,6 @@ class GraphTab(QtWidgets.QWidget):
         self.expanded_nodes.add(node.id)
         self.sync()
 
-    @Slot(str)
     def collapse_node(self, node_id: str):
         """
         Collapses a node in the graph.
@@ -245,6 +245,44 @@ class GraphView(QtWebEngineWidgets.QWebEngineView):
         # Run the action for new exchanges
         for exc_type, keys in exchanges.items():
             app.actions.ExchangeNew.run(keys, self.parent().activity.key, exc_type)
+
+
+class GraphBackend(QObject):
+    """
+    A backend object for communication between Python and JavaScript.
+    This object is exposed to the JavaScript side and provides methods
+    that can be called from JavaScript to control the graph.
+    """
+    def __init__(self, graph_tab: GraphTab, parent=None):
+        """
+        Initializes the GraphBackend object.
+
+        Args:
+            graph_tab (GraphTab): The GraphTab widget this backend is associated with.
+            parent (QObject, optional): The parent object. Defaults to None.
+        """
+        super().__init__(parent)
+        self.graph_tab = graph_tab
+
+    @Slot(str)
+    def expand_node(self, node_id: str):
+        """
+        Expands a node in the graph.
+
+        Args:
+            node_id (str): The ID of the node to expand.
+        """
+        self.graph_tab.expand_node(node_id)
+
+    @Slot(str)
+    def collapse_node(self, node_id: str):
+        """
+        Collapses a node in the graph.
+
+        Args:
+            node_id (str): The ID of the node to collapse.
+        """
+        self.graph_tab.collapse_node(node_id)
 
 
 class Bridge(QObject):
