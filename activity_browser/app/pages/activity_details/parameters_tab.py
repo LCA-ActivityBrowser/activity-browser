@@ -1,10 +1,11 @@
 from qtpy import QtWidgets, QtCore
+from qtpy.QtCore import Qt
 
 import pandas as pd
 import bw2data as bd
 
-from activity_browser import app, app
-from activity_browser.ui import widgets, icons, delegates
+from activity_browser import app
+from activity_browser.ui import widgets, icons, delegates, core
 from activity_browser.bwutils.commontasks import refresh_node, refresh_parameter, parameters_in_scope, database_is_locked, node_group
 from activity_browser.bwutils.utils import Parameter
 
@@ -29,13 +30,9 @@ class ParametersTab(QtWidgets.QWidget):
         super().__init__(parent)
         self.activity = refresh_node(activity)
 
-        self.model = ParametersModel(self.build_df(), self.activity, self)
-        self.view = ParametersView()
+        self.view = ParametersView(self)
+        self.model = ParametersModel(tab=self)
         self.view.setModel(self.model)
-        self.view.expandAll()
-
-        self.view.resizeColumnToContents(0)
-        self.view.resizeColumnToContents(2)
 
         self.build_layout()
         self.connect_signals()
@@ -45,6 +42,7 @@ class ParametersTab(QtWidgets.QWidget):
         Builds the layout of the widget.
         """
         layout = QtWidgets.QVBoxLayout()
+        layout.setContentsMargins(0, 10, 0, 1)
         layout.addWidget(self.view)
 
         self.setLayout(layout)
@@ -62,7 +60,11 @@ class ParametersTab(QtWidgets.QWidget):
         Synchronizes the widget with the current state of the activity.
         """
         self.activity = refresh_node(self.activity)
-        self.model.setDataFrame(self.build_df())
+        df = self.build_df()
+        df.reset_index(drop=True, inplace=True)
+        self.model.set_dataframe(df)
+        self.model.group(["_scope"])
+        self.view.expandAll()
 
     def build_df(self) -> pd.DataFrame:
         """
@@ -84,9 +86,9 @@ class ParametersTab(QtWidgets.QWidget):
             row["_activity"] = self.activity
 
             if param.param_type == "project":
-                row["_scope"] = f"Current project"
+                row["_scope"] = "Current project"
             elif param.param_type == "database":
-                row["_scope"] = f"This database"
+                row["_scope"] = "This database"
             elif param.group == node_group(self.activity):
                 row["_scope"] = "This activity"
             else:
@@ -98,7 +100,7 @@ class ParametersTab(QtWidgets.QWidget):
         return pd.DataFrame(translated, columns=columns)
 
 
-class ParametersView(widgets.ABTreeView):
+class ParametersView(widgets.ABNewTreeView):
     """
     A view that displays the parameters in a tree structure.
 
@@ -113,233 +115,143 @@ class ParametersView(widgets.ABTreeView):
         "uncertainty": delegates.UncertaintyDelegate,
     }
 
-    class ContextMenu(QtWidgets.QMenu):
+    class ContextMenu(widgets.ABMenu):
+        menuSetup = [
+            lambda m: m.add(app.actions.ParameterDelete, m.parameters, enable=bool(m.parameters) and not m.locked),
+        ]
+
+        @property
+        def locked(self):
+            table_view: ParametersView = self.parent()
+            return database_is_locked(table_view.activity["database"])
+        
+        @property
+        def activity(self):
+            table_view: ParametersView = self.parent()
+            return table_view.activity
+        
+        @property
+        def parameters(self):
+            table_view: ParametersView = self.parent()
+            table_model: ParametersModel = table_view.model()
+            
+            selected_indices = table_view.selectedIndexes()
+            params = table_model.values_from_indices("_parameter", selected_indices)
+            # Convert to peewee models
+            return [p.to_peewee_model() for p in params if p is not None]
+    
+    def __init__(self, parent):
         """
-        A context menu for the ParametersView.
-
-        Attributes:
-            del_param_action (QAction): The action to delete a parameter.
-        """
-        def __init__(self, pos, view: "ParametersView"):
-            """
-            Initializes the ContextMenu.
-
-            Args:
-                pos: The position of the context menu.
-                view (ParametersView): The view displaying the parameters.
-            """
-            super().__init__(view)
-
-            index = view.indexAt(pos)
-            if index.isValid() and isinstance(index.internalPointer(), ParametersItem):
-                item = index.internalPointer()
-                param = item.parameter.to_peewee_model()
-                self.del_param_action = app.actions.ParameterDelete().get_QAction(param)
-                if not param.is_deletable() or param.name == "dummy_parameter":
-                    self.del_param_action.setEnabled(False)
-                self.addAction(self.del_param_action)
-
-
-class ParametersItem(widgets.ABDataItem):
-    """
-    An item representing a parameter in the tree view.
-    """
-
-    @property
-    def scoped_parameters(self) -> dict[str, Parameter]:
-        """
-        Returns the parameters in scope of this item's parameter.
-
-        Returns:
-            dict: The parameters in scope.
-        """
-        return parameters_in_scope(parameter=self["_parameter"])
-
-    @property
-    def parameter(self) -> Parameter:
-        """
-        Returns the parameter associated with this item.
-
-        Returns:
-            Parameter: The current parameter.
-        """
-        return refresh_parameter(self["_parameter"])
-
-    def flags(self, col: int, key: str):
-        """
-        Returns the item flags for the given column and key.
+        Initializes the ParametersView.
 
         Args:
-            col (int): The column index.
-            key (str): The key for which to return the flags.
+            parent (QtWidgets.QWidget): The parent widget.
+        """
+        super().__init__(parent)
+        self.setSortingEnabled(True)
+
+    @property
+    def activity(self):
+        """
+        Returns the activity associated with the view.
 
         Returns:
-            QtCore.Qt.ItemFlags: The item flags.
+            The activity associated with the view.
         """
-        flags = super().flags(col, key)
+        return self.parent().activity
 
-        if key in ["amount", "formula", "uncertainty", "name", "comment"] and not database_is_locked(self["_activity"]["database"]):
-            return flags | QtCore.Qt.ItemFlag.ItemIsEditable
-        return flags
 
-    def setData(self, col: int, key: str, value) -> bool:
+class ParametersModel(core.ABTreeModel):
+    """
+    A model representing the data for the parameters.
+    """
+    def __init__(self, tab: ParametersTab):
+        super().__init__(parent=tab)
+        self.tab = tab
+    
+    def setData(self, index: QtCore.QModelIndex, value, role: int = Qt.ItemDataRole.EditRole) -> bool:
         """
-        Sets the data for the given column and key.
+        Sets the data for the given index.
 
         Args:
-            col (int): The column index.
-            key (str): The key for which to set the data.
+            index (QtCore.QModelIndex): The index to set data for.
             value: The value to set.
+            role (int): The role for which to set the data.
 
         Returns:
             bool: True if the data was set successfully, False otherwise.
         """
-        if key in ["amount", "formula", "name", "comment"]:
-            app.actions.ParameterModify.run(self.parameter, key, value)
+        if role != Qt.ItemDataRole.EditRole:
+            return False
+
+        column_name = self.column_name(index)
+        row = self.row(index)
+
+        if row is None:
+            return False
+
+        parameter = row.get("_parameter")
+        if parameter is None:
+            return False
+
+        if column_name in ["amount", "formula", "name", "comment"]:
+            parameter = refresh_parameter(parameter)
+            app.actions.ParameterModify.run(parameter, column_name, value)
+            return True
 
         return False
-
-    def decorationData(self, col, key):
+    
+    def decorationData(self, index: QtCore.QModelIndex) -> any:
         """
-        Provides decoration data for the item.
+        Provides decoration data for the model.
 
         Args:
-            col: The column index.
-            key: The key for which to provide decoration data.
+            index (QtCore.QModelIndex): The index for which to provide decoration data.
 
         Returns:
-            The decoration data for the item.
+            The decoration data for the index.
         """
-        if key not in ["amount"]:
-            return
+        column_name = self.column_name(index)
+        row = self.row(index)
 
-        if key == "amount":
-            if pd.isna(self["formula"]) or self["formula"] is None or self["formula"] == "":
+        if row is None:
+            return None
+        
+        if not isinstance(row, pd.Series):
+            return None
+
+        if column_name == "amount":
+            if pd.isna(row.get("formula")) or row.get("formula") is None or row.get("formula") == "":
                 return icons.qicons.empty  # empty icon to align the values
             return icons.qicons.parameterized
 
+        return None
 
-class NewParametersItem(widgets.ABDataItem):
-    """
-    An item representing a new parameter in the tree view.
-    """
-    def flags(self, col: int, key: str):
-        """
-        Returns the item flags for the given column and key.
+    def indexEditable(self, index):
+        column_name = self.column_name(index)
+        row = self.row(index)
 
-        Args:
-            col (int): The column index.
-            key (str): The key for which to return the flags.
-
-        Returns:
-            QtCore.Qt.ItemFlags: The item flags.
-        """
-        flags = super().flags(col, key)
-        if key == "name":
-            return flags | QtCore.Qt.ItemFlag.ItemIsEditable
-        return flags
-
-    def fontData(self, col: int, key: str):
-        """
-        Returns the font data for the given column and key.
-
-        Args:
-            col (int): The column index.
-            key (str): The key for which to return the font data.
-
-        Returns:
-            QtGui.QFont: The font data.
-        """
-        font = super().fontData(col, key)
-        font.setWeight(font.Weight.ExtraLight)
-        return font
-
-    def setData(self, col: int, key: str, value) -> bool:
-        """
-        Sets the data for the given column and key.
-
-        Args:
-            col (int): The column index.
-            key (str): The key for which to set the data.
-            value: The value to set.
-
-        Returns:
-            bool: True if the data was set successfully, False otherwise.
-        """
-        if key != "name" or value == "":
+        # Prevent editing if the database is locked
+        if row is None or database_is_locked(row.get("_activity", {}).get("database")):
             return False
 
-        parameter = Parameter(
-            name=value,
-            group=self["_parameter"]["group"],
-            param_type=self["_parameter"]["param_type"]
-        )
+        # Allow editing for specific columns
+        if column_name in ["amount", "formula", "uncertainty", "name", "comment"]:
+            return True
 
-        app.actions.ParameterNewFromParameter.run(parameter)
-        return True
-
-
-class ParametersModel(widgets.ABItemModel):
-    """
-    A model representing the data for the parameters.
-
-    Attributes:
-        dataItemClass (type): The class of the data items.
-    """
-    dataItemClass = ParametersItem
-
-    def __init__(self, dataframe, activity, parent=None):
+        return False
+    
+    def scoped_parameters(self, index):
         """
-        Initializes the ParametersModel.
+        Returns the scoped parameters for the index.
 
         Args:
-            dataframe (pd.DataFrame): The DataFrame containing the parameters data.
-            activity (tuple | int | bd.Node): The activity to display parameters for.
-            parent (QtWidgets.QWidget, optional): The parent widget. Defaults to None.
-        """
-        self.activity = activity
-        super().__init__(parent, dataframe)
-
-    def createItems(self, dataframe=None) -> list[widgets.ABAbstractItem]:
-        """
-        Creates items from the given DataFrame.
-
-        Args:
-            dataframe (pd.DataFrame, optional): The DataFrame containing the parameters data. Defaults to None.
+            index (QtCore.QModelIndex): The index to get scoped parameters for.
 
         Returns:
-            list[widgets.ABAbstractItem]: The list of created items.
+            dict: A dictionary of scoped parameters for the index.
         """
-        if dataframe is None:
-            # If no DataFrame is provided, use the model's default DataFrame.
-            dataframe = self.dataframe
-
-        items = []
-        for scope in ["Current project", "This database", "This activity"]:
-            # Create a branch item for the current scope.
-            branch = self.branchItemClass(scope)
-
-            # Iterate over the rows in the DataFrame that match the current scope.
-            for index, data in dataframe.loc[dataframe._scope == scope].to_dict(orient="index").items():
-                # Create a data item for each row and add it to the branch.
-                self.dataItemClass(index, data, branch)
-
-            # Determine the group and parameter type based on the current scope.
-            if scope == "Current project":
-                group, param_type = "project", "project"
-            elif scope == "This database":
-                group, param_type = self.activity["database"], "database"
-            else:
-                group, param_type = self.activity.id, "activity"
-
-            # If the database is not read-only, add a placeholder for creating a new parameter.
-            if not bd.databases[self.activity["database"]].get("read_only", True):
-                NewParametersItem(None, {"name": "New parameter...", "_parameter": {
-                    "group": group, "param_type": param_type
-                }}, branch)
-
-            # Add the branch to the list of items.
-            items.append(branch)
-
-        # Return the list of created items.
-        return items
+        row = self.row(index)
+        if row is None:
+            return {}
+        return parameters_in_scope(parameter=row.get("_parameter"))
