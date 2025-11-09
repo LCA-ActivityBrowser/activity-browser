@@ -6,7 +6,7 @@ from collections import OrderedDict
 
 import arrow
 import pandas as pd
-import peewee as pw
+import numpy as np
 
 import bw2data as bd
 from bw2data.parameters import ParameterBase, ProjectParameter, DatabaseParameter, ActivityParameter, Group
@@ -225,12 +225,12 @@ def is_node_process(node: tuple | int | bd.Node) -> bool:
     return False
 
 
-def refresh_node(node: tuple | int | bd.Node) -> bd.Node:
+def refresh_node(node: tuple | int | np.int64 | bd.Node) -> bd.Node:
     if isinstance(node, bd.Node):
         node = bd.get_node(id=node.id)
     elif isinstance(node, tuple):
         node = bd.get_node(key=node)
-    elif isinstance(node, int):
+    elif isinstance(node, (int, np.int64)):
         node = bd.get_node(id=node)
     else:
         raise ValueError("Activity must be either a tuple, int or Node instance")

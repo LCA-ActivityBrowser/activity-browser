@@ -38,8 +38,7 @@ class DataTab(QtWidgets.QWidget):
         df = self.build_df()
         df.reset_index(drop=True, inplace=True)
         self.data_model.set_dataframe(df)
-        self.data_model.group(["name"])
-        self.data_view.setColumnHidden(1, True)
+        self.data_model.group(["_name"])
         self.data_view.expandAll()
 
         self.build_layout()
@@ -60,8 +59,7 @@ class DataTab(QtWidgets.QWidget):
         df = self.build_df()
         df.reset_index(drop=True, inplace=True)
         self.data_model.set_dataframe(df)
-        self.data_model.group(["name"])
-        self.data_view.setColumnHidden(1, True)
+        self.data_model.group(["_name"])
         self.data_view.expandAll()
 
     def build_df(self) -> pd.DataFrame:
@@ -72,23 +70,23 @@ class DataTab(QtWidgets.QWidget):
             pd.DataFrame: The DataFrame containing the activity data.
         """
         df = pd.Series(self.activity.as_dict()).to_frame()
-        df["name"] = f"{self.activity['name']} {df.get('product', '')} ({self.activity['id']})"
+        df["_name"] = f"{self.activity['name']} {df.get('product', '')} ({self.activity['id']})"
         df["_activity_id"] = self.activity.id
         df["_activity_db"] = self.activity["database"]
 
         if isinstance(self.activity, bf.Process):
             for product in self.activity.products():
                 fn_df = pd.DataFrame.from_dict(product.as_dict(), orient="index")
-                fn_df["name"] = f"{product['name']}: {product.get('product', '')} ({product['id']})"
+                fn_df["_name"] = f"{product['name']}: {product.get('product', '')} ({product['id']})"
                 fn_df["_activity_id"] = product.id
                 fn_df["_activity_db"] = product["database"]
                 df = pd.concat([df, fn_df])
 
         df = df.reset_index()
         df = df.rename({"index": "field", 0: "value"}, axis=1)
-        df = df.sort_values(["name", "field"], ignore_index=True)
+        df = df.sort_values(["_name", "field"], ignore_index=True)
 
-        cols = ["field", "value", "name", "_activity_id", "_activity_db"]
+        cols = ["field", "value", "_name", "_activity_id", "_activity_db"]
         return df[cols]
 
 
