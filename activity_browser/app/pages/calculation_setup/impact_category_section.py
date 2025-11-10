@@ -1,10 +1,11 @@
-from qtpy import QtWidgets
+from qtpy import QtWidgets, QtCore
+from qtpy.QtCore import Qt
 
 import bw2data as bd
 import pandas as pd
 
 from activity_browser import app
-from activity_browser.ui import widgets, delegates
+from activity_browser.ui import widgets, delegates, core
 
 
 class ImpactCategorySection(QtWidgets.QWidget):
@@ -14,8 +15,8 @@ class ImpactCategorySection(QtWidgets.QWidget):
         self.calculation_setup_name = calculation_setup_name
         self.calculation_setup = bd.calculation_setups.get(self.calculation_setup_name)
 
-        self.view = ImpactCategoryView()
-        self.model = ImpactCategoryModel()
+        self.view = ImpactCategoryView(self)
+        self.model = ImpactCategoryModel(parent=self)
         self.view.setModel(self.model)
 
         self.build_layout()
@@ -28,7 +29,9 @@ class ImpactCategorySection(QtWidgets.QWidget):
     def sync(self):
         try:
             self.calculation_setup = bd.calculation_setups[self.calculation_setup_name]
-            self.model.setDataFrame(self.build_df())
+            df = self.build_df()
+            df.reset_index(drop=True, inplace=True)
+            self.model.set_dataframe(df)
         except KeyError:
             self.parent().close()
             self.parent().deleteLater()
@@ -38,30 +41,33 @@ class ImpactCategorySection(QtWidgets.QWidget):
         df = pd.DataFrame(data, columns=["name", "unit", "num_cfs"])
 
         df["name"] = self.calculation_setup.get("ia", [])
+        df["_cs_name"] = self.calculation_setup_name
 
-        cols = ["name", "unit", "num_cfs"]
+        cols = ["name", "unit", "num_cfs", "_cs_name"]
 
         return df[cols]
 
 
-class ImpactCategoryView(widgets.ABTreeView):
+class ImpactCategoryView(widgets.ABNewTreeView):
     defaultColumnDelegates = {
         "name": delegates.StringDelegate
     }
 
-    class ContextMenu(QtWidgets.QMenu):
-        def __init__(self, pos, view: "ImpactCategoryView"):
-            super().__init__(view)
-            cs_name = view.parent().calculation_setup_name
+    class ContextMenu(widgets.ABMenu):
+        menuSetup = [
+            lambda m, p: m.add(app.actions.CSDeleteImpactCategory, m.cs_name, m.selected_ics,
+                               text="Delete Impact Category" if len(m.selected_ics) == 1 else "Delete Impact Categories",
+                               enable=len(m.selected_ics) > 0
+                               ),
+        ]
 
-            if not view.selectedIndexes():
-                return
+        @property
+        def selected_ics(self):
+            return self.parent().model().values_from_indices("name", self.parent().selectedIndexes())
 
-            indices = [index.internalPointer().key() for index in view.selectedIndexes()]
-
-            self.delete_ic_action = app.actions.CSDeleteImpactCategory.get_QAction(cs_name, indices)
-            print(self.delete_ic_action.text())
-            self.addAction(self.delete_ic_action)
+        @property
+        def cs_name(self):
+            return self.parent().parent().calculation_setup_name
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -83,9 +89,8 @@ class ImpactCategoryView(widgets.ABTreeView):
         app.actions.CSAddImpactCategory.run(cs_name, method_names)
 
 
-class ImpactCategoryItem(widgets.ABDataItem):
+class ImpactCategoryModel(core.ABTreeModel):
+    """
+    A model representing the data for the impact categories.
+    """
     pass
-
-
-class ImpactCategoryModel(widgets.ABItemModel):
-    dataItemClass = ImpactCategoryItem

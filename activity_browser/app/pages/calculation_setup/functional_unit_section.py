@@ -1,11 +1,11 @@
-from qtpy import QtWidgets
+from qtpy import QtWidgets, QtCore
 from qtpy.QtCore import Qt
 
 import bw2data as bd
 import pandas as pd
 
-from activity_browser import app, app
-from activity_browser.ui import widgets, icons, delegates
+from activity_browser import app
+from activity_browser.ui import widgets, icons, delegates, core
 from activity_browser.bwutils.commontasks import is_node_product
 
 
@@ -16,8 +16,8 @@ class FunctionalUnitSection(QtWidgets.QWidget):
         self.calculation_setup_name = calculation_setup_name
         self.calculation_setup = bd.calculation_setups.get(self.calculation_setup_name)
 
-        self.view = FunctionalUnitView()
-        self.model = FunctionalUnitModel()
+        self.view = FunctionalUnitView(self)
+        self.model = FunctionalUnitModel(parent=self)
         self.view.setModel(self.model)
 
         self.build_layout()
@@ -30,7 +30,9 @@ class FunctionalUnitSection(QtWidgets.QWidget):
     def sync(self):
         try:
             self.calculation_setup = bd.calculation_setups[self.calculation_setup_name]
-            self.model.setDataFrame(self.build_df())
+            df = self.build_df()
+            df.reset_index(drop=True, inplace=True)
+            self.model.set_dataframe(df)
         except KeyError:
             self.parent().close()
             self.parent().deleteLater()
@@ -82,37 +84,25 @@ class FunctionalUnitSection(QtWidgets.QWidget):
         return act_df[cols].reset_index(drop=True)
 
 
-class FunctionalUnitView(widgets.ABTreeView):
+class FunctionalUnitView(widgets.ABNewTreeView):
     defaultColumnDelegates = {
         "amount": delegates.AmountDelegate
     }
 
     class ContextMenu(widgets.ABMenu):
         menuSetup = [
-            lambda m, p: m.add(app.actions.ActivityOpen, m.selected_processes,
-                               text="Open process" if len(m.selected_processes) == 1 else "Open processes",
-                               enable=len(m.selected_processes) > 0
+            lambda m, p: m.add(app.actions.ActivityOpen, p.selected_processes(),
+                               text="Open process" if len(p.selected_processes()) == 1 else "Open processes",
+                               enable=len(p.selected_processes()) > 0
                                ),
             lambda m: m.addSeparator(),
-            lambda m, p: m.add(app.actions.CSDeleteFunctionalUnit, m.cs_name, m.selected_fus,
-                               text="Delete Functional Unit" if len(m.selected_fus) == 1 else "Delete Functional Units",
-                               enable=len(m.selected_fus) > 0
+            lambda m, p: m.add(app.actions.CSDeleteFunctionalUnit, p.cs_name(), p.selected_row_indices(),
+                               text="Delete Functional Unit" if len(p.selected_processes()) == 1 else "Delete Functional Units",
+                               enable=len(p.selected_processes()) > 0
                                ),
 
         ]
-
-        @property
-        def selected_fus(self):
-            return list(set([index.internalPointer().key() for index in self.parent().selectedIndexes()]))
-
-        @property
-        def selected_processes(self):
-            return list(set([index.internalPointer()["_processor_key"] for index in self.parent().selectedIndexes()]))
-
-        @property
-        def cs_name(self):
-            return self.parent().parent().calculation_setup_name
-
+    
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setAcceptDrops(True)
@@ -127,11 +117,11 @@ class FunctionalUnitView(widgets.ABTreeView):
             event: The mouse double click event.
         """
         index = self.indexAt(event.pos())
-        if index.column() == 0:
+        if index.column() == 1: # Prevent action on amount column
             return super().mouseDoubleClickEvent(event)
 
         if self.selectedIndexes():
-            activities = [index.internalPointer()["_processor_key"] for index in self.selectedIndexes()]
+            activities = self.model().values_from_indices("_processor_key", self.selectedIndexes())
             app.actions.ActivityOpen.run(list(set(activities)))
 
         return None
@@ -162,57 +152,87 @@ class FunctionalUnitView(widgets.ABTreeView):
 
         app.actions.CSAddFunctionalUnit.run(cs_name, keys)
 
+    def selected_row_indices(self):
+        return [i.row() for i in super().selectedIndexes()]
+    
+    def cs_name(self):
+        return self.parent().calculation_setup_name
+    
+    def selected_processes(self):
+        return list(set(self.model().values_from_indices("_processor_key", self.selectedIndexes())))
 
-class FunctionalUnitItem(widgets.ABDataItem):
-    def decorationData(self, col: int, key: str):
-        if key == "product" and self["_type"] == "waste":
-            return icons.qicons.waste
-        elif key == "product" and self["type"] == "processwithreferenceproduct":
-            return icons.qicons.processproduct
-        elif key == "product":
-            return icons.qicons.product
-        if key == "process":
-            return icons.qicons.process
-        return super().decorationData(col, key)
 
-    def flags(self, col: int, key: str):
+class FunctionalUnitModel(core.ABTreeModel):
+    """
+    A model representing the data for the functional units.
+    """
+    
+    def setData(self, index: QtCore.QModelIndex, value, role: int = Qt.ItemDataRole.EditRole) -> bool:
         """
-        Returns the item flags for the given column and key.
+        Sets the data for the given index.
 
         Args:
-            col (int): The column index.
-            key (str): The key for which to return the flags.
-
-        Returns:
-            QtCore.Qt.ItemFlags: The item flags.
-        """
-        flags = super().flags(col, key)
-        if key in ["amount"]:
-            return flags | Qt.ItemFlag.ItemIsEditable
-        return flags
-
-    def setData(self, col: int, key: str, value) -> bool:
-        """
-        Sets the data for the given column and key.
-
-        Args:
-            col (int): The column index.
-            key (str): The key for which to set the data.
+            index (QtCore.QModelIndex): The index to set data for.
             value: The value to set.
+            role (int): The role for which to set the data.
 
         Returns:
             bool: True if the data was set successfully, False otherwise.
         """
-        if key not in ["amount"]:
+        if role != Qt.ItemDataRole.EditRole:
             return False
 
-        cs_name = self["_cs_name"]
-        index = self.key()
+        column_name = self.column_name(index)
+        row = self.row(index)
 
-        app.actions.CSChangeFunctionalUnit.run(cs_name, index, value)
+        if row is None:
+            return False
 
+        if column_name == "amount":
+            cs_name = row.get("_cs_name")
+            app.actions.CSChangeFunctionalUnit.run(cs_name, index.row(), value)
+            return True
 
+        return False
+    
+    def decorationData(self, index: QtCore.QModelIndex) -> any:
+        """
+        Provides decoration data (icons) for the model.
 
+        Args:
+            index (QtCore.QModelIndex): The index for which to provide decoration data.
 
-class FunctionalUnitModel(widgets.ABItemModel):
-    dataItemClass = FunctionalUnitItem
+        Returns:
+            The decoration data (icon) for the index.
+        """
+        column_name = self.column_name(index)
+
+        if column_name == "product":
+            product_type = self.get(index, "_type")
+            if product_type == "waste":
+                return icons.qicons.waste
+            elif product_type == "processwithreferenceproduct":
+                return icons.qicons.processproduct
+            else:
+                return icons.qicons.product
+        elif column_name == "process":
+            return icons.qicons.process
+
+        return None
+    
+    def indexEditable(self, index: QtCore.QModelIndex) -> bool:
+        """
+        Returns whether the index is editable.
+
+        Args:
+            index (QtCore.QModelIndex): The index to check.
+
+        Returns:
+            bool: True if the index is editable, False otherwise.
+        """
+        column_name = self.column_name(index)
+
+        if column_name == "amount":
+            return True
+        
+        return False

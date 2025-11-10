@@ -218,6 +218,9 @@ class ABTreeModel(QAbstractItemModel):
     
     #--- flag overrides ---
     def flags(self, index):
+        if not index.isValid():
+            return Qt.ItemFlag.NoItemFlags
+
         flags = Qt.ItemFlag.NoItemFlags
         if self.indexEnabled(index):
             flags |= Qt.ItemFlag.ItemIsEnabled
@@ -377,10 +380,7 @@ class ABTreeModel(QAbstractItemModel):
                 node.loaded_count = node.total_children()
     
     def reset_hierarchy(self, df: pd.DataFrame = None) -> None:
-        df = df if df is not None else self.df
-
-        self.layoutAboutToBeChanged.emit()
-        
+        df = df if df is not None else self.df       
         old_persistent_indices = [(idx, idx.internalPointer()) for idx in self.persistentIndexList()]
         
         # Rebuild the node hierarchy
@@ -432,6 +432,7 @@ class ABTreeModel(QAbstractItemModel):
 
     def filter(self, key: str = None, query: str = None) -> None:
         """Filter the DataFrame based on a simple substring match across all columns."""
+        self.layoutAboutToBeChanged.emit()
         if query is not None and key is not None:
             self.df_query[key] = query
         
@@ -439,18 +440,7 @@ class ABTreeModel(QAbstractItemModel):
         filtered_df = self.df.query(pandas_query)
 
         self.reset_hierarchy(filtered_df)
-
-    def quick_filter(self, substring: str) -> None:
-        """Quick filter rows containing the substring in any column."""
-        if not substring:
-            self.filter("index == index")  # reset filter
-            return
-
-        query = " or ".join(
-            f"`{col}`.astype('string').str.contains({substring!r}, case=False, na=False, regex=False)"
-            for col in self.df.columns
-        )
-        self.filter(query)
+        self.layoutChanged.emit()
     
     def set_dataframe(self, df: pd.DataFrame) -> None:
         self.beginResetModel()
@@ -466,6 +456,7 @@ class ABTreeModel(QAbstractItemModel):
         Unpacks columns containing iterables (lists, tuples, sets) by spreading them
         into separate columns that become separate levels in the multiindex.
         """
+        self.layoutAboutToBeChanged.emit()
         df = self.df[columns].copy()
         
         # Build the list of columns for the new index, unpacking iterables
@@ -500,12 +491,15 @@ class ABTreeModel(QAbstractItemModel):
         self.df = self.df.set_index(new_index)
 
         self.reset_hierarchy()
+        self.layoutChanged.emit()
     
     def ungroup(self) -> None:
         """Ungroup the DataFrame by resetting the index."""
+        self.layoutAboutToBeChanged.emit()
         self.df.index = pd.MultiIndex.from_arrays([range(len(self.df))], names=[f"index"])
         self.df.index.name = "index"
         self.reset_hierarchy()
+        self.layoutChanged.emit()
     
     def values_from_indices(self, key: str, indices: list[QModelIndex]):
         """
