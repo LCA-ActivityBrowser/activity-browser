@@ -353,6 +353,22 @@ class ProductModel(ui.core.ABTreeModel):
         if node_type in NODETYPES["biosphere"]:
             return icons.qicons.biosphere
         return icons.qicons.process
+    
+    def toolTipData(self, index: QtCore.QModelIndex) -> str:
+        column_name = self.column_name(index)
+        if column_name not in ["name", "product"]:
+            return None
+        
+        row = self.row(index)
+
+        html_tooltip = f"""
+        <b>{row.get('product')}</b><br>
+        <i>{row.get('name')}</i><br>
+        <br>
+        {row.get('unit')} | {row.get('location')} | {row.get('type')}
+        """
+
+        return html_tooltip
 
     def mimeData(self, indices: list[QtCore.QModelIndex]):
         """

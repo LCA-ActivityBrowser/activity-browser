@@ -175,6 +175,8 @@ class ABTreeModel(QAbstractItemModel):
             return self.decorationData(index)
         elif role == Qt.FontRole:
             return self.fontData(index)
+        elif role == Qt.ToolTipRole:
+            return self.toolTipData(index)
 
         return None
     
@@ -214,6 +216,9 @@ class ABTreeModel(QAbstractItemModel):
         return None
     
     def fontData(self, index: QModelIndex) -> any:
+        return None
+    
+    def toolTipData(self, index: QModelIndex) -> any:
         return None
     
     #--- flag overrides ---
