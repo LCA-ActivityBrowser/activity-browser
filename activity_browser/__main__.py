@@ -1,3 +1,9 @@
+# Divert the program flow in worker sub-process as soon as possible,
+# before importing heavy-weight modules.
+if __name__ == '__main__':
+    import multiprocessing
+    multiprocessing.freeze_support()
+
 import sys
 import os
 from importlib import metadata
