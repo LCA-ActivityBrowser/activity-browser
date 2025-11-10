@@ -8,30 +8,61 @@ from PySide6.QtWidgets import QWidget
 from PySide6.QtCore import QAbstractItemModel
 
 
+class TreeNode:
+    """
+    Optimized node object that combines children_map, row_indices, loaded_counts, 
+    and DataFrame position for O(1) lookups.
+    """
+    __slots__ = ('path', 'children', 'row_in_parent', 'loaded_count', 'df_position', 'is_leaf', '_child_lookup')
+    
+    def __init__(self, path: tuple, df_position: int = -1):
+        self.path: tuple = path  # Full path tuple for this node
+        self.children: list['TreeNode'] = []  # List of child nodes
+        self.row_in_parent: int = -1  # Row index within parent's children list
+        self.loaded_count: int = 0  # Number of children currently loaded (for lazy loading)
+        self.df_position: int = df_position  # Integer position in DataFrame (-1 for branch nodes)
+        self.is_leaf: bool = (df_position >= 0)  # True if this is a leaf node
+        self._child_lookup: dict[tuple, TreeNode] = {}  # Fast child lookup by path
+    
+    def add_child(self, child: 'TreeNode') -> None:
+        """Add a child node and update its row_in_parent."""
+        child.row_in_parent = len(self.children)
+        self.children.append(child)
+        self._child_lookup[child.path] = child
+    
+    def get_child(self, path: tuple) -> Optional['TreeNode']:
+        """Get a child by its path (O(1) lookup)."""
+        return self._child_lookup.get(path)
+    
+    def get_child_at(self, row: int) -> Optional['TreeNode']:
+        """Get a child by its row index (O(1) lookup)."""
+        if 0 <= row < len(self.children):
+            return self.children[row]
+        return None
+    
+    def total_children(self) -> int:
+        """Total number of children (for lazy loading comparison)."""
+        return len(self.children)
+    
+    def can_fetch_more(self) -> bool:
+        """Check if more children can be loaded."""
+        return self.loaded_count < len(self.children)
+
+
 class ABTreeModel(QAbstractItemModel):
     def __init__(self, df: pd.DataFrame = None, parent: Optional[QWidget] = None, chunk_size: int = -1) -> None:
         super().__init__(parent)
         self.df = df if df is not None else pd.DataFrame()
         self.df_query: dict[str, str] = {"model": "index == index"}  # dictionary where queries can be registered
-        self.children_map = self.build_hierarchy_from_index(self.df.index)
         self.lazy = chunk_size > 0
         self.chunk_size = chunk_size
         
-        # Pre-compute row indices for O(1) lookups instead of O(n) list.index()
-        self.row_indices: dict[tuple, dict[tuple, int]] = {}
-        self.build_row_indices()
+        # Single unified node map: path -> TreeNode
+        self.node_map: dict[tuple, TreeNode] = {}
+        self.root: TreeNode = TreeNode(tuple())  # Root node with empty path
         
-        # Track how many children are currently loaded for each parent
-        self.loaded_counts: dict[tuple, int] = {}
-        if self.lazy:
-            # Initially load first chunk for each parent
-            for parent_path in self.children_map:
-                total = len(self.children_map[parent_path])
-                self.loaded_counts[parent_path] = min(chunk_size, total)
-        else:
-            # All rows are loaded
-            for parent_path, children in self.children_map.items():
-                self.loaded_counts[parent_path] = len(children)
+        # Build the node hierarchy
+        self.build_node_hierarchy(self.df.index)
     
     def columns(self) -> list[str]:
         """Return the list of column names, including the tree column."""
@@ -42,56 +73,71 @@ class ABTreeModel(QAbstractItemModel):
         return self.columns()[index.column()]
     
     def row(self, index: QModelIndex) -> pd.Series | None:
-        """Return the DataFrame row corresponding to the given index, or None for non-leaf nodes."""
+        """
+        Return the DataFrame row corresponding to the given index, or None for non-leaf nodes.
+        
+        Warning: This is a slow operation and should be avoided in methods called frequently like data(), *Data(), flags(), or index*().
+        """
         if not index.isValid():
             return None
         
-        path = index.internalPointer()
+        node = index.internalPointer()
         
-        # Only return data for leaf nodes (full depth paths)
-        if len(path) < self.df.index.nlevels:
+        if not isinstance(node, TreeNode) or not node.is_leaf:
             return None
         
-        row = self.df.loc[path]
-
-        if not isinstance(row, pd.Series):
-            pass
+        # Use the pre-computed df_position for fast access
+        return self.df.iloc[node.df_position]
+    
+    def get(self, index: QModelIndex, column: str | int) -> any:
+        """
+        Get the data for the given QModelIndex and column name or index.
+        """
+        if not index.isValid():
+            return None
         
-        return row
+        node = index.internalPointer()
+        
+        if not isinstance(node, TreeNode) or not node.is_leaf:
+            return None
+        
+        column_i = column if isinstance(column, int) else self.df.columns.get_loc(column)
+
+        return self.df.iat[node.df_position, column_i]
+
 
     # --- required model overrides ---
     def index(self, row: int, column: int, parent: QModelIndex = QModelIndex()) -> QModelIndex:
-        parent_path = parent.internalPointer() or tuple()
-        all_children = self.children_map.get(parent_path, [])
-                
-        if not 0 <= row < len(all_children):
-            return QModelIndex()
+        parent_node = parent.internalPointer() if parent.isValid() else self.root
         
-        if parent_path != tuple():
-            pass
+        if not isinstance(parent_node, TreeNode):
+            parent_node = self.root
+        
+        child_node = parent_node.get_child_at(row)
+        
+        if child_node is None:
+            return QModelIndex()
 
-        # children_map now stores full child paths; use directly
-        child_path = all_children[row]
-
-        return self.createIndex(row, column, child_path)
-
+        return self.createIndex(row, column, child_node)
 
     def parent(self, index: QModelIndex) -> QModelIndex:
         if not index.isValid():
             return QModelIndex()
 
-        # Full path for the current index
-        path = index.internalPointer()
-        parent_path = self.parent_path(path)
+        node = index.internalPointer()
+        if not isinstance(node, TreeNode):
+            return QModelIndex()
+        
+        parent_path = self.parent_path(node.path)
 
         if len(parent_path) == 0:
             return QModelIndex()
 
-        grandparent_path = self.parent_path(parent_path)
-        # Use pre-computed row index for O(1) lookup instead of O(n) list.index()
-        row = self.row_indices[grandparent_path][parent_path]
+        parent_node = self.node_map.get(parent_path)
+        if parent_node is None:
+            return QModelIndex()
 
-        return self.createIndex(row, 0, self.children_map[grandparent_path][row])
+        return self.createIndex(parent_node.row_in_parent, 0, parent_node)
     
     def parent_path(self, path: tuple) -> tuple:
         path = tuple(val for val in path if not pd.isna(val))
@@ -102,10 +148,13 @@ class ABTreeModel(QAbstractItemModel):
         if parent.isValid() and parent.column() != 0:
             return 0
 
-        parent_path = parent.internalPointer() or tuple()
+        parent_node = parent.internalPointer() if parent.isValid() else self.root
+        
+        if not isinstance(parent_node, TreeNode):
+            parent_node = self.root
 
         # Return the number of currently loaded children
-        return self.loaded_counts.get(parent_path, 0)
+        return parent_node.loaded_count
 
     def columnCount(self, parent: QModelIndex = QModelIndex()) -> int:  # noqa: N802 (Qt signature)      
         # Always return the full column count for consistent tree structure
@@ -130,18 +179,25 @@ class ABTreeModel(QAbstractItemModel):
         return None
     
     def displayData(self, index: QModelIndex) -> any:
-            path = index.internalPointer()
+            node = index.internalPointer()
             
-            if len(path) < self.df.index.nlevels: # branch node
+            if not isinstance(node, TreeNode):
+                return None
+            
+            if not node.is_leaf: # branch node
                 # For branch nodes, show the name in the first column only
                 # (spanning will be handled by the view)
-                return path[-1] if index.column() == 0 else None
+                return node.path[-1] if index.column() == 0 else None
             
             if index.column() == 0:
                 return None  # leaf node tree column is empty
 
-            col_name = self.headerData(index.column())
-            val = self.df.at[path, col_name]
+            # Use the pre-computed df_position for O(1) iloc access
+            col_idx = index.column() - 1  # Adjust for tree column
+            if col_idx < 0 or col_idx >= len(self.df.columns):
+                return None
+            
+            val = self.df.iat[node.df_position, col_idx]
 
             if not hasattr(val, "__iter__") and pd.isna(val):
                 return None
@@ -199,8 +255,10 @@ class ABTreeModel(QAbstractItemModel):
         """Check if the given index represents a branch node (non-leaf)."""
         if not index.isValid():
             return False
-        path = index.internalPointer()
-        return len(path) < self.df.index.nlevels
+        node = index.internalPointer()
+        if not isinstance(node, TreeNode):
+            return False
+        return not node.is_leaf
 
     def headerData(self, section: int, orientation: Qt.Orientation = Qt.Horizontal, role: int = Qt.DisplayRole):
         if orientation == Qt.Vertical or not role == Qt.DisplayRole:
@@ -216,23 +274,25 @@ class ABTreeModel(QAbstractItemModel):
         if not self.lazy:
             return False
         
-        parent_path = parent.internalPointer() or tuple()
+        parent_node = parent.internalPointer() if parent.isValid() else self.root
         
-        # Can fetch more if we have more children than currently loaded
-        total_children = len(self.children_map.get(parent_path, []))
-        loaded = self.loaded_counts.get(parent_path, 0)
+        if not isinstance(parent_node, TreeNode):
+            parent_node = self.root
         
-        return loaded < total_children
+        return parent_node.can_fetch_more()
 
     def fetchMore(self, parent: QModelIndex) -> None:
         """Load the next chunk of children when user scrolls."""
         if not self.lazy:
             return
         
-        parent_path = parent.internalPointer() or tuple()
+        parent_node = parent.internalPointer() if parent.isValid() else self.root
         
-        total_children = len(self.children_map.get(parent_path, []))
-        currently_loaded = self.loaded_counts.get(parent_path, 0)
+        if not isinstance(parent_node, TreeNode):
+            parent_node = self.root
+        
+        total_children = parent_node.total_children()
+        currently_loaded = parent_node.loaded_count
         
         if currently_loaded >= total_children:
             return  # Everything already loaded
@@ -246,76 +306,98 @@ class ABTreeModel(QAbstractItemModel):
         last_new_row = currently_loaded + to_load - 1
         
         self.beginInsertRows(parent, first_new_row, last_new_row)
-        self.loaded_counts[parent_path] = currently_loaded + to_load
+        parent_node.loaded_count = currently_loaded + to_load
         self.endInsertRows()
 
     # --- helper functions ---
-    def build_hierarchy_from_index(self, pandas_index: pd.Index) -> dict[tuple, list[tuple]]:
-        children_map = defaultdict(list)
+    def build_node_hierarchy(self, pandas_index: pd.Index) -> None:
+        """
+        Build the unified TreeNode hierarchy with all information combined:
+        - children relationships
+        - row indices
+        - loaded counts
+        - DataFrame positions
+        """
+        self.node_map = {tuple(): self.root}
         
         # Convert index to frame once for all operations
         idx_df = pandas_index.to_frame(index=False)
- 
-        # Process each level
+        
+        # Create a mapping from full path to DataFrame position
+        path_to_position = {}
+        for df_pos, row_tuple in enumerate(idx_df.itertuples(index=False, name=None)):
+            path_to_position[row_tuple] = df_pos
+        
+        # Process each level to build the hierarchy
         for level in range(idx_df.shape[1]):
             # Get unique child paths at this level (as tuples)
             child_paths = idx_df.iloc[:, :level + 1].drop_duplicates()
             child_tuples = list(child_paths.itertuples(index=False, name=None))
             
-            if level == 0:
-                # Root level - all children belong to empty tuple parent
-                children_map[tuple()] = child_tuples
-            else:
-                # Group children by their parent path
-                parent_paths = child_paths.iloc[:, :level]
-                parent_tuples = list(parent_paths.itertuples(index=False, name=None))
+            for child_path in child_tuples:
+                if pd.isna(child_path[-1]):
+                    continue  # skip NaN children
                 
-                # Build parent->children mapping efficiently with zip
-                for parent, child in zip(parent_tuples, child_tuples):
-                    if pd.isna(child[-1]):
-                        continue  # skip NaN children
-                    parent = tuple(val for val in parent if not pd.isna(val))
-
-                    children_map[parent].append(child)
+                # Skip if we've already created this node
+                if child_path in self.node_map:
+                    continue
+                
+                # Determine parent path
+                if level == 0:
+                    parent_path = tuple()
+                else:
+                    parent_path = tuple(val for val in child_path[:-1] if not pd.isna(val))
+                
+                # Get or create parent node
+                parent_node = self.node_map.get(parent_path)
+                if parent_node is None:
+                    parent_node = self.root
+                
+                # Check if this is a leaf node (full depth)
+                is_leaf = (level == idx_df.shape[1] - 1)
+                df_position = path_to_position.get(child_path, -1) if is_leaf else -1
+                
+                # Create the child node
+                child_node = TreeNode(child_path, df_position)
+                
+                # Add child to parent
+                parent_node.add_child(child_node)
+                
+                # Store in node map
+                self.node_map[child_path] = child_node
         
-        return dict(children_map)
-    
-    def build_row_indices(self) -> None:
-        """Build a mapping of parent_path -> {child_path: row_index} for O(1) lookups."""
-        self.row_indices = {}
-        for parent_path, children in self.children_map.items():
-            self.row_indices[parent_path] = {child: idx for idx, child in enumerate(children)}
+        # Initialize loaded counts
+        if self.lazy:
+            # Load first chunk for each node
+            for node in self.node_map.values():
+                node.loaded_count = min(self.chunk_size, node.total_children())
+        else:
+            # All children loaded
+            for node in self.node_map.values():
+                node.loaded_count = node.total_children()
     
     def reset_hierarchy(self, df: pd.DataFrame = None) -> None:
         df = df if df is not None else self.df
 
         self.layoutAboutToBeChanged.emit()
         
-        old_persistent_paths = [idx.internalPointer() for idx in self.persistentIndexList()]
+        old_persistent_indices = [(idx, idx.internalPointer()) for idx in self.persistentIndexList()]
         
-        self.children_map = self.build_hierarchy_from_index(df.index)
-        self.build_row_indices()
+        # Rebuild the node hierarchy
+        self.root = TreeNode(tuple())
+        self.build_node_hierarchy(df.index)
         
-        # Reset loaded counts for lazy loading
-        self.loaded_counts = {}
-        if self.lazy:
-            # Load first chunk for each parent
-            for parent_path in self.children_map:
-                total = len(self.children_map[parent_path])
-                self.loaded_counts[parent_path] = min(self.chunk_size, total)
-        else:
-            # All rows loaded
-            for parent_path, children in self.children_map.items():
-                self.loaded_counts[parent_path] = len(children)
-
+        # Update persistent indexes
         new_persistent = []
-        for path, index in zip(old_persistent_paths, self.persistentIndexList()):
-            parent_path = path[:-1]
-            if parent_path in self.row_indices and path in self.row_indices[parent_path]:
-                row = self.row_indices[parent_path][path]
-                true_path = self.children_map[parent_path][row]
-                new_index = self.createIndex(row, index.column(), true_path)
-                new_persistent.append(new_index)
+        for old_index, old_node in old_persistent_indices:
+            if isinstance(old_node, TreeNode):
+                # Try to find the same path in the new hierarchy
+                new_node = self.node_map.get(old_node.path)
+                if new_node is not None:
+                    new_index = self.createIndex(new_node.row_in_parent, old_index.column(), new_node)
+                    new_persistent.append(new_index)
+                else:
+                    new_persistent.append(QModelIndex())
             else:
                 new_persistent.append(QModelIndex())
 
@@ -436,7 +518,16 @@ class ABTreeModel(QAbstractItemModel):
         Returns:
             list: The list of values.
         """
-        paths = {index.internalPointer() for index in indices if index.isValid()}
-        paths = [path for path in paths if len(path) == self.df.index.nlevels] # only leaf nodes
-        return self.df.loc[paths, key].tolist()
+        df_positions = []
+        for index in indices:
+            if not index.isValid():
+                continue
+            node = index.internalPointer()
+            if isinstance(node, TreeNode) and node.is_leaf:
+                df_positions.append(node.df_position)
+        
+        if not df_positions:
+            return []
+        
+        return self.df.iloc[df_positions][key].tolist()
 

@@ -560,16 +560,9 @@ class ExchangesModel(core.ABTreeModel):
             The decoration data for the index.
         """
         column_name = self.column_name(index)
-        row = self.row(index)
-
-        if row is None:
-            return None
-        
-        if not isinstance(row, pd.Series):
-            pass
 
         if column_name in ["product", "producer"]:
-            activity_type = row.get("_producer_type")
+            activity_type = self.get(index, "_producer_type")
             if activity_type in ["natural resource", "emission", "inventory indicator", "economic", "social"]:
                 return icons.qicons.biosphere if column_name == "producer" else None
             if activity_type == "processwithreferenceproduct":
@@ -580,7 +573,7 @@ class ExchangesModel(core.ABTreeModel):
                 return icons.qicons.process if column_name == "producer" else icons.qicons.waste
 
         if column_name == "amount":
-            formula = row.get("formula")
+            formula = self.get(index, "formula")
             if pd.isna(formula) or formula is None or formula == "":
                 return None
             return icons.qicons.parameterized
@@ -606,12 +599,13 @@ class ExchangesModel(core.ABTreeModel):
 
     def indexEditable(self, index):
         column_name = self.column_name(index)
-        row = self.row(index)
-        functional = self.functional(index)
+        database = self.get(index, "_exchange")["output"][0]
 
         # Prevent editing if the database is locked
-        if database_is_locked(row["_exchange"]["output"][0]):
+        if database_is_locked(database):
             return False
+        
+        functional = self.functional(index)
 
         # Allow editing for specific keys: "amount", "formula", and "uncertainty".
         if column_name in ["amount", "formula", "uncertainty", "comment"]:
@@ -645,7 +639,7 @@ class ExchangesModel(core.ABTreeModel):
         Returns:
             bool: True if the index is functional, False otherwise.
         """
-        return self.row(index).get("_exchange_type") == "production"
+        return self.get(index, "_exchange_type") == "production"
     
     def scoped_parameters(self, index):
         """
@@ -657,6 +651,6 @@ class ExchangesModel(core.ABTreeModel):
         Returns:
             list: A list of scoped parameters for the index.
         """
-        row = self.row(index)
-        return parameters_in_scope(row["_exchange"].output)
+        exchange = self.get(index, "_exchange")
+        return parameters_in_scope(exchange.output)
     

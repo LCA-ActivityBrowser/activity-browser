@@ -340,12 +340,7 @@ class ProductModel(ui.core.ABTreeModel):
     #-- data overrides ---
     def decorationData(self, index: QtCore.QModelIndex) -> any:
         column_name = self.column_name(index)
-        row = self.row(index)
-
-        if row is None:
-            return None
-
-        node_type = row.get("type", "").lower()
+        node_type = self.get(index, "type")
         
         if column_name not in ["name", "product"]:
             return None

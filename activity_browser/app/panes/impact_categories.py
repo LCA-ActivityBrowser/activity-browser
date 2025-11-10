@@ -164,22 +164,24 @@ class ImpactCategoriesModel(core.ABTreeModel):
         if not index.isValid():
             return []
         
-        path = index.internalPointer()
+        node = index.internalPointer()
         
-        # If this is a leaf node (full depth), return its method name
-        if len(path) == self.df.index.nlevels:
+        if not isinstance(node, core.TreeNode):
+            return []
+        
+        # If this is a leaf node, return its method name
+        if node.is_leaf:
             row = self.row(index)
             if row is not None:
                 return [row["_method_name"]]
             return []
         
-        # If this is a branch node, collect all child method names
+        # If this is a branch node, collect all child method names recursively
         ics = []
-        children = self.children_map.get(path, [])
-        for child_path in children:
-            # Create an index for the child and recursively get its impact categories
-            row_idx = self.row_indices[path][child_path]
-            child_index = self.createIndex(row_idx, 0, child_path)
+        for i, child_node in enumerate(node.children):
+            if i >= node.loaded_count:
+                break  # Only process loaded children
+            child_index = self.createIndex(i, 0, child_node)
             ics += self.get_impact_categories(child_index)
         
         return ics

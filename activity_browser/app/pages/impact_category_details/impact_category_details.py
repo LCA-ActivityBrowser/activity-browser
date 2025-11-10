@@ -1,11 +1,11 @@
-from qtpy import QtWidgets, QtGui
+from qtpy import QtWidgets, QtGui, QtCore
 from qtpy.QtCore import Qt
 
 import bw2data as bd
 import pandas as pd
 
-from activity_browser import app, app
-from activity_browser.ui import widgets, icons, delegates
+from activity_browser import app
+from activity_browser.ui import widgets, icons, delegates, core
 from activity_browser.bwutils.commontasks import is_node_biosphere
 
 from .impact_category_header import ImpactCategoryHeader
@@ -22,18 +22,13 @@ class ImpactCategoryDetailsPage(QtWidgets.QWidget):
 
         self.header = ImpactCategoryHeader(self)
 
-        self.model = CharacterizationFactorsModel(self)
         self.view = CharacterizationFactorsView(self)
+        self.model = CharacterizationFactorsModel(page=self)
         self.view.setModel(self.model)
-        self.view.setSortingEnabled(True)
 
         self.build_layout()
         self.connect_signals()
         self.sync()
-
-        # resizing name and categories columns
-        self.view.resizeColumnToContents(0)
-        self.view.resizeColumnToContents(1)
 
     def connect_signals(self):
         app.signals.method.renamed.connect(self.on_method_renamed)
@@ -56,7 +51,9 @@ class ImpactCategoryDetailsPage(QtWidgets.QWidget):
             return
 
         self.impact_category = bd.Method(self.name)
-        self.model.setDataFrame(self.build_df())
+        df = self.build_df()
+        df.reset_index(drop=True, inplace=True)
+        self.model.set_dataframe(df)
         self.header.sync()
 
     def build_layout(self):
@@ -81,7 +78,7 @@ class ImpactCategoryDetailsPage(QtWidgets.QWidget):
         return df[cols]
 
 
-class CharacterizationFactorsView(widgets.ABTreeView):
+class CharacterizationFactorsView(widgets.ABNewTreeView):
     defaultColumnDelegates = {
         "amount": delegates.FloatDelegate,
         "categories": delegates.ListDelegate,
@@ -97,23 +94,34 @@ class CharacterizationFactorsView(widgets.ABTreeView):
 
         @property
         def is_editable(self):
-            return self.parent().parent().is_editable
+            table_view: CharacterizationFactorsView = self.parent()
+            return table_view.page.is_editable
 
         @property
         def impact_category_name(self):
-            return self.parent().parent().name
+            table_view: CharacterizationFactorsView = self.parent()
+            return table_view.page.name
 
         @property
         def char_factors(self):
-            indexes = self.parent().selectedIndexes()
-            return [(idx.internalPointer()["_id"], idx.internalPointer()["_cf"]) 
-                    for idx in indexes if idx.isValid() and idx.column() == 0]
+            table_view: CharacterizationFactorsView = self.parent()
+            table_model: CharacterizationFactorsModel = table_view.model()
+            
+            selected_indices = table_view.selectedIndexes()
+            ids = table_model.values_from_indices("_id", selected_indices)
+            cfs = table_model.values_from_indices("_cf", selected_indices)
+            return list(zip(ids, cfs))
 
     def __init__(self, parent):
         super().__init__(parent)
         self.setAcceptDrops(True)
         self.setSortingEnabled(True)
         self.overlay = None
+
+    @property
+    def page(self):
+        """Returns the ImpactCategoryDetailsPage associated with the view."""
+        return self.parent()
 
     def dragEnterEvent(self, event):
         """
@@ -175,73 +183,89 @@ class CharacterizationFactorsView(widgets.ABTreeView):
             app.actions.CFNew.run(self.parent().name, biosphere_keys)
 
 
-class CharacterizationFactorsItem(widgets.ABDataItem):
-    def flags(self, col: int, key: str):
+class CharacterizationFactorsModel(core.ABTreeModel):
+    """
+    A model representing the characterization factors data.
+    """
+    def __init__(self, page: ImpactCategoryDetailsPage):
+        super().__init__(parent=page)
+        self.page = page
+
+    def setData(self, index: QtCore.QModelIndex, value, role: int = Qt.ItemDataRole.EditRole) -> bool:
         """
-        Returns the item flags for the given column and key.
+        Sets the data for the given index.
 
         Args:
-            col (int): The column index.
-            key (str): The key for which to return the flags.
-
-        Returns:
-            QtCore.Qt.ItemFlags: The item flags.
-        """
-        flags = super().flags(col, key)
-
-        if key in ["amount", "uncertainty"] and self["_editable"]:
-            return flags | Qt.ItemFlag.ItemIsEditable
-        return flags
-
-    def decorationData(self, col, key):
-        """
-        Provides decoration data for the item.
-
-        Args:
-            col: The column index.
-            key: The key for which to provide decoration data.
-
-        Returns:
-            The decoration data for the item.
-        """
-        if key == "name":
-            return icons.qicons.biosphere
-
-    def fontData(self, col: int, key: str):
-        """
-        Returns the font data for the given column and key.
-
-        Args:
-            col (int): The column index.
-            key (str): The key for which to return the font data.
-
-        Returns:
-            QtGui.QFont: The font data.
-        """
-        font = super().fontData(col, key)
-
-        # set the font to bold if it's a production/functional exchange
-        if key == "name":
-            font.setWeight(QtGui.QFont.Weight.DemiBold)
-        return font
-
-    def setData(self, col: int, key: str, value) -> bool:
-        """
-        Sets the data for the given column and key.
-
-        Args:
-            col (int): The column index.
-            key (str): The key for which to set the data.
+            index (QtCore.QModelIndex): The index to set data for.
             value: The value to set.
+            role (int): The role for which to set the data.
 
         Returns:
             bool: True if the data was set successfully, False otherwise.
         """
-        if key not in ["amount"]:
+        if role != Qt.ItemDataRole.EditRole:
             return False
 
-        app.actions.CFAmountModify.run(self["_impact_category_name"], self["_id"], value)
+        column_name = self.column_name(index)
+        row = self.row(index)
 
+        if row is None:
+            return False
 
-class CharacterizationFactorsModel(widgets.ABItemModel):
-    dataItemClass = CharacterizationFactorsItem
+        if column_name == "amount":
+            app.actions.CFAmountModify.run(row["_impact_category_name"], row["_id"], value)
+            return True
+
+        return False
+
+    def decorationData(self, index: QtCore.QModelIndex) -> any:
+        """
+        Provides decoration data for the model.
+
+        Args:
+            index (QtCore.QModelIndex): The index for which to provide decoration data.
+
+        Returns:
+            The decoration data for the index.
+        """
+        column_name = self.column_name(index)
+        if column_name == "name":
+            return icons.qicons.biosphere
+
+        return None
+
+    def fontData(self, index: QtCore.QModelIndex) -> any:
+        """
+        Provides font data for the model.
+
+        Args:
+            index (QtCore.QModelIndex): The index for which to provide font data.
+
+        Returns:
+            QtGui.QFont: The font data for the index.
+        """
+        column_name = self.column_name(index)
+        if column_name == "name":
+            font = QtGui.QFont()
+            font.setWeight(QtGui.QFont.Weight.DemiBold)
+            return font
+
+        return None
+
+    def indexEditable(self, index):
+        """
+        Returns whether the index is editable.
+
+        Args:
+            index (QtCore.QModelIndex): The index to check.
+
+        Returns:
+            bool: True if the index is editable, False otherwise.
+        """
+        column_name = self.column_name(index)
+        # Allow editing for amount and uncertainty if editable
+        if column_name in ["amount", "uncertainty"] and self.get(index, "_editable"):
+            return True
+
+        return False
+

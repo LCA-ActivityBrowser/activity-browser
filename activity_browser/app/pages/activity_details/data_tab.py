@@ -172,8 +172,10 @@ class DataModel(core.ABTreeModel):
 
         if row is None:
             # Branch node
-            path = index.internalPointer()
-            return path[-1] if index.column() == 0 else None
+            node = index.internalPointer()
+            if isinstance(node, core.TreeNode):
+                return node.path[-1] if index.column() == 0 else None
+            return None
 
         if column_name == "value":
             data = row.get(column_name)
