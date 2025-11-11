@@ -111,9 +111,9 @@ class ParametersPage(QtWidgets.QWidget):
 
         self.view.expandAll()
     
-        self.view.resizeColumnToContents(0)
-        self.view.resizeColumnToContents(2)
+        self.view.resizeColumnToContents(1)
         self.view.resizeColumnToContents(3)
+        self.view.resizeColumnToContents(4)
 
     def build_df(self) -> pd.DataFrame:
         """

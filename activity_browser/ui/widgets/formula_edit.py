@@ -290,28 +290,45 @@ class ABFormulaEdit(QWidget):
         x_offset = x - self.padding + self.scroll_offset
         cursor_pos = len(self.text)
 
-        for i in range(len(self.text)):
-            if font_metrics.horizontalAdvance(self.text[:i]) > x_offset:
-                cursor_pos = i
-                break
+        for i in range(len(self.text) + 1):
+            char_x = font_metrics.horizontalAdvance(self.text[:i])
+            if i < len(self.text):
+                next_char_x = font_metrics.horizontalAdvance(self.text[:i + 1])
+                mid_point = (char_x + next_char_x) / 2
+                if x_offset < mid_point:
+                    cursor_pos = i
+                    break
+            else:
+                # Past the end of the text
+                if x_offset >= char_x:
+                    cursor_pos = i
+                    break
 
         return cursor_pos
 
     def mousePressEvent(self, event):
         """Handles mouse click events to set cursor position and start selection."""
-        if 10 <= event.x() <= 390 and 10 <= event.y() <= 40:
+        if self.rect().contains(event.pos()):
             self.cursor_pos = self.get_cursor_position_from_x(event.x())
-            self.selection_start = self.cursor_pos  # Start selection
+            self.selection_start = None  # Clear selection initially
             self.selection_end = None  # Reset end position
             self.dragging = True  # Start dragging
             self.adjust_scroll()
-            self.update()
+            self.cursor_visible = True  # Show cursor immediately
+            self.update()  # Force immediate redraw
+            self.timer.stop()  # Stop the timer
+            self.timer.start(500)  # Restart blink timer
 
     def mouseMoveEvent(self, event):
         """Handles mouse dragging for text selection."""
         if self.dragging:
-            self.selection_end = self.get_cursor_position_from_x(event.x())
-            self.cursor_pos = self.selection_end
+            new_pos = self.get_cursor_position_from_x(event.x())
+            # Start selection on first move if not already started
+            if self.selection_start is None and new_pos != self.cursor_pos:
+                self.selection_start = self.cursor_pos
+            if self.selection_start is not None:
+                self.selection_end = new_pos
+            self.cursor_pos = new_pos
             self.adjust_scroll()
             self.update()
 
@@ -361,7 +378,7 @@ class ABFormulaEdit(QWidget):
             if not painter.pen() == Qt.NoPen:
                 pass
 
-            if token_type == "NUMBER":
+            elif token_type == "NUMBER":
                 painter.setPen(Colors.number)
             elif token_type in ["SQSTRING", "DQSTRING"]:
                 painter.setPen(Colors.string)
