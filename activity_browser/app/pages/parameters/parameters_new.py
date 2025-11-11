@@ -1,13 +1,13 @@
-from qtpy import QtWidgets, QtCore
-
+from qtpy import QtWidgets, QtCore, QtGui
+from qtpy.QtCore import Qt
 import pandas as pd
 import bw2data as bd
 from bw2data.parameters import ProjectParameter, DatabaseParameter, ActivityParameter, ParameterizedExchange
 from bw2data.backends import ExchangeDataset
 
-from activity_browser import app, app
-from activity_browser.ui import widgets, icons, delegates
-from activity_browser.bwutils.commontasks import refresh_parameter, refresh_node, database_is_locked
+from activity_browser import app
+from activity_browser.ui import widgets, icons, delegates, core
+from activity_browser.bwutils.commontasks import refresh_parameter, database_is_locked
 from activity_browser.bwutils.utils import Parameter
 
 
@@ -35,12 +35,12 @@ class ParametersPage(QtWidgets.QWidget):
         super().__init__(parent)
 
         # Parameters tree view
-        self.model = ProjectParametersModel(self.build_df(), self)
+        self.model = ProjectParametersModel(parent=self)
         self.view = ProjectParametersView()
         self.view.setModel(self.model)
 
         # Parameterized exchanges table view
-        self.exchanges_model = ParameterizedExchangesModel(self.build_exchanges_df(), self)
+        self.exchanges_model = ParameterizedExchangesModel(parent=self)
         self.exchanges_view = ParameterizedExchangesView()
         self.exchanges_view.setModel(self.exchanges_model)
 
@@ -99,8 +99,15 @@ class ParametersPage(QtWidgets.QWidget):
         """
         Synchronizes the widget with the current state of parameters.
         """
-        self.model.setDataFrame(self.build_df())
-        self.exchanges_model.setDataFrame(self.build_exchanges_df())
+        df = self.build_df()
+        df.reset_index(drop=True, inplace=True)
+        self.model.set_dataframe(df)
+        self.model.group(["_scope"])
+        self.view.expandAll()
+        
+        exchanges_df = self.build_exchanges_df()
+        exchanges_df.reset_index(drop=True, inplace=True)
+        self.exchanges_model.set_dataframe(exchanges_df)
 
         self.view.expandAll()
     
@@ -133,7 +140,55 @@ class ParametersPage(QtWidgets.QWidget):
             translated.append(row)
 
         columns = ["name", "amount", "formula", "uncertainty", "comment", "_parameter", "_scope", "_database", "_group"]
-        return pd.DataFrame(translated, columns=columns)
+        df = pd.DataFrame(translated, columns=columns)
+        df["_is_new"] = False
+
+        # Add "New parameter..." placeholders
+        new_rows = []
+
+        # Add for project
+        new_rows.append({
+            "name": "New parameter...",
+            "_scope": "Current project",
+            "_group": "project",
+            "_param_type": "project",
+            "_is_new": True,
+        })
+
+        # Add for each database
+        for db_name in sorted(bd.databases.list):
+            if not bd.databases[db_name].get("read_only", True):
+                new_rows.append({
+                    "name": "New parameter...",
+                    "_scope": f"Database: {db_name}",
+                    "_database": db_name,
+                    "_group": db_name,
+                    "_param_type": "database",
+                    "_is_new": True,
+                })
+
+        # Add for each activity group
+        activity_params = df[df._scope.str.startswith("Group: ", na=False)]
+        groups = activity_params._group.unique() if len(activity_params) > 0 else []
+        for group_name in sorted(groups):
+            group_data = activity_params[activity_params._group == group_name]
+            db_name = group_data.iloc[0]._database if len(group_data) > 0 else None
+            if db_name and db_name in bd.databases and not bd.databases[db_name].get("read_only", True):
+                new_rows.append({
+                    "name": "New parameter...",
+                    "_scope": f"Group: {group_name}",
+                    "_database": db_name,
+                    "_group": group_name,
+                    "_param_type": "activity",
+                    "_is_new": True,
+                })
+
+        # Append new rows to dataframe
+        if new_rows:
+            new_df = pd.DataFrame(new_rows)
+            df = pd.concat([df, new_df], ignore_index=True)
+
+        return df
 
     def _parameter_to_row(self, param, scope_label: str, database: str = None) -> dict:
         """
@@ -220,7 +275,7 @@ class ParametersPage(QtWidgets.QWidget):
         return pd.DataFrame(translated, columns=columns)
 
 
-class ProjectParametersView(widgets.ABTreeView):
+class ProjectParametersView(widgets.ABNewTreeView):
     """
     A view that displays the project parameters in a tree structure.
 
@@ -235,12 +290,9 @@ class ProjectParametersView(widgets.ABTreeView):
         "uncertainty": delegates.UncertaintyDelegate,
     }
 
-    class ContextMenu(QtWidgets.QMenu):
+    class ContextMenu(widgets.ABMenu):
         """
         A context menu for the ProjectParametersView.
-
-        Attributes:
-            del_param_action (QAction): The action to delete a parameter.
         """
 
         def __init__(self, pos, view: "ProjectParametersView"):
@@ -254,264 +306,162 @@ class ProjectParametersView(widgets.ABTreeView):
             super().__init__(view)
 
             index = view.indexAt(pos)
-            if index.isValid() and isinstance(index.internalPointer(), ProjectParametersItem):
-                item = index.internalPointer()
-                param = item.parameter.to_peewee_model()
-                self.del_param_action = app.actions.ParameterDelete().get_QAction(param)
-                if not param.is_deletable() or param.name == "dummy_parameter":
-                    self.del_param_action.setEnabled(False)
-                self.addAction(self.del_param_action)
+            if index.isValid() and not view.model().isBranchNode(index):
+                row = view.model().row(index)
+                if row is not None and not row.get("_is_new"):
+                    parameter = row.get("_parameter")
+                    if parameter:
+                        param = refresh_parameter(parameter).to_peewee_model()
+                        self.del_param_action = app.actions.ParameterDelete().get_QAction(param)
+                        if not param.is_deletable() or param.name == "dummy_parameter":
+                            self.del_param_action.setEnabled(False)
+                        self.addAction(self.del_param_action)
 
 
-class ProjectParametersItem(widgets.ABDataItem):
+class ProjectParametersModel(core.ABTreeModel):
     """
-    An item representing a parameter in the tree view.
+    A model representing the data for all project parameters.
     """
 
-    @property
-    def scoped_parameters(self) -> dict[str, Parameter]:
+    def __init__(self, parent=None):
         """
-        Returns the parameters in scope of this item's parameter.
+        Initializes the ProjectParametersModel.
+
+        Args:
+            parent (QtWidgets.QWidget, optional): The parent widget. Defaults to None.
+        """
+        super().__init__(df=pd.DataFrame(), parent=parent)
+
+    def setData(self, index: QtCore.QModelIndex, value, role: int = Qt.ItemDataRole.EditRole) -> bool:
+        """
+        Sets the data for the given index.
+
+        Args:
+            index (QtCore.QModelIndex): The index to set data for.
+            value: The value to set.
+            role (int): The role for which to set the data.
+
+        Returns:
+            bool: True if the data was set successfully, False otherwise.
+        """
+        if role != Qt.ItemDataRole.EditRole:
+            return False
+
+        column_name = self.column_name(index)
+        row = self.row(index)
+
+        if row is None:
+            return False
+
+        # Handle "New parameter..." rows
+        if row.get("_is_new"):
+            if column_name != "name" or value == "":
+                return False
+
+            parameter = Parameter(
+                name=value,
+                group=row.get("_group"),
+                param_type=row.get("_param_type")
+            )
+
+            app.actions.ParameterNewFromParameter.run(parameter)
+            return True
+
+        # Handle regular parameter edits
+        parameter = row.get("_parameter")
+        if parameter is None:
+            return False
+
+        if column_name in ["amount", "formula", "name", "comment"]:
+            parameter = refresh_parameter(parameter)
+            app.actions.ParameterModify.run(parameter, column_name, value)
+
+        return False
+
+    def decorationData(self, index: QtCore.QModelIndex) -> any:
+        """
+        Provides decoration data for the model.
+
+        Args:
+            index (QtCore.QModelIndex): The index for which to provide decoration data.
+
+        Returns:
+            The decoration data for the index.
+        """
+        column_name = self.column_name(index)
+
+        if column_name == "amount":
+            return icons.qicons.empty if pd.isna(self.get(index, "formula")) else icons.qicons.parameterized
+
+        return None
+
+    def fontData(self, index: QtCore.QModelIndex) -> any:
+        """
+        Provides font data for the model.
+
+        Args:
+            index (QtCore.QModelIndex): The index for which to provide font data.
+
+        Returns:
+            QtGui.QFont: The font data for the index.
+        """
+        if self.get(index, "_is_new"):
+            font = QtGui.QFont()
+            font.setWeight(QtGui.QFont.Weight.ExtraLight)
+            return font
+
+        return None
+
+    def indexEditable(self, index: QtCore.QModelIndex) -> bool:
+        """
+        Returns whether the index is editable.
+
+        Args:
+            index (QtCore.QModelIndex): The index to check.
+
+        Returns:
+            bool: True if the index is editable, False otherwise.
+        """
+        column_name = self.column_name(index)
+
+        # Check if database is locked
+        database = self.get(index, "_database")
+        if not pd.isna(database) and database_is_locked(database):
+            return False
+
+        # Allow editing for specific columns
+        if column_name in ["formula", "uncertainty", "name", "comment"]:
+            return True
+        
+        if column_name == "amount" and not self.get(index, "formula"):
+            return True
+
+        return False
+
+    def scoped_parameters(self, index: QtCore.QModelIndex) -> dict[str, Parameter]:
+        """
+        Returns the parameters in scope of the parameter at the given index.
+
+        Args:
+            index (QtCore.QModelIndex): The index to get scoped parameters for.
 
         Returns:
             dict: The parameters in scope.
         """
         from activity_browser.bwutils.commontasks import parameters_in_scope
-        return parameters_in_scope(parameter=self["_parameter"])
-
-    @property
-    def parameter(self) -> Parameter:
-        """
-        Returns the parameter associated with this item.
-
-        Returns:
-            Parameter: The current parameter.
-        """
-        return refresh_parameter(self["_parameter"])
-
-    def flags(self, col: int, key: str):
-        """
-        Returns the item flags for the given column and key.
-
-        Args:
-            col (int): The column index.
-            key (str): The key for which to return the flags.
-
-        Returns:
-            QtCore.Qt.ItemFlags: The item flags.
-        """
-        flags = super().flags(col, key)
-
-        # Allow editing for all parameters except those in locked databases
-        database = self["_database"]
-        if database and database_is_locked(database):
-            return flags
-
-        if key in ["amount", "formula", "uncertainty", "name", "comment"]:
-            return flags | QtCore.Qt.ItemFlag.ItemIsEditable
-        return flags
-
-    def setData(self, col: int, key: str, value) -> bool:
-        """
-        Sets the data for the given column and key.
-
-        Args:
-            col (int): The column index.
-            key (str): The key for which to set the data.
-            value: The value to set.
-
-        Returns:
-            bool: True if the data was set successfully, False otherwise.
-        """
-        if key in ["amount", "formula", "name", "comment"]:
-            app.actions.ParameterModify.run(self.parameter, key, value)
-
-        return False
-
-    def decorationData(self, col, key):
-        """
-        Provides decoration data for the item.
-
-        Args:
-            col: The column index.
-            key: The key for which to provide decoration data.
-
-        Returns:
-            The decoration data for the item.
-        """
-        if key not in ["amount"]:
-            return
-
-        if key == "amount":
-            if pd.isna(self["formula"]) or self["formula"] is None or self["formula"] == "":
-                return icons.qicons.empty  # empty icon to align the values
-            return icons.qicons.parameterized
-
-
-class NewProjectParametersItem(widgets.ABDataItem):
-    """
-    An item representing a new parameter placeholder in the tree view.
-    """
-
-    def flags(self, col: int, key: str):
-        """
-        Returns the item flags for the given column and key.
-
-        Args:
-            col (int): The column index.
-            key (str): The key for which to return the flags.
-
-        Returns:
-            QtCore.Qt.ItemFlags: The item flags.
-        """
-        flags = super().flags(col, key)
-        if key == "name":
-            return flags | QtCore.Qt.ItemFlag.ItemIsEditable
-        return flags
-
-    def fontData(self, col: int, key: str):
-        """
-        Returns the font data for the given column and key.
-
-        Args:
-            col (int): The column index.
-            key (str): The key for which to return the font data.
-
-        Returns:
-            QtGui.QFont: The font data.
-        """
-        font = super().fontData(col, key)
-        font.setWeight(font.Weight.ExtraLight)
-        return font
-
-    def setData(self, col: int, key: str, value) -> bool:
-        """
-        Sets the data for the given column and key.
-
-        Args:
-            col (int): The column index.
-            key (str): The key for which to set the data.
-            value: The value to set.
-
-        Returns:
-            bool: True if the data was set successfully, False otherwise.
-        """
-        if key != "name" or value == "":
-            return False
-
-        parameter = Parameter(
-            name=value,
-            group=self["_group"],
-            param_type=self["_param_type"]
-        )
-
-        app.actions.ParameterNewFromParameter.run(parameter)
-        return True
-
-
-class ProjectParametersModel(widgets.ABItemModel):
-    """
-    A model representing the data for all project parameters.
-
-    Attributes:
-        dataItemClass (type): The class of the data items.
-    """
-    dataItemClass = ProjectParametersItem
-
-    def __init__(self, dataframe, parent=None):
-        """
-        Initializes the ProjectParametersModel.
-
-        Args:
-            dataframe (pd.DataFrame): The DataFrame containing the parameters data.
-            parent (QtWidgets.QWidget, optional): The parent widget. Defaults to None.
-        """
-        super().__init__(parent, dataframe)
-
-    def createItems(self, dataframe=None) -> list[widgets.ABAbstractItem]:
-        """
-        Creates items from the given DataFrame, organized by scope.
-
-        Args:
-            dataframe (pd.DataFrame, optional): The DataFrame containing the parameters data. Defaults to None.
-
-        Returns:
-            list[widgets.ABAbstractItem]: The list of created items.
-        """
-        if dataframe is None:
-            dataframe = self.dataframe
-
-        items = []
-
-        # Project parameters
-        project_branch = self.branchItemClass("Current project")
-        project_params = dataframe[dataframe._scope == "Current project"]
-        for index, data in project_params.to_dict(orient="index").items():
-            self.dataItemClass(index, data, project_branch)
-
-        # Add "New parameter..." placeholder for project
-        NewProjectParametersItem(None, {
-            "name": "New parameter...",
-            "_group": "project",
-            "_param_type": "project"
-        }, project_branch)
-
-        items.append(project_branch)
-
-        # Database parameters - grouped by database
-        # Get all databases, not just those with parameters
-        all_databases = set(bd.databases.list)
-        database_params = dataframe[dataframe._scope.str.startswith("Database: ", na=False)]
-        databases_with_params = set(database_params._database.unique() if len(database_params) > 0 else [])
         
-        # Combine databases with and without parameters
-        all_databases_sorted = sorted(all_databases)
+        row = self.row(index)
+        if row is None:
+            return {}
 
-        for db_name in all_databases_sorted:
-            db_branch = self.branchItemClass(f"Database: {db_name}")
-            
-            # Add existing parameters for this database
-            if db_name in databases_with_params:
-                db_data = database_params[database_params._database == db_name]
-                for index, data in db_data.to_dict(orient="index").items():
-                    self.dataItemClass(index, data, db_branch)
+        parameter = row.get("_parameter")
+        if parameter is None:
+            return {}
 
-            # Add "New parameter..." placeholder if database is not read-only
-            if not bd.databases[db_name].get("read_only", True):
-                NewProjectParametersItem(None, {
-                    "name": "New parameter...",
-                    "_group": db_name,
-                    "_param_type": "database"
-                }, db_branch)
-
-            items.append(db_branch)
-
-        # Activity parameters - grouped by group
-        activity_params = dataframe[dataframe._scope.str.startswith("Group: ", na=False)]
-        groups = activity_params._group.unique() if len(activity_params) > 0 else []
-
-        for group_name in sorted(groups):
-            group_branch = self.branchItemClass(f"Group: {group_name}")
-            group_data = activity_params[activity_params._group == group_name]
-
-            for index, data in group_data.to_dict(orient="index").items():
-                self.dataItemClass(index, data, group_branch)
-
-            # Add "New parameter..." placeholder if database is not read-only
-            db_name = group_data.iloc[0]._database if len(group_data) > 0 else None
-            if db_name and db_name in bd.databases and not bd.databases[db_name].get("read_only", True):
-                NewProjectParametersItem(None, {
-                    "name": "New parameter...",
-                    "_group": group_name,
-                    "_param_type": "activity"
-                }, group_branch)
-
-            items.append(group_branch)
-
-        return items
+        return parameters_in_scope(parameter=parameter)
 
 
-class ParameterizedExchangesView(widgets.ABTreeView):
+class ParameterizedExchangesView(widgets.ABNewTreeView):
     """
     A view that displays parameterized exchanges in a tree structure.
 
@@ -530,7 +480,7 @@ class ParameterizedExchangesView(widgets.ABTreeView):
         "uncertainty": delegates.UncertaintyDelegate,
     }
 
-    class ContextMenu(QtWidgets.QMenu):
+    class ContextMenu(widgets.ABMenu):
         """
         A context menu for the ParameterizedExchangesView.
         """
@@ -545,121 +495,132 @@ class ParameterizedExchangesView(widgets.ABTreeView):
             super().__init__(view)
 
             index = view.indexAt(pos)
-            if index.isValid() and isinstance(index.internalPointer(), ParameterizedExchangesItem):
-                item = index.internalPointer()
-                
-                # Open activity action
-                open_action = app.actions.ActivityOpen.get_QAction([item["_output_key"]])
-                open_action.setText("Open activity")
-                self.addAction(open_action)
+            if index.isValid() and not view.model().isBranchNode(index):
+                row = view.model().row(index)
+                if row is not None:
+                    output_key = row.get("_output_key")
+                    if output_key:
+                        # Open activity action
+                        open_action = app.actions.ActivityOpen.get_QAction([output_key])
+                        open_action.setText("Open activity")
+                        self.addAction(open_action)
 
 
-class ParameterizedExchangesItem(widgets.ABDataItem):
+class ParameterizedExchangesModel(core.ABTreeModel):
     """
-    An item representing a parameterized exchange in the tree view.
+    A model representing the data for parameterized exchanges.
     """
 
-    @property
-    def exchange(self):
+    def __init__(self, parent=None):
         """
-        Returns the exchange associated with this item.
+        Initializes the ParameterizedExchangesModel.
+
+        Args:
+            parent (QtWidgets.QWidget, optional): The parent widget. Defaults to None.
+        """
+        super().__init__(df=pd.DataFrame(), parent=parent)
+
+    def setData(self, index: QtCore.QModelIndex, value, role: int = Qt.ItemDataRole.EditRole) -> bool:
+        """
+        Sets the data for the given index.
+
+        Args:
+            index (QtCore.QModelIndex): The index to set data for.
+            value: The value to set.
+            role (int): The role for which to set the data.
 
         Returns:
-            The exchange associated with the item.
+            bool: True if the data was set successfully, False otherwise.
         """
-        return self["_exchange"]
+        if role != Qt.ItemDataRole.EditRole:
+            return False
 
-    @property
-    def scoped_parameters(self) -> dict[str, Parameter]:
+        column_name = self.column_name(index)
+        row = self.row(index)
+
+        if row is None:
+            return False
+
+        exchange = row.get("_exchange")
+        if exchange is None:
+            return False
+
+        if column_name in ["amount", "formula", "comment"]:
+            if column_name == "formula" and not str(value).strip():
+                # Remove formula if empty
+                app.actions.ExchangeFormulaRemove.run([exchange])
+                return True
+
+            app.actions.ExchangeModify.run(exchange, {column_name.lower(): value})
+            return True
+
+        return False
+
+    def decorationData(self, index: QtCore.QModelIndex) -> any:
         """
-        Returns the parameters in scope of this exchange.
+        Provides decoration data for the model.
+
+        Args:
+            index (QtCore.QModelIndex): The index for which to provide decoration data.
+
+        Returns:
+            The decoration data for the index.
+        """
+        column_name = self.column_name(index)
+
+        if column_name == "amount":
+            formula = self.get(index, "formula")
+            if pd.isna(formula) or formula is None or formula == "":
+                return icons.qicons.edit
+            return icons.qicons.parameterized
+
+        return None
+
+    def indexEditable(self, index: QtCore.QModelIndex) -> bool:
+        """
+        Returns whether the index is editable.
+
+        Args:
+            index (QtCore.QModelIndex): The index to check.
+
+        Returns:
+            bool: True if the index is editable, False otherwise.
+        """
+        column_name = self.column_name(index)
+        row = self.row(index)
+
+        if row is None:
+            return False
+
+        # Check if database is locked
+        exchange = row.get("_exchange")
+        if exchange and database_is_locked(exchange.output["database"]):
+            return False
+
+        # Allow editing for specific columns
+        if column_name in ["amount", "formula", "comment"]:
+            return True
+
+        return False
+
+    def scoped_parameters(self, index: QtCore.QModelIndex) -> dict[str, Parameter]:
+        """
+        Returns the parameters in scope of the exchange at the given index.
+
+        Args:
+            index (QtCore.QModelIndex): The index to get scoped parameters for.
 
         Returns:
             dict: The parameters in scope.
         """
         from activity_browser.bwutils.commontasks import parameters_in_scope
-        return parameters_in_scope(node=self["_exchange"].output)
+        
+        row = self.row(index)
+        if row is None:
+            return {}
 
-    def flags(self, col: int, key: str):
-        """
-        Returns the item flags for the given column and key.
+        exchange = row.get("_exchange")
+        if exchange is None:
+            return {}
 
-        Args:
-            col (int): The column index.
-            key (str): The key for which to return the flags.
-
-        Returns:
-            QtCore.Qt.ItemFlags: The item flags.
-        """
-        flags = super().flags(col, key)
-
-        # Check if database is locked
-        if database_is_locked(self.exchange.output["database"]):
-            return flags
-
-        # Allow editing for specific keys
-        if key in ["amount", "formula", "comment"]:
-            return flags | QtCore.Qt.ItemFlag.ItemIsEditable
-
-        return flags
-
-    def setData(self, col: int, key: str, value) -> bool:
-        """
-        Sets the data for the given column and key.
-
-        Args:
-            col (int): The column index.
-            key (str): The key for which to set the data.
-            value: The value to set.
-
-        Returns:
-            bool: True if the data was set successfully, False otherwise.
-        """
-        if key in ["amount", "formula", "comment"]:
-            if key == "formula" and not str(value).strip():
-                app.actions.ExchangeFormulaRemove.run([self.exchange])
-                return True
-
-            app.actions.ExchangeModify.run(self.exchange, {key.lower(): value})
-            return True
-
-        return False
-
-    def decorationData(self, col, key):
-        """
-        Provides decoration data for the item.
-
-        Args:
-            col: The column index.
-            key: The key for which to provide decoration data.
-
-        Returns:
-            The decoration data for the item.
-        """
-        if key not in ["amount"]:
-            return
-
-        if key == "amount":
-            if pd.isna(self["formula"]) or self["formula"] is None or self["formula"] == "":
-                return icons.qicons.empty  # empty icon to align the values
-            return icons.qicons.parameterized
-
-
-class ParameterizedExchangesModel(widgets.ABItemModel):
-    """
-    A model representing the data for parameterized exchanges.
-
-    Attributes:
-        dataItemClass (type): The class of the data items.
-    """
-    dataItemClass = ParameterizedExchangesItem
-
-    def __init__(self, dataframe, parent=None):
-        """
-        Initializes the ParameterizedExchangesModel.
-
-        Args:
-            dataframe (pd.DataFrame): The DataFrame containing the exchanges data.
-            parent (QtWidgets.QWidget, optional): The parent widget. Defaults to None.
-        """
-        super().__init__(parent, dataframe)
+        return parameters_in_scope(node=exchange.output)
