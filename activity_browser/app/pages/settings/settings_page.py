@@ -10,6 +10,7 @@ from activity_browser.app import settings, signals
 
 from .startup import StartupSettingsChapter
 from .appearance import AppearanceSettingsChapter
+from .project_manager import ProjectManagerSettingsChapter
 
 
 class SettingsPage(QtWidgets.QWidget):
@@ -35,11 +36,13 @@ class SettingsPage(QtWidgets.QWidget):
         # Create chapters
         self.startup_chapter = StartupSettingsChapter(self)
         self.appearance_chapter = AppearanceSettingsChapter(self)
+        self.project_manager_chapter = ProjectManagerSettingsChapter(self)
         
         # Add chapters to the stack
         self.chapters = [
             ("Startup", self.startup_chapter),
             ("Appearance", self.appearance_chapter),
+            ("Projects", self.project_manager_chapter),
         ]
         
         for name, widget in self.chapters:

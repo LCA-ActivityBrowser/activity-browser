@@ -20,7 +20,7 @@ class ProjectCreateTemplate(ABAction):
     package the project and save it there. Saving code copied from bw2data.backup.
     """
     icon = app.application.style().standardIcon(QtWidgets.QStyle.SP_DriveHDIcon)
-    text = "Create template for project"
+    text = "Create template from project"
     tool_tip = "Export project to file"
 
     @staticmethod

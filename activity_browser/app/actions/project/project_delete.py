@@ -91,6 +91,9 @@ class ProjectDelete(ABAction):
 
         ds.delete_instance()
 
+        # THIS SHOULD NOT HAPPEN HERE BUT bw2data HAS NO SIGNALS FOR PROJECT DELETION
+        app.signals.project.deleted.emit(name)
+
 
 class ProjectDeletionDialog(QtWidgets.QDialog):
 

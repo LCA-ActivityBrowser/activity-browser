@@ -77,6 +77,7 @@ icons = dict(
     critical = create_path("context", "critical.png"),
     locked = create_path("main", "locked.png"),
     unlocked = create_path("main", "unlocked.png"),
+    star = create_path("main", "star.png"),
 )
 
 
