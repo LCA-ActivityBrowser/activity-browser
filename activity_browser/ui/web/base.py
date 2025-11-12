@@ -12,7 +12,6 @@ from activity_browser import app
 from activity_browser.settings import ab_settings
 from activity_browser.mod import bw2data as bd
 
-from ... import utils
 from ...ui.icons import qicons
 from . import webutils
 from .webengine_page import Page
