@@ -11,6 +11,8 @@ defaults = {
         "brightway_directory": str(bd.projects._base_data_dir),
         "saved_brightway_directories": [str(bd.projects._base_data_dir)],
         "startup_project": "default",
+        "shown_panes": ["Databases", "Impact Categories", "Calculation Setups"],
+        "shown_pages": ["Welcome", "Parameters", "Settings"],
     },
     "appearance": {
         "theme": "default",

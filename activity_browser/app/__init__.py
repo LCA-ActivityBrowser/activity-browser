@@ -17,6 +17,8 @@ signals = ABSignals()
 
 # modules dependent on application and signals
 from . import actions
+from . import panes
+from . import pages
 
 main_window = MainWindow()
 application.main_window = main_window

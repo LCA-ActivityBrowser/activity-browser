@@ -91,16 +91,6 @@ class ABLoader(QtWidgets.QWidget):
         thread.start()
 
     def load_layout(self):
-        from .ui.widgets import CentralTabWidget
-        from .app import pages, application
-
-        central_widget = CentralTabWidget(application.main_window)
-        central_widget.addTab(pages.WelcomePage(), "Welcome")
-        central_widget.addTab(pages.ParametersPage(), "Parameters")
-        central_widget.addTab(pages.SettingsPage(), "Settings")
-
-        application.main_window.setCentralWidget(central_widget)
-
         self.load_finished()
 
     def load_finished(self):
@@ -156,13 +146,6 @@ def run_activity_browser_no_launcher():
 
     from .ui.widgets import CentralTabWidget
     from .app import panes, pages, application, metadata
-    from activity_browser import signals
-
-    central_widget = CentralTabWidget(application.main_window)
-    central_widget.addTab(pages.WelcomePage(), "Welcome")
-    central_widget.addTab(pages.ParametersPage(), "Parameters")
-
-    application.main_window.setCentralWidget(central_widget)
 
     application.main_window.sync()
     application.main_window.show()

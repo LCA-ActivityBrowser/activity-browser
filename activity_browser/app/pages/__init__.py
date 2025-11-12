@@ -5,4 +5,10 @@ from .impact_category_details import ImpactCategoryDetailsPage
 from .lca_results import LCAResultsPage
 from .parameters import ParametersPage
 from .metadatastore import MetaDataStorePage
-from .settings import SettingsPage, BaseSettingsChapter
+from .settings import SettingsPage
+
+base_pages = {
+    "Welcome": WelcomePage,
+    "Parameters": ParametersPage,
+    "Settings": SettingsPage,
+}

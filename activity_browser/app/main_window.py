@@ -5,6 +5,7 @@ from qtpy import QtCore, QtWidgets, QtGui
 
 import bw2data as bd
 from activity_browser import app
+from activity_browser.ui import widgets
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -34,35 +35,24 @@ class MainWindow(QtWidgets.QMainWindow):
         self.menu_bar = MenuBar(self)
         self.setMenuBar(self.menu_bar)
 
+        self.central_widget = widgets.CentralTabWidget(self)
+        self.setCentralWidget(self.central_widget)
+
         self.connect_signals()
 
     def sync(self):
-        """
-        Synchronizes the main window layout with the current Brightway2 project.
+        self.sync_panes()
+        self.sync_pages()
 
-        This method clears existing panes, initializes default panes, and arranges them
-        in the main window. Hidden panes are set to be invisible, and the first pane is
-        raised to the top. The window title is updated to reflect the current project.
-
-        Steps:
-        - Clear all existing panes.
-        - Create and add default panes as dock widgets.
-        - Hide panes that are marked as hidden.
-        - Tabify dock widgets for better organization.
-        - Raise the first dock widget to the top.
-        - Update the window title with the current project name.
-
-        Args:
-            self: The instance of the MainWindow class.
-        """
-        from activity_browser.app import panes
-
-        # Clear all existing panes in the main window
+        self.setWindowTitle(f"Activity Browser - {bd.projects.current}")
+    
+    def sync_panes(self):
         self.clearPanes()
 
         dws = []
+
         # Iterate through the default panes and add them as dock widgets
-        for pane_class in panes.default_panes:
+        for pane_name, pane_class in app.panes.base_panes.items():
             pane = pane_class(parent=self)
             dockwidget = pane.getDockWidget(self)
             dws.append(dockwidget)
@@ -73,7 +63,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.menu_bar.view_menu.addAction(dockwidget.toggleViewAction())
 
             # Hide the dock widget if it is marked as hidden
-            if pane_class in panes.hidden_panes:
+            if pane_name not in app.settings["startup"]["shown_panes"]:
                 dockwidget.hide()
 
             # Synchronize the pane
@@ -87,9 +77,26 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Raise the first dock widget to the top
         dws[0].raise_()
-
-        # Update the window title to reflect the current project
-        self.setWindowTitle(f"Activity Browser - {bd.projects.current}")
+    
+    def sync_pages(self):
+        """
+        Synchronizes the central widget pages with the shown_pages setting.
+        
+        This method clears existing pages and adds only those pages that are
+        configured to be shown at startup.
+        """
+        # Clear existing pages
+        while self.central_widget.count() > 0:
+            self.central_widget.removeTab(0)
+        
+        # Add pages based on shown_pages setting
+        shown_pages = app.settings["startup"].get("shown_pages", [])
+        
+        for page_name in shown_pages:
+            if page_name in app.pages.base_pages:
+                page_class = app.pages.base_pages[page_name]
+                page_instance = page_class()
+                self.central_widget.addTab(page_instance, page_name)
 
     def apply_settings(self, load=False):
 

@@ -8,7 +8,7 @@ from qtpy import QtCore, QtWidgets
 
 from bw2data import projects
 
-from activity_browser.app import settings
+from activity_browser.app import settings, panes, pages
 from .base import BaseSettingsChapter
 
 
@@ -25,6 +25,18 @@ class StartupSettingsChapter(BaseSettingsChapter):
         
         # Startup project
         self.startup_project_combo = QtWidgets.QComboBox()
+        
+        # Shown panes checkboxes
+        self.pane_checkboxes = {}
+        self.available_panes = list(panes.base_panes.keys())
+        for pane_name in self.available_panes:
+            self.pane_checkboxes[pane_name] = QtWidgets.QCheckBox(pane_name)
+        
+        # Shown pages checkboxes
+        self.page_checkboxes = {}
+        self.available_pages = list(pages.base_pages.keys())
+        for page_name in self.available_pages:
+            self.page_checkboxes[page_name] = QtWidgets.QCheckBox(page_name)
         
         self.build_layout()
         self.connect_signals()
@@ -50,8 +62,24 @@ class StartupSettingsChapter(BaseSettingsChapter):
         project_layout.addWidget(self.startup_project_combo, 0, 1)
         project_group.setLayout(project_layout)
         
+        # Shown panes section
+        panes_group = QtWidgets.QGroupBox("Panes shown at startup")
+        panes_layout = QtWidgets.QVBoxLayout()
+        for pane_name in self.available_panes:
+            panes_layout.addWidget(self.pane_checkboxes[pane_name])
+        panes_group.setLayout(panes_layout)
+        
+        # Shown pages section
+        pages_group = QtWidgets.QGroupBox("Pages shown at startup")
+        pages_layout = QtWidgets.QVBoxLayout()
+        for page_name in self.available_pages:
+            pages_layout.addWidget(self.page_checkboxes[page_name])
+        pages_group.setLayout(pages_layout)
+        
         layout.addWidget(bwdir_group)
         layout.addWidget(project_group)
+        layout.addWidget(panes_group)
+        layout.addWidget(pages_group)
         layout.addStretch()
         
         self.setLayout(layout)
@@ -65,6 +93,12 @@ class StartupSettingsChapter(BaseSettingsChapter):
         self.bwdir_combo.currentTextChanged.connect(lambda: self.changed.emit())
         self.bwdir_combo.currentTextChanged.connect(self.show_virtual_projects)
         self.startup_project_combo.currentTextChanged.connect(lambda: self.changed.emit())
+        
+        # Connect checkboxes
+        for checkbox in self.pane_checkboxes.values():
+            checkbox.stateChanged.connect(lambda: self.changed.emit())
+        for checkbox in self.page_checkboxes.values():
+            checkbox.stateChanged.connect(lambda: self.changed.emit())
     
     # --- Settings management methods --- #
     def reset(self):
@@ -76,6 +110,16 @@ class StartupSettingsChapter(BaseSettingsChapter):
         self.startup_project_combo.clear()
         self.startup_project_combo.addItems(self.get_projects_from_path(settings["startup"]["brightway_directory"]))
         self.startup_project_combo.setCurrentText(settings["startup"]["startup_project"])
+        
+        # Set pane checkboxes
+        shown_panes = settings["startup"].get("shown_panes", [])
+        for pane_name, checkbox in self.pane_checkboxes.items():
+            checkbox.setChecked(pane_name in shown_panes)
+        
+        # Set page checkboxes
+        shown_pages = settings["startup"].get("shown_pages", [])
+        for page_name, checkbox in self.page_checkboxes.items():
+            checkbox.setChecked(page_name in shown_pages)
 
     def has_changes(self):
         """Check if there are unsaved changes."""
@@ -83,11 +127,15 @@ class StartupSettingsChapter(BaseSettingsChapter):
             'brightway_directory': self.bwdir_combo.currentText(),
             'saved_brightway_directories': [self.bwdir_combo.itemText(i) for i in range(self.bwdir_combo.count())],
             'startup_project': self.startup_project_combo.currentText(),
+            'shown_panes': [name for name, cb in self.pane_checkboxes.items() if cb.isChecked()],
+            'shown_pages': [name for name, cb in self.page_checkboxes.items() if cb.isChecked()],
         }
         initial_state = {
             'brightway_directory': settings["startup"]["brightway_directory"],
             'saved_brightway_directories': settings["startup"].get("saved_brightway_directories", []),
             'startup_project':  settings["startup"]["startup_project"],
+            'shown_panes': settings["startup"].get("shown_panes", []),
+            'shown_pages': settings["startup"].get("shown_pages", []),
         }
         return current_state != initial_state
     
@@ -97,6 +145,10 @@ class StartupSettingsChapter(BaseSettingsChapter):
         settings["startup"]["brightway_directory"] = self.bwdir_combo.currentText()
         settings["startup"]["saved_brightway_directories"] = [self.bwdir_combo.itemText(i) for i in range(self.bwdir_combo.count())]
         settings["startup"]["startup_project"] = self.startup_project_combo.currentText()
+        
+        # Save shown panes and pages
+        settings["startup"]["shown_panes"] = [name for name, cb in self.pane_checkboxes.items() if cb.isChecked()]
+        settings["startup"]["shown_pages"] = [name for name, cb in self.page_checkboxes.items() if cb.isChecked()]
     
     # --- Helper methods --- #    
     def browse_bwdir(self):

@@ -47,9 +47,6 @@ class ProjectMenu(QtWidgets.QMenu):
         self.import_proj_action = app.actions.ProjectImport.get_QAction()
         self.export_proj_action = app.actions.ProjectExport.get_QAction()
 
-        self.manage_settings_action = app.actions.SettingsWizardOpen.get_QAction()
-        self.manage_projects_action = app.actions.ProjectManagerOpen.get_QAction()
-
         self.addMenu(ProjectSelectionMenu(self))
         self.addMenu(ProjectNewMenu(self))
         self.addAction(self.dup_proj_action)
@@ -62,9 +59,6 @@ class ProjectMenu(QtWidgets.QMenu):
         self.addMenu(ExportDatabaseMenu(self))
         self.addSeparator()
         self.addMenu(ImportICMenu(self))
-        self.addSeparator()
-        self.addAction(self.manage_settings_action)
-        self.addAction(self.manage_projects_action)
 
 
 class ProjectNewMenu(QtWidgets.QMenu):
