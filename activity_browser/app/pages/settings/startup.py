@@ -63,6 +63,7 @@ class StartupSettingsChapter(BaseSettingsChapter):
         
         # Emit changed signal when settings change
         self.bwdir_combo.currentTextChanged.connect(lambda: self.changed.emit())
+        self.bwdir_combo.currentTextChanged.connect(self.show_virtual_projects)
         self.startup_project_combo.currentTextChanged.connect(lambda: self.changed.emit())
     
     # --- Settings management methods --- #
@@ -139,6 +140,15 @@ class StartupSettingsChapter(BaseSettingsChapter):
         removed_index = self.bwdir_combo.currentIndex()
         self.bwdir_combo.setCurrentText(settings["startup"]["brightway_directory"])
         self.bwdir_combo.removeItem(removed_index)
+
+    def show_virtual_projects(self):
+        """Show projects from the virtual Brightway directory."""
+        virtual_projects = self.get_projects_from_path(self.bwdir_combo.currentText())
+        startup = settings["startup"]["startup_project"]
+
+        self.startup_project_combo.clear()
+        self.startup_project_combo.addItems(virtual_projects if virtual_projects else ["default"])
+        self.startup_project_combo.setCurrentText(startup if startup in virtual_projects else "default")
 
     def get_projects_from_path(self, path: str):
         """Get project names from a brightway directory."""
