@@ -116,6 +116,28 @@ class ViewMenu(QtWidgets.QMenu):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
         self.setTitle("&View")
+        
+       
+        # Populate pages
+        self.page_actions = {}
+        for page_name in app.pages.base_pages.keys():
+            action = QtWidgets.QAction(page_name, self)
+            action.setCheckable(True)
+            action.triggered.connect(lambda checked, name=page_name: app.main_window.toggle_page(name))
+            # Update checked state when menu is about to show
+            self.page_actions[page_name] = action
+            self.addAction(action)
+        
+        # Update the checked state when menu is about to show
+        self.aboutToShow.connect(self.update_page_actions)
+        
+        self.addSeparator()
+    
+    def update_page_actions(self):
+        """Update the checked state of page actions based on which pages are visible."""
+        for page_name, action in self.page_actions.items():
+            is_visible = app.main_window.is_page_visible(page_name)
+            action.setChecked(is_visible)
 
 
 class CalculateMenu(QtWidgets.QMenu):
