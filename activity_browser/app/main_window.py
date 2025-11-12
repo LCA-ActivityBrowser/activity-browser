@@ -1,7 +1,7 @@
 from pathlib import Path
 from loguru import logger
 
-from qtpy import QtCore, QtWidgets
+from qtpy import QtCore, QtWidgets, QtGui
 
 import bw2data as bd
 from activity_browser import app
@@ -102,7 +102,16 @@ class MainWindow(QtWidgets.QMainWindow):
             if not bd.projects.twofive:
                 logger.warning(f"Project: {bd.projects.current} is not yet BW25 compatible")
                 app.actions.ProjectSwitch.set_warning_bar()
-
+        
+        # Apply appearance settings
+        if app.settings["appearance"]["theme"] == "dark":
+            hint = QtCore.Qt.ColorScheme.Dark
+        elif app.settings["appearance"]["theme"] == "light":
+            hint = QtCore.Qt.ColorScheme.Light
+        else:
+            hint = QtCore.Qt.ColorScheme.Unknown
+        
+        app.application.styleHints().setColorScheme(hint)
 
     def connect_signals(self):
         app.signals.project.changed.connect(self.sync)

@@ -12,7 +12,7 @@ class AppearanceSettingsChapter(BaseSettingsChapter):
     theme_map = {
         "default": "System default",
         "light": "Light theme",
-        "dark": "Dark theme compatibility",
+        "dark": "Dark theme",
     }
     
     def __init__(self, parent=None):
@@ -39,7 +39,6 @@ class AppearanceSettingsChapter(BaseSettingsChapter):
         theme_layout = QtWidgets.QGridLayout()
         theme_layout.addWidget(QtWidgets.QLabel("Theme:"), 0, 0)
         theme_layout.addWidget(self.theme_combo, 0, 1)
-        theme_layout.addWidget(QtWidgets.QLabel("(Requires restart)"), 0, 2)
         theme_group.setLayout(theme_layout)
         
         layout.addWidget(theme_group)

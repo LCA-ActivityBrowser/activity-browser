@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 from loguru import logger
 
@@ -67,13 +68,13 @@ class ABApplication(QtWidgets.QApplication):
 
             plt.style.use("dark_background")
 
-            # os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = "--force-dark-mode"
+            os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = "--force-dark-mode"
         else:
             palette = self.style().standardPalette()
 
             plt.style.use("default")
 
-            # os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = ""
+            os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = ""
         self.setPalette(palette)
 
     @property
