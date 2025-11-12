@@ -1,6 +1,5 @@
 from qtpy.QtWidgets import QProgressDialog
 
-from activity_browser.app import application
 from activity_browser.mod.tqdm import qt_tqdm
 from activity_browser.mod.pyprind import qt_pyprind
 
@@ -9,6 +8,8 @@ class ABProgressDialog(QProgressDialog):
 
     @classmethod
     def get_connected_dialog(cls, title: str) -> "ABProgressDialog":
+        from activity_browser.app import application
+        
         dialog = cls(application.main_window)
         dialog.setWindowTitle(title)
         dialog.setLabelText("Initializing")

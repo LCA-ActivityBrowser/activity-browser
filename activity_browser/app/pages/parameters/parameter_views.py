@@ -136,7 +136,6 @@ class ProjectParameterTable(BaseParameterTable):
 
         # Set delegates for specific columns
         self.setItemDelegateForColumn(1, delegates.FloatDelegate(self))
-        self.setItemDelegateForColumn(2, delegates.FormulaDelegate(self))
         self.setItemDelegateForColumn(3, delegates.StringDelegate(self))
         self.setItemDelegateForColumn(4, delegates.ViewOnlyUncertaintyDelegate(self))
 
@@ -162,7 +161,6 @@ class DataBaseParameterTable(BaseParameterTable):
 
         # Set delegates for specific columns
         self.setItemDelegateForColumn(1, delegates.FloatDelegate(self))
-        self.setItemDelegateForColumn(2, delegates.FormulaDelegate(self))
         self.setItemDelegateForColumn(3, delegates.DatabaseDelegate(self))
         self.setItemDelegateForColumn(4, delegates.StringDelegate(self))
         self.setItemDelegateForColumn(5, delegates.ViewOnlyUncertaintyDelegate(self))
@@ -194,7 +192,6 @@ class ActivityParameterTable(BaseParameterTable):
 
         # Set delegates for specific columns
         self.setItemDelegateForColumn(1, delegates.FloatDelegate(self))
-        self.setItemDelegateForColumn(2, delegates.FormulaDelegate(self))
         self.setItemDelegateForColumn(6, delegates.StringDelegate(self))
         self.setItemDelegateForColumn(7, delegates.ListDelegate(self))
         self.setItemDelegateForColumn(9, delegates.StringDelegate(self))

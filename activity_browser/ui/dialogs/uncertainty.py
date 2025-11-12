@@ -8,7 +8,6 @@ from qtpy.QtCore import Signal, Slot
 from stats_arrays import uncertainty_choices as uncertainty
 from stats_arrays.distributions import *
 
-from activity_browser import app, app
 from activity_browser.ui.widgets.plot import ABPlot
 from activity_browser.bwutils.pedigree import PedigreeMatrix
 from activity_browser.bwutils.uncertainty import get_uncertainty_interface, EMPTY_UNCERTAINTY
@@ -79,6 +78,8 @@ class UncertaintyWizard(QtWidgets.QWizard):
         """Update the uncertainty information of the relevant object, optionally
         including a pedigree update.
         """
+        from activity_browser import app
+
         self.amount_mean_test()
         if self.obj.data_type == "exchange":
             app.actions.ExchangeModify.run(self.obj.data, self.uncertainty_info)
@@ -135,6 +136,8 @@ class UncertaintyWizard(QtWidgets.QWizard):
         """Asks if the 'amount' of the object should be updated to account for
         the user altering the loc/mean value.
         """
+        from activity_browser import app
+
         uc_type = self.field("uncertainty type")
         no_change = {UndefinedUncertainty.id, NoUncertainty.id}
         mean = float(self.field("loc"))

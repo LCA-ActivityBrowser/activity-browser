@@ -1,3 +1,6 @@
+from pathlib import Path
+from loguru import logger
+
 from qtpy import QtCore, QtWidgets
 
 import bw2data as bd
@@ -19,6 +22,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         if self._initialized:
             return
+        self._initialized = True
         
         super().__init__(parent)
 
@@ -31,8 +35,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setMenuBar(self.menu_bar)
 
         self.connect_signals()
-
-        self._initialized = True
 
     def sync(self):
         """
@@ -89,9 +91,22 @@ class MainWindow(QtWidgets.QMainWindow):
         # Update the window title to reflect the current project
         self.setWindowTitle(f"Activity Browser - {bd.projects.current}")
 
+    def apply_settings(self, load=False):
+
+        base_dir = Path(app.settings["startup"]["brightway_directory"])
+
+        if load or base_dir != bd.projects._base_data_dir:
+            project_name = app.settings["startup"]["startup_project"]
+            bd.projects.change_base_directories(base_dir, project_name=project_name, update=False)
+
+            if not bd.projects.twofive:
+                logger.warning(f"Project: {bd.projects.current} is not yet BW25 compatible")
+                app.actions.ProjectSwitch.set_warning_bar()
+
+
     def connect_signals(self):
-        # Keyboard shortcuts
         app.signals.project.changed.connect(self.sync)
+        app.signals.settings.changed.connect(self.apply_settings)
 
     def clearPanes(self):
         for pane in self.panes():

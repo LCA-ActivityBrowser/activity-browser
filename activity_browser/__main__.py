@@ -101,13 +101,7 @@ class ABLoader(QtWidgets.QWidget):
 
         application.main_window.setCentralWidget(central_widget)
 
-        self.load_settings()
-
-    def load_settings(self):
-        self.text_label.setText("Loading project")
-        thread = SettingsThread(self)
-        thread.finished.connect(self.load_finished)
-        thread.start()
+        self.load_finished()
 
     def load_finished(self):
         from activity_browser import app
@@ -126,25 +120,6 @@ class ModuleThread(QtCore.QThread):
         self.status.emit("Loading Brightway25")
         logger.debug("ABLoader: Importing brightway modules")
         import bw2data, bw2calc, bw2analyzer, bw2io, bw_functional, bw_processing, matrix_utils
-
-class SettingsThread(QtCore.QThread):
-    def run(self):
-        import bw2data as bd
-        from activity_browser import settings, app
-
-        if settings.ab_settings.settings:
-            from pathlib import Path
-
-            base_dir = Path(settings.ab_settings.current_bw_dir)
-            project_name = settings.ab_settings.startup_project
-            bd.projects.change_base_directories(base_dir, project_name=project_name, update=False)
-
-        if not bd.projects.twofive:
-            logger.warning(f"Project: {bd.projects.current} is not yet BW25 compatible")
-            app.actions.ProjectSwitch.set_warning_bar()
-
-        logger.info(f"Brightway2 data directory: {bd.projects._base_data_dir}")
-        logger.info(f"Brightway2 current project: {bd.projects.current}")
 
 
 def setup_logging():
@@ -188,9 +163,6 @@ def run_activity_browser_no_launcher():
     central_widget.addTab(pages.ParametersPage(), "Parameters")
 
     application.main_window.setCentralWidget(central_widget)
-
-    settings = SettingsThread()
-    settings.run()
 
     application.main_window.sync()
     application.main_window.show()

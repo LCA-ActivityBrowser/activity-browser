@@ -2,8 +2,6 @@ from loguru import logger
 
 from qtpy import QtWidgets
 
-from activity_browser.app import signals
-
 
 class CentralTabWidget(QtWidgets.QTabWidget):
     """
@@ -21,7 +19,12 @@ class CentralTabWidget(QtWidgets.QTabWidget):
             *args: Positional arguments passed to the parent QTabWidget.
         """
         super().__init__(*args)
-        # Connect to the project changed signal to reset the current index to 0
+        self.connect_signals()
+    
+    def connect_signals(self):
+        from activity_browser.app import signals
+        # this should be located in the app module
+
         signals.project.changed.connect(self.reset)
 
     @property
@@ -111,6 +114,7 @@ class GroupTabWidget(QtWidgets.QTabWidget):
         - Connects the `tabCloseRequested` signal to the `tabClosed` method.
         - Connects the `project.changed` signal to the `deleteLater` method to clean up the widget.
         """
+        from activity_browser.app import signals
         self.tabCloseRequested.connect(self.tabClosed)
         signals.project.changed.connect(self.deleteLater)
 

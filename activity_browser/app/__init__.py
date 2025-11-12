@@ -20,4 +20,5 @@ from . import actions
 
 main_window = MainWindow()
 application.main_window = main_window
+main_window.apply_settings(load=True)  # Ensure settings are applied at startup
 
