@@ -6,7 +6,8 @@ from qtpy import QtWidgets
 
 from bw2data import projects
 
-from activity_browser.settings import ab_settings
+from activity_browser.app import settings, signals
+
 from .startup import StartupSettingsChapter
 from .appearance import AppearanceSettingsChapter
 
@@ -64,7 +65,6 @@ class SettingsPage(QtWidgets.QWidget):
         self.connect_signals()
         
         # Store initial state and disable save button initially
-        self.store_initial_state()
         self.save_button.setEnabled(False)
     
     def build_layout(self):
@@ -94,6 +94,8 @@ class SettingsPage(QtWidgets.QWidget):
     
     def connect_signals(self):
         """Connect signals and slots."""
+        signals.project.changed.connect(self.reset_all)
+
         self.chapter_list.currentRowChanged.connect(self.content_stack.setCurrentIndex)
         self.save_button.clicked.connect(self.save_settings)
         self.cancel_button.clicked.connect(self.cancel_settings)
@@ -103,13 +105,7 @@ class SettingsPage(QtWidgets.QWidget):
         for name, chapter in self.chapters:
             if hasattr(chapter, 'changed'):
                 chapter.changed.connect(self.on_chapter_changed)
-    
-    def store_initial_state(self):
-        """Store the initial state of all chapters."""
-        for name, chapter in self.chapters:
-            if hasattr(chapter, 'get_current_state'):
-                chapter._initial_state = chapter.get_current_state()
-    
+
     def on_chapter_changed(self):
         """Called when any chapter's settings change."""
         has_changes = self.has_changes()
@@ -125,38 +121,30 @@ class SettingsPage(QtWidgets.QWidget):
     def save_settings(self):
         """Save all settings from all chapters."""
         for name, chapter in self.chapters:
-            if hasattr(chapter, 'save_settings'):
-                chapter.save_settings()
+            if hasattr(chapter, 'set_settings'):
+                chapter.set_settings()
         
-        ab_settings.write_settings()
+        settings.save()
         logger.info("Settings saved successfully")
         
-        # Store new initial state and disable save button
-        self.store_initial_state()
-        self.save_button.setEnabled(False)
+        # Reset all chapters to the new saved state
+        self.reset_all()
     
     def cancel_settings(self):
         """Cancel changes and revert to previous state."""
         logger.info("Cancelling settings changes")
-        if projects._base_data_dir != self.last_bwdir:
-            projects.change_base_directories(Path(self.last_bwdir), update=False)
-            projects.set_current(self.last_project, update=False)
-        
-        # Reset all chapters
+        self.reset_all()
+            
+    def restore_defaults(self):
+        """Restore default settings for the current chapter."""
+        logger.info("Restoring default settings")
+        settings.restore_defaults()
+        self.reset_all()
+    
+    def reset_all(self):
+        """Reset all chapters to their initial states."""
         for name, chapter in self.chapters:
             if hasattr(chapter, 'reset'):
                 chapter.reset()
-        
-        # Disable save button after reset
         self.save_button.setEnabled(False)
-    
-    def restore_defaults(self):
-        """Restore default settings for the current chapter."""
-        current_index = self.chapter_list.currentRow()
-        if current_index >= 0:
-            name, chapter = self.chapters[current_index]
-            if hasattr(chapter, 'restore_defaults'):
-                chapter.restore_defaults()
-                logger.info(f"Restored defaults for {name}")
-                # Check for changes after restoring defaults
-                self.on_chapter_changed()
+

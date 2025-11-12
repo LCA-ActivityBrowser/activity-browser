@@ -20,11 +20,10 @@ class AppearanceSettingsChapter(BaseSettingsChapter):
         
         # Theme selector
         self.theme_combo = QtWidgets.QComboBox()
-        self.theme_combo.addItems(self.theme_map.values())
-        self.theme_combo.setCurrentText(self.theme_map.get(settings["appearance"]["theme"], "System default"))
         
         self.build_layout()
         self.connect_signals()
+        self.reset()
     
     def connect_signals(self):
         """Connect signals and slots."""
@@ -48,23 +47,25 @@ class AppearanceSettingsChapter(BaseSettingsChapter):
         
         self.setLayout(layout)
     
-    def get_current_state(self):
-        """Get the current state for change tracking."""
-        return {
+    # --- Settings management methods --- #
+    def reset(self):
+        """(Re)set to initial values."""
+        self.theme_combo.clear()
+        self.theme_combo.addItems(self.theme_map.values())
+        self.theme_combo.setCurrentText(self.theme_map.get(settings["appearance"]["theme"], "System default"))
+
+    def has_changes(self):
+        """Check if there are unsaved changes."""
+        current_state = {
             'theme': self.theme_combo.currentText(),
         }
+        initial_state = {
+            'theme': self.theme_map.get(settings["appearance"]["theme"], "System default"),
+        }
+        return current_state != initial_state
     
-    def save_settings(self):
-        """Save appearance settings."""
+    def set_settings(self):
+        """Save startup settings."""
         new_theme = self.theme_combo.currentText()
         settings["appearance"]["theme"] = [key for key, value in self.theme_map.items() if value == new_theme][0]
-        settings.save()
-        logger.info(f"Saved theme as: {new_theme}")
-    
-    def reset(self):
-        """Reset to initial values."""
-        self.theme_combo.setCurrentText(self.theme_map.get(settings["appearance"]["theme"], "System default"))
-    
-    def restore_defaults(self):
-        """Restore default values."""
-        self.theme_combo.setCurrentText("Light theme")
+

@@ -19,18 +19,16 @@ class StartupSettingsChapter(BaseSettingsChapter):
         super().__init__(parent)
         
         # Brightway directory
-        self.bwdir_variables = set()
         self.bwdir_combo = QtWidgets.QComboBox()
         self.bwdir_browse_button = QtWidgets.QPushButton("Browse")
         self.bwdir_remove_button = QtWidgets.QPushButton("Remove")
-        self.update_bwdir_combo()
         
         # Startup project
         self.startup_project_combo = QtWidgets.QComboBox()
-        self.update_project_combo()
         
         self.build_layout()
         self.connect_signals()
+        self.reset()
     
     def build_layout(self):
         """Build the chapter layout."""
@@ -67,16 +65,50 @@ class StartupSettingsChapter(BaseSettingsChapter):
         self.bwdir_combo.currentTextChanged.connect(lambda: self.changed.emit())
         self.startup_project_combo.currentTextChanged.connect(lambda: self.changed.emit())
     
+    # --- Settings management methods --- #
+    def reset(self):
+        """(Re)set to initial values."""
+        self.bwdir_combo.clear()
+        self.bwdir_combo.addItems(settings["startup"].get("saved_brightway_directories", []))
+        self.bwdir_combo.setCurrentText(settings["startup"]["brightway_directory"])
+
+        self.startup_project_combo.clear()
+        self.startup_project_combo.addItems(self.get_projects_from_path(settings["startup"]["brightway_directory"]))
+        self.startup_project_combo.setCurrentText(settings["startup"]["startup_project"])
+
+    def has_changes(self):
+        """Check if there are unsaved changes."""
+        current_state = {
+            'brightway_directory': self.bwdir_combo.currentText(),
+            'saved_brightway_directories': [self.bwdir_combo.itemText(i) for i in range(self.bwdir_combo.count())],
+            'startup_project': self.startup_project_combo.currentText(),
+        }
+        initial_state = {
+            'brightway_directory': settings["startup"]["brightway_directory"],
+            'saved_brightway_directories': settings["startup"].get("saved_brightway_directories", []),
+            'startup_project':  settings["startup"]["startup_project"],
+        }
+        return current_state != initial_state
+    
+    def set_settings(self):
+        """Save startup settings."""
+
+        settings["startup"]["brightway_directory"] = self.bwdir_combo.currentText()
+        settings["startup"]["saved_brightway_directories"] = [self.bwdir_combo.itemText(i) for i in range(self.bwdir_combo.count())]
+        settings["startup"]["startup_project"] = self.startup_project_combo.currentText()
+    
+    # --- Helper methods --- #    
     def browse_bwdir(self):
         """Browse for a brightway directory."""
-        path = QtWidgets.QFileDialog.getExistingDirectory(
+        path = Path(QtWidgets.QFileDialog.getExistingDirectory(
             self, "Select a brightway2 database folder"
-        )
+        ))
         if not path:
             return
         
-        if os.path.isfile(os.path.join(path, "projects.db")):
-            self.bwdir_combo.addItem(path)
+        if (path / "projects.db").is_file():
+            self.bwdir_combo.addItem(str(path))
+            self.bwdir_combo.setCurrentText(str(path))
             return
 
         reply = QtWidgets.QMessageBox.question(
@@ -89,9 +121,9 @@ class StartupSettingsChapter(BaseSettingsChapter):
         if reply == QtWidgets.QMessageBox.Cancel:
             return
         
-        self.bwdir_combo.addItem(path)       
+        self.bwdir_combo.addItem(str(path))       
+        self.bwdir_combo.setCurrentText(str(path))
 
-    
     def remove_bwdir(self):
         """Remove the selected brightway directory from the list."""
         reply = QtWidgets.QMessageBox.question(
@@ -104,31 +136,10 @@ class StartupSettingsChapter(BaseSettingsChapter):
         if reply == QtWidgets.QMessageBox.Cancel:
             return
         
-        removed_dir = self.bwdir_combo.currentText()
         removed_index = self.bwdir_combo.currentIndex()
         self.bwdir_combo.setCurrentText(settings["startup"]["brightway_directory"])
         self.bwdir_combo.removeItem(removed_index)
-        settings["startup"]["saved_brightway_directories"].remove(removed_dir)
-    
-    def update_project_combo(self, path: str = None):
-        """Update the project combo box."""
-        self.startup_project_combo.clear()
-        if path:
-            project_names = self.get_projects_from_path(path)
-        else:
-            project_names = self.get_projects_from_path(settings["startup"]["brightway_directory"])
-        
-        if project_names:
-            self.startup_project_combo.addItems(project_names)
-        else:
-            logger.warning("No projects found in this directory.")
-        
-        if settings["startup"]["startup_project"] in project_names:
-            self.startup_project_combo.setCurrentText(settings["startup"]["startup_project"])
-        else:
-            settings["startup"]["startup_project"] = ""
-            self.startup_project_combo.setCurrentIndex(-1)
-    
+
     def get_projects_from_path(self, path: str):
         """Get project names from a brightway directory."""
         database_file = os.path.join(path, "projects.db")
@@ -143,52 +154,3 @@ class StartupSettingsChapter(BaseSettingsChapter):
                 return []
             raise
         return [i[0] for i in cursor.fetchall()]
-    
-    
-    def update_bwdir_combo(self):
-        """Update the brightway directory combo box."""
-        current_dir = settings["startup"]["brightway_directory"]
-        available_dirs = settings["startup"].get("saved_brightway_directories", [])
-        
-        self.bwdir_combo.clear()
-        self.bwdir_combo.addItems(available_dirs)
-        self.bwdir_combo.setCurrentText(current_dir)
-
-    def get_current_state(self):
-        """Get the current state for change tracking."""
-        return {
-            'bwdir': self.bwdir_combo.currentText(),
-            'startup_project': self.startup_project_combo.currentText(),
-        }
-    
-    def save_settings(self):
-        """Save startup settings."""
-        # Save brightway directory
-        current_bw_dir = settings["startup"]["brightway_directory"]
-        new_bw_dir = self.bwdir_combo.currentText()
-        if new_bw_dir and new_bw_dir != current_bw_dir:
-            settings["startup"]["brightway_directory"] = new_bw_dir
-            logger.info(f"Saved startup brightway directory as: {new_bw_dir}")
-            projects.change_base_directories(Path(new_bw_dir), update=False)
-        
-        # Save startup project
-        current_startup_project = settings["startup"]["startup_project"]
-        new_startup_project = self.startup_project_combo.currentText()
-        if new_startup_project and new_startup_project != current_startup_project:
-            settings["startup"]["startup_project"] = new_startup_project
-            logger.info(f"Saved startup project as: {new_startup_project}")
-        
-        settings.save()
-    
-    def reset(self):
-        """Reset to initial values."""
-        self.update_bwdir_combo(settings["startup"]["brightway_directory"])
-        self.update_project_combo()
-    
-    def restore_defaults(self):
-        """Restore default values."""
-        default_dir = settings["startup"]["brightway_directory"]
-        self.change_bwdir(default_dir)
-        self.startup_project_combo.setCurrentText(
-            "default" if "default" in self.get_projects_from_path(default_dir) else ""
-        )

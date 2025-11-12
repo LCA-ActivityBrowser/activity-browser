@@ -1,8 +1,8 @@
 import os
-import sys
 import json
 import bw2data as bd
 import bw2data.signals as bw_signals
+import blinker
 
 from activity_browser.bwutils.filesystem import get_project_ab_path, get_appdata_path
 
@@ -19,7 +19,19 @@ defaults = {
 
 
 class Settings:
+    _instance = None
+    
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            cls._instance._initialized = False
+        return cls._instance
+
     def __init__(self):
+        if self._initialized:
+            return
+        self._initialized = True
+
         self.global_config = {}
         self.virtual_config = {}
         self.project_config = {}
@@ -27,6 +39,8 @@ class Settings:
         self.load_global_settings()
         self.load_virtual_settings()
         self.load_project_settings()
+
+        self.changed = blinker.Signal()
 
         bw_signals.project_changed.connect(self.load_project_settings)
     
@@ -56,6 +70,8 @@ class Settings:
 
         project_path = get_project_ab_path() / "settings.json"
         json.dump(self.project_config, open(project_path, "w"), indent=4)
+
+        self.changed.send()
     
     def load_global_settings(self):
         global_path = get_appdata_path() / "settings.json"

@@ -76,6 +76,20 @@ class MetaDataSignals(QObject):
 
         logger.debug(f"Metadatastore sync signal completed in {time() - t:.2f} seconds")
 
+class SettingSignals(QObject):
+    changed = Signal()  # Settings have changed
+
+    def __init__(self, parent=None):
+        from activity_browser.bwutils.settings import Settings
+
+        super().__init__(parent)
+        Settings().changed.connect(self.emit_changed)
+    
+    def emit_changed(self, *args, **kwargs):
+        """Emit the changed signal."""
+        self.changed.emit()
+        logger.debug("Settings changed signal emitted")
+
 
 class ABSignals(QObject):
     """Signals used for the Activity Browser should be defined here.
@@ -91,6 +105,7 @@ class ABSignals(QObject):
     meta = MetaSignals()
     metadata = MetaDataSignals()
     parameter = ParameterSignals()
+    settings = SettingSignals()
 
     # import_project = Signal()  # Import a project
     # export_project = Signal()  # Export the current project
