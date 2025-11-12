@@ -95,7 +95,10 @@ class BaseNavigatorWidget(QtWidgets.QWidget):
             return
         self.bridge.graph_ready.emit(self.graph.json_data)
         css_path = webutils.get_static_css_path(self.css_file)
-        css_code = utils.read_file_text(css_path)
+
+        with open(css_path, "r") as css_file:
+            css_code = css_file.read()
+
         style_element = "<style>" + css_code + "</style>"
         self.bridge.style.emit(style_element)
 

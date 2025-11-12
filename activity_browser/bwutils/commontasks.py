@@ -1,3 +1,4 @@
+import os
 import hashlib
 import textwrap
 from datetime import datetime
@@ -15,8 +16,6 @@ from bw2data.errors import UnknownObject
 from functools import lru_cache
 
 from .utils import Parameter
-
-
 
 """
 bwutils is a collection of methods that build upon brightway2 and are generic enough to provide here so that we avoid
@@ -496,3 +495,36 @@ def get_LCIA_method_name_dict(keys: list) -> dict:
         values: brightway2 method tuples
     """
     return {", ".join(key): key for key in keys}
+
+
+# Common tasks
+def savefilepath(
+    default_file_name: str = "AB_file", file_filter: str = "All Files (*.*)"
+):
+    """A central function to get a safe file path."""
+    from qtpy import QtWidgets
+
+    safe_name = bd.utils.safe_filename(default_file_name, add_hash=False)
+    filepath, _ = QtWidgets.QFileDialog.getSaveFileName(
+        parent=None,
+        caption="Choose location for saving",
+        dir=os.path.join(os.path.expanduser("~"), safe_name),
+        filter=file_filter,
+    )
+    return filepath
+
+
+def get_templates() -> dict:
+    import platformdirs, os
+
+    base_dir = platformdirs.user_data_dir(appname="ActivityBrowser", appauthor="ActivityBrowser")
+    template_dir = os.path.join(base_dir, "templates")
+    os.makedirs(template_dir, exist_ok=True)
+
+    collection = {}
+
+    for file in os.listdir(template_dir):
+        if file.endswith(".tar.gz"):
+            collection[file[:-7]] = os.path.join(template_dir, file)
+
+    return collection

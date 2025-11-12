@@ -10,7 +10,7 @@ from .item import ABAbstractItem, ABBranchItem, ABDataItem
 from .line import ABHLine, ABVLine
 from .formula_edit import ABFormulaEdit
 
-from .combobox import ABComboBox
+from .combobox import ABComboBox, CheckableComboBox
 from .button_collapser import ABRadioButtonCollapser
 from .wizard import ABWizard
 from .wizard_page import ABWizardPage, ABThreadedWizardPage

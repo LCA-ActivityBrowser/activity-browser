@@ -5,7 +5,8 @@ import bw2data as bd
 from qtpy import QtGui, QtWidgets
 from qtpy.QtCore import QSize, QUrl
 
-from activity_browser import app, utils, app
+from activity_browser import app, app
+from activity_browser.bwutils.commontasks import get_templates
 
 from ..ui.icons import qicons
 
@@ -94,7 +95,7 @@ class ProjectNewTemplateMenu(QtWidgets.QMenu):
 
         self.actions = {}
 
-        for key in utils.get_templates():
+        for key in get_templates():
             action = app.actions.ProjectNewFromTemplate.get_QAction(key)
             action.setText(key)
             self.actions[key] = action

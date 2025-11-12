@@ -9,9 +9,20 @@ from lxml import objectify
 from activity_browser.mod import bw2data as bd
 
 from ...info import __ei_versions__
-from ...utils import sort_semantic_versions
 
 
+def sort_semantic_versions(versions, highest_to_lowest: bool = True) -> list:
+    """Return a sorted (default highest to lowest) list of semantic versions.
+
+    Sorts based on the semantic versioning system.
+    """
+    return list(
+        sorted(
+            versions,
+            key=lambda x: tuple(map(int, x.split("."))),
+            reverse=highest_to_lowest,
+        )
+    )
 
 
 def create_default_biosphere3(version) -> None:
@@ -19,7 +30,7 @@ def create_default_biosphere3(version) -> None:
     # format version number to only Major/Minor
     version = version[:3]
 
-    if version == sort_semantic_versions(__ei_versions__)[0][:3]:
+    if version == __ei_versions__[0][:3]:
         logger.debug(f"Installing biosphere version >{version}<")
         # most recent version
         eb = Ecospold2BiosphereImporter()
@@ -56,7 +67,7 @@ class ABEcospold2BiosphereImporter(Ecospold2BiosphereImporter):
         lci_dirpath = os.path.join(os.path.dirname(__file__), "legacy_biosphere")
 
         # find the most recent legacy biosphere that is equal to or older than chosen version
-        for ei_version in sort_semantic_versions(__ei_versions__):
+        for ei_version in __ei_versions__:
             use_version = ei_version
             fp = os.path.join(
                 lci_dirpath, f"ecoinvent elementary flows {use_version}.xml.zip"

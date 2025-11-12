@@ -11,17 +11,19 @@ import bw2io.remote as remote
 
 
 def ab_bw2setup(version):
+
+    raise Exception("This function is deprecated.")
+
     import bw2io as bi
     from activity_browser.mod.bw2io.importers.ecospold2_biosphere import ABEcospold2BiosphereImporter
     from activity_browser.info import __ei_versions__
-    from activity_browser.utils import sort_semantic_versions
     from .migrations import ab_create_core_migrations
 
     ab_create_core_migrations()
 
     version = version[:3]
 
-    if version == sort_semantic_versions(__ei_versions__)[0][:3]:
+    if version == __ei_versions__[0][:3]:
         logger.info(f"Installing biosphere version >{version}<")
         # most recent version
         bio_import = ABEcospold2BiosphereImporter()

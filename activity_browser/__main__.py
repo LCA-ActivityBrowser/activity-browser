@@ -97,6 +97,7 @@ class ABLoader(QtWidgets.QWidget):
         central_widget = CentralTabWidget(application.main_window)
         central_widget.addTab(pages.WelcomePage(), "Welcome")
         central_widget.addTab(pages.ParametersPage(), "Parameters")
+        central_widget.addTab(pages.SettingsPage(), "Settings")
 
         application.main_window.setCentralWidget(central_widget)
 

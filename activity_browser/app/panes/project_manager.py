@@ -6,7 +6,8 @@ from qtpy import QtWidgets, QtCore
 import bw2data as bd
 from bw2io import remote
 
-from activity_browser import app, ui, app, utils
+from activity_browser import app, ui
+from activity_browser.bwutils.commontasks import get_templates
 from activity_browser.settings import ab_settings
 from activity_browser.ui import widgets
 
@@ -73,7 +74,7 @@ class ProjectManagerPane(widgets.ABAbstractPane):
     def build_template_df(self) -> pd.DataFrame:
         data = {}
 
-        templates = utils.get_templates()
+        templates = get_templates()
         remote_templates = remote.get_projects()
 
         for name in sorted(templates):

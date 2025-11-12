@@ -4,7 +4,8 @@ from loguru import logger
 import bw2data as bd
 from bw2io import backup
 
-from activity_browser import app, utils
+from activity_browser import app
+from activity_browser.bwutils.commontasks import get_templates
 from activity_browser.app.actions.base import ABAction, exception_dialogs
 
 from activity_browser.ui.core.threading import ABThread
@@ -26,7 +27,7 @@ class ProjectNewFromTemplate(ABAction):
     @exception_dialogs
     def run(template_key: str):
 
-        if template_key not in utils.get_templates():
+        if template_key not in get_templates():
             raise ValueError(f"Template key '{template_key}' not found.")
 
         name, ok = QtWidgets.QInputDialog.getText(
@@ -62,7 +63,7 @@ class ProjectNewFromTemplate(ABAction):
 
         # setup the import
         thread = ImportThread(app.application)
-        setattr(thread, "path", utils.get_templates()[template_key])
+        setattr(thread, "path", get_templates()[template_key])
         setattr(thread, "project_name", name)
 
         thread.finished.connect(lambda: progress.deleteLater())

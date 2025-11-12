@@ -19,14 +19,14 @@ from bw_graph_tools.graph_traversal.graph_objects import (
     Edge as GraphEdge,
     GroupedNodes as GraphGroupedNodes,
 )
+from bw2data.backends import ActivityDataset
 
 from activity_browser import app
-from bw2data.backends import ActivityDataset
-from activity_browser.utils import get_base_path
-from .base import BaseGraph, BaseNavigatorWidget
-from ..widgets.combobox import CheckableComboBox
-from ...bwutils.commontasks import identify_activity_type
+from activity_browser.bwutils.filesystem import get_package_path
+from activity_browser.bwutils.commontasks import identify_activity_type
+from activity_browser.ui.widgets import CheckableComboBox
 
+from .base import BaseGraph, BaseNavigatorWidget
 
 
 class SmallComboBox(QtWidgets.QComboBox):
@@ -47,7 +47,7 @@ class TreeNavigatorWidget(BaseNavigatorWidget):
     Green flows: Avoided impacts
 
     """
-    HTML_FILE = str(get_base_path().joinpath("static", "tree_navigator.html").resolve())
+    HTML_FILE = str(get_package_path() / "static" / "tree_navigator.html")
 
     def __init__(self, cs_name, parent=None):
         super().__init__(parent, css_file="tree_navigator.css")

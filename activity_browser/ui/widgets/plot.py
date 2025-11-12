@@ -40,7 +40,7 @@ class ABPlot(QtWidgets.QWidget):
 
     def to_png(self):
         """Export to .png format."""
-        from activity_browser.utils import savefilepath
+        from activity_browser.bwutils.commontasks import savefilepath
 
         filepath = savefilepath(
             default_file_name=self.plot_name, file_filter=self.PNG_FILTER
@@ -52,7 +52,7 @@ class ABPlot(QtWidgets.QWidget):
 
     def to_svg(self):
         """Export to .svg format."""      
-        from activity_browser.utils import savefilepath
+        from activity_browser.bwutils.commontasks import savefilepath
         
         filepath = savefilepath(
             default_file_name=self.plot_name, file_filter=self.SVG_FILTER
