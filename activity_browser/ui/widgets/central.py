@@ -1,104 +1,17 @@
 from loguru import logger
 
-from qtpy import QtWidgets, QtCore
-from .dock_widget import CloseButton, MinimizeButton
+from qtpy import QtWidgets
+
+from .tab_widget import ABTabWidget
 
 
-class CentralTabBar(QtWidgets.QTabBar):
-    """Custom tab bar for the CentralTabWidget."""
-    
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setMovable(True)
-        self.setDocumentMode(True)
-
-
-class CentralTabWidget(QtWidgets.QTabWidget):
+class CentralTabWidget(ABTabWidget):
     """
     A custom QTabWidget that manages groups of tabs and their associated pages.
 
     This widget allows for organizing tabs into groups, dynamically adding pages to groups,
     and ensuring that each page has a unique object name.
     """
-
-    def __init__(self, *args):
-        """
-        Initialize the CentralTabWidget.
-
-        Args:
-            *args: Additional positional arguments passed to the parent QTabWidget.
-        """
-        super().__init__(*args)
-
-        # Use custom tab bar with close/minimize buttons
-        self.setTabBar(CentralTabBar(self))
-    
-    def addTab(self, widget, label, show_minimize=False):
-        """Override addTab to add custom buttons to each tab.
-        
-        Args:
-            widget: The widget to add as a tab
-            label: The label for the tab
-            show_minimize: If True, show minimize button; if False, show close button
-        """
-        index = super().addTab(widget, label)
-        self._add_tab_buttons(index, show_minimize)
-        return index
-    
-    def insertTab(self, index, widget, label, show_minimize=False):
-        """Override insertTab to add custom buttons to each tab.
-        
-        Args:
-            index: The index at which to insert the tab
-            widget: The widget to add as a tab
-            label: The label for the tab
-            show_minimize: If True, show minimize button; if False, show close button
-        """
-        index = super().insertTab(index, widget, label)
-        self._add_tab_buttons(index, show_minimize)
-        return index
-    
-    def _add_tab_buttons(self, index, show_minimize=False):
-        """Add close OR minimize button to a tab (mutually exclusive).
-        
-        Args:
-            index: The index of the tab
-            show_minimize: If True, show minimize button; otherwise show close button
-        """
-        widget = self.widget(index)
-        if not widget:
-            return
-            
-        # Create a widget to hold the button
-        button_widget = QtWidgets.QWidget()
-        button_layout = QtWidgets.QHBoxLayout(button_widget)
-        button_layout.setContentsMargins(0, 0, 0, 0)
-        button_layout.setSpacing(2)
-        
-        # Add either minimize or close button (mutually exclusive)
-        if show_minimize:
-            minimize_btn = MinimizeButton(button_widget)
-            minimize_btn.clicked.connect(lambda w=widget: self._minimize_tab_by_widget(w))
-            button_layout.addWidget(minimize_btn)
-        else:
-            close_btn = CloseButton(button_widget)
-            close_btn.clicked.connect(lambda w=widget: self._close_tab_by_widget(w))
-            button_layout.addWidget(close_btn)
-        
-        # Set the button widget on the tab
-        self.tabBar().setTabButton(index, QtWidgets.QTabBar.ButtonPosition.RightSide, button_widget)
-    
-    def _close_tab_by_widget(self, widget):
-        """Handle close button click using the widget reference."""
-        index = self.indexOf(widget)
-        if index >= 0:
-            self.tabCloseRequested.emit(index)
-    
-    def _minimize_tab_by_widget(self, widget):
-        """Handle minimize button click using the widget reference."""
-        index = self.indexOf(widget)
-        if index >= 0:
-            self.tabCloseRequested.emit(index)
 
     @property
     def groups(self):
@@ -152,7 +65,7 @@ class CentralTabWidget(QtWidgets.QTabWidget):
             page.deleteLater()  # Clean up the newly created page since it already exists
 
 
-class GroupTabWidget(QtWidgets.QTabWidget):
+class GroupTabWidget(ABTabWidget):
     """
     A custom QTabWidget that represents a group of tabs.
 
@@ -169,9 +82,6 @@ class GroupTabWidget(QtWidgets.QTabWidget):
             *args: Additional positional arguments passed to the parent QTabWidget.
         """
         super().__init__(*args)
-        self.setMovable(True)  # Allow tabs to be rearranged.
-        self.setTabsClosable(True)  # Allow tabs to be closed.
-        self.setDocumentMode(True)  # Enable document mode for a more modern appearance.
 
         self.setObjectName(name)  # Set the object name for the widget.
 
