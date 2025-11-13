@@ -16,6 +16,7 @@ defaults = {
     },
     "appearance": {
         "theme": "default",
+        "pane_tab_position": "bottom",
     }
 }
 

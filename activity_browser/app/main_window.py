@@ -217,7 +217,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 logger.warning(f"Project: {bd.projects.current} is not yet BW25 compatible")
                 app.actions.ProjectSwitch.set_warning_bar()
         
-        # Apply appearance settings
+        # Apply color scheme settings
         if app.settings["appearance"]["theme"] == "dark":
             hint = QtCore.Qt.ColorScheme.Dark
         elif app.settings["appearance"]["theme"] == "light":
@@ -226,6 +226,18 @@ class MainWindow(QtWidgets.QMainWindow):
             hint = QtCore.Qt.ColorScheme.Unknown
         
         app.application.styleHints().setColorScheme(hint)
+
+        # apply pane tab position
+        position = app.settings["appearance"]["pane_tab_position"]
+        if position == "top":
+            qt_position = QtWidgets.QTabWidget.North
+        if position == "bottom":
+            qt_position = QtWidgets.QTabWidget.South
+        if position == "left":
+            qt_position = QtWidgets.QTabWidget.West
+        if position == "right":
+            qt_position = QtWidgets.QTabWidget.East
+        self.setTabPosition(QtCore.Qt.DockWidgetArea.AllDockWidgetAreas, qt_position)
 
     def connect_signals(self):
         app.signals.project.changed.connect(self.sync)
