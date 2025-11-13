@@ -35,7 +35,7 @@ dependencies = [
     "arrow",
     "bw2analyzer>=0.11.5",
     "bw2calc>=2.0",
-    "bw2data>=4.1",
+    "bw2data>=4.1, <4.5.2",
     "bw2parameters>=1.1",
     "bw2io>=0.9.3",
     "bw_graph_tools>=0.5",
