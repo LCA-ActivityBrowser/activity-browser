@@ -25,6 +25,9 @@ class ScenarioSection(QtWidgets.QWidget):
         self._scenario_dataframe = pd.DataFrame()
 
         # set up the control buttons
+        self.get_template_btn = app.actions.SaveParametersToExcel.get_QButton()
+        self.get_template_btn.setText("Parameter template...")
+
         self.table_btn = QtWidgets.QPushButton("Add scenarios...", self)
 
         self.save_scenario = QtWidgets.QPushButton("Save to file...", self)
@@ -63,6 +66,7 @@ class ScenarioSection(QtWidgets.QWidget):
 
         tool_row.addWidget(widgets.ABLabel.demiBold("  Scenarios:", self))
         tool_row.addStretch()
+        tool_row.addWidget(self.get_template_btn)
         tool_row.addWidget(self.table_btn)
         tool_row.addWidget(self.save_scenario)
         tool_row.addWidget(self.group_box)

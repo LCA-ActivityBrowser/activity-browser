@@ -95,3 +95,4 @@ from .settings_wizard_open import SettingsWizardOpen
 from .migrations_install import MigrationsInstall
 from .pyside_upgrade import PysideUpgrade
 from .metadatastore_open import MetaDataStoreOpen
+from .save_parameters_to_excel import SaveParametersToExcel
