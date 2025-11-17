@@ -79,7 +79,7 @@ class ParametersTab(QtWidgets.QWidget):
 
         for name, param in data.items():
             row = param._asdict()
-            row["uncertainty"] = param.data.get("uncertainty type")
+            row["uncertainty"] = param.uncertainty
             row["formula"] = param.data.get("formula")
             row["comment"] = param.data.get("comment")
             row["_parameter"] = param
@@ -197,6 +197,12 @@ class ParametersModel(core.ABTreeModel):
         if column_name in ["amount", "formula", "name", "comment"]:
             parameter = refresh_parameter(parameter)
             app.actions.ParameterModify.run(parameter, column_name, value)
+            return True
+
+        if column_name == "uncertainty":
+            parameter = refresh_parameter(parameter)
+            app.actions.ParameterUncertaintyModify.run(parameter.to_peewee_model(), uncertainty_dict=value)
+
             return True
 
         return False
