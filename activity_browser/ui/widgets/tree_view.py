@@ -91,8 +91,8 @@ class ABNewTreeView(QtWidgets.QTreeView):
     def setModel(self, model):
         super().setModel(model)
 
-        self.setColumnWidth(0, 30)
-        self.header().setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeMode.Fixed)
+        self.setColumnWidth(0, 20)
+        self.header().setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeMode.Fixed)
 
         model.modelAboutToBeReset.connect(self.clearColumnDelegates)
         model.modelReset.connect(self.setDefaultColumnDelegates)

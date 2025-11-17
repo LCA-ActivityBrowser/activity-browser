@@ -273,7 +273,7 @@ class ABTreeModel(QAbstractItemModel):
             return None
         
         if section == 0:
-            return "index"
+            return ""
               
         return self.df.columns[section - 1]
 
