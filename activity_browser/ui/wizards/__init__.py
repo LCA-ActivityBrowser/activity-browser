@@ -1,1 +1,1 @@
-from .uncertainty import UncertaintyWizard
+from ..dialogs.uncertainty import UncertaintyWizard

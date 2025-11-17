@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
-from logging import getLogger
+from loguru import logger
 from pathlib import Path
 
 from peewee import SqliteDatabase, OperationalError
@@ -10,7 +10,7 @@ from bw2data import projects
 
 from activity_browser.settings import ab_settings
 
-log = getLogger(__name__)
+
 
 
 class SettingsWizard(QtWidgets.QWizard):
@@ -34,7 +34,7 @@ class SettingsWizard(QtWidgets.QWizard):
         if field and field != current_bw_dir:
             ab_settings.custom_bw_dir = field
             ab_settings.current_bw_dir = field
-            log.info(f"Saved startup brightway directory as: {field}")
+            logger.info(f"Saved startup brightway directory as: {field}")
 
         # project
         field_project = self.field("startup_project")
@@ -42,13 +42,13 @@ class SettingsWizard(QtWidgets.QWizard):
         if field_project and field_project != current_startup_project:
             new_startup_project = field_project
             ab_settings.startup_project = new_startup_project
-            log.info(f"Saved startup project as: {new_startup_project}")
+            logger.info(f"Saved startup project as: {new_startup_project}")
 
         ab_settings.write_settings()
         projects.change_base_directories(Path(field), update=False)
 
     def cancel(self):
-        log.info("Going back to before settings were changed.")
+        logger.info("Going back to before settings were changed.")
         if projects._base_data_dir != self.last_bwdir:
             projects.change_base_directories(Path(self.last_bwdir), update=False)
             projects.set_current(
@@ -266,7 +266,7 @@ class SettingsPage(QtWidgets.QWizardPage):
         if self.project_names:
             self.startup_project_combobox.addItems(self.project_names)
         else:
-            log.warning("No projects found in this directory.")
+            logger.warning("No projects found in this directory.")
         if ab_settings.startup_project in self.project_names:
             self.startup_project_combobox.setCurrentText(ab_settings.startup_project)
         else:

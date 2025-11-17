@@ -1,12 +1,13 @@
+import os
 import hashlib
 import textwrap
 from datetime import datetime
-from logging import getLogger
+from loguru import logger
 from collections import OrderedDict
 
 import arrow
 import pandas as pd
-import peewee as pw
+import numpy as np
 
 import bw2data as bd
 from bw2data.parameters import ParameterBase, ProjectParameter, DatabaseParameter, ActivityParameter, Group
@@ -14,10 +15,7 @@ from bw2data.errors import UnknownObject
 
 from functools import lru_cache
 
-from .metadata import AB_metadata
 from .utils import Parameter
-
-log = getLogger(__name__)
 
 """
 bwutils is a collection of methods that build upon brightway2 and are generic enough to provide here so that we avoid
@@ -105,7 +103,7 @@ def cleanup_deleted_bw_projects() -> None:
     NOTE: This cannot be done from within the AB.
     """
     n_dir = bd.projects.purge_deleted_directories()
-    log.info(f"Deleted {n_dir} unused project directories!")
+    logger.info(f"Deleted {n_dir} unused project directories!")
 
 
 def projects_by_last_opened():
@@ -165,8 +163,9 @@ def count_database_records(name: str) -> int:
     """To account for possible brightway database types that do not implement
     the __len__ method.
     """
+    from activity_browser.app import metadata
     try:
-        return len(AB_metadata.dataframe.loc[name])
+        return len(metadata.dataframe.loc[name])
     except KeyError:
         return 0
 
@@ -225,12 +224,12 @@ def is_node_process(node: tuple | int | bd.Node) -> bool:
     return False
 
 
-def refresh_node(node: tuple | int | bd.Node) -> bd.Node:
+def refresh_node(node: tuple | int | np.int64 | bd.Node) -> bd.Node:
     if isinstance(node, bd.Node):
         node = bd.get_node(id=node.id)
     elif isinstance(node, tuple):
         node = bd.get_node(key=node)
-    elif isinstance(node, int):
+    elif isinstance(node, (int, np.int64)):
         node = bd.get_node(id=node)
     else:
         raise ValueError("Activity must be either a tuple, int or Node instance")
@@ -381,16 +380,18 @@ def identify_activity_type(activity):
 
 def generate_copy_code(key: tuple) -> str:
     """Generate a new code to use when copying an activity"""
+    from activity_browser.app import metadata
+    
     db, code = key
-    metadata = AB_metadata.get_database_metadata(db)
+    meta = metadata.get_database_metadata(db)
     if "_copy" in code:
         code = code.split("_copy")[0]
     copies = (
-        metadata["key"]
+        meta["key"]
         .apply(lambda x: x[1] if code in x[1] and "_copy" in x[1] else None)
         .dropna()
         .to_list()
-        if not metadata.empty
+        if not meta.empty
         else []
     )
     if not copies:
@@ -452,7 +453,7 @@ def get_exchanges_in_scenario_difference_file_notation(exchanges):
 
         except:
             # The input activity does not exist. remove the exchange.
-            log.error(
+            logger.error(
                 "Something did not work with the following exchange: {}. It was removed from the list.".format(
                     exc
                 )
@@ -494,3 +495,36 @@ def get_LCIA_method_name_dict(keys: list) -> dict:
         values: brightway2 method tuples
     """
     return {", ".join(key): key for key in keys}
+
+
+# Common tasks
+def savefilepath(
+    default_file_name: str = "AB_file", file_filter: str = "All Files (*.*)"
+):
+    """A central function to get a safe file path."""
+    from qtpy import QtWidgets
+
+    safe_name = bd.utils.safe_filename(default_file_name, add_hash=False)
+    filepath, _ = QtWidgets.QFileDialog.getSaveFileName(
+        parent=None,
+        caption="Choose location for saving",
+        dir=os.path.join(os.path.expanduser("~"), safe_name),
+        filter=file_filter,
+    )
+    return filepath
+
+
+def get_templates() -> dict:
+    import platformdirs, os
+
+    base_dir = platformdirs.user_data_dir(appname="ActivityBrowser", appauthor="ActivityBrowser")
+    template_dir = os.path.join(base_dir, "templates")
+    os.makedirs(template_dir, exist_ok=True)
+
+    collection = {}
+
+    for file in os.listdir(template_dir):
+        if file.endswith(".tar.gz"):
+            collection[file[:-7]] = os.path.join(template_dir, file)
+
+    return collection

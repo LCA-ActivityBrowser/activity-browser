@@ -1,35 +1,38 @@
-from logging import getLogger
+from loguru import logger
 
 import pandas as pd
 import numpy as np
-import timeit
-
-from qtpy import QtCore
-
-from activity_browser import signals, application
 
 from .metadata import MetaDataStore
 from .fields import primary, secondary, all_types
 
-log = getLogger(__name__)
 
 
-class MDSUpdater(QtCore.QObject):
+
+class MDSUpdater():
     def __init__(self, mds: MetaDataStore):
-        super().__init__(mds)
-
         self.mds = mds
         self.connect_signals()
 
     def connect_signals(self):
-        signals.node.changed.connect(self.on_node_changed)
-        signals.node.deleted.connect(self.on_node_deleted)
-
-        signals.meta.databases_changed.connect(self.on_database_changed)
-        signals.database.deleted.connect(self.on_database_changed)
+        from bw2data import signals
+        from bw2data.meta import databases
+        
+        # Connect to Brightway signals
+        signals.signaleddataset_on_save.connect(self.on_signaleddataset_save)
+        signals.signaleddataset_on_delete.connect(self.on_signaleddataset_delete)
+        signals.on_database_delete.connect(self.on_database_deleted_bw)
+        databases._save_signal.connect(self.on_databases_metadata_change)
 
     # callbacks
-    def on_node_changed(self, new, old):
+    def on_signaleddataset_save(self, sender, old, new):
+        """Called when a dataset is created or modified in Brightway."""
+        from bw2data.backends import ActivityDataset
+        
+        # Only process ActivityDataset (nodes), not exchanges or parameters
+        if not isinstance(new, ActivityDataset):
+            return
+            
         node_data = {f: getattr(new, f) for f in primary}
         node_data = node_data | {f: new.data.get(f, np.NaN) for f in secondary}
         node_data["key"] = new.key
@@ -40,11 +43,28 @@ class MDSUpdater(QtCore.QObject):
         else:
             self.add_node(node_data)
 
-    def on_node_deleted(self, ds):
+    def on_signaleddataset_delete(self, sender, old):
+        """Called when a dataset is deleted in Brightway."""
+        from bw2data.backends import ActivityDataset
+        
+        # Only process ActivityDataset (nodes), not exchanges or parameters
+        if not isinstance(old, ActivityDataset):
+            return
+            
         try:
+            # Create a Series with the key to match the delete_node signature
+            ds = pd.Series({"key": old.key}, name=old.key)
             self.delete_node(ds)
         except KeyError:
             pass
+
+    def on_database_deleted_bw(self, sender, name):
+        """Called when a database is deleted in Brightway."""
+        self.delete_database(name)
+    
+    def on_databases_metadata_change(self, sender, old, new):
+        """Called when the databases metadata changes (e.g., new database added)."""
+        self.on_database_changed()
 
     def on_database_changed(self) -> None:
         databases = databases_in_sqlite()
@@ -75,6 +95,9 @@ class MDSUpdater(QtCore.QObject):
         self.mds.loader.load_database(db_name)
 
     def delete_database(self, db_name: str):
+        if db_name not in self.mds.databases:
+            return
+
         for code in self.mds.dataframe.loc[db_name].index:
             self.mds.register_mutation((db_name, code), "delete")
 

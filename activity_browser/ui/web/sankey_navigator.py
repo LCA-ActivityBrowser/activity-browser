@@ -3,7 +3,7 @@ import json
 import os
 import time
 from typing import List
-from logging import getLogger
+from loguru import logger
 
 import bw2calc as bc
 import bw2data as bd
@@ -15,14 +15,14 @@ from qtpy import QtWidgets
 from qtpy.QtCore import Slot
 from qtpy.QtWidgets import QComboBox
 
-from activity_browser import signals
+from activity_browser import app
 from activity_browser.mod import bw2data as bd
 from bw2data.backends import ActivityDataset
 
 from ...bwutils.commontasks import identify_activity_type
 from .base import BaseGraph, BaseNavigatorWidget
 
-log = getLogger(__name__)
+
 
 
 # TODO:
@@ -87,7 +87,7 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
     def connect_signals(self):
         super().connect_signals()
         self.button_calculate.clicked.connect(self.new_sankey)
-        signals.database_selected.connect(self.set_database)
+        app.signals.database_selected.connect(self.set_database)
         # checkboxes
         self.func_unit_cb.currentIndexChanged.connect(self.new_sankey)
         self.method_cb.currentIndexChanged.connect(self.new_sankey)
@@ -239,14 +239,14 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
         cache_key = (demand_index, method_index, scenario_index, cut_off, max_calc)
         if data := self.cache.get(cache_key, False):
             # this Sankey is already cached, generate the Sankey with the cached data
-            log.debug(f"CACHED sankey for: {demand}, {method}, key: {cache_key}")
+            logger.debug(f"CACHED sankey for: {demand}, {method}, key: {cache_key}")
             self.graph.new_graph(data)
             self.has_sankey = bool(self.graph.json_data)
             self.send_json()
             return
 
         start = time.time()
-        log.debug(f"CALCULATE sankey for: {demand}, {method}, key: {cache_key}")
+        logger.debug(f"CALCULATE sankey for: {demand}, {method}, key: {cache_key}")
         try:
             if scenario_lca:
                 self.parent.mlca.update_lca_calculation_for_sankey(
@@ -274,7 +274,7 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
             QtWidgets.QMessageBox.information(
                 None, "Nonsensical numeric result.", str(e)
             )
-        log.debug(f"Completed graph traversal ({round(time.time() - start, 2)} seconds")
+        logger.debug(f"Completed graph traversal ({round(time.time() - start, 2)} seconds")
 
         # cache the generated Sankey data
         self.cache[cache_key] = data

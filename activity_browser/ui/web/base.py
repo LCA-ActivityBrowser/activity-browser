@@ -3,21 +3,20 @@ import os
 from abc import abstractmethod
 from copy import deepcopy
 from typing import Type
-from logging import getLogger
+from loguru import logger
 
 from qtpy import QtWebChannel, QtWebEngineWidgets, QtWidgets
 from qtpy.QtCore import QObject, Qt, QUrl, Signal, Slot
 
-from activity_browser import signals
+from activity_browser import app
 from activity_browser.settings import ab_settings
 from activity_browser.mod import bw2data as bd
 
-from ... import utils
 from ...ui.icons import qicons
 from . import webutils
 from .webengine_page import Page
 
-log = getLogger(__name__)
+
 
 
 class BaseNavigatorWidget(QtWidgets.QWidget):
@@ -78,24 +77,27 @@ class BaseNavigatorWidget(QtWidgets.QWidget):
 
     def go_forward(self) -> None:
         if self.graph.forward():
-            signals.new_statusbar_message.emit("Going forward.")
+            app.signals.new_statusbar_message.emit("Going forward.")
             self.send_json()
         else:
-            signals.new_statusbar_message.emit("No data to go forward to.")
+            app.signals.new_statusbar_message.emit("No data to go forward to.")
 
     def go_back(self) -> None:
         if self.graph.back():
-            signals.new_statusbar_message.emit("Going back.")
+            app.signals.new_statusbar_message.emit("Going back.")
             self.send_json()
         else:
-            signals.new_statusbar_message.emit("No data to go back to.")
+            app.signals.new_statusbar_message.emit("No data to go back to.")
 
     def send_json(self) -> None:
         if self.graph.json_data is None:
             return
         self.bridge.graph_ready.emit(self.graph.json_data)
         css_path = webutils.get_static_css_path(self.css_file)
-        css_code = utils.read_file_text(css_path)
+
+        with open(css_path, "r") as css_file:
+            css_code = css_file.read()
+
         style_element = "<style>" + css_code + "</style>"
         self.bridge.style.emit(style_element)
 
@@ -151,7 +153,7 @@ class Bridge(QObject):
             click_dict["database"],
             click_dict["id"],
         )  # since JSON does not know tuples
-        log.info(f"Click information: {click_dict}")  # TODO click_dict needs correcting
+        logger.info(f"Click information: {click_dict}")  # TODO click_dict needs correcting
         self.update_graph.emit(click_dict)
 
     @Slot(str, name="download_triggered")

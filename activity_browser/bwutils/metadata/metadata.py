@@ -1,26 +1,27 @@
 from time import time
-from logging import getLogger
+from loguru import logger
 from typing import Literal
 
 import pandas as pd
 
-from qtpy.QtCore import Qt, QObject, Signal, SignalInstance, QTimer
-
 from .fields import all, all_types
 
 
-log = getLogger(__name__)
-
-
-class MetaDataStore(QObject):
-    synced: SignalInstance = Signal(set, set, set)  # added, updated, deleted
-
-    def __init__(self, parent=None):
-        from activity_browser import application
+class MetaDataStore():
+    _instance = None
+    
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            cls._instance._initialized = False
+        return cls._instance
+    
+    def __init__(self):
         from .loader import MDSLoader
         from .updater import MDSUpdater
 
-        super().__init__(parent)
+        if self._initialized:
+            return
 
         self._dataframe = pd.DataFrame()
 
@@ -30,9 +31,8 @@ class MetaDataStore(QObject):
 
         self.loader = MDSLoader(self)
         self.updater = MDSUpdater(self)
-        self.flusher: QTimer | None = None
-        
-        self.moveToThread(application.thread())
+
+        self._initialized = True
 
     @property
     def dataframe(self) -> pd.DataFrame:
@@ -69,29 +69,13 @@ class MetaDataStore(QObject):
         else:
             raise ValueError(f"Unknown action: {action}")
 
-        if not self.flusher:
-            self.flusher = QTimer(self, interval=100)
-            self.flusher.timeout.connect(self.flush_mutations)
-            self.flusher.start()
-
-    def flush_mutations(self):
-        if not (self._added or self._updated or self._deleted):
-            return
-
-        t = time()
-        self.synced.emit(self._added, self._updated, self._deleted)
-
-        self._added.clear(), self._updated.clear(), self._deleted.clear()
-
-        log.debug(f"Metadatastore sync signal completed in {time() - t:.2f} seconds")
-
     def match(self, **kwargs: dict[str, str]) -> pd.DataFrame:
         """Return a slice of the dataframe matching the criteria.
         """
         df = self.dataframe.query(
             " and ".join(
                 [
-                    f"`{key}` == '{value}'" if not pd.isna(value) else f"`{key}`.isnull()"
+                    f"`{key}`.astype('str') == {str(value)!r}" if not pd.isna(value) else f"`{key}`.isnull()"
                     for key, value in kwargs.items()
                 ])
         )
@@ -112,5 +96,3 @@ class MetaDataStore(QObject):
         if db_name not in self.databases:
             return pd.DataFrame(columns=all)
         return self.dataframe.loc[[db_name], columns or all]
-
-AB_metadata = MetaDataStore()

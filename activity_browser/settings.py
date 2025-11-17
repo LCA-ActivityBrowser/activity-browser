@@ -4,16 +4,16 @@ import os
 import shutil
 from pathlib import Path
 from typing import Optional, Any
-from logging import getLogger
+from loguru import logger
 
 import bw2data as bd
 
 import platformdirs
 from qtpy.QtWidgets import QMessageBox
 
-from .signals import signals
+from .app import signals
 
-log = getLogger(__name__)
+
 DEFAULT_BW_DATA_DIR = bd.projects._base_data_dir
 
 
@@ -84,7 +84,7 @@ class ABSettings(BaseSettings):
         super().__init__(ab_dir, filename)
 
         if not self.healthy():
-            log.warn("Settings health check failed, resetting")
+            logger.warn("Settings health check failed, resetting")
             self.restore_default_settings()
 
     def healthy(self) -> bool:
@@ -268,7 +268,7 @@ class ProjectSettings(BaseSettings):
         """On switching project, attempt to read the settings for the new
         project.
         """
-        log.info(f"Project settings directory: {bd.projects.dir}")
+        logger.info(f"Project settings directory: {bd.projects.dir}")
 
         bd.projects.dir.joinpath("activity_browser").mkdir(exist_ok=True)
 
