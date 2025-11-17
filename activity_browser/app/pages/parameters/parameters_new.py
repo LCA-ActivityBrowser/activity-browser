@@ -218,9 +218,9 @@ class ParametersPage(QtWidgets.QWidget):
             raise ValueError(f"Unknown parameter type: {type(param)}")
 
         row = {
-            "name": param.name,
-            "amount": data.get("amount"),
-            "uncertainty": data.get("uncertainty type"),
+            "name": parameter.name,
+            "amount": parameter.amount,
+            "uncertainty": parameter.uncertainty,
             "formula": data.get("formula"),
             "comment": data.get("comment"),
             "_parameter": parameter,
@@ -375,6 +375,12 @@ class ProjectParametersModel(core.ABTreeModel):
         if column_name in ["amount", "formula", "name", "comment"]:
             parameter = refresh_parameter(parameter)
             app.actions.ParameterModify.run(parameter, column_name, value)
+
+        if column_name == "uncertainty":
+            parameter = refresh_parameter(parameter)
+            app.actions.ParameterUncertaintyModify.run(parameter.to_peewee_model(), uncertainty_dict=value)
+
+            return True
 
         return False
 

@@ -33,6 +33,19 @@ class Parameter(NamedTuple):
         except pw.DoesNotExist:
             return False
 
+    @property
+    def uncertainty(self):
+        uncertainty_keys = {
+            "uncertainty type",
+            "loc",
+            "scale",
+            "shape",
+            "minimum",
+            "maximum",
+            "negative",
+        }
+        return {k: v for k, v in self.data.items() if k in uncertainty_keys}
+
     def as_gsa_tuple(self) -> tuple:
         """Return the parameter data formatted as follows:
         - Parameter name
