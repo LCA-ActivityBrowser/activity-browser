@@ -1,11 +1,12 @@
 from typing import Optional
-from collections import defaultdict
 
-from loguru import logger
 import pandas as pd
-from PySide6.QtCore import QModelIndex, Qt
+
+from PySide6 import QtGui
+from PySide6.QtCore import QModelIndex, Qt, QAbstractItemModel
 from PySide6.QtWidgets import QWidget
-from PySide6.QtCore import QAbstractItemModel
+
+from activity_browser.ui.icons import qicons
 
 
 class TreeNode:
@@ -54,6 +55,8 @@ class ABTreeModel(QAbstractItemModel):
         super().__init__(parent)
         self.df = df if df is not None else pd.DataFrame()
         self.df_query: dict[str, str] = {"model": "index == index"}  # dictionary where queries can be registered
+        self.filtered_columns: set[int] = set()  # set of column indices that have active filters, only used for the header icon
+
         self.lazy = chunk_size > 0
         self.chunk_size = chunk_size
         
@@ -269,13 +272,22 @@ class ABTreeModel(QAbstractItemModel):
         return not node.is_leaf
 
     def headerData(self, section: int, orientation: Qt.Orientation = Qt.Horizontal, role: int = Qt.DisplayRole):
-        if orientation == Qt.Vertical or not role == Qt.DisplayRole:
+        if orientation == Qt.Vertical:
             return None
-        
-        if section == 0:
-            return ""
-              
-        return self.df.columns[section - 1]
+
+        if role == Qt.DisplayRole:
+            if section == 0:
+                return ""
+
+            return self.df.columns[section - 1]
+
+        if role == Qt.ItemDataRole.FontRole and section in self.filtered_columns:
+            font = QtGui.QFont()
+            font.setUnderline(True)
+            return font
+
+        if role == Qt.ItemDataRole.DecorationRole and section in self.filtered_columns:
+            return qicons.filter
 
     def canFetchMore(self, parent: QModelIndex) -> bool:
         """Check if this parent has more children that can be loaded."""
@@ -333,7 +345,8 @@ class ABTreeModel(QAbstractItemModel):
         
         # Create a mapping from full path to DataFrame position
         path_to_position = {}
-        for df_pos, row_tuple in enumerate(idx_df.itertuples(index=False, name=None)):
+        for row_tuple in idx_df.itertuples(index=False, name=None):
+            df_pos = self.df.index.get_loc(row_tuple)
             path_to_position[row_tuple] = df_pos
         
         # Process each level to build the hierarchy

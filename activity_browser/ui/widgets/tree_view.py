@@ -1,12 +1,10 @@
 from loguru import logger
 
-import pandas as pd
-
 from qtpy import QtWidgets, QtCore, QtGui
-from qtpy.QtCore import Qt
 
 from activity_browser.ui import delegates, core
-from .item_model import ABItemModel
+
+from .line_edit import ABLineEdit
 
 
 
@@ -26,11 +24,11 @@ class ABNewTreeView(QtWidgets.QTreeView):
             col_index = view.columnAt(pos.x())
             col_name = model.columns()[col_index]
 
-            search_box = QtWidgets.QLineEdit(self)
+            search_box = ABLineEdit(self)
             search_box.setText(view.columnFilters.get(col_name, ""))
             search_box.setPlaceholderText("Search")
             search_box.selectAll()
-            search_box.textChanged.connect(lambda query: view.setColumnFilter(col_name, query))
+            search_box.textChangedDebounce.connect(lambda query: view.setColumnFilter(col_name, query))
             widget_action = QtWidgets.QWidgetAction(self)
             widget_action.setDefaultWidget(search_box)
             self.addAction(widget_action)
@@ -103,7 +101,7 @@ class ABNewTreeView(QtWidgets.QTreeView):
         self.updateIndexColumnVisibility()
         self.updateBranchSpanning()
 
-    def model(self) -> ABItemModel:
+    def model(self) -> core.ABTreeModel:
         return super().model()
 
     # === Functionality related to contextmenus
@@ -122,10 +120,10 @@ class ABNewTreeView(QtWidgets.QTreeView):
 
         if query:
             self.columnFilters[column_name] = query
-            # self.model().filtered_columns.add(col_index)
+            self.model().filtered_columns.add(col_index)
         elif column_name in self.columnFilters:
             del self.columnFilters[column_name]
-            # self.model().filtered_columns.discard(col_index)
+            self.model().filtered_columns.discard(col_index)
 
         self.applyFilter()
 
@@ -144,7 +142,7 @@ class ABNewTreeView(QtWidgets.QTreeView):
                 del self.columnFilters[col]
 
         for col, query in self.columnFilters.items():
-            q = f"({col}.astype('str').str.contains('{self.format_query(query)}'))"
+            q = f"({col}.astype('str').str.contains('{self.format_query(query)}', False))"
             queries.append(q)
 
         # query for the all filter
