@@ -4,6 +4,7 @@ from .comparison_switch import SwitchComboBox
 from .cutoff_menu import CutoffMenu
 from .line_edit import (ABLineEdit, SignalledComboEdit, SignalledLineEdit,
                         SignalledPlainTextEdit)
+from .text_edit import (ABAutoCompleTextEdit, ABTextEdit, MetaDataAutoCompleteTextEdit)
 from .line import ABHLine, ABVLine
 from .formula_edit import ABFormulaEdit
 

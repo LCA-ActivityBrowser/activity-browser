@@ -1,6 +1,7 @@
 from typing import Optional
 
 import pandas as pd
+import numpy as np
 
 from PySide6 import QtGui
 from PySide6.QtCore import QModelIndex, Qt, QAbstractItemModel
@@ -425,11 +426,11 @@ class ABTreeModel(QAbstractItemModel):
         self.layoutChanged.emit()
 
 
-    def sort(self, column: int, order: Qt.SortOrder = Qt.SortOrder.AscendingOrder) -> None:
+    def sort(self, column: int | str, order: Qt.SortOrder = Qt.SortOrder.AscendingOrder) -> None:
         if self.df.empty:
             return
         # Extract the unique order of higher levels
-        column_name = self.headerData(column) if column > 0 else None
+        column_name = self.headerData(column) if isinstance(column, int) else column
         higher_levels = self.df.index.droplevel(-1).unique() if self.df.index.nlevels > 1 else [None]
 
         # Build a new index by sorting only within each higher level

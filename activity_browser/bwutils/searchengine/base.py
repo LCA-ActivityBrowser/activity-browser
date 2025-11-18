@@ -1,19 +1,17 @@
-from itertools import permutations, chain
 import itertools
 import functools
-from collections import Counter, OrderedDict, defaultdict
-from logging import getLogger
 import math
 import multiprocessing as mp
-from time import time
-from typing import Iterable, Optional
-import pandas as pd
-import numpy as np
 import re
 import sys
+from collections import Counter, OrderedDict, defaultdict
+from typing import Iterable, Optional
+from time import time
 
+from loguru import logger
 
-log = getLogger(__name__)
+import pandas as pd
+import numpy as np
 
 
 class SearchEngine:
@@ -42,7 +40,7 @@ class SearchEngine:
 
     def __init__(self, df: pd.DataFrame, identifier_name: str, searchable_columns: list = []):
         t = time()
-        log.debug(f"SearchEngine initializing for {len(df)} items")
+        logger.debug(f"SearchEngine initializing for {len(df)} items")
 
         # compile regex patterns for cleaning
         self.SUB_END_PATTERN = re.compile(r"[,.\"'`)\[\]}\\/\-−_:;+…]+(?=\s|$)")  # remove these from end of word
@@ -92,7 +90,7 @@ class SearchEngine:
 
         self.update_index(df)
 
-        log.debug(f"SearchEngine Initialized in {time() - t:.2f} seconds")
+        logger.debug(f"SearchEngine Initialized in {time() - t:.2f} seconds")
 
     #   +++ Utility functions
 
@@ -137,7 +135,7 @@ class SearchEngine:
         size_msg = (f"{size_dif} changed items at {int(round(size_dif/(time() - t), 0))} items/sec "
                     f"({size_new} items ({self.size_of_index()}) currently)") if size_dif > 1 \
             else f"1 changed item ({size_new} items ({self.size_of_index()}) currently)"
-        log.debug(f"Search index updated in {time() - t:.2f} seconds for {size_msg}.")
+        logger.debug(f"Search index updated in {time() - t:.2f} seconds for {size_msg}.")
 
     def clean_text(self, text: str):
         """Clean a string so it doesn't contain weird characters or multiple spaces etc."""
@@ -309,11 +307,10 @@ class SearchEngine:
         # update the search index data
         self.update_index(data)
 
-    def remove_identifier(self, identifier, logging=True) -> None:
+    def remove_identifier(self, identifier) -> None:
         """Remove this identifier from self.df and the search index.
         """
-        if logging:
-            t = time()
+        t = time()
 
         # make sure the identifier exists
         if identifier not in self.df.index.to_list():
@@ -349,8 +346,7 @@ class SearchEngine:
         # finally, remove the identifier
         del self.identifier_to_word[identifier]
 
-        if logging:
-            log.debug(f"Search index updated in {time() - t:.2f} seconds "
+        logger.debug(f"Search index updated in {time() - t:.2f} seconds "
                       f"for 1 removed item ({len(self.df)} items ({self.size_of_index()}) currently).")
 
     def change_identifier(self, identifier, data: pd.DataFrame) -> None:
@@ -373,7 +369,7 @@ class SearchEngine:
             raise Exception(
                 "Identifier field cannot be changed, first remove item and then add new identifier")
         if "query_col" in data.keys():
-            log.debug(
+            logger.debug(
                 f"Field 'query_col' is a protected field for search engine and will be ignored for changing {identifier}")
 
 
@@ -385,7 +381,7 @@ class SearchEngine:
             update_data[col] = [value]
 
         # remove the entry
-        self.remove_identifier(identifier, logging=False)
+        self.remove_identifier(identifier, loggerging=False)
         # add entry with updated data
         self.add_identifier(update_data)
 
@@ -608,7 +604,7 @@ class SearchEngine:
 
         # find all combinations of the query words as given
         queries = list(query_text.keys())
-        subsets = list(chain.from_iterable(
+        subsets = list(itertools.chain.from_iterable(
             (itertools.combinations(
                 queries, r) for r in range(1, len(queries) + 1))))
         all_queries = []
@@ -757,7 +753,7 @@ class SearchEngine:
 
                 # now search for all permutations of this query combined with a space
                 query_df = search_df[search_df[self.identifier_name].isin(query_identifiers)]
-                for query_perm in permutations(query):
+                for query_perm in itertools.permutations(query):
                     mask = self.filter_dataframe(query_df, " ".join(query_perm), search_columns=["query_col"])
                     new_df = query_df.loc[mask].reset_index(drop=True)
                     if len(new_df) == 0:
@@ -789,12 +785,12 @@ class SearchEngine:
         text = text.strip()
 
         if len(text) == 0:
-            log.debug(f"Empty search, returned all items")
+            logger.debug(f"Empty search, returned all items")
             return self.df.index.to_list()
 
         fuzzy_identifiers = self.fuzzy_search(text)
         if len(fuzzy_identifiers) == 0:
-            log.debug(f"Found 0 search results for '{text}' in {len(self.df)} items in {time() - t:.2f} seconds")
+            logger.debug(f"Found 0 search results for '{text}' in {len(self.df)} items in {time() - t:.2f} seconds")
             return []
 
         # take the fuzzy search sub-set of data and search it literally
@@ -802,7 +798,7 @@ class SearchEngine:
 
         literal_identifiers = self.literal_search(text, df)
         if len(literal_identifiers) == 0:
-            log.debug(
+            logger.debug(
                 f"Found {len(fuzzy_identifiers)} search results for '{text}' in {len(self.df)} items in {time() - t:.2f} seconds")
             return fuzzy_identifiers
 
@@ -812,6 +808,6 @@ class SearchEngine:
             _id for _id in fuzzy_identifiers if _id not in literal_id_set]
         identifiers = literal_identifiers + remaining_fuzzy_identifiers
 
-        log.debug(
+        logger.debug(
             f"Found {len(identifiers)} ({len(literal_identifiers)} literal) search results for '{text}' in {len(self.df)} items in {time() - t:.2f} seconds")
         return identifiers

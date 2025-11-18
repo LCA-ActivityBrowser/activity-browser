@@ -1,6 +1,4 @@
-from time import time
-from loguru import logger
-from typing import Literal
+from typing import Literal, Optional
 
 import pandas as pd
 
@@ -19,9 +17,11 @@ class MetaDataStore():
     def __init__(self):
         from .loader import MDSLoader
         from .updater import MDSUpdater
+        from .searcher import MDSSearcher
 
         if self._initialized:
             return
+        self._initialized = True
 
         self._dataframe = pd.DataFrame()
 
@@ -31,8 +31,7 @@ class MetaDataStore():
 
         self.loader = MDSLoader(self)
         self.updater = MDSUpdater(self)
-
-        self._initialized = True
+        self.searcher: MDSSearcher | None = None  # initialized by the loader
 
     @property
     def dataframe(self) -> pd.DataFrame:
@@ -96,3 +95,16 @@ class MetaDataStore():
         if db_name not in self.databases:
             return pd.DataFrame(columns=all)
         return self.dataframe.loc[[db_name], columns or all]
+
+    def search(self, query: str) -> list[int]:
+        return self.searcher.search(query)
+
+    def search_database(self, query: str, database: Optional[str] = None, return_counter: bool = False, logging: bool = True):
+        # we do fuzzy search as we re-index results (combining products and activities) for database_products table
+        # anyway, so including literal results quite literally is a waste of time at this point
+        return self.searcher.fuzzy_search(query, database=database, return_counter=return_counter, logging=logging)
+
+    def auto_complete(self, word: str, context: Optional[set] = None, database: Optional[str] = None):
+        word = self.searcher.clean_text(word)
+        completions = self.searcher.auto_complete(word, context=context, database=database)
+        return completions

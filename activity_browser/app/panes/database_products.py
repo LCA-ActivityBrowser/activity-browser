@@ -44,15 +44,18 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
         super().__init__(parent)
         self.database = bd.Database(db_name)
         self.title = db_name
+
+        # initialize the model
         self.model = ProductModel(parent=self, chunk_size=100)
 
         # Create the QTableView and set the model
         self.table_view = ProductView(self, db_name=db_name)
         self.table_view.setModel(self.model)
 
-        self.search = widgets.ABLineEdit(self)
-        self.search.setMaximumHeight(30)
-        self.search.setPlaceholderText("Quick Search")
+        self.search_bar = widgets.MetaDataAutoCompleteTextEdit(self)
+        self.search_bar.database_name = db_name
+        self.search_bar.setMaximumHeight(30)
+        self.search_bar.setPlaceholderText("Quick Search")
 
         # Create loading indicator with spinner
         self.loading_spinner = QtWidgets.QProgressBar()
@@ -95,7 +98,7 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
         self.stacked_layout.addWidget(table_widget)
 
         layout = QtWidgets.QVBoxLayout(self)
-        layout.addWidget(self.search)
+        layout.addWidget(self.search_bar)
         layout.addLayout(self.stacked_layout)
 
         # Set the table view as the central widget of the window
@@ -106,7 +109,7 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
         app.signals.database.deleted.connect(self.on_database_deleted)
 
         self.table_view.filtered.connect(self.search_error)
-        self.search.textChangedDebounce.connect(self.table_view.setAllFilter)
+        self.search_bar.textChangedDebounce.connect(self.search)
 
     def on_metadata_changed(self, added, updated, deleted):
         # Check if primary data has finished loading
@@ -135,7 +138,11 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
         df = self.build_df()
         df.reset_index(drop=True, inplace=True)
         self.model.set_dataframe(df)
-        for col in df.columns:
+        self.model.filter("db_p_pane", "`_rank` >= 0")  # show all rows by default
+
+        for col in self.model.columns():
+            if col == "index":
+                continue
             index = self.model.columns().index(col)
             if df[col].isna().all():
                 self.table_view.hideColumn(index)
@@ -158,6 +165,9 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
         processors = set(df["processor"].dropna().unique())
         df = df.drop(processors, errors="ignore")
 
+        df["_rank"] = 0
+        df.rename(columns={"id": "_id"}, inplace=True)
+
         if not df.properties.isna().all():
             props_df = df[df.properties.notna()]
             props_df = pd.DataFrame(list(props_df.get("properties")), index=props_df.key)
@@ -170,7 +180,7 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
                 how="left",
             )
 
-        cols = ["name", "product", "categories", "unit", "location", "key", "processor", "type",]
+        cols = ["name", "product", "categories", "unit", "location", "key", "processor", "type", "_id", "_rank"]
         cols += [col for col in df.columns if col.startswith("property")]
 
         logger.debug(f"Built DatabaseProductsPane dataframe in {time() - t:.2f} seconds")
@@ -195,13 +205,30 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
             reset (bool, optional): Whether to reset the search bar color. Defaults to False.
         """
         if reset:
-            self.search.setPalette(app.application.palette())
+            self.search_bar.setPalette(app.application.palette())
             return
 
-        palette = self.search.palette()
+        palette = self.search_bar.palette()
         palette.setColor(QtGui.QPalette.ColorRole.Base, QtGui.QColor(255, 128, 128))
-        self.search.setPalette(palette)
+        self.search_bar.setPalette(palette)
 
+    def search(self, query: str):
+        """
+        Applies the search query to the table view.
+
+        Args:
+            query (str): The search query.
+        """
+        if query.startswith("=") or query == "":
+            self.table_view.setAllFilter(query)
+            return
+
+        results = app.metadata.search_database(query, database=self.database.name, logging=True)
+        results.reverse()
+        rank_map = {res: i for i, res in enumerate(results)}
+
+        self.model.df["_rank"] = self.model.df["_id"].map(rank_map).fillna(-1).astype(int)
+        self.model.sort("_rank", Qt.SortOrder.DescendingOrder)
 
 class ProductView(ui.widgets.ABTreeView):
     """

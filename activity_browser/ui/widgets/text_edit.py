@@ -3,8 +3,6 @@ from qtpy.QtCore import QTimer, Signal, SignalInstance, QStringListModel, Qt
 from qtpy.QtGui import QSyntaxHighlighter, QTextCharFormat, QTextDocument, QFont
 from qtpy.QtWidgets import QCompleter, QStyledItemDelegate, QStyle
 
-from activity_browser.bwutils import AB_metadata
-
 
 class UnknownWordHighlighter(QSyntaxHighlighter):
     def __init__(self, parent: QTextDocument, known_words: set):
@@ -93,7 +91,11 @@ class ABTextEdit(QtWidgets.QTextEdit):
 
 class ABAutoCompleTextEdit(ABTextEdit):
     def __init__(self, parent=None, highlight_unknown=False):
+        from activity_browser.bwutils.metadata import MetaDataStore  # avoid circular import, should we refactor?
+
+        self.mds = MetaDataStore()
         super().__init__(parent=parent)
+
         self.auto_complete_word = ""
 
         # autocompleter settings
@@ -174,7 +176,7 @@ class MetaDataAutoCompleteTextEdit(ABAutoCompleTextEdit):
     def _sanitize_input(self):
         self._debounce_timer.stop()
         text = self.toPlainText()
-        clean_text = AB_metadata.search_engine.ONE_SPACE_PATTERN.sub(" ", text)
+        clean_text = self.mds.searcher.ONE_SPACE_PATTERN.sub(" ", text)
 
         if clean_text != text:
             cursor = self.textCursor()
@@ -187,8 +189,8 @@ class MetaDataAutoCompleteTextEdit(ABAutoCompleTextEdit):
             self.setTextCursor(cursor)
 
         known_words = set()
-        for identifier in AB_metadata.search_engine.database_id_manager(self.database_name):
-            known_words.update(AB_metadata.search_engine.identifier_to_word[identifier].keys())
+        for identifier in self.mds.searcher.database_id_manager(self.database_name):
+            known_words.update(self.mds.searcher.identifier_to_word[identifier].keys())
         self.highlighter.known_words = known_words
 
         if len(text) == 0:
@@ -226,7 +228,7 @@ class MetaDataAutoCompleteTextEdit(ABAutoCompleTextEdit):
         context = set((text[:start] + text[end:]).split(" "))
         self.delegate.current_word_index = len(text[:start].split(" "))  # current word index for bolding
         # get suggestions for the current word
-        suggestions = AB_metadata.auto_complete(current_word, context=context, database=self.database_name)
+        suggestions = self.mds.searcher.auto_complete(current_word, context=context, database=self.database_name)
         suggestions = suggestions[:6]  # at most 6, though we should get ~3 usually
         # replace the current word with each alternative
         items = []

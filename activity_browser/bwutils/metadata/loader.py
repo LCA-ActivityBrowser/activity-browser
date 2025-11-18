@@ -79,6 +79,7 @@ class MDSLoader():
             self.mds.register_mutation(idx, "update")
         
         self.secondary_status = "done"
+        self._init_searcher()
 
     def load_database(self, database_name: str):
         from bw2data.backends import sqlite3_lci_db
@@ -141,6 +142,10 @@ class MDSLoader():
 
             # add new category to column
             self.mds.dataframe[col] = self.mds.dataframe[col].cat.add_categories(categories)
+
+    def _init_searcher(self):
+        from .searcher import MDSSearcher
+        self.mds.searcher = MDSSearcher(self.mds)
 
 
 class SecondaryLoadThread(threading.Thread):
