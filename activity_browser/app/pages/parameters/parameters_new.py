@@ -102,7 +102,7 @@ class ParametersPage(QtWidgets.QWidget):
         df = self.build_df()
         df.reset_index(drop=True, inplace=True)
         self.model.set_dataframe(df)
-        self.model.group(["_scope"])
+        self.model.group(["_param_type", "_scope"])
         self.view.expandAll()
         
         exchanges_df = self.build_exchanges_df()
@@ -126,12 +126,12 @@ class ParametersPage(QtWidgets.QWidget):
 
         # Project parameters
         for param in ProjectParameter.select():
-            row = self._parameter_to_row(param, "Current project", None)
+            row = self._parameter_to_row(param)
             translated.append(row)
 
         # Database parameters
         for param in DatabaseParameter.select():
-            row = self._parameter_to_row(param, f"Database: {param.database}", param.database)
+            row = self._parameter_to_row(param, "{param.database}", param.database)
             translated.append(row)
 
         # Activity parameters
@@ -139,7 +139,7 @@ class ParametersPage(QtWidgets.QWidget):
             row = self._parameter_to_row(param, f"Group: {param.group}", param.database)
             translated.append(row)
 
-        columns = ["name", "amount", "formula", "uncertainty", "comment", "_parameter", "_scope", "_database", "_group"]
+        columns = ["name", "amount", "formula", "uncertainty", "comment", "_parameter", "_scope", "_database", "_group", "_param_type"]
         df = pd.DataFrame(translated, columns=columns)
         df["_is_new"] = False
 
@@ -149,7 +149,6 @@ class ParametersPage(QtWidgets.QWidget):
         # Add for project
         new_rows.append({
             "name": "New parameter...",
-            "_scope": "Current project",
             "_group": "project",
             "_param_type": "project",
             "_is_new": True,
@@ -160,7 +159,7 @@ class ParametersPage(QtWidgets.QWidget):
             if not bd.databases[db_name].get("read_only", True):
                 new_rows.append({
                     "name": "New parameter...",
-                    "_scope": f"Database: {db_name}",
+                    "_scope": f"{db_name}",
                     "_database": db_name,
                     "_group": db_name,
                     "_param_type": "database",
@@ -168,7 +167,7 @@ class ParametersPage(QtWidgets.QWidget):
                 })
 
         # Add for each activity group
-        activity_params = df[df._scope.str.startswith("Group: ", na=False)]
+        activity_params = df[df._scope.str.startswith("group: ", na=False)]
         groups = activity_params._group.unique() if len(activity_params) > 0 else []
         for group_name in sorted(groups):
             group_data = activity_params[activity_params._group == group_name]
@@ -176,7 +175,7 @@ class ParametersPage(QtWidgets.QWidget):
             if db_name and db_name in bd.databases and not bd.databases[db_name].get("read_only", True):
                 new_rows.append({
                     "name": "New parameter...",
-                    "_scope": f"Group: {group_name}",
+                    "_scope": f"group: {group_name}",
                     "_database": db_name,
                     "_group": group_name,
                     "_param_type": "activity",
@@ -188,9 +187,9 @@ class ParametersPage(QtWidgets.QWidget):
             new_df = pd.DataFrame(new_rows)
             df = pd.concat([df, new_df], ignore_index=True)
 
-        return df
+        return df.sort_values(by="_param_type", key= lambda c: c.map({"project": 0, "database": 1, "activity": 2}))
 
-    def _parameter_to_row(self, param, scope_label: str, database: str = None) -> dict:
+    def _parameter_to_row(self, param, scope_label: str = None, database: str = None) -> dict:
         """
         Converts a parameter to a row dictionary.
 
@@ -208,12 +207,15 @@ class ParametersPage(QtWidgets.QWidget):
         if isinstance(param, ProjectParameter):
             parameter = Parameter(param.name, "project", data.get("amount"), data, "project")
             group = "project"
+            param_type = "project"
         elif isinstance(param, DatabaseParameter):
             parameter = Parameter(param.name, param.database, data.get("amount"), data, "database")
             group = param.database
+            param_type = "database"
         elif isinstance(param, ActivityParameter):
             parameter = Parameter(param.name, param.group, data.get("amount"), data, "activity")
             group = param.group
+            param_type = "activity"
         else:
             raise ValueError(f"Unknown parameter type: {type(param)}")
 
@@ -223,6 +225,7 @@ class ParametersPage(QtWidgets.QWidget):
             "uncertainty": parameter.uncertainty,
             "formula": data.get("formula"),
             "comment": data.get("comment"),
+            "_param_type": param_type,
             "_parameter": parameter,
             "_scope": scope_label,
             "_database": database,
