@@ -97,7 +97,7 @@ class ConsumersTab(QtWidgets.QWidget):
         return df[cols]
 
 
-class ConsumersView(widgets.ABNewTreeView):
+class ConsumersView(widgets.ABTreeView):
     """
     A view that displays the consumers in a tree structure.
     """

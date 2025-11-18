@@ -100,7 +100,7 @@ class DatabasesPane(widgets.ABAbstractPane):
         return pd.DataFrame(data, columns=cols)
 
 
-class DatabasesView(widgets.ABNewTreeView):
+class DatabasesView(widgets.ABTreeView):
     """
     A view that displays the databases in a tree structure.
 

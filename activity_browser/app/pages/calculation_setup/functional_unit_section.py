@@ -84,7 +84,7 @@ class FunctionalUnitSection(QtWidgets.QWidget):
         return act_df[cols].reset_index(drop=True)
 
 
-class FunctionalUnitView(widgets.ABNewTreeView):
+class FunctionalUnitView(widgets.ABTreeView):
     defaultColumnDelegates = {
         "amount": delegates.AmountDelegate
     }

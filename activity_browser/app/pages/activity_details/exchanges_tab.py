@@ -305,7 +305,7 @@ class RelinkDelegate(delegates.StringDelegate):
         )
 
 
-class ExchangesView(widgets.ABNewTreeView):
+class ExchangesView(widgets.ABTreeView):
     """
     A view that displays the exchanges in a tree structure.
 

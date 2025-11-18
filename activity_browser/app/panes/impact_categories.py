@@ -74,7 +74,7 @@ class ImpactCategoriesPane(widgets.ABAbstractPane):
         return df[cols]
 
 
-class ImpactCategoriesView(widgets.ABNewTreeView):
+class ImpactCategoriesView(widgets.ABTreeView):
     defaultColumnDelegates = {
         "groups": delegates.ListDelegate,
     }

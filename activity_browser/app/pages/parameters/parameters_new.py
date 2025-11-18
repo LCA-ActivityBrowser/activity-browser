@@ -278,7 +278,7 @@ class ParametersPage(QtWidgets.QWidget):
         return pd.DataFrame(translated, columns=columns)
 
 
-class ProjectParametersView(widgets.ABNewTreeView):
+class ProjectParametersView(widgets.ABTreeView):
     """
     A view that displays the project parameters in a tree structure.
 
@@ -470,7 +470,7 @@ class ProjectParametersModel(core.ABTreeModel):
         return parameters_in_scope(parameter=parameter)
 
 
-class ParameterizedExchangesView(widgets.ABNewTreeView):
+class ParameterizedExchangesView(widgets.ABTreeView):
     """
     A view that displays parameterized exchanges in a tree structure.
 

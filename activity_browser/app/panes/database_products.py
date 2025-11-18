@@ -203,7 +203,7 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
         self.search.setPalette(palette)
 
 
-class ProductView(ui.widgets.ABNewTreeView):
+class ProductView(ui.widgets.ABTreeView):
     """
     A view that displays the products in a tree structure.
 

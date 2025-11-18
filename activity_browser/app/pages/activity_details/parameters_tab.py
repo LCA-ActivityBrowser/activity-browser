@@ -100,7 +100,7 @@ class ParametersTab(QtWidgets.QWidget):
         return pd.DataFrame(translated, columns=columns)
 
 
-class ParametersView(widgets.ABNewTreeView):
+class ParametersView(widgets.ABTreeView):
     """
     A view that displays the parameters in a tree structure.
 

@@ -117,7 +117,7 @@ class ProjectManagerSettingsChapter(BaseSettingsChapter):
         return pd.DataFrame(data, columns=cols)
 
 
-class ProjectView(widgets.ABNewTreeView):
+class ProjectView(widgets.ABTreeView):
 
     class ContextMenu(widgets.ABMenu):
         menuSetup = [
@@ -202,7 +202,7 @@ class ProjectModel(core.ABTreeModel):
         return None
 
 
-class TemplateView(widgets.ABNewTreeView):
+class TemplateView(widgets.ABTreeView):
 
     class ContextMenu(widgets.ABMenu):
         menuSetup = []

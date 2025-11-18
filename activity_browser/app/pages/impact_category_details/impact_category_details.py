@@ -92,7 +92,7 @@ class ImpactCategoryDetailsPage(QtWidgets.QWidget):
         return 0
 
 
-class CharacterizationFactorsView(widgets.ABNewTreeView):
+class CharacterizationFactorsView(widgets.ABTreeView):
     defaultColumnDelegates = {
         "amount": delegates.FloatDelegate,
         "categories": delegates.ListDelegate,

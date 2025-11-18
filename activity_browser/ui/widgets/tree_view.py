@@ -7,16 +7,14 @@ from activity_browser.ui import delegates, core
 from .line_edit import ABLineEdit
 
 
-
-
-class ABNewTreeView(QtWidgets.QTreeView):
+class ABTreeView(QtWidgets.QTreeView):
     # fired when the filter is applied, fires False when an exception happens during querying
     filtered: QtCore.SignalInstance = QtCore.Signal(bool)
 
     defaultColumnDelegates = {}
 
     class HeaderMenu(QtWidgets.QMenu):
-        def __init__(self, pos: QtCore.QPoint, view: "ABNewTreeView"):
+        def __init__(self, pos: QtCore.QPoint, view: "ABTreeView"):
             super().__init__(view)
 
             model = view.model()
@@ -168,7 +166,7 @@ class ABNewTreeView(QtWidgets.QTreeView):
     def applyFilter(self):
         query = self.buildQuery()
         try:
-            self.model().filter("ABNewTreeView", query)
+            self.model().filter("ABTreeView", query)
             self.filtered.emit(True)
         except Exception as e:
             logger.info(f"{self.__class__.__name__} {type(e).__name__} in query: {e}")

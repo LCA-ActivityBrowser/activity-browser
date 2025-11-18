@@ -48,7 +48,7 @@ class ImpactCategorySection(QtWidgets.QWidget):
         return df[cols]
 
 
-class ImpactCategoryView(widgets.ABNewTreeView):
+class ImpactCategoryView(widgets.ABTreeView):
     defaultColumnDelegates = {
         "name": delegates.StringDelegate
     }

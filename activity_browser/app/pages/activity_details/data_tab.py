@@ -90,7 +90,7 @@ class DataTab(QtWidgets.QWidget):
         return df[cols]
 
 
-class DataView(widgets.ABNewTreeView):
+class DataView(widgets.ABTreeView):
     """
     A view that displays the data in a tree structure.
 

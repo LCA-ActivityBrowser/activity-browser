@@ -79,7 +79,7 @@ class CalculationSetupsPane(widgets.ABAbstractPane):
         return pd.DataFrame(data, columns=cols)
 
 
-class CalculationSetupsView(widgets.ABNewTreeView):
+class CalculationSetupsView(widgets.ABTreeView):
     """
     A view that displays the calculation setups in a tree structure.
 
