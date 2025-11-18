@@ -1,2 +1,2 @@
-from .parameters_new import ParametersPage
+from .parameters import ParametersPage
 

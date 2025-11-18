@@ -2,8 +2,7 @@ from qtpy import QtWidgets, QtCore, QtGui
 from qtpy.QtCore import Qt
 import pandas as pd
 import bw2data as bd
-from bw2data.parameters import ProjectParameter, DatabaseParameter, ActivityParameter, ParameterizedExchange
-from bw2data.backends import ExchangeDataset
+from bw2data.parameters import ProjectParameter, DatabaseParameter, ActivityParameter
 
 from activity_browser import app
 from activity_browser.ui import widgets, icons, delegates, core
@@ -11,11 +10,11 @@ from activity_browser.bwutils.commontasks import refresh_parameter, database_is_
 from activity_browser.bwutils.utils import Parameter
 
 
-class ParametersPage(QtWidgets.QWidget):
+class ParametersSection(QtWidgets.QWidget):
     """
-    A widget that displays all parameters in the current project.
+    A widget section that displays all parameters in the current project.
 
-    This page shows a tree view of parameters organized by scope:
+    This section shows a tree view of parameters organized by scope:
     - Project parameters
     - Database parameters (grouped by database)
     - Activity parameters (grouped by activity group)
@@ -27,7 +26,7 @@ class ParametersPage(QtWidgets.QWidget):
 
     def __init__(self, parent=None):
         """
-        Initializes the ParametersPage widget.
+        Initializes the ParametersSection widget.
 
         Args:
             parent (QtWidgets.QWidget, optional): The parent widget. Defaults to None.
@@ -39,11 +38,6 @@ class ParametersPage(QtWidgets.QWidget):
         self.view = ProjectParametersView()
         self.view.setModel(self.model)
 
-        # Parameterized exchanges table view
-        self.exchanges_model = ParameterizedExchangesModel(parent=self)
-        self.exchanges_view = ParameterizedExchangesView()
-        self.exchanges_view.setModel(self.exchanges_model)
-
         self.build_layout()
         self.connect_signals()
 
@@ -52,36 +46,8 @@ class ParametersPage(QtWidgets.QWidget):
         Builds the layout of the widget.
         """
         layout = QtWidgets.QVBoxLayout()
-
-        # Header with title for parameters
-        header_layout = QtWidgets.QHBoxLayout()
-        header_label = widgets.ABLabel.demiBold("Parameters")
-        header_layout.addWidget(header_label)
-        header_layout.addStretch(1)
-
-        layout.addLayout(header_layout)
-        layout.addWidget(widgets.ABHLine(self))
-
-        # Add both views in a splitter
-        splitter = QtWidgets.QSplitter(QtCore.Qt.Orientation.Vertical, self)
-        
-        # Parameters tree
-        params_widget = QtWidgets.QWidget()
-        params_layout = QtWidgets.QVBoxLayout(params_widget)
-        params_layout.setContentsMargins(0, 0, 0, 0)
-        params_layout.addWidget(self.view)
-        splitter.addWidget(params_widget)
-
-        # Parameterized exchanges
-        exchanges_widget = QtWidgets.QWidget()
-        exchanges_layout = QtWidgets.QVBoxLayout(exchanges_widget)
-        exchanges_layout.setContentsMargins(0, 0, 0, 0)
-        exchanges_label = widgets.ABLabel.demiBold("Parameterized Exchanges")
-        exchanges_layout.addWidget(exchanges_label)
-        exchanges_layout.addWidget(self.exchanges_view)
-        splitter.addWidget(exchanges_widget)
-
-        layout.addWidget(splitter)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(self.view)
         self.setLayout(layout)
 
     def connect_signals(self):
@@ -104,13 +70,7 @@ class ParametersPage(QtWidgets.QWidget):
         self.model.set_dataframe(df)
         self.model.group(["_param_type", "_scope"])
         self.view.expandAll()
-        
-        exchanges_df = self.build_exchanges_df()
-        exchanges_df.reset_index(drop=True, inplace=True)
-        self.exchanges_model.set_dataframe(exchanges_df)
 
-        self.view.expandAll()
-    
         self.view.resizeColumnToContents(1)
         self.view.resizeColumnToContents(3)
         self.view.resizeColumnToContents(4)
@@ -187,7 +147,7 @@ class ParametersPage(QtWidgets.QWidget):
             new_df = pd.DataFrame(new_rows)
             df = pd.concat([df, new_df], ignore_index=True)
 
-        return df.sort_values(by="_param_type", key= lambda c: c.map({"project": 0, "database": 1, "activity": 2}))
+        return df.sort_values(by="_param_type", key=lambda c: c.map({"project": 0, "database": 1, "activity": 2}))
 
     def _parameter_to_row(self, param, scope_label: str = None, database: str = None) -> dict:
         """
@@ -233,49 +193,6 @@ class ParametersPage(QtWidgets.QWidget):
         }
 
         return row
-
-    def build_exchanges_df(self) -> pd.DataFrame:
-        """
-        Builds a DataFrame from all parameterized exchanges in the project.
-
-        Returns:
-            pd.DataFrame: The DataFrame containing the parameterized exchanges data.
-        """
-        translated = []
-
-        # Get all parameterized exchanges
-        for param_exc in ParameterizedExchange.select():
-            try:
-                exchange = bd.Edge(document=ExchangeDataset.get_by_id(param_exc.exchange))
-
-                # Get keys for input and output
-                input_key = exchange.get("input")
-                output_key = exchange.get("output")
-                
-                # Get metadata from metadata store
-                input_meta = app.metadata.get_metadata([input_key], ["name", "unit", "location", "database", "product"]).iloc[0]
-                output_meta = app.metadata.get_metadata([output_key], ["name"]).iloc[0]
-                
-                row = {
-                    "amount": exchange.get("amount"),
-                    "unit": input_meta.get("unit"),
-                    "from": input_meta.get("product") or input_meta.get("name"),
-                    "to": output_meta.get("name"),
-                    "database": input_meta.get("database"),
-                    "formula": exchange.get("formula"),
-                    "comment": exchange.get("comment"),
-                    "uncertainty": exchange.get("uncertainty type"),
-                    "_exchange": exchange,
-                    "_output_key": output_key,
-                    "_input_key": input_key,
-                }
-                translated.append(row)
-            except Exception as e:
-                # Skip if exchange can't be loaded
-                continue
-
-        columns = ["amount", "unit", "from", "to", "database", "formula", "comment", "uncertainty", "_exchange", "_output_key", "_input_key"]
-        return pd.DataFrame(translated, columns=columns)
 
 
 class ProjectParametersView(widgets.ABTreeView):
@@ -441,7 +358,7 @@ class ProjectParametersModel(core.ABTreeModel):
         # Allow editing for specific columns
         if column_name in ["formula", "uncertainty", "name", "comment"]:
             return True
-        
+
         if column_name == "amount" and not self.get(index, "formula"):
             return True
 
@@ -458,7 +375,7 @@ class ProjectParametersModel(core.ABTreeModel):
             dict: The parameters in scope.
         """
         from activity_browser.bwutils.commontasks import parameters_in_scope
-        
+
         row = self.row(index)
         if row is None:
             return {}
@@ -469,167 +386,3 @@ class ProjectParametersModel(core.ABTreeModel):
 
         return parameters_in_scope(parameter=parameter)
 
-
-class ParameterizedExchangesView(widgets.ABTreeView):
-    """
-    A view that displays parameterized exchanges in a tree structure.
-
-    Attributes:
-        defaultColumnDelegates (dict): The default column delegates for the view.
-    """
-    defaultColumnDelegates = {
-        "amount": delegates.FloatDelegate,
-        "unit": delegates.StringDelegate,
-        "product": delegates.StringDelegate,
-        "producer": delegates.StringDelegate,
-        "location": delegates.StringDelegate,
-        "database": delegates.StringDelegate,
-        "formula": delegates.NewFormulaDelegate,
-        "comment": delegates.StringDelegate,
-        "uncertainty": delegates.UncertaintyDelegate,
-    }
-
-    class ContextMenu(widgets.ABMenu):
-        """
-        A context menu for the ParameterizedExchangesView.
-        """
-        def __init__(self, pos, view: "ParameterizedExchangesView"):
-            """
-            Initializes the ContextMenu.
-
-            Args:
-                pos: The position of the context menu.
-                view (ParameterizedExchangesView): The view displaying the exchanges.
-            """
-            super().__init__(view)
-
-            index = view.indexAt(pos)
-            if index.isValid() and not view.model().isBranchNode(index):
-                row = view.model().row(index)
-                if row is not None:
-                    output_key = row.get("_output_key")
-                    if output_key:
-                        # Open activity action
-                        open_action = app.actions.ActivityOpen.get_QAction([output_key])
-                        open_action.setText("Open activity")
-                        self.addAction(open_action)
-
-
-class ParameterizedExchangesModel(core.ABTreeModel):
-    """
-    A model representing the data for parameterized exchanges.
-    """
-
-    def __init__(self, parent=None):
-        """
-        Initializes the ParameterizedExchangesModel.
-
-        Args:
-            parent (QtWidgets.QWidget, optional): The parent widget. Defaults to None.
-        """
-        super().__init__(df=pd.DataFrame(), parent=parent)
-
-    def setData(self, index: QtCore.QModelIndex, value, role: int = Qt.ItemDataRole.EditRole) -> bool:
-        """
-        Sets the data for the given index.
-
-        Args:
-            index (QtCore.QModelIndex): The index to set data for.
-            value: The value to set.
-            role (int): The role for which to set the data.
-
-        Returns:
-            bool: True if the data was set successfully, False otherwise.
-        """
-        if role != Qt.ItemDataRole.EditRole:
-            return False
-
-        column_name = self.column_name(index)
-        row = self.row(index)
-
-        if row is None:
-            return False
-
-        exchange = row.get("_exchange")
-        if exchange is None:
-            return False
-
-        if column_name in ["amount", "formula", "comment"]:
-            if column_name == "formula" and not str(value).strip():
-                # Remove formula if empty
-                app.actions.ExchangeFormulaRemove.run([exchange])
-                return True
-
-            app.actions.ExchangeModify.run(exchange, {column_name.lower(): value})
-            return True
-
-        return False
-
-    def decorationData(self, index: QtCore.QModelIndex) -> any:
-        """
-        Provides decoration data for the model.
-
-        Args:
-            index (QtCore.QModelIndex): The index for which to provide decoration data.
-
-        Returns:
-            The decoration data for the index.
-        """
-        column_name = self.column_name(index)
-
-        if column_name == "amount":
-            formula = self.get(index, "formula")
-            if pd.isna(formula) or formula is None or formula == "":
-                return icons.qicons.edit
-            return icons.qicons.parameterized
-
-        return None
-
-    def indexEditable(self, index: QtCore.QModelIndex) -> bool:
-        """
-        Returns whether the index is editable.
-
-        Args:
-            index (QtCore.QModelIndex): The index to check.
-
-        Returns:
-            bool: True if the index is editable, False otherwise.
-        """
-        column_name = self.column_name(index)
-        row = self.row(index)
-
-        if row is None:
-            return False
-
-        # Check if database is locked
-        exchange = row.get("_exchange")
-        if exchange and database_is_locked(exchange.output["database"]):
-            return False
-
-        # Allow editing for specific columns
-        if column_name in ["amount", "formula", "comment"]:
-            return True
-
-        return False
-
-    def scoped_parameters(self, index: QtCore.QModelIndex) -> dict[str, Parameter]:
-        """
-        Returns the parameters in scope of the exchange at the given index.
-
-        Args:
-            index (QtCore.QModelIndex): The index to get scoped parameters for.
-
-        Returns:
-            dict: The parameters in scope.
-        """
-        from activity_browser.bwutils.commontasks import parameters_in_scope
-        
-        row = self.row(index)
-        if row is None:
-            return {}
-
-        exchange = row.get("_exchange")
-        if exchange is None:
-            return {}
-
-        return parameters_in_scope(node=exchange.output)
