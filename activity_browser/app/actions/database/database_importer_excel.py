@@ -41,6 +41,7 @@ class ImportSetup(widgets.ABWizard):
     class ExtractPage(widgets.ABThreadedWizardPage):
         title = "Extracting Database"
         subtitle = "Extracting database from excel file"
+        buttonLayout = ["Stretch", "CancelButton", "NextButton"]
 
         class Thread(threading.ABThread):
             loaded: SignalInstance = Signal(object)
@@ -60,6 +61,7 @@ class ImportSetup(widgets.ABWizard):
     class DatabaseName(widgets.ABWizardPage):
         title = "Database Name"
         subtitle = "Enter the name of the database you wish to create"
+        buttonLayout = ["Stretch", "CancelButton", "NextButton"]
 
         def __init__(self, parent=None):
             super().__init__(parent)
@@ -78,6 +80,8 @@ class ImportSetup(widgets.ABWizard):
 
         def initializePage(self, context: dict):
             self.db_name_edit.setText(context["importer"].db_name)
+            if self.nextPage() == ImportSetup.InstallPage:
+                self.buttonLayout = ["Stretch", "CancelButton", "CommitButton"]
 
         def finalize(self, context: dict):
             context["database_name"] = self.db_name_edit.text()

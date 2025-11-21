@@ -2,13 +2,14 @@ from typing import TYPE_CHECKING
 from qtpy import QtWidgets
 
 if TYPE_CHECKING:
-    from activity_browser.ui.widgets import ABWizard
+    from .wizard import ABWizard, ABWizardButtonLayout
     from activity_browser.ui.core.threading import ABThread
 
 
 class ABWizardPage(QtWidgets.QWizardPage):
     title: str = ""
     subtitle: str = ""
+    buttonLayout: "ABWizardButtonLayout" = []
 
     def __init__(self, parent=None):
         super().__init__(parent)
