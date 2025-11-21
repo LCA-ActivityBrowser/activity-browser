@@ -7,6 +7,7 @@ if TYPE_CHECKING:
 
 class ABWizard(QtWidgets.QWizard):
     pages = []
+    context = {}
 
     def __init__(self, *args, title: str = None, context: dict = None, **kwargs):
         super().__init__(*args, **kwargs)

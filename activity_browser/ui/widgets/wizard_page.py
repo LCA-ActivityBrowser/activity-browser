@@ -36,6 +36,9 @@ class ABWizardPage(QtWidgets.QWizardPage):
     def finalize(self, context: dict):
         pass
 
+    def context(self) -> dict:
+        return self.wizard().context
+
 
 class ABThreadedWizardPage(ABWizardPage):
     Thread: type["ABThread"]

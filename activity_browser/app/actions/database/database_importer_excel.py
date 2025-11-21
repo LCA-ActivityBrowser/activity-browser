@@ -83,6 +83,10 @@ class ImportSetup(widgets.ABWizard):
             context["database_name"] = self.db_name_edit.text()
 
         def nextPage(self):
+            importer = self.context()["importer"]
+            link_dbs = set([exc["database"] for exc in importer.unlinked if exc["database"] != importer.db_name])
+            if not link_dbs:
+                return ImportSetup.InstallPage
             return ImportSetup.DatabaseLink
 
     class DatabaseLink(widgets.ABWizardPage):
@@ -140,6 +144,10 @@ class ImportSetup(widgets.ABWizard):
 
         def initializePage(self, context: dict):
             """Start the download thread"""
-            self.thread.start(context["importer"], context["database_name"], context["linking_dict"])
+            importer = context["importer"]
+            database_name = context["database_name"]
+            linking_dict = context.get("linking_dict", {})
+
+            self.thread.start(importer, database_name, linking_dict)
 
     pages = [ExtractPage, DatabaseName, DatabaseLink, InstallPage]
