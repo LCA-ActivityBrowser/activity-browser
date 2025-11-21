@@ -13,6 +13,9 @@ ABWizardButtonLayout = list[Literal[
     "FinishButton",
     "HelpButton",
     "CommitButton",
+    "CustomButton1",
+    "CustomButton2",
+    "CustomButton3",
 ]]
 
 class ABWizard(QtWidgets.QWizard):
@@ -53,14 +56,31 @@ class ABWizard(QtWidgets.QWizard):
         # initialize the next page
         page = self.page(page_id)
         page.initializePage(self.context)
+
         if page.buttonLayout:
             if "CommitButton" in page.buttonLayout:
                 page.setCommitPage(True)
             if "FinishButton" in page.buttonLayout:
                 page.setFinalPage(True)
+
             self.setButtonLayout(page.buttonLayout)
+
+            if "CustomButton1" in page.buttonLayout:
+                btn = self.button(QtWidgets.QWizard.WizardButton.CustomButton1)
+                btn.clicked.connect(page.onCustomButon1Clicked)
+                self.setButtonText(QtWidgets.QWizard.WizardButton.CustomButton1, page.customButton1Text or "Custom 1")
+            if "CustomButton2" in page.buttonLayout:
+                btn = self.button(QtWidgets.QWizard.WizardButton.CustomButton2)
+                btn.clicked.connect(page.onCustomButon2Clicked)
+                self.setButtonText(QtWidgets.QWizard.WizardButton.CustomButton2, page.customButton2Text or "Custom 2")
+            if "CustomButton3" in page.buttonLayout:
+                btn = self.button(QtWidgets.QWizard.WizardButton.CustomButton3)
+                btn.clicked.connect(page.onCustomButon3Clicked)
+                self.setButtonText(QtWidgets.QWizard.WizardButton.CustomButton3, page.customButton3Text or "Custom 3")
+
         elif self.currentId() == self.pageIds()[-1]:
             self.setButtonLayout(self.finalButtonLayout)
+
         else:
             self.setButtonLayout(self.defaultButtonLayout)
 
@@ -73,6 +93,9 @@ class ABWizard(QtWidgets.QWizard):
                 "FinishButton": QtWidgets.QWizard.WizardButton.FinishButton,
                 "HelpButton": QtWidgets.QWizard.WizardButton.HelpButton,
                 "CommitButton": QtWidgets.QWizard.WizardButton.CommitButton,
+                "CustomButton1": QtWidgets.QWizard.WizardButton.CustomButton1,
+                "CustomButton2": QtWidgets.QWizard.WizardButton.CustomButton2,
+                "CustomButton3": QtWidgets.QWizard.WizardButton.CustomButton3,
             }
             qt_layout = [button_map[item] for item in layout]
             super().setButtonLayout(qt_layout)

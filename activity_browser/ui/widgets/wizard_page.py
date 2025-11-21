@@ -11,6 +11,10 @@ class ABWizardPage(QtWidgets.QWizardPage):
     subtitle: str = ""
     buttonLayout: "ABWizardButtonLayout" = []
 
+    customButton1Text: str = ""
+    customButton2Text: str = ""
+    customButton3Text: str = ""
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setTitle(self.title)
@@ -39,6 +43,15 @@ class ABWizardPage(QtWidgets.QWizardPage):
 
     def context(self) -> dict:
         return self.wizard().context
+
+    def onCustomButon1Clicked(self):
+        pass
+
+    def onCustomButon2Clicked(self):
+        pass
+
+    def onCustomButon3Clicked(self):
+        pass
 
 
 class ABThreadedWizardPage(ABWizardPage):

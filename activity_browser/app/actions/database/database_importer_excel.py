@@ -41,7 +41,8 @@ class ImportSetup(widgets.ABWizard):
     class ExtractPage(widgets.ABThreadedWizardPage):
         title = "Extracting Database"
         subtitle = "Extracting database from excel file"
-        buttonLayout = ["Stretch", "CancelButton", "NextButton"]
+        buttonLayout = ["CustomButton1", "Stretch", "CancelButton", "NextButton"]
+        customButton1Text = "Show extracted data"
 
         class Thread(threading.ABThread):
             loaded: SignalInstance = Signal(object)
@@ -155,3 +156,5 @@ class ImportSetup(widgets.ABWizard):
             self.thread.start(importer, database_name, linking_dict)
 
     pages = [ExtractPage, DatabaseName, DatabaseLink, InstallPage]
+
+

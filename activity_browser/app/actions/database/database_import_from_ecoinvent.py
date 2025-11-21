@@ -54,6 +54,7 @@ class EiWizard(widgets.ABWizard):
         """Wizard page to choose between remote or local ecoinvent release"""
         title = "Import from ecoinvent"
         subtitle = "Choose whether to import from a remote or local ecoinvent release."
+        buttonLayout = ["Stretch", "CancelButton", "NextButton"]
 
         def __init__(self, parent=None):
             super().__init__(parent)
@@ -78,6 +79,7 @@ class EiWizard(widgets.ABWizard):
         """Wizard page to select a local ecoinvent .7z file"""
         title = "Import from ecoinvent"
         subtitle = "Select local ecoinvent .7z."
+        buttonLayout = ["Stretch", "CancelButton", "BackButton", "NextButton"]
 
         def __init__(self, parent=None):
             super().__init__(parent)
@@ -111,6 +113,7 @@ class EiWizard(widgets.ABWizard):
         """Wizard page to login with ecoinvent credentials"""
         title = "Login"
         subtitle = "Login with your ecoinvent credentials to authorize the download"
+        buttonLayout = ["Stretch", "CancelButton", "BackButton", "NextButton"]
 
         def __init__(self, parent=None):
             super().__init__(parent)
@@ -171,6 +174,7 @@ class EiWizard(widgets.ABWizard):
         """Wizard page to choose ecoinvent version and system model"""
         title = "Choose version"
         subtitle = "Choose ecoinvent version and system model"
+        buttonLayout = ["Stretch", "CancelButton", "BackButton", "NextButton"]
 
         def __init__(self, parent=None):
             super().__init__(parent)
@@ -210,6 +214,7 @@ class EiWizard(widgets.ABWizard):
         """Wizard page to download the selected ecoinvent release"""
         title = "Download ecoinvent"
         subtitle = "Downloading the selected ecoinvent release"
+        buttonLayout = ["Stretch", "NextButton"]
 
         class Thread(threading.ABThread):
             """Thread to handle the download process"""
@@ -254,6 +259,7 @@ class EiWizard(widgets.ABWizard):
         """Wizard page to choose biosphere setup options"""
         title = "Biosphere setup"
         subtitle = "Choose whether to import the biosphere database or connect to an existing one"
+        buttonLayout = ["Stretch", "CancelButton", "CommitButton"]
 
         def __init__(self, parent=None):
             super().__init__(parent)
@@ -304,6 +310,7 @@ class EiWizard(widgets.ABWizard):
         """Wizard page to install the biosphere database"""
         title = "Installing biosphere database"
         subtitle = "Installing bundled biosphere database into the project"
+        buttonLayout = ["Stretch", "NextButton"]
 
         class Thread(threading.ABThread):
             """Thread to handle the biosphere installation process"""
@@ -324,6 +331,7 @@ class EiWizard(widgets.ABWizard):
         """Wizard page to choose methods setup options"""
         title = "Methods setup"
         subtitle = "Choose whether to import methods from ecoinvent or from file"
+        buttonLayout = ["Stretch", "CommitButton"]
 
         def __init__(self, parent=None):
             super().__init__(parent)
@@ -377,6 +385,7 @@ class EiWizard(widgets.ABWizard):
         """Wizard page to install the selected methods"""
         title = "Installing methods"
         subtitle = "Installing selected methods and linking to the biosphere"
+        buttonLayout = ["Stretch", "NextButton"]
 
         class Thread(threading.ABThread):
             """Thread to handle the methods installation process"""
@@ -409,6 +418,7 @@ class EiWizard(widgets.ABWizard):
         """Wizard page to set up the ecoinvent database"""
         title = "Ecoinvent setup"
         subtitle = "Choose name for ecoinvent database"
+        buttonLayout = ["Stretch", "CancelButton", "CommitButton"]
 
         def __init__(self, parent=None):
             super().__init__(parent)
@@ -440,6 +450,7 @@ class EiWizard(widgets.ABWizard):
         """Wizard page to install the ecoinvent database"""
         title = "Installing ecoinvent"
         subtitle = "Installing ecoinvent database into the project"
+        buttonLayout = ["Stretch", "FinishButton"]
 
         class Thread(threading.ABThread):
             """Thread to handle the ecoinvent installation process"""
