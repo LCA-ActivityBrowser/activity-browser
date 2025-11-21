@@ -19,6 +19,7 @@ signals = ABSignals()
 from . import actions
 from . import panes
 from . import pages
+from . import dialogs
 
 main_window = MainWindow()
 application.main_window = main_window

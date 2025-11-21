@@ -54,7 +54,22 @@ class ImportSetup(widgets.ABWizard):
         def initializePage(self, context: dict):
             """Start the download thread"""
             self.thread.start(context["path"])
-            self.thread.loaded.connect(lambda i: context.__setitem__("importer", i))
+            self.thread.loaded.connect(self.thread_finished)
+
+            button = self.wizard().button(QtWidgets.QWizard.CustomButton1)
+            button.setEnabled(False)
+
+        def thread_finished(self, importer: ABExcelImporter):
+            logger.debug("Extraction thread finished")
+            self.context()["importer"] = importer
+
+            button = self.wizard().button(QtWidgets.QWizard.CustomButton1)
+            button.setEnabled(True)
+
+        def onCustomButon1Clicked(self):
+            importer: ABExcelImporter = self.context()["importer"]
+            dialog = app.dialogs.ImportPreviewDialog(importer, parent=app.main_window)
+            dialog.exec_()
 
         def nextPage(self) -> type[QtWidgets.QWizardPage] | None:
             return ImportSetup.DatabaseName

@@ -55,6 +55,8 @@ class ABTreeModel(QAbstractItemModel):
     def __init__(self, df: pd.DataFrame = None, parent: Optional[QWidget] = None, chunk_size: int = -1) -> None:
         super().__init__(parent)
         self.df = df if df is not None else pd.DataFrame()
+        self.df.index = pd.MultiIndex.from_arrays([range(len(self.df))], names=[f"index"])
+
         self.df_query: dict[str, str] = {"model": "index == index"}  # dictionary where queries can be registered
         self.filtered_columns: set[int] = set()  # set of column indices that have active filters, only used for the header icon
 
