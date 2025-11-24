@@ -5,7 +5,7 @@ if TYPE_CHECKING:
     from activity_browser.ui.widgets import ABWizardPage
 
 
-ABWizardButtonLayout = list[Literal[
+ABWizardButtons = Literal[
     "Stretch",
     "BackButton",
     "NextButton",
@@ -13,10 +13,10 @@ ABWizardButtonLayout = list[Literal[
     "FinishButton",
     "HelpButton",
     "CommitButton",
-    "CustomButton1",
-    "CustomButton2",
-    "CustomButton3",
-]]
+]
+
+ABWizardButtonLayout = list[ABWizardButtons]
+
 
 class ABWizard(QtWidgets.QWizard):
     pages = []
@@ -39,6 +39,18 @@ class ABWizard(QtWidgets.QWizard):
 
         for page in self.pages:
             self.addPage(page(self))
+
+        text, callback = self.customButtonOne()
+        self.setButtonText(QtWidgets.QWizard.WizardButton.CustomButton1, text)
+        self.button(QtWidgets.QWizard.WizardButton.CustomButton1).clicked.connect(callback)
+
+        text, callback = self.customButtonTwo()
+        self.setButtonText(QtWidgets.QWizard.WizardButton.CustomButton2, text)
+        self.button(QtWidgets.QWizard.WizardButton.CustomButton2).clicked.connect(callback)
+
+        text, callback = self.customButtonThree()
+        self.setButtonText(QtWidgets.QWizard.WizardButton.CustomButton3, text)
+        self.button(QtWidgets.QWizard.WizardButton.CustomButton3).clicked.connect(callback)
 
         self.context = context or {}
 
@@ -64,19 +76,6 @@ class ABWizard(QtWidgets.QWizard):
                 page.setFinalPage(True)
 
             self.setButtonLayout(page.buttonLayout)
-
-            if "CustomButton1" in page.buttonLayout:
-                btn = self.button(QtWidgets.QWizard.WizardButton.CustomButton1)
-                btn.clicked.connect(page.onCustomButon1Clicked)
-                self.setButtonText(QtWidgets.QWizard.WizardButton.CustomButton1, page.customButton1Text or "Custom 1")
-            if "CustomButton2" in page.buttonLayout:
-                btn = self.button(QtWidgets.QWizard.WizardButton.CustomButton2)
-                btn.clicked.connect(page.onCustomButon2Clicked)
-                self.setButtonText(QtWidgets.QWizard.WizardButton.CustomButton2, page.customButton2Text or "Custom 2")
-            if "CustomButton3" in page.buttonLayout:
-                btn = self.button(QtWidgets.QWizard.WizardButton.CustomButton3)
-                btn.clicked.connect(page.onCustomButon3Clicked)
-                self.setButtonText(QtWidgets.QWizard.WizardButton.CustomButton3, page.customButton3Text or "Custom 3")
 
         elif self.currentId() == self.pageIds()[-1]:
             self.setButtonLayout(self.finalButtonLayout)
@@ -111,3 +110,11 @@ class ABWizard(QtWidgets.QWizard):
 
             QtCore.QTimer.singleShot(50, set_default)
 
+    def customButtonOne(self):
+        return "CustomButton1", lambda: None
+
+    def customButtonTwo(self):
+        return "CustomButton2", lambda: None
+
+    def customButtonThree(self):
+        return "CustomButton3", lambda: None

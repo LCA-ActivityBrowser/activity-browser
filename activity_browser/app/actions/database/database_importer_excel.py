@@ -38,6 +38,15 @@ class DatabaseImporterExcel(ABAction):
 
 class ImportSetup(widgets.ABWizard):
 
+    def customButtonOne(self):
+        def callback():
+            importer : ABExcelImporter = self.context.get("importer")
+            if not importer:
+                return
+            dialog = app.dialogs.ImportPreviewDialog(importer, parent=app.main_window)
+            dialog.exec_()
+        return "Data", callback
+
     class ExtractPage(widgets.ABThreadedWizardPage):
         title = "Extracting Database"
         subtitle = "Extracting database from excel file"
@@ -49,6 +58,7 @@ class ImportSetup(widgets.ABWizard):
 
             def run_safely(self, path: str):
                 importer = ABExcelImporter(path)
+                importer.apply_basic_strategies()
                 self.loaded.emit(importer)
 
         def initializePage(self, context: dict):
@@ -66,18 +76,13 @@ class ImportSetup(widgets.ABWizard):
             button = self.wizard().button(QtWidgets.QWizard.CustomButton1)
             button.setEnabled(True)
 
-        def onCustomButon1Clicked(self):
-            importer: ABExcelImporter = self.context()["importer"]
-            dialog = app.dialogs.ImportPreviewDialog(importer, parent=app.main_window)
-            dialog.exec_()
-
         def nextPage(self) -> type[QtWidgets.QWizardPage] | None:
             return ImportSetup.DatabaseName
 
     class DatabaseName(widgets.ABWizardPage):
         title = "Database Name"
         subtitle = "Enter the name of the database you wish to create"
-        buttonLayout = ["Stretch", "CancelButton", "NextButton"]
+        buttonLayout = ["CustomButton1", "Stretch", "CancelButton", "NextButton"]
 
         def __init__(self, parent=None):
             super().__init__(parent)
@@ -96,22 +101,21 @@ class ImportSetup(widgets.ABWizard):
 
         def initializePage(self, context: dict):
             self.db_name_edit.setText(context["importer"].db_name)
-            if self.nextPage() == ImportSetup.InstallPage:
-                self.buttonLayout = ["Stretch", "CancelButton", "CommitButton"]
+            self.wizard().setButtonText(QtWidgets.QWizard.WizardButton.NextButton, "Apply")
 
         def finalize(self, context: dict):
+            importer = context["importer"]
+            importer.apply_db_name(self.db_name_edit.text())
+
             context["database_name"] = self.db_name_edit.text()
 
         def nextPage(self):
-            importer = self.context()["importer"]
-            link_dbs = set([exc["database"] for exc in importer.unlinked if exc["database"] != importer.db_name])
-            if not link_dbs:
-                return ImportSetup.InstallPage
             return ImportSetup.DatabaseLink
 
     class DatabaseLink(widgets.ABWizardPage):
         title = "Link Databases"
         subtitle = "Link the imported database to existing databases"
+        buttonLayout = ["CustomButton1", "Stretch", "CancelButton", "NextButton"]
 
         def __init__(self, parent=None):
             super().__init__(parent)
@@ -144,9 +148,41 @@ class ImportSetup(widgets.ABWizard):
 
                 self.link_dict_edit[db] = drop_down
 
-
         def finalize(self, context: dict):
+            importer = context["importer"]
+            importer.apply_linking({k: v.currentText() for k, v in self.link_dict_edit.items()})
+
             context["linking_dict"] = {k: v.currentText() for k, v in self.link_dict_edit.items()}
+
+        def nextPage(self):
+            return ImportSetup.ConfirmPage
+
+    class ConfirmPage(widgets.ABWizardPage):
+        title = "Database Overview"
+        subtitle = "Confirming and installing the database"
+        buttonLayout = ["CustomButton1", "Stretch", "CancelButton", "CommitButton"]
+
+        def __init__(self, parent=None):
+            super().__init__(parent)
+            layout = QtWidgets.QGridLayout(self)
+            self.setLayout(layout)
+
+        def isComplete(self):
+            return True
+
+        def initializePage(self, context: dict):
+            importer = context["importer"]
+            layout = self.layout()
+            row = 0
+            for key, value in {
+                "Database Name": importer.db_name,
+                "Number of Activities": len(importer.data),
+                "Number of Exchanges": sum(len(act.get("exchanges", [])) for act in importer.data),
+                "Number of Unlinked Exchanges": len(list(importer.unlinked)),
+            }.items():
+                layout.addWidget(QtWidgets.QLabel(f"<b>{key}:</b>"), row, 0)
+                layout.addWidget(QtWidgets.QLabel(str(value)), row, 1)
+                row += 1
 
         def nextPage(self):
             return ImportSetup.InstallPage
@@ -160,7 +196,7 @@ class ImportSetup(widgets.ABWizard):
 
             def run_safely(self, importer: ABExcelImporter, database_name: str, linking_dict: dict):
                 """Download the ecoinvent release"""
-                importer.automated_import(database_name, linking_dict)
+                importer.write_database()
 
         def initializePage(self, context: dict):
             """Start the download thread"""
@@ -170,6 +206,6 @@ class ImportSetup(widgets.ABWizard):
 
             self.thread.start(importer, database_name, linking_dict)
 
-    pages = [ExtractPage, DatabaseName, DatabaseLink, InstallPage]
+    pages = [ExtractPage, DatabaseName, DatabaseLink, ConfirmPage, InstallPage]
 
 

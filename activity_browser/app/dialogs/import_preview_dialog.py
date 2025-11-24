@@ -8,7 +8,7 @@ from activity_browser.ui import widgets, core
 
 
 class ImportPreviewDialog(QtWidgets.QDialog):
-    standardNodeColumns = ["type", "name", "location", "unit", "categories", "code", "database"]
+    standardNodeColumns = ["type", "name", "exchanges", "location", "unit", "categories", "code", "database"]
     standardEdgeColumns = ["type", "amount", "unit", "name", "location", "database", "formula"]
 
     def __init__(self, importer: LCIImporter, parent=None):
@@ -21,7 +21,7 @@ class ImportPreviewDialog(QtWidgets.QDialog):
         layout = QtWidgets.QVBoxLayout(self)
 
         node_df = pd.DataFrame(importer.data)
-        node_df.drop(columns=["exchanges"], inplace=True, errors='ignore')
+        node_df["exchanges"] = node_df["exchanges"].apply(lambda x: len(x) if isinstance(x, list) else 0)
         node_df = node_df[
             [col for col in self.standardNodeColumns if col in node_df.columns] +
             [col for col in node_df.columns if col not in self.standardNodeColumns]
