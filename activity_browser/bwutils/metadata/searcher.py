@@ -33,8 +33,13 @@ class MDSSearcher(SearchEngine):
             self.all_database_ids[database] = self.database_ids
             self.current_database = database
         else:
-            self.database_ids = None
-            self.current_database = "_@@NO_DB_"
+            # When database is None, search across all databases
+            if all_ids := self.all_database_ids.get(None):
+                self.database_ids = all_ids
+            else:
+                self.database_ids = set(self.df.index.to_list())
+                self.all_database_ids[None] = self.database_ids
+            self.current_database = None
         return self.database_ids
 
     def reset_database_id_manager(self):
@@ -54,7 +59,13 @@ class MDSSearcher(SearchEngine):
             self.database_words = self.reverse_dict_many_to_one({_id: self.identifier_to_word[_id] for _id in ids})
             self.all_database_words[database] = self.database_words
         else:
-            self.database_words = None
+            # When database is None, search across all databases
+            if all_words := self.all_database_words.get(None):
+                self.database_words = all_words
+            else:
+                ids = self.database_id_manager(database)
+                self.database_words = self.reverse_dict_many_to_one({_id: self.identifier_to_word[_id] for _id in ids})
+                self.all_database_words[None] = self.database_words
         return self.database_words
 
     def reset_database_word_manager(self, database):
@@ -296,6 +307,15 @@ class MDSSearcher(SearchEngine):
     def fuzzy_search(self, text: str, database: Optional[str] = None, return_counter: bool = False,
                      logging: bool = True) -> list:
         """Overwritten for extra database specific reduction of results.
+
+        Args:
+            text: Search query string
+            database: Database name to search within. If None, searches across all databases.
+            return_counter: If True, return a Counter instead of a list
+            logging: If True, log search timing information
+
+        Returns:
+            List of identifiers (or Counter if return_counter=True) matching the search.
         """
         t = time()
         text = text.strip()
@@ -420,7 +440,15 @@ class MDSSearcher(SearchEngine):
         return return_this
 
     def search(self, text, database: Optional[str] = None) -> list:
-        """Search the dataframe on this text, return a sorted list of identifiers."""
+        """Search the dataframe on this text, return a sorted list of identifiers.
+
+        Args:
+            text: Search query string
+            database: Database name to search within. If None, searches across all databases.
+
+        Returns:
+            List of identifiers matching the search, sorted by relevance.
+        """
         t = time()
         text = text.strip()
 
