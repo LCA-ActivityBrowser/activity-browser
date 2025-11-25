@@ -155,6 +155,9 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
         self.model.filter("db_p_pane", "`_rank` >= 0")  # show all rows by default
 
         self.table_view.header().setHidden(self.simple)
+        self.table_view.viewport().setBackgroundRole(QtGui.QPalette.ColorRole.Window if self.simple else QtGui.QPalette.ColorRole.Base)
+        self.table_view.setFrameShape(
+            QtWidgets.QFrame.Shape.NoFrame if self.simple else QtWidgets.QFrame.Shape.StyledPanel)
 
         for col in self.model.columns():
             if col == "index" or col == "node":
