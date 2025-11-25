@@ -3,13 +3,14 @@ from qtpy.QtCore import Qt
 
 
 class ABDropOverlay(QtWidgets.QWidget):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, text="Drop here to create new exchanges"):
         super().__init__(parent)
         self.setAttribute(Qt.WA_TransparentForMouseEvents)
         self.setAttribute(Qt.WA_NoSystemBackground)
         self.setAttribute(Qt.WA_TranslucentBackground)
         self.setAutoFillBackground(False)
         self.resize(parent.size())
+        self.text = text
 
     def paintEvent(self, event):
         painter = QtGui.QPainter(self)
@@ -21,4 +22,4 @@ class ABDropOverlay(QtWidgets.QWidget):
         font.setBold(True)
 
         painter.setFont(font)
-        painter.drawText(self.rect(), Qt.AlignCenter, "Drop here to create new exchanges")
+        painter.drawText(self.rect(), Qt.AlignCenter, self.text)

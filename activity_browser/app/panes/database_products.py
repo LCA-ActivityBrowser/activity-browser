@@ -1,17 +1,15 @@
-from PySide6.QtCore import QModelIndex
 from loguru import logger
 from time import time
 
 import pandas as pd
 from qtpy import QtWidgets, QtCore, QtGui
-from qtpy.QtCore import Qt
+from qtpy.QtCore import Qt, QModelIndex
 
 import bw2data as bd
 
-from activity_browser import app, ui, app
-from activity_browser.settings import project_settings
+from activity_browser import ui, app
 from activity_browser.ui import core, widgets, delegates, icons
-from activity_browser.bwutils.commontasks import database_is_locked, database_is_legacy
+from activity_browser.bwutils.commontasks import database_is_locked, database_is_legacy, is_node_biosphere
 
 
 NODETYPES = {
@@ -338,6 +336,7 @@ class ProductView(ui.widgets.ABTreeView):
         self.setSelectionMode(ui.widgets.ABTreeView.SelectionMode.ExtendedSelection)
 
         self.db_name = db_name
+        self.pane = parent
 
         self.propertyDelegate = delegates.PropertyDelegate(self)
 
@@ -364,6 +363,54 @@ class ProductView(ui.widgets.ABTreeView):
         if self.selected_activities:
             app.actions.ActivityOpen.run(self.selected_activities)
 
+    def keyPressEvent(self, event) -> None:
+        """
+        Handles key press events. Specifically handles Ctrl+C to copy selected data.
+
+        Args:
+            event: The key press event.
+        """
+        if event.modifiers() & Qt.KeyboardModifier.ControlModifier:
+            if event.key() == Qt.Key.Key_C:  # Copy
+                self.copy_selection_to_clipboard()
+                return
+            if event.key() == Qt.Key.Key_V:
+                self.copy_from_clipboard()
+            if event.key() == Qt.Key.Key_A:  # Select All
+                self.selectAll()
+                return
+            if event.key() == Qt.Key.Key_F:  # Find
+                self.pane.search_bar.setFocus()
+                return
+        if event.key() == Qt.Key.Key_Delete:
+            if database_is_locked(self.db_name):
+                return
+            if self.selected_products:
+                app.actions.ActivityDelete.run(self.selected_products)
+                return
+
+        super().keyPressEvent(event)
+
+    def copy_selection_to_clipboard(self):
+        selection = self.selectedIndexes()
+        mime_data = self.model().mimeData(selection)
+
+        clipboard = QtWidgets.QApplication.clipboard()
+        clipboard.setMimeData(mime_data)
+
+    def copy_from_clipboard(self):
+        if database_is_locked(self.db_name):
+            return
+
+        clipboard = QtWidgets.QApplication.clipboard()
+        mime_data = clipboard.mimeData()
+
+        if mime_data.hasFormat("application/bw-nodekeylist"):
+            keys: list = mime_data.retrievePickleData("application/bw-nodekeylist")
+            keys = list(set(keys))
+
+            app.actions.ActivityDuplicateToDB.run(keys, self.db_name)
+
     def dragEnterEvent(self, event):
         """
         Handles the drag enter event.
@@ -378,7 +425,12 @@ class ProductView(ui.widgets.ABTreeView):
             return
 
         if event.mimeData().hasFormat("application/bw-nodekeylist"):
-            self.overlay = widgets.ABDropOverlay(self)
+            keys: list = event.mimeData().retrievePickleData("application/bw-nodekeylist")
+
+            if any(is_node_biosphere(key) for key in keys):
+                return
+
+            self.overlay = widgets.ABDropOverlay(self, text="Drop here to duplicate to this database")
             self.overlay.show()
             event.accept()
 
@@ -508,4 +560,17 @@ class ProductModel(ui.core.ABTreeModel):
         keys.update(self.values_from_indices("processor", indices))
         keys = {key for key in keys if isinstance(key, tuple)}
         data.setPickleData("application/bw-nodekeylist", list(keys))
+
+        # Add text data for Excel/external apps
+        # Get selected rows and build tab-separated text
+        rows = [self.row(i) for i in indices]
+        columns = [c for c in self.columns() if c not in ["index", "node"]]
+        text_lines = ["\t".join(columns)]  # Header line
+
+        for row in rows:
+            # Select relevant columns for export
+            text_lines.append("\t".join(str(row.get(col, "")) for col in columns))
+
+        data.setText("\n".join(text_lines))
+
         return data
