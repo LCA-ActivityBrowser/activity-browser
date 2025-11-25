@@ -322,6 +322,8 @@ class MDSSearcher(SearchEngine):
 
         if len(text) == 0:
             log.debug(f"Empty search, returned all items")
+            if database:
+                return self.df.loc[self.df["database"] == database].index.to_list()
             return self.df.index.to_list()
 
         # DATABASE SPECIFIC get the set of ids that is in this database
