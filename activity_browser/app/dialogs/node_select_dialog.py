@@ -63,14 +63,8 @@ class NodeSelectDialog(QtWidgets.QDialog):
             return
 
         # Search and get results
-        result_ids = metadata.search(text)
-        result_ids = result_ids[0:10] if len(result_ids) > 10 else result_ids
-        result_ids.reverse()
-
-        # Get dataframe with results
-        result_df = metadata.dataframe.loc[metadata.dataframe["id"].isin(result_ids)].copy()
-        result_df["rank_map"] = result_df["id"].apply(lambda x: result_ids.index(x))
-        result_df = result_df.sort_values(by=["rank_map"]).drop(columns=["rank_map"])
+        result_df = metadata.search(text)
+        result_df = result_df[0:10] if len(result_df) > 10 else result_df
 
         # Prepare data for display
         result_df["node"] = result_df.apply(lambda row: {

@@ -149,13 +149,12 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
         """
         t = time()
         df = self.build_df()
-        df.reset_index(drop=True, inplace=True)
 
         self.model.set_dataframe(df)
-        self.model.filter("db_p_pane", "`_rank` >= 0")  # show all rows by default
 
         self.table_view.header().setHidden(self.simple)
-        self.table_view.viewport().setBackgroundRole(QtGui.QPalette.ColorRole.Window if self.simple else QtGui.QPalette.ColorRole.Base)
+        self.table_view.viewport().setBackgroundRole(
+            QtGui.QPalette.ColorRole.Window if self.simple else QtGui.QPalette.ColorRole.Base)
         self.table_view.setFrameShape(
             QtWidgets.QFrame.Shape.NoFrame if self.simple else QtWidgets.QFrame.Shape.StyledPanel)
 
@@ -180,12 +179,15 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
         """
         t = time()
         cols = ["name", "key", "processor", "product", "type", "unit", "location", "id", "categories", "properties"]
-        df = app.metadata.get_database_metadata(self.database.name, cols)
+
+        query = self.search_bar.toPlainText()
+        if query:
+            df = app.metadata.search_database(query, self.database.name, cols)
+        else:
+            df = app.metadata.get_database_metadata(self.database.name, cols)
 
         processors = set(df["processor"].dropna().unique())
         df = df.drop(processors, errors="ignore")
-
-        df["_rank"] = 0
         df.rename(columns={"id": "_id"}, inplace=True)
 
         if not df.properties.isna().all():
@@ -206,11 +208,11 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
         if self.simple:
             cols += ["node"]
         cols += [col for col in df.columns if col.startswith("property")]
-        cols += ["_id", "_rank"]
+        cols += ["_id"]
 
         logger.debug(f"Built DatabaseProductsPane dataframe in {time() - t:.2f} seconds")
 
-        return df[cols]
+        return df[cols].reset_index(drop=True)
 
     def on_database_deleted(self, db_name: str):
         """
@@ -254,16 +256,7 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
         Args:
             query (str): The search query.
         """
-        if query.startswith("=") or query == "":
-            self.table_view.setAllFilter(query)
-            return
-
-        results = app.metadata.search_database(query, database=self.database.name, logging=True)
-        results.reverse()
-        rank_map = {res: i for i, res in enumerate(results)}
-
-        self.model.df["_rank"] = self.model.df["_id"].map(rank_map).fillna(-1).astype(int)
-        self.model.sort("_rank", Qt.SortOrder.DescendingOrder)
+        self.sync()
 
 class ProductView(ui.widgets.ABTreeView):
     """

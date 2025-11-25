@@ -1,11 +1,12 @@
 from typing import Literal, Optional
+from loguru import logger
 
 import pandas as pd
 
 from .fields import all, all_types
 
 
-class MetaDataStore():
+class MetaDataStore:
     _instance = None
     
     def __new__(cls):
@@ -81,7 +82,7 @@ class MetaDataStore():
 
         return df
 
-    def get_metadata(self, keys: list, columns: list) -> pd.DataFrame:
+    def get_metadata(self, keys: list, columns: list = None) -> pd.DataFrame:
         """Return a slice of the dataframe matching row and column identifiers.
 
         NOTE: https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#deprecate-loc-reindex-listlike
@@ -93,18 +94,34 @@ class MetaDataStore():
 
     def get_database_metadata(self, db_name: str, columns: list = None) -> pd.DataFrame:
         if db_name not in self.databases:
-            return pd.DataFrame(columns=all)
+            return pd.DataFrame(columns=columns or all)
         return self.dataframe.loc[[db_name], columns or all]
 
-    def search(self, query: str) -> list[int]:
-        return self.searcher.search(query)
+    def search(self, query: str, columns: list = None) -> pd.DataFrame:
+        if not self.searcher:
+            logger.warning(f"Attempted to search metadata before searcher was initialized.")
+            return pd.DataFrame(columns=columns or all)
 
-    def search_database(self, query: str, database: Optional[str] = None, return_counter: bool = False, logging: bool = True):
-        # we do fuzzy search as we re-index results (combining products and activities) for database_products table
-        # anyway, so including literal results quite literally is a waste of time at this point
-        return self.searcher.fuzzy_search(query, database=database, return_counter=return_counter, logging=logging)
+        result = self.searcher.search(query)
+        df = self.dataframe.loc[self.dataframe["id"].isin(result), columns or all]
+        df.sort_values(by="id", inplace=True, key=lambda x: x.map({id_: i for i, id_ in enumerate(result)}))
+        return df
+
+    def search_database(self, query: str, database: str, columns: list = None) -> pd.DataFrame:
+        if not self.searcher:
+            logger.warning(f"Attempted to search metadata before searcher was initialized.")
+            return pd.DataFrame(columns=columns or all)
+
+        result = self.searcher.fuzzy_search(query, database=database)
+        df = self.dataframe.loc[self.dataframe["id"].isin(result), columns or all]
+        df.sort_values(by="id", inplace=True, key=lambda x: x.map({id_: i for i, id_ in enumerate(result)}))
+        return df
 
     def auto_complete(self, word: str, context: Optional[set] = None, database: Optional[str] = None):
+        if not self.searcher:
+            logger.warning(f"Attempted to search metadata before searcher was initialized.")
+            return []
+
         word = self.searcher.clean_text(word)
         completions = self.searcher.auto_complete(word, context=context, database=database)
         return completions
