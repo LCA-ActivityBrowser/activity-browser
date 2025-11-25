@@ -43,6 +43,7 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
         self.name = "database_products_pane_" + db_name
 
         super().__init__(parent)
+
         self.database = bd.Database(db_name)
         self.title = db_name
         self.simple = True
@@ -74,7 +75,7 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
         self.loading_label.setStyleSheet("color: gray; padding: 10px;")
 
         # Create simple/detailed view toggle
-        self.view_toggle = QtWidgets.QCheckBox("Detailed View")
+        self.view_toggle = QtWidgets.QCheckBox("Details")
         self.view_toggle.setChecked(not self.simple)
         self.view_toggle.setToolTip("Toggle between simple and detailed view")
 
@@ -258,6 +259,7 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
         """
         self.sync()
 
+
 class ProductView(ui.widgets.ABTreeView):
     """
     A view that displays the products in a tree structure.
@@ -330,7 +332,8 @@ class ProductView(ui.widgets.ABTreeView):
         super().__init__(parent)
         self.setSortingEnabled(True)
         self.setDragEnabled(True)
-        self.setDragDropMode(QtWidgets.QTableView.DragDropMode.DragOnly)
+        self.setAcceptDrops(True)
+        self.setDragDropMode(QtWidgets.QTableView.DragDropMode.DragDrop)
         self.setSelectionBehavior(ui.widgets.ABTreeView.SelectionBehavior.SelectRows)
         self.setSelectionMode(ui.widgets.ABTreeView.SelectionMode.ExtendedSelection)
 
@@ -360,6 +363,53 @@ class ProductView(ui.widgets.ABTreeView):
         """
         if self.selected_activities:
             app.actions.ActivityOpen.run(self.selected_activities)
+
+    def dragEnterEvent(self, event):
+        """
+        Handles the drag enter event.
+
+        Args:
+            event: The drag enter event.
+        """
+        if event.source() == self:
+            return
+
+        if database_is_locked(self.db_name):
+            return
+
+        if event.mimeData().hasFormat("application/bw-nodekeylist"):
+            self.overlay = widgets.ABDropOverlay(self)
+            self.overlay.show()
+            event.accept()
+
+    def dragMoveEvent(self, event):
+        pass
+
+    def dragLeaveEvent(self, event):
+        """
+        Handles the drag leave event.
+
+        Args:
+            event: The drag leave event.
+        """
+        # Reset the palette on drag leave
+        self.overlay.deleteLater()
+
+    def dropEvent(self, event):
+        """
+        Handles the drop event.
+
+        Args:
+            event: The drop event.
+        """
+        logger.debug(f"Dropevent from: {type(event.source()).__name__} to: {self.__class__.__name__}")
+        # Reset the palette on drop
+        self.overlay.deleteLater()
+
+        keys: list = event.mimeData().retrievePickleData("application/bw-nodekeylist")
+        keys = list(set(keys))
+
+        app.actions.ActivityDuplicateToDB.run(keys, self.db_name)
 
     @property
     def selected_products(self) -> list[tuple]:
