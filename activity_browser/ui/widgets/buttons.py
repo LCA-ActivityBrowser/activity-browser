@@ -12,7 +12,7 @@ class ABCloseButton(QtWidgets.QWidget):
 
         self.label = QtWidgets.QLabel("×", self)
 
-        self.label.setFont(QtGui.QFont("Arial", 12, QtGui.QFont.Bold))
+        self.label.setFont(QtGui.QFont("Arial", 12, QtGui.QFont.Weight.Light))
         self.label.setAlignment(Qt.AlignCenter)
         self.label.setFixedSize(16, 16)
         self.label.mousePressEvent = lambda event: self.clicked.emit()
@@ -42,7 +42,7 @@ class ABMinimizeButton(QtWidgets.QWidget):
 
         self.label = QtWidgets.QLabel("-", self)
 
-        self.label.setFont(QtGui.QFont("Arial", 12, QtGui.QFont.Bold))
+        self.label.setFont(QtGui.QFont("Arial", 12, QtGui.QFont.Weight.Light))
         self.label.setAlignment(Qt.AlignCenter)
         self.label.setFixedSize(16, 16)
         self.label.mousePressEvent = lambda event: self.clicked.emit()

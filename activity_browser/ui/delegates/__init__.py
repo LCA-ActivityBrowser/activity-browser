@@ -14,6 +14,7 @@ from .new_formula import NewFormulaDelegate
 from .date_time import DateTimeDelegate
 from .property import PropertyDelegate
 from .amount import AmountDelegate, AbsoluteAmountDelegate
+from .node import NodeDelegate
 
 __all__ = [
     "AmountDelegate",
@@ -33,4 +34,5 @@ __all__ = [
     "NewFormulaDelegate",
     "DateTimeDelegate",
     "PropertyDelegate",
+    "NodeDelegate",
 ]

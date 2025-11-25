@@ -1,3 +1,4 @@
+from PySide6.QtCore import QModelIndex
 from loguru import logger
 from time import time
 
@@ -44,9 +45,10 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
         super().__init__(parent)
         self.database = bd.Database(db_name)
         self.title = db_name
+        self.simple = True
 
         # initialize the model
-        self.model = ProductModel(parent=self, chunk_size=100)
+        self.model = ProductModel(parent=self, chunk_size=50)
 
         # Create the QTableView and set the model
         self.table_view = ProductView(self, db_name=db_name)
@@ -70,6 +72,11 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
         font.setPointSize(14)
         self.loading_label.setFont(font)
         self.loading_label.setStyleSheet("color: gray; padding: 10px;")
+
+        # Create simple/detailed view toggle
+        self.view_toggle = QtWidgets.QCheckBox("Detailed View")
+        self.view_toggle.setChecked(not self.simple)
+        self.view_toggle.setToolTip("Toggle between simple and detailed view")
 
         self.build_layout()
         self.connect_signals()
@@ -97,8 +104,13 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
         table_layout.addWidget(self.table_view)
         self.stacked_layout.addWidget(table_widget)
 
+        # Create top bar with search and toggle
+        top_bar = QtWidgets.QHBoxLayout()
+        top_bar.addWidget(self.search_bar)
+        top_bar.addWidget(self.view_toggle)
+
         layout = QtWidgets.QVBoxLayout(self)
-        layout.addWidget(self.search_bar)
+        layout.addLayout(top_bar)
         layout.addLayout(self.stacked_layout)
 
         # Set the table view as the central widget of the window
@@ -110,6 +122,7 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
 
         self.table_view.filtered.connect(self.search_error)
         self.search_bar.textChangedDebounce.connect(self.search)
+        self.view_toggle.checkStateChanged.connect(self.on_mode_switch)
 
     def on_metadata_changed(self, added, updated, deleted):
         # Check if primary data has finished loading
@@ -137,14 +150,18 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
         t = time()
         df = self.build_df()
         df.reset_index(drop=True, inplace=True)
+
         self.model.set_dataframe(df)
         self.model.filter("db_p_pane", "`_rank` >= 0")  # show all rows by default
 
+        self.table_view.header().setHidden(self.simple)
+
         for col in self.model.columns():
-            if col == "index":
+            if col == "index" or col == "node":
                 continue
             index = self.model.columns().index(col)
-            if df[col].isna().all():
+
+            if df[col].isna().all() or self.simple:
                 self.table_view.hideColumn(index)
             else:
                 self.table_view.showColumn(index)
@@ -180,8 +197,13 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
                 how="left",
             )
 
-        cols = ["name", "product", "categories", "unit", "location", "key", "processor", "type", "_id", "_rank"]
+        df["node"] = None
+
+        cols = ["name", "product", "categories", "unit", "location", "key", "processor", "type"]
+        if self.simple:
+            cols += ["node"]
         cols += [col for col in df.columns if col.startswith("property")]
+        cols += ["_id", "_rank"]
 
         logger.debug(f"Built DatabaseProductsPane dataframe in {time() - t:.2f} seconds")
 
@@ -196,6 +218,16 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
         """
         if db_name == self.database.name:
             self.deleteLater()
+
+    def on_mode_switch(self, check: Qt.CheckState):
+        """
+        Handles the mode switch between simple and detailed view.
+
+        Args:
+            check (Qt.CheckState): The check state of the toggle.
+        """
+        self.simple = check == Qt.CheckState.Unchecked
+        self.sync()
 
     def search_error(self, reset=False):
         """
@@ -241,6 +273,7 @@ class ProductView(ui.widgets.ABTreeView):
         "categories": delegates.ListDelegate,
         "key": delegates.StringDelegate,
         "processor": delegates.StringDelegate,
+        "node": delegates.NodeDelegate,
     }
 
     class ContextMenu(ui.widgets.ABMenu):
@@ -363,6 +396,23 @@ class ProductModel(ui.core.ABTreeModel):
     #-- flag overrides ---
     def indexDragEnabled(self, index: QtCore.QModelIndex) -> bool:
         return True
+
+    def displayData(self, index: QModelIndex) -> any:
+        column_name = self.column_name(index)
+        if column_name != "node":
+            return super().displayData(index)
+
+        row = self.row(index)
+        node_data = {
+            "database": row.get("key")[0],
+            "name": row.get("name"),
+            "product": row.get("product"),
+            "unit": row.get("unit"),
+            "location": row.get("location"),
+            "type": row.get("type"),
+            "categories": row.get("categories"),
+        }
+        return node_data
     
     #-- data overrides ---
     def decorationData(self, index: QtCore.QModelIndex) -> any:

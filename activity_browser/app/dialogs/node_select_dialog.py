@@ -87,7 +87,7 @@ class NodeSelectDialog(QtWidgets.QDialog):
         if len(result) > 0:
             for idx, row in result.iterrows():
                 node_data = row.to_dict()
-                node_widget = NodeResult(node_data, self)
+                node_widget = widgets.NodeDetails(node_data, self)
                 node_widget.clicked.connect(self.on_node_selected)
                 self.results_layout.insertWidget(self.results_layout.count() - 1, node_widget)
             # Set scroll area height to show results (max 300px)
@@ -106,53 +106,3 @@ class NodeSelectDialog(QtWidgets.QDialog):
         actions.ActivityOpen.run([node_data.get("id")])
 
         self.accept()  # Close the dialog
-
-class NodeResult(QtWidgets.QFrame):
-    clicked = QtCore.Signal(dict)
-
-    def __init__(self, node_data: dict, parent=None):
-        super().__init__(parent)
-        
-        self.node_data = node_data
-
-        # Set frame shape for proper rendering
-        self.setFrameShape(QtWidgets.QFrame.Shape.StyledPanel)
-
-        # Set cursor to pointer to indicate clickability
-        self.setCursor(QtCore.Qt.CursorShape.PointingHandCursor)
-
-        # Set minimum height
-        self.setMinimumHeight(40)
-
-        # Apply stylesheet with actual color values
-        self.setStyleSheet("""
-            NodeResult {
-                border: 1px solid palette(mid);
-                border-radius: 3px;
-                margin: 2px;
-            }
-            NodeResult:hover {
-                border: 1px solid palette(highlight);
-            }
-        """)
-
-        layout = QtWidgets.QHBoxLayout(self)
-
-        name_label = QtWidgets.QLabel(
-        f"""
-        <i>{self.node_data.get('database', '')}</i><br>
-        <b>{self.node_data.get('name', '')}</b><br>
-        {node_data.get('unit')} | {node_data.get('location')} | {node_data.get('type')}
-        """
-        )
-        name_label.setWordWrap(True)
-        name_label.setTextFormat(QtCore.Qt.TextFormat.RichText)
-        layout.addWidget(name_label)
-
-        self.setLayout(layout)
-
-    def mousePressEvent(self, event):
-        """Handle mouse click events"""
-        if event.button() == QtCore.Qt.MouseButton.LeftButton:
-            self.clicked.emit(self.node_data)
-        super().mousePressEvent(event)

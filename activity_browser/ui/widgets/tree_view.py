@@ -2,7 +2,7 @@ from loguru import logger
 
 from qtpy import QtWidgets, QtCore, QtGui
 
-from activity_browser.ui import delegates, core
+from activity_browser.ui import core
 
 from .line_edit import ABLineEdit
 
@@ -67,6 +67,8 @@ class ABTreeView(QtWidgets.QTreeView):
             super().__init__(view)
 
     def __init__(self, parent=None):
+        from activity_browser.ui import delegates
+
         super().__init__(parent)
         self.setIndentation(10)
         self.setUniformRowHeights(True)
