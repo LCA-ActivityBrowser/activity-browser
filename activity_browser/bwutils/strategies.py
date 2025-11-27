@@ -253,10 +253,10 @@ def alter_database_name(data: list, old: str, new: str) -> list:
             # Note: this will only alter database if the field exists in the exchange.
             if exc.get("database") == old:
                 exc["database"] = new
-        for p, d in ds.get("parameters", {}).items():
+        for p in ds.get("parameters", []):
             # Any parameters found here are activity parameters and we can
             # overwrite the database without issue.
-            d["database"] = new
+            p["database"] = new
         if ds.get("processor", (None, None))[0] == old:
             ds["processor"] = (new, ds["processor"][1])
     return data

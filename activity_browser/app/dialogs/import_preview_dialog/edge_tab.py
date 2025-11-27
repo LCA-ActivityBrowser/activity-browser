@@ -7,11 +7,10 @@ import pandas as pd
 from bw2io.importers.base_lci import LCIImporter
 
 from activity_browser.ui import widgets, core, delegates, icons
+from activity_browser.ui.delegates import CardDelegate
 
 
-class ImportPreviewNodeTab(QtWidgets.QWidget):
-    standardNodeColumns = ["type", "name", "product", "exchanges", "unlinked_exchanges", "location", "unit", "categories", "code",
-                           "database"]
+class ImportPreviewEdgeTab(QtWidgets.QWidget):
     standardEdgeColumns = ["type", "amount", "unit", "input", "name", "location", "database", "formula"]
 
     def __init__(self, importer: LCIImporter, parent=None):
@@ -21,11 +20,14 @@ class ImportPreviewNodeTab(QtWidgets.QWidget):
 
         layout = QtWidgets.QVBoxLayout(self)
 
-        self.node_model = ImportPreviewNodeModel(parent=self)
-        self.node_model.set_dataframe(self.build_df())
+        self.edge_model = ImportPreviewEdgeModel(parent=self)
+        self.edge_model.set_dataframe(self.build_df())
 
-        self.node_view = ImportPreviewNodeView(parent=self)
-        self.node_view.setModel(self.node_model)
+        self.edge_view = ImportPreviewEdgeView(parent=self)
+        self.edge_view.setUniformRowHeights(False)
+        self.edge_view.setModel(self.edge_model)
+        self.edge_view.setColumnWidth(0, 0)
+        self.edge_view.setSelectionMode(QtWidgets.QAbstractItemView.SelectionMode.NoSelection)
 
         # Create simple/detailed view toggle
         self.view_toggle = QtWidgets.QCheckBox("Details")
@@ -39,53 +41,55 @@ class ImportPreviewNodeTab(QtWidgets.QWidget):
         top_bar.addWidget(self.view_toggle)
 
         layout.addLayout(top_bar)
-        layout.addWidget(self.node_view)
+        layout.addWidget(self.edge_view)
 
         self.sync()
 
     def sync(self):
         """Synchronize the view based on simple/detailed mode."""
-        self.node_view.header().setHidden(self.simple)
-        self.node_view.viewport().setBackgroundRole(
+        self.edge_view.header().setHidden(self.simple)
+        self.edge_view.viewport().setBackgroundRole(
             QtGui.QPalette.ColorRole.Window if self.simple else QtGui.QPalette.ColorRole.Base)
-        self.node_view.setFrameShape(
+        self.edge_view.setFrameShape(
             QtWidgets.QFrame.Shape.NoFrame if self.simple else QtWidgets.QFrame.Shape.StyledPanel)
 
-        df = self.node_model.df.copy()
-        if self.simple and "_node" in df.columns:
-            df.rename(columns={"_node": "node"}, inplace=True)
+        df = self.edge_model.df.copy()
+        if self.simple and "_exc" in df.columns:
+            df.rename(columns={"_exc": "exc"}, inplace=True)
         elif not self.simple and "node" in df.columns:
-            df.rename(columns={"node": "_node"}, inplace=True)
-        self.node_model.set_dataframe(df)
+            df.rename(columns={"exc": "_exc"}, inplace=True)
+        self.edge_model.set_dataframe(df)
+        self.edge_model.group(["_node"])
 
-        for col in self.node_model.columns():
+        for col in self.edge_model.columns():
             if col == "index":
                 continue
-            index = self.node_model.columns().index(col)
+            index = self.edge_model.columns().index(col)
 
-            hidden = (self.simple and not col == "node") or (not self.simple and col == "node")
-            self.node_view.setColumnHidden(index, hidden)
+            hidden = (self.simple and not col == "exc") or (not self.simple and col == "exc")
+            self.edge_view.setColumnHidden(index, hidden)
 
     def build_df(self):
-        node_df = pd.DataFrame(self.importer.data)
-        for col in [col for col in self.standardNodeColumns if col not in node_df.columns]:
-            node_df[col] = None
 
-        node_df["_exchanges"] = node_df["exchanges"]
-        node_df["unlinked_exchanges"] = node_df["exchanges"].apply(
-            lambda x: sum(1 for ex in x if not ex.get("input")) if isinstance(x, list) else 0
-        )
-        node_df["exchanges"] = node_df["exchanges"].apply(lambda x: len(x) if isinstance(x, list) else 0)
-
-        node_df = node_df[
-            self.standardNodeColumns +
-            [col for col in node_df.columns if col not in self.standardNodeColumns]
+        exchanges = []
+        for node in self.importer.data:
+            summary = [
+                    node.get("name"),
+                    node.get("location"),
+                    node.get("database"),
+                    node.get("code"),
             ]
-        node_df["_importer_index"] = range(len(node_df))
+            summary = " | ".join([str(part) for part in summary if part])
 
-        node_df["node"] = None
+            for ex in node.get("exchanges", []):
+                ex_copy = ex.copy()
+                ex_copy["_node"] = summary
+                exchanges.append(ex_copy)
 
-        return node_df
+        df = pd.DataFrame(exchanges)
+        df["exc"] = None
+
+        return df
 
     def on_mode_switch(self, check: Qt.CheckState):
         """Handle the mode switch between simple and detailed view."""
@@ -93,15 +97,25 @@ class ImportPreviewNodeTab(QtWidgets.QWidget):
         self.sync()
 
 
-class ImportPreviewNodeView(widgets.ABTreeView):
+class ShiftedCardDelegate(delegates.CardDelegate):
+    def paint(self, painter, option, index):
+        # Adjust the rect to shift content left, compensating for indentation
+        adjusted_option = QtWidgets.QStyleOptionViewItem(option)
+        adjusted_option.rect.adjust(-28, 0, 0, 0)
+
+        # Call the original paint with adjusted rect
+        super().paint(painter, adjusted_option, index)
+
+
+class ImportPreviewEdgeView(widgets.ABTreeView):
     """View for displaying import preview nodes."""
 
     defaultColumnDelegates = {
-        "node": delegates.CardDelegate,
+        "exc": ShiftedCardDelegate,
     }
 
 
-class ImportPreviewNodeModel(core.ABTreeModel):
+class ImportPreviewEdgeModel(core.ABTreeModel):
     """Model for import preview nodes with node delegate support."""
 
     def displayData(self, index: QtCore.QModelIndex) -> any:
@@ -109,33 +123,25 @@ class ImportPreviewNodeModel(core.ABTreeModel):
             return None
 
         column_name = self.columns()[index.column()]
-        if not column_name == "node":
+        if not column_name == "exc":
             return super().displayData(index)
 
         row_data = self.row(index).copy()
         row_data.dropna(inplace=True)
 
-        # Get the product or name for title
-        title = row_data.get("product") or row_data.get("name")
-
-        # Build subtitle with type and database
-        if row_data.get("categories"):
-            subtitle = ", ".join([str(cat) for cat in row_data.get("categories")])
-        elif row_data.get("product"):
-            subtitle = row_data.get("name")
-        else:
-            excs = row_data.get("exchanges")
-            unlinked = row_data.get("unlinked_exchanges")
-            nomination = "exchanges" if excs != 1 else "exchange"
-
-            subtitle = f"{excs} {nomination}, {unlinked} unlinked"
+        # Build the card information
+        title = row_data.get('reference product') or row_data.get('name')
+        subtitle = row_data.get('name')
+        detail = f"{row_data.get('amount')} {row_data.get('unit')}"
 
         # Build categories list from unit, location
         categories = []
-        if row_data.get("unit"):
-            categories.append(str(row_data.get("unit")))
+        if row_data.get("type"):
+            categories.append(str(row_data.get("type")))
         if row_data.get("location"):
             categories.append(str(row_data.get("location")))
+        if row_data.get("categories"):
+            categories.append(", ".join([str(cat) for cat in row_data.get("categories")]))
         if row_data.get("database"):
             categories.append(str(row_data.get("database")))
 
@@ -143,6 +149,7 @@ class ImportPreviewNodeModel(core.ABTreeModel):
             "title": title,
             "subtitle": subtitle,
             "categories": categories if categories else None,
+            "detail": detail,
         }
 
 
@@ -151,7 +158,7 @@ class ImportPreviewNodeModel(core.ABTreeModel):
             return icons.qicons.empty
 
         column_name = self.columns()[index.column()]
-        if not column_name in ["node", "type"]:
+        if not column_name in ["exc", "type"]:
             return super().decorationData(index)
 
         node_type = self.get(index, "type")
@@ -165,4 +172,9 @@ class ImportPreviewNodeModel(core.ABTreeModel):
         if node_type in ["natural resource", "emission", "inventory indicator", "economic", "social"]:
             return icons.qicons.biosphere
         return icons.qicons.process
+
+
+
+
+
 

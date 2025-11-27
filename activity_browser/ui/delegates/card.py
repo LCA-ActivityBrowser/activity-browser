@@ -7,8 +7,8 @@ from qtpy.QtCore import Qt
 class CardData(TypedDict):
     title: str
     subtitle: str | None
+    detail: str | None
     categories: list[str] | None
-    icon: QtGui.QIcon | None
 
 
 class CardDelegate(QtWidgets.QStyledItemDelegate):
@@ -147,6 +147,27 @@ class CardDelegate(QtWidgets.QStyledItemDelegate):
             painter.drawText(subtitle_rect, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, subtitle_text)
             y += subtitle_height
 
+        # Draw detail (bottom left)
+        detail = card_data.get('detail', '')
+        detail_width = 0
+        if detail:
+            detail_font = option.font
+            detail_font.setPointSize(int(option.font.pointSize() * 0.8))
+            painter.setFont(detail_font)
+
+            detail_fm = QtGui.QFontMetrics(detail_font)
+            detail_height = detail_fm.height()
+
+            # Reserve half width for detail, half for categories
+            max_detail_width = text_rect.width() // 2 - 10
+            detail_rect = QtCore.QRect(text_rect.left(), text_rect.bottom() - detail_height,
+                                       max_detail_width, detail_height)
+
+            # Elide detail if too long
+            detail_text_elided = detail_fm.elidedText(str(detail), Qt.TextElideMode.ElideRight, max_detail_width)
+            painter.drawText(detail_rect, Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter, detail_text_elided)
+            detail_width = detail_fm.horizontalAdvance(detail_text_elided) + 10
+
         # Draw categories (pipe separated, bottom right)
         categories = card_data.get('categories', [])
         if categories and isinstance(categories, (list, tuple)):
@@ -157,11 +178,14 @@ class CardDelegate(QtWidgets.QStyledItemDelegate):
 
             categories_fm = QtGui.QFontMetrics(categories_font)
             categories_height = categories_fm.height()
-            categories_rect = QtCore.QRect(text_rect.left(), text_rect.bottom() - categories_height,
-                                          text_rect.width(), categories_height)
+
+            # Adjust width to account for detail on left
+            available_width = text_rect.width() - detail_width
+            categories_rect = QtCore.QRect(text_rect.left() + detail_width, text_rect.bottom() - categories_height,
+                                          available_width, categories_height)
 
             # Elide categories if too long
-            categories_text_elided = categories_fm.elidedText(categories_text, Qt.TextElideMode.ElideRight, categories_rect.width())
+            categories_text_elided = categories_fm.elidedText(categories_text, Qt.TextElideMode.ElideRight, available_width)
             painter.drawText(categories_rect, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter, categories_text_elided)
 
         painter.restore()

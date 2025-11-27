@@ -83,6 +83,8 @@ class ABTreeView(QtWidgets.QTreeView):
         self.header().setContextMenuPolicy(QtCore.Qt.ContextMenuPolicy.CustomContextMenu)
         self.header().customContextMenuRequested.connect(self.showHeaderMenu)
 
+        self.setVerticalScrollMode(QtWidgets.QAbstractItemView.ScrollMode.ScrollPerPixel)
+
         self.columnFilters: dict[str, str] = {}  # dict[column_name, query] for filtering the dataframe
         self.allFilter: str = ""  # filter applied to the entire dataframe
 
@@ -95,7 +97,7 @@ class ABTreeView(QtWidgets.QTreeView):
         model.modelAboutToBeReset.connect(self.clearColumnDelegates)
         model.modelReset.connect(self.setDefaultColumnDelegates)
         model.layoutChanged.connect(self.updateIndexColumnVisibility)
-        model.layoutChanged.connect(self.updateBranchSpanning)
+        model.layoutChanged.connect(self.updateBranchSpanning, QtCore.Qt.ConnectionType.QueuedConnection)
 
         self.setDefaultColumnDelegates()
         self.updateIndexColumnVisibility()

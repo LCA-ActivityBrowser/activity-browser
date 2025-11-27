@@ -281,7 +281,7 @@ class ABTreeModel(QAbstractItemModel):
             if section == 0:
                 return ""
 
-            return self.df.columns[section - 1]
+            return self.columns()[section]
 
         if role == Qt.ItemDataRole.FontRole and section in self.filtered_columns:
             font = QtGui.QFont()
