@@ -22,4 +22,3 @@ from .drop_overlay import ABDropOverlay
 from .tree_view import ABTreeView
 from .buttons import ABCloseButton, ABMinimizeButton
 from .tab_widget import ABTabWidget
-from .node_details import NodeDetails

@@ -2,7 +2,7 @@ from qtpy import QtWidgets, QtCore, QtGui
 from qtpy.QtCore import Qt
 import pandas as pd
 
-from activity_browser.ui import widgets, core, delegates
+from activity_browser.ui import widgets, core, delegates, icons
 from activity_browser.app import metadata, actions
 
 
@@ -66,21 +66,11 @@ class NodeSelectDialog(QtWidgets.QDialog):
         result_df = metadata.search(text)
         result_df = result_df[0:10] if len(result_df) > 10 else result_df
 
-        # Prepare data for display
-        result_df["node"] = result_df.apply(lambda row: {
-            "database": row.get("database"),
-            "name": row.get("name"),
-            "product": row.get("product"),
-            "unit": row.get("unit"),
-            "location": row.get("location"),
-            "type": row.get("type"),
-            "categories": row.get("categories"),
-            "id": row.get("id"),
-            "key": row.get("key"),
-        }, axis=1)
+        # Add a placeholder "node" column for the CardDelegate
+        result_df["node"] = None
 
         # Update model with search results
-        self.model.set_dataframe(result_df[["node"]])
+        self.model.set_dataframe(result_df)
 
         # Adjust height based on results
         if len(result_df) > 0:
@@ -98,10 +88,10 @@ class NodeSelectDialog(QtWidgets.QDialog):
             return
 
         # Get node data from the model
-        node_data = self.model.get(index, "node")
-        if node_data:
-            self.node_selected.emit(node_data)
-            actions.ActivityOpen.run([node_data.get("id")])
+        node_id = self.model.get(index, "id")
+        if node_id:
+            self.node_selected.emit(node_id)
+            actions.ActivityOpen.run([node_id])
             self.accept()  # Close the dialog
 
     def on_drag_started(self):
@@ -111,8 +101,64 @@ class NodeSelectDialog(QtWidgets.QDialog):
 class NodeSearchModel(core.ABTreeModel):
     """Model for displaying search results in the node select dialog."""
 
+    def columns(self) -> list[str]:
+        return ["index", "node"]
+
     def indexDragEnabled(self, index: QtCore.QModelIndex) -> bool:
         return True
+
+    def displayData(self, index: QtCore.QModelIndex) -> any:
+        if not index.isValid():
+            return None
+
+        column_name = self.columns()[index.column()]
+        if not column_name == "node":
+            return super().displayData(index)
+
+        row_data = self.row(index)
+        row_data.dropna(inplace=True)
+
+        # Get the product or name for title
+        title = row_data.get("product") or row_data.get("name")
+
+        # Build subtitle with type and database
+        if row_data.get("categories"):
+            subtitle = ", ".join([str(cat) for cat in row_data.get("categories")])
+        elif row_data.get("product"):
+            subtitle = row_data.get("name")
+        else:
+            subtitle = ""
+
+        # Build categories list from unit, location
+        categories = []
+        if row_data.get("unit"):
+            categories.append(str(row_data.get("unit")))
+        if row_data.get("location"):
+            categories.append(str(row_data.get("location")))
+        if row_data.get("database"):
+            categories.append(str(row_data.get("database")))
+
+        return {
+            "title": title,
+            "subtitle": subtitle,
+            "categories": categories if categories else None,
+        }
+
+    def decorationData(self, index: QtCore.QModelIndex) -> QtGui.QIcon:
+        if not index.isValid():
+            return icons.qicons.empty
+
+        node_type = self.get(index, "type")
+
+        if node_type == "product":
+            return icons.qicons.product
+        if node_type == "waste":
+            return icons.qicons.waste
+        if node_type == "processwithreferenceproduct":
+            return icons.qicons.processproduct
+        if node_type in ["natural resource", "emission", "inventory indicator", "economic", "social"]:
+            return icons.qicons.biosphere
+        return icons.qicons.process
 
     def mimeData(self, indices: list[QtCore.QModelIndex]):
         """
@@ -125,7 +171,7 @@ class NodeSearchModel(core.ABTreeModel):
             core.ABMimeData: The mime data.
         """
         data = core.ABMimeData()
-        keys = [index.data().get("key") for index in indices if index.isValid()]
+        keys = [self.row(index).get("key") for index in indices if index.isValid()]
         keys = {key for key in keys if isinstance(key, tuple)}
         data.setPickleData("application/bw-nodekeylist", list(keys))
         return data
@@ -136,7 +182,7 @@ class NodeSearchView(widgets.ABTreeView):
     dragStarted: QtCore.SignalInstance = QtCore.Signal()
 
     defaultColumnDelegates = {
-        "node": delegates.NodeDelegate,
+        "node": delegates.CardDelegate,
     }
 
     def __init__(self, parent: NodeSelectDialog):

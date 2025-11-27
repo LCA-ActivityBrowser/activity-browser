@@ -200,10 +200,9 @@ class ABTreeModel(QAbstractItemModel):
             if index.column() == 0:
                 return None  # leaf node tree column is empty
 
-            # Use the pre-computed df_position for O(1) iloc access
-            col_idx = index.column() - 1  # Adjust for tree column
-            if col_idx < 0 or col_idx >= len(self.df.columns):
-                return None
+            # Get the pandas column index (disregard hidden columns)
+            col_name = self.columns()[index.column()]
+            col_idx = self.df.columns.get_loc(col_name)
             
             val = self.df.iat[node.df_position, col_idx]
 

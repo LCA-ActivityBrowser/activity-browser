@@ -269,7 +269,7 @@ class ProductView(ui.widgets.ABTreeView):
         "categories": delegates.ListDelegate,
         "key": delegates.StringDelegate,
         "processor": delegates.StringDelegate,
-        "node": delegates.NodeDelegate,
+        "node": delegates.CardDelegate,
     }
 
     class ContextMenu(ui.widgets.ABMenu):
@@ -501,23 +501,47 @@ class ProductModel(ui.core.ABTreeModel):
             return super().displayData(index)
 
         row = self.row(index)
-        node_data = {
-            "database": row.get("key")[0],
-            "name": row.get("name"),
-            "product": row.get("product"),
-            "unit": row.get("unit"),
-            "location": row.get("location"),
-            "type": row.get("type"),
-            "categories": row.get("categories"),
+
+        # Get the product or name for title
+        title = row.get("product") or row.get("name")
+
+        # Build subtitle with name (if product exists) or type
+        subtitle_parts = []
+        if row.get("product") and row.get("name"):
+            # If there's both product and name, show name as subtitle
+            subtitle_parts.append(row.get("name"))
+        elif row.get("type"):
+            # Otherwise show type
+            subtitle_parts.append(row.get("type").capitalize())
+
+        subtitle = " | ".join(subtitle_parts) if subtitle_parts else None
+
+        # Build categories list from unit, location, database
+        categories = []
+        if row.get("unit"):
+            categories.append(str(row.get("unit")))
+        if row.get("location"):
+            categories.append(str(row.get("location")))
+        if row.get("key") and isinstance(row.get("key"), tuple):
+            categories.append(str(row.get("key")[0]))  # database name
+
+        # Add actual categories if they exist
+        node_categories = row.get("categories")
+        if node_categories and isinstance(node_categories, (list, tuple)):
+            categories.extend([str(cat) for cat in node_categories if str(cat).strip()])
+
+        return {
+            "title": title,
+            "subtitle": subtitle,
+            "categories": categories if categories else None,
         }
-        return node_data
-    
+
     #-- data overrides ---
     def decorationData(self, index: QtCore.QModelIndex) -> any:
         column_name = self.column_name(index)
         node_type = self.get(index, "type")
         
-        if column_name not in ["name", "product"]:
+        if column_name not in ["name", "product", "node"]:
             return None
         if column_name == "product" and node_type in ["product", "processwithreferenceproduct"]:
             return icons.qicons.product

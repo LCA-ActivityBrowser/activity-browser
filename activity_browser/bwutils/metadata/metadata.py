@@ -43,6 +43,12 @@ class MetaDataStore:
         # Ensure all expected columns are present, in the correct order, and with the correct types
         df = df.reindex(columns=all)[all].astype(all_types)
 
+        # No NaN values in object columns, use None instead
+        for col, col_type in all_types.items():
+            if col_type != object:
+                continue
+            df[col] = df[col].where(df[col].notnull(), None)
+
         # Set the internal dataframe
         self._dataframe = df
 
