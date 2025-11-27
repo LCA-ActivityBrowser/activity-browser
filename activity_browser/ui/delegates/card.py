@@ -54,6 +54,7 @@ class CardDelegate(QtWidgets.QStyledItemDelegate):
 
         card_data = index.data()
         is_selected = option.state & QtWidgets.QStyle.StateFlag.State_Selected
+        font_size = option.font.pointSize()
 
         # Draw background and border
         rect = option.rect.adjusted(self.MARGIN, self.MARGIN, -self.MARGIN, -self.MARGIN)
@@ -134,7 +135,7 @@ class CardDelegate(QtWidgets.QStyledItemDelegate):
         subtitle = card_data.get('subtitle', '')
         if subtitle:
             subtitle_font: QtGui.QFont = option.font
-            subtitle_font.setPointSize(int(option.font.pointSize() * 0.9))
+            subtitle_font.setPointSize(int(font_size * 0.9))
             subtitle_font.setWeight(QtGui.QFont.Weight.Light)
             painter.setFont(subtitle_font)
 
@@ -152,7 +153,7 @@ class CardDelegate(QtWidgets.QStyledItemDelegate):
         detail_width = 0
         if detail:
             detail_font = option.font
-            detail_font.setPointSize(int(option.font.pointSize() * 0.8))
+            detail_font.setPointSize(int(font_size * 0.8))
             painter.setFont(detail_font)
 
             detail_fm = QtGui.QFontMetrics(detail_font)
@@ -173,7 +174,7 @@ class CardDelegate(QtWidgets.QStyledItemDelegate):
         if categories and isinstance(categories, (list, tuple)):
             categories_text = "  |  ".join(str(cat) for cat in categories)
             categories_font = option.font
-            categories_font.setPointSize(int(option.font.pointSize() * 0.8))
+            categories_font.setPointSize(int(font_size * 0.8))
             painter.setFont(categories_font)
 
             categories_fm = QtGui.QFontMetrics(categories_font)
