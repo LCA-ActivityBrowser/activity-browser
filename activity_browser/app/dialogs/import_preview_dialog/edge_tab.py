@@ -158,20 +158,14 @@ class ImportPreviewEdgeModel(core.ABTreeModel):
             return icons.qicons.empty
 
         column_name = self.columns()[index.column()]
-        if not column_name in ["exc", "type"]:
+        if not column_name in ["exc"]:
             return super().decorationData(index)
 
-        node_type = self.get(index, "type")
-
-        if node_type == "product":
-            return icons.qicons.product
-        if node_type == "waste":
-            return icons.qicons.waste
-        if node_type == "processwithreferenceproduct":
-            return icons.qicons.processproduct
-        if node_type in ["natural resource", "emission", "inventory indicator", "economic", "social"]:
-            return icons.qicons.biosphere
-        return icons.qicons.process
+        linked = self.row(index).get("input") is not None
+        if linked:
+            return icons.qicons.link
+        else:
+            return icons.qicons.unlink
 
 
 

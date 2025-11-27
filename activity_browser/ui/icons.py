@@ -4,6 +4,8 @@ from pathlib import Path
 from qtpy.QtCore import Qt, QSize
 from qtpy.QtGui import QIcon, QPixmap
 
+from activity_browser.bwutils.strategies import link_exchanges_without_db
+
 PACKAGE_DIR = Path(__file__).resolve().parents[1]
 
 
@@ -69,6 +71,11 @@ icons = dict(
     processproduct = create_path("nodes", "processproduct.png"),
     biosphere = create_path("nodes", "biosphere.png"),
     readonly_process = create_path("nodes", "read-only-process.png"),
+
+    # exchanges
+    link = create_path("exchanges", "link.png"),
+    unlink = create_path("exchanges", "unlink.png"),
+    relink = create_path("exchanges", "relink.png"),
 
     # other
     superstructure = create_path("main", "superstructure.png"),
