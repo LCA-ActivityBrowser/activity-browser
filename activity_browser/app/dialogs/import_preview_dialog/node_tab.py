@@ -10,7 +10,7 @@ from activity_browser.ui import widgets, core, delegates, icons
 
 
 class ImportPreviewNodeTab(QtWidgets.QWidget):
-    standardNodeColumns = ["type", "name", "exchanges", "unlinked_exchanges", "location", "unit", "categories", "code",
+    standardNodeColumns = ["type", "name", "product", "exchanges", "unlinked_exchanges", "location", "unit", "categories", "code",
                            "database"]
     standardEdgeColumns = ["type", "amount", "unit", "input", "name", "location", "database", "formula"]
 
@@ -104,7 +104,7 @@ class ImportPreviewNodeView(widgets.ABTreeView):
 class ImportPreviewNodeModel(core.ABTreeModel):
     """Model for import preview nodes with node delegate support."""
 
-    def displayData(self, index: QModelIndex) -> any:
+    def displayData(self, index: QtCore.QModelIndex) -> any:
         if not index.isValid():
             return None
 
@@ -113,16 +113,46 @@ class ImportPreviewNodeModel(core.ABTreeModel):
             return super().displayData(index)
 
         row_data = self.row(index)
+        row_data.dropna(inplace=True)
+
+        # Get the product or name for title
+        title = row_data.get("product") or row_data.get("name")
+
+        # Build subtitle with type and database
+        if row_data.get("categories"):
+            subtitle = ", ".join([str(cat) for cat in row_data.get("categories")])
+        elif row_data.get("product"):
+            subtitle = row_data.get("name")
+        else:
+            excs = row_data.get("exchanges")
+            unlinked = row_data.get("unlinked_exchanges")
+            nomination = "exchanges" if excs != 1 else "exchange"
+
+            subtitle = f"{excs} {nomination}, {unlinked} unlinked"
+
+        # Build categories list from unit, location
+        categories = []
+        if row_data.get("unit"):
+            categories.append(str(row_data.get("unit")))
+        if row_data.get("location"):
+            categories.append(str(row_data.get("location")))
+        if row_data.get("database"):
+            categories.append(str(row_data.get("database")))
 
         return {
-            "title": row_data.get("name"),
-            "subtitle": f"{row_data.get('type').capitalize()} in {row_data.get('database')}",
-            "categories": row_data.get("categories") or [],
+            "title": title,
+            "subtitle": subtitle,
+            "categories": categories if categories else None,
         }
+
 
     def decorationData(self, index: QModelIndex) -> QtGui.QIcon:
         if not index.isValid():
             return icons.qicons.empty
+
+        column_name = self.columns()[index.column()]
+        if not column_name in ["node", "type"]:
+            return super().decorationData(index)
 
         node_type = self.get(index, "type")
 
