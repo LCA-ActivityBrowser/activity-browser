@@ -9,7 +9,7 @@ import bw2data as bd
 
 from activity_browser import ui, app
 from activity_browser.ui import core, widgets, delegates, icons
-from activity_browser.bwutils.commontasks import database_is_locked, database_is_legacy, is_node_biosphere
+from activity_browser.bwutils.commontasks import database_is_locked, database_is_legacy, is_node_biosphere, nodes_to_excel
 
 
 NODETYPES = {
@@ -596,16 +596,8 @@ class ProductModel(ui.core.ABTreeModel):
         keys = {key for key in keys if isinstance(key, tuple)}
         data.setPickleData("application/bw-nodekeylist", list(keys))
 
-        # Add text data for Excel/external apps
-        # Get selected rows and build tab-separated text
-        rows = [self.row(i) for i in indices]
-        columns = [c for c in self.columns() if c not in ["index", "node"]]
-        text_lines = ["\t".join(columns)]  # Header line
-
-        for row in rows:
-            # Select relevant columns for export
-            text_lines.append("\t".join(str(row.get(col, "")) for col in columns))
-
-        data.setText("\n".join(text_lines))
+        # Add HTML data for Excel with bold formatting
+        excel_string = nodes_to_excel(list(keys))
+        data.setHtml(excel_string)
 
         return data
