@@ -339,6 +339,7 @@ class ProductView(ui.widgets.ABTreeView):
         self.pane = parent
 
         self.propertyDelegate = delegates.PropertyDelegate(self)
+        self.overlay = None
 
     def setDefaultColumnDelegates(self):
         """
@@ -444,8 +445,8 @@ class ProductView(ui.widgets.ABTreeView):
         Args:
             event: The drag leave event.
         """
-        # Reset the palette on drag leave
-        self.overlay.deleteLater()
+        if self.overlay:
+            self.overlay.deleteLater()
 
     def dropEvent(self, event):
         """
@@ -456,7 +457,8 @@ class ProductView(ui.widgets.ABTreeView):
         """
         logger.debug(f"Dropevent from: {type(event.source()).__name__} to: {self.__class__.__name__}")
         # Reset the palette on drop
-        self.overlay.deleteLater()
+        if self.overlay:
+            self.overlay.deleteLater()
 
         keys: list = event.mimeData().retrievePickleData("application/bw-nodekeylist")
         keys = list(set(keys))
