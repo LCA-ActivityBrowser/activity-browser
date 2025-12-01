@@ -7,7 +7,8 @@ import pandas as pd
 from bw2io.importers.base_lci import LCIImporter
 
 from activity_browser.ui import widgets, core, delegates, icons
-from activity_browser.ui.delegates import CardDelegate
+
+from ..node_select_dialog import NodeSelectDialog
 
 
 class ImportPreviewEdgeTab(QtWidgets.QWidget):
@@ -17,17 +18,17 @@ class ImportPreviewEdgeTab(QtWidgets.QWidget):
         super().__init__(parent)
         self.importer = importer
         self.simple = True
+        self.old_links = {}
 
         layout = QtWidgets.QVBoxLayout(self)
 
         self.edge_model = ImportPreviewEdgeModel(parent=self)
         self.edge_model.set_dataframe(self.build_df())
 
-        self.edge_view = ImportPreviewEdgeView(parent=self)
+        self.edge_view = ImportPreviewEdgeView(importer, self)
         self.edge_view.setUniformRowHeights(False)
         self.edge_view.setModel(self.edge_model)
         self.edge_view.setColumnWidth(0, 0)
-        self.edge_view.setSelectionMode(QtWidgets.QAbstractItemView.SelectionMode.NoSelection)
 
         # Create simple/detailed view toggle
         self.view_toggle = QtWidgets.QCheckBox("Details")
@@ -53,7 +54,7 @@ class ImportPreviewEdgeTab(QtWidgets.QWidget):
         self.edge_view.setFrameShape(
             QtWidgets.QFrame.Shape.NoFrame if self.simple else QtWidgets.QFrame.Shape.StyledPanel)
 
-        df = self.edge_model.df.copy()
+        df = self.build_df()
         if self.simple and "_exc" in df.columns:
             df.rename(columns={"_exc": "exc"}, inplace=True)
         elif not self.simple and "node" in df.columns:
@@ -72,7 +73,7 @@ class ImportPreviewEdgeTab(QtWidgets.QWidget):
     def build_df(self):
 
         exchanges = []
-        for node in self.importer.data:
+        for node_i, node in enumerate(self.importer.data):
             summary = [
                     node.get("name"),
                     node.get("location"),
@@ -81,19 +82,45 @@ class ImportPreviewEdgeTab(QtWidgets.QWidget):
             ]
             summary = " | ".join([str(part) for part in summary if part])
 
-            for ex in node.get("exchanges", []):
-                ex_copy = ex.copy()
-                ex_copy["_node"] = summary
-                exchanges.append(ex_copy)
+            for exc_i, exc in enumerate(node.get("exchanges", [])):
+                exc = exc.copy()
+                exc["_node"] = summary
+                exc["_location"] = (node_i, exc_i)
+                exchanges.append(exc)
 
         df = pd.DataFrame(exchanges)
+        for col in [col for col in self.standardEdgeColumns if col not in df.columns]:
+            df[col] = None
         df["exc"] = None
+        df["linked"] = df["input"].apply(lambda x: "linked" if isinstance(x, tuple) else "unlinked")
 
         return df
 
     def on_mode_switch(self, check: Qt.CheckState):
         """Handle the mode switch between simple and detailed view."""
         self.simple = check == Qt.CheckState.Unchecked
+        self.sync()
+
+    def relink_selected_exchanges(self):
+        """Open a dialog to link selected exchanges to existing nodes."""
+        exchange_locations = self.edge_view.selected_exchanges
+        if not exchange_locations:
+            return
+
+        dialog = NodeSelectDialog(parent=self)
+        if not dialog.exec() == QtWidgets.QDialog.DialogCode.Accepted:
+            return
+
+        selected_node = dialog.get_selected_node()
+
+        for loc in exchange_locations:
+            node_i, exc_i = loc
+
+            if loc not in self.old_links:
+                self.old_links[loc] = self.importer.data[node_i]["exchanges"][exc_i].get("input")
+
+            self.importer.data[node_i]["exchanges"][exc_i]["input"] = (selected_node["database"], selected_node["code"])
+
         self.sync()
 
 
@@ -114,6 +141,24 @@ class ImportPreviewEdgeView(widgets.ABTreeView):
         "exc": ShiftedCardDelegate,
     }
 
+    class ContextMenu(widgets.ABMenu):
+        menuSetup = [
+            lambda m, p: m.callback(
+                text="Link exchange" if len(p.selected_exchanges) == 1 else "Link exchanges",
+                func=p.tab.relink_selected_exchanges,
+            )
+        ]
+
+    def __init__(self, importer: LCIImporter, tab: ImportPreviewEdgeTab):
+        super().__init__(tab)
+        self.importer = importer
+        self.old_links = {}
+        self.tab = tab
+
+    @property
+    def selected_exchanges(self):
+        return list(set([self.model().get(index, "_location") for index in self.selectedIndexes()]))
+
 
 class ImportPreviewEdgeModel(core.ABTreeModel):
     """Model for import preview nodes with node delegate support."""
@@ -123,7 +168,7 @@ class ImportPreviewEdgeModel(core.ABTreeModel):
             return None
 
         column_name = self.columns()[index.column()]
-        if not column_name == "exc":
+        if not column_name == "exc" or self.row(index) is None:
             return super().displayData(index)
 
         row_data = self.row(index).copy()
@@ -161,11 +206,20 @@ class ImportPreviewEdgeModel(core.ABTreeModel):
         if not column_name in ["exc"]:
             return super().decorationData(index)
 
-        linked = self.row(index).get("input") is not None
-        if linked:
+        linked = self.get(index, "linked")
+        if linked == "linked":
             return icons.qicons.link
-        else:
+        elif linked == "unlinked":
             return icons.qicons.unlink
+        elif linked == "relinked":
+            return icons.qicons.relink
+        return icons.qicons.empty
+
+    def indexSelectable(self, index: QModelIndex) -> bool:
+        # Don't make the tree column selectable
+        if index.column() == 0:
+            return False
+        return True
 
 
 

@@ -19,3 +19,11 @@ class ABMenu(QtWidgets.QMenu):
     def add(self, action, *args, enable=True, text=None, **kwargs):
         qaction = action.get_QAction(*args, parent=self, enabled=enable, text=text, **kwargs)
         self.addAction(qaction)
+
+    def callback(self, text: str, func: Callable, args: list = None, kwargs: dict = None):
+        args = args or []
+        kwargs = kwargs or {}
+
+        action = QtWidgets.QAction(text, self)
+        action.triggered.connect(lambda: func(*args, **kwargs))
+        self.addAction(action)

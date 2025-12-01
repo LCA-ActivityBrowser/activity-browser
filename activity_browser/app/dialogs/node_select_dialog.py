@@ -4,12 +4,13 @@ import pandas as pd
 
 from activity_browser.ui import widgets, core, delegates, icons
 from activity_browser.app import metadata, actions
+from activity_browser.bwutils.commontasks import refresh_node
 
 
 class NodeSelectDialog(QtWidgets.QDialog):
     node_selected = QtCore.Signal(dict)
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, drag_enabled=False):
         super().__init__(parent)
 
         self.setWindowFlags(
@@ -29,8 +30,9 @@ class NodeSelectDialog(QtWidgets.QDialog):
         self.tree_view = NodeSearchView(self)
         self.tree_view.setModel(self.model)
 
-        self.tree_view.doubleClicked.connect(self.on_node_double_clicked)
+        self.tree_view.clicked.connect(self.accept)
         self.tree_view.dragStarted.connect(self.on_drag_started)
+        self.tree_view.setDragEnabled(drag_enabled)
 
         layout = QtWidgets.QVBoxLayout(self)
         layout.setContentsMargins(5, 0, 5, 0)
@@ -40,18 +42,18 @@ class NodeSelectDialog(QtWidgets.QDialog):
 
         self.setFixedHeight(self.sizeHint().height())
 
-    def showEvent(self, event):
-        """Position the dialog 200px higher than default centered position"""
-        super().showEvent(event)
-        if self.parent():
-            parent_rect = self.parent().geometry()
-            dialog_rect = self.geometry()
-
-            # Center horizontally, but move up 200px from center vertically
-            x = parent_rect.x() + (parent_rect.width() - dialog_rect.width()) // 2
-            y = parent_rect.y() + (parent_rect.height() - dialog_rect.height()) // 2 - 200
-
-            self.move(x, y)
+    # def showEvent(self, event):
+    #     """Position the dialog 200px higher than default centered position"""
+    #     super().showEvent(event)
+    #     if self.parent():
+    #         parent_rect = self.parent().geometry()
+    #         dialog_rect = self.geometry()
+    #
+    #         # Center horizontally, but move up 200px from center vertically
+    #         x = parent_rect.x() + (parent_rect.width() - dialog_rect.width()) // 2
+    #         y = parent_rect.y() + (parent_rect.height() - dialog_rect.height()) // 2 - 200
+    #
+    #         self.move(x, y)
 
     def on_search(self, text: str):
         if not text.strip():
@@ -82,21 +84,20 @@ class NodeSelectDialog(QtWidgets.QDialog):
         self.adjustSize()
         self.setFixedHeight(self.sizeHint().height())
 
-    def on_node_double_clicked(self, index: QtCore.QModelIndex):
-        """Handle when a node is double-clicked in the tree view"""
-        if not index.isValid():
-            return
-
-        # Get node data from the model
-        node_id = self.model.get(index, "id")
-        if node_id:
-            self.node_selected.emit(node_id)
-            actions.ActivityOpen.run([node_id])
-            self.accept()  # Close the dialog
-
     def on_drag_started(self):
         """Handle when a drag operation is started"""
         self.hide()  # Close the dialog
+
+    def get_selected_node(self):
+        """Return the currently selected node data"""
+        index = self.tree_view.currentIndex()
+        if not index.isValid():
+            return None
+        node_id = self.model.get(index, "id")
+        if not node_id:
+            return None
+        return refresh_node(node_id)
+
 
 class NodeSearchModel(core.ABTreeModel):
     """Model for displaying search results in the node select dialog."""
@@ -115,7 +116,7 @@ class NodeSearchModel(core.ABTreeModel):
         if not column_name == "node":
             return super().displayData(index)
 
-        row_data = self.row(index)
+        row_data = self.row(index).copy()
         row_data.dropna(inplace=True)
 
         # Get the product or name for title
@@ -194,7 +195,6 @@ class NodeSearchView(widgets.ABTreeView):
         self.setVerticalScrollMode(QtWidgets.QAbstractItemView.ScrollMode.ScrollPerPixel)
 
         self.setHeaderHidden(True)
-        self.setDragEnabled(True)
 
         self.setFrameShape(QtWidgets.QFrame.Shape.NoFrame)
         self.setFixedHeight(0)
