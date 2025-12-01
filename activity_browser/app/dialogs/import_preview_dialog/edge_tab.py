@@ -12,18 +12,19 @@ from ..node_select_dialog import NodeSelectDialog
 
 
 class ImportPreviewEdgeTab(QtWidgets.QWidget):
-    standardEdgeColumns = ["type", "amount", "unit", "input", "name", "location", "database", "formula"]
+    standardEdgeColumns = ["linked", "type", "amount", "unit", "input", "name", "location", "database", "formula"]
 
     def __init__(self, importer: LCIImporter, parent=None):
         super().__init__(parent)
         self.importer = importer
         self.simple = True
-        self.old_links = {}
+        self.old_links: dict[tuple[int, int], tuple[str, str] | None] = {}
 
         layout = QtWidgets.QVBoxLayout(self)
 
         self.edge_model = ImportPreviewEdgeModel(parent=self)
         self.edge_model.set_dataframe(self.build_df())
+        self.edge_model.group(["_node"])
 
         self.edge_view = ImportPreviewEdgeView(importer, self)
         self.edge_view.setUniformRowHeights(False)
@@ -55,12 +56,13 @@ class ImportPreviewEdgeTab(QtWidgets.QWidget):
             QtWidgets.QFrame.Shape.NoFrame if self.simple else QtWidgets.QFrame.Shape.StyledPanel)
 
         df = self.build_df()
+
         if self.simple and "_exc" in df.columns:
             df.rename(columns={"_exc": "exc"}, inplace=True)
         elif not self.simple and "node" in df.columns:
             df.rename(columns={"exc": "_exc"}, inplace=True)
-        self.edge_model.set_dataframe(df)
-        self.edge_model.group(["_node"])
+
+        self.edge_model.update_dataframe(df)
 
         for col in self.edge_model.columns():
             if col == "index":
@@ -92,7 +94,19 @@ class ImportPreviewEdgeTab(QtWidgets.QWidget):
         for col in [col for col in self.standardEdgeColumns if col not in df.columns]:
             df[col] = None
         df["exc"] = None
-        df["linked"] = df["input"].apply(lambda x: "linked" if isinstance(x, tuple) else "unlinked")
+
+        def determine_link_status(row):
+            input_val = row["input"]
+            location = row["_location"]
+
+            if not isinstance(input_val, tuple):
+                return "unlinked"
+            elif location in self.old_links:
+                return "relinked"
+            else:
+                return "linked"
+
+        df["linked"] = df.apply(determine_link_status, axis=1)
 
         return df
 
@@ -125,6 +139,9 @@ class ImportPreviewEdgeTab(QtWidgets.QWidget):
 
 
 class ShiftedCardDelegate(delegates.CardDelegate):
+    """
+    Delegate that shifts the card content to the left to compensate for indentation.
+    """
     def paint(self, painter, option, index):
         # Adjust the rect to shift content left, compensating for indentation
         adjusted_option = QtWidgets.QStyleOptionViewItem(option)
@@ -157,6 +174,10 @@ class ImportPreviewEdgeView(widgets.ABTreeView):
 
     @property
     def selected_exchanges(self):
+        """
+        Returns a list of selected exchange locations as (node_index, exchange_index) tuples. These can be used to
+        identify and manipulate the selected exchanges in the importer's data, which is a list of lists.
+        """
         return list(set([self.model().get(index, "_location") for index in self.selectedIndexes()]))
 
 

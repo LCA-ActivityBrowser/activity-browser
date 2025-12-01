@@ -17,7 +17,7 @@ class CardDelegate(QtWidgets.QStyledItemDelegate):
     PADDING = 8
     MARGIN = 2
     TITLE_LINES = 2
-    ICON_OPACITY = 0.1
+    ICON_OPACITY = 0.3
 
     def sizeHint(self, option, index):
         if index.data() is None:

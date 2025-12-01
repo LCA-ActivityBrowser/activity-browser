@@ -59,6 +59,7 @@ class ABTreeModel(QAbstractItemModel):
 
         self.df_query: dict[str, str] = {"model": "index == index"}  # dictionary where queries can be registered
         self.filtered_columns: set[int] = set()  # set of column indices that have active filters, only used for the header icon
+        self.grouped_columns: list[str] = []  # list of columns currently used for grouping
 
         self.lazy = chunk_size > 0
         self.chunk_size = chunk_size
@@ -332,111 +333,45 @@ class ABTreeModel(QAbstractItemModel):
         self.endInsertRows()
 
     # --- helper functions ---
-    def build_node_hierarchy(self, pandas_index: pd.Index) -> None:
-        """
-        Build the unified TreeNode hierarchy with all information combined:
-        - children relationships
-        - row indices
-        - loaded counts
-        - DataFrame positions
-        """
-        self.node_map = {tuple(): self.root}
-        
-        # Convert index to frame once for all operations
-        idx_df = pandas_index.to_frame(index=False)
-        
-        # Create a mapping from full path to DataFrame position
-        path_to_position = {}
-        for row_tuple in idx_df.itertuples(index=False, name=None):
-            df_pos = self.df.index.get_loc(row_tuple)
-            path_to_position[row_tuple] = df_pos
-        
-        # Process each level to build the hierarchy
-        for level in range(idx_df.shape[1]):
-            # Get unique child paths at this level (as tuples)
-            child_paths = idx_df.iloc[:, :level + 1].drop_duplicates()
-            child_tuples = list(child_paths.itertuples(index=False, name=None))
-            
-            for child_path in child_tuples:
-                if pd.isna(child_path[-1]):
-                    continue  # skip NaN children
-                
-                # Skip if we've already created this node
-                if child_path in self.node_map:
-                    continue
-                
-                # Determine parent path
-                if level == 0:
-                    parent_path = tuple()
-                else:
-                    parent_path = tuple(val for val in child_path[:-1] if not pd.isna(val))
-                
-                # Get or create parent node
-                parent_node = self.node_map.get(parent_path)
-                if parent_node is None:
-                    parent_node = self.root
-                
-                # Check if this is a leaf node (full depth)
-                is_leaf = (level == idx_df.shape[1] - 1)
-                df_position = path_to_position.get(child_path, -1) if is_leaf else -1
-                
-                # Create the child node
-                child_node = TreeNode(child_path, df_position)
-                
-                # Add child to parent
-                parent_node.add_child(child_node)
-                
-                # Store in node map
-                self.node_map[child_path] = child_node
-        
-        # Initialize loaded counts
-        if self.lazy:
-            # Load first chunk for each node
-            for node in self.node_map.values():
-                node.loaded_count = min(self.chunk_size, node.total_children())
-        else:
-            # All children loaded
-            for node in self.node_map.values():
-                node.loaded_count = node.total_children()
-    
-    def reset_hierarchy(self, df: pd.DataFrame = None) -> None:
-        df = df if df is not None else self.df       
-        old_persistent_indices = [(idx, idx.internalPointer()) for idx in self.persistentIndexList()]
-        
-        # Rebuild the node hierarchy
-        self.root = TreeNode(tuple())
-        self.build_node_hierarchy(df.index)
-        
-        # Update persistent indexes
-        new_persistent = []
-        for old_index, old_node in old_persistent_indices:
-            if isinstance(old_node, TreeNode):
-                # Try to find the same path in the new hierarchy
-                new_node = self.node_map.get(old_node.path)
-                if new_node is not None:
-                    new_index = self.createIndex(new_node.row_in_parent, old_index.column(), new_node)
-                    new_persistent.append(new_index)
-                else:
-                    new_persistent.append(QModelIndex())
-            else:
-                new_persistent.append(QModelIndex())
+    def set_dataframe(self, df: pd.DataFrame) -> None:
+        self.beginResetModel()
+        self.df = df
+        self.build_df_index()
+        self.reset_hierarchy()
+        self.endResetModel()
 
-        # Update the model's persistent indexes
-        self.changePersistentIndexList(self.persistentIndexList(), new_persistent)
-
+    def update_dataframe(self, df: pd.DataFrame) -> None:
+        self.layoutAboutToBeChanged.emit()
+        self.df = df
+        self.build_df_index()
+        self.reset_hierarchy()
         self.layoutChanged.emit()
 
+    def group(self, columns: list[str] = None) -> None:
+        self.layoutAboutToBeChanged.emit()
+        self.grouped_columns = columns or self.grouped_columns
+        self.build_df_index()
+        self.reset_hierarchy()
+        self.layoutChanged.emit()
+
+    def ungroup(self) -> None:
+        self.layoutAboutToBeChanged.emit()
+        self.grouped_columns = []
+        self.build_df_index()
+        self.reset_hierarchy()
+        self.layoutChanged.emit()
 
     def sort(self, column: int | str, order: Qt.SortOrder = Qt.SortOrder.AscendingOrder) -> None:
         if self.df.empty:
             return
+
         # Extract the unique order of higher levels
         column_name = self.headerData(column) if isinstance(column, int) else column
         higher_levels = self.df.index.droplevel(-1).unique() if self.df.index.nlevels > 1 else [None]
 
         # Build a new index by sorting only within each higher level
         sorted_index = []
-        
+
         for lvl in higher_levels:
             mask = self.df.index.droplevel(-1) == lvl if lvl is not None else self.df.index
             partial_df = self.df.loc[mask, column_name or self.df.columns[0]].copy()
@@ -455,71 +390,130 @@ class ABTreeModel(QAbstractItemModel):
         self.layoutAboutToBeChanged.emit()
         if query is not None and key is not None:
             self.df_query[key] = query
-        
+
         pandas_query = " & ".join(self.df_query.values())
         filtered_df = self.df.query(pandas_query)
 
         self.reset_hierarchy(filtered_df)
         self.layoutChanged.emit()
-    
-    def set_dataframe(self, df: pd.DataFrame) -> None:
-        self.beginResetModel()
-        self.df = df
-        self.df.index = pd.MultiIndex.from_arrays([range(len(self.df))], names=[f"index"])
 
-        self.reset_hierarchy()
-        self.endResetModel()
-    
-    def group(self, columns: list[str]) -> None:
-        """Regroup the DataFrame by the specified columns.
-        
-        Unpacks columns containing iterables (lists, tuples, sets) by spreading them
-        into separate columns that become separate levels in the multiindex.
-        """
-        self.layoutAboutToBeChanged.emit()
-        df = self.df[columns].copy()
-        
-        # Build the list of columns for the new index, unpacking iterables
-        for col in columns:              
+    def build_df_index(self):
+        # dataframe we will use to build the new index
+        df = self.df[self.grouped_columns].copy()
+
+        # unpack iterables in the grouped columns
+        for col in self.grouped_columns:
             # Check if the column contains iterables (excluding strings)
             sample_val = df[col].dropna().iloc[0] if not df[col].dropna().empty else None
-
             if not isinstance(sample_val, (list, tuple, set)):
                 continue
 
-            # Unpack the iterable into separate columns
+            # Unpack the iterable into separate columns and add to the dataframe
             unpacked = pd.DataFrame(df[col].tolist(), index=df.index)
-            
-            # Name the new columns
-            unpacked.columns = [f"{col}_{i}" for i in range(len(unpacked.columns))]
-           
-            # Add unpacked columns to the dataframe
-            for unpacked_col in unpacked.columns:
-                df[unpacked_col] = unpacked[unpacked_col]
-            
+            for i, unpacked_col in enumerate(unpacked.columns):
+                df[f"{col}_{i}"] = unpacked[unpacked_col]
+
             # Remove the original column from the dataframe
             df = df.drop(columns=[col])
-        
-        levels = list(df.columns) + list(df.index.names)
 
-        df = df.reset_index()
-        df = df[levels]
+        df["index"] = range(len(df))
 
         new_index = pd.MultiIndex.from_frame(df)
-        new_index.names = [i+"_i" if not i.endswith("_i") else i for i in new_index.names]
+        new_index.names = [i + "_i" for i in new_index.names]
 
-        self.df = self.df.set_index(new_index)
+        self.df.index = new_index
 
-        self.reset_hierarchy()
-        self.layoutChanged.emit()
-    
-    def ungroup(self) -> None:
-        """Ungroup the DataFrame by resetting the index."""
-        self.layoutAboutToBeChanged.emit()
-        self.df.index = pd.MultiIndex.from_arrays([range(len(self.df))], names=[f"index"])
-        self.df.index.name = "index"
-        self.reset_hierarchy()
-        self.layoutChanged.emit()
+    def reset_hierarchy(self, df: pd.DataFrame = None) -> None:
+        df = df if df is not None else self.df
+        old_persistent_indices = [(idx, idx.internalPointer()) for idx in self.persistentIndexList()]
+
+        # Rebuild the node hierarchy
+        self.root = TreeNode(tuple())
+        self.build_node_hierarchy(df.index)
+
+        # Update persistent indexes
+        new_persistent = []
+        for old_index, old_node in old_persistent_indices:
+            if isinstance(old_node, TreeNode):
+                # Try to find the same path in the new hierarchy
+                new_node = self.node_map.get(old_node.path)
+                if new_node is not None:
+                    new_index = self.createIndex(new_node.row_in_parent, old_index.column(), new_node)
+                    new_persistent.append(new_index)
+                else:
+                    new_persistent.append(QModelIndex())
+            else:
+                new_persistent.append(QModelIndex())
+
+        # Update the model's persistent indexes
+        self.changePersistentIndexList(self.persistentIndexList(), new_persistent)
+
+    def build_node_hierarchy(self, pandas_index: pd.Index) -> None:
+        """
+        Build the unified TreeNode hierarchy with all information combined:
+        - children relationships
+        - row indices
+        - loaded counts
+        - DataFrame positions
+        """
+        self.node_map = {tuple(): self.root}
+
+        # Convert index to frame once for all operations
+        idx_df = pandas_index.to_frame(index=False)
+
+        # Create a mapping from full path to DataFrame position
+        path_to_position = {}
+        for row_tuple in idx_df.itertuples(index=False, name=None):
+            df_pos = self.df.index.get_loc(row_tuple)
+            path_to_position[row_tuple] = df_pos
+
+        # Process each level to build the hierarchy
+        for level in range(idx_df.shape[1]):
+            # Get unique child paths at this level (as tuples)
+            child_paths = idx_df.iloc[:, :level + 1].drop_duplicates()
+            child_tuples = list(child_paths.itertuples(index=False, name=None))
+
+            for child_path in child_tuples:
+                if pd.isna(child_path[-1]):
+                    continue  # skip NaN children
+
+                # Skip if we've already created this node
+                if child_path in self.node_map:
+                    continue
+
+                # Determine parent path
+                if level == 0:
+                    parent_path = tuple()
+                else:
+                    parent_path = tuple(val for val in child_path[:-1] if not pd.isna(val))
+
+                # Get or create parent node
+                parent_node = self.node_map.get(parent_path)
+                if parent_node is None:
+                    parent_node = self.root
+
+                # Check if this is a leaf node (full depth)
+                is_leaf = (level == idx_df.shape[1] - 1)
+                df_position = path_to_position.get(child_path, -1) if is_leaf else -1
+
+                # Create the child node
+                child_node = TreeNode(child_path, df_position)
+
+                # Add child to parent
+                parent_node.add_child(child_node)
+
+                # Store in node map
+                self.node_map[child_path] = child_node
+
+        # Initialize loaded counts
+        if self.lazy:
+            # Load first chunk for each node
+            for node in self.node_map.values():
+                node.loaded_count = min(self.chunk_size, node.total_children())
+        else:
+            # All children loaded
+            for node in self.node_map.values():
+                node.loaded_count = node.total_children()
     
     def values_from_indices(self, key: str, indices: list[QModelIndex]):
         """
