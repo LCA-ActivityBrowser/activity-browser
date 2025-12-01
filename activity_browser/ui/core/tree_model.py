@@ -60,6 +60,8 @@ class ABTreeModel(QAbstractItemModel):
         self.df_query: dict[str, str] = {"model": "index == index"}  # dictionary where queries can be registered
         self.filtered_columns: set[int] = set()  # set of column indices that have active filters, only used for the header icon
         self.grouped_columns: list[str] = []  # list of columns currently used for grouping
+        self.sorted_column: str | None = None
+        self.sort_order = Qt.SortOrder.AscendingOrder
 
         self.lazy = chunk_size > 0
         self.chunk_size = chunk_size
@@ -336,65 +338,63 @@ class ABTreeModel(QAbstractItemModel):
     def set_dataframe(self, df: pd.DataFrame) -> None:
         self.beginResetModel()
         self.df = df
+
         self.build_df_index()
-        self.reset_hierarchy()
+        self.apply_sort()
+        self.apply_filter()
+
         self.endResetModel()
 
     def update_dataframe(self, df: pd.DataFrame) -> None:
         self.layoutAboutToBeChanged.emit()
         self.df = df
+
         self.build_df_index()
-        self.reset_hierarchy()
+        self.apply_sort()
+        self.apply_filter()
+
         self.layoutChanged.emit()
 
     def group(self, columns: list[str] = None) -> None:
         self.layoutAboutToBeChanged.emit()
         self.grouped_columns = columns or self.grouped_columns
+
         self.build_df_index()
-        self.reset_hierarchy()
+        self.apply_sort()
+        self.apply_filter()
+
         self.layoutChanged.emit()
 
     def ungroup(self) -> None:
         self.layoutAboutToBeChanged.emit()
         self.grouped_columns = []
+
         self.build_df_index()
-        self.reset_hierarchy()
+        self.apply_sort()
+        self.apply_filter()
+
         self.layoutChanged.emit()
 
     def sort(self, column: int | str, order: Qt.SortOrder = Qt.SortOrder.AscendingOrder) -> None:
-        if self.df.empty:
-            return
+        self.layoutAboutToBeChanged.emit()
 
-        # Extract the unique order of higher levels
-        column_name = self.headerData(column) if isinstance(column, int) else column
-        higher_levels = self.df.index.droplevel(-1).unique() if self.df.index.nlevels > 1 else [None]
+        self.sorted_column = self.headerData(column) if isinstance(column, int) else column
+        self.sort_order = order
 
-        # Build a new index by sorting only within each higher level
-        sorted_index = []
+        self.apply_sort()
+        self.apply_filter()
 
-        for lvl in higher_levels:
-            mask = self.df.index.droplevel(-1) == lvl if lvl is not None else self.df.index
-            partial_df = self.df.loc[mask, column_name or self.df.columns[0]].copy()
-            if column_name is not None:
-                partial_df.sort_values(ascending=(order == Qt.SortOrder.AscendingOrder), inplace=True)
-            else:
-                partial_df = partial_df.sort_index(ascending=(order == Qt.SortOrder.AscendingOrder))
-            sorted_index.append(partial_df.index)
-
-        sorted_index = sorted_index[0].append(sorted_index[1:])  # Flatten
-        self.df = self.df.loc[sorted_index]  # Update dataframe to new sorted order
-        self.filter()
+        self.layoutChanged.emit()
 
     def filter(self, key: str = None, query: str = None) -> None:
         """Filter the DataFrame based on a simple substring match across all columns."""
         self.layoutAboutToBeChanged.emit()
+
         if query is not None and key is not None:
             self.df_query[key] = query
 
-        pandas_query = " & ".join(self.df_query.values())
-        filtered_df = self.df.query(pandas_query)
+        self.apply_filter()
 
-        self.reset_hierarchy(filtered_df)
         self.layoutChanged.emit()
 
     def build_df_index(self):
@@ -428,7 +428,6 @@ class ABTreeModel(QAbstractItemModel):
         old_persistent_indices = [(idx, idx.internalPointer()) for idx in self.persistentIndexList()]
 
         # Rebuild the node hierarchy
-        self.root = TreeNode(tuple())
         self.build_node_hierarchy(df.index)
 
         # Update persistent indexes
@@ -456,6 +455,7 @@ class ABTreeModel(QAbstractItemModel):
         - loaded counts
         - DataFrame positions
         """
+        self.root = TreeNode(tuple())
         self.node_map = {tuple(): self.root}
 
         # Convert index to frame once for all operations
@@ -514,7 +514,36 @@ class ABTreeModel(QAbstractItemModel):
             # All children loaded
             for node in self.node_map.values():
                 node.loaded_count = node.total_children()
+
+    def apply_filter(self):
+        pandas_query = " & ".join(self.df_query.values())
+        filtered_df = self.df.query(pandas_query)
+        self.reset_hierarchy(filtered_df)
+
+    def apply_sort(self):
+        if self.df.empty:
+            return
+
+        # Extract the unique order of higher levels
+        higher_levels = self.df.index.droplevel(-1).unique() if self.df.index.nlevels > 1 else [None]
+
+        # Build a new index by sorting only within each higher level
+        sorted_index = []
+
+        for lvl in higher_levels:
+            mask = self.df.index.droplevel(-1) == lvl if lvl is not None else self.df.index
+            partial_df = self.df.loc[mask, self.sorted_column or self.df.columns[0]].copy()
+            if self.sorted_column is not None:
+                partial_df.sort_values(ascending=(self.sort_order == Qt.SortOrder.AscendingOrder), inplace=True)
+            else:
+                partial_df = partial_df.sort_index(ascending=(self.sort_order == Qt.SortOrder.AscendingOrder))
+            sorted_index.append(partial_df.index)
+
+        sorted_index = sorted_index[0].append(sorted_index[1:])  # Flatten
+        self.df = self.df.loc[sorted_index]  # Update dataframe to new sorted order
     
+
+
     def values_from_indices(self, key: str, indices: list[QModelIndex]):
         """
         Returns the values from the given indices.
