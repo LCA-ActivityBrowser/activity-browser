@@ -431,7 +431,8 @@ class ExchangesView(widgets.ABTreeView):
         @property
         def exchanges(self):
             indexes = self.parent().selectedIndexes()
-            return list(set(idx.internalPointer().exchange for idx in indexes if idx.isValid()))
+            exchanges = [i.model().get(i, "_exchange") for i in indexes]
+            return list(set(exchanges))
 
     def __init__(self, parent):
         """
