@@ -136,7 +136,7 @@ class ABTreeView(QtWidgets.QTreeView):
         self.applyFilter()
 
     def buildQuery(self) -> str:
-        queries = ["(index == index)"]
+        queries = []
 
         # query for the column filters
         for col in list(self.columnFilters):
@@ -155,7 +155,7 @@ class ABTreeView(QtWidgets.QTreeView):
             formatted_filter = self.format_query(self.allFilter)
 
             for i, col in enumerate(self.model().columns()):
-                if self.isColumnHidden(i):
+                if col == "index" or self.isColumnHidden(i):
                     continue
                 all_queries.append(f"(`{col}`.astype('str').str.contains('{formatted_filter}', False))")
 
