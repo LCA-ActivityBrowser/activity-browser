@@ -30,7 +30,7 @@ class CardDelegate(QtWidgets.QStyledItemDelegate):
         line_height = fm.height()
 
         # Title (2 lines, larger font)
-        title_height = int(line_height * 1.3 * self.TITLE_LINES) + 5  # 1.3x for larger font
+        title_height = int(line_height * 1 * self.TITLE_LINES) + 5  # 1.3x for larger font
 
         # Subtitle
         subtitle_height = int(line_height * 0.9)  # 0.9x for smaller font
@@ -85,7 +85,7 @@ class CardDelegate(QtWidgets.QStyledItemDelegate):
         # Draw title (bold, larger, 2 lines)
         title = card_data.get('title', '')
         title_font = option.font
-        title_font.setPointSize(int(option.font.pointSize() * 1.3))
+        title_font.setPointSize(int(option.font.pointSize() * 1))
         title_font.setWeight(QtGui.QFont.Weight.DemiBold)
         painter.setFont(title_font)
         painter.setPen(option.palette.text().color())

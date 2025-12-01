@@ -553,15 +553,21 @@ class ProductModel(ui.core.ABTreeModel):
         
         if column_name not in ["name", "product", "node"]:
             return None
-        if column_name == "product" and node_type in ["product", "processwithreferenceproduct"]:
-            return icons.qicons.product
-        if column_name == "product" and node_type == "waste":
-            return icons.qicons.waste
-        if node_type == "processwithreferenceproduct":
+
+        if column_name == "name" and node_type in ["product", "waste"]:
+            return icons.qicons.process
+        if column_name in ["name", "node"] and node_type == "processwithreferenceproduct":
             return icons.qicons.processproduct
-        if node_type in NODETYPES["biosphere"]:
+        if column_name in ["name", "node"] and node_type in NODETYPES["biosphere"]:
             return icons.qicons.biosphere
-        return icons.qicons.process
+        if column_name == "name":
+            return icons.qicons.empty
+
+        if column_name in ["product", "node"] and node_type in ["product", "processwithreferenceproduct"]:
+            return icons.qicons.product
+        if column_name in ["product", "node"] and node_type == "waste":
+            return icons.qicons.waste
+        return icons.qicons.empty
     
     def toolTipData(self, index: QtCore.QModelIndex) -> str:
         column_name = self.column_name(index)
