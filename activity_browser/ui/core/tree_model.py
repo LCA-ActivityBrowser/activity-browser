@@ -541,8 +541,6 @@ class ABTreeModel(QAbstractItemModel):
 
         sorted_index = sorted_index[0].append(sorted_index[1:])  # Flatten
         self.df = self.df.loc[sorted_index]  # Update dataframe to new sorted order
-    
-
 
     def values_from_indices(self, key: str, indices: list[QModelIndex]):
         """

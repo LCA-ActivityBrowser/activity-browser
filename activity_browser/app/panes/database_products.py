@@ -150,12 +150,11 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
         df = self.build_df()
 
         if self.search_bar.toPlainText().strip():
-            self.model.sorted_column = None  # Reset sorting when searching
+            # Reset sorting when searching
+            self.model.sorted_column = None
+            self.model.sort_order = Qt.SortOrder.AscendingOrder
 
-        if self.model.df.empty:
-            self.model.set_dataframe(df)
-        else:
-            self.model.update_dataframe(df)
+        self.model.set_dataframe(df)
 
         self.table_view.header().setHidden(self.simple)
         self.table_view.viewport().setBackgroundRole(
