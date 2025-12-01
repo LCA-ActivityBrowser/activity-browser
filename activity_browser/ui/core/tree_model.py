@@ -191,10 +191,10 @@ class ABTreeModel(QAbstractItemModel):
     
     def displayData(self, index: QModelIndex) -> any:
             node = index.internalPointer()
-            
+
             if not isinstance(node, TreeNode):
                 return None
-            
+
             if not node.is_leaf: # branch node
                 # For branch nodes, show the name in the first column only
                 # (spanning will be handled by the view)

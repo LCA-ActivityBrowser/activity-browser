@@ -71,7 +71,6 @@ class ABTreeView(QtWidgets.QTreeView):
 
         super().__init__(parent)
         self.setIndentation(10)
-        self.setUniformRowHeights(True)
         self.setItemDelegate(delegates.StringDelegate(self))
 
         self.setContextMenuPolicy(QtCore.Qt.ContextMenuPolicy.CustomContextMenu)
@@ -96,6 +95,7 @@ class ABTreeView(QtWidgets.QTreeView):
 
         model.modelAboutToBeReset.connect(self.clearColumnDelegates)
         model.modelReset.connect(self.setDefaultColumnDelegates)
+        model.modelReset.connect(self.updateBranchSpanning, QtCore.Qt.ConnectionType.QueuedConnection)
         model.layoutChanged.connect(self.updateIndexColumnVisibility)
         model.layoutChanged.connect(self.updateBranchSpanning, QtCore.Qt.ConnectionType.QueuedConnection)
 

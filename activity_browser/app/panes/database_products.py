@@ -149,7 +149,13 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
         t = time()
         df = self.build_df()
 
-        self.model.set_dataframe(df)
+        if self.search_bar.toPlainText().strip():
+            self.model.sorted_column = None  # Reset sorting when searching
+
+        if self.model.df.empty:
+            self.model.set_dataframe(df)
+        else:
+            self.model.update_dataframe(df)
 
         self.table_view.header().setHidden(self.simple)
         self.table_view.viewport().setBackgroundRole(
@@ -179,7 +185,7 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
         t = time()
         cols = ["name", "key", "processor", "product", "type", "unit", "location", "id", "categories", "properties"]
 
-        query = self.search_bar.toPlainText()
+        query = self.search_bar.toPlainText().strip()
         if query:
             df = app.metadata.search_database(query, self.database.name, cols)
         else:
@@ -503,6 +509,9 @@ class ProductModel(ui.core.ABTreeModel):
             return super().displayData(index)
 
         row = self.row(index)
+
+        if row is None:
+            return None
 
         # Get the product or name for title
         title = row.get("product") or row.get("name")
