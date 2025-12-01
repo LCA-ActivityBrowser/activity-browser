@@ -98,6 +98,7 @@ class ABTreeView(QtWidgets.QTreeView):
         model.modelReset.connect(self.updateBranchSpanning, QtCore.Qt.ConnectionType.QueuedConnection)
         model.layoutChanged.connect(self.updateIndexColumnVisibility)
         model.layoutChanged.connect(self.updateBranchSpanning, QtCore.Qt.ConnectionType.QueuedConnection)
+        model.rowsInserted.connect(self.updateBranchSpanningForInsertedRows, QtCore.Qt.ConnectionType.QueuedConnection)
 
         self.setDefaultColumnDelegates()
         self.updateIndexColumnVisibility()
@@ -215,6 +216,26 @@ class ABTreeView(QtWidgets.QTreeView):
         # Recursively set spanning for all branch nodes
         self._setSpanningRecursive(QtCore.QModelIndex())
     
+    def updateBranchSpanningForInsertedRows(self, parent: QtCore.QModelIndex, first: int, last: int):
+        """Update spanning for newly inserted rows during lazy loading."""
+        model = self.model()
+        if model is None or not hasattr(model, 'isBranchNode'):
+            return
+
+        # Set spanning for the newly inserted rows
+        for row in range(first, last + 1):
+            index = model.index(row, 0, parent)
+            if not index.isValid():
+                continue
+
+            # Check if this is a branch node
+            if model.isBranchNode(index):
+                self.setFirstColumnSpanned(row, parent, True)
+                # Recursively process children of this branch node
+                self._setSpanningRecursive(index)
+            else:
+                self.setFirstColumnSpanned(row, parent, False)
+
     def _setSpanningRecursive(self, parent: QtCore.QModelIndex):
         """Recursively set first column spanning for branch nodes."""
         model = self.model()
