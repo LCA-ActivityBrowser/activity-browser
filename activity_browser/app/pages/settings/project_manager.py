@@ -53,11 +53,11 @@ class ProjectManagerSettingsChapter(BaseSettingsChapter):
     def sync(self):
         """Sync project and template data."""
         df = self.build_project_df()
-        self.project_model.set_dataframe(df, sort=self.project_model.df.empty)
+        self.project_model.set_dataframe(df)
         self.project_view.resizeColumnToContents(1)
         
         df = self.build_template_df()
-        self.template_model.set_dataframe(df, sort=self.template_model.df.empty)
+        self.template_model.set_dataframe(df)
         self.template_view.resizeColumnToContents(1)
 
     def reset(self):

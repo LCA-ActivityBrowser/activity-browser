@@ -156,7 +156,7 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
             self.model.sorted_column = None
             self.model.sort_order = Qt.SortOrder.AscendingOrder
 
-        self.model.set_dataframe(df, sort=self.model.df.empty)
+        self.model.set_dataframe(df)
 
         self.update_table_style()
         self.update_column_visibility()

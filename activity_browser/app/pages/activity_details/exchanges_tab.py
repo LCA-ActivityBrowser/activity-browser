@@ -1,3 +1,4 @@
+from PySide6.QtCore import QModelIndex
 from loguru import logger
 from typing import Literal
 
@@ -203,7 +204,10 @@ class ExchangesTab(QtWidgets.QWidget):
         if database_is_locked(self.activity["database"]):
             return
 
-        if not event.mimeData().hasFormat("application/bw-nodekeylist"):
+        has_nodes = event.mimeData().hasFormat("application/bw-nodekeylist")
+        has_exchanges = event.mimeData().hasFormat("application/bw-exchangelist")
+
+        if not has_nodes and not has_exchanges:
             return
 
         event.accept()
@@ -240,7 +244,10 @@ class ExchangesTab(QtWidgets.QWidget):
         Args:
             event: The drag move event.
         """
-        if not event.mimeData().hasFormat("application/bw-nodekeylist"):
+        has_nodes = event.mimeData().hasFormat("application/bw-nodekeylist")
+        has_exchanges = event.mimeData().hasFormat("application/bw-exchangelist")
+
+        if not has_nodes and not has_exchanges:
             return
 
         if self.input_view.overlay.hovering():
@@ -534,6 +541,12 @@ class ExchangesView(widgets.ABTreeView):
         super().__init__(parent)
         self.setSortingEnabled(True)
 
+        # Enable drag and drop
+        self.setDragEnabled(True)
+        self.setAcceptDrops(True)
+        self.setDragDropMode(QtWidgets.QAbstractItemView.DragDropMode.DragDrop)
+        self.setDefaultDropAction(Qt.DropAction.MoveAction)
+
         self.drag_drop_hint = QtWidgets.QLabel("Drag products here to create new exchanges.", self)
         fnt = self.drag_drop_hint.font()
         fnt.setPointSize(fnt.pointSize() + 2)
@@ -543,7 +556,7 @@ class ExchangesView(widgets.ABTreeView):
         # Set up the layout
         layout = QtWidgets.QVBoxLayout(self)
         layout.addStretch()
-        layout.addWidget(self.drag_drop_hint, alignment=Qt.AlignCenter)  # Center horizontally
+        layout.addWidget(self.drag_drop_hint, alignment=Qt.AlignmentFlag.AlignCenter)  # Center horizontally
         layout.addStretch()
 
         # Set the property delegate
@@ -574,7 +587,17 @@ class ExchangesView(widgets.ABTreeView):
             # Set the delegate for property columns
             self.setItemDelegateForColumn(i, self.propertyDelegate)
 
+    def startDrag(self, supportedActions: Qt.DropAction) -> None:
+        """
+        Initiates a drag operation with the selected exchanges.
 
+        Args:
+            supportedActions: The supported drop actions.
+        """
+        if database_is_locked(self.activity["database"]):
+            return
+
+        super().startDrag(supportedActions)
 
 
 class ExchangesModel(core.ABTreeModel):
@@ -584,7 +607,32 @@ class ExchangesModel(core.ABTreeModel):
     def __init__(self, tab: ExchangesTab):
         super().__init__(parent=tab)
         self.tab = tab
-    
+
+    def mimeTypes(self) -> list[str]:
+        """
+        Returns the list of MIME types that this model supports.
+
+        Returns:
+            list[str]: List of supported MIME types.
+        """
+        return ["application/bw-exchangelist"]
+
+    def mimeData(self, indices: list[QtCore.QModelIndex]) -> core.ABMimeData:
+        """
+        Returns the MIME data for the given indices.
+
+        Args:
+            indices (list[QtCore.QModelIndex]): The indices to get the MIME data for.
+
+        Returns:
+            core.ABMimeData: The MIME data containing the exchanges.
+        """
+        data = core.ABMimeData()
+        exchanges = [self.get(index, "_exchange") for index in indices if index.isValid() and index.column() == 0]
+        exchanges = [exc for exc in exchanges if exc is not None]
+        data.setPickleData("application/bw-exchangelist", exchanges)
+        return data
+
     def setData(self, index: QtCore.QModelIndex, value, role: int = Qt.ItemDataRole.EditRole) -> bool:
         """
         Sets the data for the given index.
@@ -729,6 +777,9 @@ class ExchangesModel(core.ABTreeModel):
             return True
 
         return False
+
+    def indexDragEnabled(self, index: QModelIndex) -> bool:
+        return True
     
     def functional(self, index):
         """

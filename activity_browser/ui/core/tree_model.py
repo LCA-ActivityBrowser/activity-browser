@@ -335,24 +335,26 @@ class ABTreeModel(QAbstractItemModel):
         self.endInsertRows()
 
     # --- helper functions ---
-    def set_dataframe(self, df: pd.DataFrame, group: list[str] = None, sort = True) -> None:
+    def set_dataframe(self, df: pd.DataFrame, group: list[str] = None) -> None:
         self.beginResetModel()
+        first_init = len(self.df.columns) == 0 # detect first init, don't sort or filter because the view will do it anyway
+
         self.df = df
         self.grouped_columns = group or self.grouped_columns
 
         self.build_df_index()
-        sort and self.apply_sort()
-        sort and self.apply_filter()
+        first_init or self.apply_sort()
+        first_init or self.apply_filter()
 
         self.endResetModel()
 
-    def update_dataframe(self, df: pd.DataFrame, group: list[str] = None, sort = True) -> None:
+    def update_dataframe(self, df: pd.DataFrame, group: list[str] = None) -> None:
         self.layoutAboutToBeChanged.emit()
         self.df = df
         self.grouped_columns = group or self.grouped_columns
 
         self.build_df_index()
-        sort and self.apply_sort()
+        self.apply_sort()
         self.apply_filter()
 
         self.layoutChanged.emit()

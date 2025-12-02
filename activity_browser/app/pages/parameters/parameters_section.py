@@ -65,7 +65,7 @@ class ParametersSection(QtWidgets.QWidget):
         Synchronizes the widget with the current state of parameters.
         """
         df = self.build_df()
-        self.model.set_dataframe(df, group=["_param_type", "_scope"], sort=self.model.df.empty)
+        self.model.set_dataframe(df, group=["_param_type", "_scope"])
         self.view.expandAll()
 
         self.view.resizeColumnToContents(1)

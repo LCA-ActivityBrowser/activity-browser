@@ -62,7 +62,7 @@ class ParameterizedExchangesSection(QtWidgets.QWidget):
         Synchronizes the widget with the current state of parameterized exchanges.
         """
         df = self.build_exchanges_df()
-        self.model.set_dataframe(df, sort=self.model.df.empty)
+        self.model.set_dataframe(df)
 
     def build_exchanges_df(self) -> pd.DataFrame:
         """
