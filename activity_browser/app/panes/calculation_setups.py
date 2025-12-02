@@ -53,8 +53,7 @@ class CalculationSetupsPane(widgets.ABAbstractPane):
         Synchronizes the model with the current state of the calculation setups.
         """
         df = self.build_df()
-        df.reset_index(drop=True, inplace=True)
-        self.model.set_dataframe(df)
+        self.model.set_dataframe(df, sort=self.model.df.empty)
         self.view.resizeColumnToContents(0)
 
     def build_df(self) -> pd.DataFrame:

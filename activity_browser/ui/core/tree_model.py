@@ -335,22 +335,24 @@ class ABTreeModel(QAbstractItemModel):
         self.endInsertRows()
 
     # --- helper functions ---
-    def set_dataframe(self, df: pd.DataFrame) -> None:
+    def set_dataframe(self, df: pd.DataFrame, group: list[str] = None, sort = True) -> None:
         self.beginResetModel()
         self.df = df
+        self.grouped_columns = group or self.grouped_columns
 
         self.build_df_index()
-        self.apply_sort()
-        self.apply_filter()
+        sort and self.apply_sort()
+        sort and self.apply_filter()
 
         self.endResetModel()
 
-    def update_dataframe(self, df: pd.DataFrame) -> None:
+    def update_dataframe(self, df: pd.DataFrame, group: list[str] = None, sort = True) -> None:
         self.layoutAboutToBeChanged.emit()
         self.df = df
+        self.grouped_columns = group or self.grouped_columns
 
         self.build_df_index()
-        self.apply_sort()
+        sort and self.apply_sort()
         self.apply_filter()
 
         self.layoutChanged.emit()
@@ -523,6 +525,8 @@ class ABTreeModel(QAbstractItemModel):
     def apply_sort(self):
         if self.df.empty:
             return
+
+        print(f"Applying sorting in : {self.__class__.__name__}")
 
         # Extract the unique order of higher levels
         higher_levels = self.df.index.droplevel(-1).unique() if self.df.index.nlevels > 1 else [None]

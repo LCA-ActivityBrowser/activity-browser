@@ -47,10 +47,11 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
         self.simple = True
 
         # initialize the model
-        self.model = ProductModel(parent=self, chunk_size=50)
+        self.model = ProductModel(parent=self, chunk_size=20)
 
         # Create the QTableView and set the model
         self.table_view = ProductView(self, db_name=db_name)
+        self.table_view.setUniformRowHeights(True)
         self.table_view.setModel(self.model)
 
         self.search_bar = widgets.MetaDataAutoCompleteTextEdit(self)
@@ -119,8 +120,6 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
         app.signals.metadata.synced.connect(self.on_metadata_changed)
         app.signals.database.deleted.connect(self.on_database_deleted)
 
-        self.table_view.filtered.connect(self.search_error)
-        self.search_bar.textChangedDebounce.connect(self.search)
         self.view_toggle.checkStateChanged.connect(self.on_mode_switch)
 
     def on_metadata_changed(self, added, updated, deleted):
@@ -154,25 +153,37 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
             self.model.sorted_column = None
             self.model.sort_order = Qt.SortOrder.AscendingOrder
 
-        self.model.set_dataframe(df)
+        self.model.set_dataframe(df, sort=self.model.df.empty)
 
+        self.update_table_style()
+        self.update_column_visibility()
+
+        logger.debug(f"Synced DatabaseProductsPane in {time() - t:.2f} seconds")
+
+    def update_table_style(self):
         self.table_view.header().setHidden(self.simple)
         self.table_view.viewport().setBackgroundRole(
             QtGui.QPalette.ColorRole.Window if self.simple else QtGui.QPalette.ColorRole.Base)
         self.table_view.setFrameShape(
             QtWidgets.QFrame.Shape.NoFrame if self.simple else QtWidgets.QFrame.Shape.StyledPanel)
 
-        for col in self.model.columns():
-            if col == "index" or col == "node":
+    def update_column_visibility(self):
+        columns = self.model.columns()
+        df = self.model.df
+
+        for index, col in enumerate(columns):
+            if col == "index":
                 continue
-            index = self.model.columns().index(col)
+            if col == "node":
+                self.table_view.setColumnHidden(index, not self.simple)
+                continue
 
             if df[col].isna().all() or self.simple:
                 self.table_view.hideColumn(index)
             else:
                 self.table_view.showColumn(index)
 
-        logger.debug(f"Synced DatabaseProductsPane in {time() - t:.2f} seconds")
+        self.table_view.reset()
 
     def build_df(self) -> pd.DataFrame:
         """
@@ -208,9 +219,7 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
 
         df["node"] = None
 
-        cols = ["name", "product", "categories", "unit", "location", "key", "processor", "type"]
-        if self.simple:
-            cols += ["node"]
+        cols = ["name", "product", "categories", "unit", "location", "key", "processor", "type", "node"]
         cols += [col for col in df.columns if col.startswith("property")]
         cols += ["_id"]
 
@@ -236,31 +245,8 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
             check (Qt.CheckState): The check state of the toggle.
         """
         self.simple = check == Qt.CheckState.Unchecked
-        self.sync()
-
-    def search_error(self, reset=False):
-        """
-        Handles the search error by changing the search bar color.
-
-        Args:
-            reset (bool, optional): Whether to reset the search bar color. Defaults to False.
-        """
-        if reset:
-            self.search_bar.setPalette(app.application.palette())
-            return
-
-        palette = self.search_bar.palette()
-        palette.setColor(QtGui.QPalette.ColorRole.Base, QtGui.QColor(255, 128, 128))
-        self.search_bar.setPalette(palette)
-
-    def search(self, query: str):
-        """
-        Applies the search query to the table view.
-
-        Args:
-            query (str): The search query.
-        """
-        self.sync()
+        self.update_table_style()
+        self.update_column_visibility()
 
 
 class ProductView(ui.widgets.ABTreeView):
@@ -502,6 +488,7 @@ class ProductModel(ui.core.ABTreeModel):
     def indexDragEnabled(self, index: QtCore.QModelIndex) -> bool:
         return True
 
+    # -- data overrides ---
     def displayData(self, index: QModelIndex) -> any:
         column_name = self.column_name(index)
         if column_name != "node":
@@ -546,7 +533,6 @@ class ProductModel(ui.core.ABTreeModel):
             "categories": categories if categories else None,
         }
 
-    #-- data overrides ---
     def decorationData(self, index: QtCore.QModelIndex) -> any:
         column_name = self.column_name(index)
         node_type = self.get(index, "type")

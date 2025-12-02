@@ -55,20 +55,17 @@ class ParametersSection(QtWidgets.QWidget):
         Connects signals to their respective slots.
         """
         app.signals.metadata.synced.connect(self.sync)
+
         app.signals.parameter.changed.connect(self.sync)
         app.signals.parameter.recalculated.connect(self.sync)
         app.signals.parameter.deleted.connect(self.sync)
-        app.signals.project.changed.connect(self.sync)
-        app.signals.meta.databases_changed.connect(self.sync)
 
     def sync(self):
         """
         Synchronizes the widget with the current state of parameters.
         """
         df = self.build_df()
-        df.reset_index(drop=True, inplace=True)
-        self.model.set_dataframe(df)
-        self.model.group(["_param_type", "_scope"])
+        self.model.set_dataframe(df, group=["_param_type", "_scope"], sort=self.model.df.empty)
         self.view.expandAll()
 
         self.view.resizeColumnToContents(1)
@@ -91,7 +88,7 @@ class ParametersSection(QtWidgets.QWidget):
 
         # Database parameters
         for param in DatabaseParameter.select():
-            row = self._parameter_to_row(param, "{param.database}", param.database)
+            row = self._parameter_to_row(param, f"{param.database}", param.database)
             translated.append(row)
 
         # Activity parameters

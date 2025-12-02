@@ -46,7 +46,6 @@ class DatabasesPane(widgets.ABAbstractPane):
         Connects the signals to the appropriate slots.
         """
         app.signals.meta.databases_changed.connect(self.sync)
-        app.signals.project.changed.connect(self.sync)
         app.signals.database.deleted.connect(self.sync)
         app.signals.database_read_only_changed.connect(self.sync)
 
@@ -64,8 +63,7 @@ class DatabasesPane(widgets.ABAbstractPane):
         Synchronizes the model with the current state of the databases.
         """
         df = self.build_df()
-        df.reset_index(drop=True, inplace=True)
-        self.model.set_dataframe(df)
+        self.model.set_dataframe(df, sort=self.model.df.empty)
         self.view.resizeColumnToContents(1)
         self.view.header().setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeMode.Fixed)
 

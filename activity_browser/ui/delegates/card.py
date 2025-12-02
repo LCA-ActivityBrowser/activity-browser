@@ -23,14 +23,12 @@ class CardDelegate(QtWidgets.QStyledItemDelegate):
         if index.data() is None:
             return super().sizeHint(option, index)
 
-        card_data = index.data()
-
         # Calculate text heights
         fm = option.fontMetrics
         line_height = fm.height()
 
         # Title (2 lines, larger font)
-        title_height = int(line_height * 1 * self.TITLE_LINES) + 5  # 1.3x for larger font
+        title_height = int(line_height * 1 * self.TITLE_LINES) + 5
 
         # Subtitle
         subtitle_height = int(line_height * 0.9)  # 0.9x for smaller font

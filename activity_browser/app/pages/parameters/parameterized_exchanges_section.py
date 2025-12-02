@@ -54,16 +54,15 @@ class ParameterizedExchangesSection(QtWidgets.QWidget):
         app.signals.parameter.changed.connect(self.sync)
         app.signals.parameter.recalculated.connect(self.sync)
         app.signals.parameter.deleted.connect(self.sync)
-        app.signals.project.changed.connect(self.sync)
-        app.signals.meta.databases_changed.connect(self.sync)
+        # app.signals.project.changed.connect(self.sync)
+        # app.signals.meta.databases_changed.connect(self.sync)
 
     def sync(self):
         """
         Synchronizes the widget with the current state of parameterized exchanges.
         """
         df = self.build_exchanges_df()
-        df.reset_index(drop=True, inplace=True)
-        self.model.set_dataframe(df)
+        self.model.set_dataframe(df, sort=self.model.df.empty)
 
     def build_exchanges_df(self) -> pd.DataFrame:
         """

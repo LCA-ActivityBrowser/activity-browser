@@ -94,6 +94,7 @@ class ABTreeView(QtWidgets.QTreeView):
         self.header().setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeMode.Fixed)
 
         model.modelAboutToBeReset.connect(self.clearColumnDelegates)
+        model.modelReset.connect(self.updateIndexColumnVisibility)
         model.modelReset.connect(self.setDefaultColumnDelegates)
         model.modelReset.connect(self.updateBranchSpanning, QtCore.Qt.ConnectionType.QueuedConnection)
         model.layoutChanged.connect(self.updateIndexColumnVisibility)

@@ -46,8 +46,7 @@ class ImpactCategoriesPane(widgets.ABAbstractPane):
 
     def sync(self):
         df = self.build_df()
-        self.model.set_dataframe(df)
-        self.model.group(["_method_name"])
+        self.model.set_dataframe(df, group=["_method_name"], sort=self.model.df.empty)
 
     def build_df(self):
         df = pd.DataFrame(bd.methods.values())
