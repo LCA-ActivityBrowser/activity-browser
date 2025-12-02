@@ -75,6 +75,25 @@ class MetaDataStore:
         else:
             raise ValueError(f"Unknown action: {action}")
 
+    def flush_mutations(self) -> tuple[set[tuple[str, str]], set[tuple[str, str]], set[tuple[str, str]]]:
+        from activity_browser.bwutils import filesystem
+
+        if not (self._added or self._updated or self._deleted):
+            return set(), set(), set()
+
+        added = self._added.copy()
+        updated = self._updated.copy()
+        deleted = self._deleted.copy()
+
+        self._added.clear()
+        self._updated.clear()
+        self._deleted.clear()
+
+        cache_path = filesystem.get_project_ab_path() / "metadatastore_cache.pkl"
+        self.dataframe.to_pickle(cache_path)
+
+        return added, updated, deleted
+
     def match(self, **kwargs: dict[str, str]) -> pd.DataFrame:
         """Return a slice of the dataframe matching the criteria.
         """
@@ -145,6 +164,7 @@ class MetaDataStore:
         word = self.searcher.clean_text(word)
         completions = self.searcher.auto_complete(word, context=context, database=database)
         return completions
+
 
 def get_query_parameters(query: str) -> tuple[dict[str, str], str]:
     """Extract key-value pairs from a query string of the form 'key1:value1 key2:value2'."""

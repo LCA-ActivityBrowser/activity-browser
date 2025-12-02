@@ -36,6 +36,11 @@ class MDSLoader():
         self.primary_status = "loading"
         self.secondary_status = "loading"
 
+        # check for valid cache and load from it if available
+        if self._has_valid_cache():
+            self.cache_load_project()
+            return
+
         # start loading thread for secondary metadata
         thread = SecondaryLoadThread(
             databases=list(bd.databases),
@@ -46,6 +51,22 @@ class MDSLoader():
 
         # load primary metadata in the main thread
         self.primary_load_project()
+
+    def cache_load_project(self):
+        from activity_browser.bwutils import filesystem
+        logger.debug("Loading metadata from cache")
+
+        cache_path = filesystem.get_project_ab_path() / "metadatastore_cache.pkl"
+        self.mds.dataframe = pd.read_pickle(cache_path)
+
+        for idx in self.mds.dataframe.index:
+            self.mds.register_mutation(idx, "add")
+
+        self.primary_status = "done"
+        self.secondary_status = "done"
+
+        thread = threading.Thread(target=self._init_searcher)
+        thread.start()
 
     def primary_load_project(self):
         from bw2data.backends import sqlite3_lci_db
@@ -145,7 +166,41 @@ class MDSLoader():
 
     def _init_searcher(self):
         from .searcher import MDSSearcher
+
+        if hasattr(self.mds, 'searcher') and self.mds.searcher is not None:
+            old_searcher = self.mds.searcher
+            self.mds.searcher = None
+
+            # Clear large data structures
+            if hasattr(old_searcher, 'df'):
+                del old_searcher.df
+            if hasattr(old_searcher, 'identifier_to_word'):
+                del old_searcher.identifier_to_word
+            if hasattr(old_searcher, 'word_to_identifier'):
+                del old_searcher.word_to_identifier
+            if hasattr(old_searcher, 'word_to_q_grams'):
+                del old_searcher.word_to_q_grams
+            if hasattr(old_searcher, 'q_gram_to_word'):
+                del old_searcher.q_gram_to_word
+
+            del old_searcher
+
         self.mds.searcher = MDSSearcher(self.mds)
+
+    def _has_valid_cache(self) -> bool:
+        from activity_browser.bwutils import filesystem
+
+        cache_path = filesystem.get_project_ab_path() / "metadatastore_cache.pkl"
+        lci_path = filesystem.get_project_path() / "lci" / "databases.db"
+
+        if not cache_path.exists() or not lci_path.exists():
+            return False
+
+        cache_mtime = cache_path.stat().st_mtime
+        lci_mtime = lci_path.stat().st_mtime
+
+        return cache_mtime >= lci_mtime
+
 
 
 class SecondaryLoadThread(threading.Thread):
