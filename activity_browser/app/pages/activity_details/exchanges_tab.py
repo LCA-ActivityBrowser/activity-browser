@@ -1,4 +1,5 @@
 from loguru import logger
+from typing import Literal
 
 from qtpy import QtWidgets, QtGui, QtCore
 from qtpy.QtCore import Qt
@@ -8,7 +9,7 @@ import bw2data as bd
 
 import bw_functional as bf
 
-from activity_browser import app, app
+from activity_browser import app
 from activity_browser.bwutils.commontasks import refresh_node, database_is_locked, database_is_legacy, is_node_product, is_node_biosphere, parameters_in_scope
 from activity_browser.ui import widgets, icons, delegates, core
 
@@ -102,15 +103,20 @@ class ExchangesTab(QtWidgets.QWidget):
         production = self.activity.production()
         technosphere = self.activity.technosphere()
         biosphere = self.activity.biosphere()
+        substitution = self.activity.substitution()
 
         # Filter inputs and outputs based on the amount and type
         inputs = ([x for x in production if x["amount"] < 0] +
                   [x for x in technosphere if x["amount"] >= 0] +
-                  [x for x in biosphere if (x.input["type"] != "emission" and x["amount"] >= 0) or (x.input["type"] == "emission" and x["amount"] < 0)])
+                  [x for x in biosphere if (x.input["type"] != "emission" and x["amount"] >= 0) or (x.input["type"] == "emission" and x["amount"] < 0)] +
+                  [x for x in substitution if x["amount"] < 0]
+                  )
 
         outputs = ([x for x in production if x["amount"] >= 0] +
                    [x for x in technosphere if x["amount"] < 0] +
-                   [x for x in biosphere if (x.input["type"] == "emission" and x["amount"] >= 0) or (x.input["type"] != "emission" and x["amount"] < 0)])
+                   [x for x in biosphere if (x.input["type"] == "emission" and x["amount"] >= 0) or (x.input["type"] != "emission" and x["amount"] < 0)] +
+                   [x for x in substitution if x["amount"] >= 0]
+                   )
 
         # Update the models with the new data
         output_df = self.build_df(outputs)
@@ -197,10 +203,59 @@ class ExchangesTab(QtWidgets.QWidget):
         if database_is_locked(self.activity["database"]):
             return
 
-        if event.mimeData().hasFormat("application/bw-nodekeylist"):
-            self.overlay = widgets.ABDropOverlay(self)
-            self.overlay.show()
-            event.accept()
+        if not event.mimeData().hasFormat("application/bw-nodekeylist"):
+            return
+
+        event.accept()
+        action = self.action_from_mime(event.mimeData())
+
+        self.input_view.overlay.show()
+        self.output_view.overlay.show()
+
+        if action == "product":
+            self.output_view.overlay.setText("Drop to substitute production")
+            self.input_view.overlay.setText("Drop to consume product")
+            return
+
+        if action == "waste":
+            self.output_view.overlay.setText("Drop to produce waste")
+            self.input_view.overlay.setText("Drop to substitute waste consumption")
+            return
+
+        if action == "resource":
+            self.output_view.overlay.hide()
+            self.input_view.overlay.setText("Drop to consume natural resource")
+            return
+
+        if action == "emission":
+            self.input_view.overlay.hide()
+            self.output_view.overlay.setText("Drop to emit to environment")
+            return
+
+
+    def dragMoveEvent(self, event):
+        """
+        Handles the drag move event to adjust overlay opacity based on hover position.
+
+        Args:
+            event: The drag move event.
+        """
+        if not event.mimeData().hasFormat("application/bw-nodekeylist"):
+            return
+
+        if self.input_view.overlay.hovering():
+            self.input_view.overlay.setOpacity("high")
+            self.output_view.overlay.setOpacity("medium")
+        elif self.output_view.overlay.hovering():
+            self.output_view.overlay.setOpacity("high")
+            self.input_view.overlay.setOpacity("medium")
+        else:
+            self.input_view.overlay.setOpacity("medium")
+            self.output_view.overlay.setOpacity("medium")
+            event.ignore()
+            return
+
+        event.accept()
 
     def dragLeaveEvent(self, event):
         """
@@ -210,7 +265,8 @@ class ExchangesTab(QtWidgets.QWidget):
             event: The drag leave event.
         """
         # Reset the palette on drag leave
-        self.overlay.deleteLater()
+        self.input_view.overlay.hide()
+        self.output_view.overlay.hide()
 
     def dropEvent(self, event):
         """
@@ -220,21 +276,55 @@ class ExchangesTab(QtWidgets.QWidget):
             event: The drop event.
         """
         logger.debug(f"Dropevent from: {type(event.source()).__name__} to: {self.__class__.__name__}")
-        # Reset the palette on drop
-        self.overlay.deleteLater()
 
+        self.input_view.overlay.hide()
+        self.output_view.overlay.hide()
+
+        output = self.output_view.overlay.hovering()
         keys: list = event.mimeData().retrievePickleData("application/bw-nodekeylist")
-        exchanges = {"technosphere": set(), "biosphere": set()}
+        exchanges = {"technosphere": set(), "biosphere": set(), "substitution": set()}
 
         for key in keys:
-            if exc_type := get_exchange_type(key):
+            if exc_type := get_exchange_type(key, output=output):
                 exchanges[exc_type].add(key)
 
         # Run the action for new exchanges
         for exc_type, keys in exchanges.items():
             app.actions.ExchangeNew.run(keys, self.activity.key, exc_type)
 
-def get_exchange_type(activity_key: tuple) -> str | None:
+    def action_from_mime(self, mime: core.ABMimeData) -> Literal["product", "waste", "resource", "emission", "generic"]:
+        """
+        Determines the appropriate action based on the mime data.
+
+        Args:
+            mime (core.ABMimeData): The mime data.
+
+        """
+        keys = mime.retrievePickleData("application/bw-nodekeylist")
+        data = app.metadata.get_metadata(keys, ["type"])
+        data = set(data["type"].unique())
+        data.discard("process")
+        data.discard("multifunctional")
+        data.discard("nonfunctional")
+
+        if len(data) != 1:
+            return "generic"
+
+        node_type = data.pop()
+        if node_type in ["product", "processwithreferenceproduct"]:
+            return "product"
+        if node_type == "waste":
+            return "waste"
+        if node_type == "natural resource":
+            return "resource"
+        if node_type == "emission":
+            return "emission"
+        else:
+            return "generic"
+
+def get_exchange_type(activity_key: tuple, output=False) -> str | None:
+    if output and is_node_product(activity_key):
+        return "substitution"
     if is_node_product(activity_key):
         return "technosphere"
     elif is_node_biosphere(activity_key):
@@ -458,6 +548,8 @@ class ExchangesView(widgets.ABTreeView):
 
         # Set the property delegate
         self.propertyDelegate = delegates.PropertyDelegate(self)
+        self.overlay = widgets.ABDropOverlay(self)
+        self.overlay.hide()
 
     @property
     def activity(self):
@@ -481,6 +573,8 @@ class ExchangesView(widgets.ABTreeView):
                 continue
             # Set the delegate for property columns
             self.setItemDelegateForColumn(i, self.propertyDelegate)
+
+
 
 
 class ExchangesModel(core.ABTreeModel):
@@ -591,6 +685,12 @@ class ExchangesModel(core.ABTreeModel):
         Returns:
             QtGui.QFont: The font data for the index.
         """
+        if self.substituted(index):
+            font = QtGui.QFont()
+            font.setItalic(True)
+            font.setWeight(QtGui.QFont.Weight.DemiBold)
+            return font
+
         if self.functional(index):
             font = QtGui.QFont()
             font.setWeight(QtGui.QFont.Weight.DemiBold)
@@ -641,6 +741,18 @@ class ExchangesModel(core.ABTreeModel):
             bool: True if the index is functional, False otherwise.
         """
         return self.get(index, "_exchange_type") == "production"
+
+    def substituted(self, index):
+        """
+        Returns whether the index is functional.
+
+        Args:
+            index (QtCore.QModelIndex): The index to check.
+
+        Returns:
+            bool: True if the index is functional, False otherwise.
+        """
+        return self.get(index, "_exchange_type") == "substitution"
     
     def scoped_parameters(self, index):
         """
