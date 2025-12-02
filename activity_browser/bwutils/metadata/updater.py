@@ -9,7 +9,7 @@ from .fields import primary, secondary, all_types, search_engine_whitelist
 
 
 
-class MDSUpdater():
+class MDSUpdater:
     def __init__(self, mds: MetaDataStore):
         self.mds = mds
         self.connect_signals()

@@ -64,15 +64,13 @@ class MetaDataSignals(QObject):
         self._flusher.start()
 
     def _flush_metadata(self):
-        if not (self._metadata._added or self._metadata._updated or self._metadata._deleted):
+        added, updated, deleted = self._metadata.flush_mutations()
+
+        if not (added or updated or deleted):
             return
 
         t = time()
-        self.synced.emit(self._metadata._added, self._metadata._updated, self._metadata._deleted)
-
-        self._metadata._added.clear()
-        self._metadata._updated.clear()
-        self._metadata._deleted.clear()
+        self.synced.emit(added, updated, deleted)
 
         logger.debug(f"Metadatastore sync signal completed in {time() - t:.2f} seconds")
 
