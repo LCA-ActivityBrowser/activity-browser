@@ -307,10 +307,11 @@ class SearchEngine:
         # update the search index data
         self.update_index(data)
 
-    def remove_identifier(self, identifier) -> None:
+    def remove_identifier(self, identifier, logging=True) -> None:
         """Remove this identifier from self.df and the search index.
         """
-        t = time()
+        if logging:
+            t = time()
 
         # make sure the identifier exists
         if identifier not in self.df.index.to_list():
@@ -346,8 +347,9 @@ class SearchEngine:
         # finally, remove the identifier
         del self.identifier_to_word[identifier]
 
-        logger.debug(f"Search index updated in {time() - t:.2f} seconds "
-                      f"for 1 removed item ({len(self.df)} items ({self.size_of_index()}) currently).")
+        if logging:
+            logger.debug(f"Search index updated in {time() - t:.2f} seconds "
+                         f"for 1 removed item ({len(self.df)} items ({self.size_of_index()}) currently).")
 
     def change_identifier(self, identifier, data: pd.DataFrame) -> None:
         """Change this identifier.
@@ -381,7 +383,7 @@ class SearchEngine:
             update_data[col] = [value]
 
         # remove the entry
-        self.remove_identifier(identifier, loggerging=False)
+        self.remove_identifier(identifier, logging=False)
         # add entry with updated data
         self.add_identifier(update_data)
 
