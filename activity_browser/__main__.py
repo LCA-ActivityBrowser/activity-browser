@@ -118,7 +118,7 @@ def setup_logging():
     logger.add(sys.stderr, level="DEBUG", colorize=True,
                format="<green>{time:HH:mm:ss}</green> | <level>{level: <8}</level> | <level>{message}</level>")
 
-    log_dir = platformdirs.user_log_dir("ActivityBrowser", "ActivityBrowser")
+    log_dir = platformdirs.user_log_dir(appname="ActivityBrowser", appauthor="pylca")
     os.makedirs(log_dir, exist_ok=True)
     log_file = os.path.join(log_dir, "activity_browser.log")
     logger.add(log_file, level="DEBUG", rotation="5 MB", retention=5)
