@@ -1,7 +1,7 @@
 from typing import Optional
+from loguru import logger
 
 import pandas as pd
-import numpy as np
 
 from PySide6 import QtGui
 from PySide6.QtCore import QModelIndex, Qt, QAbstractItemModel
@@ -526,7 +526,7 @@ class ABTreeModel(QAbstractItemModel):
         if self.df.empty:
             return
 
-        print(f"Applying sorting in : {self.__class__.__name__}")
+        logger.debug(f"Applying sorting in : {self.__class__.__name__}")
 
         # Extract the unique order of higher levels
         higher_levels = self.df.index.droplevel(-1).unique() if self.df.index.nlevels > 1 else [None]
