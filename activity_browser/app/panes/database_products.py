@@ -1,5 +1,8 @@
+import threading
+
 from loguru import logger
 from time import time
+from threading import Thread
 
 import pandas as pd
 from qtpy import QtWidgets, QtCore, QtGui
@@ -588,7 +591,15 @@ class ProductModel(ui.core.ABTreeModel):
         data.setPickleData("application/bw-nodekeylist", list(keys))
 
         # Add HTML data for Excel with bold formatting
-        excel_string = nodes_to_excel(list(keys))
-        data.setHtml(excel_string)
+        thread = threading.Thread(target=self.set_excel_nodes_threaded, args=(data, keys))
+        thread.start()
 
         return data
+
+    @staticmethod
+    def set_excel_nodes_threaded(data, keys):
+        excel_string = nodes_to_excel(list(keys))
+        try:
+            data.setHtml(excel_string)
+        except RuntimeError:
+            pass
