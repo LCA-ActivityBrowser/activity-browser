@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 
 from .metadata import MetaDataStore
-from .fields import primary, secondary, all_types
+from .fields import primary, secondary, all_types, search_engine_whitelist
 
 
 
@@ -53,7 +53,7 @@ class MDSUpdater:
             
         try:
             # Create a Series with the key to match the delete_node signature
-            ds = pd.Series({"key": old.key}, name=old.key)
+            ds = pd.Series({"key": old.key, "id": old.id}, name=old.key)
             self.delete_node(ds)
         except KeyError:
             pass
@@ -81,14 +81,31 @@ class MDSUpdater:
         self.mds.dataframe.loc[ds.key] = ds
         self.mds.register_mutation(ds.key, "update")
 
+        if hasattr(self.mds, "searcher"):
+            search_engine_cols = list(
+                set(ds.keys()) & set(search_engine_whitelist))  # intersection becomes columns
+            data = pd.DataFrame([ds[search_engine_cols]])
+            self.mds.searcher.change_identifier(identifier=ds["id"], data=data)
+
     def add_node(self, ds: pd.Series):
         self._fix_categories(ds)
         self.mds.dataframe.loc[ds.key, :] = ds
         self.mds.register_mutation(ds.key, "add")
 
+        if hasattr(self.mds, "searcher"):
+            search_engine_cols = list(
+                set(ds.keys()) & set(search_engine_whitelist))  # intersection becomes columns
+            data = pd.DataFrame([ds[search_engine_cols]])
+            self.mds.searcher.add_identifier(data=data)
+
     def delete_node(self, ds: pd.Series):
         self.mds.dataframe = self.mds.dataframe.drop(ds.key)
         self.mds.register_mutation(ds.key, "delete")
+
+        if hasattr(self.mds, "searcher"):
+            id = ds["id"]
+            self.mds.searcher.remove_identifier(identifier=id)
+            self.mds.searcher.reset_all_caches(ds["database"])
 
     # database methods
     def add_database(self, db_name: str):

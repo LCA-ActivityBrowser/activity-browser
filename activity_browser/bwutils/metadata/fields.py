@@ -18,6 +18,13 @@ secondary_types = {
     "allocation_factor": float,
     "properties": object,
 }
+
+search_engine_whitelist = [
+            "id", "name", "synonyms", "unit", "key", "database",  # generic
+            "CAS number", "categories",  # biosphere specific
+            "product", "reference product", "classifications", "location", "properties"  # activity specific
+        ]
+
 all_types = {**primary_types, **secondary_types}
 
 primary = list(primary_types.keys())
