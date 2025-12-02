@@ -40,7 +40,7 @@ class MDSUpdater:
 
         if new.key in self.mds.dataframe.index and not all(node_data.dropna().eq(self.mds.dataframe.loc[new.key].dropna())):
             self.modify_node(node_data)
-        else:
+        elif new.key not in self.mds.dataframe.index:
             self.add_node(node_data)
 
     def on_signaleddataset_delete(self, sender, old):
