@@ -9,7 +9,7 @@ import pandas as pd
 from activity_browser.bwutils.searchengine import SearchEngine
 
 from .metadata import MetaDataStore
-from .fields import all
+from .fields import all_fields
 
 log = getLogger(__name__)
 
@@ -18,7 +18,7 @@ class MDSSearcher(SearchEngine):
 
     def __init__(self, mds: MetaDataStore):
         self.mds = mds
-        super().__init__(self.mds.dataframe, "id", all)
+        super().__init__(self.mds.dataframe, "id", all_fields)
 
     # caching for faster operation
     def database_id_manager(self, database):

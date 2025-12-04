@@ -29,4 +29,4 @@ all_types = {**primary_types, **secondary_types}
 
 primary = list(primary_types.keys())
 secondary = list(secondary_types.keys())
-all = primary + secondary
+all_fields = primary + secondary

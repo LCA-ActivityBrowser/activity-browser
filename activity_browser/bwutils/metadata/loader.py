@@ -8,7 +8,7 @@ from typing import Literal, Callable
 import pandas as pd
 
 from .metadata import MetaDataStore
-from .fields import secondary_types, primary, secondary
+from .fields import secondary_types, primary, secondary, search_engine_whitelist, all_fields
 
 
 class MDSLoader():
@@ -162,6 +162,12 @@ class MDSLoader():
 
         for idx in secondary_df.index:
             self.mds.register_mutation(idx, "update")
+
+        if hasattr(self.mds, "searcher"):
+            search_engine_cols = list(set(all_fields) & set(search_engine_whitelist))
+            df = self.mds.dataframe.loc[self.mds.dataframe["database"] == database, search_engine_cols]
+            self.mds.searcher.add_identifier(df)
+
 
     # utility functions
     def _fix_categories(self, df: pd.DataFrame):

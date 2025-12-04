@@ -3,7 +3,7 @@ from loguru import logger
 
 import pandas as pd
 
-from .fields import all, all_types
+from .fields import all_fields, all_types
 
 
 class MetaDataStore:
@@ -41,7 +41,7 @@ class MetaDataStore:
     @dataframe.setter
     def dataframe(self, df: pd.DataFrame) -> None:
         # Ensure all expected columns are present, in the correct order, and with the correct types
-        df = df.reindex(columns=all)[all].astype(all_types)
+        df = df.reindex(columns=all_fields)[all_fields].astype(all_types)
 
         # No NaN values in object columns, use None instead
         for col, col_type in all_types.items():
@@ -119,13 +119,13 @@ class MetaDataStore:
 
     def get_database_metadata(self, db_name: str, columns: list = None) -> pd.DataFrame:
         if db_name not in self.databases:
-            return pd.DataFrame(columns=columns or all)
-        return self.dataframe.loc[[db_name], columns or all]
+            return pd.DataFrame(columns=columns or all_fields)
+        return self.dataframe.loc[[db_name], columns or all_fields]
 
     def search(self, query: str, columns: list = None) -> pd.DataFrame:
         if not self.searcher:
             logger.warning(f"Attempted to search metadata before searcher was initialized.")
-            return pd.DataFrame(columns=columns or all)
+            return pd.DataFrame(columns=columns or all_fields)
 
         params, query = get_query_parameters(query)
         result = self.searcher.search(query)
@@ -134,14 +134,14 @@ class MetaDataStore:
     def search_database(self, query: str, database: str, columns: list = None) -> pd.DataFrame:
         if not self.searcher:
             logger.warning(f"Attempted to search metadata before searcher was initialized.")
-            return pd.DataFrame(columns=columns or all)
+            return pd.DataFrame(columns=columns or all_fields)
 
         params, query = get_query_parameters(query)
         result = self.searcher.fuzzy_search(query, database=database)
         return self._meta_from_result(params, result, columns)
 
     def _meta_from_result(self, params: dict, result: list[int], columns: list = None) -> pd.DataFrame:
-        df = self.dataframe.loc[self.dataframe["id"].isin(result), columns or all]
+        df = self.dataframe.loc[self.dataframe["id"].isin(result), columns or all_fields]
         df.sort_values(by="id", inplace=True, key=lambda x: x.map({id_: i for i, id_ in enumerate(result)}))
 
         extra_query = " & ".join(

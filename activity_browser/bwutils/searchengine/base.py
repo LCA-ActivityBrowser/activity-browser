@@ -301,7 +301,7 @@ class SearchEngine:
 
         # convert df
         data = data.set_index(self.identifier_name, drop=False)
-        data = data.fillna("")
+        data = data.astype(object).fillna("")
         data = data.astype(str)
 
         # update the search index data
