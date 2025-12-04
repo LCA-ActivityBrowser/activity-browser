@@ -52,7 +52,12 @@ class TreeNode:
 
 
 class ABTreeModel(QAbstractItemModel):
-    def __init__(self, df: pd.DataFrame = None, parent: Optional[QWidget] = None, chunk_size: int = -1) -> None:
+    def __init__(self,
+                 df: pd.DataFrame = None,
+                 parent: Optional[QWidget] = None,
+                 chunk_size: int = -1,
+                 enable_sorting: bool = False
+                 ) -> None:
         super().__init__(parent)
         self.df = df if df is not None else pd.DataFrame()
         self.df.index = pd.MultiIndex.from_arrays([range(len(self.df))], names=[f"index"])
@@ -60,9 +65,10 @@ class ABTreeModel(QAbstractItemModel):
         self.df_query: dict[str, str] = {"model": "index == index"}  # dictionary where queries can be registered
         self.filtered_columns: set[int] = set()  # set of column indices that have active filters, only used for the header icon
         self.grouped_columns: list[str] = []  # list of columns currently used for grouping
+
         self.sorted_column: str | None = None
         self.sort_order = Qt.SortOrder.AscendingOrder
-        self.was_sorted = False
+        self.sorting_enabled = enable_sorting
 
         self.lazy = chunk_size > 0
         self.chunk_size = chunk_size
@@ -338,7 +344,6 @@ class ABTreeModel(QAbstractItemModel):
     # --- helper functions ---
     def set_dataframe(self, df: pd.DataFrame, group: list[str] = None) -> None:
         self.beginResetModel()
-        first_init = not self.was_sorted # detect first init, don't sort or filter because the view will do it anyway
 
         self.df = df
         self.grouped_columns = group or self.grouped_columns
@@ -381,7 +386,9 @@ class ABTreeModel(QAbstractItemModel):
         self.layoutChanged.emit()
 
     def sort(self, column: int | str, order: Qt.SortOrder = Qt.SortOrder.AscendingOrder) -> None:
-        self.was_sorted = True
+        if not self.sorting_enabled:
+            logger.warning(f"Called sort() on {self.__class__.__name__} with sorting disabled.")
+            return
 
         self.layoutAboutToBeChanged.emit()
 
@@ -528,7 +535,7 @@ class ABTreeModel(QAbstractItemModel):
         self.reset_hierarchy(filtered_df)
 
     def apply_sort(self):
-        if self.df.empty:
+        if self.df.empty or not self.sorting_enabled:
             return
 
         logger.debug(f"Applying sorting in : {self.__class__.__name__}")

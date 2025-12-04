@@ -50,7 +50,7 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
         self.simple = True
 
         # initialize the model
-        self.model = ProductModel(parent=self, chunk_size=20)
+        self.model = ProductModel(parent=self, chunk_size=20, enable_sorting=True)
 
         # Create the QTableView and set the model
         self.table_view = ProductView(self, db_name=db_name)

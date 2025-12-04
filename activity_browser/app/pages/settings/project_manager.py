@@ -22,8 +22,8 @@ class ProjectManagerSettingsChapter(BaseSettingsChapter):
 
         self.tabs = QtWidgets.QTabWidget(self)
 
-        self.project_model = ProjectModel(parent=self)
-        self.template_model = TemplateModel(parent=self)
+        self.project_model = ProjectModel(parent=self, enable_sorting=True)
+        self.template_model = TemplateModel(parent=self, enable_sorting=True)
 
         self.project_view = ProjectView(self)
         self.project_view.setModel(self.project_model)
@@ -36,7 +36,6 @@ class ProjectManagerSettingsChapter(BaseSettingsChapter):
 
         self.build_layout()
         self.connect_signals()
-        self.reset()
 
     def build_layout(self):
         """Build the chapter layout."""
