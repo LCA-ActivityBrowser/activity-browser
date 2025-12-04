@@ -37,7 +37,7 @@ class MDSLoader():
         self.secondary_status = "loading"
 
         # check for valid cache and load from it if available
-        if self._has_valid_cache():
+        if self._has_cache():
             self.cache_load_project()
             return
 
@@ -54,10 +54,25 @@ class MDSLoader():
 
     def cache_load_project(self):
         from activity_browser.bwutils import filesystem
+        import bw2data as bd
+
         logger.debug("Loading metadata from cache")
 
         cache_path = filesystem.get_project_ab_path() / "metadatastore_cache.pkl"
-        self.mds.dataframe = pd.read_pickle(cache_path)
+        cached_df = pd.read_pickle(cache_path)
+
+        # quick sanity checks
+        try:
+            assert all(db in bd.databases for db in cached_df["database"].unique())
+            assert len(cached_df) == len(cached_df["id"].unique())
+            assert not cached_df.empty
+        except AssertionError:
+            logger.warning("Cache file is invalid or outdated, loading from database instead")
+            cache_path.unlink()
+            self.load_project()
+            return
+
+        self.mds.dataframe = cached_df
 
         for idx in self.mds.dataframe.index:
             self.mds.register_mutation(idx, "add")
@@ -187,7 +202,7 @@ class MDSLoader():
 
         self.mds.searcher = MDSSearcher(self.mds)
 
-    def _has_valid_cache(self) -> bool:
+    def _has_cache(self) -> bool:
         from activity_browser.bwutils import filesystem
 
         cache_path = filesystem.get_project_ab_path() / "metadatastore_cache.pkl"

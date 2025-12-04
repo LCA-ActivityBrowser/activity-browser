@@ -1,6 +1,6 @@
 primary_types = {
     "key": object,
-    "id": "int64",
+    "id": "Int64",
     "code": str,
     "database": "category",
     "location": "category",

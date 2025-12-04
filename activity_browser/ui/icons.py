@@ -4,7 +4,6 @@ from pathlib import Path
 from qtpy.QtCore import Qt, QSize
 from qtpy.QtGui import QIcon, QPixmap
 
-from activity_browser.bwutils.strategies import link_exchanges_without_db
 
 PACKAGE_DIR = Path(__file__).resolve().parents[1]
 

@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 
 from .metadata import MetaDataStore
-from .fields import primary, secondary, all_types, search_engine_whitelist
+from .fields import primary, secondary, all, all_types, search_engine_whitelist
 
 
 
