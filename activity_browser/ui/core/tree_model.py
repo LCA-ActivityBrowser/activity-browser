@@ -178,8 +178,8 @@ class ABTreeModel(QAbstractItemModel):
 
     #--- data overrides ---
     def data(self, index: QModelIndex, role: int = Qt.DisplayRole):
-        if not index.isValid() or self.df.empty:
-            return None
+        # if not index.isValid() or self.df.empty:
+        #     return None
         
         if role == Qt.DisplayRole:
             return self.displayData(index)

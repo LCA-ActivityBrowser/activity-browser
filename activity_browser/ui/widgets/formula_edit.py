@@ -56,7 +56,7 @@ class Colors:
 
 
 class ABFormulaEdit(QWidget):
-    def __init__(self, parent=None, scope=None, text=None):
+    def __init__(self, parent=None, scope=None, text=None, simple=False):
         super().__init__(parent)
         self.scope = scope or {}
         self.error = False
@@ -67,11 +67,15 @@ class ABFormulaEdit(QWidget):
         self.scroll_offset = 0  # Scroll position for long text
         self.padding = 5  # Left padding for text inside the box
         self.dragging = False  # Track if mouse is dragging
+        self.text = text or ""  # Stores user input
 
         font = self.font()
         font.setFamily("JetBrains Mono")
         font.setPointSize(9)
         self.setFont(font)
+
+        if simple:
+            return
 
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.toggle_cursor)
@@ -86,8 +90,6 @@ class ABFormulaEdit(QWidget):
         self.completer.setModel(self.completer_model)
         self.completer.setCompletionColumn(0)
         self.completer.activated.connect(self.insert_completion)
-
-        self.text = text or ""  # Stores user input
 
     @property
     def text(self):

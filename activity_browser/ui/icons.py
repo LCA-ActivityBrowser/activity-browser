@@ -93,9 +93,12 @@ class QIcons:
         if name == 'empty':
             return empty_icon()
         elif name in icons:
-            return QIcon(icons[name])
+            if name not in _initialized_icons:
+                _initialized_icons[name] = QIcon(icons[name])
+            return _initialized_icons[name]
         else:
             raise AttributeError(f"QIcons has no icon '{name}'")
 
+_initialized_icons = {}
 qicons = QIcons()
 
