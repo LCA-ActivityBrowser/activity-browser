@@ -202,7 +202,7 @@ class CharacterizationFactorsModel(core.ABTreeModel):
     A model representing the characterization factors data.
     """
     def __init__(self, page: ImpactCategoryDetailsPage):
-        super().__init__(parent=page)
+        super().__init__(parent=page, enable_sorting=True)
         self.page = page
 
     def sort(self, column: int, order: Qt.SortOrder = Qt.SortOrder.AscendingOrder) -> None:

@@ -37,6 +37,7 @@ class ParametersSection(QtWidgets.QWidget):
         self.model = ProjectParametersModel(parent=self)
         self.view = ProjectParametersView()
         self.view.setModel(self.model)
+        self.view.setUniformRowHeights(True)
 
         self.build_layout()
         self.connect_signals()
@@ -239,15 +240,6 @@ class ProjectParametersModel(core.ABTreeModel):
     """
     A model representing the data for all project parameters.
     """
-
-    def __init__(self, parent=None):
-        """
-        Initializes the ProjectParametersModel.
-
-        Args:
-            parent (QtWidgets.QWidget, optional): The parent widget. Defaults to None.
-        """
-        super().__init__(df=pd.DataFrame(), parent=parent)
 
     def setData(self, index: QtCore.QModelIndex, value, role: int = Qt.ItemDataRole.EditRole) -> bool:
         """
