@@ -54,7 +54,6 @@ class MDSLoader():
 
     def cache_load_project(self):
         from activity_browser.bwutils import filesystem
-        import bw2data as bd
 
         logger.debug("Loading metadata from cache")
 
@@ -62,12 +61,8 @@ class MDSLoader():
         cached_df = pd.read_pickle(cache_path)
 
         # quick sanity checks
-        try:
-            assert all(db in bd.databases for db in cached_df["database"].unique())
-            assert len(cached_df) == len(cached_df["id"].unique())
-            assert not cached_df.empty
-        except AssertionError:
-            logger.warning("Cache file is invalid or outdated, loading from database instead")
+        if not self._cache_check(cached_df):
+            logger.info("Cache file is invalid or outdated, loading from database instead")
             cache_path.unlink()
             self.load_project()
             return
@@ -215,6 +210,33 @@ class MDSLoader():
         lci_mtime = lci_path.stat().st_mtime
 
         return cache_mtime >= lci_mtime
+
+    def _cache_check(self, cached_df: pd.DataFrame) -> bool:
+        import bw2data as bd
+        from bw2data.backends import sqlite3_lci_db
+
+        if not all(db in bd.databases for db in cached_df["database"].unique()):
+            logger.warning("Cache file contains databases not in the current Brightway project")
+            return False
+
+        if not len(cached_df) == len(cached_df["id"].unique()):
+            logger.warning("Cache file contains duplicate IDs")
+            return False
+
+        if cached_df.empty:
+            logger.warning("Cache file is empty")
+            return False
+
+        with sqlite3.connect(sqlite3_lci_db._filepath) as con:
+            cursor = con.cursor()
+            cursor.execute("SELECT COUNT(*) FROM activitydataset")
+            count = cursor.fetchone()[0]
+
+        if count != len(cached_df):
+            logger.warning("Cache file row count does not match database row count")
+            return False
+
+        return True
 
 
 
