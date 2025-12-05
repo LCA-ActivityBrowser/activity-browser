@@ -9,7 +9,7 @@ class MetaDataStorePage(QtWidgets.QWidget):
         super().__init__(parent)
         self.setObjectName("MetaDataStorePage")
 
-        self.model = core.ABTreeModel(metadata.dataframe, self)
+        self.model = core.ABTreeModel(metadata.dataframe, self, chunk_size=50)
         self.view = MDSView(self)
         self.view.setModel(self.model)
 
