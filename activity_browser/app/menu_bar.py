@@ -1,9 +1,10 @@
 from importlib.metadata import version
 
 import bw2data as bd
+from PySide6 import QtCore
 
 from qtpy import QtGui, QtWidgets
-from qtpy.QtCore import QSize, QUrl
+from qtpy.QtCore import QSize, QUrl, Qt
 
 from activity_browser import app, app
 from activity_browser.bwutils.commontasks import get_templates
@@ -21,14 +22,21 @@ class MenuBar(QtWidgets.QMenuBar):
         self.project_menu = ProjectMenu(self)
         self.view_menu = ViewMenu(self)
         self.calculate_menu = CalculateMenu(self)
-        # self.tools_menu = ToolsMenu(self)
         self.help_menu = HelpMenu(self)
 
         self.addMenu(self.project_menu)
         self.addMenu(self.view_menu)
         self.addMenu(self.calculate_menu)
-        # self.addMenu(self.tools_menu)
         self.addMenu(self.help_menu)
+
+        self.search_button = QtWidgets.QPushButton(self)
+        self.search_button.setFlat(True)
+        self.search_button.setIcon(qicons.search)
+        self.search_button.setIconSize(QtCore.QSize(13, 13))
+        self.search_button.setToolTip("Search project (Ctrl+Shift+F)")
+        self.search_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.search_button.clicked.connect(app.actions.NodeSelectOpen.run)
+        self.setCornerWidget(self.search_button, Qt.Corner.TopRightCorner)
 
 
 class ProjectMenu(QtWidgets.QMenu):

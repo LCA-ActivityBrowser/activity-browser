@@ -14,10 +14,9 @@ class NodeSelectDialog(QtWidgets.QDialog):
         super().__init__(parent)
 
         self.setWindowFlags(
-            QtCore.Qt.WindowType.Sheet |
-            QtCore.Qt.WindowType.CustomizeWindowHint
+            QtCore.Qt.WindowType.Popup |
+            QtCore.Qt.WindowType.FramelessWindowHint
         )
-        self.setModal(True)
         self.setFixedWidth(400)
         self.setSizePolicy(QtWidgets.QSizePolicy.Policy.Maximum, QtWidgets.QSizePolicy.Policy.Maximum)
 
@@ -35,25 +34,16 @@ class NodeSelectDialog(QtWidgets.QDialog):
         self.tree_view.setDragEnabled(drag_enabled)
 
         layout = QtWidgets.QVBoxLayout(self)
-        layout.setContentsMargins(5, 0, 5, 0)
+        layout.setContentsMargins(5, 5, 5, 0)
         layout.addWidget(self.edit)
         layout.addWidget(self.tree_view)
         self.setLayout(layout)
 
         self.setFixedHeight(self.sizeHint().height())
 
-    # def showEvent(self, event):
-    #     """Position the dialog 200px higher than default centered position"""
-    #     super().showEvent(event)
-    #     if self.parent():
-    #         parent_rect = self.parent().geometry()
-    #         dialog_rect = self.geometry()
-    #
-    #         # Center horizontally, but move up 200px from center vertically
-    #         x = parent_rect.x() + (parent_rect.width() - dialog_rect.width()) // 2
-    #         y = parent_rect.y() + (parent_rect.height() - dialog_rect.height()) // 2 - 200
-    #
-    #         self.move(x, y)
+    def showEvent(self, event):
+        super().showEvent(event)
+        self.edit.setFocus()
 
     def on_search(self, text: str):
         if not text.strip():

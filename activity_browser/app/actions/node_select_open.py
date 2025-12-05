@@ -9,8 +9,8 @@ from .activity.activity_open import ActivityOpen
 
 class NodeSelectOpen(ABAction):
 
-    icon = qicons.right
-    text = "Open activity / activities"
+    icon = qicons.search
+    text = "Search project"
 
     @staticmethod
     @global_shortcut("Ctrl+Shift+F")
