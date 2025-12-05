@@ -124,6 +124,7 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
         app.signals.database.deleted.connect(self.on_database_deleted)
 
         self.view_toggle.checkStateChanged.connect(self.on_mode_switch)
+        self.search_bar.textChangedDebounce.connect(self.sync)
 
     def on_metadata_changed(self, added, updated, deleted):
         # Check if primary data has finished loading
