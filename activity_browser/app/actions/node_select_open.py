@@ -13,7 +13,7 @@ class NodeSelectOpen(ABAction):
     text = "Open activity / activities"
 
     @staticmethod
-    @global_shortcut("Ctrl+Shift+N")
+    @global_shortcut("Ctrl+Shift+F")
     @exception_dialogs
     def run():
         from activity_browser.app import dialogs
