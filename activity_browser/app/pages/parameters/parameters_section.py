@@ -2,7 +2,7 @@ from qtpy import QtWidgets, QtCore, QtGui
 from qtpy.QtCore import Qt
 import pandas as pd
 import bw2data as bd
-from bw2data.parameters import ProjectParameter, DatabaseParameter, ActivityParameter
+from bw2data.parameters import ProjectParameter, DatabaseParameter, ActivityParameter, Group
 
 from activity_browser import app
 from activity_browser.ui import widgets, icons, delegates, core
@@ -87,65 +87,68 @@ class ParametersSection(QtWidgets.QWidget):
             row = self._parameter_to_row(param)
             translated.append(row)
 
-        # Database parameters
-        for param in DatabaseParameter.select():
-            row = self._parameter_to_row(param, f"{param.database}", param.database)
-            translated.append(row)
-
-        # Activity parameters
-        for param in ActivityParameter.select():
-            row = self._parameter_to_row(param, f"Group: {param.group}", param.database)
-            translated.append(row)
-
-        columns = ["name", "amount", "formula", "uncertainty", "comment", "_parameter", "_scope", "_database", "_group", "_param_type"]
-        df = pd.DataFrame(translated, columns=columns)
-        df["_is_new"] = False
-
-        # Add "New parameter..." placeholders
-        new_rows = []
-
-        # Add for project
-        new_rows.append({
+        translated.append({
             "name": "New parameter...",
             "_group": "project",
             "_param_type": "project",
-            "_is_new": True,
+            "_class": "new",
         })
 
-        # Add for each database
-        for db_name in sorted(bd.databases.list):
-            if not bd.databases[db_name].get("read_only", True):
-                new_rows.append({
+        # Database parameters
+        db_params = DatabaseParameter.select()
+        for db_name in bd.databases.list:
+
+            for param in db_params.where(DatabaseParameter.database == db_name):
+                row = self._parameter_to_row(param, db_name, db_name)
+                translated.append(row)
+
+            if not database_is_locked(db_name):
+                translated.append({
                     "name": "New parameter...",
-                    "_scope": f"{db_name}",
+                    "_scope": db_name,
                     "_database": db_name,
                     "_group": db_name,
                     "_param_type": "database",
-                    "_is_new": True,
+                    "_class": "new",
                 })
 
-        # Add for each activity group
-        activity_params = df[df._scope.str.startswith("group: ", na=False)]
-        groups = activity_params._group.unique() if len(activity_params) > 0 else []
-        for group_name in sorted(groups):
-            group_data = activity_params[activity_params._group == group_name]
-            db_name = group_data.iloc[0]._database if len(group_data) > 0 else None
-            if db_name and db_name in bd.databases and not bd.databases[db_name].get("read_only", True):
-                new_rows.append({
-                    "name": "New parameter...",
-                    "_scope": f"group: {group_name}",
-                    "_database": db_name,
+        # Activity parameters
+        act_params = ActivityParameter.select()
+        groups = Group.select()
+        non_act = ["project"] + bd.databases.list
+
+        for group_name in [group.name for group in groups if group.name not in non_act]:
+            param = None
+
+            for param in act_params.where(ActivityParameter.group == group_name):
+                row = self._parameter_to_row(param, f"Group: {group_name}", param.database)
+                translated.append(row)
+
+            if param is None:
+                # No parameters in this group: broken group
+                translated.append({
+                    "name": "Broken parameter group",
+                    "_scope": f"Group: {group_name}",
+                    "_database": None,
                     "_group": group_name,
                     "_param_type": "activity",
-                    "_is_new": True,
+                    "_class": "broken",
+                })
+                continue
+
+            if not database_is_locked(param.database):
+                translated.append({
+                    "name": "New parameter...",
+                    "_scope": f"Group: {group_name}",
+                    "_database": param.database,
+                    "_group": group_name,
+                    "_param_type": "activity",
+                    "_class": "new",
                 })
 
-        # Append new rows to dataframe
-        if new_rows:
-            new_df = pd.DataFrame(new_rows)
-            df = pd.concat([df, new_df], ignore_index=True)
-
-        return df.sort_values(by="_param_type", key=lambda c: c.map({"project": 0, "database": 1, "activity": 2}))
+        columns = ["name", "amount", "formula", "uncertainty", "comment", "_parameter", "_scope", "_database", "_group", "_param_type", "_class"]
+        df = pd.DataFrame(translated, columns=columns)
+        return df
 
     def _parameter_to_row(self, param, scope_label: str = None, database: str = None) -> dict:
         """
@@ -188,6 +191,7 @@ class ParametersSection(QtWidgets.QWidget):
             "_scope": scope_label,
             "_database": database,
             "_group": group,
+            "_class": "instantiated",
         }
 
         return row
@@ -212,29 +216,55 @@ class ProjectParametersView(widgets.ABTreeView):
         """
         A context menu for the ProjectParametersView.
         """
+        menuSetup = [
+            lambda m, p: m.add(app.actions.ParameterDelete, p.selected_parameters(),
+                               text="Delete parameter(s)",
+                               enable=(all([p.deletable for p in p.selected_parameters()])
+                                      and len(p.selected_parameters()) > 0)
+                                      and all([not database_is_locked(p.database)
+                                               for p in p.selected_parameters()
+                                               if p.param_type != "project"
+                                               ])
+                               ),
+            lambda m, p: m.add(app.actions.ParameterGroupDelete, p.selected_groups(),
+                               text="Delete parameter group(s)",
+                               enable=(len(p.selected_groups()) > 0
+                                       and all([not database_is_locked(p.database)
+                                                for p in p.selected_parameters()
+                                                if p.param_type != "project"
+                                                ])
+                                       )
+                               ),
+        ]
 
-        def __init__(self, pos, view: "ProjectParametersView"):
-            """
-            Initializes the ContextMenu.
+    def selected_parameters(self):
+        """
+        Returns a list of selected parameters in the view.
 
-            Args:
-                pos: The position of the context menu.
-                view (ProjectParametersView): The view displaying the parameters.
-            """
-            super().__init__(view)
+        Returns:
+            list: A list of selected Parameter objects.
+        """
+        selected = []
+        for index in self.selectedIndexes():
+            parameter = self.model().get(index, "_parameter")
+            if parameter is not None and not pd.isna(parameter) and parameter not in selected:
+                selected.append(parameter)
 
-            index = view.indexAt(pos)
-            if index.isValid() and not view.model().isBranchNode(index):
-                row = view.model().row(index)
-                if row is not None and not row.get("_is_new"):
-                    parameter = row.get("_parameter")
-                    if parameter:
-                        param = refresh_parameter(parameter).to_peewee_model()
-                        self.del_param_action = app.actions.ParameterDelete().get_QAction(param)
-                        if not param.is_deletable() or param.name == "dummy_parameter":
-                            self.del_param_action.setEnabled(False)
-                        self.addAction(self.del_param_action)
+        return selected
 
+    def selected_groups(self):
+        """
+        Returns a list of selected parameter groups in the view.
+
+        Returns:
+            list: A list of selected parameter group names.
+        """
+        selected = set()
+        for index in self.selectedIndexes():
+            group = self.model().get(index, "_group")
+            group and selected.add(group)
+
+        return list(selected)
 
 class ProjectParametersModel(core.ABTreeModel):
     """
@@ -263,7 +293,7 @@ class ProjectParametersModel(core.ABTreeModel):
             return False
 
         # Handle "New parameter..." rows
-        if row.get("_is_new"):
+        if row.get("_class") == "new":
             if column_name != "name" or value == "":
                 return False
 
@@ -320,9 +350,15 @@ class ProjectParametersModel(core.ABTreeModel):
         Returns:
             QtGui.QFont: The font data for the index.
         """
-        if self.get(index, "_is_new"):
+        param_class = self.get(index, "_class")
+        if param_class == "new":
             font = QtGui.QFont()
             font.setWeight(QtGui.QFont.Weight.ExtraLight)
+            return font
+
+        if param_class == "broken":
+            font = QtGui.QFont()
+            font.setWeight(QtGui.QFont.Weight.Bold)
             return font
 
         return None
@@ -342,6 +378,10 @@ class ProjectParametersModel(core.ABTreeModel):
         # Check if database is locked
         database = self.get(index, "_database")
         if not pd.isna(database) and database_is_locked(database):
+            return False
+
+        # Prevent editing broken parameters
+        if self.get(index, "_class") == "broken":
             return False
 
         # Allow editing for specific columns
