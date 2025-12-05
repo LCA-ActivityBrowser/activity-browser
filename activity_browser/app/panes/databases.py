@@ -135,6 +135,7 @@ class DatabasesView(widgets.ABTreeView):
                                ),
             lambda m, p: m.add(app.actions.DatabaseDuplicate, p.selected_databases[0] if p.selected_databases else None,
                                enable=len(p.selected_databases) == 1),
+            lambda m, p: m.add(app.actions.DatabaseRelink, p.selected_databases[0] if p.selected_databases else None),
             lambda m, p: m.add(app.actions.DatabaseProcess, p.selected_databases[0] if p.selected_databases else None,
                                enable=len(p.selected_databases) == 1),
             lambda m: m.addSeparator(),
