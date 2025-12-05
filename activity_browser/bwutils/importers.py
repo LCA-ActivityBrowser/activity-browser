@@ -25,7 +25,7 @@ from .errors import LinkingFailed
 from .strategies import (alter_database_name, csv_rewrite_product_key,
                          hash_parameter_group, link_exchanges_without_db,
                          relink_exchanges_bw2package, relink_exchanges_with_db,
-                         rename_db_bw2package, parse_JSON_fields)
+                         rename_db_bw2package, parse_JSON_fields, metadatastore_link, alter_exchange_database_name)
 
 
 class ABExcelImporter(ExcelImporter):
@@ -163,23 +163,10 @@ class ABExcelImporter(ExcelImporter):
 
     def apply_linking(self, relink: dict):
         self.apply_strategies([
-            functools.partial(
-                link_iterable_by_fields,
-                other=bd.Database(bd.config.biosphere),
-                kind="biosphere",
-            ),
-            link_technosphere_by_activity_hash,
+            link_technosphere_by_activity_hash,  # internal linking
+            functools.partial(alter_exchange_database_name, linking_dict=relink),  # change db names
+            metadatastore_link,  # link using metadatastore
         ])
-
-        for db, new_db in relink.items():
-            if db == "(name missing)":
-                self.apply_strategy(
-                    functools.partial(link_exchanges_without_db, db=new_db)
-                )
-            else:
-                self.apply_strategy(
-                    functools.partial(relink_exchanges_with_db, old=db, new=new_db)
-                )
 
 
     def apply_strategies(self, strategies=None, verbose=False):
