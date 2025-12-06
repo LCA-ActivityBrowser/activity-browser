@@ -1,6 +1,7 @@
 from qtpy import QtWidgets
+from loguru import logger
 
-from activity_browser import app, app
+from activity_browser import app
 from activity_browser.ui import widgets, icons
 
 from .scenario_section import ScenarioSection
@@ -70,6 +71,8 @@ class CalculationSetupPage(QtWidgets.QWidget):
         self.run_button.released.connect(self.run_calculation)
 
     def sync(self) -> None:
+        logger.debug(f"Syncing {self.__class__.__name__}")
+
         self.functional_unit_section.sync()
         self.impact_category_section.sync()
 

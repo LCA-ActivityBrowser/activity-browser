@@ -1,4 +1,5 @@
 from qtpy import QtWidgets
+from loguru import logger
 
 from activity_browser.ui import widgets, delegates, core
 from activity_browser.app import metadata, signals
@@ -20,6 +21,7 @@ class MetaDataStorePage(QtWidgets.QWidget):
         signals.metadata.synced.connect(self.sync)
 
     def sync(self):
+        logger.debug(f"Syncing {self.__class__.__name__}")
         self.model.set_dataframe(metadata.dataframe)
 
     def build_layout(self):

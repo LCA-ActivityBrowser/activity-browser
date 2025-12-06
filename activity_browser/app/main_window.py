@@ -52,6 +52,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.connect_signals()
 
     def sync(self):
+        logger.debug(f"Syncing {self.__class__.__name__}")
         self.sync_panes()
         self.sync_pages()
 

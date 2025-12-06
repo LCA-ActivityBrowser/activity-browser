@@ -1,5 +1,5 @@
-from qtpy import QtWidgets, QtCore, QtGui
-from qtpy.QtCore import Qt
+from qtpy import QtWidgets, QtCore
+from loguru import logger
 
 import bw2data as bd
 import pandas as pd
@@ -45,6 +45,8 @@ class ImpactCategoriesPane(widgets.ABAbstractPane):
         app.signals.database_read_only_changed.connect(self.sync)
 
     def sync(self):
+        logger.debug(f"Syncing {self.__class__.__name__}")
+
         df = self.build_df()
         self.model.set_dataframe(df, group=["_method_name"])
 

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from loguru import logger
 
 import pandas as pd
@@ -51,6 +50,8 @@ class ProjectManagerSettingsChapter(BaseSettingsChapter):
 
     def sync(self):
         """Sync project and template data."""
+        logger.debug(f"Syncing {self.__class__.__name__}")
+
         df = self.build_project_df()
         self.project_model.set_dataframe(df)
         self.project_view.resizeColumnToContents(1)

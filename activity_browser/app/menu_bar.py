@@ -1,12 +1,12 @@
 from importlib.metadata import version
+from loguru import logger
 
 import bw2data as bd
-from PySide6 import QtCore
 
-from qtpy import QtGui, QtWidgets
+from qtpy import QtGui, QtWidgets, QtCore
 from qtpy.QtCore import QSize, QUrl, Qt
 
-from activity_browser import app, app
+from activity_browser import app
 from activity_browser.bwutils.commontasks import get_templates
 
 from ..ui.icons import qicons
@@ -167,6 +167,8 @@ class CalculateMenu(QtWidgets.QMenu):
         app.signals.meta.calculation_setups_changed.connect(self.sync)
 
     def sync(self):
+        logger.debug(f"Syncing {self.__class__.__name__}")
+
         self.cs_actions.clear()
         for cs in bd.calculation_setups:
             action = app.actions.CSOpen.get_QAction(cs)

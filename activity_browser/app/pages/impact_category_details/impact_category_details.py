@@ -1,5 +1,6 @@
 from qtpy import QtWidgets, QtGui, QtCore
 from qtpy.QtCore import Qt
+from loguru import logger
 
 import bw2data as bd
 import pandas as pd
@@ -46,6 +47,8 @@ class ImpactCategoryDetailsPage(QtWidgets.QWidget):
             self.deleteLater()
 
     def sync(self):
+        logger.debug(f"Syncing {self.__class__.__name__}")
+
         if self.name not in bd.methods:
             self.deleteLater()
             return

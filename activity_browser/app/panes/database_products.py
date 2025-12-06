@@ -149,6 +149,8 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
         """
         Synchronizes the widget with the current state of the database.
         """
+        logger.debug(f"Syncing {self.__class__.__name__}")
+
         t = time()
         df = self.build_df()
 

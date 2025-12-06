@@ -1,9 +1,10 @@
 from qtpy import QtWidgets, QtGui
+from loguru import logger
 
 import bw2data as bd
 import pandas as pd
 
-from activity_browser import app, app
+from activity_browser import app
 from activity_browser.ui import widgets, delegates, core
 
 
@@ -52,6 +53,7 @@ class CalculationSetupsPane(widgets.ABAbstractPane):
         """
         Synchronizes the model with the current state of the calculation setups.
         """
+        logger.debug(f"Syncing {self.__class__.__name__}")
         df = self.build_df()
         self.model.set_dataframe(df)
         self.view.resizeColumnToContents(0)

@@ -1,4 +1,5 @@
 from qtpy import QtWidgets, QtGui
+from loguru import logger
 
 import bw2data as bd
 
@@ -29,6 +30,8 @@ class DescriptionTab(QtWidgets.QTextEdit):
         """
         Synchronizes the widget with the current state of the activity.
         """
+        logger.debug(f"Syncing {self.__class__.__name__}")
+
         self.activity = refresh_node(self.activity)
         self.setText(self.activity.get("comment", ""))
         self.moveCursor(QtGui.QTextCursor.MoveOperation.End)

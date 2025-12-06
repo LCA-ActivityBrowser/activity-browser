@@ -1,5 +1,8 @@
+from loguru import logger
+
 from qtpy import QtWidgets, QtCore, QtGui
 from qtpy.QtCore import Qt
+
 import pandas as pd
 import bw2data as bd
 from bw2data.parameters import ProjectParameter, DatabaseParameter, ActivityParameter, Group
@@ -65,6 +68,8 @@ class ParametersSection(QtWidgets.QWidget):
         """
         Synchronizes the widget with the current state of parameters.
         """
+        logger.debug(f"Syncing {self.__class__.__name__}")
+
         df = self.build_df()
         self.model.set_dataframe(df, group=["_param_type", "_scope"])
         self.view.expandAll()

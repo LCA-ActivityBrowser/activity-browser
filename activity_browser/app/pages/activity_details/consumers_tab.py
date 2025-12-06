@@ -1,10 +1,11 @@
 from qtpy import QtWidgets
+from loguru import logger
 
 import pandas as pd
 import bw2data as bd
 import bw_functional as bf
 
-from activity_browser import app, app
+from activity_browser import app
 from activity_browser.bwutils.commontasks import refresh_node
 from activity_browser.ui import widgets, icons, core
 
@@ -51,6 +52,8 @@ class ConsumersTab(QtWidgets.QWidget):
         """
         Synchronizes the widget with the current state of the activity.
         """
+        logger.debug(f"Syncing {self.__class__.__name__}")
+
         self.activity = refresh_node(self.activity)
         exchanges = []
         if isinstance(self.activity, bf.Process):

@@ -1,4 +1,5 @@
 from qtpy import QtWidgets, QtCore
+from loguru import logger
 
 import pandas as pd
 import bw2data as bd
@@ -55,6 +56,8 @@ class DataTab(QtWidgets.QWidget):
         """
         Synchronizes the widget with the current state of the activity.
         """
+        logger.debug(f"Syncing {self.__class__.__name__}")
+
         self.activity = refresh_node(self.activity)
         df = self.build_df()
         df.reset_index(drop=True, inplace=True)
