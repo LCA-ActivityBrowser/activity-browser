@@ -4,6 +4,7 @@ import math
 import multiprocessing as mp
 import re
 import sys
+import threading
 from collections import Counter, OrderedDict, defaultdict
 from typing import Iterable, Optional
 from time import time
@@ -204,16 +205,23 @@ class SearchEngine:
         df["query_col"] = df.iloc[:, self.searchable_columns].astype(str).agg(" | ".join, axis=1)
         # clean all text at once using vectorized operations
         df["query_col"] = self.df_clean(df.loc[:, ["query_col"]])
-        # build the identifier_word_dict dictionary
-        identifier_word_dict = df["query_col"].apply(lambda text: Counter(text.split(" "))).to_dict()
+        # build the identifier_word_dict dictionary - filter out empty strings
+        identifier_word_dict = df["query_col"].apply(
+            lambda text: Counter(word for word in text.split(" ") if word)
+        ).to_dict()
         return identifier_word_dict, df
 
     def reverse_dict_many_to_one(self, dictionary: dict) -> dict:
         """Reverse a dictionary of Counter objects."""
+        logger.debug(f"reverse_dict_many_to_one called with {len(dictionary)} items")
         reverse = defaultdict(Counter)
         for identifier, counter_object in dictionary.items():
+            if not isinstance(counter_object, Counter):
+                logger.warning(f"Skipping non-Counter object for {identifier}: {type(counter_object)}")
+                continue
             for countable, count in counter_object.items():
-                reverse[countable][identifier] += count
+                if countable:  # skip empty strings
+                    reverse[countable][identifier] += count
         return dict(reverse)
 
     def list_to_q_grams(self, word_list: Iterable) -> dict:
@@ -315,8 +323,10 @@ class SearchEngine:
 
         # make sure the identifier exists
         if identifier not in self.df.index.to_list():
-            raise Exception(
-                f"Identifier '{identifier}' does not exist in the search data, cannot remove identifier that do not exist.")
+            logger.warning(
+                f"Identifier '{identifier}' does not exist in the search data, cannot remove identifier that do not exist."
+            )
+            return
 
         self.df = self.df.drop(identifier)
 
