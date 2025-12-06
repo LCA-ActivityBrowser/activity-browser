@@ -27,7 +27,7 @@ class ImpactCategorySection(QtWidgets.QWidget):
         self.setLayout(layout)
 
     def sync(self):
-        logger.debug(f"Syncing {self.__class__.__name__}")
+        logger.debug(f"Syncing {self.__class__.__name__}: {id(self)}")
 
         try:
             self.calculation_setup = bd.calculation_setups[self.calculation_setup_name]

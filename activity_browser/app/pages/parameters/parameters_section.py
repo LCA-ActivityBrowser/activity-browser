@@ -68,7 +68,7 @@ class ParametersSection(QtWidgets.QWidget):
         """
         Synchronizes the widget with the current state of parameters.
         """
-        logger.debug(f"Syncing {self.__class__.__name__}")
+        logger.debug(f"Syncing {self.__class__.__name__}: {id(self)}")
 
         df = self.build_df()
         self.model.set_dataframe(df, group=["_param_type", "_scope"])

@@ -71,7 +71,7 @@ class CalculationSetupPage(QtWidgets.QWidget):
         self.run_button.released.connect(self.run_calculation)
 
     def sync(self) -> None:
-        logger.debug(f"Syncing {self.__class__.__name__}")
+        logger.debug(f"Syncing {self.__class__.__name__}: {id(self)}")
 
         self.functional_unit_section.sync()
         self.impact_category_section.sync()

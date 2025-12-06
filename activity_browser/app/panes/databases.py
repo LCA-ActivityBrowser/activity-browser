@@ -65,7 +65,7 @@ class DatabasesPane(widgets.ABAbstractPane):
         """
         Synchronizes the model with the current state of the databases.
         """
-        logger.debug(f"Syncing {self.__class__.__name__}")
+        logger.debug(f"Syncing {self.__class__.__name__}: {id(self)}")
 
         df = self.build_df()
         self.model.set_dataframe(df)
