@@ -115,6 +115,8 @@ class MDSLoader:
 
     def load_database(self, database_name: str):
         from bw2data.backends import sqlite3_lci_db
+        self.primary_status = "loading"
+        self.secondary_status = "loading"
 
         # start loading thread for secondary metadata
         thread = SecondaryLoadThread(
@@ -143,6 +145,8 @@ class MDSLoader:
         for idx in primary_df.index:
             self.mds.register_mutation(idx, "add")
 
+        self.primary_status = "done"
+
     def secondary_load_database(self, secondary_df: pd.DataFrame, sqlite_db: str):
         from bw2data.backends import sqlite3_lci_db
 
@@ -159,7 +163,9 @@ class MDSLoader:
         logger.debug(f"Secondary metadata loaded with {len(secondary_df)} rows")
 
         self._fix_categories(secondary_df)
-        self.mds.dataframe.update(secondary_df)
+        df_copy = self.mds.dataframe.copy(deep=True)
+        df_copy.update(secondary_df)
+        self.mds.dataframe = df_copy
 
         for idx in secondary_df.index:
             self.mds.register_mutation(idx, "update")
@@ -169,6 +175,7 @@ class MDSLoader:
             df = self.mds.dataframe.loc[self.mds.dataframe["database"] == database, search_engine_cols]
             self.mds.searcher.add_identifier(df)
 
+        self.secondary_status = "done"
 
     # utility functions
     def _fix_categories(self, df: pd.DataFrame):
