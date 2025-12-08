@@ -38,7 +38,6 @@ class CalculationSetupsPane(widgets.ABAbstractPane):
         Connects the signals to the appropriate slots.
         """
         app.signals.meta.calculation_setups_changed.connect(self.sync)
-        app.signals.project.changed.connect(self.sync)
 
     def build_layout(self):
         """
