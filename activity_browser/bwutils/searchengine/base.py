@@ -1,10 +1,7 @@
 import itertools
 import functools
-import math
-import multiprocessing as mp
 import re
 import sys
-import threading
 from collections import Counter, OrderedDict, defaultdict
 from typing import Iterable, Optional
 from time import time
@@ -164,37 +161,13 @@ class SearchEngine:
             return [text]
         return list(text[i:i + q] for i in range(n - q + 1))
 
-    def df_clean_worker(self, df):
-        """Clean the text in query_col."""
-        df["query_col"] = df["query_col"].apply(self.clean_text)
-        return df
-
     def df_clean(self, df):
         """Clean the text in query_col.
 
         apply multi-processing when the computer is able and its relevant
         """
-        def chunk_dataframe(df: pd.DataFrame, chunk_size: int):
-            """Split DataFrame into chunks of specified size."""
-            return [df.iloc[i:i + chunk_size] for i in range(0, len(df), chunk_size)]
-
-        max_cores = max(1, mp.cpu_count() - 1)  # leave at least 1 core for other processes
-        min_chunk_size = 2500
-        if max_cores > 1 and len(df) > min_chunk_size * 2:
-            for i in range(max_cores, 0, -1):
-                chunk_size = int(math.ceil(len(df) / i))
-                if chunk_size >= min_chunk_size:
-                    break
-            use_cores = i
-        else:
-            use_cores = 1
-        if use_cores == 1:
-            return self.df_clean_worker(df)
-
-        chunks = chunk_dataframe(df, chunk_size)
-        with mp.Pool(processes=use_cores) as pool:
-            results = pool.starmap(self.df_clean_worker, [(chunk,) for chunk in chunks])
-        return pd.concat(results)
+        df["query_col"] = df["query_col"].apply(self.clean_text)
+        return df
 
     def words_in_df(self, df: pd.DataFrame = None) -> tuple[dict, pd.DataFrame]:
         """Return a dict of {identifier: word} for df."""
