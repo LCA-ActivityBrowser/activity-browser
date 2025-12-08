@@ -1,10 +1,14 @@
 from copy import deepcopy
+from importlib import reload
 
 import pytest
+import os
 
 import bw2data as bd
 import bw_functional as bf
 from bw2data.tests import bw2test
+
+os.environ["AB_SKIP_SETTINGS_ON_STARTUP"] = "1"
 
 
 @pytest.fixture
@@ -21,26 +25,19 @@ def no_exception_dialogs(monkeypatch):
 def main_window(qtbot, monkeypatch, no_exception_dialogs):
     """Return the main window of the application instance."""
     from activity_browser import app
-    from activity_browser.app import pages
-    from activity_browser.ui.widgets import CentralTabWidget
+    from activity_browser.bwutils.metadata import metadata
 
-    app.MainWindow._instance = None  # Reset singleton instance for testing
-    main_window = app.MainWindow()
-    central_widget = CentralTabWidget(parent=main_window)
+    # Reload modules to ensure a clean state for each test
+    reload(metadata)
+    reload(app.main)
+    reload(app)
 
-    qtbot.addWidget(main_window)
-    setattr(app.application, "main_window", main_window)
-    setattr(app, "main_window", main_window)
-
-    # central_widget.addTab(pages.WelcomePage(), "Welcome")
-    central_widget.addTab(pages.ParametersPage(), "Parameters")
-
-    main_window.setCentralWidget(central_widget)
-    main_window.show()
+    app.main_window.show()
 
     yield main_window
 
-    main_window.deleteLater()
+    app.main_window.deleteLater()
+
     qtbot.wait(10)
 
 @pytest.fixture

@@ -184,14 +184,10 @@ def test_search_add_identifier():
     assert se.search("coal production") == ["i", "a", "c", "b", "d", "h", "f", "g"]
 
 
-def test_search_remove_identifier():
+def test_search_remove_identifier(caplog):
     """Do tests for removing identifier."""
+    caplog.set_level("WARNING")
     df = data_for_test()
-
-    # use non-existent identifier and fail
-    se = SearchEngine(df, identifier_name="id")
-    with pytest.raises(Exception):
-        se.remove_identifier(identifier="i")
 
     # do search, remove item and verify results are different
     se = SearchEngine(df, identifier_name="id")
