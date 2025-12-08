@@ -40,13 +40,14 @@ def main_window(qtbot, monkeypatch, no_exception_dialogs):
 
     yield main_window
 
-    # main_window.close()
     main_window.deleteLater()
     qtbot.wait(10)
 
 @pytest.fixture
 @bw2test
 def basic_database(main_window):
+    import time
+    from activity_browser.app import metadata
     from fixtures.basic import DATABASE, METHOD, CALCULATION_SETUP
 
     db = bf.FunctionalSQLiteDatabase("basic")
@@ -60,6 +61,9 @@ def basic_database(main_window):
 
     bd.calculation_setups["basic_calculation_setup"] = CALCULATION_SETUP
     bd.calculation_setups.flush()
+
+    while metadata.loader.secondary_status != "done":
+        time.sleep(1)
 
     return db
 
