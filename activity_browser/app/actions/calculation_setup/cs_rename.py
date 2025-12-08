@@ -46,5 +46,4 @@ class CSRename(ABAction):
         # instruct the CalculationSetupController to rename the CS to the new name
         bd.calculation_setups[new_name] = bd.calculation_setups[cs_name].copy()
         del bd.calculation_setups[cs_name]
-        signals.calculation_setup_selected.emit(new_name)
         logger.info(f"Renamed calculation setup from {cs_name} to {new_name}")
