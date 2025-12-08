@@ -31,6 +31,7 @@ class DatabasesPane(widgets.ABAbstractPane):
         Args:
             parent (QtWidgets.QWidget): The parent widget.
         """
+        logger.debug(f"Initializing DatabasesPane: {id(self)}")
         super().__init__(parent)
         self.model = DatabasesModel(parent=self)
         self.view = DatabasesView()

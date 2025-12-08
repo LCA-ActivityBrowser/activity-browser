@@ -266,6 +266,7 @@ class MainWindow(QtWidgets.QMainWindow):
         Return a list of all panes in the main window.
         """
         from activity_browser.ui import widgets
+        QtWidgets.QApplication.processEvents()
         return self.findChildren(widgets.ABAbstractPane)
 
     def set_titlebar(self):

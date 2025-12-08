@@ -1,10 +1,13 @@
 from copy import deepcopy
 from importlib import reload
 
+import pandas as pd
 import pytest
 import os
 
 import bw2data as bd
+from PySide6 import QtCore
+
 import bw_functional as bf
 from bw2data.tests import bw2test
 
@@ -21,7 +24,7 @@ def no_exception_dialogs(monkeypatch):
     # No need to undo the monkeypatch, pytest does it automatically
 
 
-@pytest.fixture()
+@pytest.fixture
 def main_window(qtbot, monkeypatch, no_exception_dialogs):
     """Return the main window of the application instance."""
     from activity_browser import app
@@ -31,6 +34,7 @@ def main_window(qtbot, monkeypatch, no_exception_dialogs):
     reload(metadata)
     reload(app.main)
     reload(app)
+    metadata.df = pd.DataFrame()
 
     app.main_window.show()
 
@@ -42,10 +46,12 @@ def main_window(qtbot, monkeypatch, no_exception_dialogs):
 
 @pytest.fixture
 @bw2test
-def basic_database(main_window):
+def basic_database(qapp, main_window):
     import time
     from activity_browser.app import metadata
     from fixtures.basic import DATABASE, METHOD, CALCULATION_SETUP
+
+    qapp.processEvents(QtCore.QEventLoop.ProcessEventsFlag.AllEvents)
 
     db = bf.FunctionalSQLiteDatabase("basic")
     db.write(deepcopy(DATABASE), process=False)

@@ -42,12 +42,12 @@ class MDSLoader:
             return
 
         # start loading thread for secondary metadata
-        thread = SecondaryLoadThread(
+        self.thread = SecondaryLoadThread(
             databases=list(bd.databases),
             sqlite_db=str(sqlite3_lci_db._filepath),
             callback=self.secondary_load_project
         )
-        thread.start()
+        self.thread.start()
 
         # load primary metadata in the main thread
         self.primary_load_project()
@@ -75,8 +75,8 @@ class MDSLoader:
         self.primary_status = "done"
         self.secondary_status = "done"
 
-        thread = threading.Thread(target=self._init_searcher)
-        thread.start()
+        self.thread = threading.Thread(target=self._init_searcher)
+        self.thread.start()
 
     def primary_load_project(self):
         from bw2data.backends import sqlite3_lci_db
@@ -119,12 +119,12 @@ class MDSLoader:
         self.secondary_status = "loading"
 
         # start loading thread for secondary metadata
-        thread = SecondaryLoadThread(
+        self.thread = SecondaryLoadThread(
             databases=[database_name],
             sqlite_db=str(sqlite3_lci_db._filepath),
             callback=self.secondary_load_database
         )
-        thread.start()
+        self.thread.start()
 
         # load primary metadata in the main thread
         self.primary_load_database(database_name)
@@ -160,7 +160,7 @@ class MDSLoader:
             logger.debug("Secondary database metadata dropping rows")
             secondary_df = secondary_df[secondary_df.index.isin(indices)]
 
-        logger.debug(f"Secondary metadata loaded with {len(secondary_df)} rows")
+        logger.debug(f"Secondary metadata loaded with {len(secondary_df)} rows, adding to mds {id(self.mds)}")
 
         self._fix_categories(secondary_df)
         df_copy = self.mds.dataframe.copy(deep=True)
@@ -262,7 +262,6 @@ class SecondaryLoadThread(threading.Thread):
         self.databases = databases
         self.sqlite_db = sqlite_db
         self.callback = callback
-        self.result_df = None
     
     def run(self):
         """Execute the loading in a background thread."""
@@ -278,7 +277,6 @@ class SecondaryLoadThread(threading.Thread):
                 full_df = pd.concat([full_df, df])
 
             # Store result and call callback
-            self.result_df = full_df
             self.callback(full_df, self.sqlite_db)
             
         except Exception as e:
