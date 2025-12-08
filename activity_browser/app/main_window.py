@@ -1,7 +1,7 @@
 from pathlib import Path
 from loguru import logger
 
-from qtpy import QtCore, QtWidgets, QtGui
+from qtpy import QtCore, QtWidgets
 
 import bw2data as bd
 from activity_browser import app
@@ -50,6 +50,18 @@ class MainWindow(QtWidgets.QMainWindow):
         self.central_widget.tabCloseRequested.connect(self._on_tab_close_requested)
 
         self.connect_signals()
+        self.destroyed.connect(lambda: logger.warning("MainWindow destroyed"))
+
+    def event(self, event):
+        if event.type() == QtCore.QEvent.Type.DeferredDelete:
+            for page in self.base_pages.values():
+                logger.debug(f"Destroying base page {page.__class__.__name__}: {id(page)}")
+                try:
+                    page.deleteLater()
+                except RuntimeError:
+                    # page already deleted
+                    pass
+        return super().event(event)
 
     def sync(self):
         logger.debug(f"Syncing {self.__class__.__name__}: {id(self)}")
@@ -246,7 +258,10 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def clearPanes(self):
         for pane in self.panes():
+            logger.debug(f"Clearing pane {pane.__class__.__name__}: {id(pane)}")
             pane.deleteLater()
+
+        app.application.processEvents(QtCore.QEventLoop.ProcessEventsFlag.AllEvents)
 
     def panes(self):
         """
