@@ -4,7 +4,7 @@ from .buttons import ABCloseButton, ABMinimizeButton
 
 
 class ABTabWidget(QtWidgets.QTabWidget):
-    def __init__(self, name: str, *args):
+    def __init__(self, *args, **kwargs):
         """
         Initialize the GroupTabWidget.
 
@@ -12,7 +12,7 @@ class ABTabWidget(QtWidgets.QTabWidget):
             name (str): The name of the group, used as the object name for the widget.
             *args: Additional positional arguments passed to the parent QTabWidget.
         """
-        super().__init__(*args)
+        super().__init__(*args, **kwargs)
         self.setMovable(True)  # Allow tabs to be rearranged.
         self.setTabsClosable(True)  # Allow tabs to be closed.
         self.tabBar().setExpanding(False)
