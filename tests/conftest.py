@@ -26,7 +26,7 @@ def main_window(qtbot, monkeypatch, no_exception_dialogs):
 
     app.MainWindow._instance = None  # Reset singleton instance for testing
     main_window = app.MainWindow()
-    central_widget = CentralTabWidget(main_window)
+    central_widget = CentralTabWidget(parent=main_window)
 
     qtbot.addWidget(main_window)
     setattr(app.application, "main_window", main_window)
