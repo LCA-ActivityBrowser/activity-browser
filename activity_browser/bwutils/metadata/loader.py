@@ -11,7 +11,7 @@ from .metadata import MetaDataStore
 from .fields import secondary_types, primary, secondary, search_engine_whitelist, all_fields
 
 
-class MDSLoader():
+class MDSLoader:
     primary_status: Literal["idle", "loading", "done"] = "idle"
     secondary_status: Literal["idle", "loading", "done"] = "idle"
 
@@ -104,7 +104,8 @@ class MDSLoader():
 
         assert all(secondary_df.index.isin(self.mds.dataframe.index))
         logger.debug(f"Secondary metadata loaded with {len(secondary_df)} rows")
-        self.mds.dataframe = pd.concat([self.mds.dataframe[primary], secondary_df], axis=1)
+        left = self.mds.dataframe[primary].copy(deep=True)
+        self.mds.dataframe = pd.concat([left, secondary_df], axis=1)
 
         for idx in secondary_df.index:
             self.mds.register_mutation(idx, "update")
