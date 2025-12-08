@@ -261,8 +261,6 @@ class MainWindow(QtWidgets.QMainWindow):
             logger.debug(f"Clearing pane {pane.__class__.__name__}: {id(pane)}")
             pane.deleteLater()
 
-        app.application.processEvents(QtCore.QEventLoop.ProcessEventsFlag.AllEvents)
-
     def panes(self):
         """
         Return a list of all panes in the main window.
