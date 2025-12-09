@@ -122,6 +122,7 @@ class MDSLoader:
         self.secondary_status = "loading"
 
         if self.thread is not None and self.thread.is_alive():
+            logger.debug("Waiting for previous loading thread to finish")
             self.thread.join()
 
         # start loading thread for secondary metadata
