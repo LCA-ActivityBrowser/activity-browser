@@ -68,5 +68,8 @@ def basic_database(qapp, main_window):
     while metadata.loader.secondary_status != "done":
         time.sleep(1)
 
-    return db
+    yield db
+
+    if metadata.loader.thread.is_alive():
+        metadata.loader.thread.join()
 

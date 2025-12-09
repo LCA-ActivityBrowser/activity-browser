@@ -17,6 +17,7 @@ class MDSLoader:
 
     def __init__(self, mds: MetaDataStore):
         self.mds = mds
+        self.thread: threading.Thread | None = None
         self.connect_signals()
 
     def connect_signals(self):
@@ -43,12 +44,12 @@ class MDSLoader:
             return
 
         # start loading thread for secondary metadata
-        thread = SecondaryLoadThread(
+        self.thread = SecondaryLoadThread(
             databases=list(bd.databases),
             sqlite_db=str(sqlite3_lci_db._filepath),
             callback=self.secondary_load_project
         )
-        thread.start()
+        self.thread.start()
 
         # load primary metadata in the main thread
         self.primary_load_project()
@@ -76,8 +77,8 @@ class MDSLoader:
         self.primary_status = "done"
         self.secondary_status = "done"
 
-        thread = threading.Thread(target=self._init_searcher)
-        thread.start()
+        self.thread = threading.Thread(target=self._init_searcher)
+        self.thread.start()
 
     def primary_load_project(self):
         from bw2data.backends import sqlite3_lci_db
@@ -103,7 +104,7 @@ class MDSLoader:
         if sqlite_db != str(sqlite3_lci_db._filepath):
             return
 
-        assert all(secondary_df.index.isin(self.mds.dataframe.index))
+        assert all(secondary_df.index.isin(self.mds.keys))
         logger.debug(f"Secondary metadata loaded with {len(secondary_df)} rows")
         left = self.mds.get_metadata(columns=primary)
 
@@ -120,13 +121,16 @@ class MDSLoader:
         self.primary_status = "loading"
         self.secondary_status = "loading"
 
+        if self.thread is not None and self.thread.is_alive():
+            self.thread.join()
+
         # start loading thread for secondary metadata
-        thread = SecondaryLoadThread(
+        self.thread = SecondaryLoadThread(
             databases=[database_name],
             sqlite_db=str(sqlite3_lci_db._filepath),
             callback=self.secondary_load_database
         )
-        thread.start()
+        self.thread.start()
 
         # load primary metadata in the main thread
         self.primary_load_database(database_name)
@@ -283,7 +287,7 @@ class SecondaryLoadThread(threading.Thread):
             self.callback(full_df, self.sqlite_db)
             
         except Exception as e:
-            logger.error(f"Error loading secondary metadata: {e}")
+            logger.error(f"Error loading secondary metadata: {e}", exc_info=True)
             # Call callback with empty dataframe on error
             self.callback(pd.DataFrame(), self.sqlite_db)
 

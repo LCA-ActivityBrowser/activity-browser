@@ -61,7 +61,15 @@ class MetaDataStore:
 
     @property
     def databases(self):
-        return set(self.dataframe.get("database", []))
+        with self._df_lock:
+            databases = set(self._dataframe.index.get_level_values(0).unique().tolist())
+        return databases
+
+    @property
+    def keys(self):
+        with self._df_lock:
+            keys = set(self._dataframe.index.tolist())
+        return keys
 
     def register_mutation(self, key: tuple[str, str], action: Literal["add", "update", "delete"]):
         if action == "add":
