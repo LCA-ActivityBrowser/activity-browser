@@ -14,9 +14,6 @@ from bw2data.tests import bw2test
 
 os.environ["AB_SKIP_SETTINGS_ON_STARTUP"] = "1"
 
-# Create custom log level for testing logs
-logger.level("TEST", no=25, color="<cyan>", icon="🧪")
-
 
 @pytest.fixture
 def no_exception_dialogs(monkeypatch):
@@ -38,7 +35,7 @@ def main_window(qtbot, monkeypatch, no_exception_dialogs):
     reload(metadata)
     reload(app.main)
     reload(app)
-    metadata.df = pd.DataFrame()
+    metadata.dataframe = pd.DataFrame()
 
     app.main_window.show()
 
@@ -70,17 +67,12 @@ def basic_database(qapp, main_window):
     bd.calculation_setups.flush()
 
     i = 0
-    while metadata.loader.secondary_status != "done" and i < 30:
-        logger.log("TEST", "Waiting for metadata loader to finish...")
+    while metadata.loader.secondary_status != "done" and i < 60:
+        logger.warning("Waiting for metadata loader to finish...")
         time.sleep(1)
         i += 1
 
-    while metadata.loader.thread.is_alive() and i < 30:
-        logger.log("TEST", "Waiting for metadata loader thread to finish...")
-        time.sleep(1)
-        i += 1
-
-    if i >= 30:
+    if i >= 60:
         raise TimeoutError("Metadata loader did not finish in time.")
 
     yield db

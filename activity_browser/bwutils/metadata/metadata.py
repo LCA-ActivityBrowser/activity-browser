@@ -145,7 +145,7 @@ class MetaDataStore:
             return pd.DataFrame(columns=columns or all_fields)
 
         with self._df_lock:
-            df = self._dataframe.loc[[db_name], columns or all_fields].copy()
+            df = self._dataframe.loc[[db_name], columns].copy()
         return df.reindex(columns, axis="columns")
 
     def search(self, query: str, columns: list = None) -> pd.DataFrame:

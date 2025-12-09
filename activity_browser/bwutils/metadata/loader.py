@@ -158,10 +158,11 @@ class MDSLoader:
         from bw2data.backends import sqlite3_lci_db
 
         if secondary_df.empty or sqlite_db != str(sqlite3_lci_db._filepath):
+            self.secondary_status = "done"
             return
 
         database = secondary_df.index[0][0]
-        indices = self.mds.dataframe.loc[[database]].index
+        indices = self.mds.get_database_metadata(database, []).index
 
         if not all(secondary_df.index.isin(indices)):
             logger.debug("Secondary database metadata dropping rows")
@@ -179,7 +180,7 @@ class MDSLoader:
 
         if hasattr(self.mds, "searcher"):
             search_engine_cols = list(set(all_fields) & set(search_engine_whitelist))
-            df = self.mds.dataframe.loc[self.mds.dataframe["database"] == database, search_engine_cols]
+            df = self.mds.get_database_metadata(database, search_engine_cols)
             self.mds.searcher.add_identifier(df)
 
         self.secondary_status = "done"
