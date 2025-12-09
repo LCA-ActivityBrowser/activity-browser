@@ -179,7 +179,7 @@ class MDSLoader:
         for idx in secondary_df.index:
             self.mds.register_mutation(idx, "update")
 
-        if hasattr(self.mds, "searcher"):
+        if hasattr(self.mds, "searcher") and self.mds.searcher is not None:
             search_engine_cols = list(set(all_fields) & set(search_engine_whitelist))
             df = self.mds.get_database_metadata(database, search_engine_cols)
             for col in df.select_dtypes(include=['category']).columns:
