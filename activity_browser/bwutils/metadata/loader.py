@@ -181,6 +181,8 @@ class MDSLoader:
         if hasattr(self.mds, "searcher"):
             search_engine_cols = list(set(all_fields) & set(search_engine_whitelist))
             df = self.mds.get_database_metadata(database, search_engine_cols)
+            for col in df.select_dtypes(include=['category']).columns:
+                df[col] = df[col].astype(object)
             self.mds.searcher.add_identifier(df)
 
         self.secondary_status = "done"
