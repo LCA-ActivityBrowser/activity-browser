@@ -172,7 +172,7 @@ class MDSLoader:
 
         df = self.mds.dataframe
         self._fix_categories(secondary_df, df)
-        df.update(secondary_df)
+        df = secondary_df.combine_first(df)
         self.mds.dataframe = df
 
         for idx in secondary_df.index:
