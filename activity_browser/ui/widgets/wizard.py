@@ -105,8 +105,12 @@ class ABWizard(QtWidgets.QWizard):
 
             # Set the default button after a short delay to ensure the UI is updated
             def set_default():
-                button = self.button(button_map[default_button])
-                button.setFocus()
+                try:
+                    button = self.button(button_map[default_button])
+                    button.setFocus()
+                except RuntimeError:
+                    # Wizard might be closed before the timer fires
+                    pass
 
             QtCore.QTimer.singleShot(50, set_default)
 
