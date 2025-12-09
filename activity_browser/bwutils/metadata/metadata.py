@@ -46,16 +46,25 @@ class MetaDataStore:
 
     @dataframe.setter
     def dataframe(self, df: pd.DataFrame) -> None:
-        # Ensure all expected columns are present, in the correct order, and with the correct types
-        df = df.reindex(columns=all_fields)[all_fields].astype(all_types)
+        # Perform all transformations outside the lock
+        # Make a full copy to avoid any shared memory with the input
+        df = df.copy()
+
+        # Ensure all expected columns are present, in the correct order
+        df = df.reindex(columns=all_fields)[all_fields]
+
+        # Apply types carefully - avoid in-place modifications
+        for col, col_type in all_types.items():
+            if col in df.columns:
+                df[col] = df[col].astype(col_type)
 
         # No NaN values in object columns, use None instead
         for col, col_type in all_types.items():
-            if col_type != object:
+            if col_type != object or col not in df.columns:
                 continue
             df[col] = df[col].where(df[col].notnull(), None)
 
-        # Set the internal dataframe
+        # Set the internal dataframe under lock
         with self._df_lock:
             self._dataframe = df
 
