@@ -7,8 +7,6 @@ from .metadata import MetaDataStore
 from .fields import primary, secondary, all_types, search_engine_whitelist
 
 
-
-
 class MDSUpdater:
     def __init__(self, mds: MetaDataStore):
         self.mds = mds

@@ -1,5 +1,6 @@
 from typing import Literal, Optional
 from loguru import logger
+from threading import RLock
 
 import pandas as pd
 
@@ -27,6 +28,7 @@ class MetaDataStore:
         self._initialized = True
 
         self._dataframe = pd.DataFrame()
+        self._df_lock = RLock()
 
         self._added: set[tuple[str, str]] = set()
         self._updated: set[tuple[str, str]] = set()
@@ -38,7 +40,9 @@ class MetaDataStore:
 
     @property
     def dataframe(self) -> pd.DataFrame:
-        return self._dataframe.copy()
+        with self._df_lock:
+            copy = self._dataframe.copy()
+        return copy
 
     @dataframe.setter
     def dataframe(self, df: pd.DataFrame) -> None:
@@ -52,7 +56,8 @@ class MetaDataStore:
             df[col] = df[col].where(df[col].notnull(), None)
 
         # Set the internal dataframe
-        self._dataframe = df
+        with self._df_lock:
+            self._dataframe = df
 
     @property
     def databases(self):
@@ -92,20 +97,22 @@ class MetaDataStore:
         self._deleted.clear()
 
         cache_path = filesystem.get_project_ab_path() / "metadatastore_cache.pkl"
-        self.dataframe.to_pickle(cache_path)
+        with self._df_lock:
+            self._dataframe.to_pickle(cache_path)
 
         return added, updated, deleted
 
     def match(self, **kwargs: dict[str, str]) -> pd.DataFrame:
         """Return a slice of the dataframe matching the criteria.
         """
-        df = self.dataframe.query(
-            " and ".join(
-                [
-                    f"`{key}`.astype('str') == {str(value)!r}" if not pd.isna(value) else f"`{key}`.isnull()"
-                    for key, value in kwargs.items()
-                ])
-        )
+        with self._df_lock:
+            df = self._dataframe.query(
+                " and ".join(
+                    [
+                        f"`{key}`.astype('str') == {str(value)!r}" if not pd.isna(value) else f"`{key}`.isnull()"
+                        for key, value in kwargs.items()
+                    ])
+            ).copy()
 
         return df
 
@@ -119,13 +126,19 @@ class MetaDataStore:
         keys = keys if keys is not None else self._dataframe.index.tolist()
         columns = columns if columns is not None else all_fields
 
-        df = self._dataframe.loc[pd.IndexSlice[keys], :].copy()
+        with self._df_lock:
+            df = self._dataframe.loc[pd.IndexSlice[keys], :].copy()
         return df.reindex(columns, axis="columns")
 
     def get_database_metadata(self, db_name: str, columns: list = None) -> pd.DataFrame:
+        columns = columns if columns is not None else all_fields
+
         if db_name not in self.databases:
             return pd.DataFrame(columns=columns or all_fields)
-        return self._dataframe.loc[[db_name], columns or all_fields].copy()
+
+        with self._df_lock:
+            df = self._dataframe.loc[[db_name], columns or all_fields].copy()
+        return df.reindex(columns, axis="columns")
 
     def search(self, query: str, columns: list = None) -> pd.DataFrame:
         if not self.searcher:
@@ -146,20 +159,22 @@ class MetaDataStore:
         return self._meta_from_result(params, result, columns)
 
     def _meta_from_result(self, params: dict, result: list[int], columns: list = None) -> pd.DataFrame:
-        df = self._dataframe.loc[self.dataframe["id"].isin(result), columns or all_fields]
-        df.sort_values(by="id", inplace=True, key=lambda x: x.map({id_: i for i, id_ in enumerate(result)}))
+        with self._df_lock:
+            df = self._dataframe.loc[self.dataframe["id"].isin(result), columns or all_fields]
+            df.sort_values(by="id", inplace=True, key=lambda x: x.map({id_: i for i, id_ in enumerate(result)}))
 
-        extra_query = " & ".join(
-            [
-                f"`{key}`.astype('str').str.contains('{value}', False)"
-                for key, value in params.items()
-                if key in df.columns
-            ]
-        )
-        if extra_query:
-            df = df.query(extra_query)
+            extra_query = " & ".join(
+                [
+                    f"`{key}`.astype('str').str.contains('{value}', False)"
+                    for key, value in params.items()
+                    if key in df.columns
+                ]
+            )
+            if extra_query:
+                df = df.query(extra_query)
+            df = df.copy()
 
-        return df.copy()
+        return df
 
     def auto_complete(self, word: str, context: Optional[set] = None, database: Optional[str] = None):
         if not self.searcher:
