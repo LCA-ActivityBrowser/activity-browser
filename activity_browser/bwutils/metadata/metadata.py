@@ -41,14 +41,14 @@ class MetaDataStore:
     @property
     def dataframe(self) -> pd.DataFrame:
         with self._df_lock:
-            copy = self._dataframe.copy()
+            copy = self._dataframe.copy(deep=True)
         return copy
 
     @dataframe.setter
     def dataframe(self, df: pd.DataFrame) -> None:
         # Perform all transformations outside the lock
         # Make a full copy to avoid any shared memory with the input
-        df = df.copy()
+        df = df.copy(deep=True)
 
         # Ensure all expected columns are present, in the correct order
         df = df.reindex(columns=all_fields)[all_fields]
@@ -129,7 +129,7 @@ class MetaDataStore:
                         f"`{key}`.astype('str') == {str(value)!r}" if not pd.isna(value) else f"`{key}`.isnull()"
                         for key, value in kwargs.items()
                     ])
-            ).copy()
+            ).copy(deep=True)
 
         return df
 
@@ -144,7 +144,7 @@ class MetaDataStore:
         columns = columns if columns is not None else all_fields
 
         with self._df_lock:
-            df = self._dataframe.loc[pd.IndexSlice[keys], :].copy()
+            df = self._dataframe.loc[pd.IndexSlice[keys], :].copy(deep=True)
         return df.reindex(columns, axis="columns")
 
     def get_database_metadata(self, db_name: str, columns: list = None) -> pd.DataFrame:
@@ -154,7 +154,7 @@ class MetaDataStore:
             return pd.DataFrame(columns=columns or all_fields)
 
         with self._df_lock:
-            df = self._dataframe.loc[[db_name], columns].copy()
+            df = self._dataframe.loc[[db_name], columns].copy(deep=True)
         return df.reindex(columns, axis="columns")
 
     def search(self, query: str, columns: list = None) -> pd.DataFrame:
@@ -189,7 +189,7 @@ class MetaDataStore:
             )
             if extra_query:
                 df = df.query(extra_query)
-            df = df.copy()
+            df = df.copy(deep=True)
 
         return df
 
