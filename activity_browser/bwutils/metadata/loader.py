@@ -275,6 +275,7 @@ class SecondaryLoadThread(threading.Thread):
     def run(self):
         """Execute the loading in a background thread."""
         try:
+            logger.debug("Starting secondary metadata load with multiprocessing Pool")
             with Pool() as pool:
                 args = [(self.sqlite_db, db, secondary) for db in self.databases]
                 results = pool.starmap(load, args)
