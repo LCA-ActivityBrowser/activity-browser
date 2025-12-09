@@ -1,6 +1,7 @@
 import sqlite3
 import pickle
 import threading
+import os
 from multiprocessing import Pool
 from loguru import logger
 from typing import Literal, Callable
@@ -201,6 +202,10 @@ class MDSLoader:
 
     def _init_searcher(self):
         from .searcher import MDSSearcher
+
+        if os.environ.get("AB_NO_SEARCHER"):
+            logger.debug("Skipping searcher initialization due to AB_NO_SEARCHER environment variable")
+            return
 
         if hasattr(self.mds, 'searcher') and self.mds.searcher is not None:
             old_searcher = self.mds.searcher

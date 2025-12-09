@@ -13,6 +13,7 @@ import bw_functional as bf
 from bw2data.tests import bw2test
 
 os.environ["AB_SKIP_SETTINGS_ON_STARTUP"] = "1"
+os.environ["AB_NO_SEARCHER"] = "1"
 
 
 @pytest.fixture
