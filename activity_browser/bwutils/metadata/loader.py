@@ -32,6 +32,7 @@ class MDSLoader:
     def load_project(self):
         import bw2data as bd
         from bw2data.backends import sqlite3_lci_db
+
         # set statuses
         self.primary_status = "loading"
         self.secondary_status = "loading"
@@ -42,12 +43,12 @@ class MDSLoader:
             return
 
         # start loading thread for secondary metadata
-        self.thread = SecondaryLoadThread(
+        thread = SecondaryLoadThread(
             databases=list(bd.databases),
             sqlite_db=str(sqlite3_lci_db._filepath),
             callback=self.secondary_load_project
         )
-        self.thread.start()
+        thread.start()
 
         # load primary metadata in the main thread
         self.primary_load_project()
@@ -75,8 +76,8 @@ class MDSLoader:
         self.primary_status = "done"
         self.secondary_status = "done"
 
-        self.thread = threading.Thread(target=self._init_searcher)
-        self.thread.start()
+        thread = threading.Thread(target=self._init_searcher)
+        thread.start()
 
     def primary_load_project(self):
         from bw2data.backends import sqlite3_lci_db
@@ -104,7 +105,8 @@ class MDSLoader:
 
         assert all(secondary_df.index.isin(self.mds.dataframe.index))
         logger.debug(f"Secondary metadata loaded with {len(secondary_df)} rows")
-        left = self.mds.dataframe[primary].copy(deep=True)
+        left = self.mds.get_metadata(columns=primary)
+
         self.mds.dataframe = pd.concat([left, secondary_df], axis=1)
 
         for idx in secondary_df.index:
@@ -119,12 +121,12 @@ class MDSLoader:
         self.secondary_status = "loading"
 
         # start loading thread for secondary metadata
-        self.thread = SecondaryLoadThread(
+        thread = SecondaryLoadThread(
             databases=[database_name],
             sqlite_db=str(sqlite3_lci_db._filepath),
             callback=self.secondary_load_database
         )
-        self.thread.start()
+        thread.start()
 
         # load primary metadata in the main thread
         self.primary_load_database(database_name)
@@ -160,12 +162,12 @@ class MDSLoader:
             logger.debug("Secondary database metadata dropping rows")
             secondary_df = secondary_df[secondary_df.index.isin(indices)]
 
-        logger.debug(f"Secondary metadata loaded with {len(secondary_df)} rows, adding to mds {id(self.mds)}")
+        logger.debug(f"Secondary metadata loaded with {len(secondary_df)} rows, adding to metadatastore {id(self.mds)}")
 
-        self._fix_categories(secondary_df)
-        df_copy = self.mds.dataframe.copy(deep=True)
-        df_copy.update(secondary_df)
-        self.mds.dataframe = df_copy
+        df = self.mds.dataframe
+        self._fix_categories(secondary_df, df)
+        df.update(secondary_df)
+        self.mds.dataframe = df
 
         for idx in secondary_df.index:
             self.mds.register_mutation(idx, "update")
@@ -178,15 +180,16 @@ class MDSLoader:
         self.secondary_status = "done"
 
     # utility functions
-    def _fix_categories(self, df: pd.DataFrame):
+    @staticmethod
+    def _fix_categories(df: pd.DataFrame, mds_df: pd.DataFrame):
         category_columns = [k for k, v in secondary_types.items() if v == "category"]
 
         for col in category_columns:
             categories = df[col].dropna().unique()
-            categories = [c for c in categories if c not in self.mds.dataframe[col].cat.categories]
+            categories = [c for c in categories if c not in mds_df[col].cat.categories]
 
             # add new category to column
-            self.mds.dataframe[col] = self.mds.dataframe[col].cat.add_categories(categories)
+            mds_df[col] = mds_df[col].cat.add_categories(categories)
 
     def _init_searcher(self):
         from .searcher import MDSSearcher

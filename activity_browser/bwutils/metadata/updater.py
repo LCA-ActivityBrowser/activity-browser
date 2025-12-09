@@ -77,8 +77,11 @@ class MDSUpdater:
 
     # node methods
     def modify_node(self, ds: pd.Series):
-        self._fix_categories(ds)
-        self.mds.dataframe.loc[ds.key] = ds
+        df = self.mds.dataframe
+        self._fix_categories(ds, df)
+        df.loc[ds.key] = ds
+
+        self.mds.dataframe = df
         self.mds.register_mutation(ds.key, "update")
 
         if not hasattr(self.mds, "searcher"):
@@ -89,8 +92,12 @@ class MDSUpdater:
         self.mds.searcher.change_identifier(identifier=ds["id"], data=data)
 
     def add_node(self, ds: pd.Series):
-        self._fix_categories(ds)
-        self.mds.dataframe.loc[ds.key, :] = ds
+
+        df = self.mds.dataframe
+        self._fix_categories(ds, df)
+        df.loc[ds.key, :] = ds
+
+        self.mds.dataframe = df
         self.mds.register_mutation(ds.key, "add")
 
         if not hasattr(self.mds, "searcher"):
@@ -122,7 +129,7 @@ class MDSUpdater:
         for code in self.mds.dataframe.loc[db_name].index:
             self.mds.register_mutation((db_name, code), "delete")
 
-        ids = self.mds.dataframe.loc[db_name, "id"].tolist()
+        ids = self.mds.get_database_metadata(db_name, ["id"])["id"].tolist()
 
         self.mds.dataframe = self.mds.dataframe.drop(db_name, level=0)
 
@@ -134,7 +141,8 @@ class MDSUpdater:
         self.mds.searcher.reset_all_caches(db_name)
 
     # utility functions
-    def _fix_categories(self, ds: pd.Series):
+    @staticmethod
+    def _fix_categories(ds: pd.Series, mds_df: pd.DataFrame):
         for category_col in [k for k, v in all_types.items() if k in ds and v == "category"]:
             category = ds[category_col]
 
@@ -142,12 +150,12 @@ class MDSUpdater:
                 # cannot add NaN as a category
                 continue
 
-            if category in self.mds.dataframe[category_col].cat.categories:
+            if category in mds_df[category_col].cat.categories:
                 # category already exists
                 continue
 
             # add new category to column
-            self.mds.dataframe[category_col] = self.mds.dataframe[category_col].cat.add_categories([category])
+            mds_df[category_col] = mds_df[category_col].cat.add_categories([category])
 
 
 

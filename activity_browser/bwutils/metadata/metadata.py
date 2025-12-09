@@ -38,7 +38,7 @@ class MetaDataStore:
 
     @property
     def dataframe(self) -> pd.DataFrame:
-        return self._dataframe
+        return self._dataframe.copy()
 
     @dataframe.setter
     def dataframe(self, df: pd.DataFrame) -> None:
@@ -109,20 +109,23 @@ class MetaDataStore:
 
         return df
 
-    def get_metadata(self, keys: list, columns: list = None) -> pd.DataFrame:
+    def get_metadata(self, keys: list = None, columns: list = None) -> pd.DataFrame:
         """Return a slice of the dataframe matching row and column identifiers.
 
         NOTE: https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#deprecate-loc-reindex-listlike
         From pandas version 1.0 and onwards, attempting to select a column
         with all NaN values will fail with a KeyError.
         """
-        df = self.dataframe.loc[pd.IndexSlice[keys], :]
+        keys = keys if keys is not None else self._dataframe.index.tolist()
+        columns = columns if columns is not None else all_fields
+
+        df = self._dataframe.loc[pd.IndexSlice[keys], :].copy()
         return df.reindex(columns, axis="columns")
 
     def get_database_metadata(self, db_name: str, columns: list = None) -> pd.DataFrame:
         if db_name not in self.databases:
             return pd.DataFrame(columns=columns or all_fields)
-        return self.dataframe.loc[[db_name], columns or all_fields]
+        return self._dataframe.loc[[db_name], columns or all_fields].copy()
 
     def search(self, query: str, columns: list = None) -> pd.DataFrame:
         if not self.searcher:
@@ -143,7 +146,7 @@ class MetaDataStore:
         return self._meta_from_result(params, result, columns)
 
     def _meta_from_result(self, params: dict, result: list[int], columns: list = None) -> pd.DataFrame:
-        df = self.dataframe.loc[self.dataframe["id"].isin(result), columns or all_fields]
+        df = self._dataframe.loc[self.dataframe["id"].isin(result), columns or all_fields]
         df.sort_values(by="id", inplace=True, key=lambda x: x.map({id_: i for i, id_ in enumerate(result)}))
 
         extra_query = " & ".join(
@@ -156,7 +159,7 @@ class MetaDataStore:
         if extra_query:
             df = df.query(extra_query)
 
-        return df
+        return df.copy()
 
     def auto_complete(self, word: str, context: Optional[set] = None, database: Optional[str] = None):
         if not self.searcher:
