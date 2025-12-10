@@ -5,12 +5,13 @@ from copy import deepcopy
 from typing import Type
 from loguru import logger
 
+import bw2data as bd
+
 from qtpy import QtWebChannel, QtWebEngineWidgets, QtWidgets
 from qtpy.QtCore import QObject, Qt, QUrl, Signal, Slot
 
 from activity_browser import app
-from activity_browser.settings import ab_settings
-from activity_browser.mod import bw2data as bd
+from activity_browser.bwutils import filesystem
 
 from ...ui.icons import qicons
 from . import webutils
@@ -117,7 +118,7 @@ def savefilepath(default_file_name: str, file_filter: str = ALL_FILTER):
     safe_name = bd.utils.safe_filename(default, add_hash=False)
     filepath, _ = QtWidgets.QFileDialog.getSaveFileName(
         caption="Choose location to save svg",
-        dir=os.path.join(ab_settings.data_dir, safe_name),
+        dir=os.path.join(filesystem.get_project_path(), safe_name),
         filter=file_filter,
     )
     return filepath

@@ -5,7 +5,7 @@ import bw2data as bd
 
 
 def get_package_path() -> Path:
-    path = Path(__file__).resolve().parents[2]
+    path = Path(__file__).resolve().parents[1]
     path.mkdir(parents=True, exist_ok=True)
     return path
 

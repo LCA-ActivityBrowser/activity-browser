@@ -92,7 +92,6 @@ from .project.project_migrate25 import ProjectMigrate25
 from .project.project_create_template import ProjectCreateTemplate
 from .project.project_new_template import ProjectNewFromTemplate
 
-from .settings_wizard_open import SettingsWizardOpen
 from .migrations_install import MigrationsInstall
 from .pyside_upgrade import PysideUpgrade
 from .metadatastore_open import MetaDataStoreOpen

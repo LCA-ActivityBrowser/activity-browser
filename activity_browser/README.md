@@ -20,7 +20,6 @@ Activity Browser is a Qt-based desktop application that provides a GUI front-end
 - **`__init__.py`** - Package initialization with PySide6/typing compatibility patches
 - **`__main__.py`** - Entry point for the application (`run_activity_browser` function)
 - **`info.py`** - Version and application metadata
-- **`settings.py`** - Settings management using platformdirs for persistent user/project settings
 
 ## Entry Points
 
@@ -35,7 +34,6 @@ All entry points lead to `activity_browser.__main__:run_activity_browser`.
 
 The application follows an MVC-like pattern with:
 - **Global signals** (`activity_browser.app.signals`) - Event bus for cross-component communication
-- **Settings persistence** (`ab_settings`, `project_settings`) - JSON-based configuration storage
 - **Deferred imports** - Heavy modules are loaded in background threads during startup
 - **Actions pattern** - UI operations encapsulated in `app/actions/` with a base class pattern
 
@@ -44,12 +42,10 @@ The application follows an MVC-like pattern with:
 Main dependencies include:
 - **PySide6** (via qtpy) - Qt bindings for the GUI
 - **Brightway2** ecosystem (bw2data, bw2calc, bw2analyzer, bw2io) - LCA calculation engine
-- **platformdirs** - Cross-platform settings directory management
 - **loguru** - Logging framework
 
 ## Development Notes
 
 - Avoid top-level imports of heavy modules (PySide6, bw2data) to keep tests fast
 - Use project signals for cross-component communication instead of direct function calls
-- Settings are persisted per-user via platformdirs; use the singleton instances
 - Global shortcuts are registered via `@application.global_shortcut` decorator
