@@ -13,7 +13,6 @@ Activity Browser is a Qt-based desktop application that provides a GUI front-end
 - **`mod/`** - Monkey-patches and modifications to third-party libraries (bw2analyzer, bw2io, etc.)
 - **`static/`** - Static resources including HTML templates, CSS, icons, fonts, and JavaScript files
 - **`ui/`** - Core UI components including widgets, dialogs, wizards, and web views
-- **`docs/`** - Internal documentation and wiki files
 
 ## Key Files
 
