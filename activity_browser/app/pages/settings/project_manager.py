@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from loguru import logger
 
 import pandas as pd
@@ -46,11 +45,12 @@ class ProjectManagerSettingsChapter(BaseSettingsChapter):
 
     def connect_signals(self):
         """Connect signals and slots."""
-        app.signals.project.changed.connect(self.sync)
         app.signals.project.deleted.connect(self.sync)
 
     def sync(self):
         """Sync project and template data."""
+        logger.debug(f"Syncing {self.__class__.__name__}: {id(self)}")
+
         df = self.build_project_df()
         self.project_model.set_dataframe(df)
         self.project_view.resizeColumnToContents(1)

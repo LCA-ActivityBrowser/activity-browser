@@ -1,5 +1,6 @@
 from qtpy import QtWidgets, QtCore
 from qtpy.QtCore import Qt
+from loguru import logger
 
 import pandas as pd
 import bw2data as bd
@@ -7,7 +8,6 @@ import bw2data as bd
 from activity_browser import app
 from activity_browser.ui import widgets, icons, delegates, core
 from activity_browser.bwutils.commontasks import refresh_node, refresh_parameter, parameters_in_scope, database_is_locked, node_group
-from activity_browser.bwutils.utils import Parameter
 
 
 class ParametersTab(QtWidgets.QWidget):
@@ -59,6 +59,8 @@ class ParametersTab(QtWidgets.QWidget):
         """
         Synchronizes the widget with the current state of the activity.
         """
+        logger.debug(f"Syncing {self.__class__.__name__}: {id(self)}")
+
         self.activity = refresh_node(self.activity)
         df = self.build_df()
         df.reset_index(drop=True, inplace=True)

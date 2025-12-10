@@ -73,6 +73,8 @@ class GraphTab(QtWidgets.QWidget):
         """
         Synchronizes the widget with the current state of the activity.
         """
+        logger.debug(f"Syncing {self.__class__.__name__}: {id(self)}")
+
         self.activity = refresh_node(self.activity)
         json = self.build_json()
         self.bridge.update_graph.emit(json)

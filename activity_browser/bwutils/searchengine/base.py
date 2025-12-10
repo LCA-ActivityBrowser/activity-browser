@@ -1,7 +1,5 @@
 import itertools
 import functools
-import math
-import multiprocessing as mp
 import re
 import sys
 from collections import Counter, OrderedDict, defaultdict
@@ -132,10 +130,7 @@ class SearchEngine:
         self.q_gram_to_word = update_dict(self.q_gram_to_word, q2w)
         size_new = len(self.df)
         size_dif = size_new - size_old
-        size_msg = (f"{size_dif} changed items at {int(round(size_dif/(time() - t), 0))} items/sec "
-                    f"({size_new} items ({self.size_of_index()}) currently)") if size_dif > 1 \
-            else f"1 changed item ({size_new} items ({self.size_of_index()}) currently)"
-        logger.debug(f"Search index updated in {time() - t:.2f} seconds for {size_msg}.")
+        logger.debug(f"Search index updated in {time() - t:.2f} seconds.")
 
     def clean_text(self, text: str):
         """Clean a string so it doesn't contain weird characters or multiple spaces etc."""
@@ -163,37 +158,13 @@ class SearchEngine:
             return [text]
         return list(text[i:i + q] for i in range(n - q + 1))
 
-    def df_clean_worker(self, df):
-        """Clean the text in query_col."""
-        df["query_col"] = df["query_col"].apply(self.clean_text)
-        return df
-
     def df_clean(self, df):
         """Clean the text in query_col.
 
         apply multi-processing when the computer is able and its relevant
         """
-        def chunk_dataframe(df: pd.DataFrame, chunk_size: int):
-            """Split DataFrame into chunks of specified size."""
-            return [df.iloc[i:i + chunk_size] for i in range(0, len(df), chunk_size)]
-
-        max_cores = max(1, mp.cpu_count() - 1)  # leave at least 1 core for other processes
-        min_chunk_size = 2500
-        if max_cores > 1 and len(df) > min_chunk_size * 2:
-            for i in range(max_cores, 0, -1):
-                chunk_size = int(math.ceil(len(df) / i))
-                if chunk_size >= min_chunk_size:
-                    break
-            use_cores = i
-        else:
-            use_cores = 1
-        if use_cores == 1:
-            return self.df_clean_worker(df)
-
-        chunks = chunk_dataframe(df, chunk_size)
-        with mp.Pool(processes=use_cores) as pool:
-            results = pool.starmap(self.df_clean_worker, [(chunk,) for chunk in chunks])
-        return pd.concat(results)
+        df["query_col"] = df["query_col"].apply(self.clean_text)
+        return df
 
     def words_in_df(self, df: pd.DataFrame = None) -> tuple[dict, pd.DataFrame]:
         """Return a dict of {identifier: word} for df."""
@@ -204,16 +175,23 @@ class SearchEngine:
         df["query_col"] = df.iloc[:, self.searchable_columns].astype(str).agg(" | ".join, axis=1)
         # clean all text at once using vectorized operations
         df["query_col"] = self.df_clean(df.loc[:, ["query_col"]])
-        # build the identifier_word_dict dictionary
-        identifier_word_dict = df["query_col"].apply(lambda text: Counter(text.split(" "))).to_dict()
+        # build the identifier_word_dict dictionary - filter out empty strings
+        identifier_word_dict = df["query_col"].apply(
+            lambda text: Counter(word for word in text.split(" ") if word)
+        ).to_dict()
         return identifier_word_dict, df
 
     def reverse_dict_many_to_one(self, dictionary: dict) -> dict:
         """Reverse a dictionary of Counter objects."""
+        logger.debug(f"reverse_dict_many_to_one called with {len(dictionary)} items")
         reverse = defaultdict(Counter)
         for identifier, counter_object in dictionary.items():
+            if not isinstance(counter_object, Counter):
+                logger.warning(f"Skipping non-Counter object for {identifier}: {type(counter_object)}")
+                continue
             for countable, count in counter_object.items():
-                reverse[countable][identifier] += count
+                if countable:  # skip empty strings
+                    reverse[countable][identifier] += count
         return dict(reverse)
 
     def list_to_q_grams(self, word_list: Iterable) -> dict:
@@ -242,20 +220,6 @@ class SearchEngine:
             raise Exception(
                 f"Given word '{word}' must not contain spaces.")
         return word in self.word_to_identifier.keys()
-
-    def size_of_index(self):
-        """return the size of the search index in MB or GB."""
-        s_df = sys.getsizeof(self.df)
-        s_i2w = sys.getsizeof(self.identifier_to_word)
-        s_w2i = sys.getsizeof(self.word_to_identifier)
-        s_w2q = sys.getsizeof(self.word_to_q_grams)
-        s_q2w = sys.getsizeof(self.q_gram_to_word)
-        size_bytes = s_df + s_i2w + s_w2i + s_w2q + s_q2w
-
-        if size_bytes < 1024 ** 3:
-            return f"{size_bytes / (1024 ** 2):.1f} MB"
-        else:
-            return f"{size_bytes / (1024 ** 3):.2f} GB"
 
     #   +++ Changes to searchable data
 
@@ -301,7 +265,7 @@ class SearchEngine:
 
         # convert df
         data = data.set_index(self.identifier_name, drop=False)
-        data = data.fillna("")
+        data = data.astype(object).fillna("")
         data = data.astype(str)
 
         # update the search index data
@@ -315,8 +279,10 @@ class SearchEngine:
 
         # make sure the identifier exists
         if identifier not in self.df.index.to_list():
-            raise Exception(
-                f"Identifier '{identifier}' does not exist in the search data, cannot remove identifier that do not exist.")
+            logger.warning(
+                f"Identifier '{identifier}' does not exist in the search data, cannot remove identifier that do not exist."
+            )
+            return
 
         self.df = self.df.drop(identifier)
 
@@ -349,7 +315,7 @@ class SearchEngine:
 
         if logging:
             logger.debug(f"Search index updated in {time() - t:.2f} seconds "
-                         f"for 1 removed item ({len(self.df)} items ({self.size_of_index()}) currently).")
+                         f"for 1 removed item ({len(self.df)}.")
 
     def change_identifier(self, identifier, data: pd.DataFrame) -> None:
         """Change this identifier.

@@ -97,6 +97,8 @@ class ExchangesTab(QtWidgets.QWidget):
         """
         Synchronizes the widget with the current state of the activity.
         """
+        logger.debug(f"Syncing {self.__class__.__name__}: {id(self)}")
+
         # Refresh the activity node
         self.activity = refresh_node(self.activity)
 
@@ -145,8 +147,7 @@ class ExchangesTab(QtWidgets.QWidget):
                 "properties", "processor", "categories", "type"]
 
         # Create a DataFrame from the exchanges
-        exc_df = pd.DataFrame(exchanges, columns=["amount", "input", "formula", "comment"])
-        exc_df["type"] = [x["type"] for x in exchanges]
+        exc_df = pd.DataFrame(exchanges, columns=["amount", "input", "formula", "comment", "type"])
         exc_df["uncertainty"] = [x.uncertainty for x in exchanges]
         act_df = app.metadata.get_metadata(exc_df["input"].unique(), cols).rename(columns={"type": "_producer_type"})
 
@@ -156,6 +157,9 @@ class ExchangesTab(QtWidgets.QWidget):
             left_on="input",
             right_on="key"
         ).drop(columns=["key"])
+
+        # Set allocation_factor to NA for non-production exchanges
+        df.loc[df["type"] != "production", "allocation_factor"] = pd.NA
 
         # Handle properties data if available
         if not act_df.properties.isna().all():
@@ -186,7 +190,6 @@ class ExchangesTab(QtWidgets.QWidget):
 
         # Define the order of columns for the final DataFrame
         cols = ["amount", "unit", "product", "producer", "location", "categories", "database"]
-        cols += ["substitute_name", "substitution_factor"] if "substitute_name" in df.columns else []
         cols += ["allocation_factor"] if not database_is_legacy(self.activity.get("database")) else []
         cols += [col for col in df.columns if col.startswith("property")]
         cols += ["formula", "comment", "uncertainty"]

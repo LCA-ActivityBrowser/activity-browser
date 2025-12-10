@@ -1,9 +1,10 @@
 from typing import Literal, Optional
 from loguru import logger
+from threading import RLock
 
 import pandas as pd
 
-from .fields import all, all_types
+from .fields import all_fields, all_types
 
 
 class MetaDataStore:
@@ -20,11 +21,14 @@ class MetaDataStore:
         from .updater import MDSUpdater
         from .searcher import MDSSearcher
 
+        logger.debug(f"Initializing MetaDataStore: {id(self)}")
+
         if self._initialized:
             return
         self._initialized = True
 
         self._dataframe = pd.DataFrame()
+        self._df_lock = RLock()
 
         self._added: set[tuple[str, str]] = set()
         self._updated: set[tuple[str, str]] = set()
@@ -36,25 +40,45 @@ class MetaDataStore:
 
     @property
     def dataframe(self) -> pd.DataFrame:
-        return self._dataframe
+        with self._df_lock:
+            copy = self._dataframe.copy(deep=True)
+        return copy
 
     @dataframe.setter
     def dataframe(self, df: pd.DataFrame) -> None:
-        # Ensure all expected columns are present, in the correct order, and with the correct types
-        df = df.reindex(columns=all)[all].astype(all_types)
+        # Perform all transformations outside the lock
+        # Make a full copy to avoid any shared memory with the input
+        df = df.copy(deep=True)
+
+        # Ensure all expected columns are present, in the correct order
+        df = df.reindex(columns=all_fields)[all_fields]
+
+        # Apply types carefully - avoid in-place modifications
+        for col, col_type in all_types.items():
+            if col in df.columns:
+                df[col] = df[col].astype(col_type)
 
         # No NaN values in object columns, use None instead
         for col, col_type in all_types.items():
-            if col_type != object:
+            if col_type != object or col not in df.columns:
                 continue
             df[col] = df[col].where(df[col].notnull(), None)
 
-        # Set the internal dataframe
-        self._dataframe = df
+        # Set the internal dataframe under lock
+        with self._df_lock:
+            self._dataframe = df
 
     @property
     def databases(self):
-        return set(self.dataframe.get("database", []))
+        with self._df_lock:
+            databases = set(self._dataframe.index.get_level_values(0).unique().tolist())
+        return databases
+
+    @property
+    def keys(self):
+        with self._df_lock:
+            keys = set(self._dataframe.index.tolist())
+        return keys
 
     def register_mutation(self, key: tuple[str, str], action: Literal["add", "update", "delete"]):
         if action == "add":
@@ -90,42 +114,53 @@ class MetaDataStore:
         self._deleted.clear()
 
         cache_path = filesystem.get_project_ab_path() / "metadatastore_cache.pkl"
-        self.dataframe.to_pickle(cache_path)
+        with self._df_lock:
+            self._dataframe.to_pickle(cache_path)
 
         return added, updated, deleted
 
     def match(self, **kwargs: dict[str, str]) -> pd.DataFrame:
         """Return a slice of the dataframe matching the criteria.
         """
-        df = self.dataframe.query(
-            " and ".join(
-                [
-                    f"`{key}`.astype('str') == {str(value)!r}" if not pd.isna(value) else f"`{key}`.isnull()"
-                    for key, value in kwargs.items()
-                ])
-        )
+        with self._df_lock:
+            df = self._dataframe.query(
+                " and ".join(
+                    [
+                        f"`{key}`.astype('str') == {str(value)!r}" if not pd.isna(value) else f"`{key}`.isnull()"
+                        for key, value in kwargs.items()
+                    ])
+            ).copy(deep=True)
 
         return df
 
-    def get_metadata(self, keys: list, columns: list = None) -> pd.DataFrame:
+    def get_metadata(self, keys: list = None, columns: list = None) -> pd.DataFrame:
         """Return a slice of the dataframe matching row and column identifiers.
 
         NOTE: https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#deprecate-loc-reindex-listlike
         From pandas version 1.0 and onwards, attempting to select a column
         with all NaN values will fail with a KeyError.
         """
-        df = self.dataframe.loc[pd.IndexSlice[keys], :]
+        keys = keys if keys is not None else self._dataframe.index.tolist()
+        columns = columns if columns is not None else all_fields
+
+        with self._df_lock:
+            df = self._dataframe.loc[pd.IndexSlice[keys], :].copy(deep=True)
         return df.reindex(columns, axis="columns")
 
     def get_database_metadata(self, db_name: str, columns: list = None) -> pd.DataFrame:
+        columns = columns if columns is not None else all_fields
+
         if db_name not in self.databases:
-            return pd.DataFrame(columns=columns or all)
-        return self.dataframe.loc[[db_name], columns or all]
+            return pd.DataFrame(columns=columns or all_fields)
+
+        with self._df_lock:
+            df = self._dataframe.loc[[db_name], columns].copy(deep=True)
+        return df.reindex(columns, axis="columns")
 
     def search(self, query: str, columns: list = None) -> pd.DataFrame:
         if not self.searcher:
             logger.warning(f"Attempted to search metadata before searcher was initialized.")
-            return pd.DataFrame(columns=columns or all)
+            return pd.DataFrame(columns=columns or all_fields)
 
         params, query = get_query_parameters(query)
         result = self.searcher.search(query)
@@ -134,25 +169,27 @@ class MetaDataStore:
     def search_database(self, query: str, database: str, columns: list = None) -> pd.DataFrame:
         if not self.searcher:
             logger.warning(f"Attempted to search metadata before searcher was initialized.")
-            return pd.DataFrame(columns=columns or all)
+            return pd.DataFrame(columns=columns or all_fields)
 
         params, query = get_query_parameters(query)
         result = self.searcher.fuzzy_search(query, database=database)
         return self._meta_from_result(params, result, columns)
 
     def _meta_from_result(self, params: dict, result: list[int], columns: list = None) -> pd.DataFrame:
-        df = self.dataframe.loc[self.dataframe["id"].isin(result), columns or all]
-        df.sort_values(by="id", inplace=True, key=lambda x: x.map({id_: i for i, id_ in enumerate(result)}))
+        with self._df_lock:
+            df = self._dataframe.loc[self.dataframe["id"].isin(result), columns or all_fields]
+            df.sort_values(by="id", inplace=True, key=lambda x: x.map({id_: i for i, id_ in enumerate(result)}))
 
-        extra_query = " & ".join(
-            [
-                f"`{key}`.astype('str').str.contains('{value}', False)"
-                for key, value in params.items()
-                if key in df.columns
-            ]
-        )
-        if extra_query:
-            df = df.query(extra_query)
+            extra_query = " & ".join(
+                [
+                    f"`{key}`.astype('str').str.contains('{value}', False)"
+                    for key, value in params.items()
+                    if key in df.columns
+                ]
+            )
+            if extra_query:
+                df = df.query(extra_query)
+            df = df.copy(deep=True)
 
         return df
 

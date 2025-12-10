@@ -1,5 +1,8 @@
+from loguru import logger
+
 from qtpy import QtWidgets, QtCore
 from qtpy.QtCore import Qt
+
 import pandas as pd
 import bw2data as bd
 from bw2data.parameters import ParameterizedExchange
@@ -61,6 +64,8 @@ class ParameterizedExchangesSection(QtWidgets.QWidget):
         """
         Synchronizes the widget with the current state of parameterized exchanges.
         """
+        logger.debug(f"Syncing {self.__class__.__name__}: {id(self)}")
+
         df = self.build_exchanges_df()
         self.model.set_dataframe(df)
 

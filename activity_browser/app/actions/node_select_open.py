@@ -9,11 +9,11 @@ from .activity.activity_open import ActivityOpen
 
 class NodeSelectOpen(ABAction):
 
-    icon = qicons.right
-    text = "Open activity / activities"
+    icon = qicons.search
+    text = "Search project"
 
     @staticmethod
-    @global_shortcut("Ctrl+Shift+N")
+    @global_shortcut("Ctrl+Shift+F")
     @exception_dialogs
     def run():
         from activity_browser.app import dialogs

@@ -1,4 +1,5 @@
 import datetime
+from loguru import logger
 
 from qtpy import QtWidgets, QtGui, QtCore
 from qtpy.QtCore import Qt
@@ -6,7 +7,7 @@ from qtpy.QtCore import Qt
 import bw2data as bd
 import pandas as pd
 
-from activity_browser import app, app
+from activity_browser import app
 from activity_browser.bwutils.commontasks import count_database_records
 from activity_browser.ui import widgets, icons, delegates, core
 from activity_browser.app.menu_bar import ImportDatabaseMenu
@@ -30,6 +31,7 @@ class DatabasesPane(widgets.ABAbstractPane):
         Args:
             parent (QtWidgets.QWidget): The parent widget.
         """
+        logger.debug(f"Initializing DatabasesPane: {id(self)}")
         super().__init__(parent)
         self.model = DatabasesModel(parent=self)
         self.view = DatabasesView()
@@ -59,10 +61,13 @@ class DatabasesPane(widgets.ABAbstractPane):
         layout.setContentsMargins(5, 0, 5, 5)
         self.setLayout(layout)
 
+    @QtCore.Slot()
     def sync(self):
         """
         Synchronizes the model with the current state of the databases.
         """
+        logger.debug(f"Syncing {self.__class__.__name__}: {id(self)}")
+
         df = self.build_df()
         self.model.set_dataframe(df)
         self.view.resizeColumnToContents(1)
@@ -135,6 +140,7 @@ class DatabasesView(widgets.ABTreeView):
                                ),
             lambda m, p: m.add(app.actions.DatabaseDuplicate, p.selected_databases[0] if p.selected_databases else None,
                                enable=len(p.selected_databases) == 1),
+            lambda m, p: m.add(app.actions.DatabaseRelink, p.selected_databases[0] if p.selected_databases else None),
             lambda m, p: m.add(app.actions.DatabaseProcess, p.selected_databases[0] if p.selected_databases else None,
                                enable=len(p.selected_databases) == 1),
             lambda m: m.addSeparator(),

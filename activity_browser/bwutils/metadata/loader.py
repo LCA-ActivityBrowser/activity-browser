@@ -1,6 +1,7 @@
 import sqlite3
 import pickle
 import threading
+import os
 from multiprocessing import Pool
 from loguru import logger
 from typing import Literal, Callable
@@ -8,15 +9,16 @@ from typing import Literal, Callable
 import pandas as pd
 
 from .metadata import MetaDataStore
-from .fields import secondary_types, primary, secondary
+from .fields import secondary_types, primary, secondary, search_engine_whitelist, all_fields
 
 
-class MDSLoader():
+class MDSLoader:
     primary_status: Literal["idle", "loading", "done"] = "idle"
     secondary_status: Literal["idle", "loading", "done"] = "idle"
 
     def __init__(self, mds: MetaDataStore):
         self.mds = mds
+        self.thread: threading.Thread | None = None
         self.connect_signals()
 
     def connect_signals(self):
@@ -32,6 +34,7 @@ class MDSLoader():
     def load_project(self):
         import bw2data as bd
         from bw2data.backends import sqlite3_lci_db
+
         # set statuses
         self.primary_status = "loading"
         self.secondary_status = "loading"
@@ -42,12 +45,12 @@ class MDSLoader():
             return
 
         # start loading thread for secondary metadata
-        thread = SecondaryLoadThread(
+        self.thread = SecondaryLoadThread(
             databases=list(bd.databases),
             sqlite_db=str(sqlite3_lci_db._filepath),
             callback=self.secondary_load_project
         )
-        thread.start()
+        self.thread.start()
 
         # load primary metadata in the main thread
         self.primary_load_project()
@@ -75,8 +78,8 @@ class MDSLoader():
         self.primary_status = "done"
         self.secondary_status = "done"
 
-        thread = threading.Thread(target=self._init_searcher)
-        thread.start()
+        self.thread = threading.Thread(target=self._init_searcher)
+        self.thread.start()
 
     def primary_load_project(self):
         from bw2data.backends import sqlite3_lci_db
@@ -102,9 +105,11 @@ class MDSLoader():
         if sqlite_db != str(sqlite3_lci_db._filepath):
             return
 
-        assert all(secondary_df.index.isin(self.mds.dataframe.index))
+        assert all(secondary_df.index.isin(self.mds.keys))
         logger.debug(f"Secondary metadata loaded with {len(secondary_df)} rows")
-        self.mds.dataframe = pd.concat([self.mds.dataframe[primary], secondary_df], axis=1)
+        left = self.mds.get_metadata(columns=primary)
+
+        self.mds.dataframe = pd.concat([left, secondary_df], axis=1)
 
         for idx in secondary_df.index:
             self.mds.register_mutation(idx, "update")
@@ -114,14 +119,20 @@ class MDSLoader():
 
     def load_database(self, database_name: str):
         from bw2data.backends import sqlite3_lci_db
+        self.primary_status = "loading"
+        self.secondary_status = "loading"
+
+        if self.thread is not None and self.thread.is_alive():
+            logger.debug("Waiting for previous loading thread to finish")
+            self.thread.join()
 
         # start loading thread for secondary metadata
-        thread = SecondaryLoadThread(
+        self.thread = SecondaryLoadThread(
             databases=[database_name],
             sqlite_db=str(sqlite3_lci_db._filepath),
             callback=self.secondary_load_database
         )
-        thread.start()
+        self.thread.start()
 
         # load primary metadata in the main thread
         self.primary_load_database(database_name)
@@ -142,40 +153,59 @@ class MDSLoader():
         for idx in primary_df.index:
             self.mds.register_mutation(idx, "add")
 
+        self.primary_status = "done"
+
     def secondary_load_database(self, secondary_df: pd.DataFrame, sqlite_db: str):
         from bw2data.backends import sqlite3_lci_db
 
         if secondary_df.empty or sqlite_db != str(sqlite3_lci_db._filepath):
+            self.secondary_status = "done"
             return
 
         database = secondary_df.index[0][0]
-        indices = self.mds.dataframe.loc[[database]].index
+        indices = self.mds.get_database_metadata(database, []).index
 
         if not all(secondary_df.index.isin(indices)):
             logger.debug("Secondary database metadata dropping rows")
             secondary_df = secondary_df[secondary_df.index.isin(indices)]
 
-        logger.debug(f"Secondary metadata loaded with {len(secondary_df)} rows")
+        logger.debug(f"Secondary metadata loaded with {len(secondary_df)} rows, adding to metadatastore {id(self.mds)}")
 
-        self._fix_categories(secondary_df)
-        self.mds.dataframe.update(secondary_df)
+        df = self.mds.dataframe
+        self._fix_categories(secondary_df, df)
+        df = secondary_df.combine_first(df)
+        self.mds.dataframe = df
 
         for idx in secondary_df.index:
             self.mds.register_mutation(idx, "update")
 
+        if hasattr(self.mds, "searcher") and self.mds.searcher is not None:
+            search_engine_cols = list(set(all_fields) & set(search_engine_whitelist))
+            df = self.mds.get_database_metadata(database, search_engine_cols)
+            for col in df.select_dtypes(include=['category']).columns:
+                df[col] = df[col].astype(object)
+            self.mds.searcher.add_identifier(df)
+
+        self.secondary_status = "done"
+
     # utility functions
-    def _fix_categories(self, df: pd.DataFrame):
+    @staticmethod
+    def _fix_categories(df: pd.DataFrame, mds_df: pd.DataFrame):
         category_columns = [k for k, v in secondary_types.items() if v == "category"]
 
         for col in category_columns:
             categories = df[col].dropna().unique()
-            categories = [c for c in categories if c not in self.mds.dataframe[col].cat.categories]
+            categories = [c for c in categories if c not in mds_df[col].cat.categories]
 
             # add new category to column
-            self.mds.dataframe[col] = self.mds.dataframe[col].cat.add_categories(categories)
+            mds_df[col] = mds_df[col].cat.add_categories(categories)
 
     def _init_searcher(self):
         from .searcher import MDSSearcher
+
+        if os.environ.get("AB_NO_SEARCHER"):
+            logger.debug("Skipping searcher initialization due to AB_NO_SEARCHER environment variable")
+            return
 
         if hasattr(self.mds, 'searcher') and self.mds.searcher is not None:
             old_searcher = self.mds.searcher
@@ -248,11 +278,11 @@ class SecondaryLoadThread(threading.Thread):
         self.databases = databases
         self.sqlite_db = sqlite_db
         self.callback = callback
-        self.result_df = None
     
     def run(self):
         """Execute the loading in a background thread."""
         try:
+            logger.debug("Starting secondary metadata load with multiprocessing Pool")
             with Pool() as pool:
                 args = [(self.sqlite_db, db, secondary) for db in self.databases]
                 results = pool.starmap(load, args)
@@ -264,11 +294,10 @@ class SecondaryLoadThread(threading.Thread):
                 full_df = pd.concat([full_df, df])
 
             # Store result and call callback
-            self.result_df = full_df
             self.callback(full_df, self.sqlite_db)
             
         except Exception as e:
-            logger.error(f"Error loading secondary metadata: {e}")
+            logger.error(f"Error loading secondary metadata: {e}", exc_info=True)
             # Call callback with empty dataframe on error
             self.callback(pd.DataFrame(), self.sqlite_db)
 

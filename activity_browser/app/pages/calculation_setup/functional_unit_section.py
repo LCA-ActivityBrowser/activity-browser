@@ -1,5 +1,6 @@
 from qtpy import QtWidgets, QtCore
 from qtpy.QtCore import Qt
+from loguru import logger
 
 import bw2data as bd
 import pandas as pd
@@ -28,6 +29,8 @@ class FunctionalUnitSection(QtWidgets.QWidget):
         self.setLayout(layout)
 
     def sync(self):
+        logger.debug(f"Syncing {self.__class__.__name__}: {id(self)}")
+
         try:
             self.calculation_setup = bd.calculation_setups[self.calculation_setup_name]
             df = self.build_df()

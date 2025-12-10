@@ -17,8 +17,6 @@ from .data_tab import DataTab
 from .consumers_tab import ConsumersTab
 
 
-
-
 class ActivityDetailsPage(QtWidgets.QWidget):
     """
     A widget that displays detailed information about a specific activity.
@@ -150,6 +148,8 @@ class ActivityDetailsPage(QtWidgets.QWidget):
         """
         Synchronizes the widget with the current state of the activity.
         """
+        logger.debug(f"Syncing {self.__class__.__name__}: {id(self)}")
+
         self.activity = refresh_node_or_none(self.activity)
 
         if self.activity is None:

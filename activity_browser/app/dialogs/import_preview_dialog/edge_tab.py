@@ -2,6 +2,8 @@ from PySide6.QtCore import QModelIndex
 from qtpy import QtWidgets, QtCore, QtGui
 from qtpy.QtCore import Qt
 
+from loguru import logger
+
 import pandas as pd
 
 from bw2io.importers.base_lci import LCIImporter
@@ -49,6 +51,8 @@ class ImportPreviewEdgeTab(QtWidgets.QWidget):
 
     def sync(self):
         """Synchronize the view based on simple/detailed mode."""
+        logger.debug(f"Syncing {self.__class__.__name__}: {id(self)}")
+
         self.edge_view.header().setHidden(self.simple)
         self.edge_view.viewport().setBackgroundRole(
             QtGui.QPalette.ColorRole.Window if self.simple else QtGui.QPalette.ColorRole.Base)

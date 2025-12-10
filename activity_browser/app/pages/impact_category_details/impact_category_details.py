@@ -1,5 +1,6 @@
 from qtpy import QtWidgets, QtGui, QtCore
 from qtpy.QtCore import Qt
+from loguru import logger
 
 import bw2data as bd
 import pandas as pd
@@ -46,6 +47,8 @@ class ImpactCategoryDetailsPage(QtWidgets.QWidget):
             self.deleteLater()
 
     def sync(self):
+        logger.debug(f"Syncing {self.__class__.__name__}: {id(self)}")
+
         if self.name not in bd.methods:
             self.deleteLater()
             return
@@ -202,7 +205,7 @@ class CharacterizationFactorsModel(core.ABTreeModel):
     A model representing the characterization factors data.
     """
     def __init__(self, page: ImpactCategoryDetailsPage):
-        super().__init__(parent=page)
+        super().__init__(parent=page, enable_sorting=True)
         self.page = page
 
     def sort(self, column: int, order: Qt.SortOrder = Qt.SortOrder.AscendingOrder) -> None:

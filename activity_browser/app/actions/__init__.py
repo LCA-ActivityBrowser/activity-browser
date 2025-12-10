@@ -74,6 +74,7 @@ from .parameter.parameter_modify import ParameterModify
 from .parameter.parameter_uncertainty_remove import ParameterUncertaintyRemove
 from .parameter.parameter_uncertainty_modify import ParameterUncertaintyModify
 from .parameter.parameter_clear_broken import ParameterClearBroken
+from .parameter.parameter_group_delete import ParameterGroupDelete
 
 from .project.project_new import ProjectNew
 from .project.project_duplicate import ProjectDuplicate

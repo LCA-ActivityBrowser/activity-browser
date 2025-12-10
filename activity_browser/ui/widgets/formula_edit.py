@@ -11,7 +11,7 @@ from qtpy.QtCore import QTimer, Qt, QAbstractTableModel, QModelIndex
 
 from activity_browser.static import fonts
 
-QFontDatabase.addApplicationFont(fonts.__path__[0] + "/mono.ttf")
+
 
 operators = r"+\-*/%=<>!&|^~"
 pattern = r"\b[a-zA-Z_]\w*\b|[\d.]+|[\"'{}:,+\-*/^()\[\]]| +"
@@ -57,6 +57,8 @@ class Colors:
 
 class ABFormulaEdit(QWidget):
     def __init__(self, parent=None, scope=None, text=None, simple=False):
+        QFontDatabase.addApplicationFont(fonts.__path__[0] + "/mono.ttf")
+
         super().__init__(parent)
         self.scope = scope or {}
         self.error = False

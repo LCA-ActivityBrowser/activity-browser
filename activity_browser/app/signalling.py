@@ -1,7 +1,7 @@
 from loguru import logger
 from time import time
 
-from qtpy.QtCore import QObject, Signal, SignalInstance, QTimer
+from qtpy.QtCore import QObject, Signal, SignalInstance, QTimer, QEvent
 from blinker import signal as blinker_signal
 
 
