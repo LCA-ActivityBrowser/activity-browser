@@ -95,7 +95,6 @@ class ABLoader(QtWidgets.QWidget):
 
     def load_finished(self):
         from activity_browser import app
-        app.main_window.sync()
         app.main_window.show()
         self.deleteLater()
 
@@ -151,7 +150,6 @@ def run_activity_browser_no_launcher():
     from .ui.widgets import CentralTabWidget
     from .app import panes, pages, application, metadata
 
-    application.main_window.sync()
     application.main_window.show()
 
     application.set_icon()  # setting this here seems to fix the icon not showing sometimes

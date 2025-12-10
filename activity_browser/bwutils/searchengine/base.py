@@ -1,7 +1,6 @@
 import itertools
 import functools
 import re
-import sys
 from collections import Counter, OrderedDict, defaultdict
 from typing import Iterable, Optional
 from time import time
@@ -183,7 +182,6 @@ class SearchEngine:
 
     def reverse_dict_many_to_one(self, dictionary: dict) -> dict:
         """Reverse a dictionary of Counter objects."""
-        logger.debug(f"reverse_dict_many_to_one called with {len(dictionary)} items")
         reverse = defaultdict(Counter)
         for identifier, counter_object in dictionary.items():
             if not isinstance(counter_object, Counter):

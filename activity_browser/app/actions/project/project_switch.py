@@ -45,12 +45,10 @@ class ProjectSwitch(ABAction):
 
         dialog = ProjectChangeDialog(project_name, app.main_window)
         dialog.show()
-        app.application.thread().eventDispatcher().processEvents(QtCore.QEventLoop.ProcessEventsFlag.AllEvents)
+        app.application.processEvents()
 
         # switch to the new project, don't auto update to brightway25
         bd.projects.set_current(project_name, update=False)
-
-        dialog.close()
 
         if not bd.projects.twofive:
             logger.warning(f"Project: {bd.projects.current} is not yet BW25 compatible")
@@ -61,6 +59,9 @@ class ProjectSwitch(ABAction):
         # update the last opened timestamp
         bd.projects.dataset.data["last_opened"] = datetime.datetime.now().isoformat()
         bd.projects.dataset.save()
+
+        app.application.processEvents()
+        dialog.close()
 
     @staticmethod
     def set_warning_bar():

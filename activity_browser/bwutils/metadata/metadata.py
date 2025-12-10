@@ -23,8 +23,6 @@ class MetaDataStore(QObject):
         from .updater import MDSUpdater
         from .searcher import MDSSearcher
 
-        logger.debug(f"Initializing MetaDataStore: {id(self)}")
-
         if self._initialized:
             return
         self._initialized = True
