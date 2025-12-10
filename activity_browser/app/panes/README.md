@@ -22,23 +22,11 @@ Panes inherit from `AbstractPane` (in `ui/widgets/abstract_pane.py`) which provi
 - Signal connections
 - State persistence (dock position, visibility)
 
-## Common Pane Types
-
-### Navigation Panes
-- **Database browser** - Tree view of available databases
-- **Activity browser** - Search and browse activities
-- **Method browser** - Browse impact assessment methods
-- **Project browser** - List of Brightway projects
-
-### Information Panes
-- **Details panel** - Show details of selected items
-- **Properties** - Display item properties and metadata
-- **History** - Recent actions or visited items
-
-### Tool Panes
-- **Quick calculations** - Run simple calculations
-- **Search** - Global search interface
-- **Console** - Python console for advanced users
+## Existing Panes
+- **Databases Pane** - View of available databases
+- **Database Products Pane** - Search and browse product-type nodes within a database
+- **Impact Categories Pane** - Browse impact assessment methods
+- **Calculation Setups Pane** - List of Calculation Setups
 
 ## Pane Features
 
@@ -65,50 +53,16 @@ from activity_browser.ui.widgets import AbstractPane
 class MyPane(AbstractPane):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setup_ui()
-        
-    def setup_ui(self):
-        # Build pane content
-        pass
-```
-
-## Integration with Main Window
-
-Panes are added to the main window as dock widgets:
-
-```python
-from activity_browser import app
-
-pane = MyPane()
-app.main_window.addDockWidget(Qt.LeftDockWidgetArea, pane)
-```
-
-## Signal Communication
-
-Panes communicate with other components via signals:
-
-```python
-from activity_browser import app
-
-class MyPane(AbstractPane):
-    def on_item_selected(self, item):
-        # Emit signal for other components
-        app.signals.item_selected.emit(item)
 ```
 
 ## Development Guidelines
 
 When creating new panes:
 
-1. **Inherit from AbstractPane** - Use the base class for consistency
-2. **Set pane title** - Provide a clear, descriptive title
-3. **Keep focused** - Each pane should have a single, clear purpose
-4. **Connect signals** - Listen for and emit relevant signals
-5. **Handle updates** - Refresh when underlying data changes
-6. **Support search/filter** - Allow users to find items quickly
-7. **Provide context menus** - Right-click actions for items
-8. **Make it closeable** - Users should be able to hide panes
-9. **Support keyboard navigation** - Enable keyboard shortcuts
+- **Inherit from AbstractPane** - Use the base class for consistency
+- **Set pane title** - Use the standard `PaneNamePane` naming convention to set the title automatically
+- **Base panes** - Add base panes to `__init__.py` in this directory so they are loaded by the main window on project change.
+
 
 ## Visibility Control
 

@@ -4,47 +4,24 @@ Metadata management for activities, databases, and methods.
 
 ## Overview
 
-This directory handles storage, retrieval, and management of metadata associated with LCA data in Activity Browser. Metadata provides additional context and information beyond what Brightway2 stores natively.
+This directory handles storage, retrieval, and management of metadata associated with LCI data in Activity Browser. The MetaDataStore provides quick access to reading node data.
 
 ## Purpose
 
 Metadata management provides:
-- **Extended information** - Additional fields beyond Brightway2 schema
-- **User annotations** - Comments, tags, custom fields
-- **Workflow tracking** - Modification history, authorship
-- **Search enhancement** - Additional searchable attributes
-- **Classification** - Custom categorization schemes
+- **In memory** - Quicker access to ranges of nodes
+- **Unpacked data blob** - Unpack the data blob from the sqlite for quick access
+- **Search enhancement** - Fuzzy search capabilities on metadata fields
 
 ## Metadata Types
 
-### Activity Metadata
-- Custom descriptions
-- Data quality assessments
-- Pedigree matrices
-- User comments
-- Modification timestamps
-- Authorship information
-
-### Database Metadata
-- Database descriptions
-- Source information
-- Version tracking
-- Import history
-- Licensing information
-
-### Method Metadata
-- Method descriptions
-- Methodological choices
-- References and sources
-- Uncertainty information
+See `fields.py` for defined metadata fields and schemas. Common types include:
+- **code** - Activity codes
+- **name** - Activity names
+- **synonyms** - Alternative names
 
 ## Storage
-
-Metadata is stored separately from Brightway2's native storage:
-- JSON files in user data directory
-- Keyed by activity/database/method identifiers
-- Persisted across sessions
-- Backed up with projects
+Metadata is cached separately from Brightway2's native storage to allow faster access and searching. It is stored as a pickle on each flush.
 
 ## MetaDataStore
 
@@ -67,75 +44,11 @@ metadata.update_activity_metadata(activity_key, {"comment": "..."})
 
 ### Reading Metadata
 ```python
-meta = metadata.get_metadata(item_key)
-comment = meta.get("comment", "")
-```
-
-### Writing Metadata
-```python
-metadata.update_metadata(item_key, {
-    "comment": "Updated description",
-    "modified": datetime.now().isoformat(),
-    "author": "user@example.com"
-})
+meta = metadata.get_metadata(activity_key, fields=["name", "comment"])
+meta = metadata.get_database_metadata(database_name, fields=["description"])
 ```
 
 ### Searching Metadata
 ```python
 results = metadata.search(query="renewable energy")
 ```
-
-## Signal Integration
-
-Metadata changes emit signals:
-
-```python
-from activity_browser import app
-
-app.signals.metadata_changed.emit(item_key)
-```
-
-Other components can listen and update their displays accordingly.
-
-## Development Guidelines
-
-When working with metadata:
-
-1. **Use the MetaDataStore** - Don't create separate storage
-2. **Emit signals** - Notify when metadata changes
-3. **Validate schemas** - Ensure metadata structure is consistent
-4. **Handle missing data** - Provide sensible defaults
-5. **Consider performance** - Cache frequently accessed metadata
-6. **Backup regularly** - Metadata is user-created content
-7. **Version metadata format** - Support migration if schema changes
-
-## Data Structure
-
-Typical metadata structure:
-
-```json
-{
-  "comment": "User-provided description",
-  "tags": ["renewable", "electricity"],
-  "data_quality": {
-    "reliability": 3,
-    "completeness": 4,
-    "temporal_correlation": 2
-  },
-  "modified": "2025-12-10T10:30:00",
-  "author": "user@example.com",
-  "custom_fields": {
-    "project_code": "ABC123"
-  }
-}
-```
-
-## Integration with UI
-
-Metadata is displayed and edited through:
-- Activity details page
-- Database properties dialog
-- Method information panel
-- Custom metadata editor dialogs
-
-Users can add, edit, and delete metadata through these interfaces.

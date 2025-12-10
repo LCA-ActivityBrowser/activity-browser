@@ -10,8 +10,8 @@ This module provides a collection of generic methods and utilities that wrap and
 
 - **`ecoinvent_biosphere_versions/`** - Ecoinvent biosphere database version mappings
 - **`io/`** - Import/export operations for data interchange
-- **`metadata/`** - Metadata management for activities and databases
-- **`searchengine/`** - Search functionality for activities and exchanges
+- **`metadata/`** - Metadata loading and caching for quick access
+- **`searchengine/`** - Fuzzy search functionality for dataframes
 - **`superstructure/`** - Superstructure scenario analysis tools
 
 ## Key Files
@@ -46,8 +46,6 @@ Import utilities as needed throughout the application:
 
 ```python
 from activity_browser.bwutils import commontasks
-from activity_browser.bwutils.errors import ABError
-from activity_browser.bwutils.manager import ABManager
 ```
 
 ## Design Principle
@@ -56,4 +54,3 @@ Keep utilities generic and reusable. These functions should:
 - Work with Brightway2 data structures
 - Be independent of UI components
 - Be testable without requiring a GUI
-- Emit signals when state changes (via `activity_browser.app.signals`)
