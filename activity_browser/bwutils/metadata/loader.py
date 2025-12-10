@@ -1,6 +1,5 @@
 import sqlite3
 import pickle
-import threading
 import os
 from multiprocessing import Pool
 from loguru import logger
@@ -8,17 +7,21 @@ from typing import Literal, Callable
 
 import pandas as pd
 
+from qtpy.QtCore import QObject, QThread, Signal, SignalInstance
+
 from .metadata import MetaDataStore
 from .fields import secondary_types, primary, secondary, search_engine_whitelist, all_fields
 
 
-class MDSLoader:
+class MDSLoader(QObject):
     primary_status: Literal["idle", "loading", "done"] = "idle"
     secondary_status: Literal["idle", "loading", "done"] = "idle"
 
     def __init__(self, mds: MetaDataStore):
+        super().__init__(parent=mds)
+
         self.mds = mds
-        self.thread: threading.Thread | None = None
+        self.thread: QThread | None = None
         self.connect_signals()
 
     def connect_signals(self):
@@ -48,8 +51,9 @@ class MDSLoader:
         self.thread = SecondaryLoadThread(
             databases=list(bd.databases),
             sqlite_db=str(sqlite3_lci_db._filepath),
-            callback=self.secondary_load_project
+            parent=self,
         )
+        self.thread.result.connect(self.secondary_load_project)
         self.thread.start()
 
         # load primary metadata in the main thread
@@ -78,7 +82,8 @@ class MDSLoader:
         self.primary_status = "done"
         self.secondary_status = "done"
 
-        self.thread = threading.Thread(target=self._init_searcher)
+        self.thread = QThread(parent=self)
+        self.thread.run = self._init_searcher
         self.thread.start()
 
     def primary_load_project(self):
@@ -100,6 +105,7 @@ class MDSLoader:
         self.primary_status = "done"
 
     def secondary_load_project(self, secondary_df: pd.DataFrame, sqlite_db: str):
+        logger.debug("secondary_load_project")
         from bw2data.backends import sqlite3_lci_db
 
         if sqlite_db != str(sqlite3_lci_db._filepath):
@@ -122,16 +128,17 @@ class MDSLoader:
         self.primary_status = "loading"
         self.secondary_status = "loading"
 
-        if self.thread is not None and self.thread.is_alive():
+        if self.thread is not None and self.thread.isRunning():
             logger.debug("Waiting for previous loading thread to finish")
-            self.thread.join()
+            self.thread.wait()
 
         # start loading thread for secondary metadata
         self.thread = SecondaryLoadThread(
             databases=[database_name],
             sqlite_db=str(sqlite3_lci_db._filepath),
-            callback=self.secondary_load_database
+            parent=self,
         )
+        self.thread.result.connect(self.secondary_load_database)
         self.thread.start()
 
         # load primary metadata in the main thread
@@ -157,6 +164,7 @@ class MDSLoader:
 
     def secondary_load_database(self, secondary_df: pd.DataFrame, sqlite_db: str):
         from bw2data.backends import sqlite3_lci_db
+        logger.debug("Starting secondary metadata load database callback")
 
         if secondary_df.empty or sqlite_db != str(sqlite3_lci_db._filepath):
             self.secondary_status = "done"
@@ -270,36 +278,38 @@ class MDSLoader:
 
 
 
-class SecondaryLoadThread(threading.Thread):
+class SecondaryLoadThread(QThread):
     """Thread for loading secondary metadata using multiprocessing Pool."""
+    result: SignalInstance = Signal(pd.DataFrame, str)
     
-    def __init__(self, databases: list[str], sqlite_db: str, callback: Callable):
-        super().__init__(daemon=True)
+    def __init__(self, databases: list[str], sqlite_db: str, parent):
+        super().__init__(parent=parent)
         self.databases = databases
         self.sqlite_db = sqlite_db
-        self.callback = callback
     
     def run(self):
         """Execute the loading in a background thread."""
         try:
             logger.debug("Starting secondary metadata load with multiprocessing Pool")
-            with Pool() as pool:
-                args = [(self.sqlite_db, db, secondary) for db in self.databases]
-                results = pool.starmap(load, args)
+            # with Pool() as pool:
+            #     args = [(self.sqlite_db, db, secondary) for db in self.databases]
+            #     results = pool.starmap(load, args)
+
+            results = [load(self.sqlite_db, db, secondary) for db in self.databases]
 
             full_df = pd.DataFrame()
             for df in results:
                 if df is None or df.empty:
                     continue
                 full_df = pd.concat([full_df, df])
-
-            # Store result and call callback
-            self.callback(full_df, self.sqlite_db)
             
         except Exception as e:
             logger.error(f"Error loading secondary metadata: {e}", exc_info=True)
             # Call callback with empty dataframe on error
-            self.callback(pd.DataFrame(), self.sqlite_db)
+            full_df = pd.DataFrame()
+
+        logger.debug("Secondary metadata load complete, emitting result signal")
+        self.result.emit(full_df, self.sqlite_db)
 
 
 def load(fp: str, database_name: str, fields: list[str]):

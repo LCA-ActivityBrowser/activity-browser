@@ -3,12 +3,16 @@ from loguru import logger
 import pandas as pd
 import numpy as np
 
+from qtpy.QtCore import QObject
+
 from .metadata import MetaDataStore
 from .fields import primary, secondary, all_types, search_engine_whitelist
 
 
-class MDSUpdater:
+class MDSUpdater(QObject):
+
     def __init__(self, mds: MetaDataStore):
+        super().__init__(parent=mds)
         self.mds = mds
         self.connect_signals()
 

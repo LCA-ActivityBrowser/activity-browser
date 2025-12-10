@@ -9,7 +9,7 @@ from activity_browser.bwutils.settings import Settings
 from .main import MainWindow
 
 application = ABApplication()
-metadata = MetaDataStore()
+metadata = MetaDataStore(application)
 settings = Settings()
 
 # modules dependent on application instance

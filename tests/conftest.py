@@ -57,8 +57,9 @@ def basic_database(qapp, main_window):
 
     i = 0
     while metadata.loader.secondary_status != "done" and i < 60:
-        logger.warning("Waiting for primary project load to finish")
+        logger.warning("Waiting for project load to finish")
         time.sleep(1)
+        qapp.processEvents(QtCore.QEventLoop.ProcessEventsFlag.AllEvents)
         i += 1
 
     db = bf.FunctionalSQLiteDatabase("basic")
@@ -77,6 +78,7 @@ def basic_database(qapp, main_window):
     while metadata.loader.secondary_status != "done" and i < 60:
         logger.warning("Waiting for database load to finish...")
         time.sleep(1)
+        qapp.processEvents(QtCore.QEventLoop.ProcessEventsFlag.AllEvents)
         i += 1
 
     if i >= 60:

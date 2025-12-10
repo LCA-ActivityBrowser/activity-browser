@@ -2,21 +2,24 @@ from typing import Literal, Optional
 from loguru import logger
 from threading import RLock
 
+from qtpy.QtCore import QObject
+
 import pandas as pd
 
 from .fields import all_fields, all_types
 
 
-class MetaDataStore:
+class MetaDataStore(QObject):
+    """Singleton class to manage metadata storage, loading, updating, and searching."""
     _instance = None
     
-    def __new__(cls):
+    def __new__(cls, *args, **kwargs):
         if cls._instance is None:
-            cls._instance = super().__new__(cls)
+            cls._instance = super().__new__(cls, *args, **kwargs)
             cls._instance._initialized = False
         return cls._instance
     
-    def __init__(self):
+    def __init__(self, parent=None):
         from .loader import MDSLoader
         from .updater import MDSUpdater
         from .searcher import MDSSearcher
@@ -26,6 +29,7 @@ class MetaDataStore:
         if self._initialized:
             return
         self._initialized = True
+        super().__init__(parent=parent)
 
         self._dataframe = pd.DataFrame()
         self._df_lock = RLock()
