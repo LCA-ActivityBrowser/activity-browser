@@ -29,22 +29,7 @@ The application can be started in multiple ways:
 
 All entry points lead to `activity_browser.__main__:run_activity_browser`.
 
-## Architecture
-
-The application follows an MVC-like pattern with:
-- **Global signals** (`activity_browser.app.signals`) - Event bus for cross-component communication
-- **Deferred imports** - Heavy modules are loaded in background threads during startup
-- **Actions pattern** - UI operations encapsulated in `app/actions/` with a base class pattern
-
-## Dependencies
-
-Main dependencies include:
-- **PySide6** (via qtpy) - Qt bindings for the GUI
-- **Brightway2** ecosystem (bw2data, bw2calc, bw2analyzer, bw2io) - LCA calculation engine
-- **loguru** - Logging framework
-
 ## Development Notes
 
-- Avoid top-level imports of heavy modules (PySide6, bw2data) to keep tests fast
-- Use project signals for cross-component communication instead of direct function calls
-- Global shortcuts are registered via `@application.global_shortcut` decorator
+- See `CONTRIBUTING.md` for guidelines on contributing to the project
+- Check out the Development notes specific to each submodule for more details on implementation

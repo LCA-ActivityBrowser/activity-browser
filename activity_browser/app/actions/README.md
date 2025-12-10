@@ -17,16 +17,6 @@ This directory contains all user-triggered actions in Activity Browser. Each act
 - **`project/`** - Project-level operations
 - **`tools/`** - Various tools and utilities accessible via actions
 
-## Key Files
-
-- **`base.py`** - `ABAction` base class that all actions inherit from
-- **`metadatastore_open.py`** - Action to open the metadata store dialog
-- **`migrations_install.py`** - Database migration actions
-- **`node_select_open.py`** - Node selection dialog action
-- **`pyside_upgrade.py`** - PySide upgrade helper action
-- **`save_parameters_to_excel.py`** - Export parameters to Excel
-- **`settings_wizard_open.py`** - Settings wizard dialog action
-
 ## Action Pattern
 
 All actions follow a consistent pattern defined in `base.py`:
@@ -48,7 +38,7 @@ class MyAction(ABAction):
 1. **Declarative** - Icon, text, and tooltip defined as class attributes
 2. **Callable arguments** - Arguments can be functions (evaluated at runtime)
 3. **Qt integration** - Can be converted to QAction or QPushButton
-4. **Exception handling** - Optional decorator for error dialogs
+4. **Exception handling** - Always add `@exception_dialogs` decorator for user-facing errors
 5. **Flexible invocation** - Triggered from menus, buttons, shortcuts
 
 ## Usage
@@ -99,18 +89,4 @@ When adding new actions:
 
 ## Signal Integration
 
-Actions should emit signals when they modify application state:
-
-```python
-from activity_browser import app
-
-class MyAction(ABAction):
-    @staticmethod
-    def run():
-        # Perform operation
-        ...
-        # Emit signal
-        app.signals.database_changed.emit()
-```
-
-This ensures other components can react to state changes without tight coupling.
+**Actions should not emit signals themselves** That being said, actions should only emit signals when they modify state in a way that Brightway2 does not automatically notify the UI about. See e.g. parameter_group_delete.py for an example of emitting a signal after deleting a parameter group.

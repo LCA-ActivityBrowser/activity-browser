@@ -31,9 +31,9 @@ This module orchestrates the main application components including the main wind
 The app module creates and wires together the core application components:
 
 1. **Application** (`ABApplication`) - Qt application instance with global shortcut management
-2. **Signals** (`ABSignals`) - Project-wide event bus for cross-component communication
+2. **Signals** (`ABSignals`) - Project-wide event bus for model to UI communication
 3. **Main Window** (`MainWindow`) - Main application window with pages and panes
-4. **Actions** - Command pattern implementation for menu items and toolbar actions
+4. **Actions** - Command pattern implementation for menu items and toolbar actions. Modifying Brightway2 happens here.
 5. **Pages** - Content area widgets for different application views
 6. **Panes** - Dock-able side panels
 
@@ -59,12 +59,9 @@ app.metadata     # Metadata store
 app.main_window  # Main window
 ```
 
-## Actions Pattern
+## Development Notes
 
-Actions encapsulate user commands and are defined in the `actions/` subdirectory. Each action:
-- Inherits from `ABAction` base class
-- Defines icon, text, tooltip
-- Implements a `run()` static method
-- Can be converted to QAction or QPushButton
-
-See `actions/base.py` for the action framework.
+- See `CONTRIBUTING.md` for guidelines on contributing to the project
+- This module is the place to add components that depend on the application having been initialized (e.g., actions, panes)
+  - If the logic you want to add can only depend on brightway2, consider placing it in the `bwutils` submodule instead
+  - If the widget you want to add does not depend on the application, consider placing it in the `ui` submodule instead

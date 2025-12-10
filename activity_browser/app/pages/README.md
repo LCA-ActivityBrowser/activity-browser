@@ -18,67 +18,25 @@ This directory contains the primary content pages that users interact with in Ac
 ## Key Files
 
 - **`welcome.py`** - Welcome page shown when no project is open or on first launch
-- **`metadatastore.py`** - Metadata management page
+- **`metadatastore.py`** - Metadata view page (DEBUG only)
 
-## Page Architecture
+## Two types of pages
 
-Pages inherit from `AbstractPage` (in `ui/widgets/abstract_page.py`) which provides:
-- Consistent layout structure
-- Signal connections
-- Toolbar integration
-- State management
-
-## Page Lifecycle
-
-1. **Creation** - Page is instantiated and added to the main window
-2. **Display** - User navigates to the page (shown in central widget)
-3. **Updates** - Page responds to signals and refreshes data
-4. **Interaction** - User performs actions within the page
-5. **Persistence** - Page state may be saved when switching away
-
-## Common Page Features
-
-### Toolbars
-Most pages include a toolbar with actions:
-```python
-self.toolbar = QToolBar()
-self.toolbar.addAction(MyAction.get_QAction())
-```
-
-### Data Display
-Pages typically contain:
-- Tables showing lists of items
-- Tree views for hierarchical data
-- Charts and plots for visualizations
-- Forms for data entry
-
-### Signal Handling
-Pages connect to global signals:
-```python
-from activity_browser import app
-
-app.signals.database_changed.connect(self.update_content)
-```
-
-## Page Navigation
-
-Users navigate between pages via:
-- Menu bar (View menu)
-- Toolbar buttons
-- Context menus
-- Actions triggered by events (e.g., double-click activity → show details)
+1. **Base pages** - Pages that are initialized once and remain in memory (e.g., Welcome Screen, Parameters, Settings).
+   - They maintain their state and reload data on project switches.
+   - Hidden/shown based on user actions or preferences in the settings.
+   - Defined in `__init__.py`.
+2. **Dynamic pages** - Pages that show specific data and are opened as such by the user (e.g. Activity Details, LCA results).
+    - Created on demand and closed when no longer needed.
+    - Multiple instances can exist (e.g., multiple activity detail pages) and will be grouped.
 
 ## Development Guidelines
 
 When creating new pages:
 
-1. **Inherit from AbstractPage** - Use the base class for consistency
-2. **Set page title** - Provide a clear, descriptive title
-3. **Create toolbar** - Add relevant actions for the page
-4. **Connect signals** - Listen for relevant application events
-5. **Handle updates** - Refresh data when underlying state changes
-6. **Manage state** - Save/restore page state when appropriate
-7. **Use threading** - Long operations should not block the UI
+- Should follow the `PageNamePage` naming convention.
+- Set a unique ObjectName for identification.
+- Set appropriate tab titles using `setWindowTitle()`.
 
 ## Subdirectory Details
 
@@ -111,6 +69,8 @@ Display LCA calculation results:
 - Export options
 
 ### `parameters/`
+[BASE PAGE]
+
 Manage parameters and scenarios:
 - Project parameters
 - Database parameters
@@ -119,6 +79,8 @@ Manage parameters and scenarios:
 - Scenario management
 
 ### `settings/`
+[BASE PAGE]
+
 Application configuration:
 - General preferences
 - Project settings
