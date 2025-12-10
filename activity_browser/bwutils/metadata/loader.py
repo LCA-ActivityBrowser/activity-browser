@@ -3,8 +3,7 @@ import pickle
 import os
 from multiprocessing import Pool
 from loguru import logger
-from typing import Literal, Callable
-
+from typing import Literal
 import pandas as pd
 
 from qtpy.QtCore import QObject, QThread, Signal, SignalInstance
@@ -82,9 +81,8 @@ class MDSLoader(QObject):
         self.primary_status = "done"
         self.secondary_status = "done"
 
-        self.thread = QThread(parent=self)
-        self.thread.run = self._init_searcher
-        self.thread.start()
+        searcher_thread = InitSearcherThread(self.mds, parent=self)
+        searcher_thread.start()
 
     def primary_load_project(self):
         from bw2data.backends import sqlite3_lci_db
@@ -121,7 +119,9 @@ class MDSLoader(QObject):
             self.mds.register_mutation(idx, "update")
         
         self.secondary_status = "done"
-        self._init_searcher()
+
+        searcher_thread = InitSearcherThread(self.mds, parent=self)
+        searcher_thread.start()
 
     def load_database(self, database_name: str):
         from bw2data.backends import sqlite3_lci_db
@@ -180,14 +180,14 @@ class MDSLoader(QObject):
         logger.debug(f"Secondary metadata loaded with {len(secondary_df)} rows, adding to metadatastore {id(self.mds)}")
 
         df = self.mds.dataframe
-        # self._fix_categories(secondary_df, df)
+        self._fix_categories(secondary_df, df)
         df = secondary_df.combine_first(df)
         self.mds.dataframe = df
 
         for idx in secondary_df.index:
             self.mds.register_mutation(idx, "update")
 
-        if hasattr(self.mds, "searcher") and self.mds.searcher is not None:
+        if self.mds.searcher is not None:
             search_engine_cols = list(set(all_fields) & set(search_engine_whitelist))
             df = self.mds.get_database_metadata(database, search_engine_cols)
             for col in df.select_dtypes(include=['category']).columns:
@@ -207,33 +207,6 @@ class MDSLoader(QObject):
 
             # add new category to column
             mds_df[col] = mds_df[col].cat.add_categories(categories)
-
-    def _init_searcher(self):
-        from .searcher import MDSSearcher
-
-        if os.environ.get("AB_NO_SEARCHER"):
-            logger.debug("Skipping searcher initialization due to AB_NO_SEARCHER environment variable")
-            return
-
-        if hasattr(self.mds, 'searcher') and self.mds.searcher is not None:
-            old_searcher = self.mds.searcher
-            self.mds.searcher = None
-
-            # Clear large data structures
-            if hasattr(old_searcher, 'df'):
-                del old_searcher.df
-            if hasattr(old_searcher, 'identifier_to_word'):
-                del old_searcher.identifier_to_word
-            if hasattr(old_searcher, 'word_to_identifier'):
-                del old_searcher.word_to_identifier
-            if hasattr(old_searcher, 'word_to_q_grams'):
-                del old_searcher.word_to_q_grams
-            if hasattr(old_searcher, 'q_gram_to_word'):
-                del old_searcher.q_gram_to_word
-
-            del old_searcher
-
-        self.mds.searcher = MDSSearcher(self.mds)
 
     def _has_cache(self) -> bool:
         from activity_browser.bwutils import filesystem
@@ -278,6 +251,42 @@ class MDSLoader(QObject):
 
 
 
+class InitSearcherThread(QThread):
+    """Thread for initializing the searcher."""
+
+    def __init__(self, mds: MetaDataStore, parent):
+        super().__init__(parent=parent)
+        self.mds = mds
+
+    def run(self):
+        """Execute the searcher initialization in a background thread."""
+        from .searcher import MDSSearcher
+
+        if os.environ.get("AB_NO_SEARCHER"):
+            logger.debug("Skipping searcher initialization due to AB_NO_SEARCHER environment variable")
+            return
+
+        if self.mds.searcher is not None:
+            old_searcher = self.mds.searcher
+            self.mds.searcher = None
+
+            # Clear large data structures
+            if hasattr(old_searcher, 'df'):
+                del old_searcher.df
+            if hasattr(old_searcher, 'identifier_to_word'):
+                del old_searcher.identifier_to_word
+            if hasattr(old_searcher, 'word_to_identifier'):
+                del old_searcher.word_to_identifier
+            if hasattr(old_searcher, 'word_to_q_grams'):
+                del old_searcher.word_to_q_grams
+            if hasattr(old_searcher, 'q_gram_to_word'):
+                del old_searcher.q_gram_to_word
+
+            del old_searcher
+
+        self.mds.searcher = MDSSearcher(self.mds)
+
+
 class SecondaryLoadThread(QThread):
     """Thread for loading secondary metadata using multiprocessing Pool."""
     result: SignalInstance = Signal(pd.DataFrame, str)
@@ -290,12 +299,14 @@ class SecondaryLoadThread(QThread):
     def run(self):
         """Execute the loading in a background thread."""
         try:
-            logger.debug("Starting secondary metadata load with multiprocessing Pool")
-            # with Pool() as pool:
-            #     args = [(self.sqlite_db, db, secondary) for db in self.databases]
-            #     results = pool.starmap(load, args)
-
-            results = [load(self.sqlite_db, db, secondary) for db in self.databases]
+            if len(self.databases) > 1:
+                logger.debug(f"Loading metadata from {len(self.databases)} databases using multiprocessing Pool")
+                with Pool() as pool:
+                    args = [(self.sqlite_db, db, secondary) for db in self.databases]
+                    results = pool.starmap(load, args)
+            else:
+                logger.debug("Loading metadata from a single database without multiprocessing")
+                results = [load(self.sqlite_db, db, secondary) for db in self.databases]
 
             full_df = pd.DataFrame()
             for df in results:
@@ -305,10 +316,8 @@ class SecondaryLoadThread(QThread):
             
         except Exception as e:
             logger.error(f"Error loading secondary metadata: {e}", exc_info=True)
-            # Call callback with empty dataframe on error
             full_df = pd.DataFrame()
 
-        logger.debug("Secondary metadata load complete, emitting result signal")
         self.result.emit(full_df, self.sqlite_db)
 
 

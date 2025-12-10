@@ -1,6 +1,5 @@
 from typing import Literal, Optional
 from loguru import logger
-from threading import RLock
 
 from qtpy.QtCore import QObject
 
@@ -32,7 +31,6 @@ class MetaDataStore(QObject):
         super().__init__(parent=parent)
 
         self._dataframe = pd.DataFrame()
-        self._df_lock = RLock()
 
         self._added: set[tuple[str, str]] = set()
         self._updated: set[tuple[str, str]] = set()
@@ -44,16 +42,10 @@ class MetaDataStore(QObject):
 
     @property
     def dataframe(self) -> pd.DataFrame:
-        with self._df_lock:
-            copy = self._dataframe.copy(deep=True)
-        return copy
+        return self._dataframe
 
     @dataframe.setter
     def dataframe(self, df: pd.DataFrame) -> None:
-        # Perform all transformations outside the lock
-        # Make a full copy to avoid any shared memory with the input
-        df = df.copy(deep=True)
-
         # Ensure all expected columns are present, in the correct order
         df = df.reindex(columns=all_fields)[all_fields]
 
@@ -68,21 +60,15 @@ class MetaDataStore(QObject):
                 continue
             df[col] = df[col].where(df[col].notnull(), None)
 
-        # Set the internal dataframe under lock
-        with self._df_lock:
-            self._dataframe = df
+        self._dataframe = df
 
     @property
     def databases(self):
-        with self._df_lock:
-            databases = set(self._dataframe.index.get_level_values(0).unique().tolist())
-        return databases
+        return set(self._dataframe.index.get_level_values(0).unique().tolist())
 
     @property
     def keys(self):
-        with self._df_lock:
-            keys = set(self._dataframe.index.tolist())
-        return keys
+        return set(self._dataframe.index.tolist())
 
     def register_mutation(self, key: tuple[str, str], action: Literal["add", "update", "delete"]):
         if action == "add":
@@ -118,8 +104,7 @@ class MetaDataStore(QObject):
         self._deleted.clear()
 
         cache_path = filesystem.get_project_ab_path() / "metadatastore_cache.pkl"
-        with self._df_lock:
-            self._dataframe.to_pickle(cache_path)
+        self._dataframe.to_pickle(cache_path)
 
         return added, updated, deleted
 
@@ -133,7 +118,7 @@ class MetaDataStore(QObject):
                         f"`{key}`.astype('str') == {str(value)!r}" if not pd.isna(value) else f"`{key}`.isnull()"
                         for key, value in kwargs.items()
                     ])
-            ).copy(deep=True)
+            )
 
         return df
 
@@ -147,8 +132,7 @@ class MetaDataStore(QObject):
         keys = keys if keys is not None else self._dataframe.index.tolist()
         columns = columns if columns is not None else all_fields
 
-        with self._df_lock:
-            df = self._dataframe.loc[pd.IndexSlice[keys], :].copy(deep=True)
+        df = self._dataframe.loc[pd.IndexSlice[keys], :]
         return df.reindex(columns, axis="columns")
 
     def get_database_metadata(self, db_name: str, columns: list = None) -> pd.DataFrame:
@@ -157,8 +141,7 @@ class MetaDataStore(QObject):
         if db_name not in self.databases:
             return pd.DataFrame(columns=columns or all_fields)
 
-        with self._df_lock:
-            df = self._dataframe.loc[[db_name], columns].copy(deep=True)
+        df = self._dataframe.loc[[db_name], columns]
         return df.reindex(columns, axis="columns")
 
     def search(self, query: str, columns: list = None) -> pd.DataFrame:
@@ -180,20 +163,18 @@ class MetaDataStore(QObject):
         return self._meta_from_result(params, result, columns)
 
     def _meta_from_result(self, params: dict, result: list[int], columns: list = None) -> pd.DataFrame:
-        with self._df_lock:
-            df = self._dataframe.loc[self.dataframe["id"].isin(result), columns or all_fields]
-            df.sort_values(by="id", inplace=True, key=lambda x: x.map({id_: i for i, id_ in enumerate(result)}))
+        df = self._dataframe.loc[self.dataframe["id"].isin(result), columns or all_fields]
+        df.sort_values(by="id", inplace=True, key=lambda x: x.map({id_: i for i, id_ in enumerate(result)}))
 
-            extra_query = " & ".join(
-                [
-                    f"`{key}`.astype('str').str.contains('{value}', False)"
-                    for key, value in params.items()
-                    if key in df.columns
-                ]
-            )
-            if extra_query:
-                df = df.query(extra_query)
-            df = df.copy(deep=True)
+        extra_query = " & ".join(
+            [
+                f"`{key}`.astype('str').str.contains('{value}', False)"
+                for key, value in params.items()
+                if key in df.columns
+            ]
+        )
+        if extra_query:
+            df = df.query(extra_query)
 
         return df
 
