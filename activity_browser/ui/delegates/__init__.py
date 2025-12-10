@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 from .checkbox import CheckboxDelegate
 from .combobox import ComboBoxDelegate
-from .database import DatabaseDelegate
 from .delete_button import DeleteButtonDelegate
 from .float import FloatDelegate
 from .json import JSONDelegate
@@ -21,7 +20,6 @@ __all__ = [
     "AbsoluteAmountDelegate",
     "CheckboxDelegate",
     "ComboBoxDelegate",
-    "DatabaseDelegate",
     "DeleteButtonDelegate",
     "FloatDelegate",
     "JSONDelegate",

@@ -14,48 +14,24 @@ In Qt's Model/View architecture, delegates handle:
 - **Validation** - Checking user input before accepting
 - **Decoration** - Adding icons, colors, or other visual elements
 
-## Common Delegate Types
-
-### Numeric Delegates
-- **Float delegate** - Editing decimal numbers with validation
-- **Integer delegate** - Editing whole numbers with range limits
-- **Percentage delegate** - Values with % formatting
-- **Scientific notation delegate** - Large/small numbers
-
-### Text Delegates
-- **String delegate** - Basic text with validation
-- **Multiline delegate** - Text area for longer content
-- **Formula delegate** - Parameter formula editing with syntax highlighting
-- **Restricted text delegate** - Limited character sets
-
-### Selection Delegates
-- **ComboBox delegate** - Drop-down selection from list
-- **Checkbox delegate** - Boolean on/off values
-- **Radio button delegate** - Mutually exclusive options
-- **List delegate** - Multiple selections
-
-### Specialized Delegates
-- **Unit delegate** - Unit selection with validation
-- **Location delegate** - Geographic location picker
-- **Database delegate** - Database selection
-- **Activity delegate** - Activity selection with search
-
 ## Usage Pattern
 
-Assign delegates to specific columns:
+Assign delegates to specific columns by defining them in the `defaultColumnDelegates` attribute of the `ABTreeView` class:
 
 ```python
-from activity_browser.ui.delegates import FloatDelegate
+class View(widgets.ABTreeView):
+    """
+    A view that displays the exchanges in a tree structure.
 
-table = QTableView()
-table.setItemDelegateForColumn(2, FloatDelegate(parent=table))
+    Attributes:
+        defaultColumnDelegates (dict): The default column delegates for the view.
+        hovered_item (ExchangesItem): The item currently being hovered over.
+    """
+    defaultColumnDelegates = {
+        "column_name": delegates.DelegateYouWantToUse,
+    }
 ```
 
-Or for all columns:
-
-```python
-table.setItemDelegate(MyCustomDelegate(parent=table))
-```
 
 ## Creating Custom Delegates
 
@@ -160,63 +136,3 @@ When creating delegates:
 8. **Consider performance** - Efficient for many cells
 9. **Support keyboard** - Tab, Enter, Escape navigation
 10. **Provide feedback** - Visual cues for invalid input
-
-## Common Patterns
-
-### Combobox Delegate
-```python
-class ComboBoxDelegate(QStyledItemDelegate):
-    def __init__(self, items, parent=None):
-        super().__init__(parent)
-        self.items = items
-    
-    def createEditor(self, parent, option, index):
-        editor = QComboBox(parent)
-        editor.addItems(self.items)
-        return editor
-```
-
-### Checkbox Delegate
-```python
-class CheckBoxDelegate(QStyledItemDelegate):
-    def paint(self, painter, option, index):
-        # Draw checkbox centered in cell
-        checked = index.data(Qt.DisplayRole)
-        # Custom painting code...
-```
-
-### Formula Delegate with Validation
-```python
-class FormulaDelegate(QStyledItemDelegate):
-    def setModelData(self, editor, model, index):
-        formula = editor.text()
-        if self.validate_formula(formula):
-            model.setData(index, formula)
-        else:
-            # Show error, keep editor open
-            pass
-```
-
-## Integration with Views
-
-Tables and trees use delegates automatically:
-
-```python
-# Create view and model
-view = QTableView()
-model = QStandardItemModel()
-view.setModel(model)
-
-# Assign delegates
-view.setItemDelegateForColumn(0, StringDelegate())
-view.setItemDelegateForColumn(1, FloatDelegate())
-view.setItemDelegateForColumn(2, ComboBoxDelegate(["A", "B", "C"]))
-```
-
-## Performance
-
-For large tables:
-- Keep `paint()` methods efficient
-- Cache formatted values when possible
-- Avoid complex editors for many cells
-- Consider virtual scrolling with delegates
