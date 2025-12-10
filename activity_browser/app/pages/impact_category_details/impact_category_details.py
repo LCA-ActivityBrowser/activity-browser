@@ -47,7 +47,7 @@ class ImpactCategoryDetailsPage(QtWidgets.QWidget):
             self.deleteLater()
 
     def sync(self):
-        logger.debug(f"Syncing {self.__class__.__name__}: {id(self)}")
+        logger.log("SYNC", f"{self.__class__.__name__}: {id(self)}")
 
         if self.name not in bd.methods:
             self.deleteLater()

@@ -51,7 +51,7 @@ class ImportPreviewEdgeTab(QtWidgets.QWidget):
 
     def sync(self):
         """Synchronize the view based on simple/detailed mode."""
-        logger.debug(f"Syncing {self.__class__.__name__}: {id(self)}")
+        logger.log("SYNC", f"{self.__class__.__name__}: {id(self)}")
 
         self.edge_view.header().setHidden(self.simple)
         self.edge_view.viewport().setBackgroundRole(

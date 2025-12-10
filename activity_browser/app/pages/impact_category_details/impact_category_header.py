@@ -44,7 +44,7 @@ class ImpactCategoryHeader(QtWidgets.QWidget):
         Synchronizes the widget with the current state of the impact category.
         Switches between editable and view-only headers based on edit mode.
         """
-        logger.debug(f"Syncing {self.__class__.__name__}: {id(self)}")
+        logger.log("SYNC", f"{self.__class__.__name__}: {id(self)}")
 
         self.impact_category = self.parent().impact_category
         
@@ -105,7 +105,7 @@ class ViewOnlyHeader(QtWidgets.QWidget):
         """
         Updates the displayed information from the current impact category.
         """
-        logger.debug(f"Syncing {self.__class__.__name__}: {id(self)}")
+        logger.log("SYNC", f"{self.__class__.__name__}: {id(self)}")
 
         impact_category = self.parent().impact_category
         self.name_label.setText(" | ".join(impact_category.name))
@@ -151,7 +151,7 @@ class EditableHeader(QtWidgets.QWidget):
         """
         Updates the displayed information from the current impact category.
         """
-        logger.debug(f"Syncing {self.__class__.__name__}: {id(self)}")
+        logger.log("SYNC", f"{self.__class__.__name__}: {id(self)}")
 
         impact_category = self.parent().impact_category
         self.name_label.setText(f"<a href='/'>{' | '.join(impact_category.name)}</a>")

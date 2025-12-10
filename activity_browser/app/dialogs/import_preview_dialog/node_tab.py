@@ -47,7 +47,7 @@ class ImportPreviewNodeTab(QtWidgets.QWidget):
 
     def sync(self):
         """Synchronize the view based on simple/detailed mode."""
-        logger.debug(f"Syncing {self.__class__.__name__}: {id(self)}")
+        logger.log("SYNC", f"{self.__class__.__name__}: {id(self)}")
 
         self.node_view.header().setHidden(self.simple)
         self.node_view.viewport().setBackgroundRole(

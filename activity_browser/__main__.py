@@ -114,8 +114,12 @@ class ModuleThread(QtCore.QThread):
 
 def setup_logging():
     """Configure loguru sinks for console and file logging."""
+    logger.level("SYNC", no=9, color="<cyan>")
+    logger.level("TEST", no=19, color="<cyan>")
+
+
     logger.remove()
-    logger.add(sys.stderr, level="DEBUG", colorize=True,
+    logger.add(sys.stderr, level=6, colorize=True,
                format="<green>{time:HH:mm:ss}</green> | <level>{level: <8}</level> | <level>{message}</level>")
 
     log_dir = platformdirs.user_log_dir(appname="ActivityBrowser", appauthor="pylca")

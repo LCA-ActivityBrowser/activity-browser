@@ -49,7 +49,7 @@ class ProjectManagerSettingsChapter(BaseSettingsChapter):
 
     def sync(self):
         """Sync project and template data."""
-        logger.debug(f"Syncing {self.__class__.__name__}: {id(self)}")
+        logger.log("SYNC", f"{self.__class__.__name__}: {id(self)}")
 
         df = self.build_project_df()
         self.project_model.set_dataframe(df)

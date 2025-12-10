@@ -167,7 +167,7 @@ class CalculateMenu(QtWidgets.QMenu):
         app.signals.meta.calculation_setups_changed.connect(self.sync)
 
     def sync(self):
-        logger.debug(f"Syncing {self.__class__.__name__}: {id(self)}")
+        logger.log("SYNC", f"{self.__class__.__name__}: {id(self)}")
 
         self.cs_actions.clear()
         for cs in bd.calculation_setups:

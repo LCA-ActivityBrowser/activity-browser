@@ -45,7 +45,7 @@ class ImpactCategoriesPane(widgets.ABAbstractPane):
         app.signals.database_read_only_changed.connect(self.sync)
 
     def sync(self):
-        logger.debug(f"Syncing {self.__class__.__name__}: {id(self)}")
+        logger.log("SYNC", f"{self.__class__.__name__}: {id(self)}")
 
         df = self.build_df()
         self.model.set_dataframe(df, group=["_method_name"])

@@ -56,7 +56,7 @@ class DataTab(QtWidgets.QWidget):
         """
         Synchronizes the widget with the current state of the activity.
         """
-        logger.debug(f"Syncing {self.__class__.__name__}: {id(self)}")
+        logger.log("SYNC", f"{self.__class__.__name__}: {id(self)}")
 
         self.activity = refresh_node(self.activity)
         df = self.build_df()

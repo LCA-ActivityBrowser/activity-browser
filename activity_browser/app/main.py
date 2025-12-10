@@ -64,7 +64,7 @@ class MainWindow(QtWidgets.QMainWindow):
         return super().event(event)
 
     def sync(self):
-        logger.debug(f"Syncing {self.__class__.__name__}: {id(self)}")
+        logger.log("SYNC", f"{self.__class__.__name__}: {id(self)}")
         self.sync_panes()
         self.sync_pages()
 
