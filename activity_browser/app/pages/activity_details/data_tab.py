@@ -1,4 +1,5 @@
 from qtpy import QtWidgets, QtCore
+from loguru import logger
 
 import pandas as pd
 import bw2data as bd
@@ -55,6 +56,8 @@ class DataTab(QtWidgets.QWidget):
         """
         Synchronizes the widget with the current state of the activity.
         """
+        logger.log("SYNC", f"{self.__class__.__name__}: {id(self)}")
+
         self.activity = refresh_node(self.activity)
         df = self.build_df()
         df.reset_index(drop=True, inplace=True)
@@ -90,7 +93,7 @@ class DataTab(QtWidgets.QWidget):
         return df[cols]
 
 
-class DataView(widgets.ABNewTreeView):
+class DataView(widgets.ABTreeView):
     """
     A view that displays the data in a tree structure.
 

@@ -38,7 +38,7 @@ class NewFormulaDelegate(QtWidgets.QStyledItemDelegate):
 
         from activity_browser.ui.widgets import ABFormulaEdit
         viewport = self.parent().findChild(QtWidgets.QWidget, "qt_scrollarea_viewport")
-        formula = ABFormulaEdit(viewport, scope, index.data())
+        formula = ABFormulaEdit(viewport, scope, index.data(), simple=True)
 
         painter.setClipRect(option.rect)
         painter.translate(option.rect.topLeft())

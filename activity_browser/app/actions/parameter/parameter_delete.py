@@ -7,6 +7,7 @@ from bw2data.parameters import (ActivityParameter, Group,
                                                      GroupDependency,
                                                      parameters)
 from activity_browser.ui.icons import qicons
+from activity_browser.bwutils.utils import Parameter
 
 
 class ParameterDelete(ABAction):
@@ -19,38 +20,45 @@ class ParameterDelete(ABAction):
 
     @staticmethod
     @exception_dialogs
-    def run(parameter: Any):
-        if isinstance(parameter, ActivityParameter):
-            db = parameter.database
-            code = parameter.code
-            amount = (
-                ActivityParameter.select()
-                .where(
-                    (ActivityParameter.database == db)
-                    & (ActivityParameter.code == code)
+    def run(parameter: Any or list[Any]):
+        if not isinstance(parameter, list):
+            parameter = [parameter]
+
+        for parameter in parameter:
+            if isinstance(parameter, Parameter):
+                parameter = parameter.to_peewee_model()
+
+            if isinstance(parameter, ActivityParameter):
+                db = parameter.database
+                code = parameter.code
+                amount = (
+                    ActivityParameter.select()
+                    .where(
+                        (ActivityParameter.database == db)
+                        & (ActivityParameter.code == code)
+                    )
+                    .count()
                 )
-                .count()
-            )
 
-            if amount > 1:
-                parameter.delete_instance()
+                if amount > 1:
+                    parameter.delete_instance()
+                else:
+                    group = parameter.group
+                    act = get_activity((db, code))
+                    parameters.remove_from_group(group, act)
+                    # Also clear the group if there are no more parameters in it
+
+                    if (
+                        not ActivityParameter.select()
+                        .where(ActivityParameter.group == group)
+                        .exists()
+                    ):
+                        Group.delete().where(Group.name == group).execute()
+                        GroupDependency.delete().where(
+                            GroupDependency.group == group
+                        ).execute()
             else:
-                group = parameter.group
-                act = get_activity((db, code))
-                parameters.remove_from_group(group, act)
-                # Also clear the group if there are no more parameters in it
-
-                if (
-                    not ActivityParameter.select()
-                    .where(ActivityParameter.group == group)
-                    .exists()
-                ):
-                    Group.delete().where(Group.name == group).execute()
-                    GroupDependency.delete().where(
-                        GroupDependency.group == group
-                    ).execute()
-        else:
-            parameter.delete_instance()
+                parameter.delete_instance()
         # After deleting things, recalculate and signal changes
         parameters.recalculate()
 

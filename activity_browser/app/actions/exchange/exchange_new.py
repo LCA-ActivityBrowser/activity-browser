@@ -16,8 +16,8 @@ class ExchangeNew(ABAction):
 
     @staticmethod
     @exception_dialogs
-    def run(from_keys: List[tuple], to_key: tuple, type: str):
+    def run(from_keys: List[tuple], to_key: tuple, type: str, amount: float = 1):
         to_activity = bd.get_activity(to_key)
         for from_key in from_keys:
-            exchange = to_activity.new_exchange(input=from_key, type=type, amount=1)
+            exchange = to_activity.new_exchange(input=from_key, type=type, amount=amount)
             exchange.save()

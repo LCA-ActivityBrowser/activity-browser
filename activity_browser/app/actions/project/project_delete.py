@@ -6,7 +6,7 @@ import bw2data as bd
 from bw2data.project import ProjectDataset
 from bw2data.utils import safe_filename
 
-from activity_browser import settings, app
+from activity_browser import app
 from activity_browser.app.actions.base import ABAction, exception_dialogs
 from activity_browser.ui.icons import qicons
 
@@ -54,7 +54,7 @@ class ProjectDelete(ABAction):
             return
 
         # if it's the startup project: reject deletion and inform user
-        if settings.ab_settings.startup_project in project_names:
+        if app.settings["startup"]["startup_project"] in project_names:
             QtWidgets.QMessageBox.information(
                 app.main_window,
                 "Not possible",

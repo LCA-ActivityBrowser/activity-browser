@@ -1,11 +1,13 @@
 from typing import Optional
-from collections import defaultdict
-
 from loguru import logger
+
 import pandas as pd
-from PySide6.QtCore import QModelIndex, Qt
+
+from PySide6 import QtGui
+from PySide6.QtCore import QModelIndex, Qt, QAbstractItemModel
 from PySide6.QtWidgets import QWidget
-from PySide6.QtCore import QAbstractItemModel
+
+from activity_browser.ui.icons import qicons
 
 
 class TreeNode:
@@ -50,10 +52,24 @@ class TreeNode:
 
 
 class ABTreeModel(QAbstractItemModel):
-    def __init__(self, df: pd.DataFrame = None, parent: Optional[QWidget] = None, chunk_size: int = -1) -> None:
+    def __init__(self,
+                 df: pd.DataFrame = None,
+                 parent: Optional[QWidget] = None,
+                 chunk_size: int = -1,
+                 enable_sorting: bool = False
+                 ) -> None:
         super().__init__(parent)
         self.df = df if df is not None else pd.DataFrame()
+        self.df.index = pd.MultiIndex.from_arrays([range(len(self.df))], names=[f"index"])
+
         self.df_query: dict[str, str] = {"model": "index == index"}  # dictionary where queries can be registered
+        self.filtered_columns: set[int] = set()  # set of column indices that have active filters, only used for the header icon
+        self.grouped_columns: list[str] = []  # list of columns currently used for grouping
+
+        self.sorted_column: str | None = None
+        self.sort_order = Qt.SortOrder.AscendingOrder
+        self.sorting_enabled = enable_sorting
+
         self.lazy = chunk_size > 0
         self.chunk_size = chunk_size
         
@@ -162,8 +178,8 @@ class ABTreeModel(QAbstractItemModel):
 
     #--- data overrides ---
     def data(self, index: QModelIndex, role: int = Qt.DisplayRole):
-        if not index.isValid() or self.df.empty:
-            return None
+        # if not index.isValid() or self.df.empty:
+        #     return None
         
         if role == Qt.DisplayRole:
             return self.displayData(index)
@@ -182,10 +198,10 @@ class ABTreeModel(QAbstractItemModel):
     
     def displayData(self, index: QModelIndex) -> any:
             node = index.internalPointer()
-            
+
             if not isinstance(node, TreeNode):
                 return None
-            
+
             if not node.is_leaf: # branch node
                 # For branch nodes, show the name in the first column only
                 # (spanning will be handled by the view)
@@ -194,10 +210,9 @@ class ABTreeModel(QAbstractItemModel):
             if index.column() == 0:
                 return None  # leaf node tree column is empty
 
-            # Use the pre-computed df_position for O(1) iloc access
-            col_idx = index.column() - 1  # Adjust for tree column
-            if col_idx < 0 or col_idx >= len(self.df.columns):
-                return None
+            # Get the pandas column index (disregard hidden columns)
+            col_name = self.columns()[index.column()]
+            col_idx = self.df.columns.get_loc(col_name)
             
             val = self.df.iat[node.df_position, col_idx]
 
@@ -269,13 +284,22 @@ class ABTreeModel(QAbstractItemModel):
         return not node.is_leaf
 
     def headerData(self, section: int, orientation: Qt.Orientation = Qt.Horizontal, role: int = Qt.DisplayRole):
-        if orientation == Qt.Vertical or not role == Qt.DisplayRole:
+        if orientation == Qt.Vertical:
             return None
-        
-        if section == 0:
-            return "index"
-              
-        return self.df.columns[section - 1]
+
+        if role == Qt.DisplayRole:
+            if section == 0:
+                return ""
+
+            return self.columns()[section]
+
+        if role == Qt.ItemDataRole.FontRole and section in self.filtered_columns:
+            font = QtGui.QFont()
+            font.setUnderline(True)
+            return font
+
+        if role == Qt.ItemDataRole.DecorationRole and section in self.filtered_columns:
+            return qicons.filter
 
     def canFetchMore(self, parent: QModelIndex) -> bool:
         """Check if this parent has more children that can be loaded."""
@@ -318,80 +342,108 @@ class ABTreeModel(QAbstractItemModel):
         self.endInsertRows()
 
     # --- helper functions ---
-    def build_node_hierarchy(self, pandas_index: pd.Index) -> None:
-        """
-        Build the unified TreeNode hierarchy with all information combined:
-        - children relationships
-        - row indices
-        - loaded counts
-        - DataFrame positions
-        """
-        self.node_map = {tuple(): self.root}
-        
-        # Convert index to frame once for all operations
-        idx_df = pandas_index.to_frame(index=False)
-        
-        # Create a mapping from full path to DataFrame position
-        path_to_position = {}
-        for df_pos, row_tuple in enumerate(idx_df.itertuples(index=False, name=None)):
-            path_to_position[row_tuple] = df_pos
-        
-        # Process each level to build the hierarchy
-        for level in range(idx_df.shape[1]):
-            # Get unique child paths at this level (as tuples)
-            child_paths = idx_df.iloc[:, :level + 1].drop_duplicates()
-            child_tuples = list(child_paths.itertuples(index=False, name=None))
-            
-            for child_path in child_tuples:
-                if pd.isna(child_path[-1]):
-                    continue  # skip NaN children
-                
-                # Skip if we've already created this node
-                if child_path in self.node_map:
-                    continue
-                
-                # Determine parent path
-                if level == 0:
-                    parent_path = tuple()
-                else:
-                    parent_path = tuple(val for val in child_path[:-1] if not pd.isna(val))
-                
-                # Get or create parent node
-                parent_node = self.node_map.get(parent_path)
-                if parent_node is None:
-                    parent_node = self.root
-                
-                # Check if this is a leaf node (full depth)
-                is_leaf = (level == idx_df.shape[1] - 1)
-                df_position = path_to_position.get(child_path, -1) if is_leaf else -1
-                
-                # Create the child node
-                child_node = TreeNode(child_path, df_position)
-                
-                # Add child to parent
-                parent_node.add_child(child_node)
-                
-                # Store in node map
-                self.node_map[child_path] = child_node
-        
-        # Initialize loaded counts
-        if self.lazy:
-            # Load first chunk for each node
-            for node in self.node_map.values():
-                node.loaded_count = min(self.chunk_size, node.total_children())
-        else:
-            # All children loaded
-            for node in self.node_map.values():
-                node.loaded_count = node.total_children()
-    
+    def set_dataframe(self, df: pd.DataFrame, group: list[str] = None) -> None:
+        self.beginResetModel()
+
+        self.df = df
+        self.grouped_columns = group or self.grouped_columns
+
+        self.build_df_index()
+        self.apply_sort()
+        self.apply_filter()
+
+        self.endResetModel()
+
+    def update_dataframe(self, df: pd.DataFrame, group: list[str] = None) -> None:
+        self.layoutAboutToBeChanged.emit()
+        self.df = df
+        self.grouped_columns = group or self.grouped_columns
+
+        self.build_df_index()
+        self.apply_sort()
+        self.apply_filter()
+
+        self.layoutChanged.emit()
+
+    def group(self, columns: list[str] = None) -> None:
+        self.layoutAboutToBeChanged.emit()
+        self.grouped_columns = columns or self.grouped_columns
+
+        self.build_df_index()
+        self.apply_sort()
+        self.apply_filter()
+
+        self.layoutChanged.emit()
+
+    def ungroup(self) -> None:
+        self.layoutAboutToBeChanged.emit()
+        self.grouped_columns = []
+
+        self.build_df_index()
+        self.apply_sort()
+        self.apply_filter()
+
+        self.layoutChanged.emit()
+
+    def sort(self, column: int | str, order: Qt.SortOrder = Qt.SortOrder.AscendingOrder) -> None:
+        if not self.sorting_enabled:
+            logger.warning(f"Called sort() on {self.__class__.__name__} with sorting disabled.")
+            return
+
+        self.layoutAboutToBeChanged.emit()
+
+        self.sorted_column = self.headerData(column) if isinstance(column, int) else column
+        self.sort_order = order
+
+        self.apply_sort()
+        self.apply_filter()
+
+        self.layoutChanged.emit()
+
+    def filter(self, key: str = None, query: str = None) -> None:
+        """Filter the DataFrame based on a simple substring match across all columns."""
+        self.layoutAboutToBeChanged.emit()
+
+        if query is not None and key is not None:
+            self.df_query[key] = query
+
+        self.apply_filter()
+
+        self.layoutChanged.emit()
+
+    def build_df_index(self):
+        # dataframe we will use to build the new index
+        df = self.df[self.grouped_columns].copy()
+
+        # unpack iterables in the grouped columns
+        for col in self.grouped_columns:
+            # Check if the column contains iterables (excluding strings)
+            sample_val = df[col].dropna().iloc[0] if not df[col].dropna().empty else None
+            if not isinstance(sample_val, (list, tuple, set)):
+                continue
+
+            # Unpack the iterable into separate columns and add to the dataframe
+            unpacked = pd.DataFrame(df[col].tolist(), index=df.index)
+            for i, unpacked_col in enumerate(unpacked.columns):
+                df[f"{col}_{i}"] = unpacked[unpacked_col]
+
+            # Remove the original column from the dataframe
+            df = df.drop(columns=[col])
+
+        df["index"] = range(len(df))
+
+        new_index = pd.MultiIndex.from_frame(df)
+        new_index.names = [i + "_i" for i in new_index.names]
+
+        self.df.index = new_index
+
     def reset_hierarchy(self, df: pd.DataFrame = None) -> None:
-        df = df if df is not None else self.df       
+        df = df if df is not None else self.df
         old_persistent_indices = [(idx, idx.internalPointer()) for idx in self.persistentIndexList()]
-        
+
         # Rebuild the node hierarchy
-        self.root = TreeNode(tuple())
         self.build_node_hierarchy(df.index)
-        
+
         # Update persistent indexes
         new_persistent = []
         for old_index, old_node in old_persistent_indices:
@@ -409,103 +461,103 @@ class ABTreeModel(QAbstractItemModel):
         # Update the model's persistent indexes
         self.changePersistentIndexList(self.persistentIndexList(), new_persistent)
 
-        self.layoutChanged.emit()
+    def build_node_hierarchy(self, pandas_index: pd.Index) -> None:
+        """
+        Build the unified TreeNode hierarchy with all information combined:
+        - children relationships
+        - row indices
+        - loaded counts
+        - DataFrame positions
+        """
+        self.root = TreeNode(tuple())
+        self.node_map = {tuple(): self.root}
 
+        # Convert index to frame once for all operations
+        idx_df = pandas_index.to_frame(index=False)
 
-    def sort(self, column: int, order: Qt.SortOrder = Qt.SortOrder.AscendingOrder) -> None:
-        if self.df.empty:
+        # Create a mapping from full path to DataFrame position
+        path_to_position = {}
+        for row_tuple in idx_df.itertuples(index=False, name=None):
+            df_pos = self.df.index.get_loc(row_tuple)
+            path_to_position[row_tuple] = df_pos
+
+        # Process each level to build the hierarchy
+        for level in range(idx_df.shape[1]):
+            # Get unique child paths at this level (as tuples)
+            child_paths = idx_df.iloc[:, :level + 1].drop_duplicates()
+            child_tuples = list(child_paths.itertuples(index=False, name=None))
+
+            for child_path in child_tuples:
+                if pd.isna(child_path[-1]):
+                    continue  # skip NaN children
+
+                # Skip if we've already created this node
+                if child_path in self.node_map:
+                    continue
+
+                # Determine parent path
+                if level == 0:
+                    parent_path = tuple()
+                else:
+                    parent_path = tuple(val for val in child_path[:-1] if not pd.isna(val))
+
+                # Get or create parent node
+                parent_node = self.node_map.get(parent_path)
+                if parent_node is None:
+                    parent_node = self.root
+
+                # Check if this is a leaf node (full depth)
+                is_leaf = (level == idx_df.shape[1] - 1)
+                df_position = path_to_position.get(child_path, -1) if is_leaf else -1
+
+                # Create the child node
+                child_node = TreeNode(child_path, df_position)
+
+                # Add child to parent
+                parent_node.add_child(child_node)
+
+                # Store in node map
+                self.node_map[child_path] = child_node
+
+        # Initialize loaded counts
+        if self.lazy:
+            # Load first chunk for each node
+            for node in self.node_map.values():
+                node.loaded_count = min(self.chunk_size, node.total_children())
+        else:
+            # All children loaded
+            for node in self.node_map.values():
+                node.loaded_count = node.total_children()
+
+    def apply_filter(self):
+        pandas_query = " & ".join(self.df_query.values())
+        filtered_df = self.df.query(pandas_query)
+        self.reset_hierarchy(filtered_df)
+
+    def apply_sort(self):
+        if self.df.empty or not self.sorting_enabled:
             return
+
+        logger.debug(f"Applying sorting in : {self.__class__.__name__}")
+
         # Extract the unique order of higher levels
-        column_name = self.headerData(column) if column > 0 else None
         higher_levels = self.df.index.droplevel(-1).unique() if self.df.index.nlevels > 1 else [None]
 
         # Build a new index by sorting only within each higher level
         sorted_index = []
-        
+
         for lvl in higher_levels:
             mask = self.df.index.droplevel(-1) == lvl if lvl is not None else self.df.index
-            partial_df = self.df.loc[mask, column_name or self.df.columns[0]].copy()
-            if column_name is not None:
-                partial_df.sort_values(ascending=(order == Qt.SortOrder.AscendingOrder), inplace=True)
+            partial_df = self.df.loc[mask, self.sorted_column or self.df.columns[0]].copy()
+            if self.sorted_column is not None:
+                partial_df.sort_values(ascending=(self.sort_order == Qt.SortOrder.AscendingOrder), inplace=True)
             else:
-                partial_df = partial_df.sort_index(ascending=(order == Qt.SortOrder.AscendingOrder))
+                partial_df = partial_df.sort_index(ascending=(self.sort_order == Qt.SortOrder.AscendingOrder))
             sorted_index.append(partial_df.index)
 
         sorted_index = sorted_index[0].append(sorted_index[1:])  # Flatten
         self.df = self.df.loc[sorted_index]  # Update dataframe to new sorted order
-        self.filter()
 
-    def filter(self, key: str = None, query: str = None) -> None:
-        """Filter the DataFrame based on a simple substring match across all columns."""
-        self.layoutAboutToBeChanged.emit()
-        if query is not None and key is not None:
-            self.df_query[key] = query
-        
-        pandas_query = " & ".join(self.df_query.values())
-        filtered_df = self.df.query(pandas_query)
-
-        self.reset_hierarchy(filtered_df)
-        self.layoutChanged.emit()
-    
-    def set_dataframe(self, df: pd.DataFrame) -> None:
-        self.beginResetModel()
-        self.df = df
-        self.df.index = pd.MultiIndex.from_arrays([range(len(self.df))], names=[f"index"])
-
-        self.reset_hierarchy()
-        self.endResetModel()
-    
-    def group(self, columns: list[str]) -> None:
-        """Regroup the DataFrame by the specified columns.
-        
-        Unpacks columns containing iterables (lists, tuples, sets) by spreading them
-        into separate columns that become separate levels in the multiindex.
-        """
-        self.layoutAboutToBeChanged.emit()
-        df = self.df[columns].copy()
-        
-        # Build the list of columns for the new index, unpacking iterables
-        for col in columns:              
-            # Check if the column contains iterables (excluding strings)
-            sample_val = df[col].dropna().iloc[0] if not df[col].dropna().empty else None
-
-            if not isinstance(sample_val, (list, tuple, set)):
-                continue
-
-            # Unpack the iterable into separate columns
-            unpacked = pd.DataFrame(df[col].tolist(), index=df.index)
-            
-            # Name the new columns
-            unpacked.columns = [f"{col}_{i}" for i in range(len(unpacked.columns))]
-           
-            # Add unpacked columns to the dataframe
-            for unpacked_col in unpacked.columns:
-                df[unpacked_col] = unpacked[unpacked_col]
-            
-            # Remove the original column from the dataframe
-            df = df.drop(columns=[col])
-        
-        levels = list(df.columns) + list(df.index.names)
-
-        df = df.reset_index()
-        df = df[levels]
-
-        new_index = pd.MultiIndex.from_frame(df)
-        new_index.names = [i+"_i" if not i.endswith("_i") else i for i in new_index.names]
-
-        self.df = self.df.set_index(new_index)
-
-        self.reset_hierarchy()
-        self.layoutChanged.emit()
-    
-    def ungroup(self) -> None:
-        """Ungroup the DataFrame by resetting the index."""
-        self.layoutAboutToBeChanged.emit()
-        self.df.index = pd.MultiIndex.from_arrays([range(len(self.df))], names=[f"index"])
-        self.df.index.name = "index"
-        self.reset_hierarchy()
-        self.layoutChanged.emit()
-    
     def values_from_indices(self, key: str, indices: list[QModelIndex]):
         """
         Returns the values from the given indices.

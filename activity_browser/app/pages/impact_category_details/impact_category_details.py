@@ -1,5 +1,6 @@
 from qtpy import QtWidgets, QtGui, QtCore
 from qtpy.QtCore import Qt
+from loguru import logger
 
 import bw2data as bd
 import pandas as pd
@@ -46,6 +47,8 @@ class ImpactCategoryDetailsPage(QtWidgets.QWidget):
             self.deleteLater()
 
     def sync(self):
+        logger.log("SYNC", f"{self.__class__.__name__}: {id(self)}")
+
         if self.name not in bd.methods:
             self.deleteLater()
             return
@@ -66,7 +69,7 @@ class ImpactCategoryDetailsPage(QtWidgets.QWidget):
     def build_df(self):
         df = pd.DataFrame(self.impact_category.load(), columns=["id", "data"])
         df["amount"] = df["data"].apply(lambda x: x if isinstance(x, (float, int)) else x.get("amount"))
-        df["uncertainty"] = df["data"].apply(lambda x: 0 if isinstance(x, (float, int)) else x.get("uncertainty type"))
+        df["uncertainty"] = df["data"].apply(self.uncertainty_from_cf)
 
         other = app.metadata.dataframe[["id", "name", "categories", "database", "unit"]]
 
@@ -77,8 +80,22 @@ class ImpactCategoryDetailsPage(QtWidgets.QWidget):
         cols = ["name", "categories", "database", "amount", "unit", "uncertainty", "_id", "_impact_category_name", "_cf", "_editable"]
         return df[cols]
 
+    def uncertainty_from_cf(self, cf):
+        if isinstance(cf, dict):
+            uncertainty_keys = {
+                "uncertainty type",
+                "loc",
+                "scale",
+                "shape",
+                "minimum",
+                "maximum",
+                "negative",
+            }
+            return {k: v for k, v in cf.items() if k in uncertainty_keys}
+        return 0
 
-class CharacterizationFactorsView(widgets.ABNewTreeView):
+
+class CharacterizationFactorsView(widgets.ABTreeView):
     defaultColumnDelegates = {
         "amount": delegates.FloatDelegate,
         "categories": delegates.ListDelegate,
@@ -188,8 +205,21 @@ class CharacterizationFactorsModel(core.ABTreeModel):
     A model representing the characterization factors data.
     """
     def __init__(self, page: ImpactCategoryDetailsPage):
-        super().__init__(parent=page)
+        super().__init__(parent=page, enable_sorting=True)
         self.page = page
+
+    def sort(self, column: int, order: Qt.SortOrder = Qt.SortOrder.AscendingOrder) -> None:
+        """
+        Sorts the model based on the given column and order.
+
+        Args:
+            column (int): The column index to sort by.
+            order (Qt.SortOrder): The order to sort (ascending or descending).
+        """
+        column_name = self.columns()[column]
+        if column_name == "uncertainty":
+            return
+        super().sort(column, order)
 
     def setData(self, index: QtCore.QModelIndex, value, role: int = Qt.ItemDataRole.EditRole) -> bool:
         """
@@ -214,6 +244,12 @@ class CharacterizationFactorsModel(core.ABTreeModel):
 
         if column_name == "amount":
             app.actions.CFAmountModify.run(row["_impact_category_name"], row["_id"], value)
+            return True
+
+        if column_name == "uncertainty":
+            app.actions.CFUncertaintyModify.run(
+                row["_impact_category_name"], [(row["_id"], row["_cf"])], uncertainty_dict=value
+            )
             return True
 
         return False

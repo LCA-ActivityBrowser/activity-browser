@@ -1,24 +1,20 @@
 from loguru import logger
 
-import pandas as pd
-
 from qtpy import QtWidgets, QtCore, QtGui
-from qtpy.QtCore import Qt
 
-from activity_browser.ui import delegates, core
-from .item_model import ABItemModel
+from activity_browser.ui import core
 
-
+from .line_edit import ABLineEdit
 
 
-class ABNewTreeView(QtWidgets.QTreeView):
+class ABTreeView(QtWidgets.QTreeView):
     # fired when the filter is applied, fires False when an exception happens during querying
     filtered: QtCore.SignalInstance = QtCore.Signal(bool)
 
     defaultColumnDelegates = {}
 
     class HeaderMenu(QtWidgets.QMenu):
-        def __init__(self, pos: QtCore.QPoint, view: "ABNewTreeView"):
+        def __init__(self, pos: QtCore.QPoint, view: "ABTreeView"):
             super().__init__(view)
 
             model = view.model()
@@ -26,11 +22,11 @@ class ABNewTreeView(QtWidgets.QTreeView):
             col_index = view.columnAt(pos.x())
             col_name = model.columns()[col_index]
 
-            search_box = QtWidgets.QLineEdit(self)
+            search_box = ABLineEdit(self)
             search_box.setText(view.columnFilters.get(col_name, ""))
             search_box.setPlaceholderText("Search")
             search_box.selectAll()
-            search_box.textChanged.connect(lambda query: view.setColumnFilter(col_name, query))
+            search_box.textChangedDebounce.connect(lambda query: view.setColumnFilter(col_name, query))
             widget_action = QtWidgets.QWidgetAction(self)
             widget_action.setDefaultWidget(search_box)
             self.addAction(widget_action)
@@ -71,9 +67,10 @@ class ABNewTreeView(QtWidgets.QTreeView):
             super().__init__(view)
 
     def __init__(self, parent=None):
+        from activity_browser.ui import delegates
+
         super().__init__(parent)
         self.setIndentation(10)
-        self.setUniformRowHeights(True)
         self.setItemDelegate(delegates.StringDelegate(self))
 
         self.setContextMenuPolicy(QtCore.Qt.ContextMenuPolicy.CustomContextMenu)
@@ -85,25 +82,30 @@ class ABNewTreeView(QtWidgets.QTreeView):
         self.header().setContextMenuPolicy(QtCore.Qt.ContextMenuPolicy.CustomContextMenu)
         self.header().customContextMenuRequested.connect(self.showHeaderMenu)
 
+        self.setVerticalScrollMode(QtWidgets.QAbstractItemView.ScrollMode.ScrollPerPixel)
+
         self.columnFilters: dict[str, str] = {}  # dict[column_name, query] for filtering the dataframe
         self.allFilter: str = ""  # filter applied to the entire dataframe
 
     def setModel(self, model):
         super().setModel(model)
 
-        self.setColumnWidth(0, 30)
-        self.header().setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeMode.Fixed)
+        self.setColumnWidth(0, 20)
+        self.header().setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeMode.Fixed)
 
         model.modelAboutToBeReset.connect(self.clearColumnDelegates)
+        model.modelReset.connect(self.updateIndexColumnVisibility)
         model.modelReset.connect(self.setDefaultColumnDelegates)
+        model.modelReset.connect(self.updateBranchSpanning, QtCore.Qt.ConnectionType.QueuedConnection)
         model.layoutChanged.connect(self.updateIndexColumnVisibility)
-        model.layoutChanged.connect(self.updateBranchSpanning)
+        model.layoutChanged.connect(self.updateBranchSpanning, QtCore.Qt.ConnectionType.QueuedConnection)
+        model.rowsInserted.connect(self.updateBranchSpanningForInsertedRows, QtCore.Qt.ConnectionType.QueuedConnection)
 
         self.setDefaultColumnDelegates()
         self.updateIndexColumnVisibility()
         self.updateBranchSpanning()
 
-    def model(self) -> ABItemModel:
+    def model(self) -> core.ABTreeModel:
         return super().model()
 
     # === Functionality related to contextmenus
@@ -122,10 +124,10 @@ class ABNewTreeView(QtWidgets.QTreeView):
 
         if query:
             self.columnFilters[column_name] = query
-            # self.model().filtered_columns.add(col_index)
+            self.model().filtered_columns.add(col_index)
         elif column_name in self.columnFilters:
             del self.columnFilters[column_name]
-            # self.model().filtered_columns.discard(col_index)
+            self.model().filtered_columns.discard(col_index)
 
         self.applyFilter()
 
@@ -136,7 +138,7 @@ class ABNewTreeView(QtWidgets.QTreeView):
         self.applyFilter()
 
     def buildQuery(self) -> str:
-        queries = ["(index == index)"]
+        queries = []
 
         # query for the column filters
         for col in list(self.columnFilters):
@@ -144,7 +146,7 @@ class ABNewTreeView(QtWidgets.QTreeView):
                 del self.columnFilters[col]
 
         for col, query in self.columnFilters.items():
-            q = f"({col}.astype('str').str.contains('{self.format_query(query)}'))"
+            q = f"({col}.astype('str').str.contains('{self.format_query(query)}', False))"
             queries.append(q)
 
         # query for the all filter
@@ -155,7 +157,7 @@ class ABNewTreeView(QtWidgets.QTreeView):
             formatted_filter = self.format_query(self.allFilter)
 
             for i, col in enumerate(self.model().columns()):
-                if self.isColumnHidden(i):
+                if col == "index" or self.isColumnHidden(i):
                     continue
                 all_queries.append(f"(`{col}`.astype('str').str.contains('{formatted_filter}', False))")
 
@@ -170,7 +172,7 @@ class ABNewTreeView(QtWidgets.QTreeView):
     def applyFilter(self):
         query = self.buildQuery()
         try:
-            self.model().filter("ABNewTreeView", query)
+            self.model().filter("ABTreeView", query)
             self.filtered.emit(True)
         except Exception as e:
             logger.info(f"{self.__class__.__name__} {type(e).__name__} in query: {e}")
@@ -215,6 +217,26 @@ class ABNewTreeView(QtWidgets.QTreeView):
         # Recursively set spanning for all branch nodes
         self._setSpanningRecursive(QtCore.QModelIndex())
     
+    def updateBranchSpanningForInsertedRows(self, parent: QtCore.QModelIndex, first: int, last: int):
+        """Update spanning for newly inserted rows during lazy loading."""
+        model = self.model()
+        if model is None or not hasattr(model, 'isBranchNode'):
+            return
+
+        # Set spanning for the newly inserted rows
+        for row in range(first, last + 1):
+            index = model.index(row, 0, parent)
+            if not index.isValid():
+                continue
+
+            # Check if this is a branch node
+            if model.isBranchNode(index):
+                self.setFirstColumnSpanned(row, parent, True)
+                # Recursively process children of this branch node
+                self._setSpanningRecursive(index)
+            else:
+                self.setFirstColumnSpanned(row, parent, False)
+
     def _setSpanningRecursive(self, parent: QtCore.QModelIndex):
         """Recursively set first column spanning for branch nodes."""
         model = self.model()

@@ -528,3 +528,26 @@ def get_templates() -> dict:
             collection[file[:-7]] = os.path.join(template_dir, file)
 
     return collection
+
+def nodes_to_excel(nodes: list[tuple | int | bd.Node]) -> str:
+    """Convert a list of nodes to an HTML table suitable for Excel."""
+    from .exporters import ABCSVFormatter
+    nodes = [refresh_node(n) for n in nodes]
+    databases = set(n["database"] for n in nodes)
+    if len(databases) > 1:
+        raise ValueError("All nodes must be from the same database")
+    db_name = databases.pop()
+    formatter = ABCSVFormatter(db_name, nodes)
+    data = formatter.get_formatted_data(sections=["activities", "exchanges"])
+
+    html_rows = []
+    for row in data:
+        if isinstance(row, list):
+            # Bold formatting for lists with nowrap
+            cells = "".join(f'<td style="white-space: nowrap;"><b>{str(i)}</b></td>' for i in row)
+        else:
+            # Regular formatting for tuples with nowrap
+            cells = "".join(f'<td style="white-space: nowrap;">{str(i)}</td>' for i in row)
+        html_rows.append(f"<tr>{cells}</tr>")
+
+    return f"<table>{''.join(html_rows)}</table>"

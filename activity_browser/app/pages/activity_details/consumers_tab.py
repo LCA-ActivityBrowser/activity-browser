@@ -1,10 +1,11 @@
 from qtpy import QtWidgets
+from loguru import logger
 
 import pandas as pd
 import bw2data as bd
 import bw_functional as bf
 
-from activity_browser import app, app
+from activity_browser import app
 from activity_browser.bwutils.commontasks import refresh_node
 from activity_browser.ui import widgets, icons, core
 
@@ -51,6 +52,8 @@ class ConsumersTab(QtWidgets.QWidget):
         """
         Synchronizes the widget with the current state of the activity.
         """
+        logger.log("SYNC", f"{self.__class__.__name__}: {id(self)}")
+
         self.activity = refresh_node(self.activity)
         exchanges = []
         if isinstance(self.activity, bf.Process):
@@ -97,7 +100,7 @@ class ConsumersTab(QtWidgets.QWidget):
         return df[cols]
 
 
-class ConsumersView(widgets.ABNewTreeView):
+class ConsumersView(widgets.ABTreeView):
     """
     A view that displays the consumers in a tree structure.
     """

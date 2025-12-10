@@ -95,7 +95,6 @@ class ABLoader(QtWidgets.QWidget):
 
     def load_finished(self):
         from activity_browser import app
-        app.main_window.sync()
         app.main_window.show()
         self.deleteLater()
 
@@ -112,24 +111,11 @@ class ModuleThread(QtCore.QThread):
         import bw2data, bw2calc, bw2analyzer, bw2io, bw_functional, bw_processing, matrix_utils
 
 
-def setup_logging():
-    """Configure loguru sinks for console and file logging."""
-    logger.remove()
-    logger.add(sys.stderr, level="DEBUG", colorize=True,
-               format="<green>{time:HH:mm:ss}</green> | <level>{level: <8}</level> | <level>{message}</level>")
-
-    log_dir = platformdirs.user_log_dir("ActivityBrowser", "ActivityBrowser")
-    os.makedirs(log_dir, exist_ok=True)
-    log_file = os.path.join(log_dir, "activity_browser.log")
-    logger.add(log_file, level="DEBUG", rotation="5 MB", retention=5)
-
-
 def run_activity_browser():
     from activity_browser.ui.core.application import ABApplication
     app = ABApplication()
 
     pre_flight_checks()
-    setup_logging()
     loader = ABLoader()
     loader.show()
 
@@ -139,7 +125,6 @@ def run_activity_browser():
 
 def run_activity_browser_no_launcher():
     pre_flight_checks()
-    setup_logging()
 
     modules = ModuleThread()
     modules.run()
@@ -147,7 +132,6 @@ def run_activity_browser_no_launcher():
     from .ui.widgets import CentralTabWidget
     from .app import panes, pages, application, metadata
 
-    application.main_window.sync()
     application.main_window.show()
 
     application.set_icon()  # setting this here seems to fix the icon not showing sometimes

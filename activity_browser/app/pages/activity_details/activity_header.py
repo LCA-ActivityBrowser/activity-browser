@@ -1,9 +1,10 @@
-from qtpy import QtWidgets, QtCore, QtGui
+from qtpy import QtWidgets, QtCore
+from loguru import logger
 
 import bw2data as bd
 import bw_functional as bf
 
-from activity_browser import app, app
+from activity_browser import app
 from activity_browser.bwutils.commontasks import refresh_node, database_is_locked
 from activity_browser.ui import widgets
 
@@ -38,6 +39,8 @@ class ActivityHeader(QtWidgets.QWidget):
         """
         Synchronizes the widget with the current state of the activity.
         """
+        logger.log("SYNC", f"{self.__class__.__name__}: {id(self)}")
+
         self.activity = refresh_node(self.activity)
 
         self.clear_layout()

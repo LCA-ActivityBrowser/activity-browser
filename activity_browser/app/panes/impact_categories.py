@@ -1,5 +1,5 @@
-from qtpy import QtWidgets, QtCore, QtGui
-from qtpy.QtCore import Qt
+from qtpy import QtWidgets, QtCore
+from loguru import logger
 
 import bw2data as bd
 import pandas as pd
@@ -31,7 +31,6 @@ class ImpactCategoriesPane(widgets.ABAbstractPane):
 
         self.build_layout()
         self.connect_signals()
-        self.load()
 
     def build_layout(self):
         layout = QtWidgets.QVBoxLayout()
@@ -43,22 +42,13 @@ class ImpactCategoriesPane(widgets.ABAbstractPane):
 
     def connect_signals(self):
         app.signals.meta.methods_changed.connect(self.sync)
-        app.signals.project.changed.connect(self.sync)
         app.signals.database_read_only_changed.connect(self.sync)
 
-    def load(self):
-        df = self.build_df()
-        self.model.set_dataframe(df)
-        self.model.group(["_method_name"])
-        # self.view.setColumnHidden(1, True)
-        # self.view.setColumnHidden(2, True)
-        # self.view.setColumnHidden(3, True)
-        # self.view.sortByColumn(1, Qt.SortOrder.AscendingOrder)
-
     def sync(self):
+        logger.log("SYNC", f"{self.__class__.__name__}: {id(self)}")
+
         df = self.build_df()
-        self.model.set_dataframe(df)
-        self.model.group(["_method_name"])
+        self.model.set_dataframe(df, group=["_method_name"])
 
     def build_df(self):
         df = pd.DataFrame(bd.methods.values())
@@ -74,7 +64,7 @@ class ImpactCategoriesPane(widgets.ABAbstractPane):
         return df[cols]
 
 
-class ImpactCategoriesView(widgets.ABNewTreeView):
+class ImpactCategoriesView(widgets.ABTreeView):
     defaultColumnDelegates = {
         "groups": delegates.ListDelegate,
     }

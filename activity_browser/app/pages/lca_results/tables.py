@@ -12,9 +12,9 @@ from qtpy import QtGui, QtWidgets, QtCore
 from qtpy.QtCore import QPoint, QRect, QSize, Qt, QTimer, Signal, Slot, SignalInstance
 from qtpy.QtWidgets import QSizePolicy, QTableView
 
-from activity_browser.settings import ab_settings
 from activity_browser.ui.icons import qicons
 from activity_browser.ui import delegates
+from activity_browser.bwutils import filesystem
 
 from .dialogs import FilterManagerDialog, SimpleFilterDialog
 
@@ -517,7 +517,7 @@ class ABDataFrameView(QtWidgets.QTableView):
         filepath, _ = QtWidgets.QFileDialog.getSaveFileName(
             parent=self,
             caption=caption,
-            dir=str(os.path.join(ab_settings.data_dir, safe_name)),
+            dir=str(os.path.join(filesystem.get_project_path(), safe_name)),
             filter=file_filter or self.ALL_FILTER,
         )
         # getSaveFileName can now weirdly return Path objects.

@@ -47,7 +47,7 @@ class ActivityDuplicateToDB(ABAction):
         elif from_db_backend == "functional_sqlite" and to_db_backend == "sqlite":
             new_nodes = cls.duplicate_functional_sqlite_to_sqlite(nodes, to_db_name)
         else:
-            raise NotImplementedError(f"Moving from {from_db_backend} to {to_db_backend} is not supported.")
+            raise NotImplementedError(f"Copying from {from_db_backend} to {to_db_backend} is not supported.")
 
         ActivityOpen.run(new_nodes)
 

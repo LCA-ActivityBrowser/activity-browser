@@ -11,19 +11,19 @@ from qtpy import QtCore, QtGui, QtWidgets
 
 from stats_arrays.errors import InvalidParamsError
 
-from activity_browser import app, settings
+from activity_browser import app
 from activity_browser.bwutils.commontasks import unit_of_method, get_LCIA_method_name_dict, format_activity_label
 from activity_browser.bwutils.sensitivity_analysis import GlobalSensitivityAnalysis
 from activity_browser.mod.bw2analyzer import ABContributionAnalysis
-from activity_browser.ui import icons, web, widgets
+from activity_browser.ui import icons, widgets
 
 from .style import header, horizontal_line, vertical_line
 from .tables import ContributionTable, InventoryTable, LCAResultsTable
 from .plots import ContributionPlot, CorrelationPlot, LCAResultsBarChart, LCAResultsPlot, MonteCarloPlot
+from .sankey_navigator import SankeyNavigatorWidget
+from .tree_navigator import TreeNavigatorWidget
 
 ca = ABContributionAnalysis()
-
-
 
 
 def get_header_layout(header_text: str) -> QtWidgets.QVBoxLayout:
@@ -118,8 +118,8 @@ class LCAResultsPage(QtWidgets.QTabWidget):
             ef=ElementaryFlowContributionTab(self),
             process=ProcessContributionsTab(self),
             # ft=FirstTierContributionsTab(self.cs_name, parent=self),
-            sankey=web.SankeyNavigatorWidget(self.cs_name, parent=self),
-            tree=web.TreeNavigatorWidget(self.cs_name, parent=self),
+            sankey=SankeyNavigatorWidget(self.cs_name, parent=self),
+            tree=TreeNavigatorWidget(self.cs_name, parent=self),
             mc=MonteCarloTab(
                 self
             ),  # mc=None if self.mc is None else MonteCarloTab(self),
@@ -329,10 +329,6 @@ class NewAnalysisTab(QtWidgets.QWidget):
     @QtCore.Slot(bool, name="isScoreMarkerToggled")
     def score_mrk_check(self, checked: bool):
         self.score_marker = checked
-
-        settings.project_settings.settings["analysis_tab"] = settings.project_settings.settings.get("analysis_tab", {})
-        settings.project_settings.settings["analysis_tab"][f"{self.__class__.__name__}score_marker_enabled"] = checked
-        settings.project_settings.write_settings()
 
         self.update_tab()
 
@@ -967,7 +963,7 @@ class ContributionTab(NewAnalysisTab):
         self.total_group.addButton(self.total_menu.score)
         self.total_group.addButton(self.total_menu.range)
 
-        self.score_marker = settings.project_settings.settings.get("analysis_tab", {}).get(f"{self.__class__.__name__}score_marker_enabled", False)
+        self.score_marker = False
         self.score_mrk_checkbox = QtWidgets.QCheckBox("Score Marker")
         self.score_mrk_checkbox.setToolTip(
             "Shows the score marker. When there are both positive and negative results,\n"

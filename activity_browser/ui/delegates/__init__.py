@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 from .checkbox import CheckboxDelegate
 from .combobox import ComboBoxDelegate
-from .database import DatabaseDelegate
 from .delete_button import DeleteButtonDelegate
 from .float import FloatDelegate
 from .json import JSONDelegate
@@ -14,13 +13,13 @@ from .new_formula import NewFormulaDelegate
 from .date_time import DateTimeDelegate
 from .property import PropertyDelegate
 from .amount import AmountDelegate, AbsoluteAmountDelegate
+from .card import CardDelegate
 
 __all__ = [
     "AmountDelegate",
     "AbsoluteAmountDelegate",
     "CheckboxDelegate",
     "ComboBoxDelegate",
-    "DatabaseDelegate",
     "DeleteButtonDelegate",
     "FloatDelegate",
     "JSONDelegate",
@@ -33,4 +32,5 @@ __all__ = [
     "NewFormulaDelegate",
     "DateTimeDelegate",
     "PropertyDelegate",
+    "CardDelegate",
 ]

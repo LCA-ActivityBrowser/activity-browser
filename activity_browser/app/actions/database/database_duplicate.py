@@ -91,7 +91,7 @@ class DuplicateDatabaseThread(ABThread):
         metadata = copy.copy(database.metadata)
         metadata["format"] = f"Copied from '{copy_from}'"
         metadata["backend"] = backend
-        new_database.register(**metadata)
+        new_database.register(write_empty=False, **metadata)
 
         if database.backend == "sqlite" and backend == "functional_sqlite":
             data = bf.convert_sqlite_to_functional_sqlite(data)

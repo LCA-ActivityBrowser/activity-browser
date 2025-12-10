@@ -4,6 +4,7 @@ from pathlib import Path
 from qtpy.QtCore import Qt, QSize
 from qtpy.QtGui import QIcon, QPixmap
 
+
 PACKAGE_DIR = Path(__file__).resolve().parents[1]
 
 
@@ -70,6 +71,11 @@ icons = dict(
     biosphere = create_path("nodes", "biosphere.png"),
     readonly_process = create_path("nodes", "read-only-process.png"),
 
+    # exchanges
+    link = create_path("exchanges", "link.png"),
+    unlink = create_path("exchanges", "unlink.png"),
+    relink = create_path("exchanges", "relink.png"),
+
     # other
     superstructure = create_path("main", "superstructure.png"),
     copy_to_clipboard = create_path("main", "copy_to_clipboard.png"),
@@ -87,9 +93,12 @@ class QIcons:
         if name == 'empty':
             return empty_icon()
         elif name in icons:
-            return QIcon(icons[name])
+            if name not in _initialized_icons:
+                _initialized_icons[name] = QIcon(icons[name])
+            return _initialized_icons[name]
         else:
             raise AttributeError(f"QIcons has no icon '{name}'")
 
+_initialized_icons = {}
 qicons = QIcons()
 

@@ -1,5 +1,5 @@
-from qtpy import QtWidgets, QtCore
-from qtpy.QtCore import Qt
+from qtpy import QtWidgets
+from loguru import logger
 
 import bw2data as bd
 import pandas as pd
@@ -27,6 +27,8 @@ class ImpactCategorySection(QtWidgets.QWidget):
         self.setLayout(layout)
 
     def sync(self):
+        logger.log("SYNC", f"{self.__class__.__name__}: {id(self)}")
+
         try:
             self.calculation_setup = bd.calculation_setups[self.calculation_setup_name]
             df = self.build_df()
@@ -48,7 +50,7 @@ class ImpactCategorySection(QtWidgets.QWidget):
         return df[cols]
 
 
-class ImpactCategoryView(widgets.ABNewTreeView):
+class ImpactCategoryView(widgets.ABTreeView):
     defaultColumnDelegates = {
         "name": delegates.StringDelegate
     }

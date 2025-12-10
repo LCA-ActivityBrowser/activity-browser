@@ -6,7 +6,7 @@ import bw2data as bd
 from bw2data.parameters import Group
 from bw2data.backends.proxies import ExchangeDataset, Exchanges
 
-from activity_browser import app, settings
+from activity_browser import app
 from activity_browser.app.actions.base import ABAction, exception_dialogs
 from activity_browser.ui.icons import qicons
 
@@ -85,9 +85,6 @@ class DatabaseDelete(ABAction):
 
             # delete database parameters
             Group.delete().where(Group.name == db_name).execute()
-
-            # remove database from project settings
-            settings.project_settings.remove_db(db_name)
 
         QtWidgets.QApplication.restoreOverrideCursor()
 

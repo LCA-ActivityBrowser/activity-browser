@@ -1,16 +1,18 @@
+import threading
+
 from loguru import logger
 from time import time
+from threading import Thread
 
 import pandas as pd
 from qtpy import QtWidgets, QtCore, QtGui
-from qtpy.QtCore import Qt
+from qtpy.QtCore import Qt, QModelIndex
 
 import bw2data as bd
 
-from activity_browser import app, ui, app
-from activity_browser.settings import project_settings
+from activity_browser import ui, app
 from activity_browser.ui import core, widgets, delegates, icons
-from activity_browser.bwutils.commontasks import database_is_locked, database_is_legacy
+from activity_browser.bwutils.commontasks import database_is_locked, database_is_legacy, is_node_biosphere, nodes_to_excel
 
 
 NODETYPES = {
@@ -42,17 +44,23 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
         self.name = "database_products_pane_" + db_name
 
         super().__init__(parent)
+
         self.database = bd.Database(db_name)
         self.title = db_name
-        self.model = ProductModel(parent=self, chunk_size=100)
+        self.simple = True
+
+        # initialize the model
+        self.model = ProductModel(parent=self, chunk_size=20, enable_sorting=True)
 
         # Create the QTableView and set the model
         self.table_view = ProductView(self, db_name=db_name)
+        self.table_view.setUniformRowHeights(True)
         self.table_view.setModel(self.model)
 
-        self.search = widgets.ABLineEdit(self)
-        self.search.setMaximumHeight(30)
-        self.search.setPlaceholderText("Quick Search")
+        self.search_bar = widgets.MetaDataAutoCompleteTextEdit(self)
+        self.search_bar.database_name = db_name
+        self.search_bar.setMaximumHeight(30)
+        self.search_bar.setPlaceholderText("Quick Search")
 
         # Create loading indicator with spinner
         self.loading_spinner = QtWidgets.QProgressBar()
@@ -67,6 +75,11 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
         font.setPointSize(14)
         self.loading_label.setFont(font)
         self.loading_label.setStyleSheet("color: gray; padding: 10px;")
+
+        # Create simple/detailed view toggle
+        self.view_toggle = QtWidgets.QCheckBox("Details")
+        self.view_toggle.setChecked(not self.simple)
+        self.view_toggle.setToolTip("Toggle between simple and detailed view")
 
         self.build_layout()
         self.connect_signals()
@@ -94,8 +107,13 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
         table_layout.addWidget(self.table_view)
         self.stacked_layout.addWidget(table_widget)
 
+        # Create top bar with search and toggle
+        top_bar = QtWidgets.QHBoxLayout()
+        top_bar.addWidget(self.search_bar)
+        top_bar.addWidget(self.view_toggle)
+
         layout = QtWidgets.QVBoxLayout(self)
-        layout.addWidget(self.search)
+        layout.addLayout(top_bar)
         layout.addLayout(self.stacked_layout)
 
         # Set the table view as the central widget of the window
@@ -105,8 +123,8 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
         app.signals.metadata.synced.connect(self.on_metadata_changed)
         app.signals.database.deleted.connect(self.on_database_deleted)
 
-        self.table_view.filtered.connect(self.search_error)
-        self.search.textChangedDebounce.connect(self.table_view.setAllFilter)
+        self.view_toggle.checkStateChanged.connect(self.on_mode_switch)
+        self.search_bar.textChangedDebounce.connect(self.sync)
 
     def on_metadata_changed(self, added, updated, deleted):
         # Check if primary data has finished loading
@@ -131,18 +149,47 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
         """
         Synchronizes the widget with the current state of the database.
         """
+        logger.log("SYNC", f"{self.__class__.__name__}: {id(self)}")
+
         t = time()
         df = self.build_df()
-        df.reset_index(drop=True, inplace=True)
+
+        if self.search_bar.toPlainText().strip():
+            # Reset sorting when searching
+            self.model.sorted_column = None
+            self.model.sort_order = Qt.SortOrder.AscendingOrder
+
         self.model.set_dataframe(df)
-        for col in df.columns:
-            index = self.model.columns().index(col)
-            if df[col].isna().all():
+
+        self.update_table_style()
+        self.update_column_visibility()
+
+        logger.debug(f"Synced DatabaseProductsPane in {time() - t:.2f} seconds")
+
+    def update_table_style(self):
+        self.table_view.header().setHidden(self.simple)
+        self.table_view.viewport().setBackgroundRole(
+            QtGui.QPalette.ColorRole.Window if self.simple else QtGui.QPalette.ColorRole.Base)
+        self.table_view.setFrameShape(
+            QtWidgets.QFrame.Shape.NoFrame if self.simple else QtWidgets.QFrame.Shape.StyledPanel)
+
+    def update_column_visibility(self):
+        columns = self.model.columns()
+        df = self.model.df
+
+        for index, col in enumerate(columns):
+            if col == "index":
+                continue
+            if col == "node":
+                self.table_view.setColumnHidden(index, not self.simple)
+                continue
+
+            if df[col].isna().all() or self.simple:
                 self.table_view.hideColumn(index)
             else:
                 self.table_view.showColumn(index)
 
-        logger.debug(f"Synced DatabaseProductsPane in {time() - t:.2f} seconds")
+        self.table_view.reset()
 
     def build_df(self) -> pd.DataFrame:
         """
@@ -153,10 +200,16 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
         """
         t = time()
         cols = ["name", "key", "processor", "product", "type", "unit", "location", "id", "categories", "properties"]
-        df = app.metadata.get_database_metadata(self.database.name, cols)
+
+        query = self.search_bar.toPlainText().strip()
+        if query:
+            df = app.metadata.search_database(query, self.database.name, cols)
+        else:
+            df = app.metadata.get_database_metadata(self.database.name, cols)
 
         processors = set(df["processor"].dropna().unique())
         df = df.drop(processors, errors="ignore")
+        df.rename(columns={"id": "_id"}, inplace=True)
 
         if not df.properties.isna().all():
             props_df = df[df.properties.notna()]
@@ -170,12 +223,15 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
                 how="left",
             )
 
-        cols = ["name", "product", "categories", "unit", "location", "key", "processor", "type",]
+        df["node"] = None
+
+        cols = ["name", "product", "categories", "unit", "location", "key", "processor", "type", "node"]
         cols += [col for col in df.columns if col.startswith("property")]
+        cols += ["_id"]
 
         logger.debug(f"Built DatabaseProductsPane dataframe in {time() - t:.2f} seconds")
 
-        return df[cols]
+        return df[cols].reset_index(drop=True)
 
     def on_database_deleted(self, db_name: str):
         """
@@ -187,23 +243,19 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
         if db_name == self.database.name:
             self.deleteLater()
 
-    def search_error(self, reset=False):
+    def on_mode_switch(self, check: Qt.CheckState):
         """
-        Handles the search error by changing the search bar color.
+        Handles the mode switch between simple and detailed view.
 
         Args:
-            reset (bool, optional): Whether to reset the search bar color. Defaults to False.
+            check (Qt.CheckState): The check state of the toggle.
         """
-        if reset:
-            self.search.setPalette(app.application.palette())
-            return
-
-        palette = self.search.palette()
-        palette.setColor(QtGui.QPalette.ColorRole.Base, QtGui.QColor(255, 128, 128))
-        self.search.setPalette(palette)
+        self.simple = check == Qt.CheckState.Unchecked
+        self.update_table_style()
+        self.update_column_visibility()
 
 
-class ProductView(ui.widgets.ABNewTreeView):
+class ProductView(ui.widgets.ABTreeView):
     """
     A view that displays the products in a tree structure.
 
@@ -214,6 +266,7 @@ class ProductView(ui.widgets.ABNewTreeView):
         "categories": delegates.ListDelegate,
         "key": delegates.StringDelegate,
         "processor": delegates.StringDelegate,
+        "node": delegates.CardDelegate,
     }
 
     class ContextMenu(ui.widgets.ABMenu):
@@ -274,13 +327,16 @@ class ProductView(ui.widgets.ABNewTreeView):
         super().__init__(parent)
         self.setSortingEnabled(True)
         self.setDragEnabled(True)
-        self.setDragDropMode(QtWidgets.QTableView.DragDropMode.DragOnly)
+        self.setAcceptDrops(True)
+        self.setDragDropMode(QtWidgets.QTableView.DragDropMode.DragDrop)
         self.setSelectionBehavior(ui.widgets.ABTreeView.SelectionBehavior.SelectRows)
         self.setSelectionMode(ui.widgets.ABTreeView.SelectionMode.ExtendedSelection)
 
         self.db_name = db_name
+        self.pane = parent
 
         self.propertyDelegate = delegates.PropertyDelegate(self)
+        self.overlay = None
 
     def setDefaultColumnDelegates(self):
         """
@@ -304,6 +360,107 @@ class ProductView(ui.widgets.ABNewTreeView):
         """
         if self.selected_activities:
             app.actions.ActivityOpen.run(self.selected_activities)
+
+    def keyPressEvent(self, event) -> None:
+        """
+        Handles key press events. Specifically handles Ctrl+C to copy selected data.
+
+        Args:
+            event: The key press event.
+        """
+        if event.modifiers() & Qt.KeyboardModifier.ControlModifier:
+            if event.key() == Qt.Key.Key_C:  # Copy
+                self.copy_selection_to_clipboard()
+                return
+            if event.key() == Qt.Key.Key_V:
+                self.copy_from_clipboard()
+            if event.key() == Qt.Key.Key_A:  # Select All
+                self.selectAll()
+                return
+            if event.key() == Qt.Key.Key_F:  # Find
+                self.pane.search_bar.setFocus()
+                return
+        if event.key() == Qt.Key.Key_Delete:
+            if database_is_locked(self.db_name):
+                return
+            if self.selected_products:
+                app.actions.ActivityDelete.run(self.selected_products)
+                return
+
+        super().keyPressEvent(event)
+
+    def copy_selection_to_clipboard(self):
+        selection = self.selectedIndexes()
+        mime_data = self.model().mimeData(selection)
+
+        clipboard = QtWidgets.QApplication.clipboard()
+        clipboard.setMimeData(mime_data)
+
+    def copy_from_clipboard(self):
+        if database_is_locked(self.db_name):
+            return
+
+        clipboard = QtWidgets.QApplication.clipboard()
+        mime_data = clipboard.mimeData()
+
+        if mime_data.hasFormat("application/bw-nodekeylist"):
+            keys: list = mime_data.retrievePickleData("application/bw-nodekeylist")
+            keys = list(set(keys))
+
+            app.actions.ActivityDuplicateToDB.run(keys, self.db_name)
+
+    def dragEnterEvent(self, event):
+        """
+        Handles the drag enter event.
+
+        Args:
+            event: The drag enter event.
+        """
+        if event.source() == self:
+            return
+
+        if database_is_locked(self.db_name):
+            return
+
+        if event.mimeData().hasFormat("application/bw-nodekeylist"):
+            keys: list = event.mimeData().retrievePickleData("application/bw-nodekeylist")
+
+            if any(is_node_biosphere(key) for key in keys):
+                return
+
+            self.overlay = widgets.ABDropOverlay(self, text="Drop here to duplicate to this database")
+            self.overlay.show()
+            event.accept()
+
+    def dragMoveEvent(self, event):
+        pass
+
+    def dragLeaveEvent(self, event):
+        """
+        Handles the drag leave event.
+
+        Args:
+            event: The drag leave event.
+        """
+        if self.overlay:
+            self.overlay.deleteLater()
+
+    def dropEvent(self, event):
+        """
+        Handles the drop event.
+
+        Args:
+            event: The drop event.
+        """
+        logger.debug(f"Dropevent from: {type(event.source()).__name__} to: {self.__class__.__name__}")
+        # Reset the palette on drop
+        if self.overlay:
+            self.overlay.deleteLater()
+
+        keys: list = event.mimeData().retrievePickleData("application/bw-nodekeylist")
+        keys = list(set(keys))
+
+        app.actions.ActivityDuplicateToDB.run(keys, self.db_name)
 
     @property
     def selected_products(self) -> list[tuple]:
@@ -336,23 +493,73 @@ class ProductModel(ui.core.ABTreeModel):
     #-- flag overrides ---
     def indexDragEnabled(self, index: QtCore.QModelIndex) -> bool:
         return True
-    
-    #-- data overrides ---
+
+    # -- data overrides ---
+    def displayData(self, index: QModelIndex) -> any:
+        column_name = self.column_name(index)
+        if column_name != "node":
+            return super().displayData(index)
+
+        row = self.row(index)
+
+        if row is None:
+            return None
+
+        # Get the product or name for title
+        title = row.get("product") or row.get("name")
+
+        # Build subtitle with name (if product exists) or type
+        subtitle_parts = []
+        if row.get("product") and row.get("name"):
+            # If there's both product and name, show name as subtitle
+            subtitle_parts.append(row.get("name"))
+        elif row.get("type"):
+            # Otherwise show type
+            subtitle_parts.append(row.get("type").capitalize())
+
+        subtitle = " | ".join(subtitle_parts) if subtitle_parts else None
+
+        # Build categories list from unit, location, database
+        categories = []
+        if row.get("unit"):
+            categories.append(str(row.get("unit")))
+        if row.get("location"):
+            categories.append(str(row.get("location")))
+        if row.get("key") and isinstance(row.get("key"), tuple):
+            categories.append(str(row.get("key")[0]))  # database name
+
+        # Add actual categories if they exist
+        node_categories = row.get("categories")
+        if node_categories and isinstance(node_categories, (list, tuple)):
+            categories.extend([str(cat) for cat in node_categories if str(cat).strip()])
+
+        return {
+            "title": title,
+            "subtitle": subtitle,
+            "categories": categories if categories else None,
+        }
+
     def decorationData(self, index: QtCore.QModelIndex) -> any:
         column_name = self.column_name(index)
         node_type = self.get(index, "type")
         
-        if column_name not in ["name", "product"]:
+        if column_name not in ["name", "product", "node"]:
             return None
-        if column_name == "product" and node_type in ["product", "processwithreferenceproduct"]:
-            return icons.qicons.product
-        if column_name == "product" and node_type == "waste":
-            return icons.qicons.waste
-        if node_type == "processwithreferenceproduct":
+
+        if column_name == "name" and node_type in ["product", "waste"]:
+            return icons.qicons.process
+        if column_name in ["name", "node"] and node_type == "processwithreferenceproduct":
             return icons.qicons.processproduct
-        if node_type in NODETYPES["biosphere"]:
+        if column_name in ["name", "node"] and node_type in NODETYPES["biosphere"]:
             return icons.qicons.biosphere
-        return icons.qicons.process
+        if column_name == "name":
+            return icons.qicons.empty
+
+        if column_name in ["product", "node"] and node_type in ["product", "processwithreferenceproduct"]:
+            return icons.qicons.product
+        if column_name in ["product", "node"] and node_type == "waste":
+            return icons.qicons.waste
+        return icons.qicons.empty
     
     def toolTipData(self, index: QtCore.QModelIndex) -> str:
         column_name = self.column_name(index)
@@ -385,4 +592,17 @@ class ProductModel(ui.core.ABTreeModel):
         keys.update(self.values_from_indices("processor", indices))
         keys = {key for key in keys if isinstance(key, tuple)}
         data.setPickleData("application/bw-nodekeylist", list(keys))
+
+        # Add HTML data for Excel with bold formatting
+        thread = threading.Thread(target=self.set_excel_nodes_threaded, args=(data, keys))
+        thread.start()
+
         return data
+
+    @staticmethod
+    def set_excel_nodes_threaded(data, keys):
+        excel_string = nodes_to_excel(list(keys))
+        try:
+            data.setHtml(excel_string)
+        except RuntimeError:
+            pass

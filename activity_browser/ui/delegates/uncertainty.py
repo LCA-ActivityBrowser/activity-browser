@@ -37,7 +37,7 @@ class UncertaintyDelegate(QtWidgets.QStyledItemDelegate):
             app.actions.CFUncertaintyModify.run(
                 item["_impact_category_name"], [(item["_id"], item["_cf"]),]
             )
-        else:
+        elif isinstance(index.data(), dict):
             return UncertaintyDialog(parent=app.main_window, initial=index.data())
 
     def setEditorData(self, editor, index: QtCore.QModelIndex):

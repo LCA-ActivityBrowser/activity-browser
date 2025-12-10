@@ -74,6 +74,7 @@ from .parameter.parameter_modify import ParameterModify
 from .parameter.parameter_uncertainty_remove import ParameterUncertaintyRemove
 from .parameter.parameter_uncertainty_modify import ParameterUncertaintyModify
 from .parameter.parameter_clear_broken import ParameterClearBroken
+from .parameter.parameter_group_delete import ParameterGroupDelete
 
 from .project.project_new import ProjectNew
 from .project.project_duplicate import ProjectDuplicate
@@ -91,7 +92,8 @@ from .project.project_migrate25 import ProjectMigrate25
 from .project.project_create_template import ProjectCreateTemplate
 from .project.project_new_template import ProjectNewFromTemplate
 
-from .settings_wizard_open import SettingsWizardOpen
 from .migrations_install import MigrationsInstall
 from .pyside_upgrade import PysideUpgrade
 from .metadatastore_open import MetaDataStoreOpen
+from .node_select_open import NodeSelectOpen
+from .save_parameters_to_excel import SaveParametersToExcel

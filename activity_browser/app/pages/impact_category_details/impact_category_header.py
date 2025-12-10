@@ -1,4 +1,6 @@
 from qtpy import QtWidgets, QtCore
+from loguru import logger
+
 from activity_browser import app
 from activity_browser.ui import widgets
 
@@ -42,6 +44,8 @@ class ImpactCategoryHeader(QtWidgets.QWidget):
         Synchronizes the widget with the current state of the impact category.
         Switches between editable and view-only headers based on edit mode.
         """
+        logger.log("SYNC", f"{self.__class__.__name__}: {id(self)}")
+
         self.impact_category = self.parent().impact_category
         
         # Update both headers with current data
@@ -101,6 +105,8 @@ class ViewOnlyHeader(QtWidgets.QWidget):
         """
         Updates the displayed information from the current impact category.
         """
+        logger.log("SYNC", f"{self.__class__.__name__}: {id(self)}")
+
         impact_category = self.parent().impact_category
         self.name_label.setText(" | ".join(impact_category.name))
         self.unit_label.setText(impact_category.metadata.get("unit", "Undefined"))
@@ -145,6 +151,8 @@ class EditableHeader(QtWidgets.QWidget):
         """
         Updates the displayed information from the current impact category.
         """
+        logger.log("SYNC", f"{self.__class__.__name__}: {id(self)}")
+
         impact_category = self.parent().impact_category
         self.name_label.setText(f"<a href='/'>{' | '.join(impact_category.name)}</a>")
         self.unit_edit.setText(impact_category.metadata.get("unit", "Undefined"))

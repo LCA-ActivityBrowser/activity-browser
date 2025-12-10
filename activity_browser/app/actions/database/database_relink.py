@@ -1,9 +1,10 @@
 from qtpy import QtCore, QtWidgets
 
-from activity_browser.app import application
+import bw2data as bd
+from bw2data.backends import ExchangeDataset, sqlite3_lci_db
+
+from activity_browser.app import application, metadata
 from activity_browser.app.actions.base import ABAction, exception_dialogs
-from activity_browser.bwutils.strategies import relink_exchanges_existing_db
-from activity_browser.mod import bw2data as bd
 from activity_browser.ui.icons import qicons
 
 
@@ -23,8 +24,10 @@ class DatabaseRelink(ABAction):
         # get brightway database object
         db = bd.Database(db_name)
 
+        depends = ExchangeDataset.select(ExchangeDataset.input_database).where(ExchangeDataset.output_database == db_name)
+        depends = set([d.input_database for d in depends if d.input_database != db_name])
+
         # find the dependencies of the database and construct a list of suitable candidates
-        depends = db.find_dependents()
         options = [(depend, list(bd.databases)) for depend in depends]
 
         # construct a dialog in which the user chan choose which depending database to connect to which candidate
@@ -36,25 +39,65 @@ class DatabaseRelink(ABAction):
         if dialog.exec_() != DatabaseLinkingDialog.Accepted:
             return
 
-        # else, start the relinking
-        QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
-        relinking_results = dict()
+        linking_dict = {k: v for k, v in dialog.links.items() if k != v}
 
-        # relink using relink_exchanges_existing_db strategy
-        for old, new in dialog.relink.items():
-            other = bd.Database(new)
-            failed, succeeded, examples = relink_exchanges_existing_db(db, old, other)
-            relinking_results[f"{old} --> {other.name}"] = (failed, succeeded)
+        if not linking_dict:
+            return
 
-        QtWidgets.QApplication.restoreOverrideCursor()
+        relink_keys = DatabaseRelink.get_input_keys(db_name, list(linking_dict.keys()))
+        datasets = metadata.get_metadata(relink_keys, ["name", "product", "unit", "categories", "location"])
 
-        # if any failed, present user with results dialog
-        if failed > 0:
-            relinking_dialog = DatabaseLinkingResultsDialog.present_relinking_results(
-                application.main_window, relinking_results, examples
+        relink_key_map = {}
+        for ds in datasets.itertuples():
+            key = ds.Index
+            database = linking_dict.get(key[0])
+            match = metadata.match(
+                name=ds.name,
+                product=ds.product,
+                unit=ds.unit,
+                categories=ds.categories,
+                location=ds.location,
+                database=database,
             )
-            relinking_dialog.exec_()
-            relinking_dialog.open_activity()
+
+            if not len(match) == 1:
+                raise Exception(f"Could not uniquely relink exchange from {key} in database {database}")
+
+            relink_key_map[key] = match.index[0]
+
+        DatabaseRelink.set_input_keys(db_name, relink_key_map)
+
+        QtWidgets.QMessageBox.information(
+            application.main_window,
+            "Database relinked",
+            f"Successfully relinked database '{db_name}'."
+        )
+
+    @staticmethod
+    def get_input_keys(output_db: str, db_list: list[str]) -> list[tuple[str, str]]:
+        return list(
+            (
+                ExchangeDataset
+                .select(ExchangeDataset.input_database, ExchangeDataset.input_code)
+                .where(
+                    (ExchangeDataset.output_database == output_db) &
+                    (ExchangeDataset.input_database << db_list)
+                )
+            ).tuples()
+        )
+
+    @staticmethod
+    def set_input_keys(output_db: str, key_map: dict[tuple[str, str], tuple[str, str]]) -> None:
+        with sqlite3_lci_db.db.atomic():
+            for old_key, new_key in key_map.items():
+                ExchangeDataset.update(
+                    input_database=new_key[0],
+                    input_code=new_key[1]
+                ).where(
+                    (ExchangeDataset.output_database == output_db) &
+                    (ExchangeDataset.input_database == old_key[0]) &
+                    (ExchangeDataset.input_code == old_key[1])
+                ).execute()
 
 
 class DatabaseLinkingDialog(QtWidgets.QDialog):

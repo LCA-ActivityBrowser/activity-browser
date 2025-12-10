@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from loguru import logger
 
 import pandas as pd
@@ -22,8 +21,8 @@ class ProjectManagerSettingsChapter(BaseSettingsChapter):
 
         self.tabs = QtWidgets.QTabWidget(self)
 
-        self.project_model = ProjectModel(parent=self)
-        self.template_model = TemplateModel(parent=self)
+        self.project_model = ProjectModel(parent=self, enable_sorting=True)
+        self.template_model = TemplateModel(parent=self, enable_sorting=True)
 
         self.project_view = ProjectView(self)
         self.project_view.setModel(self.project_model)
@@ -36,7 +35,6 @@ class ProjectManagerSettingsChapter(BaseSettingsChapter):
 
         self.build_layout()
         self.connect_signals()
-        self.reset()
 
     def build_layout(self):
         """Build the chapter layout."""
@@ -47,18 +45,17 @@ class ProjectManagerSettingsChapter(BaseSettingsChapter):
 
     def connect_signals(self):
         """Connect signals and slots."""
-        app.signals.project.changed.connect(self.sync)
         app.signals.project.deleted.connect(self.sync)
 
     def sync(self):
         """Sync project and template data."""
+        logger.log("SYNC", f"{self.__class__.__name__}: {id(self)}")
+
         df = self.build_project_df()
-        df.reset_index(drop=True, inplace=True)
         self.project_model.set_dataframe(df)
         self.project_view.resizeColumnToContents(1)
         
         df = self.build_template_df()
-        df.reset_index(drop=True, inplace=True)
         self.template_model.set_dataframe(df)
         self.template_view.resizeColumnToContents(1)
 
@@ -117,7 +114,7 @@ class ProjectManagerSettingsChapter(BaseSettingsChapter):
         return pd.DataFrame(data, columns=cols)
 
 
-class ProjectView(widgets.ABNewTreeView):
+class ProjectView(widgets.ABTreeView):
 
     class ContextMenu(widgets.ABMenu):
         menuSetup = [
@@ -202,7 +199,7 @@ class ProjectModel(core.ABTreeModel):
         return None
 
 
-class TemplateView(widgets.ABNewTreeView):
+class TemplateView(widgets.ABTreeView):
 
     class ContextMenu(widgets.ABMenu):
         menuSetup = []

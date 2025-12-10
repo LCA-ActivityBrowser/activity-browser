@@ -7,6 +7,7 @@ class StringDelegate(QtWidgets.QStyledItemDelegate):
 
     def displayText(self, value, locale):
         if isinstance(value, (list, tuple)):
+            value = [str(v) for v in value]
             return ", ".join(value)
 
         return str(value)

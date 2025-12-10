@@ -1,5 +1,6 @@
 from qtpy import QtWidgets, QtCore
 from qtpy.QtCore import Qt
+from loguru import logger
 
 import pandas as pd
 import bw2data as bd
@@ -7,7 +8,6 @@ import bw2data as bd
 from activity_browser import app
 from activity_browser.ui import widgets, icons, delegates, core
 from activity_browser.bwutils.commontasks import refresh_node, refresh_parameter, parameters_in_scope, database_is_locked, node_group
-from activity_browser.bwutils.utils import Parameter
 
 
 class ParametersTab(QtWidgets.QWidget):
@@ -59,6 +59,8 @@ class ParametersTab(QtWidgets.QWidget):
         """
         Synchronizes the widget with the current state of the activity.
         """
+        logger.log("SYNC", f"{self.__class__.__name__}: {id(self)}")
+
         self.activity = refresh_node(self.activity)
         df = self.build_df()
         df.reset_index(drop=True, inplace=True)
@@ -79,7 +81,7 @@ class ParametersTab(QtWidgets.QWidget):
 
         for name, param in data.items():
             row = param._asdict()
-            row["uncertainty"] = param.data.get("uncertainty type")
+            row["uncertainty"] = param.uncertainty
             row["formula"] = param.data.get("formula")
             row["comment"] = param.data.get("comment")
             row["_parameter"] = param
@@ -100,7 +102,7 @@ class ParametersTab(QtWidgets.QWidget):
         return pd.DataFrame(translated, columns=columns)
 
 
-class ParametersView(widgets.ABNewTreeView):
+class ParametersView(widgets.ABTreeView):
     """
     A view that displays the parameters in a tree structure.
 
@@ -197,6 +199,12 @@ class ParametersModel(core.ABTreeModel):
         if column_name in ["amount", "formula", "name", "comment"]:
             parameter = refresh_parameter(parameter)
             app.actions.ParameterModify.run(parameter, column_name, value)
+            return True
+
+        if column_name == "uncertainty":
+            parameter = refresh_parameter(parameter)
+            app.actions.ParameterUncertaintyModify.run(parameter.to_peewee_model(), uncertainty_dict=value)
+
             return True
 
         return False

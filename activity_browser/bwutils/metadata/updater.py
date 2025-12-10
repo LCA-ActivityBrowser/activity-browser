@@ -3,14 +3,16 @@ from loguru import logger
 import pandas as pd
 import numpy as np
 
+from qtpy.QtCore import QObject
+
 from .metadata import MetaDataStore
-from .fields import primary, secondary, all_types
+from .fields import primary, secondary, all_types, search_engine_whitelist
 
 
+class MDSUpdater(QObject):
 
-
-class MDSUpdater():
     def __init__(self, mds: MetaDataStore):
+        super().__init__(parent=mds)
         self.mds = mds
         self.connect_signals()
 
@@ -40,7 +42,7 @@ class MDSUpdater():
 
         if new.key in self.mds.dataframe.index and not all(node_data.dropna().eq(self.mds.dataframe.loc[new.key].dropna())):
             self.modify_node(node_data)
-        else:
+        elif new.key not in self.mds.dataframe.index:
             self.add_node(node_data)
 
     def on_signaleddataset_delete(self, sender, old):
@@ -53,7 +55,7 @@ class MDSUpdater():
             
         try:
             # Create a Series with the key to match the delete_node signature
-            ds = pd.Series({"key": old.key}, name=old.key)
+            ds = pd.Series({"key": old.key, "id": old.id}, name=old.key)
             self.delete_node(ds)
         except KeyError:
             pass
@@ -77,18 +79,47 @@ class MDSUpdater():
 
     # node methods
     def modify_node(self, ds: pd.Series):
-        self._fix_categories(ds)
-        self.mds.dataframe.loc[ds.key] = ds
+        df = self.mds.dataframe
+        self._fix_categories(ds, df)
+        df.loc[ds.key] = ds
+
+        self.mds.dataframe = df
         self.mds.register_mutation(ds.key, "update")
 
+        if not hasattr(self.mds, "searcher") or self.mds.searcher is None:
+            return
+
+        search_engine_cols = list(set(ds.keys()) & set(search_engine_whitelist))  # intersection becomes columns
+        data = pd.DataFrame([ds[search_engine_cols]])
+        self.mds.searcher.change_identifier(identifier=ds["id"], data=data)
+
     def add_node(self, ds: pd.Series):
-        self._fix_categories(ds)
-        self.mds.dataframe.loc[ds.key, :] = ds
+
+        df = self.mds.dataframe
+        self._fix_categories(ds, df)
+        df.loc[ds.key, :] = ds
+
+        self.mds.dataframe = df
         self.mds.register_mutation(ds.key, "add")
+
+        if self.mds.searcher is None:
+            return
+
+        search_engine_cols = list(set(ds.keys()) & set(search_engine_whitelist))  # intersection becomes columns
+        data = pd.DataFrame([ds[search_engine_cols]])
+        self.mds.searcher.add_identifier(data=data)
 
     def delete_node(self, ds: pd.Series):
         self.mds.dataframe = self.mds.dataframe.drop(ds.key)
         self.mds.register_mutation(ds.key, "delete")
+
+        if self.mds.searcher is None:
+            return
+
+        node_id = ds["id"]
+
+        self.mds.searcher.remove_identifier(identifier=node_id)
+        self.mds.searcher.reset_all_caches(ds["database"])
 
     # database methods
     def add_database(self, db_name: str):
@@ -101,10 +132,20 @@ class MDSUpdater():
         for code in self.mds.dataframe.loc[db_name].index:
             self.mds.register_mutation((db_name, code), "delete")
 
+        ids = self.mds.get_database_metadata(db_name, ["id"])["id"].tolist()
+
         self.mds.dataframe = self.mds.dataframe.drop(db_name, level=0)
 
+        if self.mds.searcher is None:
+            return
+
+        for node_id in ids:
+            self.mds.searcher.remove_identifier(identifier=node_id)
+        self.mds.searcher.reset_all_caches(db_name)
+
     # utility functions
-    def _fix_categories(self, ds: pd.Series):
+    @staticmethod
+    def _fix_categories(ds: pd.Series, mds_df: pd.DataFrame):
         for category_col in [k for k, v in all_types.items() if k in ds and v == "category"]:
             category = ds[category_col]
 
@@ -112,12 +153,12 @@ class MDSUpdater():
                 # cannot add NaN as a category
                 continue
 
-            if category in self.mds.dataframe[category_col].cat.categories:
+            if category in mds_df[category_col].cat.categories:
                 # category already exists
                 continue
 
             # add new category to column
-            self.mds.dataframe[category_col] = self.mds.dataframe[category_col].cat.add_categories([category])
+            mds_df[category_col] = mds_df[category_col].cat.add_categories([category])
 
 
 

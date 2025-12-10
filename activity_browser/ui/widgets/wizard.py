@@ -1,23 +1,56 @@
-from typing import TYPE_CHECKING
-from qtpy import QtWidgets
+from typing import TYPE_CHECKING, Literal
+from qtpy import QtWidgets, QtCore
 
 if TYPE_CHECKING:
     from activity_browser.ui.widgets import ABWizardPage
 
 
+ABWizardButtons = Literal[
+    "Stretch",
+    "BackButton",
+    "NextButton",
+    "CancelButton",
+    "FinishButton",
+    "HelpButton",
+    "CommitButton",
+]
+
+ABWizardButtonLayout = list[ABWizardButtons]
+
+
 class ABWizard(QtWidgets.QWizard):
     pages = []
+    context = {}
+    defaultButtonLayout: ABWizardButtonLayout = ["Stretch", "BackButton", "NextButton", "CancelButton"]
+    finalButtonLayout: ABWizardButtonLayout = ["Stretch", "FinishButton"]
 
     def __init__(self, *args, title: str = None, context: dict = None, **kwargs):
         super().__init__(*args, **kwargs)
 
         self.setWizardStyle(QtWidgets.QWizard.WizardStyle.ModernStyle)
+        self.setWindowFlags(
+            QtCore.Qt.WindowType.Sheet |
+            QtCore.Qt.WindowType.CustomizeWindowHint |
+            QtCore.Qt.WindowType.WindowTitleHint
+        )
 
         if title:
             self.setWindowTitle(title)
 
         for page in self.pages:
             self.addPage(page(self))
+
+        text, callback = self.customButtonOne()
+        self.setButtonText(QtWidgets.QWizard.WizardButton.CustomButton1, text)
+        self.button(QtWidgets.QWizard.WizardButton.CustomButton1).clicked.connect(callback)
+
+        text, callback = self.customButtonTwo()
+        self.setButtonText(QtWidgets.QWizard.WizardButton.CustomButton2, text)
+        self.button(QtWidgets.QWizard.WizardButton.CustomButton2).clicked.connect(callback)
+
+        text, callback = self.customButtonThree()
+        self.setButtonText(QtWidgets.QWizard.WizardButton.CustomButton3, text)
+        self.button(QtWidgets.QWizard.WizardButton.CustomButton3).clicked.connect(callback)
 
         self.context = context or {}
 
@@ -35,3 +68,57 @@ class ABWizard(QtWidgets.QWizard):
         # initialize the next page
         page = self.page(page_id)
         page.initializePage(self.context)
+
+        if page.buttonLayout:
+            if "CommitButton" in page.buttonLayout:
+                page.setCommitPage(True)
+            if "FinishButton" in page.buttonLayout:
+                page.setFinalPage(True)
+
+            self.setButtonLayout(page.buttonLayout)
+
+        elif self.currentId() == self.pageIds()[-1]:
+            self.setButtonLayout(self.finalButtonLayout)
+
+        else:
+            self.setButtonLayout(self.defaultButtonLayout)
+
+    def setButtonLayout(self, layout: ABWizardButtonLayout):
+            button_map = {
+                "Stretch": QtWidgets.QWizard.WizardButton.Stretch,
+                "BackButton": QtWidgets.QWizard.WizardButton.BackButton,
+                "NextButton": QtWidgets.QWizard.WizardButton.NextButton,
+                "CancelButton": QtWidgets.QWizard.WizardButton.CancelButton,
+                "FinishButton": QtWidgets.QWizard.WizardButton.FinishButton,
+                "HelpButton": QtWidgets.QWizard.WizardButton.HelpButton,
+                "CommitButton": QtWidgets.QWizard.WizardButton.CommitButton,
+                "CustomButton1": QtWidgets.QWizard.WizardButton.CustomButton1,
+                "CustomButton2": QtWidgets.QWizard.WizardButton.CustomButton2,
+                "CustomButton3": QtWidgets.QWizard.WizardButton.CustomButton3,
+            }
+            qt_layout = [button_map[item] for item in layout]
+            super().setButtonLayout(qt_layout)
+
+            default_button = "NextButton"
+            default_button = "FinishButton" if "FinishButton" in layout else default_button
+            default_button = "CommitButton" if "CommitButton" in layout else default_button
+
+            # Set the default button after a short delay to ensure the UI is updated
+            def set_default():
+                try:
+                    button = self.button(button_map[default_button])
+                    button.setFocus()
+                except RuntimeError:
+                    # Wizard might be closed before the timer fires
+                    pass
+
+            QtCore.QTimer.singleShot(50, set_default)
+
+    def customButtonOne(self):
+        return "CustomButton1", lambda: None
+
+    def customButtonTwo(self):
+        return "CustomButton2", lambda: None
+
+    def customButtonThree(self):
+        return "CustomButton3", lambda: None

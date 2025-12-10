@@ -48,7 +48,7 @@ def test_activity_duplicate(basic_database):
 #
 #
 def test_activity_new(monkeypatch, basic_database):
-    from activity_browser.ui.dialogs.new_node_dialog import NewNodeDialog
+    from activity_browser.app.actions.activity.activity_new_process import NewNodeDialog
 
     monkeypatch.setattr(
         NewNodeDialog, "exec_", staticmethod(lambda *args, **kwargs: True)

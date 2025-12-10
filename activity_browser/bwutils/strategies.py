@@ -29,6 +29,26 @@ RELINK_FIELDS = (
     "location",
 )
 
+def metadatastore_link(data: list) -> list:
+    from .metadata import MetaDataStore
+    mds = MetaDataStore()
+
+    for act in data:
+        for exc in act.get("exchanges", []):
+            match = mds.match(
+                name=exc.get("name"),
+                database=exc.get("database"),
+                categories=exc.get("categories"),
+                unit=exc.get("unit"),
+                product=exc.get("reference product"),
+                location=exc.get("location"),
+            )
+            if len(match) == 1:
+                exc["input"] = match.index[0]
+
+    return data
+
+
 
 def relink_exchanges_dbs(data: Collection, relink: dict) -> Collection:
     """Use this to relink exchanges during an actual import."""
@@ -253,12 +273,23 @@ def alter_database_name(data: list, old: str, new: str) -> list:
             # Note: this will only alter database if the field exists in the exchange.
             if exc.get("database") == old:
                 exc["database"] = new
-        for p, d in ds.get("parameters", {}).items():
+        for p in ds.get("parameters", []):
             # Any parameters found here are activity parameters and we can
             # overwrite the database without issue.
-            d["database"] = new
+            p["database"] = new
         if ds.get("processor", (None, None))[0] == old:
             ds["processor"] = (new, ds["processor"][1])
+    return data
+
+def alter_exchange_database_name(data: list, linking_dict: dict[str, str]) -> list:
+    """For ABExcelImporter, go through data and replace all instances
+    of the `old` database name with `new` in exchanges only.
+    """
+    for ds in data:
+        for exc in ds.get("exchanges", []):
+            # Note: this will only alter database if the field exists in the exchange.
+            if exc.get("database") in linking_dict:
+                exc["database"] = linking_dict[exc["database"]]
     return data
 
 
