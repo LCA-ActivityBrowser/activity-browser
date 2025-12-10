@@ -55,6 +55,12 @@ def basic_database(qapp, main_window):
 
     qapp.processEvents(QtCore.QEventLoop.ProcessEventsFlag.AllEvents)
 
+    i = 0
+    while metadata.loader.secondary_status != "done" and i < 60:
+        logger.warning("Waiting for primary project load to finish")
+        time.sleep(1)
+        i += 1
+
     db = bf.FunctionalSQLiteDatabase("basic")
     db.write(deepcopy(DATABASE), process=False)
     db.metadata["dirty"] = True
@@ -69,7 +75,7 @@ def basic_database(qapp, main_window):
 
     i = 0
     while metadata.loader.secondary_status != "done" and i < 60:
-        logger.warning("Waiting for metadata loader to finish...")
+        logger.warning("Waiting for database load to finish...")
         time.sleep(1)
         i += 1
 

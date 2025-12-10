@@ -82,7 +82,7 @@ class MDSUpdater:
         self.mds.dataframe = df
         self.mds.register_mutation(ds.key, "update")
 
-        if not hasattr(self.mds, "searcher") and self.mds.searcher is not None:
+        if not hasattr(self.mds, "searcher") or self.mds.searcher is None:
             return
 
         search_engine_cols = list(set(ds.keys()) & set(search_engine_whitelist))  # intersection becomes columns
@@ -98,7 +98,7 @@ class MDSUpdater:
         self.mds.dataframe = df
         self.mds.register_mutation(ds.key, "add")
 
-        if not hasattr(self.mds, "searcher") and self.mds.searcher is not None:
+        if not hasattr(self.mds, "searcher") or self.mds.searcher is None:
             return
 
         search_engine_cols = list(set(ds.keys()) & set(search_engine_whitelist))  # intersection becomes columns
@@ -109,10 +109,11 @@ class MDSUpdater:
         self.mds.dataframe = self.mds.dataframe.drop(ds.key)
         self.mds.register_mutation(ds.key, "delete")
 
-        if not hasattr(self.mds, "searcher") and self.mds.searcher is not None:
+        if not hasattr(self.mds, "searcher") or self.mds.searcher is None:
             return
 
         id = ds["id"]
+
         self.mds.searcher.remove_identifier(identifier=id)
         self.mds.searcher.reset_all_caches(ds["database"])
 
@@ -131,7 +132,7 @@ class MDSUpdater:
 
         self.mds.dataframe = self.mds.dataframe.drop(db_name, level=0)
 
-        if not hasattr(self.mds, "searcher") and self.mds.searcher is not None:
+        if not hasattr(self.mds, "searcher") or self.mds.searcher is None:
             return
 
         for id in ids:

@@ -172,7 +172,7 @@ class MDSLoader:
         logger.debug(f"Secondary metadata loaded with {len(secondary_df)} rows, adding to metadatastore {id(self.mds)}")
 
         df = self.mds.dataframe
-        self._fix_categories(secondary_df, df)
+        # self._fix_categories(secondary_df, df)
         df = secondary_df.combine_first(df)
         self.mds.dataframe = df
 
