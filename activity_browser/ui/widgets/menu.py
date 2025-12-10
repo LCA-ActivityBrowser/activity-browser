@@ -1,5 +1,5 @@
 from qtpy import QtWidgets
-from typing import Callable, Optional
+from typing import Callable
 from inspect import signature
 
 

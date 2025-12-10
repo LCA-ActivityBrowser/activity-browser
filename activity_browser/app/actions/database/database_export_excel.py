@@ -3,14 +3,11 @@ from typing import List
 
 from qtpy import QtWidgets
 
-from activity_browser.app import application
+from activity_browser.app import application, dialogs
 from activity_browser.app.actions.base import ABAction, exception_dialogs
 from activity_browser.ui import widgets
 from activity_browser.bwutils import exporters
 from activity_browser.ui.core import threading
-
-
-
 
 
 class DatabaseExportExcel(ABAction):
@@ -27,7 +24,7 @@ class DatabaseExportExcel(ABAction):
     def run(cls, db_names: List[str] = None):
         if db_names is None:
             import bw2data as bd
-            dialog = widgets.ABDatabaseSelectionDialog(
+            dialog = dialogs.DatabaseSelectDialog(
                 parent=application.main_window,
                 databases=sorted(bd.databases),
                 title="Select databases to export to Excel"

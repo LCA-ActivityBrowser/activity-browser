@@ -15,15 +15,15 @@ from activity_browser import app
 from activity_browser.bwutils.commontasks import unit_of_method, get_LCIA_method_name_dict, format_activity_label
 from activity_browser.bwutils.sensitivity_analysis import GlobalSensitivityAnalysis
 from activity_browser.mod.bw2analyzer import ABContributionAnalysis
-from activity_browser.ui import icons, web, widgets
+from activity_browser.ui import icons, widgets
 
 from .style import header, horizontal_line, vertical_line
 from .tables import ContributionTable, InventoryTable, LCAResultsTable
 from .plots import ContributionPlot, CorrelationPlot, LCAResultsBarChart, LCAResultsPlot, MonteCarloPlot
+from .sankey_navigator import SankeyNavigatorWidget
+from .tree_navigator import TreeNavigatorWidget
 
 ca = ABContributionAnalysis()
-
-
 
 
 def get_header_layout(header_text: str) -> QtWidgets.QVBoxLayout:
@@ -118,8 +118,8 @@ class LCAResultsPage(QtWidgets.QTabWidget):
             ef=ElementaryFlowContributionTab(self),
             process=ProcessContributionsTab(self),
             # ft=FirstTierContributionsTab(self.cs_name, parent=self),
-            sankey=web.SankeyNavigatorWidget(self.cs_name, parent=self),
-            tree=web.TreeNavigatorWidget(self.cs_name, parent=self),
+            sankey=SankeyNavigatorWidget(self.cs_name, parent=self),
+            tree=TreeNavigatorWidget(self.cs_name, parent=self),
             mc=MonteCarloTab(
                 self
             ),  # mc=None if self.mc is None else MonteCarloTab(self),

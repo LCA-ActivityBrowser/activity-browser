@@ -3,7 +3,7 @@ from typing import List
 from qtpy import QtWidgets
 
 
-class ABDatabaseSelectionDialog(QtWidgets.QDialog):
+class DatabaseSelectDialog(QtWidgets.QDialog):
     """Dialog to select one or more databases for export."""
 
     def __init__(self, parent=None, databases=None, title="Select databases"):

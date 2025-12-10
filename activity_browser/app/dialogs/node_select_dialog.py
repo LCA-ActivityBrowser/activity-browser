@@ -3,7 +3,7 @@ from qtpy.QtCore import Qt
 import pandas as pd
 
 from activity_browser.ui import widgets, core, delegates, icons
-from activity_browser.app import metadata, actions
+from activity_browser.app import metadata
 from activity_browser.bwutils.commontasks import refresh_node
 
 

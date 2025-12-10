@@ -5,22 +5,16 @@ from copy import deepcopy
 from typing import Type
 from loguru import logger
 
-import bw2data as bd
-
 from qtpy import QtWebChannel, QtWebEngineWidgets, QtWidgets
 from qtpy.QtCore import QObject, Qt, QUrl, Signal, Slot
 
-from activity_browser import app
+from activity_browser.ui.icons import qicons
 from activity_browser.bwutils import filesystem
 
-from ...ui.icons import qicons
-from . import webutils
-from .webengine_page import Page
+from .web_engine_page import ABWebEnginePage
 
 
-
-
-class BaseNavigatorWidget(QtWidgets.QWidget):
+class ABAbstractNavigator(QtWidgets.QWidget):
     HELP_TEXT = """
     This is the text shown when the user presses 'help'.
     """
@@ -30,14 +24,14 @@ class BaseNavigatorWidget(QtWidgets.QWidget):
         super().__init__(parent)
 
         # Graph object subclassed from BaseGraph.
-        self.graph: Type[BaseGraph]
+        self.graph: Type[ABAbstractGraph]
 
         # Setup JS / Qt interactions
         self.bridge = Bridge(self)
         self.channel = QtWebChannel.QWebChannel(self)
         self.channel.registerObject("bridge", self.bridge)
         self.view = QtWebEngineWidgets.QWebEngineView(self)
-        self.page = Page(self.view)
+        self.page = ABWebEnginePage(self.view)
         self.view.setPage(self.page)
         self.view.loadFinished.connect(self.load_finished_handler)
         self.view.setContextMenuPolicy(Qt.PreventContextMenu)
@@ -78,23 +72,17 @@ class BaseNavigatorWidget(QtWidgets.QWidget):
 
     def go_forward(self) -> None:
         if self.graph.forward():
-            app.signals.new_statusbar_message.emit("Going forward.")
             self.send_json()
-        else:
-            app.signals.new_statusbar_message.emit("No data to go forward to.")
 
     def go_back(self) -> None:
         if self.graph.back():
-            app.signals.new_statusbar_message.emit("Going back.")
             self.send_json()
-        else:
-            app.signals.new_statusbar_message.emit("No data to go back to.")
 
     def send_json(self) -> None:
         if self.graph.json_data is None:
             return
         self.bridge.graph_ready.emit(self.graph.json_data)
-        css_path = webutils.get_static_css_path(self.css_file)
+        css_path = get_static_css_path(self.css_file)
 
         with open(css_path, "r") as css_file:
             css_code = css_file.read()
@@ -114,6 +102,9 @@ ALL_FILTER = "All Files (*.*)"
 
 
 def savefilepath(default_file_name: str, file_filter: str = ALL_FILTER):
+    from activity_browser.bwutils import filesystem
+    import bw2data as bd
+
     default = default_file_name or "Graph SVG Export"
     safe_name = bd.utils.safe_filename(default, add_hash=False)
     filepath, _ = QtWidgets.QFileDialog.getSaveFileName(
@@ -166,7 +157,7 @@ class Bridge(QObject):
         to_svg(svg)
 
 
-class BaseGraph(object):
+class ABAbstractGraph(object):
     def __init__(self):
         self.json_data = None
         # stores previous graphs, if any, and enables back/forward buttons
@@ -218,3 +209,10 @@ class BaseGraph(object):
             filepath = os.path.join(os.path.dirname(__file__), filename)
             with open(filepath, "w") as outfile:
                 json.dump(self.json_data, outfile)
+
+def get_static_js_path(file_name: str = "") -> str:
+    return str(filesystem.get_package_path() / "static" / "javascript" / file_name)
+
+
+def get_static_css_path(file_name: str = "") -> str:
+    return str(filesystem.get_package_path() / "static" / "css" / file_name)

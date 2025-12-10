@@ -22,3 +22,5 @@ from .drop_overlay import ABDropOverlay
 from .tree_view import ABTreeView
 from .buttons import ABCloseButton, ABMinimizeButton
 from .tab_widget import ABTabWidget
+from .web_engine_page import ABWebEnginePage
+from .abstract_navigator import ABAbstractNavigator, ABAbstractGraph

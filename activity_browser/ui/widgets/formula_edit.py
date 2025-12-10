@@ -5,7 +5,7 @@ import pandas as pd
 
 from asteval import make_symbol_table, Interpreter
 
-from qtpy.QtWidgets import QApplication, QWidget, QCompleter, QTableView, QSizePolicy
+from qtpy.QtWidgets import QApplication, QWidget, QCompleter, QTableView
 from qtpy.QtGui import QPainter, QColor, QFontMetrics, QFontDatabase, QPainterPath, QPen, QFont
 from qtpy.QtCore import QTimer, Qt, QAbstractTableModel, QModelIndex
 

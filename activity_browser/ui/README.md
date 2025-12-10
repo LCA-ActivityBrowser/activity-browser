@@ -11,9 +11,7 @@ This module contains reusable UI components, custom widgets, dialog windows, wiz
 - **`core/`** - Core UI classes including the application class, threading, and tree models
 - **`delegates/`** - Qt item delegates for custom cell rendering in tables and trees
 - **`dialogs/`** - Dialog windows for various user interactions
-- **`web/`** - Web views for HTML-based visualizations
 - **`widgets/`** - Reusable custom widget components
-- **`wizards/`** - Multi-step wizard dialogs
 
 ## Key Files
 
@@ -83,7 +81,6 @@ from activity_browser.ui.dialogs import MyDialog
 
 - Inherit from abstract base classes when appropriate
 - Use qtpy imports for Qt compatibility
-- Connect to global signals for cross-component communication
 - Keep widgets reusable and decoupled from application logic
 - Follow Qt naming conventions (camelCase for methods)
 - Emit signals for state changes rather than direct calls
