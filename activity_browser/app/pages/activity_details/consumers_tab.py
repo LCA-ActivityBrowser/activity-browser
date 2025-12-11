@@ -32,7 +32,7 @@ class ConsumersTab(QtWidgets.QWidget):
         self.activity = refresh_node(activity)
 
         self.view = ConsumersView(self)
-        self.model = ConsumersModel(parent=self)
+        self.model = ConsumersModel(parent=self, enable_sorting=True)
         self.view.setModel(self.model)
         self.view.setSortingEnabled(True)
 

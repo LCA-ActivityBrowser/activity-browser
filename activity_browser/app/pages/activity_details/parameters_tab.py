@@ -34,6 +34,9 @@ class ParametersTab(QtWidgets.QWidget):
         self.activity = refresh_node(activity)
 
         self.view = ParametersView(self)
+        self.view.setSortingEnabled(False)
+        self.view.setUniformRowHeights(True)
+
         self.model = ParametersModel(tab=self)
         self.view.setModel(self.model)
 
@@ -223,16 +226,6 @@ class ParametersView(widgets.ABTreeView):
             # Convert to peewee models
             return [p.to_peewee_model() for p in params if p is not None]
     
-    def __init__(self, parent):
-        """
-        Initializes the ParametersView.
-
-        Args:
-            parent (QtWidgets.QWidget): The parent widget.
-        """
-        super().__init__(parent)
-        self.setSortingEnabled(True)
-
     @property
     def activity(self):
         """

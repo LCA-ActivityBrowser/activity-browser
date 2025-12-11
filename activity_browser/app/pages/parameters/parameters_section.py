@@ -40,8 +40,10 @@ class ParametersSection(QtWidgets.QWidget):
         # Parameters tree view
         self.model = ProjectParametersModel(parent=self)
         self.view = ProjectParametersView()
-        self.view.setModel(self.model)
+        self.view.setSortingEnabled(False)
         self.view.setUniformRowHeights(True)
+
+        self.view.setModel(self.model)
 
         self.build_layout()
         self.connect_signals()

@@ -608,7 +608,7 @@ class ExchangesModel(core.ABTreeModel):
     A model representing the data for the exchanges.
     """
     def __init__(self, tab: ExchangesTab):
-        super().__init__(parent=tab)
+        super().__init__(parent=tab, enable_sorting=True)
         self.tab = tab
 
     def mimeTypes(self) -> list[str]:
