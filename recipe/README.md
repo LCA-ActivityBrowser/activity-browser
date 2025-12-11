@@ -58,16 +58,6 @@ requirements:
     # ... more dependencies
 ```
 
-### Test Section
-Basic tests to verify package installation:
-```yaml
-test:
-  imports:
-    - activity_browser
-  commands:
-    - activity-browser --help
-```
-
 ### About Section
 Package metadata:
 ```yaml
@@ -138,21 +128,6 @@ conda install -c conda-forge activity-browser
 Or with mamba (faster):
 ```bash
 mamba install -c conda-forge activity-browser
-```
-
-## Testing the Package
-
-After building, test the package:
-
-```bash
-# Install from local build
-conda install --use-local activity-browser
-
-# Test entry point
-activity-browser --version
-
-# Launch application
-activity-browser
 ```
 
 ## Dependencies
