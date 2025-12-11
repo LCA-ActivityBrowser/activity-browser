@@ -32,6 +32,8 @@ class DatabasesPane(widgets.ABAbstractPane):
             parent (QtWidgets.QWidget): The parent widget.
         """
         super().__init__(parent)
+        self._populate_later_flag = False
+
         self.model = DatabasesModel(parent=self)
         self.view = DatabasesView()
         self.view.setModel(self.model)
@@ -46,10 +48,10 @@ class DatabasesPane(widgets.ABAbstractPane):
         """
         Connects the signals to the appropriate slots.
         """
-        app.signals.meta.databases_changed.connect(self.sync)
-        app.signals.metadata.synced.connect(self.sync)
-        app.signals.database.deleted.connect(self.sync)
-        app.signals.database_read_only_changed.connect(self.sync)
+        app.signals.meta.databases_changed.connect(self.syncLater)
+        app.signals.metadata.synced.connect(self.syncLater)
+        app.signals.database.deleted.connect(self.syncLater)
+        app.signals.database_read_only_changed.connect(self.syncLater)
 
     def build_layout(self):
         """
@@ -60,7 +62,22 @@ class DatabasesPane(widgets.ABAbstractPane):
         layout.setContentsMargins(5, 0, 5, 5)
         self.setLayout(layout)
 
-    @QtCore.Slot()
+    def syncLater(self):
+        """
+        Schedules a sync operation to be performed later.
+        """
+
+        def slot():
+            self._populate_later_flag = False
+            self.sync()
+            self.thread().eventDispatcher().awake.disconnect(slot)
+
+        if self._populate_later_flag:
+            return
+
+        self._populate_later_flag = True
+        self.thread().eventDispatcher().awake.connect(slot)
+
     def sync(self):
         """
         Synchronizes the model with the current state of the databases.

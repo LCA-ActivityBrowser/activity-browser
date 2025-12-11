@@ -35,6 +35,7 @@ class ParametersSection(QtWidgets.QWidget):
             parent (QtWidgets.QWidget, optional): The parent widget. Defaults to None.
         """
         super().__init__(parent)
+        self._populate_later_flag = False
 
         # Parameters tree view
         self.model = ProjectParametersModel(parent=self)
@@ -58,11 +59,28 @@ class ParametersSection(QtWidgets.QWidget):
         """
         Connects signals to their respective slots.
         """
-        app.signals.metadata.synced.connect(self.sync)
+        app.signals.metadata.synced.connect(self.syncLater)
+        app.signals.project.changed.connect(self.syncLater)
 
-        app.signals.parameter.changed.connect(self.sync)
-        app.signals.parameter.recalculated.connect(self.sync)
-        app.signals.parameter.deleted.connect(self.sync)
+        app.signals.parameter.changed.connect(self.syncLater)
+        app.signals.parameter.recalculated.connect(self.syncLater)
+        app.signals.parameter.deleted.connect(self.syncLater)
+
+    def syncLater(self):
+        """
+        Schedules a sync operation to be performed later.
+        """
+
+        def slot():
+            self._populate_later_flag = False
+            self.sync()
+            self.thread().eventDispatcher().awake.disconnect(slot)
+
+        if self._populate_later_flag:
+            return
+
+        self._populate_later_flag = True
+        self.thread().eventDispatcher().awake.connect(slot)
 
     def sync(self):
         """
