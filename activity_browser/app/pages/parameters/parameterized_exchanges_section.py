@@ -149,7 +149,7 @@ class ParameterizedExchangesView(widgets.ABTreeView):
         "uncertainty": delegates.UncertaintyDelegate,
     }
 
-    class ContextMenu(widgets.ABMenu):
+    class ContextMenu(QtWidgets.QMenu):
         """
         A context menu for the ParameterizedExchangesView.
         """

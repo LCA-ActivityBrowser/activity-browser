@@ -1,13 +1,13 @@
-from typing import Any
+from loguru import logger
 
-from activity_browser import app
-from activity_browser.app.actions.base import ABAction, exception_dialogs
-from bw2data import get_activity
+import bw2data as bd
 from bw2data.parameters import (ActivityParameter, Group,
                                                      GroupDependency,
                                                      parameters)
+
+from activity_browser import app
+from activity_browser.app.actions.base import ABAction, exception_dialogs
 from activity_browser.ui.icons import qicons
-from activity_browser.bwutils.utils import Parameter
 
 
 class ParameterGroupDelete(ABAction):
@@ -22,6 +22,10 @@ class ParameterGroupDelete(ABAction):
     @exception_dialogs
     def run(parameter_groups: list[str]):
         for group in parameter_groups:
+            if group in ["project"] + list(bd.databases):
+                logger.warning(f"Cannot delete built-in parameter group '{group}'. Skipping.")
+                continue
+
             group_entry = Group.get(Group.name == group)
 
             # Delete all parameters in the group

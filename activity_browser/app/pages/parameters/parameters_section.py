@@ -246,7 +246,7 @@ class ProjectParametersView(widgets.ABTreeView):
                                text="Delete parameter(s)",
                                enable=(all([p.deletable for p in p.selected_parameters()])
                                       and len(p.selected_parameters()) > 0)
-                                      and all([not database_is_locked(p.database)
+                                      and all([not database_is_locked(p.data['database'])
                                                for p in p.selected_parameters()
                                                if p.param_type != "project"
                                                ])
@@ -254,7 +254,9 @@ class ProjectParametersView(widgets.ABTreeView):
             lambda m, p: m.add(app.actions.ParameterGroupDelete, p.selected_groups(),
                                text="Delete parameter group(s)",
                                enable=(len(p.selected_groups()) > 0
-                                       and all([not database_is_locked(p.database)
+                                       and all([g not in ["project"] + list(bd.databases)
+                                                for g in p.selected_groups()])
+                                       and all([not database_is_locked(p.data['database'])
                                                 for p in p.selected_parameters()
                                                 if p.param_type != "project"
                                                 ])
@@ -361,7 +363,10 @@ class ProjectParametersModel(core.ABTreeModel):
         column_name = self.column_name(index)
 
         if column_name == "amount":
-            return icons.qicons.empty if pd.isna(self.get(index, "formula")) else icons.qicons.parameterized
+            formula = self.get(index, "formula")
+            formula = isinstance(formula, str) and formula.strip()
+
+            return icons.qicons.parameterized if formula else icons.qicons.empty
 
         return None
 
