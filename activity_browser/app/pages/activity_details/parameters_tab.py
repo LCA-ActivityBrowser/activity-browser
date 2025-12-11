@@ -1,13 +1,16 @@
-from qtpy import QtWidgets, QtCore
+from qtpy import QtWidgets, QtCore, QtGui
 from qtpy.QtCore import Qt
 from loguru import logger
 
 import pandas as pd
 import bw2data as bd
 
+from bw2data.parameters import ProjectParameter, DatabaseParameter, ActivityParameter, Group, ParameterBase
+
 from activity_browser import app
 from activity_browser.ui import widgets, icons, delegates, core
 from activity_browser.bwutils.commontasks import refresh_node, refresh_parameter, parameters_in_scope, database_is_locked, node_group
+from activity_browser.bwutils.utils import Parameter
 
 
 class ParametersTab(QtWidgets.QWidget):
@@ -61,45 +64,123 @@ class ParametersTab(QtWidgets.QWidget):
         """
         logger.log("SYNC", f"{self.__class__.__name__}: {id(self)}")
 
-        self.activity = refresh_node(self.activity)
         df = self.build_df()
-        df.reset_index(drop=True, inplace=True)
-        self.model.set_dataframe(df)
-        self.model.group(["_scope"])
+        self.model.set_dataframe(df, group=["_param_type", "_scope"])
         self.view.expandAll()
+
+        self.view.resizeColumnToContents(1)
+        self.view.resizeColumnToContents(3)
+        self.view.resizeColumnToContents(4)
 
     def build_df(self) -> pd.DataFrame:
         """
-        Builds a DataFrame from the parameters in scope of the activity.
+        Builds a DataFrame from all parameters in the project.
 
         Returns:
             pd.DataFrame: The DataFrame containing the parameters data.
         """
-        data = parameters_in_scope(self.activity)
-
         translated = []
 
-        for name, param in data.items():
-            row = param._asdict()
-            row["uncertainty"] = param.uncertainty
-            row["formula"] = param.data.get("formula")
-            row["comment"] = param.data.get("comment")
-            row["_parameter"] = param
-            row["_activity"] = self.activity
-
-            if param.param_type == "project":
-                row["_scope"] = "Current project"
-            elif param.param_type == "database":
-                row["_scope"] = "This database"
-            elif param.group == node_group(self.activity):
-                row["_scope"] = "This activity"
-            else:
-                row["_scope"] = f"Group: {param.group}"
-
+        # Project parameters
+        for param in ProjectParameter.select():
+            row = self._parameter_to_row(param)
             translated.append(row)
 
-        columns = ["name", "amount", "formula", "uncertainty", "comment", "_parameter", "_scope", "_activity"]
-        return pd.DataFrame(translated, columns=columns)
+        translated.append({
+            "name": "New parameter...",
+            "_group": "project",
+            "_param_type": "project",
+            "_class": "new",
+        })
+
+        # Database parameters
+        db_params = DatabaseParameter.select()
+        db_name = self.activity["database"]
+
+        for param in db_params.where(DatabaseParameter.database == db_name):
+            row = self._parameter_to_row(param, db_name, db_name)
+            translated.append(row)
+
+        if not database_is_locked(db_name):
+            translated.append({
+                "name": "New parameter...",
+                "_scope": db_name,
+                "_database": db_name,
+                "_group": db_name,
+                "_param_type": "database",
+                "_class": "new",
+            })
+
+        # Activity parameters
+        act_params = ActivityParameter.select()
+        group_name = node_group(self.activity) or str(self.activity.id)
+
+        for param in act_params.where(ActivityParameter.group == group_name):
+            row = self._parameter_to_row(param, f"Group: {group_name}", param.database)
+            translated.append(row)
+
+        if not database_is_locked(self.activity["database"]):
+            translated.append({
+                "name": "New parameter...",
+                "_scope": f"Group: {group_name}",
+                "_database": self.activity["database"],
+                "_group": group_name,
+                "_param_type": "activity",
+                "_class": "new",
+            })
+
+        columns = ["name", "amount", "formula", "uncertainty", "comment", "_parameter", "_scope", "_database", "_group",
+                   "_param_type", "_class"]
+        df = pd.DataFrame(translated, columns=columns)
+
+        df["_activity"] = [self.activity for i in range(len(df))]
+        return df
+
+    def _parameter_to_row(self, param, scope_label: str = None, database: str = None) -> dict:
+        """
+        Converts a parameter to a row dictionary.
+
+        Args:
+            param: The parameter to convert (ProjectParameter, DatabaseParameter, or ActivityParameter).
+            scope_label: The label for the scope (e.g., "Current project", "Database: ecoinvent").
+            database: The database name (None for project parameters).
+
+        Returns:
+            dict: A dictionary representing the parameter row.
+        """
+        data = param.dict
+
+        # Create Parameter wrapper
+        if isinstance(param, ProjectParameter):
+            parameter = Parameter(param.name, "project", data.get("amount"), data, "project")
+            group = "project"
+            param_type = "project"
+        elif isinstance(param, DatabaseParameter):
+            parameter = Parameter(param.name, param.database, data.get("amount"), data, "database")
+            group = param.database
+            param_type = "database"
+        elif isinstance(param, ActivityParameter):
+            parameter = Parameter(param.name, param.group, data.get("amount"), data, "activity")
+            group = param.group
+            param_type = "activity"
+        else:
+            raise ValueError(f"Unknown parameter type: {type(param)}")
+
+        row = {
+            "name": parameter.name,
+            "amount": parameter.amount,
+            "uncertainty": parameter.uncertainty,
+            "formula": data.get("formula"),
+            "comment": data.get("comment"),
+            "_param_type": param_type,
+            "_parameter": parameter,
+            "_scope": scope_label,
+            "_database": database,
+            "_group": group,
+            "_class": "instantiated",
+        }
+
+        return row
 
 
 class ParametersView(widgets.ABTreeView):
@@ -192,6 +273,21 @@ class ParametersModel(core.ABTreeModel):
         if row is None:
             return False
 
+        # Handle "New parameter..." rows
+        if row.get("_class") == "new":
+            if column_name != "name" or value == "":
+                return False
+
+            parameter = Parameter(
+                name=value,
+                group=row.get("_group"),
+                param_type=row.get("_param_type")
+            )
+
+            app.actions.ParameterNewFromParameter.run(parameter)
+            return True
+
+        # Handle regular parameter edits
         parameter = row.get("_parameter")
         if parameter is None:
             return False
@@ -199,7 +295,6 @@ class ParametersModel(core.ABTreeModel):
         if column_name in ["amount", "formula", "name", "comment"]:
             parameter = refresh_parameter(parameter)
             app.actions.ParameterModify.run(parameter, column_name, value)
-            return True
 
         if column_name == "uncertainty":
             parameter = refresh_parameter(parameter)
@@ -208,7 +303,7 @@ class ParametersModel(core.ABTreeModel):
             return True
 
         return False
-    
+
     def decorationData(self, index: QtCore.QModelIndex) -> any:
         """
         Provides decoration data for the model.
@@ -220,46 +315,80 @@ class ParametersModel(core.ABTreeModel):
             The decoration data for the index.
         """
         column_name = self.column_name(index)
-        row = self.row(index)
-
-        if row is None:
-            return None
-        
-        if not isinstance(row, pd.Series):
-            return None
 
         if column_name == "amount":
-            if pd.isna(row.get("formula")) or row.get("formula") is None or row.get("formula") == "":
-                return icons.qicons.empty  # empty icon to align the values
-            return icons.qicons.parameterized
+            formula = self.get(index, "formula")
+            formula = isinstance(formula, str) and formula.strip()
+
+            return icons.qicons.parameterized if formula else icons.qicons.empty
 
         return None
 
-    def indexEditable(self, index):
-        column_name = self.column_name(index)
-        row = self.row(index)
+    def fontData(self, index: QtCore.QModelIndex) -> any:
+        """
+        Provides font data for the model.
 
-        # Prevent editing if the database is locked
-        if row is None or database_is_locked(row.get("_activity", {}).get("database")):
+        Args:
+            index (QtCore.QModelIndex): The index for which to provide font data.
+
+        Returns:
+            QtGui.QFont: The font data for the index.
+        """
+        param_class = self.get(index, "_class")
+        if param_class == "new":
+            font = QtGui.QFont()
+            font.setWeight(QtGui.QFont.Weight.ExtraLight)
+            return font
+
+        if param_class == "broken":
+            font = QtGui.QFont()
+            font.setWeight(QtGui.QFont.Weight.Bold)
+            return font
+
+        return None
+
+    def indexEditable(self, index: QtCore.QModelIndex) -> bool:
+        """
+        Returns whether the index is editable.
+
+        Args:
+            index (QtCore.QModelIndex): The index to check.
+
+        Returns:
+            bool: True if the index is editable, False otherwise.
+        """
+        column_name = self.column_name(index)
+
+        # Check if database is locked
+        database = self.get(index, "_database")
+        if not pd.isna(database) and database_is_locked(database):
+            return False
+
+        # Prevent editing broken parameters
+        if self.get(index, "_class") == "broken":
             return False
 
         # Allow editing for specific columns
-        if column_name in ["amount", "formula", "uncertainty", "name", "comment"]:
+        if column_name in ["formula", "uncertainty", "name", "comment"]:
+            return True
+
+        if column_name == "amount" and not self.get(index, "formula"):
             return True
 
         return False
-    
-    def scoped_parameters(self, index):
+
+    def scoped_parameters(self, index: QtCore.QModelIndex) -> dict[str, Parameter]:
         """
-        Returns the scoped parameters for the index.
+        Returns the parameters in scope of the parameter at the given index.
 
         Args:
             index (QtCore.QModelIndex): The index to get scoped parameters for.
 
         Returns:
-            dict: A dictionary of scoped parameters for the index.
+            dict: The parameters in scope.
         """
-        row = self.row(index)
-        if row is None:
+        parameter = self.get(index, "_parameter")
+        if parameter is None or isinstance(parameter, float):  # NaN check
             return {}
-        return parameters_in_scope(parameter=row.get("_parameter"))
+
+        return parameters_in_scope(parameter=parameter)

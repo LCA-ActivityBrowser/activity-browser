@@ -9,7 +9,7 @@ from bw2data.parameters import ProjectParameter, DatabaseParameter, ActivityPara
 
 from activity_browser import app
 from activity_browser.ui import widgets, icons, delegates, core
-from activity_browser.bwutils.commontasks import refresh_parameter, database_is_locked
+from activity_browser.bwutils.commontasks import refresh_parameter, database_is_locked, parameters_in_scope
 from activity_browser.bwutils.utils import Parameter
 
 
@@ -433,14 +433,8 @@ class ProjectParametersModel(core.ABTreeModel):
         Returns:
             dict: The parameters in scope.
         """
-        from activity_browser.bwutils.commontasks import parameters_in_scope
-
-        row = self.row(index)
-        if row is None:
-            return {}
-
-        parameter = row.get("_parameter")
-        if parameter is None:
+        parameter = self.get(index, "_parameter")
+        if parameter is None or isinstance(parameter, float):  # NaN check
             return {}
 
         return parameters_in_scope(parameter=parameter)
