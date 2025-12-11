@@ -11,7 +11,9 @@ import bw2data as bd
 import bw_functional as bf
 
 from activity_browser import app
-from activity_browser.bwutils.commontasks import refresh_node, database_is_locked, database_is_legacy, is_node_product, is_node_biosphere, parameters_in_scope
+from activity_browser.bwutils.commontasks import (refresh_node, database_is_locked, database_is_legacy,
+                                                  is_node_product_or_waste, is_node_biosphere, parameters_in_scope,
+                                                  is_node_product, is_node_waste)
 from activity_browser.ui import widgets, icons, delegates, core
 
 
@@ -292,15 +294,24 @@ class ExchangesTab(QtWidgets.QWidget):
 
         output = self.output_view.overlay.hovering()
         keys: list = event.mimeData().retrievePickleData("application/bw-nodekeylist")
-        exchanges = {"technosphere": set(), "biosphere": set(), "substitution": set()}
+
+        positive_exchanges = {"technosphere": set(), "biosphere": set(), "substitution": set()}
+        negative_exchanges = {"technosphere": set(), "substitution": set()}
 
         for key in keys:
-            if exc_type := get_exchange_type(key, output=output):
-                exchanges[exc_type].add(key)
+            exc_type = get_exchange_type(key, output=output)
+            if exc_type is None:
+                continue
+            if exc_type.startswith("-"):
+                negative_exchanges[exc_type[1:]].add(key)
+            else:
+                positive_exchanges[exc_type].add(key)
 
         # Run the action for new exchanges
-        for exc_type, keys in exchanges.items():
+        for exc_type, keys in positive_exchanges.items():
             app.actions.ExchangeNew.run(keys, self.activity.key, exc_type)
+        for exc_type, keys in negative_exchanges.items():
+            app.actions.ExchangeNew.run(keys, self.activity.key, exc_type, amount=-1)
 
     def action_from_mime(self, mime: core.ABMimeData) -> Literal["product", "waste", "resource", "emission", "generic"]:
         """
@@ -333,10 +344,10 @@ class ExchangesTab(QtWidgets.QWidget):
             return "generic"
 
 def get_exchange_type(activity_key: tuple, output=False) -> str | None:
-    if output and is_node_product(activity_key):
-        return "substitution"
     if is_node_product(activity_key):
-        return "technosphere"
+        return "substitution" if output else "technosphere"
+    if is_node_waste(activity_key):
+        return "-technosphere" if output else "-substitution"
     elif is_node_biosphere(activity_key):
         return "biosphere"
     return None

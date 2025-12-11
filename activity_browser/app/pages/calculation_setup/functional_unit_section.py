@@ -7,7 +7,7 @@ import pandas as pd
 
 from activity_browser import app
 from activity_browser.ui import widgets, icons, delegates, core
-from activity_browser.bwutils.commontasks import is_node_product
+from activity_browser.bwutils.commontasks import is_node_product_or_waste
 
 
 class FunctionalUnitSection(QtWidgets.QWidget):
@@ -136,7 +136,7 @@ class FunctionalUnitView(widgets.ABTreeView):
         if event.mimeData().hasFormat("application/bw-nodekeylist"):
             keys: list = event.mimeData().retrievePickleData("application/bw-nodekeylist")
             for key in keys:
-                if not is_node_product(key):
+                if not is_node_product_or_waste(key):
                     keys.remove(key)
 
             if not keys:
@@ -150,7 +150,7 @@ class FunctionalUnitView(widgets.ABTreeView):
 
         keys: list = event.mimeData().retrievePickleData("application/bw-nodekeylist")
         for key in keys.copy():
-            if not is_node_product(key):
+            if not is_node_product_or_waste(key):
                 keys.remove(key)
 
         app.actions.CSAddFunctionalUnit.run(cs_name, keys)
