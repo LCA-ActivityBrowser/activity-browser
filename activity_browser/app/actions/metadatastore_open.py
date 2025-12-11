@@ -1,5 +1,3 @@
-from loguru import logger
-
 from activity_browser import app
 from activity_browser.app.actions.base import ABAction, exception_dialogs
 from activity_browser.ui.icons import qicons

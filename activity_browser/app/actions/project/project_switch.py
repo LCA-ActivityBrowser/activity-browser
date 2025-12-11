@@ -7,6 +7,7 @@ import bw2data as bd
 
 from activity_browser import app
 from activity_browser.app.actions.base import ABAction, exception_dialogs
+from activity_browser.ui.core.application import global_shortcut
 
 from .project_migrate25 import ProjectMigrate25
 
@@ -43,7 +44,7 @@ class ProjectSwitch(ABAction):
             logger.debug(f"Brightway2 already selected: {project_name}")
             return
 
-        dialog = ProjectChangeDialog(project_name, app.main_window)
+        dialog = ProjectChangeDialog(project_name, reload, app.main_window)
         dialog.show()
         app.application.processEvents()
 
@@ -67,14 +68,23 @@ class ProjectSwitch(ABAction):
     def set_warning_bar():
         app.main_window.addToolBar(ProjectWarningBar())
 
+    @global_shortcut("F5")
+    @staticmethod
+    def reload_project():
+        ProjectSwitch.run(bd.projects.current, reload=True)
+
 
 class ProjectChangeDialog(QtWidgets.QDialog):
-    def __init__(self, project_name: str, parent=None):
+    def __init__(self, project_name: str, reload: bool, parent=None):
         super().__init__(parent, QtCore.Qt.WindowTitleHint)
-        self.setWindowTitle(f"Switching project")
+
+        title = "Reloading project" if reload else "Switching project"
+        subtitle = f"Reloading project: <b>{project_name}</b>" if reload else f"Switching to project: <b>{project_name}</b>"
+
+        self.setWindowTitle(title)
         self.setModal(True)
 
-        self.label = QtWidgets.QLabel(f"Switching to project: <b>{project_name}</b>", self)
+        self.label = QtWidgets.QLabel(subtitle, self)
 
         layout = QtWidgets.QVBoxLayout(self)
         layout.addWidget(self.label)
