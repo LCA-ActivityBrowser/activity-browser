@@ -72,7 +72,7 @@ class MetaDataSignals(QObject):
         t = time()
         self.synced.emit(added, updated, deleted)
 
-        logger.debug(f"Metadatastore sync signal completed in {time() - t:.2f} seconds")
+        logger.log("SIGNAL", f"Metadata: synced: {time() - t:.2f} seconds")
 
 class SettingSignals(QObject):
     changed = Signal()  # Settings have changed
@@ -85,8 +85,9 @@ class SettingSignals(QObject):
     
     def emit_changed(self, *args, **kwargs):
         """Emit the changed signal."""
+        t = time()
         self.changed.emit()
-        logger.debug("Settings changed signal emitted")
+        logger.log("SIGNAL", f"Settings: changed: {time() - t:.2f} seconds")
 
 
 class ABSignals(QObject):
@@ -186,15 +187,15 @@ class ABSignals(QObject):
         if isinstance(new, ActivityDataset):
             t = time()
             self.node.changed.emit(new, old)
-            logger.debug(f"Activity changed signal completed in {time() - t:.2f} seconds")
+            logger.log("SIGNAL", f"Node: changed: {time() - t:.2f} seconds")
         elif isinstance(new, ExchangeDataset):
             t = time()
             self.edge.changed.emit(new, old)
-            logger.debug(f"Exchange changed signal completed in {time() - t:.2f} seconds")
+            logger.log("SIGNAL", f"Edge: changed: {time() - t:.2f} seconds")
         elif isinstance(new, (ProjectParameter, DatabaseParameter, ActivityParameter)):
             t = time()
             self.parameter.changed.emit(new, old)
-            logger.debug(f"Parameter changed signal completed in {time() - t:.2f} seconds")
+            logger.log("SIGNAL", f"Parameter: changed: {time() - t:.2f} seconds")
         else:
             logger.debug(f"Unknown dataset type changed: {type(new)}")
 
@@ -205,90 +206,90 @@ class ABSignals(QObject):
         if isinstance(old, ActivityDataset):
             t = time()
             self.node.deleted.emit(old)
-            logger.debug(f"Activity deleted signal completed in {time() - t:.2f} seconds")
+            logger.log("SIGNAL", f"Node: deleted: {time() - t:.2f} seconds")
         elif isinstance(old, ExchangeDataset):
             t = time()
             self.edge.deleted.emit(old)
-            logger.debug(f"Exchange deleted signal completed in {time() - t:.2f} seconds")
+            logger.log("SIGNAL", f"Edge: deleted: {time() - t:.2f} seconds")
         elif isinstance(old, (ProjectParameter, DatabaseParameter, ActivityParameter)):
             t = time()
             self.parameter.deleted.emit(old)
-            logger.debug(f"Parameter deleted signal completed in {time() - t:.2f} seconds")
+            logger.log("SIGNAL", f"Parameter: deleted: {time() - t:.2f} seconds")
         else:
             logger.debug(f"Unknown dataset type deleted: {type(old)}")
 
     def _on_activity_database_change(self, sender, old, new):
         t = time()
         self.node.database_change.emit(old, new)
-        logger.debug(f"Activity db changed signal completed in {time() - t:.2f} seconds")
+        logger.log("SIGNAL", f"Node: database_change: {time() - t:.2f} seconds")
 
     def _on_activity_code_change(self, sender, old, new):
         t = time()
         self.node.code_change.emit(old, new)
-        logger.debug(f"Activity code changed signal completed in {time() - t:.2f} seconds")
+        logger.log("SIGNAL", f"Node: code_change: {time() - t:.2f} seconds")
 
     def _on_database_delete(self, sender, name):
         t = time()
         self.database.deleted.emit(name)
-        logger.debug(f"Database deleted signal completed in {time() - t:.2f} seconds")
+        logger.log("SIGNAL", f"Database: deleted: {time() - t:.2f} seconds")
 
     def _on_database_reset(self, sender, name):
         from bw2data import Database
         t = time()
         self.database.reset.emit(Database(name))
-        logger.debug(f"Database reset signal completed in {time() - t:.2f} seconds")
+        logger.log("SIGNAL", f"Database: reset: {time() - t:.2f} seconds")
 
     def _on_database_write(self, sender, name):
         from bw2data import Database
         t = time()
         self.database.written.emit(Database(name))
-        logger.debug(f"Database write signal completed in {time() - t:.2f} seconds")
+        logger.log("SIGNAL", f"Database: written: {time() - t:.2f} seconds")
 
     def _on_project_changed(self, ds):
         t = time()
         self.project.changed.emit(ds, self._project_dataset)
         self._project_dataset = ds
-        logger.debug(f"Project changed signal completed in {time() - t:.2f} seconds")
+        logger.log("SIGNAL", f"Project: changed: {time() - t:.2f} seconds")
 
     def _on_project_created(self, ds):
         t = time()
         self.project.created.emit()
-        logger.debug(f"Project created signal completed in {time() - t:.2f} seconds")
+        logger.log("SIGNAL", f"Project: created: {time() - t:.2f} seconds")
 
     def _on_database_metadata_change(self, sender, old, new):
         t = time()
         self.meta.databases_changed.emit(old, new)
-        logger.debug(f"DB metadata changed signal completed in {time() - t:.2f} seconds")
+        logger.log("SIGNAL", f"Meta: databased_changed: {time() - t:.2f} seconds")
 
     def _on_methods_metadata_change(self, sender, old, new):
         t = time()
         self.meta.methods_changed.emit(old, new)
-        logger.debug(f"Methods metadata changed signal completed in {time() - t:.2f} seconds")
+        logger.log("SIGNAL", f"Meta: methods_changed: {time() - t:.2f} seconds")
 
     def _on_cs_metadata_change(self, sender, old, new):
         t = time()
         self.meta.calculation_setups_changed.emit(old, new)
-        logger.debug(f"CS metadata changed signal completed in {time() - t:.2f} seconds")
+        logger.log("SIGNAL", f"Meta: calculation_setups_changed: {time() - t:.2f} seconds")
 
     def _on_method_write(self, sender):
         t = time()
         self.method.changed.emit(sender)
-        logger.debug(f"Method changed signal completed in {time() - t:.2f} seconds")
+        logger.log("SIGNAL", f"Method: changed: {time() - t:.2f} seconds")
 
     def _on_method_deregister(self, sender):
         t = time()
         self.method.deleted.emit(sender)
-        logger.debug(f"Method deleted signal completed in {time() - t:.2f} seconds")
+        logger.log("SIGNAL", f"Method: deleted: {time() - t:.2f} seconds")
 
     def _on_parameter_recalculate(self, sender, *args, **kwargs):
         t = time()
         self.parameter.recalculated.emit()
-        logger.debug(f"Param recalculated signal completed in {time() - t:.2f} seconds")
+        logger.log("SIGNAL", f"Parameter: recalculated: {time() - t:.2f} seconds")
 
     def _on_parameterized_exchange_recalculate(self, sender, *args, **kwargs):
         t = time()
         self.edge.recalculated.emit()
-        logger.debug(f"Param exchange recalculated signal completed in {time() - t:.2f} seconds")
+        logger.log("SIGNAL", f"Edge: recalculated: {time() - t:.2f} seconds")
 
 
 def patch_methods_datastore():
@@ -318,7 +319,9 @@ def patch_projects():
     def delete_project(self, name=None, delete_dir=False):
         from activity_browser.app import signals
         original_delete(self, name, delete_dir)
+        t = time()
         signals.project.deleted.emit(name)
+        logger.log("SIGNAL", f"Project: deleted: {time() - t:.2f} seconds")
 
     original_delete = ProjectManager.delete_project
 

@@ -21,8 +21,8 @@ def setup_logging():
     import platformdirs
 
     logger.level("SYNC", no=9, color="<cyan>")
+    logger.level("SIGNAL", no=19, color="<yellow>")
     logger.level("TEST", no=19, color="<cyan>")
-
 
     logger.remove()
     logger.add(sys.stderr, level=6, colorize=True,
