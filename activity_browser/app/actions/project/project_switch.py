@@ -37,9 +37,9 @@ class ProjectSwitch(ABAction):
 
     @staticmethod
     @exception_dialogs
-    def run(project_name: str):
+    def run(project_name: str, reload: bool = False):
         # compare the new to the current project name and switch to the new one if the two are not the same
-        if project_name == bd.projects.current:
+        if project_name == bd.projects.current and not reload:
             logger.debug(f"Brightway2 already selected: {project_name}")
             return
 

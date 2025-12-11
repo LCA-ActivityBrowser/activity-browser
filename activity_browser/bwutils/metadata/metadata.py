@@ -248,6 +248,16 @@ class MetaDataStore(QObject):
         completions = self.searcher.auto_complete(word, context=context, database=database)
         return completions
 
+    def clear_cache(self):
+        from activity_browser.bwutils import filesystem
+
+        cache_path = filesystem.get_project_ab_path() / "metadatastore_cache.pkl"
+        if cache_path.exists():
+            cache_path.unlink()
+            logger.info("Metadata store cache cleared.")
+        else:
+            logger.info("No metadata store cache found to clear.")
+
 
 def get_query_parameters(query: str) -> tuple[dict[str, str], str]:
     """Extract key-value pairs from a query string of the form 'key1:value1 key2:value2'."""

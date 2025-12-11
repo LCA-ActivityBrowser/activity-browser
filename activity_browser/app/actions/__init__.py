@@ -97,3 +97,4 @@ from .pyside_upgrade import PysideUpgrade
 from .metadatastore_open import MetaDataStoreOpen
 from .node_select_open import NodeSelectOpen
 from .save_parameters_to_excel import SaveParametersToExcel
+from .metadatastore_cache_clear import MetaDataStoreCacheClear

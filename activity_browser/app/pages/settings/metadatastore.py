@@ -3,6 +3,7 @@ from loguru import logger
 from qtpy import QtWidgets
 
 from activity_browser.app import settings
+from activity_browser.app.actions.metadatastore_cache_clear import MetaDataStoreCacheClear
 from activity_browser.app.pages.settings.base import BaseSettingsChapter
 
 
@@ -26,6 +27,13 @@ class MetadataStoreSettingsChapter(BaseSettingsChapter):
             "Disable if you experience performance issues with large databases."
         )
 
+        # Clear cache button
+        self.clear_cache_button = QtWidgets.QPushButton("Clear Cache")
+        self.clear_cache_button.setToolTip(
+            "Clear the metadata store cache and reload the current project. "
+            "Use this if you experience issues with outdated or corrupted cache data."
+        )
+
         self.build_layout()
         self.connect_signals()
         self.reset()
@@ -35,6 +43,9 @@ class MetadataStoreSettingsChapter(BaseSettingsChapter):
         # Emit changed signal when settings change
         self.caching_checkbox.stateChanged.connect(lambda: self.changed.emit())
         self.searcher_checkbox.stateChanged.connect(lambda: self.changed.emit())
+
+        # Connect clear cache button
+        self.clear_cache_button.clicked.connect(MetaDataStoreCacheClear.run)
 
     def build_layout(self):
         """Build the chapter layout."""
@@ -47,10 +58,13 @@ class MetadataStoreSettingsChapter(BaseSettingsChapter):
         metadatastore_layout.addWidget(self.caching_checkbox)
         metadatastore_layout.addWidget(self.searcher_checkbox)
 
+        # Add clear cache button
+        metadatastore_layout.addWidget(self.clear_cache_button)
+
         # Add description label
         description = QtWidgets.QLabel(
             "These settings control the behavior of the metadata store, "
-            "which manages activity and exchange metadata for improved performance."
+            "which manages activity data for improved performance."
         )
         description.setWordWrap(True)
         description.setStyleSheet("color: gray; font-size: 10pt;")
