@@ -17,6 +17,10 @@ defaults = {
     "appearance": {
         "theme": "default",
         "pane_tab_position": "bottom",
+    },
+    "metadatastore": {
+        "caching_enabled": True,
+        "searcher_enabled": True,
     }
 }
 
@@ -52,7 +56,11 @@ class Settings:
             return self.virtual_config[key]
         if key in self.project_config:
             return self.project_config[key]
-        return self.global_config[key]
+        if key in self.global_config:
+            return self.global_config[key]
+        if key in defaults:
+            return defaults[key]
+        raise KeyError(f"Setting '{key}' not found in any configuration level.")
 
     def __setitem__(self, key, value):
         if isinstance(key, tuple):

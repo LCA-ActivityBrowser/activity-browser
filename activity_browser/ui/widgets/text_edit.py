@@ -174,6 +174,9 @@ class MetaDataAutoCompleteTextEdit(ABAutoCompleTextEdit):
         self.database_name = ""
 
     def _sanitize_input(self):
+        if not self.mds.searcher:
+            return
+
         self._debounce_timer.stop()
         text = self.toPlainText()
         clean_text = self.mds.searcher.ONE_SPACE_PATTERN.sub(" ", text)
@@ -198,6 +201,9 @@ class MetaDataAutoCompleteTextEdit(ABAutoCompleTextEdit):
         self._set_debounce()
 
     def _set_autocomplete_items(self):
+        if not self.mds.searcher:
+            return
+
         text = self.toPlainText()
         if text.startswith("="):
             self.model.setStringList([])

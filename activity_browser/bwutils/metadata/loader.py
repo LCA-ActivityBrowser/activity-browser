@@ -8,6 +8,8 @@ import pandas as pd
 
 from qtpy.QtCore import QObject, QThread, Signal, SignalInstance
 
+from activity_browser.bwutils.settings import Settings
+
 from .metadata import MetaDataStore
 from .fields import secondary_types, primary, secondary, search_engine_whitelist, all_fields
 
@@ -42,7 +44,7 @@ class MDSLoader(QObject):
         self.secondary_status = "loading"
 
         # check for valid cache and load from it if available
-        if self._has_cache():
+        if self._has_cache() and Settings()["metadatastore"]["caching_enabled"]:
             self.cache_load_project()
             return
 
@@ -264,6 +266,10 @@ class InitSearcherThread(QThread):
 
         if os.environ.get("AB_NO_SEARCHER"):
             logger.debug("Skipping searcher initialization due to AB_NO_SEARCHER environment variable")
+            return
+
+        if Settings()["metadatastore"]["searcher_enabled"] is False:
+            logger.debug("Skipping searcher initialization due to settings")
             return
 
         if self.mds.searcher is not None:
