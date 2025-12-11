@@ -61,6 +61,8 @@ class ParametersSection(QtWidgets.QWidget):
         """
         app.signals.metadata.synced.connect(self.syncLater)
         app.signals.project.changed.connect(self.syncLater)
+        app.signals.meta.databases_changed.connect(self.syncLater)
+        app.signals.database.deleted.connect(self.syncLater)
 
         app.signals.parameter.changed.connect(self.syncLater)
         app.signals.parameter.recalculated.connect(self.syncLater)

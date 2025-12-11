@@ -430,6 +430,7 @@ class ABTreeModel(QAbstractItemModel):
             # Remove the original column from the dataframe
             df = df.drop(columns=[col])
 
+        df = df.dropna(how='all', axis=1)
         df["index"] = range(len(df))
 
         new_index = pd.MultiIndex.from_frame(df)
