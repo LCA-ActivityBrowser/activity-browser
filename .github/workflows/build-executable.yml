@@ -1,4 +1,4 @@
-name: build-executable.yml
+name: Build Executable
 on:
   push:
     branches: [ major ]
@@ -6,7 +6,10 @@ on:
 
 jobs:
   build:
-    runs-on: ['windows-latest', 'ubuntu-latest', 'macos-latest']
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
