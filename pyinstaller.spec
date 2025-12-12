@@ -1,5 +1,22 @@
 # -*- mode: python ; coding: utf-8 -*-
 from PyInstaller.utils.hooks import collect_data_files
+import sys
+import glob
+from pathlib import Path
+
+def find_mkl_libs():
+    """Find MKL DLL files for PyPardiso"""
+    patterns = [
+        f'{sys.prefix}/Library/bin/mkl_*.dll',
+        f'{sys.prefix}/Library/bin/libiomp5md.dll',
+    ]
+
+    binaries = []
+    for pattern in patterns:
+        for lib in glob.glob(pattern):
+            binaries.append((lib, '.'))
+
+    return binaries
 
 block_cipher = None
 
@@ -9,7 +26,7 @@ ab_datas = collect_data_files('activity_browser')
 a = Analysis(
     ['run-activity-browser.py'],
     pathex=[],
-    binaries=[],
+    binaries=find_mkl_libs(),
     datas=ab_datas,
     hiddenimports=[
         'activity_browser',
