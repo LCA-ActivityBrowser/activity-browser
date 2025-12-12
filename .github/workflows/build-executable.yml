@@ -7,6 +7,7 @@ on:
 jobs:
   build:
     strategy:
+      fail-fast: false
       matrix:
         os: [windows-latest, ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
@@ -36,7 +37,7 @@ jobs:
       - name: Build executable with PyInstaller
         shell: bash
         run: |
-          uv run pyinstaller --onefile --name activity-browser activity_browser/__main__.py
+          uv run pyinstaller pyinstaller.spec
 
       - uses: actions/upload-artifact@v4
         with:
