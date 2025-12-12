@@ -36,7 +36,7 @@ jobs:
       - name: Build executable with PyInstaller
         shell: bash
         run: |
-          uv run python -m pyinstaller --onefile --name activity-browser activity_browser/__main__.py
+          uv run pyinstaller --onefile --name activity-browser activity_browser/__main__.py
 
       - uses: actions/upload-artifact@v4
         with:
