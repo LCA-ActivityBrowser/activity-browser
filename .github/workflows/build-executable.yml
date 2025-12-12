@@ -31,14 +31,12 @@ jobs:
       - name: Sync dependencies
         shell: bash
         run: |
-          uv sync --prerelease=allow
-          uv pip freeze > dist/requirements-frozen-${{ matrix.os }}.txt          
+          uv add pyinstaller
+          uv sync --prerelease=allow        
 
       - name: Build executable with PyInstaller
         shell: bash
         run: |
-          uv add pyinstaller
-          uv sync --prerelease=allow
           uv run pyinstaller pyinstaller.spec
 
       - uses: actions/upload-artifact@v4
