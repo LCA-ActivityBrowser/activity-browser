@@ -1,12 +1,16 @@
 # -*- mode: python ; coding: utf-8 -*-
+from PyInstaller.utils.hooks import collect_data_files
 
 block_cipher = None
+
+# Collect all data files from activity_browser package
+ab_datas = collect_data_files('activity_browser')
 
 a = Analysis(
     ['run-activity-browser.py'],
     pathex=[],
     binaries=[],
-    datas=[],
+    datas=ab_datas,
     hiddenimports=[
         'activity_browser',
         'PySide6',
@@ -39,7 +43,7 @@ exe = EXE(
     upx=True,
     upx_exclude=[],
     runtime_tmpdir=None,
-    console=False,
+    console=True,
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
