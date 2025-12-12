@@ -4,19 +4,7 @@ import sys
 import glob
 from pathlib import Path
 
-def find_mkl_libs():
-    """Find MKL DLL files for PyPardiso"""
-    patterns = [
-        f'{sys.prefix}/Library/bin/mkl_*.dll',
-        f'{sys.prefix}/Library/bin/libiomp5md.dll',
-    ]
 
-    binaries = []
-    for pattern in patterns:
-        for lib in glob.glob(pattern):
-            binaries.append((lib, '.'))
-
-    return binaries
 
 block_cipher = None
 
@@ -34,6 +22,8 @@ a = Analysis(
         'bw2data',
         'bw2io',
         'bw2calc',
+        'pypardiso',
+        'scikits.umfpack',
     ],
     hookspath=[],
     hooksconfig={},
