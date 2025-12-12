@@ -7,14 +7,18 @@ from .main_window import ABMainWindow
 
 
 class ABAbstractPane(QtWidgets.QWidget):
-    title: str
+    title: str = None
     name: str = None
     unique: bool = False  # whether the pane is unique in the application
 
     def __init__(self, parent: ABMainWindow):
         super().__init__(parent)
         self.name = self.name or re.sub(r'([a-z])([A-Z])', r'\1_\2', self.__class__.__name__).lower()
+        self.title = self.title or self.name
+
         self.setObjectName(self.name)
+        self.setWindowTitle(self.title)
+
         self.setSizePolicy(QtWidgets.QSizePolicy.MinimumExpanding, QtWidgets.QSizePolicy.Expanding)
 
         hide_mode = ABDockWidget.HideMode.Hide if self.unique else ABDockWidget.HideMode.Close
