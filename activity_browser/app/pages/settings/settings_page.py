@@ -12,6 +12,7 @@ from .startup import StartupSettingsChapter
 from .appearance import AppearanceSettingsChapter
 from .project_manager import ProjectManagerSettingsChapter
 from .metadatastore import MetadataStoreSettingsChapter
+from .plugins import PluginsSettingsChapter
 
 
 class SettingsPage(QtWidgets.QWidget):
@@ -39,6 +40,7 @@ class SettingsPage(QtWidgets.QWidget):
         self.appearance_chapter = AppearanceSettingsChapter(self)
         self.project_manager_chapter = ProjectManagerSettingsChapter(self)
         self.metadatastore_chapter = MetadataStoreSettingsChapter(self)
+        self.plugins_chapter = PluginsSettingsChapter(self)
 
         # Add chapters to the stack
         self.chapters = [
@@ -46,6 +48,7 @@ class SettingsPage(QtWidgets.QWidget):
             ("Appearance", self.appearance_chapter),
             ("Projects", self.project_manager_chapter),
             ("Metadata Store", self.metadatastore_chapter),
+            ("Plugins", self.plugins_chapter),
         ]
         
         for name, widget in self.chapters:

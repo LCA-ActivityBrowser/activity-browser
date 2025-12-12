@@ -11,6 +11,9 @@ settings/
 ├── base.py              # BaseSettingsChapter (base class for all chapters)
 ├── startup.py           # StartupSettingsChapter
 ├── appearance.py        # AppearanceSettingsChapter
+├── project_manager.py   # ProjectManagerSettingsChapter
+├── metadatastore.py     # MetadataStoreSettingsChapter
+├── plugins.py           # PluginsSettingsChapter
 └── README.md            # This file
 ```
 
@@ -157,6 +160,21 @@ Manages:
 Manages:
 - Theme selection (Light/Dark)
 - Future: Font sizes, colors, etc.
+
+### ProjectManagerSettingsChapter (`project_manager.py`)
+Manages:
+- Project management settings
+- Project creation and deletion
+
+### MetadataStoreSettingsChapter (`metadatastore.py`)
+Manages:
+- Metadata store caching settings
+- Searcher configuration
+
+### PluginsSettingsChapter (`plugins.py`)
+Manages:
+- List of enabled Python plugins
+- Add/remove plugin packages that should be imported at startup
 
 ## Testing
 

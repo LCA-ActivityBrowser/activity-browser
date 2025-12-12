@@ -1,4 +1,4 @@
-import os
+import copy
 import json
 import bw2data as bd
 import bw2data.signals as bw_signals
@@ -21,6 +21,9 @@ defaults = {
     "metadatastore": {
         "caching_enabled": True,
         "searcher_enabled": True,
+    },
+    "plugins": {
+        "enabled_plugins": [],
     }
 }
 
@@ -86,7 +89,7 @@ class Settings:
     
     def load_global_settings(self):
         global_path = get_appdata_path() / "settings.json"
-        self.global_config = json.load(open(global_path)) if global_path.exists() else defaults.copy()
+        self.global_config = json.load(open(global_path)) if global_path.exists() else copy.deepcopy(defaults)
 
     def load_project_settings(self, *args, **kwargs):
         project_path = get_project_ab_path() / "settings.json"
@@ -95,10 +98,13 @@ class Settings:
     def load_virtual_settings(self):
         pass  # Implementation later based on environment variables
 
-    def reset_to_defaults(self):
-        self.global_config.read_dict(defaults)
-        self.global_config.write(open(get_appdata_path() / "settings.ini", "w"))
+    def restore_defaults(self):
+        self.global_config = copy.deepcopy(defaults)
+        global_path = get_appdata_path() / "settings.json"
+        json.dump(self.global_config, open(global_path, "w"), indent=4)
 
-        os.remove(get_project_ab_path() / "settings.ini")
-        self.load_project_settings()
+        self.project_config = {}
+        project_path = get_project_ab_path() / "settings.json"
+        project_path.unlink(missing_ok=True)
+
 

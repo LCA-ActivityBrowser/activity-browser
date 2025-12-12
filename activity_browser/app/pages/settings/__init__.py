@@ -5,6 +5,7 @@ from .startup import StartupSettingsChapter
 from .appearance import AppearanceSettingsChapter
 from .project_manager import ProjectManagerSettingsChapter
 from .metadatastore import MetadataStoreSettingsChapter
+from .plugins import PluginsSettingsChapter
 
 __all__ = [
     "SettingsPage", 
@@ -13,4 +14,5 @@ __all__ = [
     "AppearanceSettingsChapter",
     "ProjectManagerSettingsChapter",
     "MetadataStoreSettingsChapter",
+    "PluginsSettingsChapter",
 ]

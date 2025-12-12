@@ -95,6 +95,9 @@ class ABLoader(QtWidgets.QWidget):
 
     def load_finished(self):
         from activity_browser import app
+
+        load_plugins()
+
         app.main_window.show()
         self.deleteLater()
 
@@ -131,6 +134,8 @@ def run_activity_browser_no_launcher():
 
     from .ui.widgets import CentralTabWidget
     from .app import panes, pages, application, metadata
+
+    load_plugins()
 
     application.main_window.show()
 
@@ -196,6 +201,17 @@ def check_pypi_update():
         input("\033[1;31mThere is an update available for the Activity Browser. Please update it using the following command: \n "
               "pip install --upgrade activity-browser\n\n"
               "Press any key to continue without updating...\033[0m")
+
+def load_plugins():
+    from activity_browser.bwutils.settings import Settings
+    settings = Settings()
+    plugins = settings["plugins"].get("enabled_plugins", [])
+    for plugin in plugins:
+        try:
+            __import__(plugin)
+            logger.info(f"Successfully loaded plugin: {plugin}")
+        except ImportError:
+            logger.warning(f"Could not load plugin: {plugin}")
 
 
 if "--no-launcher" in sys.argv:
