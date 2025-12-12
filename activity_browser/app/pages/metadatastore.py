@@ -5,7 +5,7 @@ from activity_browser.ui import widgets, delegates, core
 from activity_browser.app import metadata, signals
 
 
-class MetaDataStorePage(QtWidgets.QWidget):
+class MetaDataStorePage(widgets.ABAbstractPage):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName("MetaDataStorePage")

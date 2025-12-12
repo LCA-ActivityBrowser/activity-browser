@@ -9,7 +9,7 @@ from .functional_unit_section import FunctionalUnitSection
 from .impact_category_section import ImpactCategorySection
 
 
-class CalculationSetupPage(QtWidgets.QWidget):
+class CalculationSetupPage(widgets.ABAbstractPage):
 
     def __init__(self, cs_name: str, parent=None):
         super().__init__(parent)

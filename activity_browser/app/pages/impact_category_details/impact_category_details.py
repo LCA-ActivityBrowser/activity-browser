@@ -12,14 +12,15 @@ from activity_browser.bwutils.commontasks import is_node_biosphere
 from .impact_category_header import ImpactCategoryHeader
 
 
-class ImpactCategoryDetailsPage(QtWidgets.QWidget):
+class ImpactCategoryDetailsPage(widgets.ABAbstractPage):
     def __init__(self, name: tuple, parent=None):
         super().__init__(parent)
         self.name = name
         self.impact_category = bd.Method(name)
         self.is_editable = False
 
-        self.setObjectName(" | ".join(name))
+        self.setObjectName("_".join(name))
+        self.setWindowTitle(" | ".join(name))
 
         self.header = ImpactCategoryHeader(self)
 

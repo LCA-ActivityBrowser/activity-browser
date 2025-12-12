@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 from loguru import logger
-from pathlib import Path
 
 from qtpy import QtWidgets
 
 from bw2data import projects
 
 from activity_browser.app import settings, signals
+from activity_browser.ui import widgets
 
 from .startup import StartupSettingsChapter
 from .appearance import AppearanceSettingsChapter
@@ -15,8 +15,10 @@ from .metadatastore import MetadataStoreSettingsChapter
 from .plugins import PluginsSettingsChapter
 
 
-class SettingsPage(QtWidgets.QWidget):
+class SettingsPage(widgets.ABAbstractPage):
     """Settings page with a sidebar navigation for different settings chapters."""
+    basePage = True
+    title = "Settings"
 
     def __init__(self, parent=None):
         super().__init__(parent)
