@@ -3,7 +3,7 @@
 block_cipher = None
 
 a = Analysis(
-    ['activity_browser/__main__.py'],
+    ['run-activity-browser.py'],
     pathex=[],
     binaries=[],
     datas=[],
