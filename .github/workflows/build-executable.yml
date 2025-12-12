@@ -6,12 +6,7 @@ on:
 
 jobs:
   build:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: ['windows-latest', 'ubuntu-latest, 'macos-latest']
-
+    runs-on: ['windows-latest', 'ubuntu-latest', 'macos-latest']
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
