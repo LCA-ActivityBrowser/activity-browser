@@ -45,5 +45,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=None,
+    icon='activity_browser/static/icons/main/activitybrowser.ico',
 )
