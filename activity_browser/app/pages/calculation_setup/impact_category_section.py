@@ -65,7 +65,7 @@ class ImpactCategoryView(widgets.ABTreeView):
 
         @property
         def selected_ics(self):
-            return self.parent().model().values_from_indices("name", self.parent().selectedIndexes())
+            return list(set([index.row() for index in self.parent().selectedIndexes()]))
 
         @property
         def cs_name(self):
