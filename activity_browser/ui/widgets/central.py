@@ -120,6 +120,7 @@ class ABCentralPagesWidget(ABTabWidget):
             w.toggle_view_action.setChecked(False)
             self.removeTab(index)
             return
+        self.removeTab(index)
         w.deleteLater()
 
     def onPageVisibilityChanged(self, visible: bool):
@@ -181,9 +182,7 @@ class GroupedPagesWidget(ABTabWidget):
         - Connects the `tabCloseRequested` signal to the `tabClosed` method.
         - Connects the `project.changed` signal to the `deleteLater` method to clean up the widget.
         """
-        from activity_browser.app import signals
         self.tabCloseRequested.connect(self.tabClosed)
-        signals.project.changed.connect(self.deleteLater)
 
     def addTab(self, widget, *args, **kwargs):
         super().addTab(widget, *args, **kwargs)

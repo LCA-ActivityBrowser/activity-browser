@@ -29,6 +29,7 @@ class ABMainWindow(QtWidgets.QMainWindow):
     def clearPanes(self):
         for pane in self.panes():
             logger.debug(f"Clearing pane {pane.__class__.__name__}: {id(pane)}")
+            pane.hide()
             pane.deleteLater()
 
     def addPane(self, pane: "ABAbstractPane", area=QtCore.Qt.DockWidgetArea.LeftDockWidgetArea):

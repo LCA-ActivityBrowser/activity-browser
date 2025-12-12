@@ -48,8 +48,10 @@ class MainWindow(widgets.ABMainWindow):
         self.clearPanes()
 
         # Iterate through the base panes and add them
+        panes = []
         for pane_name, pane_class in app.panes.base_panes.items():
             pane = pane_class(parent=self)
+            panes.append(pane)
             self.addPane(pane)
 
             self.menu_bar.view_menu.addAction(pane.toggleViewAction())
@@ -59,7 +61,7 @@ class MainWindow(widgets.ABMainWindow):
                 pane.hide()
 
         # Tabify the dock widgets for better organization
-        dws = [pane.getDockWidget() for pane in self.panes()]
+        dws = [pane.getDockWidget() for pane in panes]
         for dw in dws:
             if dw == dws[0]:
                 continue
