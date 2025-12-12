@@ -38,6 +38,6 @@ jobs:
         run: |
           pyinstaller --onefile --name activity-browser activity_browser/__main__.py
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v4
         with:
           path: dist/*
