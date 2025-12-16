@@ -1,10 +1,24 @@
 # -*- mode: python ; coding: utf-8 -*-
-from PyInstaller.utils.hooks import collect_data_files
 import sys
-import glob
 from pathlib import Path
+from PyInstaller.utils.hooks import collect_data_files
 
 
+if sys.platform == "win32":
+    pardiso_deps = [
+        "libiomp5md.dll",
+        "mkl_core.2.dll",
+        "mkl_intel_thread.2.dll",
+        "mkl_avx2.2.dll",
+        "tbbmalloc.dll",
+        "mkl_vml_avx2.2.dll",
+        "mkl_rt.2.dll",
+    ]
+
+    bin_dir = Path(sys.prefix) / "Library" / "bin"
+    binaries = [(str(bin_dir / dll), "lib") for dll in pardiso_deps if (bin_dir / dll).exists()]
+else:
+    binaries = []
 
 block_cipher = None
 
@@ -14,7 +28,7 @@ ab_datas = collect_data_files('activity_browser')
 a = Analysis(
     ['run-activity-browser.py'],
     pathex=[],
-    binaries=find_mkl_libs(),
+    binaries=binaries,
     datas=ab_datas,
     hiddenimports=[
         'activity_browser',
