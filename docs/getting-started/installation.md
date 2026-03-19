@@ -35,7 +35,7 @@ For more elaborate installing instructions check out the page below for both [in
 ## Installing from PyPI
 Installing from the Python Package Index (PyPI) can be done using the standard `pip` command. We strongly recommended installing the Activity Browser into a separate [virtual environment](https://realpython.com/python-virtual-environments-a-primer/)
 
-First make sure you have Python installed on your PC by entering the following command into your terminal or command prompt.
+First make sure you have Python installed on your PC by entering the following command into your terminal or command prompt. At this moment the AB is compatible with Python versions 3.10, 3.11, and 3.12.
 
 ```
 python --version
@@ -51,7 +51,7 @@ Afterwards, you need to activate the virtual environment, which differs between 
 ```
 C:\Users\me\virtualenvs\ab-beta\Scripts\activate.bat
 ```
-For a full overview of activation commands, [check out the documentation here](https://docs.python.org/3/library/venv.html#how-venvs-work)
+Possibly double-check if the Python version of your virtual environment is compatible with the AB. For a full overview of activation commands, [check out the documentation here](https://docs.python.org/3/library/venv.html#how-venvs-work)
 
 ### Activity Browser installation
 After creating and activating the virtual environment, installing the Beta should be as simple as using the following command:
