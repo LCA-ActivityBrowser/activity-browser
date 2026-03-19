@@ -37,7 +37,7 @@ requirements:
     - pyprind
     - networkx
     - pandas >=2.2.1
-    - pyside6 >=6.5.0, <6.10
+    - pyside2 >=5.15.5
     - qt-webengine
     - qtpy
     - salib >=1.4, <1.5.1
