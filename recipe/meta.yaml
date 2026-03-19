@@ -21,7 +21,7 @@ requirements:
     - python >=3.10, <3.12
     - arrow
     - bw2analyzer >=0.11.5
-    - bw2data >=4.1, <4.5.2
+    - bw2data >=4.1
     - bw2parameters >=1.1
     - bw2io >=0.9.3
     - bw_graph_tools >=0.5
@@ -37,7 +37,7 @@ requirements:
     - pyprind
     - networkx
     - pandas >=2.2.1
-    - pyside2 >=5.15.5
+    - pyside6 >=6.5.0, <6.10
     - qt-webengine
     - qtpy
     - salib >=1.4, <1.5.1
