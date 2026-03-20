@@ -1,7 +1,6 @@
 from qtpy import QtWidgets
 from qtpy.QtCore import QTimer, Slot, Signal, SignalInstance
 from qtpy.QtGui import QTextFormat
-from qtpy.QtWidgets import QCompleter
 
 
 class ABLineEdit(QtWidgets.QLineEdit):
@@ -49,12 +48,12 @@ class SignalledLineEdit(QtWidgets.QLineEdit):
 
     @Slot(name="customEditFinish")
     def _editing_finished(self) -> None:
-        from activity_browser import actions
+        from activity_browser import app
 
         after = self.text()
         if self._before != after:
             self._before = after
-            actions.ActivityModify.run(self._key, self._field, after)
+            app.actions.ActivityModify.run(self._key, self._field, after)
 
 
 class SignalledPlainTextEdit(QtWidgets.QPlainTextEdit):
@@ -78,11 +77,11 @@ class SignalledPlainTextEdit(QtWidgets.QPlainTextEdit):
         self.setExtraSelections([selection])
 
     def focusOutEvent(self, event):
-        from activity_browser import actions
+        from activity_browser import app
 
         after = self.toPlainText()
         if self._before != after:
-            actions.ActivityModify.run(self._key, self._field, after)
+            app.actions.ActivityModify.run(self._key, self._field, after)
         super().focusOutEvent(event)
 
     def refresh_text(self, text: str) -> None:
@@ -104,19 +103,10 @@ class SignalledComboEdit(QtWidgets.QComboBox):
         self._field = field
 
     def focusOutEvent(self, event):
-        from activity_browser import actions
+        from activity_browser import app
 
         after = self.currentText()
         if self._before != after:
             self._before = after
-            actions.ActivityModify.run(self._key, self._field, after)
+            app.actions.ActivityModify.run(self._key, self._field, after)
         super(SignalledComboEdit, self).focusOutEvent(event)
-
-
-class AutoCompleteLineEdit(QtWidgets.QLineEdit):
-    """Line Edit with a completer attached"""
-
-    def __init__(self, items: list[str], parent=None):
-        super().__init__(parent=parent)
-        completer = QCompleter(items, self)
-        self.setCompleter(completer)

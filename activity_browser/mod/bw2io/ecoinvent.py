@@ -1,4 +1,4 @@
-from logging import getLogger
+from loguru import logger
 
 from bw2io.ecoinvent import *
 
@@ -7,7 +7,7 @@ import pyprind
 from activity_browser.mod.ecoinvent_interface.release import ABEcoinventRelease
 from activity_browser.mod.bw2io.importers.ecospold2_biosphere import ABEcospold2BiosphereImporter
 
-log = getLogger(__name__)
+
 
 
 def ab_import_ecoinvent_release(version, system_model):
@@ -32,27 +32,27 @@ def ab_import_ecoinvent_release(version, system_model):
         name="biosphere3",
         filepath=lci_path / "MasterData" / "ElementaryExchanges.xml",
     )
-    log.info("Applying strategies")
+    logger.info("Applying strategies")
     bio_import.apply_strategies()
-    log.info("Writing biosphere database")
+    logger.info("Writing biosphere database")
     bio_import.write_database()
     bd.preferences["biosphere_database"] = "biosphere3"
 
     # importing ecoinvent through a ecospold2 importer that implements a progress_slot
-    log.info("Importing ecoinvent")
+    logger.info("Importing ecoinvent")
     db_name = f"ecoinvent-{version}-{system_model}"
     ei_import = SingleOutputEcospold2Importer(
         dirpath=str(lci_path / "datasets"),
         db_name=db_name,
         biosphere_database_name="biosphere3",
     )
-    log.info("Applying strategies")
+    logger.info("Applying strategies")
     ei_import.apply_strategies()
-    log.info("Writing ecoinvent database")
+    logger.info("Writing ecoinvent database")
     ei_import.write_database()
 
     # importing all LCIA methods
-    log.info("Gathering LCIA methods")
+    logger.info("Gathering LCIA methods")
     lcia_file = ei.get_excel_lcia_file_for_version(release=release, version=version)
     sheet_names = get_excel_sheet_names(lcia_file)
 
@@ -69,11 +69,11 @@ def ab_import_ecoinvent_release(version, system_model):
         raise ValueError(
             f"Can't find worksheet for characterization factors; expected `CFs`, found {sheet_names}"
         )
-    log.info("Extracting LCIA methods")
+    logger.info("Extracting LCIA methods")
     data = dict(ExcelExtractor.extract(lcia_file))
     units = header_dict(data[units_sheetname])
 
-    log.info("Mapping LCIA methods")
+    logger.info("Mapping LCIA methods")
     cfs = header_dict(data["CFs"])
 
     CF_COLUMN_LABELS = {
