@@ -36,7 +36,7 @@ class MDSUpdater(QObject):
             return
             
         node_data = {f: getattr(new, f) for f in primary}
-        node_data = node_data | {f: new.data.get(f, np.NaN) for f in secondary}
+        node_data = node_data | {f: new.data.get(f, np.nan) for f in secondary}
         node_data["key"] = new.key
         node_data = pd.Series(node_data, name=new.key)
 
