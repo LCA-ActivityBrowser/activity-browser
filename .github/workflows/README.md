@@ -71,8 +71,8 @@ The Activity Browser project uses five GitHub Actions workflows to automate test
 **Purpose:** Publishes beta versions to PyPI (test and production) and Anaconda Cloud.
 
 ### Version Scheme
-- Beta version format: `3.0.0b<N>` where N is the commit count since commit `199b6c3`
-- Calculated dynamically: `git rev-list 199b6c3..HEAD --count`
+- Beta version format: `3.0.0b<YYYYMMDD><HHMM>` (UTC), e.g. `3.0.0b202503221430` = 2025-03-22 14:30 UTC
+- Set in CI: `date -u +%Y%m%d%H%M` (compact so the string is a valid [PEP 440](https://packaging.python.org/en/latest/specifications/version-specifiers/) pre-release)
 
 ### Steps
 1. Checkout with full git history (`fetch-depth: "0"`)
