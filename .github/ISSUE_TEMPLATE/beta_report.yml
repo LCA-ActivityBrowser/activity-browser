@@ -26,7 +26,7 @@ body:
     attributes:
       label: Version
       description: Please specify the version of the Activity Browser you are using.
-      placeholder: e.g. 3.0.0b940
+      placeholder: e.g. 3.0.0b202503221430 (from About / pip show)
   - type: dropdown
     id: distribution
     attributes:
