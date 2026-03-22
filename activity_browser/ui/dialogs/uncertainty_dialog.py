@@ -16,11 +16,11 @@ from activity_browser.ui.widgets import ABPlot
 
 EMPTY_UNCERTAINTY = {
     "uncertainty type": sa.UndefinedUncertainty.id,
-    "loc": np.NaN,
-    "scale": np.NaN,
-    "shape": np.NaN,
-    "minimum": np.NaN,
-    "maximum": np.NaN,
+    "loc": np.nan,
+    "scale": np.nan,
+    "shape": np.nan,
+    "minimum": np.nan,
+    "maximum": np.nan,
     "negative": False,
 }
 
