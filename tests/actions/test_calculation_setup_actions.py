@@ -1,7 +1,9 @@
+import pytest
 import bw2data as bd
+from bw2data.errors import BW2Exception
 from qtpy import QtWidgets
 
-from activity_browser import app
+from activity_browser import actions
 
 
 
@@ -18,7 +20,7 @@ def test_cs_delete(monkeypatch, basic_database):
 
     assert cs_name in bd.calculation_setups
 
-    app.actions.CSDelete.run(cs_name)
+    actions.CSDelete.run(cs_name)
 
     assert cs_name not in bd.calculation_setups
 
@@ -36,7 +38,7 @@ def test_cs_duplicate(monkeypatch, basic_database):
     assert cs_name in bd.calculation_setups
     assert duplicated not in bd.calculation_setups
 
-    app.actions.CSDuplicate.run(cs_name)
+    actions.CSDuplicate.run(cs_name)
 
     assert cs_name in bd.calculation_setups
     assert duplicated in bd.calculation_setups
@@ -53,7 +55,7 @@ def test_cs_new(monkeypatch, basic_database):
 
     assert new_cs not in bd.calculation_setups
 
-    app.actions.CSNew.run()
+    actions.CSNew.run()
 
     assert new_cs in bd.calculation_setups
 
@@ -71,7 +73,7 @@ def test_cs_rename(monkeypatch, basic_database):
     assert cs_name in bd.calculation_setups
     assert renamed_cs not in bd.calculation_setups
 
-    app.actions.CSRename.run(cs_name)
+    actions.CSRename.run(cs_name)
 
     assert cs_name not in bd.calculation_setups
     assert renamed_cs in bd.calculation_setups

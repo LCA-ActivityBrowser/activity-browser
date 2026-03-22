@@ -1,5 +1,7 @@
 from qtpy import QtWidgets, QtCore
 
+import bw2data as bd
+
 
 class DatabaseNameEdit(QtWidgets.QWidget):
     """
@@ -71,6 +73,5 @@ class DatabaseNameEdit(QtWidgets.QWidget):
         self.database_name.setText(text)
 
     def willOverwrite(self) -> bool:
-        import bw2data as bd
         return self.database_name.text() in bd.databases
 

@@ -3,16 +3,15 @@ from typing import Iterable, Optional
 
 import numpy as np
 import pandas as pd
-import bw2data as bd
 from qtpy.QtWidgets import QPushButton
 
 from activity_browser.mod import bw2data as bd
+from activity_browser.bwutils import AB_metadata
 
 from ..commontasks import format_activity_label
 from ..errors import ScenarioExchangeNotFoundError
 from ..multilca import MLCA, Contributions
 from ..utils import Index
-from ..metadata import MetaDataStore
 from .dataframe import (arrays_from_indexed_superstructure,
                         filter_databases_indexed_superstructure,
                         scenario_names_from_df)
@@ -23,7 +22,6 @@ try:
 except ModuleNotFoundError:
     pass  # removed in bw25
 
-metadata = MetaDataStore()
 
 class SuperstructureMLCA(MLCA):
     """Subclass of the `MLCA` class which adds another dimension in the form

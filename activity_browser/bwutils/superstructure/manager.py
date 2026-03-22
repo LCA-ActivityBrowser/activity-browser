@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import itertools
 from typing import List, Optional, Union
-from loguru import logger
+from logging import getLogger
 
 import numpy as np
 import pandas as pd
@@ -21,7 +21,7 @@ from .dataframe import scenario_columns
 from .file_dialogs import ABPopup
 from .utils import SUPERSTRUCTURE, _time_it_, guess_flow_type
 
-
+log = getLogger(__name__)
 
 EXCHANGE_KEYS = pd.Index(["from key", "to key"])
 INDEX_KEYS = pd.Index(["from key", "to key", "flow type"])
@@ -119,7 +119,7 @@ class SuperstructureManager(object):
             absent.update(cols.symmetric_difference(scenario_columns(df)))
             cols = cols.intersection(scenario_columns(df))
             for name in absent:
-                logger.warning(
+                log.warning(
                     "The following scenario is not found in all provided files and is being dropped: {}".format(
                         name
                     )
@@ -346,7 +346,7 @@ class SuperstructureManager(object):
         """
         duplicates = df.index.duplicated(keep="last")
         if duplicates.any():
-            logger.warning(
+            log.warning(
                 "Found and dropped {} duplicate exchanges.".format(duplicates.sum())
             )
             return df.loc[~duplicates, :]
@@ -362,7 +362,7 @@ class SuperstructureManager(object):
         """
         unknown_flows = df.loc[:, "flow type"].isna()
         if unknown_flows.any():
-            logger.warning(
+            log.warning(
                 "Not all flow types are known, guessing {} flows".format(
                     unknown_flows.sum()
                 )
@@ -499,7 +499,7 @@ class SuperstructureManager(object):
             critical.exec_()
             raise ScenarioExchangeDataNotFoundError
         elif nas.any(axis=0).any():
-            logger.warning(
+            log.warning(
                 "Replacing empty values from the last loaded scenario difference file"
             )
         if not is_numeric_dtype(np.array(_df.loc[:, cols])):

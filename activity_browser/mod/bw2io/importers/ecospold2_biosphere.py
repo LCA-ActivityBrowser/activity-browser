@@ -2,24 +2,11 @@ from zipfile import ZipFile
 
 from bw2io.importers.ecospold2_biosphere import *
 import pyprind
-from loguru import logger
+import logging
 import os
 
 from activity_browser.info import __ei_versions__
-
-
-def sort_semantic_versions(versions, highest_to_lowest: bool = True) -> list:
-    """Return a sorted (default highest to lowest) list of semantic versions.
-
-    Sorts based on the semantic versioning system.
-    """
-    return list(
-        sorted(
-            versions,
-            key=lambda x: tuple(map(int, x.split("."))),
-            reverse=highest_to_lowest,
-        )
-    )
+from activity_browser.utils import sort_semantic_versions
 
 
 class ABEcospold2BiosphereImporter(Ecospold2BiosphereImporter):
@@ -71,7 +58,7 @@ class ABEcospold2BiosphereImporter(Ecospold2BiosphereImporter):
             lci_dirpath = os.path.join(os.path.dirname(mod.__file__), "ecoinvent_biosphere_versions", "legacy_biosphere")
 
             # find the most recent legacy biosphere that is equal to or older than chosen version
-            for ei_version in __ei_versions__:
+            for ei_version in sort_semantic_versions(__ei_versions__):
                 use_version = ei_version
                 zip_fp = os.path.join(
                     lci_dirpath, f"ecoinvent elementary flows {use_version}.xml.zip"
@@ -124,5 +111,5 @@ class ABEcospold2BiosphereImporter(Ecospold2BiosphereImporter):
             self.apply_strategy(func, verbose)
 
     def write_database(self, *args, **kwargs):
-        logger.info("Writing Biosphere database")
+        logging.getLogger(__name__).info("Writing Biosphere database")
         super().write_database(*args, **kwargs)

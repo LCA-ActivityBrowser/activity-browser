@@ -1,1 +1,0 @@
-from .activity_details import ActivityDetailsPage

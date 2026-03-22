@@ -1,5 +1,5 @@
 import threading
-from loguru import logger
+import logging
 
 from qtpy.QtCore import QThread, SignalInstance, Signal
 from qtpy import QtWidgets
@@ -15,8 +15,8 @@ class ABThread(QThread):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        from activity_browser import app
-        self.exception.connect(app.main_window.dialog_on_exception)
+        from activity_browser import application
+        self.exception.connect(application.main_window.dialog_on_exception)
 
     def start(self, *args, priority=QThread.NormalPriority, **kwargs):
         """
@@ -84,38 +84,30 @@ class SafeBWConnection:
 
 class InfoToSlot:
     def __init__(self, progress_slot=lambda progress, message: None):
-        self.sink = LoggingProgressSink("INFO")
+        self.handler = LoggingProgressHandler("INFO")
         thread_local.progress_slot = progress_slot
-        self._sink_id = None
 
     def __enter__(self):
-        # Attach a loguru sink which forwards INFO logs from this thread to the progress slot
-        self._sink_id = logger.add(self.sink, level="INFO")
+        logging.root.addHandler(self.handler)
         return
 
     def __exit__(self, *args):
-        if self._sink_id is not None:
-            try:
-                logger.remove(self._sink_id)
-            except Exception:
-                pass
+        logging.root.removeHandler(self.handler)
         return
 
-class LoggingProgressSink:
-    def __init__(self, level="INFO"):
-        self.level = level
 
-    def __call__(self, message):
-        record = message.record
+class LoggingProgressHandler(logging.Handler):
+    def filter(self, record: logging.LogRecord) -> bool:
+        if record.thread != threading.get_ident():
+            return False
+        if record.levelname != "INFO":
+            return False
+        return True
+
+    def emit(self, record: logging.LogRecord):
         try:
-            # Only handle messages from the current thread and matching level
-            if record["level"].name != self.level:
-                return
-            if record["thread"].id != threading.get_ident():
-                return
-            thread_local.progress_slot(None, record.get("message", ""))
+            thread_local.progress_slot(None, record.message)
         except AttributeError:
-            # No progress slot set or malformed record
             pass
 
 

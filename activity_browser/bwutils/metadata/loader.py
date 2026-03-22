@@ -1,94 +1,56 @@
+import subprocess
 import sqlite3
+import sys
 import pickle
-import os
-from multiprocessing import Pool
-from loguru import logger
+from logging import getLogger
 from typing import Literal
+
 import pandas as pd
+import bw2data as bd
+from bw2data.backends import sqlite3_lci_db
 
-from qtpy.QtCore import QObject, QThread, Signal, SignalInstance
+from qtpy import QtCore
 
-from activity_browser.bwutils.settings import Settings
+from activity_browser import signals, application
+from activity_browser.ui.core import threading
 
 from .metadata import MetaDataStore
-from .fields import secondary_types, primary, secondary, search_engine_whitelist, all_fields
+from .fields import secondary_types, primary, secondary
+
+log = getLogger(__name__)
 
 
-class MDSLoader(QObject):
+class MDSLoader(QtCore.QObject):
     primary_status: Literal["idle", "loading", "done"] = "idle"
     secondary_status: Literal["idle", "loading", "done"] = "idle"
 
     def __init__(self, mds: MetaDataStore):
-        super().__init__(parent=mds)
+        super().__init__(mds)
 
         self.mds = mds
-        self.thread: QThread | None = None
         self.connect_signals()
 
     def connect_signals(self):
-        from bw2data import signals
-        
-        # Connect to Brightway's project_changed signal
-        signals.project_changed.connect(self.on_project_changed)
+        signals.project.changed.connect(self.on_project_changed)
 
-    def on_project_changed(self, sender):
-        """Called when the Brightway project changes."""
+    def on_project_changed(self):
         self.load_project()
 
     def load_project(self):
-        import bw2data as bd
-        from bw2data.backends import sqlite3_lci_db
-
         # set statuses
         self.primary_status = "loading"
         self.secondary_status = "loading"
 
-        # check for valid cache and load from it if available
-        if self._has_cache() and Settings()["metadatastore"]["caching_enabled"]:
-            self.cache_load_project()
-            return
-
-        # start loading thread for secondary metadata
-        self.thread = SecondaryLoadThread(
-            databases=list(bd.databases),
-            sqlite_db=str(sqlite3_lci_db._filepath),
-            parent=self,
-        )
-        self.thread.result.connect(self.secondary_load_project)
-        self.thread.start()
+        # start loading threads
+        thread = SecondaryLoadThread(self)
+        thread.setObjectName("SecondaryLoadThread-MDSLoader")
+        thread.done.connect(self.secondary_load_project)
+        thread.start(databases=list(bd.databases), sqlite_db=str(sqlite3_lci_db._filepath))
 
         # load primary metadata in the main thread
         self.primary_load_project()
 
-    def cache_load_project(self):
-        from activity_browser.bwutils import filesystem
-
-        logger.debug("Loading metadata from cache")
-
-        cache_path = filesystem.get_project_ab_path() / "metadatastore_cache.pkl"
-        cached_df = pd.read_pickle(cache_path)
-
-        # quick sanity checks
-        if not self._cache_check(cached_df):
-            logger.info("Cache file is invalid or outdated, loading from database instead")
-            cache_path.unlink()
-            self.load_project()
-            return
-
-        self.mds.dataframe = cached_df
-
-        for idx in self.mds.dataframe.index:
-            self.mds.register_mutation(idx, "add")
-
-        self.primary_status = "done"
-        self.secondary_status = "done"
-
-        searcher_thread = InitSearcherThread(self.mds, parent=self)
-        searcher_thread.start()
-
     def primary_load_project(self):
-        from bw2data.backends import sqlite3_lci_db
-
         with sqlite3.connect(sqlite3_lci_db._filepath) as con:
             fields = ', '.join(primary[1:])  # Exclude 'key' as it's constructed
             primary_df = pd.read_sql(f"SELECT {fields} FROM activitydataset", con)
@@ -96,7 +58,7 @@ class MDSLoader(QObject):
         primary_df["key"] = list(zip(primary_df["database"], primary_df["code"]))
         primary_df.index = pd.MultiIndex.from_tuples(primary_df["key"], names=["database", "code"])
 
-        logger.debug(f"Primary metadata loaded with {len(primary_df)} rows")
+        log.debug(f"Primary metadata loaded with {len(primary_df)} rows")
         self.mds.dataframe = primary_df
 
         for idx in primary_df.index:
@@ -105,50 +67,28 @@ class MDSLoader(QObject):
         self.primary_status = "done"
 
     def secondary_load_project(self, secondary_df: pd.DataFrame, sqlite_db: str):
-        logger.debug("secondary_load_project")
-        from bw2data.backends import sqlite3_lci_db
-
         if sqlite_db != str(sqlite3_lci_db._filepath):
             return
 
-        assert all(secondary_df.index.isin(self.mds.keys))
-        logger.debug(f"Secondary metadata loaded with {len(secondary_df)} rows")
-        left = self.mds.get_metadata(columns=primary)
-
-        self.mds.dataframe = pd.concat([left, secondary_df], axis=1)
+        assert all(secondary_df.index.isin(self.mds.dataframe.index))
+        log.debug(f"Secondary metadata loaded with {len(secondary_df)} rows")
+        self.mds.dataframe = pd.concat([self.mds.dataframe[primary], secondary_df], axis=1)
 
         for idx in secondary_df.index:
             self.mds.register_mutation(idx, "update")
         
         self.secondary_status = "done"
 
-        searcher_thread = InitSearcherThread(self.mds, parent=self)
-        searcher_thread.start()
-
     def load_database(self, database_name: str):
-        from bw2data.backends import sqlite3_lci_db
-        self.primary_status = "loading"
-        self.secondary_status = "loading"
-
-        if self.thread is not None and self.thread.isRunning():
-            logger.debug("Waiting for previous loading thread to finish")
-            self.thread.wait()
-
-        # start loading thread for secondary metadata
-        self.thread = SecondaryLoadThread(
-            databases=[database_name],
-            sqlite_db=str(sqlite3_lci_db._filepath),
-            parent=self,
-        )
-        self.thread.result.connect(self.secondary_load_database)
-        self.thread.start()
+        # start loading threads
+        thread = SecondaryLoadThread(self)
+        thread.done.connect(self.secondary_load_database)
+        thread.start(databases=[database_name], sqlite_db=str(sqlite3_lci_db._filepath))
 
         # load primary metadata in the main thread
         self.primary_load_database(database_name)
 
     def primary_load_database(self, database_name: str):
-        from bw2data.backends import sqlite3_lci_db
-
         with sqlite3.connect(sqlite3_lci_db._filepath) as con:
             fields = ', '.join(primary[1:])  # Exclude 'key' as it's constructed
             primary_df = pd.read_sql(f"SELECT {fields} FROM activitydataset WHERE database = '{database_name}'", con)
@@ -156,188 +96,69 @@ class MDSLoader(QObject):
         primary_df["key"] = list(zip(primary_df["database"], primary_df["code"]))
         primary_df.index = pd.MultiIndex.from_tuples(primary_df["key"], names=["database", "code"])
 
-        logger.debug(f"Primary metadata loaded with {len(primary_df)} rows")
+        log.debug(f"Primary metadata loaded with {len(primary_df)} rows")
         self.mds.dataframe = pd.concat([self.mds.dataframe, primary_df])
 
         for idx in primary_df.index:
             self.mds.register_mutation(idx, "add")
 
-        self.primary_status = "done"
-
     def secondary_load_database(self, secondary_df: pd.DataFrame, sqlite_db: str):
-        from bw2data.backends import sqlite3_lci_db
-        logger.debug("Starting secondary metadata load database callback")
-
         if secondary_df.empty or sqlite_db != str(sqlite3_lci_db._filepath):
-            self.secondary_status = "done"
             return
 
         database = secondary_df.index[0][0]
-        indices = self.mds.get_database_metadata(database, []).index
+        indices = self.mds.dataframe.loc[[database]].index
 
         if not all(secondary_df.index.isin(indices)):
-            logger.debug("Secondary database metadata dropping rows")
+            log.debug("Secondary database metadata dropping rows")
             secondary_df = secondary_df[secondary_df.index.isin(indices)]
 
-        logger.debug(f"Secondary metadata loaded with {len(secondary_df)} rows, adding to metadatastore {id(self.mds)}")
+        log.debug(f"Secondary metadata loaded with {len(secondary_df)} rows")
 
-        df = self.mds.dataframe
-        self._fix_categories(secondary_df, df)
-        df = secondary_df.combine_first(df)
-        self.mds.dataframe = df
+        self._fix_categories(secondary_df)
+        self.mds.dataframe.update(secondary_df)
 
         for idx in secondary_df.index:
             self.mds.register_mutation(idx, "update")
 
-        if self.mds.searcher is not None:
-            search_engine_cols = list(set(all_fields) & set(search_engine_whitelist))
-            df = self.mds.get_database_metadata(database, search_engine_cols)
-            for col in df.select_dtypes(include=['category']).columns:
-                df[col] = df[col].astype(object)
-            self.mds.searcher.add_identifier(df)
-
-        self.secondary_status = "done"
-
     # utility functions
-    @staticmethod
-    def _fix_categories(df: pd.DataFrame, mds_df: pd.DataFrame):
+    def _fix_categories(self, df: pd.DataFrame):
         category_columns = [k for k, v in secondary_types.items() if v == "category"]
 
         for col in category_columns:
             categories = df[col].dropna().unique()
-            categories = [c for c in categories if c not in mds_df[col].cat.categories]
+            categories = [c for c in categories if c not in self.mds.dataframe[col].cat.categories]
 
             # add new category to column
-            mds_df[col] = mds_df[col].cat.add_categories(categories)
-
-    def _has_cache(self) -> bool:
-        from activity_browser.bwutils import filesystem
-
-        cache_path = filesystem.get_project_ab_path() / "metadatastore_cache.pkl"
-        lci_path = filesystem.get_project_path() / "lci" / "databases.db"
-
-        if not cache_path.exists() or not lci_path.exists():
-            return False
-
-        cache_mtime = cache_path.stat().st_mtime
-        lci_mtime = lci_path.stat().st_mtime
-
-        return cache_mtime >= lci_mtime
-
-    def _cache_check(self, cached_df: pd.DataFrame) -> bool:
-        import bw2data as bd
-        from bw2data.backends import sqlite3_lci_db
-
-        if not all(db in bd.databases for db in cached_df["database"].unique()):
-            logger.warning("Cache file contains databases not in the current Brightway project")
-            return False
-
-        if not len(cached_df) == len(cached_df["id"].unique()):
-            logger.warning("Cache file contains duplicate IDs")
-            return False
-
-        if cached_df.empty:
-            logger.warning("Cache file is empty")
-            return False
-
-        with sqlite3.connect(sqlite3_lci_db._filepath) as con:
-            cursor = con.cursor()
-            cursor.execute("SELECT COUNT(*) FROM activitydataset")
-            count = cursor.fetchone()[0]
-
-        if count != len(cached_df):
-            logger.warning("Cache file row count does not match database row count")
-            return False
-
-        return True
+            self.mds.dataframe[col] = self.mds.dataframe[col].cat.add_categories(categories)
 
 
+class SecondaryLoadThread(threading.ABThread):
+    done: QtCore.SignalInstance = QtCore.Signal(pd.DataFrame, str)
 
-class InitSearcherThread(QThread):
-    """Thread for initializing the searcher."""
+    def run_safely(self, databases: list[str], sqlite_db: str):
+        processes = [self.open_load_process(db, sqlite_db) for db in databases]
 
-    def __init__(self, mds: MetaDataStore, parent):
-        super().__init__(parent=parent)
-        self.mds = mds
+        full_df = pd.DataFrame()
+        for proc in processes:
+            stdout_data, stderr_data = proc.communicate()
+            if proc.returncode != 0:
+                log.error(f"Error loading metadata: {stderr_data.decode()}")
+                continue
+            df = pickle.loads(stdout_data)
+            if df.empty:
+                continue
 
-    def run(self):
-        """Execute the searcher initialization in a background thread."""
-        from .searcher import MDSSearcher
+            full_df = pd.concat([full_df, df])
 
-        if os.environ.get("AB_NO_SEARCHER"):
-            logger.debug("Skipping searcher initialization due to AB_NO_SEARCHER environment variable")
-            return
+        self.done.emit(full_df, sqlite_db)
 
-        if Settings()["metadatastore"]["searcher_enabled"] is False:
-            logger.debug("Skipping searcher initialization due to settings")
-            return
+    def open_load_process(self, database_name: str, sqlite_db: str) -> subprocess.Popen:
+        import activity_browser.bwutils.metadata._sub_loader as sl
 
-        if self.mds.searcher is not None:
-            old_searcher = self.mds.searcher
-            self.mds.searcher = None
+        return subprocess.Popen(
+            [sys.executable, sl.__file__, str(sqlite_db), database_name] + secondary,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE
+        )
 
-            # Clear large data structures
-            if hasattr(old_searcher, 'df'):
-                del old_searcher.df
-            if hasattr(old_searcher, 'identifier_to_word'):
-                del old_searcher.identifier_to_word
-            if hasattr(old_searcher, 'word_to_identifier'):
-                del old_searcher.word_to_identifier
-            if hasattr(old_searcher, 'word_to_q_grams'):
-                del old_searcher.word_to_q_grams
-            if hasattr(old_searcher, 'q_gram_to_word'):
-                del old_searcher.q_gram_to_word
-
-            del old_searcher
-
-        self.mds.searcher = MDSSearcher(self.mds)
-
-
-class SecondaryLoadThread(QThread):
-    """Thread for loading secondary metadata using multiprocessing Pool."""
-    result: SignalInstance = Signal(pd.DataFrame, str)
-    
-    def __init__(self, databases: list[str], sqlite_db: str, parent):
-        super().__init__(parent=parent)
-        self.databases = databases
-        self.sqlite_db = sqlite_db
-    
-    def run(self):
-        """Execute the loading in a background thread."""
-        try:
-            if len(self.databases) > 1:
-                logger.debug(f"Loading metadata from {len(self.databases)} databases using multiprocessing Pool")
-                with Pool() as pool:
-                    args = [(self.sqlite_db, db, secondary) for db in self.databases]
-                    results = pool.starmap(load, args)
-            else:
-                logger.debug("Loading metadata from a single database without multiprocessing")
-                results = [load(self.sqlite_db, db, secondary) for db in self.databases]
-
-            full_df = pd.DataFrame()
-            for df in results:
-                if df is None or df.empty:
-                    continue
-                full_df = pd.concat([full_df, df])
-            
-        except Exception as e:
-            logger.error(f"Error loading secondary metadata: {e}", exc_info=True)
-            full_df = pd.DataFrame()
-
-        self.result.emit(full_df, self.sqlite_db)
-
-
-def load(fp: str, database_name: str, fields: list[str]):
-    con = sqlite3.connect(fp)
-    sql = f"SELECT data FROM activitydataset WHERE database = '{database_name}'"
-    raw_df = pd.read_sql(sql, con)
-    con.close()
-
-    df = pd.DataFrame([pickle.loads(x) for x in raw_df["data"]])
-    if df.empty:
-        return df
-
-    df["key"] = list(zip(df["database"], df["code"]))
-    df.index = pd.MultiIndex.from_tuples(df["key"], names=["database", "code"])
-    df = df.reindex(columns=fields)[fields]
-    return df

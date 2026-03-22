@@ -2,13 +2,13 @@ import ast
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Optional, Union
-from loguru import logger
+from logging import getLogger
 
 import pandas as pd
 
 from ..errors import *
 
-
+log = getLogger(__name__)
 
 
 class ABFileImporter(ABC):
@@ -75,7 +75,7 @@ class ABFileImporter(ABC):
                     )
                     raise IncompatibleDatabaseNamingError()
         except IncompatibleDatabaseNamingError as e:
-            logger.error(msg)
+            log.error(msg)
             raise e
 
     @staticmethod
@@ -103,7 +103,7 @@ class ABFileImporter(ABC):
                 )
                 raise ActivityProductionValueError()
         except ActivityProductionValueError as e:
-            logger.error(msg)
+            log.error(msg)
             raise e
 
     @staticmethod
@@ -126,7 +126,7 @@ class ABFileImporter(ABC):
                 )
                 raise InvalidSDFEntryValue()
         except InvalidSDFEntryValue as e:
-            logger.error(msg)
+            log.error(msg)
             raise e
 
     @staticmethod
