@@ -1,7 +1,7 @@
 import bw2data as bd
 from qtpy import QtWidgets
 
-from activity_browser import actions, application
+from activity_browser import app, app
 
 
 def test_database_delete(monkeypatch, basic_database):
@@ -11,13 +11,13 @@ def test_database_delete(monkeypatch, basic_database):
         staticmethod(lambda *args, **kwargs: QtWidgets.QMessageBox.Yes),
     )
 
-    actions.DatabaseDelete.run([basic_database.name])
+    app.actions.DatabaseDelete.run([basic_database.name])
 
     assert basic_database.name not in bd.databases
 
 
 def test_database_duplicate(monkeypatch, qtbot, basic_database):
-    from activity_browser.actions.database.database_duplicate import NewDatabaseDialog, DuplicateDatabaseDialog
+    from activity_browser.app.actions.database.database_duplicate import NewDatabaseDialog, DuplicateDatabaseDialog
 
     dup_db = "db_that_is_duplicated"
 
@@ -29,9 +29,9 @@ def test_database_duplicate(monkeypatch, qtbot, basic_database):
 
     assert dup_db not in bd.databases
 
-    actions.DatabaseDuplicate.run(basic_database.name)
+    app.actions.DatabaseDuplicate.run(basic_database.name)
 
-    dialog = application.main_window.findChild(DuplicateDatabaseDialog)
+    dialog = app.main_window.findChild(DuplicateDatabaseDialog)
     with qtbot.waitSignal(dialog.dup_thread.finished, timeout=60 * 1000):
         pass
 
@@ -41,7 +41,7 @@ def test_database_duplicate(monkeypatch, qtbot, basic_database):
 
 def test_database_export_excel(monkeypatch, qtbot, basic_database, tmp_path):
     """Test exporting a database to Excel format."""
-    from activity_browser.actions.database.database_export_excel import ExportExcelSetup
+    from activity_browser.app.actions.database.database_export_excel import ExportExcelSetup
     
     # Mock the file dialog to return a path
     test_path = str(tmp_path / "test_export.xlsx")
@@ -52,10 +52,10 @@ def test_database_export_excel(monkeypatch, qtbot, basic_database, tmp_path):
     )
     
     # Call the action
-    actions.DatabaseExportExcel.run([basic_database.name])
+    app.actions.DatabaseExportExcel.run([basic_database.name])
     
     # Find the wizard dialog and wait for the export thread to finish
-    wizard = application.main_window.findChild(ExportExcelSetup)
+    wizard = app.main_window.findChild(ExportExcelSetup)
     assert wizard is not None
     
     # Wait for the export thread to finish
@@ -69,7 +69,7 @@ def test_database_export_excel(monkeypatch, qtbot, basic_database, tmp_path):
 
 def test_database_export_bw2package(monkeypatch, qtbot, basic_database, tmp_path):
     """Test exporting a database to BW2Package format."""
-    from activity_browser.actions.database.database_export_bw2package import ExportBW2PackageSetup
+    from activity_browser.app.actions.database.database_export_bw2package import ExportBW2PackageSetup
     
     # Mock the file dialog to return a path
     test_path = str(tmp_path / "test_export.bw2package")
@@ -80,10 +80,10 @@ def test_database_export_bw2package(monkeypatch, qtbot, basic_database, tmp_path
     )
     
     # Call the action
-    actions.DatabaseExportBW2Package.run([basic_database.name])
+    app.actions.DatabaseExportBW2Package.run([basic_database.name])
     
     # Find the wizard dialog and wait for the export thread to finish
-    wizard = application.main_window.findChild(ExportBW2PackageSetup)
+    wizard = app.main_window.findChild(ExportBW2PackageSetup)
     assert wizard is not None
     
     # Wait for the export thread to finish
@@ -96,7 +96,7 @@ def test_database_export_bw2package(monkeypatch, qtbot, basic_database, tmp_path
 
 
 def test_database_new(monkeypatch, basic_database):
-    from activity_browser.actions.database.database_new import NewDatabaseDialog
+    from activity_browser.app.actions.database.database_new import NewDatabaseDialog
 
     new_db = "db_that_is_new"
 
@@ -112,20 +112,20 @@ def test_database_new(monkeypatch, basic_database):
 
     assert new_db not in bd.databases
 
-    actions.DatabaseNew.run()
+    app.actions.DatabaseNew.run()
 
     assert new_db in bd.databases
 
     db_number = len(bd.databases)
 
-    actions.DatabaseNew.run()
+    app.actions.DatabaseNew.run()
 
     assert db_number == len(bd.databases)
 
 
 def test_database_delete_multiple(monkeypatch, basic_database):
     """Test that multiple databases can be deleted at once."""
-    from activity_browser.actions.database.database_new import NewDatabaseDialog
+    from activity_browser.app.actions.database.database_new import NewDatabaseDialog
 
     # Create two additional databases
     db2 = "test_db_2"
@@ -140,7 +140,7 @@ def test_database_delete_multiple(monkeypatch, basic_database):
         monkeypatch.setattr(
             QtWidgets.QMessageBox, "information", staticmethod(lambda *args, **kwargs: True)
         )
-        actions.DatabaseNew.run()
+        app.actions.DatabaseNew.run()
 
     assert db2 in bd.databases
     assert db3 in bd.databases
@@ -153,7 +153,7 @@ def test_database_delete_multiple(monkeypatch, basic_database):
     )
 
     # Delete both databases at once
-    actions.DatabaseDelete.run([db2, db3])
+    app.actions.DatabaseDelete.run([db2, db3])
 
     assert db2 not in bd.databases
     assert db3 not in bd.databases
@@ -180,7 +180,7 @@ def test_database_delete_multiple(monkeypatch, basic_database):
 #     assert from_db in Database(db).find_dependents()
 #     assert to_db not in Database(db).find_dependents()
 #
-#     actions.DatabaseRelink.run(db)
+#     app.actions.DatabaseRelink.run(db)
 #
 #     assert db in databases
 #     assert from_db in databases
