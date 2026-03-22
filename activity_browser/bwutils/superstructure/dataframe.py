@@ -10,14 +10,12 @@ import bw_functional as bf
 from qtpy.QtCore import Qt
 from qtpy.QtWidgets import QApplication, QPushButton
 
-from activity_browser.bwutils.metadata import MetaDataStore
 from ..errors import ScenarioDatabaseNotFoundError
+from ..metadata import AB_metadata
 from ..utils import Index
 from .activities import data_from_index
 from .file_dialogs import ABPopup
 from .utils import SUPERSTRUCTURE
-
-metadata = MetaDataStore()
 
 
 def superstructure_from_arrays(
@@ -47,7 +45,7 @@ def superstructure_from_arrays(
 
 
 def superstructure_from_scenario_exchanges(scenarios: dict[str, dict[int, float]]):
-    from activity_browser.bwutils.commontasks import exchanges_to_sdf
+    from activity_browser.bwutils import exchanges_to_sdf
     from bw2data import Edge
 
     scenarios = transpose_scenarios_to_exchange_ids(scenarios)
@@ -63,7 +61,7 @@ def superstructure_from_scenario_exchanges(scenarios: dict[str, dict[int, float]
 
 
 def regular_exchange_to_sdf(exchange_id: int, scenarios: dict[str, float]):
-    from activity_browser.bwutils.commontasks import exchanges_to_sdf
+    from activity_browser.bwutils import exchanges_to_sdf
 
     exc = bd.Edge(bd.Edge.ORMDataset.get_by_id(exchange_id)).as_dict()
     df = exchanges_to_sdf([exc])
@@ -75,7 +73,7 @@ def regular_exchange_to_sdf(exchange_id: int, scenarios: dict[str, float]):
 
 
 def mf_exchange_to_sdf(exchange_id: int, scenarios: dict[str, float]):
-    from activity_browser.bwutils.commontasks import exchanges_to_sdf
+    from activity_browser.bwutils import exchanges_to_sdf
 
     exc = bf.MFExchange(bf.MFExchange.ORMDataset.get_by_id(exchange_id))
 
@@ -125,7 +123,7 @@ def arrays_from_indexed_superstructure(
 ) -> Tuple[np.ndarray, np.ndarray]:
     result = np.zeros(df.shape[0], dtype=object)
 
-    meta = metadata.dataframe["id"]
+    meta = AB_metadata.dataframe["id"]
     meta.index = meta.index.to_flat_index()
 
     id_df = pd.merge(df, meta, left_on="input", right_index=True).rename(columns={"id":"input_id"})
@@ -287,8 +285,8 @@ def scenario_replace_databases(df_: pd.DataFrame, replacements: dict) -> pd.Data
     changes = ["from database", "from key", "to database", "to key"]
 
     # Load all required databases into the metadata
-    metadata.add_metadata(replacements.values())
-    meta = metadata.dataframe
+    AB_metadata.add_metadata(replacements.values())
+    metadata = AB_metadata.dataframe
 
     for idx in df.index:
         df.loc[idx, changes] = exchange_replace_database(

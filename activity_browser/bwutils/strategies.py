@@ -2,7 +2,7 @@
 import hashlib
 import json
 from typing import Collection
-from loguru import logger
+from logging import getLogger
 
 from bw2io.errors import StrategyError
 from bw2io.strategies.generic import (format_nonunique_key_error,
@@ -15,7 +15,7 @@ from bw2data.backends import ActivityDataset, sqlite3_lci_db
 from ..bwutils.errors import ExchangeErrorValues
 from .commontasks import clean_activity_name
 
-
+log = getLogger(__name__)
 
 TECHNOSPHERE_TYPES = {"technosphere", "substitution", "production"}
 BIOSPHERE_TYPES = {"economic", "emission", "natural resource", "social"}
@@ -28,26 +28,6 @@ RELINK_FIELDS = (
     "reference product",
     "location",
 )
-
-def metadatastore_link(data: list) -> list:
-    from .metadata import MetaDataStore
-    mds = MetaDataStore()
-
-    for act in data:
-        for exc in act.get("exchanges", []):
-            match = mds.match(
-                name=exc.get("name"),
-                database=exc.get("database"),
-                categories=exc.get("categories"),
-                unit=exc.get("unit"),
-                product=exc.get("reference product"),
-                location=exc.get("location"),
-            )
-            if len(match) == 1:
-                exc["input"] = match.index[0]
-
-    return data
-
 
 
 def relink_exchanges_dbs(data: Collection, relink: dict) -> Collection:
@@ -172,7 +152,7 @@ def relink_exchanges(exchanges: list, candidates: dict, duplicates: dict) -> tup
                     # Commit changes every 10k exchanges.
                     transaction.commit()
         except (StrategyError, bd.errors.ValidityError) as e:
-            logger.error(e)
+            log.error(e)
             transaction.rollback()
     return (remainder, altered, unlinked_exchanges)
 
@@ -185,7 +165,7 @@ def relink_exchanges_existing_db(
     This means possibly doing a lot of sqlite update calls.
     """
     if old == other.name:
-        logger.info("No point relinking to same database.")
+        log.info("No point relinking to same database.")
         return
     assert db.backend == "sqlite", "Relinking only allowed for SQLITE backends"
     assert other.backend == "sqlite", "Relinking only allowed for SQLITE backends"
@@ -215,7 +195,7 @@ def relink_exchanges_existing_db(
         exchanges, candidates, duplicates
     )
     db.process()
-    logger.info(
+    log.info(
         "Relinked database '{}', {} exchange inputs changed from '{}' to '{}'.".format(
             db.name, altered, old, other.name
         )
@@ -225,7 +205,7 @@ def relink_exchanges_existing_db(
 
 def relink_activity_exchanges(act, old: str, other: bd.Database) -> tuple:
     if old == other.name:
-        logger.info("No point relinking to same database.")
+        log.info("No point relinking to same database.")
         return
     db = bd.Database(act.key[0])
     assert db.backend == "sqlite", "Relinking only allowed for SQLITE backends"
@@ -252,7 +232,7 @@ def relink_activity_exchanges(act, old: str, other: bd.Database) -> tuple:
         exchanges, candidates, duplicates
     )
     db.process()
-    logger.info(
+    log.info(
         "Relinked database '{}', {} exchange inputs changed from '{}' to '{}'.".format(
             db.name, altered, old, other.name
         )
@@ -273,23 +253,12 @@ def alter_database_name(data: list, old: str, new: str) -> list:
             # Note: this will only alter database if the field exists in the exchange.
             if exc.get("database") == old:
                 exc["database"] = new
-        for p in ds.get("parameters", []):
+        for p, d in ds.get("parameters", {}).items():
             # Any parameters found here are activity parameters and we can
             # overwrite the database without issue.
-            p["database"] = new
+            d["database"] = new
         if ds.get("processor", (None, None))[0] == old:
             ds["processor"] = (new, ds["processor"][1])
-    return data
-
-def alter_exchange_database_name(data: list, linking_dict: dict[str, str]) -> list:
-    """For ABExcelImporter, go through data and replace all instances
-    of the `old` database name with `new` in exchanges only.
-    """
-    for ds in data:
-        for exc in ds.get("exchanges", []):
-            # Note: this will only alter database if the field exists in the exchange.
-            if exc.get("database") in linking_dict:
-                exc["database"] = linking_dict[exc["database"]]
     return data
 
 

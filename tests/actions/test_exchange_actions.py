@@ -1,8 +1,8 @@
 import pytest
-from stats_arrays.distributions import NoUncertainty, UndefinedUncertainty, UniformUncertainty
+from stats_arrays.distributions import NoUncertainty, UndefinedUncertainty
 
-from activity_browser import app
-from activity_browser.ui.dialogs import UncertaintyDialog
+from activity_browser import actions, application
+from activity_browser.ui.wizards import UncertaintyWizard
 
 
 # def test_exchange_copy_sdf(basic_database):
@@ -26,7 +26,7 @@ from activity_browser.ui.dialogs import UncertaintyDialog
 #     assert len(exchange) == 1
 #     assert clipboard.text() == "FAILED"
 #
-#     app.actions.ExchangeCopySDF.run(exchange)
+#     actions.ExchangeCopySDF.run(exchange)
 #
 #     assert clipboard.text() != "FAILED"
 #
@@ -46,7 +46,7 @@ def test_exchange_delete(basic_database):
     assert len(exchange) == 1
     num_exchanges = len(process.exchanges())
 
-    app.actions.ExchangeDelete.run(exchange)
+    actions.ExchangeDelete.run(exchange)
 
     assert len(process.exchanges()) == num_exchanges - 1
 
@@ -64,7 +64,7 @@ def test_exchange_formula_remove(basic_database):
     assert len(exchange) == 1
     assert exchange[0].as_dict().get("formula") == "5+5"
 
-    app.actions.ExchangeFormulaRemove.run(exchange)
+    actions.ExchangeFormulaRemove.run(exchange)
 
     with pytest.raises(KeyError):
         assert exchange[0].as_dict()["formula"]
@@ -85,7 +85,7 @@ def test_exchange_modify(basic_database):
     assert len(exchange) == 1
     assert exchange[0].amount == 10.0
 
-    app.actions.ExchangeModify.run(exchange[0], new_data)
+    actions.ExchangeModify.run(exchange[0], new_data)
 
     assert exchange[0].amount == 200.0
 
@@ -102,7 +102,7 @@ def test_exchange_new(basic_database):
         if exchange.input == other
     ]
 
-    app.actions.ExchangeNew.run([other.key], process.key, "technosphere")
+    actions.ExchangeNew.run([other.key], process.key, "technosphere")
 
     assert (
         len(
@@ -116,7 +116,7 @@ def test_exchange_new(basic_database):
     )
 
 
-def test_exchange_uncertainty_modify(monkeypatch, basic_database):
+def test_exchange_uncertainty_modify(basic_database):
     process = basic_database.get("process")
     elementary = basic_database.get("elementary")
 
@@ -126,35 +126,14 @@ def test_exchange_uncertainty_modify(monkeypatch, basic_database):
         if exchange.input == elementary
     ]
     assert len(exchange) == 1
-    
-    # Initial state: should have NoUncertainty
-    assert exchange[0].uncertainty_type == NoUncertainty
-    
-    # Create mock uncertainty data to be returned by the dialog
-    mock_uncertainty = {
-        "uncertainty type": UniformUncertainty.id,
-        "loc": float("nan"),
-        "scale": float("nan"),
-        "shape": float("nan"),
-        "minimum": 5.0,
-        "maximum": 15.0,
-        "negative": False,
-    }
-    
-    # Monkeypatch the dialog to return our mock data
-    monkeypatch.setattr(
-        UncertaintyDialog,
-        "get_uncertainty_dict",
-        lambda *args, **kwargs: (True, mock_uncertainty),
-    )
 
-    app.actions.ExchangeUncertaintyModify.run(exchange)
+    actions.ExchangeUncertaintyModify.run(exchange)
 
-    # Verify the exchange was updated with the new uncertainty values
-    assert exchange[0].uncertainty_type == UniformUncertainty
-    assert exchange[0]["minimum"] == 5.0
-    assert exchange[0]["maximum"] == 15.0
-    assert exchange[0]["negative"] == False
+    wizard = application.main_window.findChild(UncertaintyWizard)
+
+    assert wizard.isVisible()
+
+    wizard.destroy()
 
 
 def test_exchange_uncertainty_remove(basic_database):
@@ -170,6 +149,6 @@ def test_exchange_uncertainty_remove(basic_database):
 
     assert exchange[0].uncertainty_type == NoUncertainty
 
-    app.actions.ExchangeUncertaintyRemove.run(exchange)
+    actions.ExchangeUncertaintyRemove.run(exchange)
 
     assert exchange[0].uncertainty_type == UndefinedUncertainty

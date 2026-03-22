@@ -4,6 +4,7 @@ from typing import Iterable, List, NamedTuple, Optional
 
 import numpy as np
 import peewee as pw
+from stats_arrays import UncertaintyBase
 
 import bw2data as bd
 from bw2data.backends import ActivityDataset, ExchangeDataset
@@ -32,19 +33,6 @@ class Parameter(NamedTuple):
             return self.to_peewee_model().is_deletable()
         except pw.DoesNotExist:
             return False
-
-    @property
-    def uncertainty(self):
-        uncertainty_keys = {
-            "uncertainty type",
-            "loc",
-            "scale",
-            "shape",
-            "minimum",
-            "maximum",
-            "negative",
-        }
-        return {k: v for k, v in self.data.items() if k in uncertainty_keys}
 
     def as_gsa_tuple(self) -> tuple:
         """Return the parameter data formatted as follows:

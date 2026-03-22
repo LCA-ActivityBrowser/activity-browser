@@ -5,9 +5,10 @@ from pathlib import Path
 from typing import Union
 
 import xlsxwriter
-import bw2data as bd
 from bw2io.export.csv import reformat
 from bw2io.export.excel import CSVFormatter, create_valid_worksheet_name
+
+from activity_browser.mod import bw2data as bd
 
 from .importers import ABPackage
 from .pedigree import PedigreeMatrix

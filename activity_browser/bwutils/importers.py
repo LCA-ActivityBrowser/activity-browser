@@ -19,13 +19,14 @@ from bw2io.strategies import (assign_only_product_as_production,
                               normalize_biosphere_names, normalize_units,
                               set_code_by_activity_hash,
                               strip_biosphere_exc_locations)
-import bw2data as bd
+
+from activity_browser.mod import bw2data as bd
 
 from .errors import LinkingFailed
 from .strategies import (alter_database_name, csv_rewrite_product_key,
                          hash_parameter_group, link_exchanges_without_db,
                          relink_exchanges_bw2package, relink_exchanges_with_db,
-                         rename_db_bw2package, parse_JSON_fields, metadatastore_link, alter_exchange_database_name)
+                         rename_db_bw2package, parse_JSON_fields)
 
 
 class ABExcelImporter(ExcelImporter):
@@ -126,48 +127,12 @@ class ABExcelImporter(ExcelImporter):
             excs = [exc for exc in self.unlinked][:10]
             databases = {exc.get("database", "(name missing)") for exc in self.unlinked}
             raise StrategyError(excs, databases)
-
         if self.project_parameters:
             self.write_project_parameters(delete_existing=False)
         db = self.write_database(delete_existing=True, activate_parameters=True)
         if has_params:
             bd.parameters.recalculate()
         return [db]
-
-    def apply_basic_strategies(self):
-        self.apply_strategies([
-            csv_restore_tuples,
-            csv_restore_booleans,
-            csv_numerize,
-            csv_drop_unknown,
-            csv_add_missing_exchanges_section,
-            csv_rewrite_product_key,
-            normalize_units,
-            normalize_biosphere_categories,
-            normalize_biosphere_names,
-            strip_biosphere_exc_locations,
-            set_code_by_activity_hash,
-            drop_falsey_uncertainty_fields_but_keep_zeros,
-            convert_uncertainty_types_to_integers,
-            hash_parameter_group,
-            convert_activity_parameters_to_list,
-            parse_JSON_fields,
-        ])
-
-    def apply_db_name(self, db_name: str):
-        """Apply a database name change strategy."""
-        self.apply_strategy(
-            functools.partial(alter_database_name, old=self.db_name, new=db_name)
-        )
-        self.db_name = db_name
-
-    def apply_linking(self, relink: dict):
-        self.apply_strategies([
-            link_technosphere_by_activity_hash,  # internal linking
-            functools.partial(alter_exchange_database_name, linking_dict=relink),  # change db names
-            metadatastore_link,  # link using metadatastore
-        ])
-
 
     def apply_strategies(self, strategies=None, verbose=False):
         strategies = strategies or self.strategies

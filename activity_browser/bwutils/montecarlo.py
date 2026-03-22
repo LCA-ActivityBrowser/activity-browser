@@ -1,13 +1,19 @@
 from collections import defaultdict
 from time import time
 from typing import Optional, Union
-from loguru import logger
+from logging import getLogger
 
-import bw2data as bd
 import bw2calc as bc
 import bw2data as bd
 import numpy as np
 import pandas as pd
+from stats_arrays import MCRandomNumberGenerator
+
+from activity_browser.mod import bw2data as bd
+
+from .manager import MonteCarloParameterManager
+
+log = getLogger(__name__)
 
 
 class MonteCarloLCA(object):
@@ -81,8 +87,8 @@ class MonteCarloLCA(object):
         characterization: bool = True,
         seed_override: Optional[int] = None,
     ) -> bc.MultiLCA:
-        logger.info(f"Monte Carlo demands: {demands}")
-        logger.info(f"Monte Carlo impact categories: {method_config}")
+        log.info(f"Monte Carlo demands: {demands}")
+        log.info(f"Monte Carlo impact categories: {method_config}")
         demands = {
             index: {bd.get_activity(k).id: v for k, v in fu.items()}
             for index, fu in demands.items()
@@ -301,7 +307,7 @@ class MonteCarloLCA(object):
                     # self.lca.lcia_calculation()
                     self.results[iteration, int(row), col] = self.lca.scores[(m, row)]
 
-        logger.info(
+        log.info(
             f"Monte Carlo LCA: finished {iterations} iterations for {len(self.func_units)} reference flows and "
             f"{len(self.methods)} methods in {np.round(time() - start, 2)} seconds."
         )
@@ -325,10 +331,10 @@ class MonteCarloLCA(object):
 
         if act_key:
             act_index = self.activity_index.get(act_key)
-            logger.info(f"Activity key provided: {act_key} {act_index}")
+            log.info(f"Activity key provided: {act_key} {act_index}")
         if method:
             method_index = self.method_index.get(method)
-            logger.info(f"Method provided: {method} {method_index}")
+            log.info(f"Method provided: {method} {method_index}")
 
         if not act_key and not method:
             return self.results
@@ -387,7 +393,7 @@ class MonteCarloLCA(object):
 def perform_MonteCarlo_LCA(project="default", cs_name=None, iterations=10):
     """Performs Monte Carlo LCA based on a calculation setup and returns the
     Monte Carlo LCA object."""
-    logger.info(f"-- Monte Carlo LCA --\n Project: {project} CS: {cs_name}")
+    log.info(f"-- Monte Carlo LCA --\n Project: {project} CS: {cs_name}")
     bd.projects.set_current(project, update=False)
 
     # perform Monte Carlo simulation

@@ -1,19 +1,14 @@
 from copy import deepcopy
-from importlib import reload
-from loguru import logger
 
-import pandas as pd
 import pytest
-import os
 
 import bw2data as bd
-from PySide6 import QtCore
-
 import bw_functional as bf
 from bw2data.tests import bw2test
 
-os.environ["AB_SKIP_SETTINGS_ON_STARTUP"] = "1"
-os.environ["AB_NO_SEARCHER"] = "1"
+from activity_browser import application
+from activity_browser.ui.widgets import MainWindow, CentralTabWidget
+from activity_browser.layouts import pages
 
 
 @pytest.fixture
@@ -26,41 +21,31 @@ def no_exception_dialogs(monkeypatch):
     # No need to undo the monkeypatch, pytest does it automatically
 
 
-@pytest.fixture
+@pytest.fixture()
 def main_window(qtbot, monkeypatch, no_exception_dialogs):
     """Return the main window of the application instance."""
-    from activity_browser import app
-    from activity_browser.bwutils.metadata import metadata
+    main_window = MainWindow()
+    central_widget = CentralTabWidget(main_window)
 
-    # Reload modules to ensure a clean state for each test
-    reload(metadata)
-    reload(app.main)
-    reload(app)
-    metadata.dataframe = pd.DataFrame()
+    qtbot.addWidget(main_window)
+    setattr(application, "main_window", main_window)
 
-    app.main_window.show()
+    central_widget.addTab(pages.WelcomePage(), "Welcome")
+    central_widget.addTab(pages.ParametersPage(), "Parameters")
+
+    main_window.setCentralWidget(central_widget)
+    main_window.show()
 
     yield main_window
 
-    app.main_window.deleteLater()
-
+    # main_window.close()
+    main_window.deleteLater()
     qtbot.wait(10)
 
 @pytest.fixture
 @bw2test
-def basic_database(qapp, main_window):
-    import time
-    from activity_browser.app import metadata
+def basic_database(main_window):
     from fixtures.basic import DATABASE, METHOD, CALCULATION_SETUP
-
-    qapp.processEvents(QtCore.QEventLoop.ProcessEventsFlag.AllEvents)
-
-    i = 0
-    while metadata.loader.secondary_status != "done" and i < 60:
-        logger.warning("Waiting for project load to finish")
-        time.sleep(1)
-        qapp.processEvents(QtCore.QEventLoop.ProcessEventsFlag.AllEvents)
-        i += 1
 
     db = bf.FunctionalSQLiteDatabase("basic")
     db.write(deepcopy(DATABASE), process=False)
@@ -74,15 +59,5 @@ def basic_database(qapp, main_window):
     bd.calculation_setups["basic_calculation_setup"] = CALCULATION_SETUP
     bd.calculation_setups.flush()
 
-    i = 0
-    while metadata.loader.secondary_status != "done" and i < 60:
-        logger.warning("Waiting for database load to finish...")
-        time.sleep(1)
-        qapp.processEvents(QtCore.QEventLoop.ProcessEventsFlag.AllEvents)
-        i += 1
-
-    if i >= 60:
-        raise TimeoutError("Metadata loader did not finish in time.")
-
-    yield db
+    return db
 

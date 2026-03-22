@@ -1,6 +1,7 @@
 import pandas as pd
 from qtpy import QtCore, QtWidgets
 
+from ...ui.icons import qicons
 
 """
     The basic premise of this module is to contain a series of different popup menus that will allow the user
@@ -226,8 +227,6 @@ class ABPopup(QtWidgets.QDialog):
         An ABPopup instance that provides the basic format and dialog for the popup window.
         Further manipulation of the object and execution (via .exec_()) is performed upon instantiation
         """
-        from ...ui.icons import qicons
-
         obj = ABPopup()
         obj.layout = QtWidgets.QVBoxLayout()
         obj.setWindowTitle(title)
@@ -271,8 +270,6 @@ class ABPopup(QtWidgets.QDialog):
         An ABPopup instance that provides the basic format and dialog for the popup window to provide a warning.
         Further manipulation of the object and execution (via .exec_()) is performed upon instantiation
         """
-        from ...ui.icons import qicons
-
         obj = ABPopup()
         obj.layout = QtWidgets.QVBoxLayout()
         obj.setWindowTitle(title)
@@ -323,8 +320,6 @@ class ABPopup(QtWidgets.QDialog):
         An ABPopup instance that provides the basic format and dialog for the popup window to provide a warning.
         Further manipulation of the object and execution (via .exec_()) is performed upon instantiation
         """
-        from ...ui.icons import qicons
-        
         obj = ABPopup()
         obj.layout = QtWidgets.QVBoxLayout()
         obj.setWindowTitle(title)

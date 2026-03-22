@@ -5,9 +5,11 @@ from qtpy import QtWidgets
 from stats_arrays.distributions import (
     NoUncertainty,
     UndefinedUncertainty,
+    UniformUncertainty,
 )
 
-from activity_browser import app
+from activity_browser import actions
+from activity_browser.ui.wizards import UncertaintyWizard
 
 
 def test_cf_amount_modify(basic_database):
@@ -19,7 +21,7 @@ def test_cf_amount_modify(basic_database):
     assert len(cf) == 1
     assert cf[0][1] == 1.0 or cf[0][1]["amount"] == 1.0
 
-    app.actions.CFAmountModify.run(method, elementary.id, 200)
+    actions.CFAmountModify.run(method, elementary.id, 200)
 
     cf = [cf for cf in Method(method).load() if cf[0] == elementary.id]
     assert cf[0][1] == 200.0 or cf[0][1]["amount"] == 200.0
@@ -34,7 +36,7 @@ def test_cf_new(basic_database):
     cf = [cf for cf in Method(method).load() if cf[0] == new_elementary.id]
     assert len(cf) == 0
 
-    app.actions.CFNew.run(method, [new_elementary.key])
+    actions.CFNew.run(method, [new_elementary.key])
 
     cf = [cf for cf in Method(method).load() if cf[0] == new_elementary.id]
 
@@ -55,7 +57,7 @@ def test_cf_remove(monkeypatch, basic_database):
 
     assert len(cf) == 1
 
-    app.actions.CFRemove.run(method, cf)
+    actions.CFRemove.run(method, cf)
 
     cf = [cf for cf in Method(method).load() if cf[0] == elementary.id]
     assert len(cf) == 0
@@ -82,14 +84,14 @@ def test_cf_remove(monkeypatch, basic_database):
 #     assert len(cf) == 1
 #     assert cf[0][1].get("uncertainty type") == NoUncertainty.id
 #
-#     app.actions.CFUncertaintyModify.run(method, cf)
+#     actions.CFUncertaintyModify.run(method, cf)
 #
 #     wizard = application_instance.main_window.findChild(UncertaintyWizard)
 #
 #     assert wizard.isVisible()
 #
 #     wizard.destroy()
-#     app.actions.CFUncertaintyModify.wizard_done(method, new_cf_tuple, uncertainty)
+#     actions.CFUncertaintyModify.wizard_done(method, new_cf_tuple, uncertainty)
 #
 #     cf = [cf for cf in Method(method).load() if cf[0] == elementary.id]
 #
@@ -105,7 +107,7 @@ def test_cf_uncertainty_remove(basic_database):
 
     assert cf[0][1].get("uncertainty type") == NoUncertainty.id
 
-    app.actions.CFUncertaintyRemove.run(method, cf)
+    actions.CFUncertaintyRemove.run(method, cf)
 
     cf = [cf for cf in Method(method).load() if cf[0] == elementary.id]
     assert (
@@ -124,13 +126,13 @@ def test_method_delete(monkeypatch, basic_database):
 
     assert method in methods
 
-    app.actions.MethodDelete.run([method])
+    actions.MethodDelete.run([method])
 
     assert method not in methods
 
 
 def test_method_duplicate(monkeypatch, basic_database):
-    from activity_browser.app.actions.method.method_duplicate import TupleNameDialog
+    from activity_browser.actions.method.method_duplicate import TupleNameDialog
 
     method = ("basic_method",)
     duplicated_method = ("basic_method - Copy",)
@@ -146,14 +148,14 @@ def test_method_duplicate(monkeypatch, basic_database):
     assert method in methods
     assert duplicated_method not in methods
 
-    app.actions.MethodDuplicate.run([method], "leaf")
+    actions.MethodDuplicate.run([method], "leaf")
 
     assert method in methods
     assert duplicated_method in methods
 
 
 def test_method_new(monkeypatch, basic_database):
-    from activity_browser.ui.dialogs import ABListEditDialog
+    from activity_browser.ui.widgets import ABListEditDialog
 
     new_method = ("New Test Method", "Test Category")
 
@@ -172,7 +174,7 @@ def test_method_new(monkeypatch, basic_database):
 
     assert new_method not in methods
 
-    app.actions.MethodNew.run()
+    actions.MethodNew.run()
 
     assert new_method in methods
     
@@ -202,7 +204,7 @@ def test_calculation_setups_updated_on_method_delete(monkeypatch, basic_database
         staticmethod(lambda *args, **kwargs: QtWidgets.QMessageBox.Yes),
     )
 
-    app.actions.MethodDelete.run([method])
+    actions.MethodDelete.run([method])
 
     # method removed
     assert method not in bw_methods
@@ -213,7 +215,7 @@ def test_calculation_setups_updated_on_method_delete(monkeypatch, basic_database
 
 def test_calculation_setups_updated_on_method_rename(monkeypatch, basic_database):
     # prepare rename dialog to accept and return new name
-    from activity_browser.ui.dialogs import ABListEditDialog
+    from activity_browser.ui.widgets import ABListEditDialog
     import bw2data as bd
 
     old = ("basic_method",)
@@ -236,7 +238,7 @@ def test_calculation_setups_updated_on_method_rename(monkeypatch, basic_database
         staticmethod(lambda *args, **kwargs: new),
     )
 
-    app.actions.MethodRename.run(old)
+    actions.MethodRename.run(old)
 
     # setups reference the new method name
     cs = bd.calculation_setups["basic_calculation_setup"]
