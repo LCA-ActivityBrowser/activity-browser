@@ -14,7 +14,7 @@ else:
 
 setup(
     version=version,
-    packages=["activity_browser", "activity_browser_beta"],
+    packages=["activity_browser"],
     license=open("LICENSE.txt").read(),
     include_package_data=True,
 )

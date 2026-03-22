@@ -3,7 +3,7 @@ import bw2data as bd
 from bw2data.errors import BW2Exception
 from qtpy import QtWidgets
 
-from activity_browser import actions, application
+from activity_browser import app, app
 
 
 def test_activity_delete(monkeypatch, basic_database):
@@ -16,7 +16,7 @@ def test_activity_delete(monkeypatch, basic_database):
 
     process = basic_database.get("process")
 
-    actions.ActivityDelete.run([process.key])
+    app.actions.ActivityDelete.run([process.key])
 
     assert len(basic_database) == 1  # removed process and products
 
@@ -28,7 +28,7 @@ def test_activity_duplicate(basic_database):
     assert len(basic_database) == 4
 
     process = basic_database.get("process")
-    actions.ActivityDuplicate.run([process.key])
+    app.actions.ActivityDuplicate.run([process.key])
 
     assert len(basic_database) == 7
 
@@ -42,13 +42,13 @@ def test_activity_duplicate(basic_database):
 #     assert get_activity(key)
 #     assert key not in panel.tabs
 #
-#     actions.ActivityGraph.run([key])
+#     app.actions.ActivityGraph.run([key])
 #
 #     assert key in panel.tabs
 #
 #
 def test_activity_new(monkeypatch, basic_database):
-    from activity_browser.ui.widgets.new_node_dialog import NewNodeDialog
+    from activity_browser.app.actions.activity.activity_new_process import NewNodeDialog
 
     monkeypatch.setattr(
         NewNodeDialog, "exec_", staticmethod(lambda *args, **kwargs: True)
@@ -62,7 +62,7 @@ def test_activity_new(monkeypatch, basic_database):
 
     assert len(basic_database) == 4
 
-    actions.ActivityNewProcess.run(basic_database.name)
+    app.actions.ActivityNewProcess.run(basic_database.name)
 
     assert len(basic_database) == 6
     assert len([p for p in basic_database if p["name"] == "new_process"]) == 2
@@ -72,16 +72,16 @@ def test_activity_new(monkeypatch, basic_database):
 def test_process_open(basic_database):
     process = basic_database.get("process")
 
-    actions.ActivityOpen.run([process.key])
+    app.actions.ActivityOpen.run([process.key])
 
-    group = application.main_window.centralWidget().groups["Activity Details"]
+    group = app.main_window.centralWidget().groups["Activity Details"]
     assert "activity_details_basic_process" in [group.widget(i).objectName() for i in range(group.count())]
 
 
 # def test_product_open(application_instance, basic_database):
 #     product = basic_database.get("product_1")
 #
-#     actions.ActivityOpen.run([product.key])
+#     app.actions.ActivityOpen.run([product.key])
 #
 #     group = application_instance.main_window.centralWidget().groups["Activity Details"]
 #     assert "activity_details_basic_process" in [group.widget(i).objectName() for i in range(group.count())]
@@ -104,6 +104,6 @@ def test_process_open(basic_database):
 #     assert projects.current == "default"
 #     assert list(get_activity(key).exchanges())[1].input.key == from_key
 #
-#     actions.ActivityRelink.run([key])
+#     app.actions.ActivityRelink.run([key])
 #
 #     assert list(get_activity(key).exchanges())[1].input.key == to_key
