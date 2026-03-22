@@ -118,7 +118,7 @@ class MonteCarloLCA(object):
     #         else:
     #             row = self.lca.biosphere_dict.get(x["input"], None)
     #             col = self.lca.activity_dict.get(x["output"], None)
-    #         # if either the row or the column is None, return np.NaN.
+    #         # if either the row or the column is None, return np.nan.
     #         if row is None or col is None:
     #             return None
     #         return row, col, x["type"], x["amount"]
