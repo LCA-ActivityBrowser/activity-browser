@@ -9,6 +9,7 @@ its separate class.
 from collections import namedtuple
 from typing import Union
 
+import numpy as np
 from qtpy import QtCore
 from qtpy.QtCore import QLocale, Qt, Signal, Slot
 from qtpy.QtGui import QDoubleValidator, QIntValidator
@@ -412,7 +413,6 @@ class LogarithmicSlider(QSlider):
         This function converts the 1-100 values and modifies these to 0.001-100 on a logarithmic
         scale. Rounding is done based on magnitude.
         """
-        import numpy as np
 
         # Logarithmic math refresher:
         # BOP = Base, Outcome Power;
@@ -437,8 +437,6 @@ class LogarithmicSlider(QSlider):
     @log_value.setter
     def log_value(self, value: float) -> None:
         """Modify value from 0.001-100 to 1-100 logarithmically and set slider to value."""
-        import numpy as np
-
         value = int(float(value) * np.power(10, 3))
         log_val = np.log10(value).round(3)
         set_val = log_val * 20

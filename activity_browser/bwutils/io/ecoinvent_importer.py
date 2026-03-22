@@ -5,7 +5,7 @@ import os
 from io import BytesIO
 from lxml import objectify
 from functools import partial
-from loguru import logger
+from logging import getLogger
 
 import tqdm
 import bw2data as bd
@@ -35,7 +35,7 @@ from bw2io.strategies import (
     update_social_flows_in_older_consequential,
 )
 
-
+log = getLogger(__name__)
 
 
 class Ecoinvent7zImporter:
@@ -72,7 +72,7 @@ class Ecoinvent7zImporter:
         """
         # if the db already exists, warn the user of the impending overwriting and delete the existing database
         if db_name in bd.databases:
-            logger.warning(f"Database already exists, overwriting {db_name}")
+            log.warning(f"Database already exists, overwriting {db_name}")
             bd.Database(db_name).delete(warn=False)
 
         if self.is_compressed:
@@ -123,7 +123,7 @@ class Ecoinvent7zImporter:
         return db_data
 
     def read_archive_to_bytes(self) -> {str: BytesIO}:
-        logger.info("Extracting .7z archive to memory")
+        log.info("Extracting .7z archive to memory")
         with py7zr.SevenZipFile(self.archive_path, mode='r') as archive:
             # Find all .spold dataset files
             file_list = [
@@ -138,7 +138,7 @@ class Ecoinvent7zImporter:
 
     def process_bytes(self, spold_bytes: {str: BytesIO}, db_name: str) -> list:
         with multiprocessing.Pool(processes=multiprocessing.cpu_count()) as pool:
-            logger.info(f"Extracting XML data from {len(spold_bytes)} datasets")
+            log.info(f"Extracting XML data from {len(spold_bytes)} datasets")
             results = [
                 pool.apply_async(
                     self.extract_activity,

@@ -1,22 +1,21 @@
 from collections import OrderedDict
 from copy import deepcopy
 from typing import Iterable, Optional, Union
-from loguru import logger
+from logging import getLogger
 
-import bw2data as bd
 import bw2calc as bc
 import numpy as np
 import pandas as pd
+from qtpy.QtWidgets import QApplication, QMessageBox
 
+from activity_browser.mod import bw2data as bd
 from activity_browser.mod.bw2analyzer import ABContributionAnalysis
 
 from .commontasks import wrap_text
 from .errors import ReferenceFlowValueError
-from .metadata import MetaDataStore
+from .metadata import AB_metadata
 
-metadata = MetaDataStore()
-
-
+log = getLogger(__name__)
 ca = ABContributionAnalysis()
 
 
@@ -111,8 +110,6 @@ class MLCA(object):
     """
 
     def __init__(self, cs_name: str, lca_class: bc.LCA = bc.LCA):
-        from qtpy.QtWidgets import QApplication, QMessageBox
-
         try:
             cs = bd.calculation_setups[cs_name]
         except KeyError:
@@ -349,16 +346,14 @@ class Contributions(object):
     DEFAULT_EF_AGGREGATES = ["none"] + DEFAULT_EF_FIELDS
 
     def __init__(self, mlca):
-        from activity_browser.app import metadata
-
         if not isinstance(mlca, MLCA):
             raise ValueError("Must pass an MLCA object. Passed:", type(mlca))
         self.mlca = mlca
 
         # Set default metadata keys (those not in the dataframe will be eliminated)
 
-        self.act_fields = [fn for fn in self.DEFAULT_ACT_FIELDS if fn in metadata.dataframe.columns]
-        self.ef_fields = [fn for fn in self.DEFAULT_EF_FIELDS if fn in metadata.dataframe.columns]
+        self.act_fields = [fn for fn in self.DEFAULT_ACT_FIELDS if fn in AB_metadata.dataframe.columns]
+        self.ef_fields = [fn for fn in self.DEFAULT_EF_FIELDS if fn in AB_metadata.dataframe.columns]
 
         # Specific datastructures for retrieving relevant MLCA data
         # inventory: inventory, reverse index, metadata keys, metadata fields
@@ -508,10 +503,10 @@ class Contributions(object):
                 translated_keys.append(k)
             elif isinstance(k, str):
                 translated_keys.append(k)
-            elif k in metadata.dataframe.index:
+            elif k in AB_metadata.dataframe.index:
                 translated_keys.append(
                     separator.join(
-                        [str(l) for l in list(metadata.get_metadata(k, fields))]
+                        [str(l) for l in list(AB_metadata.get_metadata(k, fields))]
                     )
                 )
             else:
@@ -558,11 +553,11 @@ class Contributions(object):
             df.index.names = ["database", "code"]
 
         # get metadata for rows
-        keys = [k for k in df.index if k in metadata.dataframe.index]
-        meta = metadata.get_metadata(keys, x_fields).astype(object)
+        keys = [k for k in df.index if k in AB_metadata.dataframe.index]
+        metadata = AB_metadata.get_metadata(keys, x_fields).astype(object)
 
         # join data with metadata
-        joined = meta.join(df, how="outer")
+        joined = metadata.join(df, how="outer")
 
         if special_keys:
             # replace index keys with labels
@@ -570,7 +565,7 @@ class Contributions(object):
                 complete_index = special_keys + keys
                 joined = joined.reindex(complete_index, axis="index", fill_value=0.0)
             except:
-                logger.error(
+                log.error(
                     "Could not put 'Total', 'Rest (+)' and 'Rest (-)' on positions 0, 1 and 2 in the dataframe."
                 )
         joined.index = cls.get_labels(joined.index, fields=x_fields)
@@ -656,7 +651,7 @@ class Contributions(object):
         data.columns = Contributions.get_labels(columns, max_length=30)
 
         data = pd.merge(
-            metadata.dataframe[fields], data, right_index=True, left_on="id", how="right"
+            AB_metadata.dataframe[fields], data, right_index=True, left_on="id", how="right"
         )
         data.reset_index(inplace=True, drop=True)
 
@@ -771,9 +766,9 @@ class Contributions(object):
         df = pd.DataFrame(contributions).T
         columns = list(range(contributions.shape[0]))
         df.index = rev_index.values()
-        meta = metadata.dataframe.loc[metadata.dataframe["id"].isin(keys), fields + ["id"]]
+        metadata = AB_metadata.dataframe.loc[AB_metadata.dataframe["id"].isin(keys), fields + ["id"]]
 
-        joined = meta.merge(df, left_on="id", right_index=True, how="left")
+        joined = metadata.merge(df, left_on="id", right_index=True, how="left")
         joined.reset_index(inplace=True, drop=True)
         grouped = joined.groupby(parameters, observed=False)
         aggregated = grouped[columns].sum()
@@ -806,7 +801,7 @@ class Contributions(object):
             conv_dict[mthd] = v
         return conv_dict
 
-    def _contribution_index_cols(self, **kwargs) -> tuple[dict, Optional[Iterable]]:
+    def _contribution_index_cols(self, **kwargs) -> (dict, Optional[Iterable]):
         if kwargs.get("method") is not None:
             return self.mlca.fu_index, self.act_fields
         return self._correct_method_index(self.mlca.methods), None

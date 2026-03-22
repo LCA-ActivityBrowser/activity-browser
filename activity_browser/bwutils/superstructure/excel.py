@@ -2,14 +2,14 @@
 from ast import literal_eval
 from pathlib import Path
 from typing import List, Union
-from loguru import logger
+from logging import getLogger
 
 import openpyxl
 import pandas as pd
 
 from .utils import SUPERSTRUCTURE
 
-
+log = getLogger(__name__)
 
 
 def convert_tuple_str(x):
@@ -24,7 +24,7 @@ def get_sheet_names(document_path: Union[str, Path]) -> List[str]:
         wb = openpyxl.load_workbook(filename=document_path, read_only=True)
         return wb.sheetnames
     except UnicodeDecodeError as e:
-        logger.error("Given document uses an unknown encoding: {}".format(e))
+        log.error("Given document uses an unknown encoding: {}".format(e))
 
 
 def get_header_index(document_path: Union[str, Path], import_sheet: int):
@@ -45,7 +45,7 @@ def get_header_index(document_path: Union[str, Path], import_sheet: int):
             e.__traceback__
         )
     except UnicodeDecodeError as e:
-        logger.error("Given document uses an unknown encoding: {}".format(e))
+        log.error("Given document uses an unknown encoding: {}".format(e))
         wb.close()
     raise ValueError("Could not find required headers in given document sheet.")
 
