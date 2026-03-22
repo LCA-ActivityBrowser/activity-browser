@@ -3,9 +3,11 @@ on:
   pull_request:
     branches:
       - major
+      - beta
   push:
     branches:
       - major
+      - beta
 
 jobs:
   tests:
@@ -13,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-13, macos-latest]
+        os: [ubuntu-latest, windows-latest, macos-15, macos-latest]
         py-version: ["3.10", "3.11", "3.12"]
     env:
       QT_QPA_PLATFORM: 'offscreen'
@@ -42,4 +44,4 @@ jobs:
 
       - name: Test with pytest
         run: |
-          pytest
+          pytest -s --no-header --no-summary -q

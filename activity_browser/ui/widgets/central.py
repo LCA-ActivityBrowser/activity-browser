@@ -1,31 +1,17 @@
-from logging import getLogger
+from loguru import logger
 
 from qtpy import QtWidgets
 
-from activity_browser import signals
+from .tab_widget import ABTabWidget
 
 
-log = getLogger(__name__)
-
-
-class CentralTabWidget(QtWidgets.QTabWidget):
+class CentralTabWidget(ABTabWidget):
     """
     A custom QTabWidget that manages groups of tabs and their associated pages.
 
     This widget allows for organizing tabs into groups, dynamically adding pages to groups,
     and ensuring that each page has a unique object name.
     """
-
-    def __init__(self, *args):
-        """
-        Initialize the CentralTabWidget.
-
-        Args:
-            *args: Positional arguments passed to the parent QTabWidget.
-        """
-        super().__init__(*args)
-        # Connect to the project changed signal to reset the current index to 0
-        signals.project.changed.connect(self.reset)
 
     @property
     def groups(self):
@@ -59,6 +45,7 @@ class CentralTabWidget(QtWidgets.QTabWidget):
             self.addTab(GroupTabWidget(group, self), group)
 
         group = self.groups[group]
+        self.setCurrentWidget(group)
 
         # Check if the page already exists in the group
         page_names = [group.widget(i).objectName() for i in range(group.count())]
@@ -68,22 +55,17 @@ class CentralTabWidget(QtWidgets.QTabWidget):
             page.setWindowTitle(name)  # make sure the page has a title
             page.setParent(group)
             group.addTab(page, name)
+            group.setCurrentWidget(page)
 
             page.windowTitleChanged.connect(lambda title: group.setTabText(group.indexOf(page), title))
         else:
             # Set the existing page as the current tab
             index = page_names.index(page.objectName())
             group.setCurrentIndex(index)
-
-        # Set the group and page as the current widgets
-        self.setCurrentWidget(group)
-        group.setCurrentWidget(page)
-
-    def reset(self):
-        self.setCurrentIndex(0)
+            page.deleteLater()  # Clean up the newly created page since it already exists
 
 
-class GroupTabWidget(QtWidgets.QTabWidget):
+class GroupTabWidget(ABTabWidget):
     """
     A custom QTabWidget that represents a group of tabs.
 
@@ -100,9 +82,6 @@ class GroupTabWidget(QtWidgets.QTabWidget):
             *args: Additional positional arguments passed to the parent QTabWidget.
         """
         super().__init__(*args)
-        self.setMovable(True)  # Allow tabs to be rearranged.
-        self.setTabsClosable(True)  # Allow tabs to be closed.
-        self.setDocumentMode(True)  # Enable document mode for a more modern appearance.
 
         self.setObjectName(name)  # Set the object name for the widget.
 
@@ -115,6 +94,7 @@ class GroupTabWidget(QtWidgets.QTabWidget):
         - Connects the `tabCloseRequested` signal to the `tabClosed` method.
         - Connects the `project.changed` signal to the `deleteLater` method to clean up the widget.
         """
+        from activity_browser.app import signals
         self.tabCloseRequested.connect(self.tabClosed)
         signals.project.changed.connect(self.deleteLater)
 
