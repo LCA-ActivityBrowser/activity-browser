@@ -7,7 +7,6 @@ on:
   push:
     branches:
       - major
-      - beta
 
 jobs:
   tests:
