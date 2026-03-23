@@ -46,7 +46,7 @@ dependencies = [
     "bw-functional==0b94",
     "networkx",
     "numpy>=1.23.5,<2",
-    "pandas>=2.2.1",
+    "pandas>=2.2.1,<3",
     "pint<=0.21",
     "py7zr==0.22.0",
     "pyperclip",
