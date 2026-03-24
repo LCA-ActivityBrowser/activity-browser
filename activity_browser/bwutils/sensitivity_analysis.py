@@ -15,6 +15,12 @@ import numpy as np
 import pandas as pd
 from SALib.analyze import delta
 
+# SALib>=1.5 can call `numpy.trapezoid`, which is only available in NumPy 2.x.
+# Keep compatibility with NumPy 1.x environments by aliasing to `trapz`.
+# Can be removed when we move to numpy>1
+if not hasattr(np, "trapezoid"):
+    np.trapezoid = np.trapz
+
 from activity_browser.mod import bw2data as bd
 
 from ..settings import ab_settings
