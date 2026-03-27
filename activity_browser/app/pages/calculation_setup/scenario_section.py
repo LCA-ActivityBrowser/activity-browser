@@ -9,8 +9,7 @@ import bw2data as bd
 from activity_browser.bwutils import superstructure as ss
 
 from activity_browser import app
-from activity_browser.ui import icons, widgets
-from activity_browser.ui import core
+from activity_browser.ui import icons, widgets, core
 
 
 
