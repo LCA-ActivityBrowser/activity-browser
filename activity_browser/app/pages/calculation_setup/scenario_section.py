@@ -10,6 +10,7 @@ from activity_browser.bwutils import superstructure as ss
 
 from activity_browser import app
 from activity_browser.ui import icons, widgets
+from activity_browser.ui import core
 
 
 
@@ -264,8 +265,8 @@ class ScenarioImportWidget(QtWidgets.QWidget):
         self.load_btn.setToolTip("Load (new) data for this scenario table")
         self.remove_btn = QtWidgets.QPushButton(icons.qicons.delete, "Delete")
         self.remove_btn.setToolTip("Remove this scenario table")
-        self.view = widgets.ABTreeView(self)
-        self.model = widgets.ABItemModel(self)
+        self.view = ScenarioImportView(self)
+        self.model = ScenarioImportModel(parent=self)
         self.view.setModel(self.model)
         self.scenario_df = pd.DataFrame(columns=ss.SUPERSTRUCTURE)
 
@@ -373,7 +374,7 @@ class ScenarioImportWidget(QtWidgets.QWidget):
             return
         self.scenario_df = df
         cols = ss.scenario_names_from_df(self.scenario_df)
-        self.model.setDataFrame(pd.DataFrame(cols, columns=["Scenarios"]))
+        self.model.set_dataframe(pd.DataFrame(cols, columns=["Scenarios"]))
         self._parent.combined_dataframe()
 
     def scenario_db_check(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -397,6 +398,14 @@ class ScenarioImportWidget(QtWidgets.QWidget):
         if self.scenario_df.empty:
             logger.debug("No data in scenario table {}, skipping".format(self.index + 1))
         return self.scenario_df
+
+
+class ScenarioImportView(widgets.ABTreeView):
+    """Tree view for scenario imports."""
+
+
+class ScenarioImportModel(core.ABTreeModel):
+    """Model for displaying imported scenario names."""
 
 
 class ExcelReadDialog(QtWidgets.QDialog):
