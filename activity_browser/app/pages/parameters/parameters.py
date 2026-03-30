@@ -6,7 +6,7 @@ from .parameters_section import ParametersSection
 from .parameterized_exchanges_section import ParameterizedExchangesSection
 
 
-class ParametersPage(QtWidgets.QWidget):
+class ParametersPage(widgets.ABAbstractPage):
     """
     A widget that displays all parameters and parameterized exchanges in the current project.
 
@@ -14,6 +14,8 @@ class ParametersPage(QtWidgets.QWidget):
     - Parameters section: A tree view of parameters organized by scope
     - Parameterized exchanges section: A table of exchanges with formulas
     """
+    basePage = True
+    title = "Parameters"
 
     def __init__(self, parent=None):
         """

@@ -19,7 +19,7 @@ class DatabaseOpen(ABAction):
 
         for db_name in database_names:
             db_pane = panes.DatabaseProductsPane(app.main_window, db_name)
-            dock_widget = db_pane.getDockWidget(app.main_window)
+            dock_widget = db_pane.getDockWidget()
             dock_widget.resize(dock_widget.width(), app.main_window.height() // 2)
 
             app.main_window.addDockWidget(DatabaseOpen.get_area(), dock_widget)

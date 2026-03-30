@@ -42,11 +42,11 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
             db_name (str): The name of the database to display products for.
         """
         self.name = "database_products_pane_" + db_name
+        self.title = db_name
 
         super().__init__(parent)
 
         self.database = bd.Database(db_name)
-        self.title = db_name
         self.simple = True
 
         # initialize the model

@@ -132,7 +132,7 @@ def run_activity_browser_no_launcher():
     modules = ModuleThread()
     modules.run()
 
-    from .ui.widgets import CentralTabWidget
+    from .ui.widgets import ABCentralPagesWidget
     from .app import panes, pages, application, metadata
 
     load_plugins()

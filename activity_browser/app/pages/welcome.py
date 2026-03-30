@@ -2,12 +2,16 @@ import os
 
 from qtpy import QtWebEngineWidgets, QtWidgets, QtCore, QtGui, QtWebChannel
 
-from activity_browser import app, app
+from activity_browser import app
+from activity_browser.ui import widgets
 from activity_browser.static import startscreen
 from activity_browser.bwutils.commontasks import projects_by_last_opened
 
 
-class WelcomePage(QtWidgets.QWidget):
+class WelcomePage(widgets.ABAbstractPage):
+    basePage = True
+    title = "Welcome"
+
     html_file = os.path.join(startscreen.__path__[0], "welcome.html")
 
     def __init__(self, parent=None):

@@ -17,7 +17,7 @@ from .data_tab import DataTab
 from .consumers_tab import ConsumersTab
 
 
-class ActivityDetailsPage(QtWidgets.QWidget):
+class ActivityDetailsPage(widgets.ABAbstractPage):
     """
     A widget that displays detailed information about a specific activity.
 
