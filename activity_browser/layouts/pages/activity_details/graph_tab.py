@@ -109,21 +109,22 @@ class GraphTab(QtWidgets.QWidget):
                     continue
                 processor = get_processor_from_exchange(exc)
 
-                source_id = processor.id
-                target_id = exc.output.id
+                if processor:
+                    source_id = processor.id
+                    target_id = exc.output.id
 
-                if source_id not in self.expanded_nodes:
-                    source_id = exc.input.id
-                    collapsed_functions.add(source_id)
+                    if source_id not in self.expanded_nodes:
+                        source_id = exc.input.id
+                        collapsed_functions.add(source_id)
 
-                if target_id not in self.expanded_nodes:
-                    collapsed_functions.add(target_id)
+                    if target_id not in self.expanded_nodes:
+                        collapsed_functions.add(target_id)
 
-                edges.append({
-                    "source_id": f"bw{source_id}",
-                    "target_id": f"bw{exc.output.id}",
-                    "function_id": f"bw{exc.input.id}",
-                })
+                    edges.append({
+                        "source_id": f"bw{source_id}",
+                        "target_id": f"bw{exc.output.id}",
+                        "function_id": f"bw{exc.input.id}",
+                    })
 
         for node_id in collapsed_functions:
             fn_node = bd.get_node(id=node_id)
@@ -185,6 +186,10 @@ def get_processor_from_exchange(exchange):
     processors = list(source.upstream(kinds=["production"]))
     if len(processors) > 1:
         log.warning("Multiple processors, only taking first one")
+    elif len(processors) == 0:
+        log.warning("No processor found for exchange")
+        # processors = list(exchange.output.upstream(kinds=["production"]))
+        return None
     processor = processors[0]
     return processor.output
 
