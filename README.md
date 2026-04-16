@@ -74,8 +74,7 @@ If you experience problems or are suffering from a specific bug, please [raise a
 ### Current main developers
 
 - Bernhard Steubing (b.steubing@cml.leidenuniv.nl) (creator)
-- Marin Visscher (m.r.visscher@cml.leidenuniv.nl) (main developer)
-- Marc van der Meide (m.t.van.der.meide@cml.leidenuniv.nl) (maintainer)
+- Marc van der Meide (m.t.v.d.meide@tue.nl) (maintainer)
 
 ### Important contributors
 
@@ -84,6 +83,7 @@ If you experience problems or are suffering from a specific bug, please [raise a
 - [Daniel de Koning](https://github.com/dgdekoning)
 - [Jonathan Kidner](https://github.com/Zoophobus)
 - [Remy le Calloch](https://remy.lecalloch.net)
+- [Marin Visscher](https://github.com/mrvisscher)
 
 # Copyright
 - 2016-2023: Bernhard Steubing (Leiden University)
