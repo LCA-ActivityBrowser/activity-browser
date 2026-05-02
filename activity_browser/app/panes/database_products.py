@@ -47,7 +47,7 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
         super().__init__(parent)
 
         self.database = bd.Database(db_name)
-        self.simple = True
+        self.view_as_cards = False
 
         # initialize the model
         self.model = ProductModel(parent=self, chunk_size=20, enable_sorting=True)
@@ -76,10 +76,10 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
         self.loading_label.setFont(font)
         self.loading_label.setStyleSheet("color: gray; padding: 10px;")
 
-        # Create simple/detailed view toggle
-        self.view_toggle = QtWidgets.QCheckBox("Details")
-        self.view_toggle.setChecked(not self.simple)
-        self.view_toggle.setToolTip("Toggle between simple and detailed view")
+        # Create card/detailed view toggle
+        self.view_toggle = QtWidgets.QCheckBox("Cards")
+        self.view_toggle.setChecked(self.view_as_cards)
+        self.view_toggle.setToolTip("Toggle between cards and detailed view")
 
         self.build_layout()
         self.connect_signals()
@@ -167,11 +167,11 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
         logger.debug(f"Synced DatabaseProductsPane in {time() - t:.2f} seconds")
 
     def update_table_style(self):
-        self.table_view.header().setHidden(self.simple)
+        self.table_view.header().setHidden(self.view_as_cards)
         self.table_view.viewport().setBackgroundRole(
-            QtGui.QPalette.ColorRole.Window if self.simple else QtGui.QPalette.ColorRole.Base)
+            QtGui.QPalette.ColorRole.Window if self.view_as_cards else QtGui.QPalette.ColorRole.Base)
         self.table_view.setFrameShape(
-            QtWidgets.QFrame.Shape.NoFrame if self.simple else QtWidgets.QFrame.Shape.StyledPanel)
+            QtWidgets.QFrame.Shape.NoFrame if self.view_as_cards else QtWidgets.QFrame.Shape.StyledPanel)
 
     def update_column_visibility(self):
         columns = self.model.columns()
@@ -181,10 +181,10 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
             if col == "index":
                 continue
             if col == "node":
-                self.table_view.setColumnHidden(index, not self.simple)
+                self.table_view.setColumnHidden(index, not self.view_as_cards)
                 continue
 
-            if df[col].isna().all() or self.simple:
+            if df[col].isna().all() or self.view_as_cards:
                 self.table_view.hideColumn(index)
             else:
                 self.table_view.showColumn(index)
@@ -245,12 +245,12 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
 
     def on_mode_switch(self, check: Qt.CheckState):
         """
-        Handles the mode switch between simple and detailed view.
+        Handles the mode switch between card and detailed view.
 
         Args:
             check (Qt.CheckState): The check state of the toggle.
         """
-        self.simple = check == Qt.CheckState.Unchecked
+        self.view_as_cards = check == Qt.CheckState.Checked
         self.update_table_style()
         self.update_column_visibility()
 
