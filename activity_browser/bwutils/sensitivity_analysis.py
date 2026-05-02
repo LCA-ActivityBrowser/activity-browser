@@ -16,7 +16,12 @@ import pandas as pd
 import bw2data as bd
 from SALib.analyze import delta
 
-# from ..settings import ab_settings
+# SALib>=1.5 can call `numpy.trapezoid`, which is only available in NumPy 2.x.
+# Keep compatibility with NumPy 1.x environments by aliasing to `trapz`.
+# Can be removed when we move to numpy>1
+if not hasattr(np, "trapezoid"):
+    np.trapezoid = np.trapz
+
 from .montecarlo import MonteCarloLCA, perform_MonteCarlo_LCA
 
 try:
@@ -25,8 +30,6 @@ try:
 except ImportError:
     # standard import on failure
     from bw2calc import GraphTraversal
-
-
 
 
 

@@ -3,6 +3,7 @@ on:
   pull_request:
     branches:
       - major
+      - beta
   push:
     branches:
       - major
