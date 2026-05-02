@@ -66,7 +66,13 @@ class MDSLoader(QObject):
         logger.debug("Loading metadata from cache")
 
         cache_path = filesystem.get_project_ab_path() / "metadatastore_cache.pkl"
-        cached_df = pd.read_pickle(cache_path)
+        try:
+            cached_df = pd.read_pickle(cache_path)
+        except (EOFError, pickle.UnpicklingError, OSError, ValueError) as exc:
+            logger.warning(f"Metadata cache could not be loaded, rebuilding from database: {exc}")
+            cache_path.unlink(missing_ok=True)
+            self.load_project()
+            return
 
         # quick sanity checks
         if not self._cache_check(cached_df):
