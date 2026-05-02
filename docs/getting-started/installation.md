@@ -48,6 +48,10 @@ Firstly, create a directory for your virtual environments, such as C:/Users/me/v
 ```
 python -m venv C:/Users/me/virtualenvs/ab-beta
 ```
+In case your python version is not 3.10, 3.11, or 3.12 (the versions currently supported by the AB), you need to use a command like this (here for python 3.12):
+```
+py -3.12 -m venv C:/Users/me/virtualenvs/ab-beta
+```
 Afterwards, you need to activate the virtual environment, which differs between operating systems and shells. Using Window Command Prompt activate the environment using this command:
 ```
 C:\Users\me\virtualenvs\ab-beta\Scripts\activate.bat
@@ -88,6 +92,12 @@ Next we're going to create a new environment for the Activity Browser Beta relea
 
 ```
 conda create -n ab_beta -c conda-forge lca::activity-browser
+```
+
+In case your Python version is not 3.10, 3.11, or 3.12 (the versions currently supported by the AB), then use a command like this (here for Python 3.12):
+
+```
+conda create -n ab_beta -c conda-forge lca::activity-browser python=3.12
 ```
 
 This will go through a few steps, some of which like `solving environment` may take a while. After installation has finished you can
