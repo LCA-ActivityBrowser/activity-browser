@@ -8,11 +8,12 @@
 import os
 import traceback
 from time import time
-from logging import getLogger
+from loguru import logger
 
 import bw2calc as bc
 import numpy as np
 import pandas as pd
+import bw2data as bd
 from SALib.analyze import delta
 
 # SALib>=1.5 can call `numpy.trapezoid`, which is only available in NumPy 2.x.
@@ -21,9 +22,6 @@ from SALib.analyze import delta
 if not hasattr(np, "trapezoid"):
     np.trapezoid = np.trapz
 
-from activity_browser.mod import bw2data as bd
-
-from ..settings import ab_settings
 from .montecarlo import MonteCarloLCA, perform_MonteCarlo_LCA
 
 try:
@@ -34,15 +32,13 @@ except ImportError:
     from bw2calc import GraphTraversal
 
 
-log = getLogger(__name__)
-
 
 def get_lca(fu, method):
     """Calculates a non-stochastic LCA and returns a the LCA object."""
     lca = bc.LCA(fu, method=method)
     lca.lci()
     lca.lcia()
-    log.info(f"Non-stochastic LCA score: {lca.score}")
+    logger.info(f"Non-stochastic LCA score: {lca.score}")
 
     # add reverse dictionaries
     lca.activity_dict_rev, lca.product_dict_rev, lca.biosphere_dict_rev = (
@@ -63,7 +59,7 @@ def filter_technosphere_exchanges(lca, cutoff=0.05, max_calc=1000):
     for e in res["edges"]:
         if e.consumer_index != -1:  # filter out head introduced in graph traversal
             technosphere_exchange_indices.append((e.producer_index, e.consumer_index))
-    log.info(
+    logger.info(
         "TECHNOSPHERE {} filtering resulted in {} of {} exchanges and took {} iterations in {} seconds.".format(
             lca.technosphere_matrix.shape,
             len(technosphere_exchange_indices),
@@ -84,7 +80,7 @@ def filter_biosphere_exchanges(lca, cutoff=0.005):
     finv = inv.multiply(abs(inv) > abs(lca.score / (1 / cutoff)))
     biosphere_exchange_indices = list(zip(*finv.nonzero()))
     explained_fraction = finv.sum() / lca.score
-    log.info(
+    logger.info(
         "BIOSPHERE {} filtering resulted in {} of {} exchanges ({}% of total impact) and took {} seconds.".format(
             inv.shape,
             finv.nnz,
@@ -146,7 +142,7 @@ def drop_no_uncertainty_exchanges(excs, indices):
         if exc.get("uncertainty type") and exc.get("uncertainty type") >= 1:
             excs_no.append(exc)
             indices_no.append(ind)
-    log.info(
+    logger.info(
         "Dropping {} exchanges of {} with no uncertainty. {} remaining.".format(
             len(excs) - len(excs_no), len(excs), len(excs_no)
         )
@@ -220,7 +216,7 @@ def get_CF_dataframe(lca, only_uncertain_CFs=True):
             "CF: " + bio_act["name"] + str(bio_act["categories"])
         )
 
-    log.info(
+    logger.info(
         "CHARACTERIZATION FACTORS filtering resulted in including {} of {} characteriation factors.".format(
             len(data),
             len(lca.cf_params),
@@ -236,10 +232,10 @@ def get_parameters_DF(mc):
     if bool(mc.parameter_data):  # returns False if dict is empty
         dfp = pd.DataFrame(mc.parameter_data).T
         dfp["GSA name"] = "P: " + dfp["name"]
-        log.info(f"PARAMETERS: {len(dfp)}")
+        logger.info(f"PARAMETERS: {len(dfp)}")
         return dfp
     else:
-        log.info("PARAMETERS: None included.")
+        logger.info("PARAMETERS: None included.")
         return pd.DataFrame()  # return emtpy df
 
 
@@ -336,10 +332,10 @@ class GlobalSensitivityAnalysis(object):
         except Exception as e:
             traceback.print_exc()
             # todo: QMessageBox.warning(self, 'Could not perform Delta analysis', str(e))
-            log.error("Initializing the GSA failed.")
+            logger.error("Initializing the GSA failed.")
             return None
 
-        log.info(
+        logger.info(
             f"-- GSA --\n Project: {bd.projects.current} CS: {self.mc.cs_name} "
             f"Activity: {self.activity} Method: {self.method}",
         )
@@ -427,12 +423,12 @@ class GlobalSensitivityAnalysis(object):
         #     self.Y = np.log(np.abs(self.Y))  # this makes it more robust for very uneven distributions of LCA results
         if np.all(self.Y > 0):  # all positive numbers
             self.Y = np.log(np.abs(self.Y))
-            log.info("All positive LCA scores. Log-transformation performed.")
+            logger.info("All positive LCA scores. Log-transformation performed.")
         elif np.all(self.Y < 0):  # all negative numbers
             self.Y = -np.log(np.abs(self.Y))
-            log.info("All negative LCA scores. Log-transformation performed.")
+            logger.info("All negative LCA scores. Log-transformation performed.")
         else:  # mixed positive and negative numbers
-            log.warning(
+            logger.warning(
                 "Log-transformation cannot be applied as LCA scores overlap zero."
             )
 
@@ -446,7 +442,7 @@ class GlobalSensitivityAnalysis(object):
         # perform delta analysis
         time_delta = time()
         self.Si = delta.analyze(self.problem, self.X, self.Y, print_to_console=False)
-        log.info(
+        logger.info(
             "Delta analysis took {} seconds".format(
                 np.round(time() - time_delta, 2),
             )
@@ -461,9 +457,10 @@ class GlobalSensitivityAnalysis(object):
         # join with metadata
         self.df_final = self.dfgsa.join(self.metadata, on="GSA name")
         self.df_final.reset_index(inplace=True)
-        self.df_final["pedigree"] = [str(x) for x in self.df_final["pedigree"]]
+        if "pedigree" in self.df_final.columns:
+            self.df_final["pedigree"] = self.df_final["pedigree"].astype(str)
 
-        log.info("GSA took {} seconds".format(np.round(time() - start, 2)))
+        logger.info("GSA took {} seconds".format(np.round(time() - start, 2)))
 
     def get_save_name(self):
         save_name = (
@@ -480,11 +477,15 @@ class GlobalSensitivityAnalysis(object):
         return save_name
 
     def export_GSA_output(self):
+        from ..settings import ab_settings
+
         save_name = "gsa_output_" + self.get_save_name()
         self.df_final.to_excel(os.path.join(ab_settings.data_dir, save_name))
 
     def export_GSA_input(self):
         """Export the input data to the GSA with a human readible index"""
+        from ..settings import ab_settings
+
         X_with_index = pd.DataFrame(self.X.T, index=self.metadata.index)
         save_name = "gsa_input_" + self.get_save_name()
         X_with_index.to_excel(os.path.join(ab_settings.data_dir, save_name))

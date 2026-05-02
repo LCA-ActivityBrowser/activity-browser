@@ -1,111 +1,49 @@
-import pickle
-from logging import getLogger
+from typing import TYPE_CHECKING
+from loguru import logger
 
-from qtpy import QtCore, QtWidgets, QtGui
+from qtpy import QtCore, QtWidgets
 
-import bw2data as bd
-
-from activity_browser import signals, application
-from activity_browser.ui import icons
-
-from activity_browser.ui.menu_bar import MenuBar
-
-log = getLogger(__name__)
+if TYPE_CHECKING:
+    from .abstract_pane import ABAbstractPane
 
 
-class MainWindow(QtWidgets.QMainWindow):
+class ABMainWindow(QtWidgets.QMainWindow):
+    _instance = None
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            cls._instance._initialized = False
+        return cls._instance
 
     def __init__(self, parent=None):
+        if self._initialized:
+            return
+        self._initialized = True
+
         super().__init__(parent)
 
         self.setLocale(QtCore.QLocale(QtCore.QLocale.English, QtCore.QLocale.UnitedStates))
-        self.setWindowTitle("Activity Browser")
         self.setDockNestingEnabled(True)
-
-        # Layout: extra items outside main layout
-        self.menu_bar = MenuBar(self)
-        self.setMenuBar(self.menu_bar)
-
-        self.connect_signals()
-
-    def sync(self):
-        """
-        Synchronizes the main window layout with the current Brightway2 project.
-
-        This method clears existing panes, initializes default panes, and arranges them
-        in the main window. Hidden panes are set to be invisible, and the first pane is
-        raised to the top. The window title is updated to reflect the current project.
-
-        Steps:
-        - Clear all existing panes.
-        - Create and add default panes as dock widgets.
-        - Hide panes that are marked as hidden.
-        - Tabify dock widgets for better organization.
-        - Raise the first dock widget to the top.
-        - Update the window title with the current project name.
-
-        Args:
-            self: The instance of the MainWindow class.
-        """
-        from activity_browser.layouts import panes
-
-        # Clear all existing panes in the main window
-        self.clearPanes()
-
-        dws = []
-        # Iterate through the default panes and add them as dock widgets
-        for pane_class in panes.default_panes:
-            pane = pane_class(parent=self)
-            dockwidget = pane.getDockWidget(self)
-            dws.append(dockwidget)
-
-            # Add the dock widget to the left dock area
-            self.addDockWidget(QtCore.Qt.LeftDockWidgetArea, dockwidget)
-            # Add the toggle view action to the menu bar
-            self.menu_bar.view_menu.addAction(dockwidget.toggleViewAction())
-
-            # Hide the dock widget if it is marked as hidden
-            if pane_class in panes.hidden_panes:
-                dockwidget.hide()
-
-            # Synchronize the pane
-            pane.sync()
-
-        # Tabify the dock widgets for better organization
-        for dw in dws:
-            if dw == dws[0]:
-                continue
-            self.tabifyDockWidget(dws[0], dw)
-
-        # Raise the first dock widget to the top
-        dws[0].raise_()
-
-        # Update the window title to reflect the current project
-        self.setWindowTitle(f"Activity Browser - {bd.projects.current}")
-
-    def connect_signals(self):
-        # Keyboard shortcuts
-        signals.project.changed.connect(self.sync)
 
     def clearPanes(self):
         for pane in self.panes():
+            logger.debug(f"Clearing pane {pane.__class__.__name__}: {id(pane)}")
+            pane.hide()
             pane.deleteLater()
+
+    def addPane(self, pane: "ABAbstractPane", area=QtCore.Qt.DockWidgetArea.LeftDockWidgetArea):
+        """
+        Add a pane to the main window as a dock widget.
+        """
+        dock_widget = pane.getDockWidget()
+        self.addDockWidget(area, dock_widget)
+        dock_widget.show()
+        pane.sync()
 
     def panes(self):
         """
         Return a list of all panes in the main window.
         """
-        from activity_browser.ui import widgets
-        return self.findChildren(widgets.ABAbstractPane)
-
-    def set_titlebar(self):
-        self.setWindowTitle(f"Activity Browser - {bd.projects.current}")
-
-    def dialog_on_exception(self, exception: Exception):
-        QtWidgets.QMessageBox.critical(
-            self,
-            f"An error occurred: {type(exception).__name__}",
-            f"An error occurred, check the logs for more information \n\n {str(exception)}",
-            QtWidgets.QMessageBox.Ok,
-        )
-
+        from .abstract_pane import ABAbstractPane
+        return self.findChildren(ABAbstractPane)

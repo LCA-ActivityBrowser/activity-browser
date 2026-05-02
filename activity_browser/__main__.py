@@ -1,6 +1,11 @@
+# Divert the program flow in worker sub-process as soon as possible,
+# before importing heavy-weight modules.
+if __name__ == '__main__':
+    import multiprocessing
+    multiprocessing.freeze_support()
+
 import sys
 import os
-from logging import getLogger
 from importlib import metadata
 
 import requests
@@ -13,13 +18,11 @@ if sys.platform == "win32":
     import ctypes
     ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("activity.browser.1")
 
-from activity_browser import application
-from activity_browser.ui import icons
-
-from .logger import setup_ab_logging
+from loguru import logger
+import platformdirs
 from .static.icons import main
 
-log = getLogger(__name__)
+
 
 
 class SpecialProgressBar(QtWidgets.QWidget):
@@ -88,29 +91,14 @@ class ABLoader(QtWidgets.QWidget):
         thread.start()
 
     def load_layout(self):
-        from .ui.widgets import MainWindow, CentralTabWidget
-        from .layouts import panes, pages
-        from activity_browser.bwutils import AB_metadata
-        from activity_browser import signals
-
-        application.main_window = MainWindow()
-        central_widget = CentralTabWidget(application.main_window)
-        central_widget.addTab(pages.WelcomePage(), "Welcome")
-        central_widget.addTab(pages.ParametersPage(), "Parameters")
-
-        application.main_window.setCentralWidget(central_widget)
-
-        self.load_settings()
-
-    def load_settings(self):
-        self.text_label.setText("Loading project")
-        thread = SettingsThread(self)
-        thread.finished.connect(self.load_finished)
-        thread.start()
+        self.load_finished()
 
     def load_finished(self):
-        application.main_window.sync()
-        application.main_window.show()
+        from activity_browser import app
+
+        load_plugins()
+
+        app.main_window.show()
         self.deleteLater()
 
 
@@ -119,70 +107,36 @@ class ModuleThread(QtCore.QThread):
 
     def run(self):
         self.status.emit("Loading Numpy")
-        log.debug("ABLoader: Importing numpy")
+        logger.debug("ABLoader: Importing numpy")
         import numpy, pandas
         self.status.emit("Loading Brightway25")
-        log.debug("ABLoader: Importing brightway modules")
+        logger.debug("ABLoader: Importing brightway modules")
         import bw2data, bw2calc, bw2analyzer, bw2io, bw_functional, bw_processing, matrix_utils
-        self.status.emit("Loading Activity Browser")
-        log.debug("ABLoader: Importing activity_browser")
-        from activity_browser import actions, layouts, mod, settings, ui, signals
-        from activity_browser.layouts import panes, pages
-        from activity_browser.ui import core, widgets, web, wizards
-
-
-class SettingsThread(QtCore.QThread):
-    def run(self):
-        import bw2data as bd
-        from activity_browser import settings, actions
-
-        if settings.ab_settings.settings:
-            from pathlib import Path
-
-            base_dir = Path(settings.ab_settings.current_bw_dir)
-            project_name = settings.ab_settings.startup_project
-            bd.projects.change_base_directories(base_dir, project_name=project_name, update=False)
-
-        if not bd.projects.twofive:
-            log.warning(f"Project: {bd.projects.current} is not yet BW25 compatible")
-            actions.ProjectSwitch.set_warning_bar()
-
-        log.info(f"Brightway2 data directory: {bd.projects._base_data_dir}")
-        log.info(f"Brightway2 current project: {bd.projects.current}")
 
 
 def run_activity_browser():
+    from activity_browser.ui.core.application import ABApplication
+    app = ABApplication()
+
     pre_flight_checks()
-    setup_ab_logging()
     loader = ABLoader()
     loader.show()
-    application.set_icon()  # setting this here seems to fix the icon not showing sometimes
-    sys.exit(application.exec_())
+
+    app.set_icon()  # setting this here seems to fix the icon not showing sometimes
+    sys.exit(app.exec_())
 
 
 def run_activity_browser_no_launcher():
     pre_flight_checks()
-    setup_ab_logging()
 
     modules = ModuleThread()
     modules.run()
 
-    from .ui.widgets import MainWindow, CentralTabWidget
-    from .layouts import panes, pages
-    from activity_browser.bwutils import AB_metadata
-    from activity_browser import signals
+    from .ui.widgets import ABCentralPagesWidget
+    from .app import panes, pages, application, metadata
 
-    application.main_window = MainWindow()
-    central_widget = CentralTabWidget(application.main_window)
-    central_widget.addTab(pages.WelcomePage(), "Welcome")
-    central_widget.addTab(pages.ParametersPage(), "Parameters")
+    load_plugins()
 
-    application.main_window.setCentralWidget(central_widget)
-
-    settings = SettingsThread()
-    settings.run()
-
-    application.main_window.sync()
     application.main_window.show()
 
     application.set_icon()  # setting this here seems to fix the icon not showing sometimes
@@ -248,11 +202,22 @@ def check_pypi_update():
               "pip install --upgrade activity-browser\n\n"
               "Press any key to continue without updating...\033[0m")
 
+def load_plugins():
+    from activity_browser.bwutils.settings import Settings
+    settings = Settings()
+    plugins = settings["plugins"].get("enabled_plugins", [])
+    for plugin in plugins:
+        try:
+            __import__(plugin)
+            logger.info(f"Successfully loaded plugin: {plugin}")
+        except ImportError:
+            logger.warning(f"Could not load plugin: {plugin}")
+
 
 if "--no-launcher" in sys.argv:
     run_activity_browser_no_launcher()
 elif sys.version_info[1] == 10:
-    log.info("Running Activity Browser without launcher for Python 3.10")
+    logger.info("Running Activity Browser without launcher for Python 3.10")
     run_activity_browser_no_launcher()
 else:
     run_activity_browser()
