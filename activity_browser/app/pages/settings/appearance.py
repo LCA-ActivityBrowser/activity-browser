@@ -30,6 +30,12 @@ class AppearanceSettingsChapter(BaseSettingsChapter):
         
         # Pane tab position selector
         self.pane_tab_position_combo = QtWidgets.QComboBox()
+
+        # Database products as cards checkbox
+        self.database_products_as_cards = QtWidgets.QCheckBox("Show database contents as cards")
+        self.database_products_as_cards.setToolTip(
+            "When enabled, the database process list uses a card layout instead of a detailed table."
+        )
         
         self.build_layout()
         self.connect_signals()
@@ -40,6 +46,7 @@ class AppearanceSettingsChapter(BaseSettingsChapter):
         # Emit changed signal when settings change
         self.theme_combo.currentTextChanged.connect(lambda: self.changed.emit())
         self.pane_tab_position_combo.currentTextChanged.connect(lambda: self.changed.emit())
+        self.database_products_as_cards.checkStateChanged.connect(lambda _: self.changed.emit())
     
     def build_layout(self):
         """Build the chapter layout."""
@@ -58,9 +65,15 @@ class AppearanceSettingsChapter(BaseSettingsChapter):
         pane_tab_layout.addWidget(QtWidgets.QLabel("Position:"), 0, 0)
         pane_tab_layout.addWidget(self.pane_tab_position_combo, 0, 1)
         pane_tab_group.setLayout(pane_tab_layout)
+
+        database_group = QtWidgets.QGroupBox("Database pane")
+        database_layout = QtWidgets.QVBoxLayout()
+        database_layout.addWidget(self.database_products_as_cards)
+        database_group.setLayout(database_layout)
         
         layout.addWidget(theme_group)
         layout.addWidget(pane_tab_group)
+        layout.addWidget(database_group)
         layout.addStretch()
         
         self.setLayout(layout)
@@ -76,15 +89,21 @@ class AppearanceSettingsChapter(BaseSettingsChapter):
         self.pane_tab_position_combo.addItems(self.pane_tab_position_map.values())
         self.pane_tab_position_combo.setCurrentText(self.pane_tab_position_map.get(settings["appearance"]["pane_tab_position"], "Bottom"))
 
+        self.database_products_as_cards.setChecked(
+            bool(settings["appearance"].get("database_products_as_cards", False))
+        )
+
     def has_changes(self):
         """Check if there are unsaved changes."""
         current_state = {
             'theme': self.theme_combo.currentText(),
             'pane_tab_position': self.pane_tab_position_combo.currentText(),
+            'database_products_as_cards': self.database_products_as_cards.isChecked(),
         }
         initial_state = {
             'theme': self.theme_map.get(settings["appearance"]["theme"], "System default"),
             'pane_tab_position': self.pane_tab_position_map.get(settings["appearance"]["pane_tab_position"], "Bottom"),
+            'database_products_as_cards': bool(settings["appearance"].get("database_products_as_cards", False)),
         }
         return current_state != initial_state
     
@@ -95,4 +114,6 @@ class AppearanceSettingsChapter(BaseSettingsChapter):
         
         new_pane_position = self.pane_tab_position_combo.currentText()
         settings["appearance"]["pane_tab_position"] = [key for key, value in self.pane_tab_position_map.items() if value == new_pane_position][0]
+
+        settings["appearance"]["database_products_as_cards"] = self.database_products_as_cards.isChecked()
 

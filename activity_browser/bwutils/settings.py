@@ -17,6 +17,7 @@ defaults = {
     "appearance": {
         "theme": "default",
         "pane_tab_position": "bottom",
+        "database_products_as_cards": False,
     },
     "metadatastore": {
         "caching_enabled": True,

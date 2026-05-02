@@ -47,7 +47,9 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
         super().__init__(parent)
 
         self.database = bd.Database(db_name)
-        self.view_as_cards = False
+        self.view_as_cards = bool(
+            app.settings["appearance"].get("database_products_as_cards", False)
+        )
 
         # initialize the model
         self.model = ProductModel(parent=self, chunk_size=20, enable_sorting=True)
@@ -76,11 +78,6 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
         self.loading_label.setFont(font)
         self.loading_label.setStyleSheet("color: gray; padding: 10px;")
 
-        # Create card/detailed view toggle
-        self.view_toggle = QtWidgets.QCheckBox("Cards")
-        self.view_toggle.setChecked(self.view_as_cards)
-        self.view_toggle.setToolTip("Toggle between cards and detailed view")
-
         self.build_layout()
         self.connect_signals()
         self.update_loading_state()
@@ -107,10 +104,9 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
         table_layout.addWidget(self.table_view)
         self.stacked_layout.addWidget(table_widget)
 
-        # Create top bar with search and toggle
+        # Create top bar with search
         top_bar = QtWidgets.QHBoxLayout()
         top_bar.addWidget(self.search_bar)
-        top_bar.addWidget(self.view_toggle)
 
         layout = QtWidgets.QVBoxLayout(self)
         layout.addLayout(top_bar)
@@ -122,8 +118,8 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
     def connect_signals(self):
         app.signals.metadata.synced.connect(self.on_metadata_changed)
         app.signals.database.deleted.connect(self.on_database_deleted)
+        app.signals.settings.changed.connect(self.apply_view_mode_from_settings)
 
-        self.view_toggle.checkStateChanged.connect(self.on_mode_switch)
         self.search_bar.textChangedDebounce.connect(self.sync)
 
     def on_metadata_changed(self, added, updated, deleted):
@@ -243,14 +239,11 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
         if db_name == self.database.name:
             self.deleteLater()
 
-    def on_mode_switch(self, check: Qt.CheckState):
-        """
-        Handles the mode switch between card and detailed view.
-
-        Args:
-            check (Qt.CheckState): The check state of the toggle.
-        """
-        self.view_as_cards = check == Qt.CheckState.Checked
+    def apply_view_mode_from_settings(self):
+        """Sync card/table layout from global appearance settings (after Save in Settings)."""
+        self.view_as_cards = bool(
+            app.settings["appearance"].get("database_products_as_cards", False)
+        )
         self.update_table_style()
         self.update_column_visibility()
 
