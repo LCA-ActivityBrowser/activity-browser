@@ -551,7 +551,13 @@ class ABTreeModel(QAbstractItemModel):
             mask = self.df.index.droplevel(-1) == lvl if lvl is not None else self.df.index
             partial_df = self.df.loc[mask, self.sorted_column or self.df.columns[0]].copy()
             if self.sorted_column is not None:
-                partial_df.sort_values(ascending=(self.sort_order == Qt.SortOrder.AscendingOrder), inplace=True)
+
+                partial_df.sort_values(
+                # for some reason self.sort_order is always "descending", so I changed == to !=
+                    ascending=(self.sort_order != Qt.SortOrder.AscendingOrder),
+                    inplace=True,
+                    # key=lambda col: col.str.lower()   # could use this to avoid sorting A-Z and then a-z, but it does not work with tuples (keys)
+                )
             else:
                 partial_df = partial_df.sort_index(ascending=(self.sort_order == Qt.SortOrder.AscendingOrder))
             sorted_index.append(partial_df.index)
