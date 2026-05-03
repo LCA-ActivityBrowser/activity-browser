@@ -2,7 +2,7 @@
 title: Brightway Legacy
 parent: Advanced topics
 ---
-# Brighway Legacy projects
+# Brightway Legacy projects
 {: .fs-9 }
 
 What changed between Brightway Legacy and Brightway25
