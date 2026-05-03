@@ -9,6 +9,19 @@ from activity_browser.bwutils.settings import Settings
 from .fields import all_fields, all_types
 
 
+def dataframe_for_pickle_cache(df: pd.DataFrame) -> pd.DataFrame:
+    """Return a copy safe for ``to_pickle`` across pandas versions.
+
+    ``StringDtype`` columns unpickle can raise ``NotImplementedError`` when the
+    cache was written with a different pandas build; plain ``object`` strings do not.
+    """
+    out = df.copy()
+    for col in out.columns:
+        if isinstance(out[col].dtype, pd.StringDtype):
+            out[col] = out[col].astype(object)
+    return out
+
+
 class MetaDataStore(QObject):
     """Singleton class to manage metadata storage, loading, updating, and searching."""
     _instance = None
@@ -104,7 +117,7 @@ class MetaDataStore(QObject):
 
         if Settings()["metadatastore"]["caching_enabled"]:
             cache_path = filesystem.get_project_ab_path() / "metadatastore_cache.pkl"
-            self._dataframe.to_pickle(cache_path)
+            dataframe_for_pickle_cache(self._dataframe).to_pickle(cache_path)
 
         return added, updated, deleted
 
