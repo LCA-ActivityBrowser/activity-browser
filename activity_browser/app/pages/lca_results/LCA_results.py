@@ -1179,10 +1179,8 @@ class ElementaryFlowContributionTab(ContributionTab):
         header = get_header_layout_w_help("Elementary Flow Contributions", self.help_button)
         self.layout.addLayout(header)
         self.layout.addWidget(self.cutoff_menu)
-        self.layout.addWidget(horizontal_line())
         combobox = self.build_combobox(has_method=True, has_func=True)
         self.layout.addLayout(combobox)
-        self.layout.addWidget(horizontal_line())
         self.layout.addWidget(self.build_main_space())
         self.layout.addLayout(self.build_export(True, True))
 
@@ -1233,10 +1231,8 @@ class ProcessContributionsTab(ContributionTab):
         header = get_header_layout_w_help("Process Contributions", self.help_button)
         self.layout.addLayout(header)
         self.layout.addWidget(self.cutoff_menu)
-        self.layout.addWidget(horizontal_line())
         combobox = self.build_combobox(has_method=True, has_func=True)
         self.layout.addLayout(combobox)
-        self.layout.addWidget(horizontal_line())
         self.layout.addWidget(self.build_main_space())
         self.layout.addLayout(self.build_export(True, True))
 
