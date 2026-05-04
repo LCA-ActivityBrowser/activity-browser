@@ -13,9 +13,14 @@ const clamp = function (num, min, max) {
 };
 
 const getGraphConfig = function () {
-    return {
+    var cfg = {
         rankdir: graph_direction,
     };
+    if (is_sankey_mode) {
+        // Reduce inter-rank spacing for denser Sankey node stacking.
+        cfg.ranksep = 26;
+    }
+    return cfg;
 };
 
 /**
@@ -58,6 +63,188 @@ function getWindowSize() {
     return {x, y};
 };
 
+/**
+ * Sankey-only: fixed overview of the full graph; a red-outlined viewport shows main zoom/pan.
+ * Drag the viewport or wheel on the minimap to change only the main Sankey transform.
+ */
+function abCreateSankeyPanMinimap(opts) {
+    var innerWrapper = opts.innerWrapper;
+    var panCanvas = opts.panCanvas;
+    var zoomMain = opts.zoomMain;
+    var getVpW = opts.getVpW;
+    var getVpH = opts.getVpH;
+
+    var MM_W = 200;
+    var MM_H = 130;
+    var INSET = 5;
+    var clipId = "abSankeyPmClip_qwpyza";
+
+    var lastMain = d3.zoomIdentity;
+    var overviewOx = INSET + 2;
+    var overviewOy = INSET + 2;
+    var overviewSc = 0.12;
+
+    var root = opts.svg.append("g").attr("class", "ab-sankey-pan-minimap");
+
+    var defs = root.append("defs");
+    defs.append("clipPath")
+        .attr("id", clipId)
+        .append("rect")
+        .attr("x", INSET)
+        .attr("y", INSET)
+        .attr("width", MM_W - 2 * INSET)
+        .attr("height", MM_H - 2 * INSET);
+
+    root.append("rect")
+        .attr("class", "ab-sankey-pm-chrome")
+        .attr("rx", 5)
+        .attr("ry", 5)
+        .attr("fill", "rgba(255,255,255,0.96)")
+        .attr("stroke", "#333")
+        .attr("stroke-width", 2)
+        .attr("pointer-events", "none")
+        .attr("x", 0)
+        .attr("y", 0)
+        .attr("width", MM_W)
+        .attr("height", MM_H);
+
+    var layer = root.append("g")
+        .attr("clip-path", "url(#" + clipId + ")");
+
+    var graphWrap = layer.append("g")
+        .attr("class", "ab-sankey-pm-graph")
+        .attr("pointer-events", "none");
+
+    var viewport = layer.append("rect")
+        .attr("class", "ab-sankey-pm-viewport")
+        .attr("fill", "rgba(245, 245, 245, 0.1)")
+        .attr("stroke", "#c62828")
+        .attr("stroke-width", 2)
+        .attr("pointer-events", "all")
+        .attr("rx", 2)
+        .attr("ry", 2);
+
+    function toTr(t) {
+        if (!t || typeof t.k !== "number") {
+            return d3.zoomIdentity;
+        }
+        return d3.zoomIdentity.translate(t.x, t.y).scale(t.k);
+    }
+
+    function zoomMainTo(t) {
+        zoomMain.transform(panCanvas, t);
+        innerWrapper.property("__zoom", t);
+        lastMain = t;
+        updateViewportRect(t);
+        if (opts.onHostTransform) {
+            opts.onHostTransform(t);
+        }
+    }
+
+    function graphToMm(gx, gy) {
+        return [overviewOx + gx * overviewSc, overviewOy + gy * overviewSc];
+    }
+
+    function mmToGraph(mx, my) {
+        return [(mx - overviewOx) / overviewSc, (my - overviewOy) / overviewSc];
+    }
+
+    function updateViewportRect(T) {
+        lastMain = T;
+        var tr = toTr(T);
+        var W = getVpW();
+        var H = getVpH();
+        var corners = [[0, 0], [W, 0], [W, H], [0, H]];
+        var mmPts = corners.map(function (c) {
+            var g = tr.invert(c);
+            return graphToMm(g[0], g[1]);
+        });
+        var xs = mmPts.map(function (p) {
+            return p[0];
+        });
+        var ys = mmPts.map(function (p) {
+            return p[1];
+        });
+        var x0 = Math.min.apply(null, xs);
+        var x1 = Math.max.apply(null, xs);
+        var y0 = Math.min.apply(null, ys);
+        var y1 = Math.max.apply(null, ys);
+        viewport
+            .attr("x", x0)
+            .attr("y", y0)
+            .attr("width", Math.max(4, x1 - x0))
+            .attr("height", Math.max(4, y1 - y0));
+    }
+
+    var drag = d3.drag()
+        .on("drag", function () {
+            var dgx = d3.event.dx / overviewSc;
+            var dgy = d3.event.dy / overviewSc;
+            var tr = toTr(lastMain);
+            var Tn = d3.zoomIdentity.translate(tr.x - dgx * tr.k, tr.y - dgy * tr.k).scale(tr.k);
+            zoomMainTo(Tn);
+        });
+
+    viewport.call(drag);
+
+    function wheelHandler(ev) {
+        ev.preventDefault();
+        ev.stopPropagation();
+        var tr = toTr(lastMain);
+        var pt = d3.mouse(layer.node());
+        var gxy = mmToGraph(pt[0], pt[1]);
+        var focal = tr.apply(gxy);
+        var factor = ev.deltaY > 0 ? 0.92 : 1.08;
+        var kNew = clamp(tr.k * factor, 0.25, 5);
+        if (Math.abs(kNew - tr.k) < 1e-6) {
+            return;
+        }
+        var fk = kNew / tr.k;
+        var Tn = d3.zoomIdentity.translate(
+            focal[0] + (tr.x - focal[0]) * fk,
+            focal[1] + (tr.y - focal[1]) * fk
+        ).scale(kNew);
+        zoomMainTo(Tn);
+    }
+
+    layer.node().addEventListener("wheel", wheelHandler, { passive: false });
+
+    function positionRoot(vh) {
+        root.attr("transform", "translate(" + INSET + "," + (vh - MM_H - INSET) + ")");
+    }
+
+    function refreshGraphClone() {
+        graphWrap.selectAll(".ab-sankey-pm-clone").remove();
+        var node = panCanvas.node().cloneNode(true);
+        node.removeAttribute("id");
+        graphWrap.node().appendChild(node);
+        d3.select(node).attr("class", "ab-sankey-pm-clone panCanvas").attr("transform", null);
+        var bb = graphWrap.node().getBBox();
+        var innerW = MM_W - 2 * INSET - 4;
+        var innerH = MM_H - 2 * INSET - 4;
+        var sx = innerW / Math.max(bb.width, 80);
+        var sy = innerH / Math.max(bb.height, 60);
+        overviewSc = Math.min(sx, sy, 0.28);
+        overviewOx = INSET + 2 - bb.x * overviewSc;
+        overviewOy = INSET + 2 - bb.y * overviewSc;
+        graphWrap.attr("transform", "translate(" + overviewOx + "," + overviewOy + ") scale(" + overviewSc + ")");
+        updateViewportRect(lastMain);
+    }
+
+    return {
+        resize: function (vh) {
+            positionRoot(vh);
+        },
+        onMainZoom: function (t) {
+            updateViewportRect(t || d3.zoomIdentity);
+        },
+        refresh: refreshGraphClone,
+        setVisible: function (on) {
+            root.style("display", on ? null : "none");
+        }
+    };
+}
+
 var max_string_length = 20;
 var max_edge_width = 40;
 
@@ -86,17 +273,31 @@ d3.demo.canvas = function () {
 
     "use strict";
     console.log("w: " + globalWidth + " ; h: " + globalHeight)
-    var width = globalWidth * (is_sankey_mode ? 0.9 : 1.0),
-        height = globalHeight * 0.6,
+    var sankeyMainHeightFrac = 0.76;
+    var width = globalWidth * (is_sankey_mode ? 0.99 : 1.0),
+        height = globalHeight * (is_sankey_mode ? sankeyMainHeightFrac : 0.6),
         base = null,
-        wrapperBorder = 0,
-        minimap = null,
-        minimapPadding = 10,
-        minimapScale = 0.1; //reduced minimap scale to (help) prevent graph to exceed panel size
+        wrapperBorder = 0;
 
     //introduced function to reset width/height according to new window sizes
     function updateDimensions(minWidth) {
         getWindowSize();
+        // Sankey: graph size from the canvas div (flex fills the webview below the controls).
+        if (is_sankey_mode) {
+            var el = document.getElementById("canvasqPWKOg");
+            if (el) {
+                var w = el.clientWidth, h = el.clientHeight;
+                if (h < 80) {
+                    h = Math.max(80, Math.floor(window.innerHeight - el.getBoundingClientRect().top - 4));
+                }
+                if (w >= 100 && h >= 80) {
+                    width = w;
+                    height = h;
+                    globalMinWidth = width;
+                    return;
+                }
+            }
+        }
         if (arguments.length) {
             if (minWidth < globalWidth * 0.99) {
                 minWidth = globalWidth * 0.99; // -1% to avoid using scroll bars when not necessary
@@ -107,15 +308,18 @@ d3.demo.canvas = function () {
             minWidth = globalMinWidth;
         }
         width = minWidth;
-        height = globalHeight * (is_sankey_mode ? 0.6 : 0.65);
+        height = globalHeight * (is_sankey_mode ? sankeyMainHeightFrac : 0.65);
     }
 
     function canvas(selection) {
 
         base = selection;
-        //changed location of MiniMap to under the graph for better layout with very wide graphs
-        var svgWidth = (width + (wrapperBorder * 2) + minimapPadding * 2);
-        var svgHeight = (height + (wrapperBorder * 2) + minimapPadding * 2 + (height * minimapScale));
+        var plotTopInset = 0;
+        var sankeyPanMinimap = null;
+        var lastMainTransform = d3.zoomIdentity;
+
+        var svgWidth = (width + (wrapperBorder * 2));
+        var svgHeight = (height + (wrapperBorder * 2));
         var svg = selection.append("svg")
             .attr("class", "svg canvas")
             .attr("width", svgWidth)
@@ -130,62 +334,10 @@ d3.demo.canvas = function () {
             .attr("class", "background")
             .attr("width", width)
             .attr("height", height);
-        svgDefs.append("clipPath")
-            .attr("id", "minimapClipPath_qwpyza")
-            .attr("class", "minimap clipPath")
-            .attr("width", width)
-            .attr("height", height)
-            .append("rect")
-            .attr("class", "background")
-            .attr("width", width)
-            .attr("height", height);
-
-        var filter = svgDefs.append("svg:filter")  // frame of the mini-map
-            .attr("id", "minimapDropShadow_qwpyza")
-            .attr("x", "-20%")
-            .attr("y", "-20%")
-            .attr("width", "150%")
-            .attr("height", "150%");
-        filter.append("svg:feOffset")
-            .attr("result", "offOut")
-            .attr("in", "SourceGraphic")
-            .attr("dx", "1")
-            .attr("dy", "1");
-        filter.append("svg:feColorMatrix")
-            .attr("result", "matrixOut")
-            .attr("in", "offOut")
-            .attr("type", "matrix")
-            .attr("values", "0.1 0 0 0 0 0 0.1 0 0 0 0 0 0.1 0 0 0 0 0 0.5 0");
-        filter.append("svg:feGaussianBlur")
-            .attr("result", "blurOut")
-            .attr("in", "matrixOut")
-            .attr("stdDeviation", "10");
-        filter.append("svg:feBlend")
-            .attr("in", "SourceGraphic")
-            .attr("in2", "blurOut")
-            .attr("mode", "normal");
-
-        var minimapRadialFill = svgDefs.append("radialGradient")
-            .attr('id', "minimapGradient")
-            .attr('gradientUnits', "userSpaceOnUse")
-            .attr('cx', "500")
-            .attr('cy', "500")
-            .attr('r', "400")
-            .attr('fx', "500")
-            .attr('fy', "500");
-        minimapRadialFill.append("stop")
-            .attr("offset", "0%")
-            .attr("stop-color", "#FFFFFF");
-        minimapRadialFill.append("stop")
-            .attr("offset", "40%")
-            .attr("stop-color", "#EEEEEE")
-        minimapRadialFill.append("stop")
-            .attr("offset", "100%")
-            .attr("stop-color", "#E0E0E0");
 
         var outerWrapper = svg.append("g")
             .attr("class", "wrapper outer")
-            .attr("transform", "translate(0, " + minimapPadding + ")");
+            .attr("transform", "translate(0, " + plotTopInset + ")");
         outerWrapper.append("rect")
             .attr("class", "background")
             .attr("width", width + wrapperBorder * 2)
@@ -231,11 +383,12 @@ d3.demo.canvas = function () {
         };
 
         var zoomHandler = function () {
-            panCanvas.attr("transform", d3.event.transform);
-            // here we filter out the emitting of events that originated outside of the normal ZoomBehavior; this prevents an infinite loop
-            // between the host and the minimap
-            if (d3.event.sourceEvent instanceof MouseEvent || d3.event.sourceEvent instanceof WheelEvent) {
-                minimap.update(d3.event.transform);
+            var t = d3.event.transform;
+            panCanvas.attr("transform", t);
+            lastMainTransform = t;
+            innerWrapper.property("__zoom", t);
+            if (sankeyPanMinimap) {
+                sankeyPanMinimap.onMainZoom(t);
             }
             updateCanvasZoomExtents();
         };
@@ -244,45 +397,58 @@ d3.demo.canvas = function () {
 
         innerWrapper.call(zoom);
 
-        // initialize the minimap, passing needed references
-        //changed location of MiniMap to under the graph for better layout with very wide graphs
-        minimap = d3.demo.minimap()
-            .host(canvas)
-            .target(panCanvas)
-            .minimapScale(minimapScale)
-            .x(minimapPadding)
-            .y(height + 2 * minimapPadding);
+        if (is_sankey_mode) {
+            sankeyPanMinimap = abCreateSankeyPanMinimap({
+                svg: svg,
+                innerWrapper: innerWrapper,
+                panCanvas: panCanvas,
+                zoomMain: zoom,
+                getVpW: function () {
+                    return width;
+                },
+                getVpH: function () {
+                    return height;
+                },
+                onHostTransform: function (t) {
+                    lastMainTransform = t;
+                }
+            });
+        }
 
-        svg.call(minimap);
+        canvas.applySankeyMinimapVisibility = function () {
+            if (sankeyPanMinimap) {
+                sankeyPanMinimap.setVisible(window.ab_show_sankey_minimap !== false);
+            }
+        };
 
         /** ADD SHAPE **/
-        // function to update dimensions, reset the canvas (with new dimensions), render the graph in canvas & minimap
         canvas.addItem = function () {
             graph.graph().transition = function (selection) {
                 return selection.transition().duration(300);
             };
             canvas.render();
             panCanvas.call(render, graph);
-            // get panCanvas width here?
-            // pan to node (implement here)
-            var miniMapInterval = setInterval(() => minimap.render(), 100);
+            var miniMapInterval = setInterval(function () {
+                if (sankeyPanMinimap) {
+                    sankeyPanMinimap.refresh();
+                }
+            }, 100);
             setTimeout(function () {
                 clearInterval(miniMapInterval);
             }, 500);
-            updateDimensions(minimap.width());
+            updateDimensions();
         };
 
         /** RENDER **/
         canvas.render = function () {
-            updateDimensions(); //added call to update window sizes
+            updateDimensions();
             svgDefs
                 .select(".clipPath .background")
                 .attr("width", width)
                 .attr("height", height);
-            //changed location of MiniMap to under the graph for better layout with very wide graphs
             svg
                 .attr("width", width + (wrapperBorder * 2))
-                .attr("height", height + (wrapperBorder * 2) + minimapPadding * 2 + (width * minimapScale));
+                .attr("height", plotTopInset + height + (wrapperBorder * 2));
 
             outerWrapper
                 .select(".background")
@@ -302,34 +468,37 @@ d3.demo.canvas = function () {
                 .attr("width", width)
                 .attr("height", height);
 
-            minimap
-                .x(minimapPadding)
-                .y(height + 2 * minimapPadding)
-                .render();
+            if (sankeyPanMinimap) {
+                sankeyPanMinimap.resize(height + plotTopInset);
+                sankeyPanMinimap.refresh();
+                sankeyPanMinimap.onMainZoom(lastMainTransform);
+                canvas.applySankeyMinimapVisibility();
+            }
         };
 
         canvas.reset = function () {
-
-            //svg.call(zoom.event);
-            //svg.transition().duration(750).call(zoom.event);
             zoom.transform(panCanvas, d3.zoomIdentity);
             svg.property("__zoom", d3.zoomIdentity);
-            minimap.update(d3.zoomIdentity);
+            innerWrapper.property("__zoom", d3.zoomIdentity);
+            lastMainTransform = d3.zoomIdentity;
+            if (sankeyPanMinimap) {
+                sankeyPanMinimap.onMainZoom(d3.zoomIdentity);
+            }
         };
 
         canvas.update = function (minimapZoomTransform) {
             zoom.transform(panCanvas, minimapZoomTransform);
-            // update the '__zoom' property with the new transform on the rootGroup which is where the zoomBehavior stores it since it was the
-            // call target during initialization
             innerWrapper.property("__zoom", minimapZoomTransform);
-
+            lastMainTransform = minimapZoomTransform;
+            if (sankeyPanMinimap) {
+                sankeyPanMinimap.onMainZoom(minimapZoomTransform);
+            }
             updateCanvasZoomExtents();
         };
 
         canvas.zoomTo = function (zoomTo) {
-            canvas.update(zoomTo)
-            minimap.update(zoomTo);
-        }
+            canvas.update(zoomTo);
+        };
 
         canvas.zoomToNode = function (nodeId, options = {}) {
             const node = graph.node(nodeId)
@@ -366,175 +535,332 @@ d3.demo.canvas = function () {
     return canvas;
 };
 
+/**
+ * Word-wrap for dagre plain-text edge labels: dagre-d3 splits on "\\n" into tspans.
+ * maxLen approximates "not wider than the node" when chosen from node label widths.
+ */
+function wrapWordsToMaxLineLength(str, maxLen) {
+    if (!str) {
+        return "";
+    }
+    str = String(str).replace(/\s+/g, " ").trim();
+    if (maxLen < 6 || str.length <= maxLen) {
+        return str;
+    }
+    var lines = [];
+    var pos = 0;
+    while (pos < str.length) {
+        var end = Math.min(pos + maxLen, str.length);
+        if (end >= str.length) {
+            lines.push(str.slice(pos).trim());
+            break;
+        }
+        var chunk = str.slice(pos, end);
+        var lastSpace = chunk.lastIndexOf(" ");
+        var cut = lastSpace > 0 ? lastSpace : maxLen;
+        lines.push(str.slice(pos, pos + cut).trim());
+        pos += cut;
+        while (pos < str.length && str[pos] === " ") {
+            pos++;
+        }
+    }
+    return lines.join("\n");
+}
 
-/** MINIMAP **/
-d3.demo.minimap = function () {
+function wrapSankeyEdgeLabelMultiline(text, maxLen) {
+    if (!text) {
+        return "";
+    }
+    var parts = text.split("\n");
+    var flow = (parts[0] || "").trim();
+    var rest = parts.slice(1);
 
-    "use strict";
+    function wrapFlowMaxTwoRows(str, cols) {
+        var cleaned = String(str || "").replace(/\s+/g, " ").trim();
+        if (!cleaned) {
+            return "";
+        }
+        if (cleaned.length <= cols) {
+            return cleaned;
+        }
+        var c1 = cleaned.lastIndexOf(" ", cols);
+        var line1 = (c1 > 0 ? cleaned.slice(0, c1) : cleaned.slice(0, cols)).trim();
+        var tail = (c1 > 0 ? cleaned.slice(c1 + 1) : cleaned.slice(cols)).trim();
+        if (!tail) {
+            return line1;
+        }
+        if (tail.length <= cols) {
+            return line1 + "\n" + tail;
+        }
+        var c2 = tail.lastIndexOf(" ", Math.max(1, cols - 3));
+        var line2 = (c2 > 0 ? tail.slice(0, c2) : tail.slice(0, Math.max(1, cols - 3))).trim();
+        return line1 + "\n" + line2.replace(/[. ]+$/, "") + "...";
+    }
 
-    var minimapScale = 0.1,
-        host = null,
-        base = null,
-        target = null,
-        width = 0,
-        height = 0,
-        x = 0,
-        y = 0;
+    var out = [];
+    if (flow) {
+        out.push(wrapFlowMaxTwoRows(flow, maxLen));
+    }
+    rest.forEach(function (ln) {
+        var w = wrapWordsToMaxLineLength(ln, maxLen);
+        if (w) {
+            out.push(w);
+        }
+    });
+    return out.join("\n");
+}
 
-    function minimap(selection) {
-
-        base = selection;
-
-        var zoom = d3.zoom()
-            .scaleExtent([0.25, 5]);
-
-        // updates the zoom boundaries based on the current size and scale
-        var updateMinimapZoomExtents = function () {
-            var scale = container.property("__zoom").k;
-            var targetWidth = parseInt(target.attr("width"));
-            var targetHeight = parseInt(target.attr("height"));
-            var viewportWidth = host.width();
-            var viewportHeight = host.height();
-            //DISABLED LIMITED TRANSLATION BC OF FAULTY ZOOM BEHAVIOR
-            // # TODO : Find useful way of limiting translation to boundaries of own container
-            //zoom.translateExtent([
-            //    [-viewportWidth/scale, -viewportHeight/scale],
-            //   [(viewportWidth/scale + targetWidth), (viewportHeight/scale + targetHeight)]
-            //]);
-        };
-
-        var zoomHandler = function () {
-            frame.attr("transform", d3.event.transform);
-            // here we filter out the emitting of events that originated outside of the normal ZoomBehavior; this prevents an infinite loop
-            // between the host and the minimap
-            if (d3.event.sourceEvent instanceof MouseEvent || d3.event.sourceEvent instanceof WheelEvent) {
-                // invert the outgoing transform and apply it to the host
-                var transform = d3.event.transform;
-                // ordering matters here! you have to scale() before you translate()
-                var modifiedTransform = d3.zoomIdentity.scale(1 / transform.k).translate(-transform.x, -transform.y);
-                host.update(modifiedTransform);
+/**
+ * Edge label from toggles: Flows (product name), impacts absolute / relative (any subset).
+ */
+function formatSankeyTwoLineEdgeLabel(e) {
+    /* Default on when unset (before wire runs or old HTML without toggles). */
+    var showFlows = window.ab_sankey_show_flows !== false;
+    var showAbs = window.ab_sankey_impact_absolute !== false;
+    var showRel = window.ab_sankey_impact_relative !== false;
+    var flow = (e.product || "").trim();
+    var lines = [];
+    if (showFlows && flow) {
+        lines.push(flow);
+    }
+    var impactLines = [];
+    if (e.impact_cumulative != null && e.impact_unit != null) {
+        if (showAbs) {
+            var x = Number(e.impact_cumulative);
+            impactLines.push((Math.round(x * 1000) / 1000) + " " + e.impact_unit);
+        }
+        if (showRel) {
+            var pctRaw = e.impact_pct_total != null ? Number(e.impact_pct_total) : 0;
+            if (!isFinite(pctRaw)) {
+                pctRaw = 0;
             }
+            impactLines.push((Math.round(pctRaw * 10) / 10) + "%");
+        }
+    } else if (showAbs || showRel) {
+        if (e._sankeyScoreLabel == null && typeof e.label === "string") {
+            e._sankeyScoreLabel = e.label;
+        }
+        var fb = e._sankeyScoreLabel || "";
+        if (fb) {
+            impactLines.push(fb);
+        }
+    }
+    var impactBlock = impactLines.join("\n");
+    if (lines.length && impactBlock) {
+        return lines[0] + "\n" + impactBlock;
+    }
+    if (lines.length) {
+        return lines[0];
+    }
+    if (impactBlock) {
+        return impactBlock;
+    }
+    return " ";
+}
 
-            updateMinimapZoomExtents();
-        };
+function escapeHtmlForSankeyTooltip(s) {
+    if (s == null) {
+        return "";
+    }
+    return String(s)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+}
 
-        zoom.on("zoom", zoomHandler);
+/** Edge hover HTML for Sankey: built in JS from JSON fields (Python only passes data). */
+function buildSankeyEdgeTooltipHtml(e) {
+    if (!e) {
+        return "";
+    }
+    var parts = [];
+    var flow = (e.product || "").trim();
+    if (flow) {
+        parts.push("<b>" + escapeHtmlForSankeyTooltip(flow) + "</b>");
+    }
+    if (e.amount != null && isFinite(Number(e.amount))) {
+        var amt = Number(e.amount);
+        var amtStr = amt === 0 ? "0" : amt.toPrecision(2);
+        var u = (e.amount_unit != null && String(e.amount_unit).trim()) || "";
+        parts.push(escapeHtmlForSankeyTooltip(amtStr) + (u ? " " + escapeHtmlForSankeyTooltip(u) : ""));
+    }
+    if (e.impact_cumulative != null && e.impact_unit != null) {
+        var x = Number(e.impact_cumulative);
+        var pctRaw = e.impact_pct_total != null ? Number(e.impact_pct_total) : 0;
+        if (!isFinite(pctRaw)) {
+            pctRaw = 0;
+        }
+        parts.push(
+            "<b>" +
+                (Math.round(x * 1000) / 1000) +
+                " " +
+                escapeHtmlForSankeyTooltip(String(e.impact_unit)) +
+                "</b> (" +
+                (Math.round(pctRaw * 10) / 10) +
+                "%)"
+        );
+    }
+    if (!parts.length) {
+        return e.tooltip ? String(e.tooltip) : "";
+    }
+    return parts.join("<br>");
+}
 
-        var container = selection.append("g")
-            .attr("class", "minimap");
+function inferSankeyEdgeLabelMaxCols(parsed) {
+    if (!parsed || !parsed.nodes || !parsed.nodes.length) {
+        return 12;
+    }
+    var maxFirst = 10;
+    parsed.nodes.forEach(function (nd) {
+        var lab = nd.label != null ? String(nd.label) : "";
+        var nm = nd.name != null ? String(nd.name) : "";
+        var first = lab.split("\n")[0] || "";
+        var halfName = Math.ceil(nm.length / 2) || 0;
+        maxFirst = Math.max(maxFirst, first.length, Math.min(30, halfName));
+    });
+    return Math.max(8, Math.min(22, maxFirst + 2));
+}
 
-        container.call(zoom);
+/** Sankey node process name is capped to this many wrapped rows. */
+var AB_SANKEY_NODE_NAME_MAX_ROWS = 2;
+/** Sankey process node inner rectangle height is fixed; width adapts and is clamped to 1:1..3:1. */
+var AB_SANKEY_NODE_MIN_ASPECT = 1;
+var AB_SANKEY_NODE_MAX_ASPECT = 3;
+/** Inner height (px) before padding. */
+var AB_SANKEY_NODE_INNER_HEIGHT_PX = 50;
+var AB_SANKEY_NODE_INNER_MIN_WIDTH_PX = Math.round(AB_SANKEY_NODE_INNER_HEIGHT_PX * AB_SANKEY_NODE_MIN_ASPECT);
+var AB_SANKEY_NODE_INNER_MAX_WIDTH_PX = Math.round(AB_SANKEY_NODE_INNER_HEIGHT_PX * AB_SANKEY_NODE_MAX_ASPECT);
+/** Approximate glyph width for node labels; used for width and wrap heuristics. */
+var AB_SANKEY_NODE_CHAR_PX = 5;
+/** Keep text 6px from node boundaries. */
+var AB_SANKEY_NODE_PADDING_X = 6;
+var AB_SANKEY_NODE_PADDING_Y = 6;
 
-        minimap.node = container.node();
+function inferSankeyNodeInnerWidthPx(n) {
+    var nameLines = buildSankeyProcessNameLines(String(n.name != null ? n.name : "(unnamed)"));
+    var maxLineLen = nameLines.reduce(function (mx, ln) {
+        return Math.max(mx, ln.length);
+    }, 8);
+    var targetCols = Math.max(8, maxLineLen);
+    var desired = Math.round(targetCols * AB_SANKEY_NODE_CHAR_PX + 12);
+    return clamp(desired, AB_SANKEY_NODE_INNER_MIN_WIDTH_PX, AB_SANKEY_NODE_INNER_MAX_WIDTH_PX);
+}
 
-        var frame = container.append("g")
-            .attr("class", "frame")
+function inferSankeyNodeWrapColsFromWidth(innerWidthPx) {
+    var usable = Math.max(8, innerWidthPx - 12);
+    return clamp(Math.floor(usable / AB_SANKEY_NODE_CHAR_PX), 8, 36);
+}
 
-        frame.append("rect")
-            .attr("class", "background")
-            .attr("width", width)
-            .attr("height", height)
-            .attr("filter", "url(#minimapDropShadow_qPWKOg)");
+function sankeyNameMaxColsAt3to1() {
+    return inferSankeyNodeWrapColsFromWidth(AB_SANKEY_NODE_INNER_MAX_WIDTH_PX);
+}
 
+function truncateSankeyNameToTwoRowsBudget(text, maxCols) {
+    var maxChars = Math.max(8, maxCols * AB_SANKEY_NODE_NAME_MAX_ROWS);
+    if (text.length <= maxChars) {
+        return text;
+    }
+    return text.slice(0, Math.max(1, maxChars - 3)).replace(/[. ]+$/, "") + "...";
+}
 
-        minimap.update = function (hostTransform) {
-            // invert the incoming zoomTransform; ordering matters here! you have to scale() before you translate()
-            var modifiedTransform = d3.zoomIdentity.scale((1 / hostTransform.k)).translate(-hostTransform.x, -hostTransform.y);
-            // call this.zoom.transform which will reuse the handleZoom method below
-            zoom.transform(frame, modifiedTransform);
-            // update the new transform onto the minimapCanvas which is where the zoomBehavior stores it since it was the call target during initialization
-            container.property("__zoom", modifiedTransform);
-
-            updateMinimapZoomExtents();
-        };
-
-
-        /** RENDER **/
-        minimap.render = function () {
-            // update the placement of the minimap
-            container.attr("transform", "translate(" + x + "," + y + ")scale(" + minimapScale + ")");
-            // update the visualization being shown by the minimap in case its appearance has changed
-            var node = target.node().cloneNode(true);
-            node.removeAttribute("id");
-            base.selectAll(".minimap .panCanvas").remove();
-            minimap.node.appendChild(node); // minimap node is the container's node
-            d3.select(node).attr("transform", "translate(0,0)");
-            // keep the minimap's viewport (frame) sized to match the current visualization viewport dimensions
-            frame.select(".background")
-                .attr("width", Math.max(minimap.width(), globalWidth))
-                .attr("height", height);
-            frame.node().parentNode.appendChild(frame.node());
-        };
-
-        updateMinimapZoomExtents();
+/** Whole-word split into up to two rows, balanced as evenly as possible. */
+function splitSankeyNameEvenlyTwoRows(text, maxCols) {
+    var words = text.split(" ").filter(function (w) { return w.length > 0; });
+    if (!words.length) {
+        return ["(unnamed)"];
+    }
+    if (words.length === 1) {
+        if (words[0].length <= maxCols) {
+            return [words[0]];
+        }
+        return [words[0].slice(0, Math.max(1, maxCols - 3)) + "..."];
     }
 
-
-    //============================================================
-    // Accessors
-    //============================================================
-
-
-    minimap.width = function (value) {
-        var bBox = this.node.getBBox();
-        var w = bBox.width * minimapScale;
-        if (!arguments.length) return w;
-        width = parseInt(value, 10);
-        return this;
-    };
-
-
-    minimap.height = function (value) {
-        if (!arguments.length) return height;
-        height = parseInt(value, 10);
-        return this;
-    };
-
-
-    minimap.x = function (value) {
-        if (!arguments.length) return x;
-        x = parseInt(value, 10);
-        return this;
-    };
-
-
-    minimap.y = function (value) {
-        if (!arguments.length) return y;
-        y = parseInt(value, 10);
-        return this;
-    };
-
-
-    minimap.host = function (value) {
-        if (!arguments.length) {
-            return host;
+    var bestIdx = 1;
+    var bestScore = Number.POSITIVE_INFINITY;
+    for (var i = 1; i < words.length; i++) {
+        var l1 = words.slice(0, i).join(" ");
+        var l2 = words.slice(i).join(" ");
+        var overflow = Math.max(0, l1.length - maxCols) + Math.max(0, l2.length - maxCols);
+        var balance = Math.abs(l1.length - l2.length);
+        var score = overflow * 1000 + balance;
+        if (score < bestScore) {
+            bestScore = score;
+            bestIdx = i;
         }
-        host = value;
-        return this;
     }
 
+    var line1 = words.slice(0, bestIdx).join(" ").trim();
+    var line2 = words.slice(bestIdx).join(" ").trim();
 
-    minimap.minimapScale = function (value) {
-        if (!arguments.length) {
-            return minimapScale;
+    if (line1.length > maxCols) {
+        var c1 = line1.lastIndexOf(" ", maxCols);
+        var head1;
+        var tailFromL1;
+        if (c1 > 0) {
+            head1 = line1.slice(0, c1).trim();
+            tailFromL1 = line1.slice(c1 + 1).trim();
+        } else {
+            head1 = line1.slice(0, maxCols).trim();
+            tailFromL1 = line1.slice(maxCols).trim();
         }
-        minimapScale = value;
-        return this;
-    };
-
-
-    minimap.target = function (value) {
-        if (!arguments.length) {
-            return target;
+        line1 = head1;
+        if (tailFromL1) {
+            line2 = (tailFromL1 + (line2 ? " " + line2 : "")).trim();
         }
-        target = value;
-        width = parseInt(target.attr("width"), 10);
-        height = parseInt(target.attr("height"), 10);
-        return this;
-    };
+    }
+    if (line2.length > maxCols) {
+        var c2 = line2.lastIndexOf(" ", Math.max(1, maxCols - 3));
+        if (c2 > 0) {
+            line2 = line2.slice(0, c2).trim().replace(/[. ]+$/, "") + "...";
+        } else {
+            line2 = line2.slice(0, Math.max(1, maxCols - 3)).replace(/[. ]+$/, "") + "...";
+        }
+    }
+    return line2 ? [line1, line2] : [line1];
+}
 
-    return minimap;
-};
+/** Build process-name lines from a strict 2-row budget at 3:1 max ratio. */
+function buildSankeyProcessNameLines(rawName) {
+    var text = String(rawName || "").replace(/\s+/g, " ").trim();
+    if (!text) {
+        return ["(unnamed)"];
+    }
+    var maxCols = sankeyNameMaxColsAt3to1();
+    var trimmed = truncateSankeyNameToTwoRowsBudget(text, maxCols);
+    return splitSankeyNameEvenlyTwoRows(trimmed, maxCols);
+}
+
+/** Sankey node label as plain text (SVG tspans). */
+function formatSankeyNodePlainTextLabel(n, wrapCols) {
+    var rawName = String(n.name != null ? n.name : "(unnamed)");
+    var nameLines = buildSankeyProcessNameLines(rawName)
+        .map(function (x) { return x.trim(); })
+        .filter(function (x) { return x.length > 0; });
+    if (!nameLines.length) {
+        nameLines = ["(unnamed)"];
+    }
+
+    var loc = String(n.location != null ? n.location : "").trim();
+    var lines = nameLines.slice();
+    if (loc) {
+        lines.push(loc);
+    }
+
+    var pctStr = "";
+    if (n.direct_emissions_score_normalized != null) {
+        var p = Number(n.direct_emissions_score_normalized);
+        if (isFinite(p)) {
+            pctStr = String(Math.round(p * 10000) / 100) + "%";
+        }
+    }
+    if (pctStr) {
+        lines.push(pctStr);
+    }
+    return lines.join("\n");
+}
+
 
 /** GRAPH **/
 const cartographer = function () {
@@ -588,11 +914,7 @@ const cartographer = function () {
         // listener for mouse-hovers
         var edges = panCanvas.selectAll("g .edgePath")
             .on("mouseover", handleMouseOverEdge)
-            .on("mouseout", function (d) {
-                div.transition()
-                    .duration(500)
-                    .style("opacity", 0);
-            });
+            .on("mouseout", handleMouseOutEdge);
 
         if (is_sankey_mode) {
             edges.attr("stroke-width", function (d) {
@@ -608,6 +930,10 @@ const cartographer = function () {
                 if (!this.attributes["marker-end"]) return null;
                 else return "url(" + /url\(.*?(#.*?)\)/.exec(this.attributes["marker-end"].textContent)[1] + ")";
             });
+
+            panCanvas.selectAll("g.edgeLabel")
+                .on("mouseover", handleMouseOverEdge)
+                .on("mouseout", handleMouseOutEdge);
         }
 
         if (interactive) {
@@ -691,7 +1017,13 @@ const cartographer = function () {
     cartographer.update_graph = function (json_data) {
         console.log("Updating Graph");
         data = JSON.parse(json_data);
-        if (data.title) {heading.innerHTML = data.title};
+        if (is_sankey_mode && data.nodes) {
+            data._sankeyEdgeWrapCols = inferSankeyEdgeLabelMaxCols(data);
+        }
+        var headingEl = document.getElementById("heading");
+        if (data.title && headingEl) {
+            headingEl.innerHTML = data.title;
+        }
         // Reset graph to empty
         graph = new dagre.graphlib.Graph({multigraph: true}).setGraph(getGraphConfig());
         console.log(JSON.stringify(graph))
@@ -706,10 +1038,29 @@ const cartographer = function () {
         cartographer.renderGraph({center: true});
     };
 
+    cartographer.applySankeyEdgeLabels = function () {
+        if (!is_sankey_mode || typeof data === "undefined" || !data || !data.edges) {
+            return;
+        }
+        data.edges.forEach(buildGraphEdge);
+        cartographer.renderGraph({ center: false });
+    };
+
     const buildGraphNode = function (n) {
         if (!is_sankey_mode) {
             n.label = formatNodeText(n['name'], n['location']);
             n.labelType = "html";
+        } else {
+            var innerWidth = inferSankeyNodeInnerWidthPx(n);
+            var wrapCols = inferSankeyNodeWrapColsFromWidth(innerWidth);
+            n.label = formatSankeyNodePlainTextLabel(n, wrapCols);
+            delete n.labelType;
+            n.width = innerWidth;
+            n.height = AB_SANKEY_NODE_INNER_HEIGHT_PX;
+            n.paddingLeft = AB_SANKEY_NODE_PADDING_X;
+            n.paddingRight = AB_SANKEY_NODE_PADDING_X;
+            n.paddingTop = AB_SANKEY_NODE_PADDING_Y;
+            n.paddingBottom = AB_SANKEY_NODE_PADDING_Y;
         }
         if (interactive) {
             n.expanded = n['expanded']
@@ -725,6 +1076,13 @@ const cartographer = function () {
             e.label = formatEdgeText(e['product'], max_string_length);
             e.labelType = "html";
             e.arrowhead = "vee";
+        } else {
+            /* Sankey: plain-text labels only (see formatSankeyTwoLineEdgeLabel). */
+            var joinLabel = formatSankeyTwoLineEdgeLabel(e);
+            var wrapCols = (data && data._sankeyEdgeWrapCols) ? data._sankeyEdgeWrapCols : 12;
+            e.label = wrapSankeyEdgeLabelMultiline(joinLabel, wrapCols);
+            delete e.labelType;
+            delete e.arrowhead;
         }
 
         graph.setEdge(e['source_id'], e['target_id'], e);
@@ -806,14 +1164,22 @@ const cartographer = function () {
             .style("opacity", 0);
     }
 
+    const handleMouseOutEdge = function () {
+        div.transition()
+            .duration(500)
+            .style("opacity", 0);
+    };
+
     const handleMouseOverEdge = function (e) {
         edge = graph.edge(e);
         div.transition()
             .duration(200)
             .style("opacity", .9);
-        div.html(edge.tooltip)
-            .style("left", (d3.event.pageX) + "px")
-            .style("top", (d3.event.pageY - 28) + "px");
+        var tipHtml = is_sankey_mode ? buildSankeyEdgeTooltipHtml(edge) : (edge.tooltip || "");
+        /* Multi-line edge tooltips: sit above + slightly right of cursor so the pointer does not cover text. */
+        div.html(tipHtml)
+            .style("left", (d3.event.pageX + 12) + "px")
+            .style("top", (d3.event.pageY - 56) + "px");
     };
 };
 
@@ -824,9 +1190,31 @@ const cartographer = function () {
 var canvas = d3.demo.canvas();
 d3.select("#canvasqPWKOg").call(canvas);
 
-d3.select("#resetButtonqPWKOg").on("click", function () {
-    canvas.reset();
-});
+(function wireSankeyMinimapToggle() {
+    if (!is_sankey_mode) {
+        return;
+    }
+    var cb = document.getElementById("sankeyMinimapVisible");
+    if (!cb) {
+        return;
+    }
+    window.ab_show_sankey_minimap = cb.checked;
+    cb.addEventListener("change", function () {
+        window.ab_show_sankey_minimap = cb.checked;
+        if (canvas.applySankeyMinimapVisibility) {
+            canvas.applySankeyMinimapVisibility();
+        }
+    });
+})();
+
+(function wireResetZoom() {
+    var resetSel = d3.select("#resetButtonqPWKOg");
+    if (!resetSel.empty()) {
+        resetSel.on("click", function () {
+            canvas.reset();
+        });
+    }
+})();
 
 d3.select("#downloadSVGtButtonqPWKOg").on("click", function () {
 
@@ -866,6 +1254,28 @@ d3.select("#downloadSVGtButtonqPWKOg").on("click", function () {
 var render = dagreD3.render();
 var graph = new dagre.graphlib.Graph({multigraph: true}).setGraph(getGraphConfig());
 cartographer();
+
+(function wireSankeyLabelOptionToggles() {
+    if (!is_sankey_mode) {
+        return;
+    }
+    function bindCheckbox(id, globalProp) {
+        var el = document.getElementById(id);
+        if (!el) {
+            return;
+        }
+        window[globalProp] = el.checked;
+        el.addEventListener("change", function () {
+            window[globalProp] = el.checked;
+            if (cartographer.applySankeyEdgeLabels) {
+                cartographer.applySankeyEdgeLabels();
+            }
+        });
+    }
+    bindCheckbox("sankeyFlowsVisible", "ab_sankey_show_flows");
+    bindCheckbox("sankeyImpactAbsoluteVisible", "ab_sankey_impact_absolute");
+    bindCheckbox("sankeyImpactRelativeVisible", "ab_sankey_impact_relative");
+})();
 
 /* END OF ADAPTED DEMO SCRIPT*/
 
@@ -926,3 +1336,12 @@ const rerenderGraph = debounce(rerenderGraphImp, 500)
 window.addEventListener('resize', function (event) {
     rerenderGraph()
 }, true);
+
+if (is_sankey_mode) {
+    setTimeout(function () {
+        canvas.render();
+        if (graph && typeof graph.nodes === "function" && graph.nodes().length) {
+            rerenderGraphImp();
+        }
+    }, 0);
+}

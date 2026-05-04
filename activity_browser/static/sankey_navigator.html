@@ -1,11 +1,9 @@
 <!DOCTYPE html>
-<html>
+<html class="ab-sankey-root">
 <meta  name="viewport" content="user-scalable=no, initial-scale=1, maximum-scale=1"><meta charset="utf-8">
 <!-- http-equiv="content-type" content="user-scalable=no, intial-scale=1"-->
 
-<body>
-<h3 id="heading">Graph LCA</h3>
-
+<body class="ab-sankey-tab">
 <!--<p id="function" ></p>-->
 
 <!--<p id="data"> </p>-->
@@ -19,15 +17,18 @@
 <!--<script type="text/javascript_libs" src="jquery.tipsy.js"></script>-->
 <link href="css/navigator.common.css" rel="stylesheet" type="text/css" />
 <link href="css/sankey_navigator.css" rel="stylesheet" type="text/css" />
-<section>
-    <button id="resetButtonqPWKOg">Reset Zoom</button>
-    <button id="downloadSVGtButtonqPWKOg">Download SVG</button>
-</section>
-<section>
-    <select id="nodeSelectPWK0g"></select>
-    <button id="nodeSelectPWK0gExecute">Go to Node</button>
-</section>
 <div id="canvasqPWKOg" class="canvas"></div>
+<section class="ab-sankey-controls" aria-label="Sankey actions">
+    <button type="button" id="downloadSVGtButtonqPWKOg">Download SVG</button>
+    <select id="nodeSelectPWK0g" aria-label="Process"></select>
+    <button type="button" id="nodeSelectPWK0gExecute">Goto Process</button>
+    <label class="ab-sankey-minimap-label"><input type="checkbox" id="sankeyMinimapVisible" checked /> Minimap</label>
+    <label class="ab-sankey-flows-label"><input type="checkbox" id="sankeyFlowsVisible" checked /> Flows</label>
+    <span class="ab-sankey-impact-toggles" aria-label="Impact lines on flows">
+        <label><input type="checkbox" id="sankeyImpactAbsoluteVisible" checked /> absolute</label>
+        <label><input type="checkbox" id="sankeyImpactRelativeVisible" checked /> relative</label>
+    </span>
+</section>
 <script type="text/javascript" src="javascript/navigator.js"></script>
 
 </body>

@@ -14,14 +14,58 @@ from qtpy import QtWidgets
 from qtpy.QtCore import Slot
 from qtpy.QtWidgets import QComboBox
 
-from activity_browser import app
 from activity_browser.mod import bw2data as bd
 from bw2data.backends import ActivityDataset
 
 from activity_browser.bwutils.commontasks import identify_activity_type
 from activity_browser.bwutils.filesystem import get_package_path
-from activity_browser.ui import widgets
+from activity_browser.ui import icons, widgets
 
+from .style import header, horizontal_line
+
+
+def _flow_product_name_from_edge(lca, edge: GraphEdge) -> str:
+    """Human-readable product on this technosphere edge.
+
+    GraphTraversal ``Edge`` objects expose ``product_index`` (technosphere matrix row)
+    but not a label string; resolve the row via ``lca.reverse_dict()`` /
+    ``product_dict_rev`` and Brightway node metadata.
+    """
+    try:
+        if getattr(lca, "product_dict_rev", None) is None:
+            rev = lca.reverse_dict()
+            if not isinstance(rev, tuple) or len(rev) < 3:
+                return ""
+            lca.activity_dict_rev, lca.product_dict_rev, lca.biosphere_dict_rev = rev
+    except Exception:
+        return ""
+    try:
+        key = lca.product_dict_rev.get(edge.product_index)
+        if key is None:
+            return ""
+    except Exception:
+        return ""
+    try:
+        if isinstance(key, tuple) and len(key) >= 2:
+            node = bd.get_activity(key)
+        else:
+            node = bd.get_node(id=key)
+    except Exception:
+        return ""
+    if not node:
+        return ""
+    return (node.get("reference product") or node.get("name") or "").strip()
+
+
+def _header_layout_with_help(header_text: str, help_widget: QtWidgets.QWidget) -> QtWidgets.QVBoxLayout:
+    hlayout = QtWidgets.QHBoxLayout()
+    hlayout.addWidget(header(header_text))
+    hlayout.addWidget(help_widget)
+    hlayout.setStretch(0, 1)
+    vlayout = QtWidgets.QVBoxLayout()
+    vlayout.addLayout(hlayout)
+    vlayout.addWidget(horizontal_line())
+    return vlayout
 
 
 class SankeyNavigatorWidget(widgets.ABAbstractNavigator):
@@ -41,7 +85,6 @@ class SankeyNavigatorWidget(widgets.ABAbstractNavigator):
         self.parent = parent
         self.has_scenarios = self.parent.has_scenarios
         self.cs = cs_name
-        self.selected_db = None
         self.has_sankey = False
         self.func_units = []
         self.methods = []
@@ -58,6 +101,13 @@ class SankeyNavigatorWidget(widgets.ABAbstractNavigator):
         self.button_calculate = QtWidgets.QPushButton("Calculate")
         self.layout = QtWidgets.QVBoxLayout()
 
+        self.help_button = QtWidgets.QToolBar(self)
+        self.help_button.addAction(
+            icons.qicons.question,
+            "Left click for help on the Sankey diagram",
+            self.show_sankey_help,
+        )
+
         # graph
         self.draw_graph()
         self.construct_layout()
@@ -68,11 +118,21 @@ class SankeyNavigatorWidget(widgets.ABAbstractNavigator):
         if self.has_sankey:
             self.send_json()
 
+    @Slot()
+    def show_sankey_help(self):
+        QtWidgets.QMessageBox.question(
+            self,
+            "Sankey",
+            self.HELP_TEXT.strip(),
+            QtWidgets.QMessageBox.Ok,
+            QtWidgets.QMessageBox.Ok,
+        )
+
     def connect_signals(self):
-        super().connect_signals()
+        self.button_back.clicked.connect(self.go_back)
+        self.button_forward.clicked.connect(self.go_forward)
+        self.button_refresh.clicked.connect(self.draw_graph)
         self.button_calculate.clicked.connect(self.new_sankey)
-        app.signals.database_selected.connect(self.set_database)
-        # checkboxes
         self.func_unit_cb.currentIndexChanged.connect(self.new_sankey)
         self.method_cb.currentIndexChanged.connect(self.new_sankey)
         self.scenario_cb.currentIndexChanged.connect(self.new_sankey)
@@ -80,58 +140,58 @@ class SankeyNavigatorWidget(widgets.ABAbstractNavigator):
     def construct_layout(self) -> None:
         """Layout of Sankey Navigator"""
         super().construct_layout()
-        self.label_help.setVisible(False)
+        self.label_help.hide()
+        self.button_random_activity.hide()
+        self.button_toggle_help.hide()
 
-        # Layout Reference Flows and Impact Categories
-        grid_lay = QtWidgets.QGridLayout()
-        grid_lay.addWidget(QtWidgets.QLabel("Reference flow: "), 0, 0)
-
-        grid_lay.addWidget(self.scenario_label, 1, 0)
-        grid_lay.addWidget(QtWidgets.QLabel("Impact indicator: "), 2, 0)
+        self.layout.setContentsMargins(4, 2, 4, 2)
+        self.layout.setSpacing(4)
 
         self.update_calculation_setup()
 
-        grid_lay.addWidget(self.func_unit_cb, 0, 1)
-        grid_lay.addWidget(self.scenario_cb, 1, 1)
-        grid_lay.addWidget(self.method_cb, 2, 1)
+        self.layout.addLayout(_header_layout_with_help("Sankey", self.help_button))
 
-        # cut-off
-        grid_lay.addWidget(QtWidgets.QLabel("Cutoff: "), 2, 2)
+        fixed = QtWidgets.QSizePolicy.Fixed
+        for btn in (self.button_back, self.button_forward):
+            btn.setSizePolicy(fixed, fixed)
+
+        top_row = QtWidgets.QHBoxLayout()
+        top_row.setSpacing(4)
+        top_row.addWidget(self.button_back)
+        top_row.addWidget(self.button_forward)
+        top_row.addWidget(self.button_refresh)
+        top_row.addSpacing(12)
+
         self.cutoff_sb.setRange(0.0, 1.0)
         self.cutoff_sb.setSingleStep(0.01)
         self.cutoff_sb.setDecimals(3)
         self.cutoff_sb.setValue(0.05)
         self.cutoff_sb.setKeyboardTracking(False)
-        grid_lay.addWidget(self.cutoff_sb, 2, 3)
+        top_row.addWidget(QtWidgets.QLabel("Cutoff:"))
+        top_row.addWidget(self.cutoff_sb)
 
-        # max-iterations of graph traversal
-        grid_lay.addWidget(QtWidgets.QLabel("Calculation depth: "), 2, 4)
         self.max_calc_sb.setRange(1, 2000)
         self.max_calc_sb.setSingleStep(50)
         self.max_calc_sb.setDecimals(0)
         self.max_calc_sb.setValue(250)
         self.max_calc_sb.setKeyboardTracking(False)
-        grid_lay.addWidget(self.max_calc_sb, 2, 5)
+        top_row.addWidget(QtWidgets.QLabel("Depth:"))
+        top_row.addWidget(self.max_calc_sb)
+        top_row.addWidget(self.button_calculate)
+        top_row.addStretch(1)
 
-        grid_lay.setColumnStretch(6, 1)
-        hlay = QtWidgets.QHBoxLayout()
-        hlay.addLayout(grid_lay)
+        params_row = QtWidgets.QHBoxLayout()
+        params_row.setSpacing(6)
+        params_row.addWidget(QtWidgets.QLabel("Reference flow:"))
+        params_row.addWidget(self.func_unit_cb, 1)
+        params_row.addWidget(QtWidgets.QLabel("Impact:"))
+        params_row.addWidget(self.method_cb, 1)
+        params_row.addWidget(self.scenario_label)
+        params_row.addWidget(self.scenario_cb)
 
-        # Controls Layout
-        hl_controls = QtWidgets.QHBoxLayout()
-        hl_controls.addWidget(self.button_back)
-        hl_controls.addWidget(self.button_forward)
-        hl_controls.addWidget(self.button_calculate)
-        hl_controls.addWidget(self.button_refresh)
-        hl_controls.addWidget(self.button_random_activity)
-        hl_controls.addWidget(self.button_toggle_help)
-        hl_controls.addStretch(1)
-
-        # Layout
-        self.layout.addLayout(hl_controls)
-        self.layout.addLayout(hlay)
-        self.layout.addWidget(self.label_help)
-        self.layout.addWidget(self.view)
+        self.layout.addLayout(top_row)
+        self.layout.addLayout(params_row)
+        self.layout.addWidget(self.view, 1)
         self.setLayout(self.layout)
 
     def get_scenario_labels(self) -> List[str]:
@@ -268,21 +328,9 @@ class SankeyNavigatorWidget(widgets.ABAbstractNavigator):
         self.has_sankey = bool(self.graph.json_data)
         self.send_json()
 
-    def set_database(self, name):
-        """Saves the currently selected database for graphing a random activity"""
-        self.selected_db = name
-
     def random_graph(self) -> None:
-        """Show graph for a random activity in the currently loaded database."""
-        if self.selected_db:
-            method = bd.methods.random()
-            act = bd.Database(self.selected_db).random()
-            demand = {act: 1.0}
-            self.update_sankey(demand, method)
-        else:
-            QtWidgets.QMessageBox.information(
-                None, "Not possible.", "Please load a database first."
-            )
+        """Not used in the Sankey tab (random activity is not offered here)."""
+        pass
 
 
 def convert_numpy_types(obj) -> int | float | list:
@@ -335,7 +383,6 @@ class Graph(widgets.ABAbstractGraph):
         ```python
         {
             'max_impact': float,  # Total LCA score,
-            'title': str,  # Graph title
             'edges': [{
                 'source_id': int,  # Unique ID of producer of material or energy in graph
                 'target_id': int,  # Unique ID of consumer of material or energy in graph
@@ -373,18 +420,26 @@ class Graph(widgets.ABAbstractGraph):
             lcia_unit: str,
             max_edge_width: int = 40,
         ) -> dict:
+            lca = data["metadata"]["lca"]
             cum_score = nodes[edge.producer_unique_id].cumulative_score
             unit = bd.get_node(
                 id=nodes[edge.producer_unique_id].reference_product_datapackage_id
             ).get("unit", "(unknown)")
+            total = float(total_score) if total_score else 0.0
+            pct_of_total = (float(cum_score) / total * 100.0) if total else 0.0
             return {
                 "source_id": edge.producer_unique_id,
                 "target_id": edge.consumer_unique_id,
                 "amount": edge.amount,
-                "weight": abs(cum_score / total_score) * max_edge_width,
+                "amount_unit": str(unit),
+                "weight": abs(cum_score / (total_score or 1)) * max_edge_width,
                 "label": f"{round(cum_score, 3)} {lcia_unit}",
+                "impact_cumulative": float(cum_score),
+                "impact_pct_total": float(pct_of_total),
+                "impact_unit": str(lcia_unit),
                 "class": "benefit" if cum_score < 0 else "impact",
                 "tooltip": f"<b>{round(cum_score, 3)} {lcia_unit}</b> ({edge.amount:.2g} {unit})",
+                "product": _flow_product_name_from_edge(lca, edge),
             }
 
         def convert_node_to_json(
@@ -443,28 +498,9 @@ class Graph(widgets.ABAbstractGraph):
                 for edge in data["edges"]
                 if edge.producer_index != -1 and edge.consumer_index != -1
             ],
-            "title": "Sankey graph result",
-            # "title": self.build_title(demand, lca_score, lcia_unit),
         }
 
         return json.dumps(json_data)
-
-    def build_title(self, demand: tuple, lca_score: float, lcia_unit: str) -> str:
-        act, amount = demand[0], demand[1]
-        if type(act) is tuple or type(act) is int:
-            act = bd.get_activity(act)
-        format_str = (
-            "Reference flow: {:.2g} {} {} | {} | {} <br>" "Total impact: {:.2g} {}"
-        )
-        return format_str.format(
-            amount,
-            act.get("unit"),
-            act.get("reference product") or act.get("name"),
-            act.get("name"),
-            act.get("location"),
-            lca_score,
-            lcia_unit,
-        )
 
 
 def id_to_key(id):

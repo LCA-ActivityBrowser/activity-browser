@@ -42,6 +42,7 @@ class LCAResultsBarChart(ABPlot):
         self.ax.grid(which="major", axis="x", color="grey", linestyle="dashed")
         self.ax.set_axisbelow(True)  # puts gridlines behind bars
 
+        self._set_plot_chrome_white()
         # draw
         self.canvas.draw()
 
@@ -94,7 +95,7 @@ class LCAResultsPlot(ABPlot):
                 "size": 11 if dfp.shape[1] <= 8 else 9,
                 "rotation": 0 if dfp.shape[1] <= 8 else 60,
             },
-            cbar_kws={"format": "%.0f%%"},
+            cbar=False,
         )
         self.ax.tick_params(labelsize=8)
         if dfp.shape[1] > 5:
@@ -107,6 +108,7 @@ class LCAResultsPlot(ABPlot):
         size_pixels = self.figure.get_size_inches() * self.figure.dpi
         self.setMinimumHeight(size_pixels[1])
 
+        self._set_plot_chrome_white()
         self.canvas.draw()
 
 
@@ -191,10 +193,12 @@ class ContributionPlot(ABPlot):
         # total marker when enabled and both negative and positive results are present in a column
         if self.parent.score_marker:
             marker_size = max(min(150 / dfp.shape[1], 35), 10)  # set marker size dynamic between 10 - 35
-            for i, col in enumerate(dfp):
-                total = np.sum(dfp[col])
-                abs_total = np.sum(np.abs(dfp[col]))
-                if abs(total) != abs_total:
+            # Use iloc so each column is always a 1D Series (duplicate column labels make dfp[col] a DataFrame).
+            for i in range(dfp.shape[1]):
+                s = dfp.iloc[:, i]
+                total = float(s.sum())
+                abs_total = float(s.abs().sum())
+                if not math.isclose(abs(total), abs_total, rel_tol=1e-9, abs_tol=1e-15):
                     self.ax.plot(total, i,
                                  markersize=marker_size, marker="d", fillstyle="left",
                                  markerfacecolor="black", markerfacecoloralt="grey", markeredgecolor="white")
@@ -207,6 +211,7 @@ class ContributionPlot(ABPlot):
 
         size_pixels = self.figure.get_size_inches() * self.figure.dpi
         self.setMinimumHeight(size_pixels[1])
+        self._set_plot_chrome_white()
         self.canvas.draw()
 
 
@@ -271,6 +276,7 @@ class CorrelationPlot(ABPlot):
         # refresh canvas
         size_pixels = self.figure.get_size_inches() * self.figure.dpi
         self.setMinimumHeight(size_pixels[1])
+        self._set_plot_chrome_white()
         self.canvas.draw()
 
 
@@ -284,18 +290,24 @@ class MonteCarloPlot(ABPlot):
     def plot(self, df: pd.DataFrame, method: tuple):
         self.ax.clear()
 
-        for col in df.columns:
+        # Use Axes.hist per series. Use iloc so duplicate column labels (possible after
+        # get_labels) never return a 2-column DataFrame — 2D input makes hist() treat each
+        # column as a separate dataset and reject a single color=.
+        for j in range(df.shape[1]):
+            series = df.iloc[:, j]
+            vals = np.ravel(np.asarray(series.dropna(), dtype=float))
+            if vals.size == 0:
+                continue
             color = self.ax._get_lines.get_next_color()
-            df[col].hist(
-                ax=self.ax,
-                figure=self.figure,
-                label=col,
+            label = str(df.columns[j])
+            self.ax.hist(
+                vals,
                 density=True,
-                color=color,
                 alpha=0.5,
-            )  # , histtype="step")
-            # self.ax.axvline(df[col].median(), color=color)
-            self.ax.axvline(df[col].mean(), color=color)
+                label=label,
+                color=color,
+            )
+            self.ax.axvline(float(np.mean(vals)), color=color)
 
         self.ax.set_xlabel(methods[method]["unit"])
         self.ax.set_ylabel("Probability")
@@ -306,4 +318,5 @@ class MonteCarloPlot(ABPlot):
 
         # lconfi, upconfi =mc['statistics']['interval'][0], mc['statistics']['interval'][1]
 
+        self._set_plot_chrome_white()
         self.canvas.draw()

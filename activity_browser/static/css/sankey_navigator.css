@@ -173,6 +173,15 @@ text {
   /*fill: black;*/
   opacity: 0.3;
 }
+
+/* Sankey: hover hit-testing on flow strokes + edge labels */
+body.ab-sankey-tab g.edgePath path.path {
+  pointer-events: stroke;
+}
+
+body.ab-sankey-tab g.edgeLabel {
+  pointer-events: all;
+}
 /*.edgePath marker {
   fill: darkgrey; /* Arrow head */
   /*opacity: 1;
@@ -180,6 +189,14 @@ text {
 
 .edgeLabel {
     fill: darkblue;  /* text color of edges*/
+}
+
+/* Slightly smaller edge labels + tighter line height reduce overlap between neighboring links */
+body.ab-sankey-tab g.edgeLabel text {
+  font-size: 11px;
+}
+body.ab-sankey-tab g.edgeLabel tspan {
+  font-size: 11px;
 }
 
 
@@ -225,4 +242,76 @@ div.tooltip {
     border-radius: 8px;
     pointer-events: none;
     /*color: red;*/
+}
+
+/* Fill the webview: flex gives #canvasqPWKOg the height Qt leaves below the controls. */
+html.ab-sankey-root,
+body.ab-sankey-tab {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html.ab-sankey-root {
+  overflow: hidden;
+}
+
+body.ab-sankey-tab {
+  display: flex;
+  flex-direction: column;
+}
+
+body.ab-sankey-tab #canvasqPWKOg.canvas {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+}
+
+body.ab-sankey-tab .ab-sankey-controls {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.5em 0.75em;
+  margin: 0.35em 0.35em 0.45em 0.35em;
+  flex-shrink: 0;
+  overflow-x: auto;
+}
+
+body.ab-sankey-tab .ab-sankey-controls select#nodeSelectPWK0g {
+  min-width: 10em;
+  flex: 1 1 8em;
+  max-width: min(28em, 45vw);
+}
+
+body.ab-sankey-tab .ab-sankey-minimap-label,
+body.ab-sankey-tab .ab-sankey-flows-label {
+  margin-left: 0;
+  font-size: 0.95em;
+  white-space: nowrap;
+}
+
+body.ab-sankey-tab .ab-sankey-impact-toggles {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 0.25em 0.55em;
+  font-size: 0.95em;
+  white-space: nowrap;
+}
+
+body.ab-sankey-tab svg g.ab-sankey-pan-minimap {
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.22));
+}
+
+/* Plain-text Sankey node labels (SVG text + tspans) */
+body.ab-sankey-tab g.node text {
+  font-size: 12px;
+}
+
+/* Geography line (second last tspan) in Sankey node labels */
+body.ab-sankey-tab g.node text tspan:nth-last-child(2) {
+  fill: #666;
+   font-size: 11px;
 }

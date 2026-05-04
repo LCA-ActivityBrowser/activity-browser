@@ -66,6 +66,16 @@ def get_unit(method: tuple, relative: bool = False) -> str:
 Tabs = namedtuple(
     "tabs", ("inventory", "results", "ef", "process", "sankey", "tree", "mc", "gsa")
 )
+def _style_plots_scroll_area(space: QtWidgets.QScrollArea, inner: QtWidgets.QWidget) -> None:
+    """Remove default grey from scroll viewport / chrome around matplotlib plots."""
+    space.setWidgetResizable(True)
+    space.setFrameShape(QtWidgets.QFrame.NoFrame)
+    bg = "background-color: white;"
+    inner.setStyleSheet(bg)
+    space.setStyleSheet(bg)
+    space.viewport().setStyleSheet(bg)
+
+
 Relativity = namedtuple("relativity", ("relative", "absolute"))
 TotalMenu = namedtuple("total_menu", ("score", "range"))
 ExportTable = namedtuple("export_table", ("label", "copy", "csv", "excel"))
@@ -244,6 +254,61 @@ class NewAnalysisTab(QtWidgets.QWidget):
         self.layout = QtWidgets.QVBoxLayout()
         self.setLayout(self.layout)
 
+    def _setup_plot_table_widgets(self, invertable: bool = False) -> None:
+        """Create Plot/Table view controls (exclusive radio buttons) and optional Invert."""
+        if getattr(self, "_plot_table_toolbar_initialized", False):
+            return
+        plot_radio = QtWidgets.QRadioButton("Plot")
+        table_radio = QtWidgets.QRadioButton("Table")
+        plot_radio.setToolTip("Show results as a chart")
+        table_radio.setToolTip("Show results as a table")
+        invert_widget = None
+        if invertable:
+            invert_widget = QtWidgets.QCheckBox("Invert")
+            invert_widget.setChecked(False)
+            invert_widget.stateChanged.connect(self.invert_plot)
+        self.plot_table = PlotTableCheck(plot_radio, table_radio, invert_widget)
+        self._plot_table_view_group = QtWidgets.QButtonGroup(self)
+        self._plot_table_view_group.setExclusive(True)
+        self._plot_table_view_group.addButton(self.plot_table.plot, 0)
+        self._plot_table_view_group.addButton(self.plot_table.table, 1)
+        self._plot_table_view_group.blockSignals(True)
+        self.plot_table.plot.setChecked(True)
+        self._plot_table_view_group.blockSignals(False)
+        self._plot_table_view_group.buttonClicked.connect(self._on_plot_table_view_changed)
+        self._plot_table_toolbar_initialized = True
+
+    def _append_toolbar_widgets(
+        self, row: QtWidgets.QHBoxLayout, invertable: bool = False
+    ) -> None:
+        """Append Plot, Table, Invert, relativity, total, and score-marker widgets to a row."""
+        row.addWidget(self.plot_table.plot)
+        row.addWidget(self.plot_table.table)
+        row.addWidget(vertical_line())
+        if invertable and self.plot_table.invert is not None:
+            row.addWidget(self.plot_table.invert)
+        if self.relativity:
+            row.addWidget(self.relativity.relative)
+            row.addWidget(self.relativity.absolute)
+            if not getattr(self, "_relativity_toggle_connected", False):
+                self.relativity.relative.toggled.connect(self.relativity_check)
+                self._relativity_toggle_connected = True
+        if self.total_menu:
+            row.addWidget(vertical_line())
+            row.addWidget(self.total_menu.score)
+            row.addWidget(self.total_menu.range)
+            if not getattr(self, "_total_toggle_connected", False):
+                self.total_menu.range.toggled.connect(self.total_check)
+                self._total_toggle_connected = True
+        if hasattr(self, "score_mrk_checkbox"):
+            row.addStretch()
+            row.addWidget(self.score_mrk_checkbox)
+            if not getattr(self, "_score_mrk_connected", False):
+                self.score_mrk_checkbox.toggled.connect(self.score_mrk_check)
+                self._score_mrk_connected = True
+        else:
+            row.addStretch()
+
     def build_main_space(self, invertable: bool = False) -> QtWidgets.QScrollArea:
         """Assemble main space where plots, tables and relevant options are shown."""
         space = QtWidgets.QScrollArea()
@@ -251,45 +316,12 @@ class NewAnalysisTab(QtWidgets.QWidget):
         self.pt_layout.setAlignment(QtCore.Qt.AlignTop)
         widget.setLayout(self.pt_layout)
         space.setWidget(widget)
-        space.setWidgetResizable(True)
+        _style_plots_scroll_area(space, widget)
 
-        # Option switches
-        self.plot_table = PlotTableCheck(QtWidgets.QCheckBox("Plot"), QtWidgets.QCheckBox("Table"), None)
-        if invertable:
-            self.plot_table = PlotTableCheck(
-                QtWidgets.QCheckBox("Plot"), QtWidgets.QCheckBox("Table"), QtWidgets.QCheckBox("Invert")
-            )
-            self.plot_table.invert.setChecked(False)
-            self.plot_table.invert.stateChanged.connect(self.invert_plot)
-        self.plot_table.plot.setChecked(True)
-        self.plot_table.table.setChecked(True)
-        self.plot_table.table.stateChanged.connect(self.space_check)
-        self.plot_table.plot.stateChanged.connect(self.space_check)
-
-        # Assemble option row
+        self._setup_plot_table_widgets(invertable)
         row = QtWidgets.QHBoxLayout()
-        row.addWidget(self.plot_table.plot)
-        row.addWidget(self.plot_table.table)
-        row.addWidget(vertical_line())
-        if invertable:
-            row.addWidget(self.plot_table.invert)
-        if self.relativity:
-            row.addWidget(self.relativity.relative)
-            row.addWidget(self.relativity.absolute)
-            self.relativity.relative.toggled.connect(self.relativity_check)
-        if self.total_menu:
-            row.addWidget(vertical_line())
-            row.addWidget(self.total_menu.score)
-            row.addWidget(self.total_menu.range)
-            self.total_menu.range.toggled.connect(self.total_check)
-        if hasattr(self, "score_mrk_checkbox"):
-            row.addStretch()
-            row.addWidget(self.score_mrk_checkbox)
-            self.score_mrk_checkbox.toggled.connect(self.score_mrk_check)
-        if not hasattr(self, "score_mrk_checkbox"):
-            row.addStretch()
+        self._append_toolbar_widgets(row, invertable)
 
-        # Assemble Table and Plot area
         if self.table and self.plot:
             self.pt_layout.addLayout(row)
         if self.plot:
@@ -297,22 +329,36 @@ class NewAnalysisTab(QtWidgets.QWidget):
         if self.table:
             self.pt_layout.addWidget(self.table)
         self.pt_layout.addStretch()
+        self.space_check()
         return space
 
     @QtCore.Slot(name="invertPlot")
     def invert_plot(self):
+        if not self.plot_table or self.plot_table.invert is None:
+            return
         self.plot_inversion = self.plot_table.invert.isChecked()
         self.space_check()
         self.update_plot()
 
-    @QtCore.Slot(name="checkboxChanges")
-    def space_check(self):
-        """Show graph and/or table, whichever is selected.
+    @QtCore.Slot(QtWidgets.QAbstractButton)
+    def _on_plot_table_view_changed(self, _button: QtWidgets.QAbstractButton) -> None:
+        if not self.plot_table:
+            return
+        self.space_check()
+        if self.plot and self.plot_table.plot.isChecked():
+            self.update_plot()
+        if self.table and self.plot_table.table.isChecked():
+            self.update_table()
 
-        Can also hide both, if you want to do that.
-        """
-        self.table.setVisible(self.plot_table.table.isChecked())
-        self.plot.setVisible(self.plot_table.plot.isChecked())
+    @QtCore.Slot(name="updatePlotTableVisibility")
+    def space_check(self):
+        """Show plot or table according to the selected view radio."""
+        if not self.plot_table:
+            return
+        if self.plot:
+            self.plot.setVisible(self.plot_table.plot.isChecked())
+        if self.table:
+            self.table.setVisible(self.plot_table.table.isChecked())
 
     @QtCore.Slot(bool, name="isRelativeToggled")
     def relativity_check(self, checked: bool):
@@ -360,14 +406,27 @@ class NewAnalysisTab(QtWidgets.QWidget):
         box.insertItems(0, labels)
         box.blockSignals(False)
 
+    def _plot_view_selected(self) -> bool:
+        """Whether the Plot view is selected (ignores real visibility in the window).
+
+        Do not use QWidget.isVisible() here: tabs not yet shown still need their
+        plot data refreshed, otherwise figures stay blank until the user switches views.
+        """
+        if not self.plot_table:
+            return True
+        return self.plot_table.plot.isChecked()
+
+    def _table_view_selected(self) -> bool:
+        if not self.plot_table:
+            return True
+        return self.plot_table.table.isChecked()
+
     def update_tab(self):
-        """Update the plot and table if they are present."""
-        if self.plot and self.plot.isVisible:
+        """Update the plot and/or table for the views that are selected."""
+        if self.plot and self._plot_view_selected():
             self.update_plot()
-        if self.table and self.table.isVisible:
+        if self.table and self._table_view_selected():
             self.update_table()
-        if self.plot and self.plot.isVisible and self.table and self.table.isVisible:
-            self.space_check()
 
     def update_table(self, *args, **kwargs):
         """Update the table."""
@@ -893,6 +952,7 @@ class LCIAResultsTab(NewAnalysisTab):
         self.plot = LCAResultsPlot(self.parent)
         self.pt_layout.insertWidget(idx, self.plot)
         super().update_plot(self.df, invert_plot=self.plot_inversion)
+        self.space_check()
         if self.pt_layout.parentWidget():
             self.pt_layout.parentWidget().updateGeometry()
 
@@ -1011,6 +1071,35 @@ class ContributionTab(NewAnalysisTab):
 
         filename = "_".join((str(x) for x in fields if x is not None))
         self.plot.plot_name, self.table.table_name = filename, filename
+
+    def build_cutoff_and_options_bar(self) -> QtWidgets.QHBoxLayout:
+        """One row: cut-off controls plus plot/table and contribution options."""
+        self._setup_plot_table_widgets(invertable=False)
+        row = QtWidgets.QHBoxLayout()
+        self.cutoff_menu.setSizePolicy(
+            QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Preferred
+        )
+        row.addWidget(self.cutoff_menu)
+        row.addWidget(vertical_line())
+        self._append_toolbar_widgets(row, invertable=False)
+        return row
+
+    def build_main_space(self, invertable: bool = False) -> QtWidgets.QScrollArea:
+        """Plot/table area only; toolbar lives in :meth:`build_cutoff_and_options_bar`."""
+        self._setup_plot_table_widgets(invertable=False)
+        space = QtWidgets.QScrollArea()
+        widget = QtWidgets.QWidget()
+        self.pt_layout.setAlignment(QtCore.Qt.AlignTop)
+        widget.setLayout(self.pt_layout)
+        space.setWidget(widget)
+        _style_plots_scroll_area(space, widget)
+        if self.plot:
+            self.pt_layout.addWidget(self.plot, 1)
+        if self.table:
+            self.pt_layout.addWidget(self.table)
+        self.pt_layout.addStretch()
+        self.space_check()
+        return space
 
     def build_combobox(
         self, has_method: bool = True, has_func: bool = False
@@ -1150,6 +1239,7 @@ class ContributionTab(NewAnalysisTab):
         self.pt_layout.insertWidget(idx, self.plot)
         super().update_plot(self.df, unit=self.unit)
         self.plot.plot_name = name
+        self.space_check()
         if self.pt_layout.parentWidget():
             self.pt_layout.parentWidget().updateGeometry()
 
@@ -1165,11 +1255,9 @@ class ElementaryFlowContributionTab(ContributionTab):
         What are the 5 largest elementary flows caused by reference flow ZZZ?
 
     Shows:
-        Cutoff menu for determining cutoff values
+        One row with cut-off, Plot/Table view, Relative/Absolute, Score/Range, and Score marker
         Compare options button to change between 'Reference Flows' and 'Impact Categories'
         'Impact Category'/'Reference Flow' chooser with aggregation method
-        Plot/Table on/off and Relative/Absolute options for data
-        Plot/Table
         Export options
     """
 
@@ -1178,11 +1266,9 @@ class ElementaryFlowContributionTab(ContributionTab):
 
         header = get_header_layout_w_help("Elementary Flow Contributions", self.help_button)
         self.layout.addLayout(header)
-        self.layout.addWidget(self.cutoff_menu)
-        self.layout.addWidget(horizontal_line())
+        self.layout.addLayout(self.build_cutoff_and_options_bar())
         combobox = self.build_combobox(has_method=True, has_func=True)
         self.layout.addLayout(combobox)
-        self.layout.addWidget(horizontal_line())
         self.layout.addWidget(self.build_main_space())
         self.layout.addLayout(self.build_export(True, True))
 
@@ -1219,11 +1305,9 @@ class ProcessContributionsTab(ContributionTab):
         What are the top 5 contributing processes to reference flow ZZZ?
 
     Shows:
-        Cutoff menu for determining cutoff values
+        One row with cut-off, Plot/Table view, Relative/Absolute, Score/Range, and Score marker
         Compare options button to change between 'Reference Flows' and 'Impact Categories'
         'Impact Category'/'Reference Flow' chooser with aggregation method
-        Plot/Table on/off and Relative/Absolute options for data
-        Plot/Table
         Export options
     """
 
@@ -1232,11 +1316,9 @@ class ProcessContributionsTab(ContributionTab):
 
         header = get_header_layout_w_help("Process Contributions", self.help_button)
         self.layout.addLayout(header)
-        self.layout.addWidget(self.cutoff_menu)
-        self.layout.addWidget(horizontal_line())
+        self.layout.addLayout(self.build_cutoff_and_options_bar())
         combobox = self.build_combobox(has_method=True, has_func=True)
         self.layout.addLayout(combobox)
-        self.layout.addWidget(horizontal_line())
         self.layout.addWidget(self.build_main_space())
         self.layout.addLayout(self.build_export(True, True))
 
@@ -1281,10 +1363,9 @@ class FirstTierContributionsTab(ContributionTab):
         What products contribute most to reference flow ZZZ?
 
     Shows:
+        One row with cut-off, Plot/Table view, Relative/Absolute, Score/Range, and Score marker
         Compare options button to change between 'Reference Flows' and 'Impact Categories'
         'Impact Category'/'Reference Flow' chooser with aggregation method
-        Plot/Table on/off and Relative/Absolute options for data
-        Plot/Table
         Export options
     """
 
@@ -1300,7 +1381,7 @@ class FirstTierContributionsTab(ContributionTab):
 
         header = get_header_layout_w_help("First Tier Contributions", self.help_button)
         self.layout.addLayout(header)
-        self.layout.addWidget(self.cutoff_menu)
+        self.layout.addLayout(self.build_cutoff_and_options_bar())
         self.layout.addWidget(horizontal_line())
         combobox = self.build_combobox(has_method=True, has_func=True)
         self.layout.addLayout(combobox)
@@ -1686,6 +1767,7 @@ class CorrelationsTab(NewAnalysisTab):
         self.pt_layout.insertWidget(idx, self.plot)
         df = self.parent.mlca.get_normalized_scores_df()
         super().update_plot(df)
+        self.space_check()
         if self.pt_layout.parentWidget():
             self.pt_layout.parentWidget().updateGeometry()
 
@@ -1705,8 +1787,6 @@ class MonteCarloTab(NewAnalysisTab):
         )
         self.layout.addWidget(header_)
         self.scenario_label = QtWidgets.QLabel("Scenario:")
-        self.include_box = QtWidgets.QGroupBox("Include uncertainty for:", self)
-        grid = QtWidgets.QGridLayout()
         self.include_tech = QtWidgets.QCheckBox("Technosphere", self)
         self.include_tech.setChecked(True)
         self.include_bio = QtWidgets.QCheckBox("Biosphere", self)
@@ -1717,11 +1797,10 @@ class MonteCarloTab(NewAnalysisTab):
         self.include_parameters = QtWidgets.QCheckBox("Parameters", self)
         self.include_parameters.setChecked(False)
         self.include_parameters.setEnabled(False)
-        grid.addWidget(self.include_tech, 0, 0)
-        grid.addWidget(self.include_bio, 0, 1)
-        grid.addWidget(self.include_cf, 1, 0)
-        grid.addWidget(self.include_parameters, 1, 1)
-        self.include_box.setLayout(grid)
+        self.label_include_uncertainty = QtWidgets.QLabel("Include uncertainty for:", self)
+        self.label_include_uncertainty.setToolTip(
+            "Which model elements use defined uncertainty distributions in this simulation."
+        )
 
         self.add_MC_ui_elements()
 
@@ -1770,6 +1849,8 @@ class MonteCarloTab(NewAnalysisTab):
 
     def add_MC_ui_elements(self):
         layout_mc = QtWidgets.QVBoxLayout()
+        layout_mc.setSpacing(8)
+        layout_mc.setContentsMargins(0, 0, 0, 0)
 
         # H-LAYOUT start simulation
         self.button_run = QtWidgets.QPushButton("Run")
@@ -1786,6 +1867,7 @@ class MonteCarloTab(NewAnalysisTab):
         self.seed.setFixedWidth(30)
 
         self.hlayout_run = QtWidgets.QHBoxLayout()
+        self.hlayout_run.setSpacing(8)
         self.hlayout_run.addWidget(self.scenario_label)
         self.hlayout_run.addWidget(self.scenario_box)
         self.hlayout_run.addWidget(self.button_run)
@@ -1793,7 +1875,12 @@ class MonteCarloTab(NewAnalysisTab):
         self.hlayout_run.addWidget(self.iterations)
         self.hlayout_run.addWidget(self.label_seed)
         self.hlayout_run.addWidget(self.seed)
-        self.hlayout_run.addWidget(self.include_box)
+        self.hlayout_run.addWidget(vertical_line())
+        self.hlayout_run.addWidget(self.label_include_uncertainty)
+        self.hlayout_run.addWidget(self.include_tech)
+        self.hlayout_run.addWidget(self.include_bio)
+        self.hlayout_run.addWidget(self.include_cf)
+        self.hlayout_run.addWidget(self.include_parameters)
         self.hlayout_run.addStretch(1)
         layout_mc.addLayout(self.hlayout_run)
 

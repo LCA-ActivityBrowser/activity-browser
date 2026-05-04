@@ -14,6 +14,7 @@ class CalculationSetupPage(widgets.ABAbstractPage):
     def __init__(self, cs_name: str, parent=None):
         super().__init__(parent)
         self.setObjectName(cs_name)
+        self.setWindowTitle(cs_name)
 
         self.calculation_setup_name = cs_name
 
