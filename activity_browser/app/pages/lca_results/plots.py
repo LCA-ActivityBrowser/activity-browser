@@ -290,18 +290,24 @@ class MonteCarloPlot(ABPlot):
     def plot(self, df: pd.DataFrame, method: tuple):
         self.ax.clear()
 
-        for col in df.columns:
+        # Use Axes.hist per series. Use iloc so duplicate column labels (possible after
+        # get_labels) never return a 2-column DataFrame — 2D input makes hist() treat each
+        # column as a separate dataset and reject a single color=.
+        for j in range(df.shape[1]):
+            series = df.iloc[:, j]
+            vals = np.ravel(np.asarray(series.dropna(), dtype=float))
+            if vals.size == 0:
+                continue
             color = self.ax._get_lines.get_next_color()
-            df[col].hist(
-                ax=self.ax,
-                figure=self.figure,
-                label=col,
+            label = str(df.columns[j])
+            self.ax.hist(
+                vals,
                 density=True,
-                color=color,
                 alpha=0.5,
-            )  # , histtype="step")
-            # self.ax.axvline(df[col].median(), color=color)
-            self.ax.axvline(df[col].mean(), color=color)
+                label=label,
+                color=color,
+            )
+            self.ax.axvline(float(np.mean(vals)), color=color)
 
         self.ax.set_xlabel(methods[method]["unit"])
         self.ax.set_ylabel("Probability")

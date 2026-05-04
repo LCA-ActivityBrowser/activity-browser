@@ -1787,8 +1787,6 @@ class MonteCarloTab(NewAnalysisTab):
         )
         self.layout.addWidget(header_)
         self.scenario_label = QtWidgets.QLabel("Scenario:")
-        self.include_box = QtWidgets.QGroupBox("Include uncertainty for:", self)
-        grid = QtWidgets.QGridLayout()
         self.include_tech = QtWidgets.QCheckBox("Technosphere", self)
         self.include_tech.setChecked(True)
         self.include_bio = QtWidgets.QCheckBox("Biosphere", self)
@@ -1799,11 +1797,10 @@ class MonteCarloTab(NewAnalysisTab):
         self.include_parameters = QtWidgets.QCheckBox("Parameters", self)
         self.include_parameters.setChecked(False)
         self.include_parameters.setEnabled(False)
-        grid.addWidget(self.include_tech, 0, 0)
-        grid.addWidget(self.include_bio, 0, 1)
-        grid.addWidget(self.include_cf, 1, 0)
-        grid.addWidget(self.include_parameters, 1, 1)
-        self.include_box.setLayout(grid)
+        self.label_include_uncertainty = QtWidgets.QLabel("Include uncertainty for:", self)
+        self.label_include_uncertainty.setToolTip(
+            "Which model elements use defined uncertainty distributions in this simulation."
+        )
 
         self.add_MC_ui_elements()
 
@@ -1852,6 +1849,8 @@ class MonteCarloTab(NewAnalysisTab):
 
     def add_MC_ui_elements(self):
         layout_mc = QtWidgets.QVBoxLayout()
+        layout_mc.setSpacing(8)
+        layout_mc.setContentsMargins(0, 0, 0, 0)
 
         # H-LAYOUT start simulation
         self.button_run = QtWidgets.QPushButton("Run")
@@ -1868,6 +1867,7 @@ class MonteCarloTab(NewAnalysisTab):
         self.seed.setFixedWidth(30)
 
         self.hlayout_run = QtWidgets.QHBoxLayout()
+        self.hlayout_run.setSpacing(8)
         self.hlayout_run.addWidget(self.scenario_label)
         self.hlayout_run.addWidget(self.scenario_box)
         self.hlayout_run.addWidget(self.button_run)
@@ -1875,7 +1875,12 @@ class MonteCarloTab(NewAnalysisTab):
         self.hlayout_run.addWidget(self.iterations)
         self.hlayout_run.addWidget(self.label_seed)
         self.hlayout_run.addWidget(self.seed)
-        self.hlayout_run.addWidget(self.include_box)
+        self.hlayout_run.addWidget(vertical_line())
+        self.hlayout_run.addWidget(self.label_include_uncertainty)
+        self.hlayout_run.addWidget(self.include_tech)
+        self.hlayout_run.addWidget(self.include_bio)
+        self.hlayout_run.addWidget(self.include_cf)
+        self.hlayout_run.addWidget(self.include_parameters)
         self.hlayout_run.addStretch(1)
         layout_mc.addLayout(self.hlayout_run)
 
