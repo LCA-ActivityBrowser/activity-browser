@@ -226,3 +226,48 @@ div.tooltip {
     pointer-events: none;
     /*color: red;*/
 }
+
+/* Fill the webview: flex gives #canvasqPWKOg the height Qt leaves below the controls. */
+html.ab-sankey-root,
+body.ab-sankey-tab {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html.ab-sankey-root {
+  overflow: hidden;
+}
+
+body.ab-sankey-tab {
+  display: flex;
+  flex-direction: column;
+}
+
+body.ab-sankey-tab #canvasqPWKOg.canvas {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+}
+
+body.ab-sankey-tab h3#heading {
+  margin: 0.2em 0 0.12em 0.35em;
+  font-size: 1.05em;
+}
+
+body.ab-sankey-tab section {
+  margin-top: 0.08em;
+  margin-bottom: 0.08em;
+  margin-left: 0.25em;
+}
+
+body.ab-sankey-tab .ab-sankey-minimap-label {
+  margin-left: 1em;
+  font-size: 0.95em;
+  white-space: nowrap;
+}
+
+body.ab-sankey-tab svg g.ab-sankey-pan-minimap {
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.22));
+}

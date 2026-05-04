@@ -82,56 +82,53 @@ class SankeyNavigatorWidget(widgets.ABAbstractNavigator):
         super().construct_layout()
         self.label_help.setVisible(False)
 
-        # Layout Reference Flows and Impact Categories
-        grid_lay = QtWidgets.QGridLayout()
-        grid_lay.addWidget(QtWidgets.QLabel("Reference flow: "), 0, 0)
-
-        grid_lay.addWidget(self.scenario_label, 1, 0)
-        grid_lay.addWidget(QtWidgets.QLabel("Impact indicator: "), 2, 0)
+        self.layout.setContentsMargins(4, 2, 4, 2)
+        self.layout.setSpacing(4)
 
         self.update_calculation_setup()
 
-        grid_lay.addWidget(self.func_unit_cb, 0, 1)
-        grid_lay.addWidget(self.scenario_cb, 1, 1)
-        grid_lay.addWidget(self.method_cb, 2, 1)
+        hl_nav = QtWidgets.QHBoxLayout()
+        hl_nav.setSpacing(4)
+        hl_nav.addWidget(self.button_back)
+        hl_nav.addWidget(self.button_forward)
+        hl_nav.addWidget(self.button_refresh)
+        hl_nav.addWidget(self.button_random_activity)
+        hl_nav.addWidget(self.button_toggle_help)
+        hl_nav.addStretch(1)
+        fixed = QtWidgets.QSizePolicy.Fixed
+        for btn in (self.button_back, self.button_forward):
+            btn.setSizePolicy(fixed, fixed)
 
-        # cut-off
-        grid_lay.addWidget(QtWidgets.QLabel("Cutoff: "), 2, 2)
+        params_row = QtWidgets.QHBoxLayout()
+        params_row.setSpacing(6)
+        params_row.addWidget(QtWidgets.QLabel("Reference flow:"))
+        params_row.addWidget(self.func_unit_cb, 1)
+        params_row.addWidget(QtWidgets.QLabel("Impact:"))
+        params_row.addWidget(self.method_cb, 1)
+        params_row.addWidget(self.scenario_label)
+        params_row.addWidget(self.scenario_cb)
+
         self.cutoff_sb.setRange(0.0, 1.0)
         self.cutoff_sb.setSingleStep(0.01)
         self.cutoff_sb.setDecimals(3)
         self.cutoff_sb.setValue(0.05)
         self.cutoff_sb.setKeyboardTracking(False)
-        grid_lay.addWidget(self.cutoff_sb, 2, 3)
+        params_row.addWidget(QtWidgets.QLabel("Cutoff:"))
+        params_row.addWidget(self.cutoff_sb)
 
-        # max-iterations of graph traversal
-        grid_lay.addWidget(QtWidgets.QLabel("Calculation depth: "), 2, 4)
         self.max_calc_sb.setRange(1, 2000)
         self.max_calc_sb.setSingleStep(50)
         self.max_calc_sb.setDecimals(0)
         self.max_calc_sb.setValue(250)
         self.max_calc_sb.setKeyboardTracking(False)
-        grid_lay.addWidget(self.max_calc_sb, 2, 5)
+        params_row.addWidget(QtWidgets.QLabel("Depth:"))
+        params_row.addWidget(self.max_calc_sb)
+        params_row.addWidget(self.button_calculate)
 
-        grid_lay.setColumnStretch(6, 1)
-        hlay = QtWidgets.QHBoxLayout()
-        hlay.addLayout(grid_lay)
-
-        # Controls Layout
-        hl_controls = QtWidgets.QHBoxLayout()
-        hl_controls.addWidget(self.button_back)
-        hl_controls.addWidget(self.button_forward)
-        hl_controls.addWidget(self.button_calculate)
-        hl_controls.addWidget(self.button_refresh)
-        hl_controls.addWidget(self.button_random_activity)
-        hl_controls.addWidget(self.button_toggle_help)
-        hl_controls.addStretch(1)
-
-        # Layout
-        self.layout.addLayout(hl_controls)
-        self.layout.addLayout(hlay)
+        self.layout.addLayout(hl_nav)
+        self.layout.addLayout(params_row)
         self.layout.addWidget(self.label_help)
-        self.layout.addWidget(self.view)
+        self.layout.addWidget(self.view, 1)
         self.setLayout(self.layout)
 
     def get_scenario_labels(self) -> List[str]:
