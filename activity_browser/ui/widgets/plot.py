@@ -18,9 +18,12 @@ class ABPlot(QtWidgets.QWidget):
 
         self.ax = self.figure.add_subplot(111)  # create an axis
         self.plot_name = "Figure"
+        self._set_plot_chrome_white()
 
         # set the layout
         layout = QtWidgets.QVBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
         layout.addWidget(self.canvas)
         self.setLayout(layout)
         self.setSizePolicy(
@@ -31,9 +34,19 @@ class ABPlot(QtWidgets.QWidget):
     def plot(self, *args, **kwargs):
         raise NotImplementedError
 
+    def _set_plot_chrome_white(self) -> None:
+        """Match figure and Qt canvas to the plot area so default grey margins disappear."""
+        self.figure.patch.set_facecolor("white")
+        if self.ax is not None:
+            self.ax.set_facecolor("white")
+        bg = "background-color: white;"
+        self.canvas.setStyleSheet(bg)
+        self.setStyleSheet(bg)
+
     def reset_plot(self) -> None:
         self.figure.clf()
         self.ax = self.figure.add_subplot(111)
+        self._set_plot_chrome_white()
 
     def get_canvas_size_in_inches(self):
         return tuple(x / self.figure.dpi for x in self.canvas.get_width_height())

@@ -476,6 +476,7 @@ class SimpleDistributionPlot(ABPlot):
 		self.ax.legend(loc="upper right")
 		_, height = self.canvas.get_width_height()
 		self.setMinimumHeight(height / 2)
+		self._set_plot_chrome_white()
 		self.canvas.draw()
 
 
