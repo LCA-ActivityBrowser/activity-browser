@@ -685,6 +685,10 @@ class ExchangesModel(core.ABTreeModel):
             app.actions.ActivityModify.run(act.key, column_name.lower(), value)
             return True
 
+        if column_name == "uncertainty":
+            app.actions.ExchangeUncertaintyModify.run([exchange], uncertainty_dict=value)
+            return True
+
         if column_name.startswith("property_"):
             # should move this process to a separate action
             process = exchange.output

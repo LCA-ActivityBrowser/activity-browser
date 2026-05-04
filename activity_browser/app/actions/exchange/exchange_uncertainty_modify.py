@@ -18,17 +18,18 @@ class ExchangeUncertaintyModify(ABAction):
 
     @staticmethod
     @exception_dialogs
-    def run(exchanges: List[bd.Edge]):
+    def run(exchanges: List[bd.Edge], uncertainty_dict: dict = None):
 
-        ok, uc_dict = UncertaintyDialog.get_uncertainty_dict(
-            parent=app.main_window,
-            initial=exchanges[0].uncertainty,
-            )
-        
-        if not ok:
-            return
+        if uncertainty_dict is None:
+            ok, uncertainty_dict = UncertaintyDialog.get_uncertainty_dict(
+                parent=app.main_window,
+                initial=exchanges[0].uncertainty,
+                )
+            
+            if not ok:
+                return
         
         for exchange in exchanges:
-            for key, value in uc_dict.items():
+            for key, value in uncertainty_dict.items():
                 exchange[key] = value
             exchange.save()
