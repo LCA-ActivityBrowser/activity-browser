@@ -431,6 +431,7 @@ class Graph(widgets.ABAbstractGraph):
                 "source_id": edge.producer_unique_id,
                 "target_id": edge.consumer_unique_id,
                 "amount": edge.amount,
+                "amount_unit": str(unit),
                 "weight": abs(cum_score / (total_score or 1)) * max_edge_width,
                 "label": f"{round(cum_score, 3)} {lcia_unit}",
                 "impact_cumulative": float(cum_score),

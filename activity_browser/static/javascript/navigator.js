@@ -658,6 +658,55 @@ function formatSankeyTwoLineEdgeLabel(e) {
     return " ";
 }
 
+function escapeHtmlForSankeyTooltip(s) {
+    if (s == null) {
+        return "";
+    }
+    return String(s)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+}
+
+/** Edge hover HTML for Sankey: built in JS from JSON fields (Python only passes data). */
+function buildSankeyEdgeTooltipHtml(e) {
+    if (!e) {
+        return "";
+    }
+    var parts = [];
+    var flow = (e.product || "").trim();
+    if (flow) {
+        parts.push("<b>" + escapeHtmlForSankeyTooltip(flow) + "</b>");
+    }
+    if (e.amount != null && isFinite(Number(e.amount))) {
+        var amt = Number(e.amount);
+        var amtStr = amt === 0 ? "0" : amt.toPrecision(2);
+        var u = (e.amount_unit != null && String(e.amount_unit).trim()) || "";
+        parts.push(escapeHtmlForSankeyTooltip(amtStr) + (u ? " " + escapeHtmlForSankeyTooltip(u) : ""));
+    }
+    if (e.impact_cumulative != null && e.impact_unit != null) {
+        var x = Number(e.impact_cumulative);
+        var pctRaw = e.impact_pct_total != null ? Number(e.impact_pct_total) : 0;
+        if (!isFinite(pctRaw)) {
+            pctRaw = 0;
+        }
+        parts.push(
+            "<b>" +
+                (Math.round(x * 1000) / 1000) +
+                " " +
+                escapeHtmlForSankeyTooltip(String(e.impact_unit)) +
+                "</b> (" +
+                (Math.round(pctRaw * 10) / 10) +
+                "%)"
+        );
+    }
+    if (!parts.length) {
+        return e.tooltip ? String(e.tooltip) : "";
+    }
+    return parts.join("<br>");
+}
+
 function inferSankeyEdgeLabelMaxCols(parsed) {
     if (!parsed || !parsed.nodes || !parsed.nodes.length) {
         return 12;
@@ -865,11 +914,7 @@ const cartographer = function () {
         // listener for mouse-hovers
         var edges = panCanvas.selectAll("g .edgePath")
             .on("mouseover", handleMouseOverEdge)
-            .on("mouseout", function (d) {
-                div.transition()
-                    .duration(500)
-                    .style("opacity", 0);
-            });
+            .on("mouseout", handleMouseOutEdge);
 
         if (is_sankey_mode) {
             edges.attr("stroke-width", function (d) {
@@ -885,6 +930,10 @@ const cartographer = function () {
                 if (!this.attributes["marker-end"]) return null;
                 else return "url(" + /url\(.*?(#.*?)\)/.exec(this.attributes["marker-end"].textContent)[1] + ")";
             });
+
+            panCanvas.selectAll("g.edgeLabel")
+                .on("mouseover", handleMouseOverEdge)
+                .on("mouseout", handleMouseOutEdge);
         }
 
         if (interactive) {
@@ -1115,14 +1164,22 @@ const cartographer = function () {
             .style("opacity", 0);
     }
 
+    const handleMouseOutEdge = function () {
+        div.transition()
+            .duration(500)
+            .style("opacity", 0);
+    };
+
     const handleMouseOverEdge = function (e) {
         edge = graph.edge(e);
         div.transition()
             .duration(200)
             .style("opacity", .9);
-        div.html(edge.tooltip)
-            .style("left", (d3.event.pageX) + "px")
-            .style("top", (d3.event.pageY - 28) + "px");
+        var tipHtml = is_sankey_mode ? buildSankeyEdgeTooltipHtml(edge) : (edge.tooltip || "");
+        /* Multi-line edge tooltips: sit above + slightly right of cursor so the pointer does not cover text. */
+        div.html(tipHtml)
+            .style("left", (d3.event.pageX + 12) + "px")
+            .style("top", (d3.event.pageY - 56) + "px");
     };
 };
 
