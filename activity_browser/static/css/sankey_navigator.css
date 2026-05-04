@@ -123,7 +123,7 @@ text {
 
 .node.demand {
   /*stroke: #333;  */
-  font-weight: bold
+  /*font-weight: bold*/
 }
 
 .node.demand rect {
@@ -294,4 +294,15 @@ body.ab-sankey-tab .ab-sankey-impact-toggles {
 
 body.ab-sankey-tab svg g.ab-sankey-pan-minimap {
   filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.22));
+}
+
+/* Plain-text Sankey node labels (SVG text + tspans) */
+body.ab-sankey-tab g.node text {
+  font-size: 12px;
+}
+
+/* Geography line (second last tspan) in Sankey node labels */
+body.ab-sankey-tab g.node text tspan:nth-last-child(2) {
+  fill: #666;
+   font-size: 11px;
 }

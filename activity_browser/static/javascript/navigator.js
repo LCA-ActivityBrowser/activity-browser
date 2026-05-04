@@ -626,10 +626,151 @@ function inferSankeyEdgeLabelMaxCols(parsed) {
     var maxFirst = 10;
     parsed.nodes.forEach(function (nd) {
         var lab = nd.label != null ? String(nd.label) : "";
+        var nm = nd.name != null ? String(nd.name) : "";
         var first = lab.split("\n")[0] || "";
-        maxFirst = Math.max(maxFirst, first.length);
+        var halfName = Math.ceil(nm.length / 2) || 0;
+        maxFirst = Math.max(maxFirst, first.length, Math.min(30, halfName));
     });
     return Math.max(8, Math.min(22, maxFirst + 2));
+}
+
+/** Sankey node process name is capped to this many wrapped rows. */
+var AB_SANKEY_NODE_NAME_MAX_ROWS = 2;
+/** Sankey process node inner rectangle height is fixed; width adapts and is clamped to 1:1..3:1. */
+var AB_SANKEY_NODE_MIN_ASPECT = 1;
+var AB_SANKEY_NODE_MAX_ASPECT = 3;
+/** Inner height (px) before padding. */
+var AB_SANKEY_NODE_INNER_HEIGHT_PX = 50;
+var AB_SANKEY_NODE_INNER_MIN_WIDTH_PX = Math.round(AB_SANKEY_NODE_INNER_HEIGHT_PX * AB_SANKEY_NODE_MIN_ASPECT);
+var AB_SANKEY_NODE_INNER_MAX_WIDTH_PX = Math.round(AB_SANKEY_NODE_INNER_HEIGHT_PX * AB_SANKEY_NODE_MAX_ASPECT);
+/** Approximate glyph width for node labels; used for width and wrap heuristics. */
+var AB_SANKEY_NODE_CHAR_PX = 5;
+/** Keep text 6px from node boundaries. */
+var AB_SANKEY_NODE_PADDING_X = 6;
+var AB_SANKEY_NODE_PADDING_Y = 6;
+
+function inferSankeyNodeInnerWidthPx(n) {
+    var nameLines = buildSankeyProcessNameLines(String(n.name != null ? n.name : "(unnamed)"));
+    var maxLineLen = nameLines.reduce(function (mx, ln) {
+        return Math.max(mx, ln.length);
+    }, 8);
+    var targetCols = Math.max(8, maxLineLen);
+    var desired = Math.round(targetCols * AB_SANKEY_NODE_CHAR_PX + 12);
+    return clamp(desired, AB_SANKEY_NODE_INNER_MIN_WIDTH_PX, AB_SANKEY_NODE_INNER_MAX_WIDTH_PX);
+}
+
+function inferSankeyNodeWrapColsFromWidth(innerWidthPx) {
+    var usable = Math.max(8, innerWidthPx - 12);
+    return clamp(Math.floor(usable / AB_SANKEY_NODE_CHAR_PX), 8, 36);
+}
+
+function sankeyNameMaxColsAt3to1() {
+    return inferSankeyNodeWrapColsFromWidth(AB_SANKEY_NODE_INNER_MAX_WIDTH_PX);
+}
+
+function truncateSankeyNameToTwoRowsBudget(text, maxCols) {
+    var maxChars = Math.max(8, maxCols * AB_SANKEY_NODE_NAME_MAX_ROWS);
+    if (text.length <= maxChars) {
+        return text;
+    }
+    return text.slice(0, Math.max(1, maxChars - 3)).replace(/[. ]+$/, "") + "...";
+}
+
+/** Whole-word split into up to two rows, balanced as evenly as possible. */
+function splitSankeyNameEvenlyTwoRows(text, maxCols) {
+    var words = text.split(" ").filter(function (w) { return w.length > 0; });
+    if (!words.length) {
+        return ["(unnamed)"];
+    }
+    if (words.length === 1) {
+        if (words[0].length <= maxCols) {
+            return [words[0]];
+        }
+        return [words[0].slice(0, Math.max(1, maxCols - 3)) + "..."];
+    }
+
+    var bestIdx = 1;
+    var bestScore = Number.POSITIVE_INFINITY;
+    for (var i = 1; i < words.length; i++) {
+        var l1 = words.slice(0, i).join(" ");
+        var l2 = words.slice(i).join(" ");
+        var overflow = Math.max(0, l1.length - maxCols) + Math.max(0, l2.length - maxCols);
+        var balance = Math.abs(l1.length - l2.length);
+        var score = overflow * 1000 + balance;
+        if (score < bestScore) {
+            bestScore = score;
+            bestIdx = i;
+        }
+    }
+
+    var line1 = words.slice(0, bestIdx).join(" ").trim();
+    var line2 = words.slice(bestIdx).join(" ").trim();
+
+    if (line1.length > maxCols) {
+        var c1 = line1.lastIndexOf(" ", maxCols);
+        var head1;
+        var tailFromL1;
+        if (c1 > 0) {
+            head1 = line1.slice(0, c1).trim();
+            tailFromL1 = line1.slice(c1 + 1).trim();
+        } else {
+            head1 = line1.slice(0, maxCols).trim();
+            tailFromL1 = line1.slice(maxCols).trim();
+        }
+        line1 = head1;
+        if (tailFromL1) {
+            line2 = (tailFromL1 + (line2 ? " " + line2 : "")).trim();
+        }
+    }
+    if (line2.length > maxCols) {
+        var c2 = line2.lastIndexOf(" ", Math.max(1, maxCols - 3));
+        if (c2 > 0) {
+            line2 = line2.slice(0, c2).trim().replace(/[. ]+$/, "") + "...";
+        } else {
+            line2 = line2.slice(0, Math.max(1, maxCols - 3)).replace(/[. ]+$/, "") + "...";
+        }
+    }
+    return line2 ? [line1, line2] : [line1];
+}
+
+/** Build process-name lines from a strict 2-row budget at 3:1 max ratio. */
+function buildSankeyProcessNameLines(rawName) {
+    var text = String(rawName || "").replace(/\s+/g, " ").trim();
+    if (!text) {
+        return ["(unnamed)"];
+    }
+    var maxCols = sankeyNameMaxColsAt3to1();
+    var trimmed = truncateSankeyNameToTwoRowsBudget(text, maxCols);
+    return splitSankeyNameEvenlyTwoRows(trimmed, maxCols);
+}
+
+/** Sankey node label as plain text (SVG tspans). */
+function formatSankeyNodePlainTextLabel(n, wrapCols) {
+    var rawName = String(n.name != null ? n.name : "(unnamed)");
+    var nameLines = buildSankeyProcessNameLines(rawName)
+        .map(function (x) { return x.trim(); })
+        .filter(function (x) { return x.length > 0; });
+    if (!nameLines.length) {
+        nameLines = ["(unnamed)"];
+    }
+
+    var loc = String(n.location != null ? n.location : "").trim();
+    var lines = nameLines.slice();
+    if (loc) {
+        lines.push(loc);
+    }
+
+    var pctStr = "";
+    if (n.direct_emissions_score_normalized != null) {
+        var p = Number(n.direct_emissions_score_normalized);
+        if (isFinite(p)) {
+            pctStr = String(Math.round(p * 10000) / 100) + "%";
+        }
+    }
+    if (pctStr) {
+        lines.push(pctStr);
+    }
+    return lines.join("\n");
 }
 
 
@@ -821,6 +962,17 @@ const cartographer = function () {
         if (!is_sankey_mode) {
             n.label = formatNodeText(n['name'], n['location']);
             n.labelType = "html";
+        } else {
+            var innerWidth = inferSankeyNodeInnerWidthPx(n);
+            var wrapCols = inferSankeyNodeWrapColsFromWidth(innerWidth);
+            n.label = formatSankeyNodePlainTextLabel(n, wrapCols);
+            delete n.labelType;
+            n.width = innerWidth;
+            n.height = AB_SANKEY_NODE_INNER_HEIGHT_PX;
+            n.paddingLeft = AB_SANKEY_NODE_PADDING_X;
+            n.paddingRight = AB_SANKEY_NODE_PADDING_X;
+            n.paddingTop = AB_SANKEY_NODE_PADDING_Y;
+            n.paddingBottom = AB_SANKEY_NODE_PADDING_Y;
         }
         if (interactive) {
             n.expanded = n['expanded']
