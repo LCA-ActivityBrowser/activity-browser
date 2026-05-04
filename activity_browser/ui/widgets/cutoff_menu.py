@@ -316,7 +316,6 @@ class CutoffMenu(QWidget):
 
         layout.addWidget(QLabel("Cut-off:"))
         layout.addWidget(self.type_combo)
-       # layout.addWidget(widgets.ABVLine(self))
         layout.addWidget(self.sliders.percent, 0)
         layout.addWidget(self.sliders.cum_percent, 0)
         layout.addWidget(self.sliders.number, 0)
