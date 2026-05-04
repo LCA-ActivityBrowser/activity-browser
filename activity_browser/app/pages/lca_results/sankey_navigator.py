@@ -24,6 +24,39 @@ from activity_browser.ui import icons, widgets
 from .style import header, horizontal_line
 
 
+def _flow_product_name_from_edge(lca, edge: GraphEdge) -> str:
+    """Human-readable product on this technosphere edge.
+
+    GraphTraversal ``Edge`` objects expose ``product_index`` (technosphere matrix row)
+    but not a label string; resolve the row via ``lca.reverse_dict()`` /
+    ``product_dict_rev`` and Brightway node metadata.
+    """
+    try:
+        if getattr(lca, "product_dict_rev", None) is None:
+            rev = lca.reverse_dict()
+            if not isinstance(rev, tuple) or len(rev) < 3:
+                return ""
+            lca.activity_dict_rev, lca.product_dict_rev, lca.biosphere_dict_rev = rev
+    except Exception:
+        return ""
+    try:
+        key = lca.product_dict_rev.get(edge.product_index)
+        if key is None:
+            return ""
+    except Exception:
+        return ""
+    try:
+        if isinstance(key, tuple) and len(key) >= 2:
+            node = bd.get_activity(key)
+        else:
+            node = bd.get_node(id=key)
+    except Exception:
+        return ""
+    if not node:
+        return ""
+    return (node.get("reference product") or node.get("name") or "").strip()
+
+
 def _header_layout_with_help(header_text: str, help_widget: QtWidgets.QWidget) -> QtWidgets.QVBoxLayout:
     hlayout = QtWidgets.QHBoxLayout()
     hlayout.addWidget(header(header_text))
@@ -387,18 +420,25 @@ class Graph(widgets.ABAbstractGraph):
             lcia_unit: str,
             max_edge_width: int = 40,
         ) -> dict:
+            lca = data["metadata"]["lca"]
             cum_score = nodes[edge.producer_unique_id].cumulative_score
             unit = bd.get_node(
                 id=nodes[edge.producer_unique_id].reference_product_datapackage_id
             ).get("unit", "(unknown)")
+            total = float(total_score) if total_score else 0.0
+            pct_of_total = (float(cum_score) / total * 100.0) if total else 0.0
             return {
                 "source_id": edge.producer_unique_id,
                 "target_id": edge.consumer_unique_id,
                 "amount": edge.amount,
-                "weight": abs(cum_score / total_score) * max_edge_width,
+                "weight": abs(cum_score / (total_score or 1)) * max_edge_width,
                 "label": f"{round(cum_score, 3)} {lcia_unit}",
+                "impact_cumulative": float(cum_score),
+                "impact_pct_total": float(pct_of_total),
+                "impact_unit": str(lcia_unit),
                 "class": "benefit" if cum_score < 0 else "impact",
                 "tooltip": f"<b>{round(cum_score, 3)} {lcia_unit}</b> ({edge.amount:.2g} {unit})",
+                "product": _flow_product_name_from_edge(lca, edge),
             }
 
         def convert_node_to_json(

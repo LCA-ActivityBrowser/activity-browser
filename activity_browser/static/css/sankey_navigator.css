@@ -182,6 +182,14 @@ text {
     fill: darkblue;  /* text color of edges*/
 }
 
+/* Slightly smaller edge labels + tighter line height reduce overlap between neighboring links */
+body.ab-sankey-tab g.edgeLabel text {
+  font-size: 11px;
+}
+body.ab-sankey-tab g.edgeLabel tspan {
+  font-size: 11px;
+}
+
 
 
 
@@ -268,8 +276,18 @@ body.ab-sankey-tab .ab-sankey-controls select#nodeSelectPWK0g {
   max-width: min(28em, 45vw);
 }
 
-body.ab-sankey-tab .ab-sankey-minimap-label {
+body.ab-sankey-tab .ab-sankey-minimap-label,
+body.ab-sankey-tab .ab-sankey-flows-label {
   margin-left: 0;
+  font-size: 0.95em;
+  white-space: nowrap;
+}
+
+body.ab-sankey-tab .ab-sankey-impact-toggles {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 0.25em 0.55em;
   font-size: 0.95em;
   white-space: nowrap;
 }

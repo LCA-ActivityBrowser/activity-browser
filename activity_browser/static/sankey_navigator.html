@@ -20,9 +20,14 @@
 <div id="canvasqPWKOg" class="canvas"></div>
 <section class="ab-sankey-controls" aria-label="Sankey actions">
     <button type="button" id="downloadSVGtButtonqPWKOg">Download SVG</button>
-    <select id="nodeSelectPWK0g" aria-label="Node"></select>
-    <button type="button" id="nodeSelectPWK0gExecute">Go to Node</button>
-    <label class="ab-sankey-minimap-label"><input type="checkbox" id="sankeyMinimapVisible" checked /> Show minimap</label>
+    <select id="nodeSelectPWK0g" aria-label="Process"></select>
+    <button type="button" id="nodeSelectPWK0gExecute">Goto Process</button>
+    <label class="ab-sankey-minimap-label"><input type="checkbox" id="sankeyMinimapVisible" checked /> Minimap</label>
+    <label class="ab-sankey-flows-label"><input type="checkbox" id="sankeyFlowsVisible" checked /> Flows</label>
+    <span class="ab-sankey-impact-toggles" aria-label="Impact lines on flows">
+        <label><input type="checkbox" id="sankeyImpactAbsoluteVisible" checked /> absolute</label>
+        <label><input type="checkbox" id="sankeyImpactRelativeVisible" checked /> relative</label>
+    </span>
 </section>
 <script type="text/javascript" src="javascript/navigator.js"></script>
 

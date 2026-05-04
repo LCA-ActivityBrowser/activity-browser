@@ -530,6 +530,108 @@ d3.demo.canvas = function () {
     return canvas;
 };
 
+/**
+ * Word-wrap for dagre plain-text edge labels: dagre-d3 splits on "\\n" into tspans.
+ * maxLen approximates "not wider than the node" when chosen from node label widths.
+ */
+function wrapWordsToMaxLineLength(str, maxLen) {
+    if (!str) {
+        return "";
+    }
+    str = String(str).replace(/\s+/g, " ").trim();
+    if (maxLen < 6 || str.length <= maxLen) {
+        return str;
+    }
+    var lines = [];
+    var pos = 0;
+    while (pos < str.length) {
+        var end = Math.min(pos + maxLen, str.length);
+        if (end >= str.length) {
+            lines.push(str.slice(pos).trim());
+            break;
+        }
+        var chunk = str.slice(pos, end);
+        var lastSpace = chunk.lastIndexOf(" ");
+        var cut = lastSpace > 0 ? lastSpace : maxLen;
+        lines.push(str.slice(pos, pos + cut).trim());
+        pos += cut;
+        while (pos < str.length && str[pos] === " ") {
+            pos++;
+        }
+    }
+    return lines.join("\n");
+}
+
+function wrapSankeyEdgeLabelMultiline(text, maxLen) {
+    if (!text) {
+        return "";
+    }
+    return text.split("\n").map(function (ln) {
+        return wrapWordsToMaxLineLength(ln, maxLen);
+    }).join("\n");
+}
+
+/**
+ * Edge label from toggles: Flows (product name), impacts absolute / relative (any subset).
+ */
+function formatSankeyTwoLineEdgeLabel(e) {
+    /* Default on when unset (before wire runs or old HTML without toggles). */
+    var showFlows = window.ab_sankey_show_flows !== false;
+    var showAbs = window.ab_sankey_impact_absolute !== false;
+    var showRel = window.ab_sankey_impact_relative !== false;
+    var flow = (e.product || "").trim();
+    var lines = [];
+    if (showFlows && flow) {
+        lines.push(flow);
+    }
+    var impactLines = [];
+    if (e.impact_cumulative != null && e.impact_unit != null) {
+        if (showAbs) {
+            var x = Number(e.impact_cumulative);
+            impactLines.push((Math.round(x * 1000) / 1000) + " " + e.impact_unit);
+        }
+        if (showRel) {
+            var pctRaw = e.impact_pct_total != null ? Number(e.impact_pct_total) : 0;
+            if (!isFinite(pctRaw)) {
+                pctRaw = 0;
+            }
+            impactLines.push((Math.round(pctRaw * 10) / 10) + "%");
+        }
+    } else if (showAbs || showRel) {
+        if (e._sankeyScoreLabel == null && typeof e.label === "string") {
+            e._sankeyScoreLabel = e.label;
+        }
+        var fb = e._sankeyScoreLabel || "";
+        if (fb) {
+            impactLines.push(fb);
+        }
+    }
+    var impactBlock = impactLines.join("\n");
+    if (lines.length && impactBlock) {
+        return lines[0] + "\n" + impactBlock;
+    }
+    if (lines.length) {
+        return lines[0];
+    }
+    if (impactBlock) {
+        return impactBlock;
+    }
+    return " ";
+}
+
+function inferSankeyEdgeLabelMaxCols(parsed) {
+    if (!parsed || !parsed.nodes || !parsed.nodes.length) {
+        return 12;
+    }
+    var maxFirst = 10;
+    parsed.nodes.forEach(function (nd) {
+        var lab = nd.label != null ? String(nd.label) : "";
+        var first = lab.split("\n")[0] || "";
+        maxFirst = Math.max(maxFirst, first.length);
+    });
+    return Math.max(8, Math.min(22, maxFirst + 2));
+}
+
 
 /** GRAPH **/
 const cartographer = function () {
@@ -686,6 +788,9 @@ const cartographer = function () {
     cartographer.update_graph = function (json_data) {
         console.log("Updating Graph");
         data = JSON.parse(json_data);
+        if (is_sankey_mode && data.nodes) {
+            data._sankeyEdgeWrapCols = inferSankeyEdgeLabelMaxCols(data);
+        }
         var headingEl = document.getElementById("heading");
         if (data.title && headingEl) {
             headingEl.innerHTML = data.title;
@@ -702,6 +807,14 @@ const cartographer = function () {
         data.edges.forEach(buildGraphEdge);
         console.log("Edges successfully loaded...")
         cartographer.renderGraph({center: true});
+    };
+
+    cartographer.applySankeyEdgeLabels = function () {
+        if (!is_sankey_mode || typeof data === "undefined" || !data || !data.edges) {
+            return;
+        }
+        data.edges.forEach(buildGraphEdge);
+        cartographer.renderGraph({ center: false });
     };
 
     const buildGraphNode = function (n) {
@@ -723,6 +836,13 @@ const cartographer = function () {
             e.label = formatEdgeText(e['product'], max_string_length);
             e.labelType = "html";
             e.arrowhead = "vee";
+        } else {
+            /* Sankey: plain-text labels only (see formatSankeyTwoLineEdgeLabel). */
+            var joinLabel = formatSankeyTwoLineEdgeLabel(e);
+            var wrapCols = (data && data._sankeyEdgeWrapCols) ? data._sankeyEdgeWrapCols : 12;
+            e.label = wrapSankeyEdgeLabelMultiline(joinLabel, wrapCols);
+            delete e.labelType;
+            delete e.arrowhead;
         }
 
         graph.setEdge(e['source_id'], e['target_id'], e);
@@ -886,6 +1006,28 @@ d3.select("#downloadSVGtButtonqPWKOg").on("click", function () {
 var render = dagreD3.render();
 var graph = new dagre.graphlib.Graph({multigraph: true}).setGraph(getGraphConfig());
 cartographer();
+
+(function wireSankeyLabelOptionToggles() {
+    if (!is_sankey_mode) {
+        return;
+    }
+    function bindCheckbox(id, globalProp) {
+        var el = document.getElementById(id);
+        if (!el) {
+            return;
+        }
+        window[globalProp] = el.checked;
+        el.addEventListener("change", function () {
+            window[globalProp] = el.checked;
+            if (cartographer.applySankeyEdgeLabels) {
+                cartographer.applySankeyEdgeLabels();
+            }
+        });
+    }
+    bindCheckbox("sankeyFlowsVisible", "ab_sankey_show_flows");
+    bindCheckbox("sankeyImpactAbsoluteVisible", "ab_sankey_impact_absolute");
+    bindCheckbox("sankeyImpactRelativeVisible", "ab_sankey_impact_relative");
+})();
 
 /* END OF ADAPTED DEMO SCRIPT*/
 
