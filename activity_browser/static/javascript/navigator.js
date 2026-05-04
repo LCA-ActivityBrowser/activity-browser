@@ -13,9 +13,14 @@ const clamp = function (num, min, max) {
 };
 
 const getGraphConfig = function () {
-    return {
+    var cfg = {
         rankdir: graph_direction,
     };
+    if (is_sankey_mode) {
+        // Reduce inter-rank spacing for denser Sankey node stacking.
+        cfg.ranksep = 26;
+    }
+    return cfg;
 };
 
 /**
@@ -566,9 +571,43 @@ function wrapSankeyEdgeLabelMultiline(text, maxLen) {
     if (!text) {
         return "";
     }
-    return text.split("\n").map(function (ln) {
-        return wrapWordsToMaxLineLength(ln, maxLen);
-    }).join("\n");
+    var parts = text.split("\n");
+    var flow = (parts[0] || "").trim();
+    var rest = parts.slice(1);
+
+    function wrapFlowMaxTwoRows(str, cols) {
+        var cleaned = String(str || "").replace(/\s+/g, " ").trim();
+        if (!cleaned) {
+            return "";
+        }
+        if (cleaned.length <= cols) {
+            return cleaned;
+        }
+        var c1 = cleaned.lastIndexOf(" ", cols);
+        var line1 = (c1 > 0 ? cleaned.slice(0, c1) : cleaned.slice(0, cols)).trim();
+        var tail = (c1 > 0 ? cleaned.slice(c1 + 1) : cleaned.slice(cols)).trim();
+        if (!tail) {
+            return line1;
+        }
+        if (tail.length <= cols) {
+            return line1 + "\n" + tail;
+        }
+        var c2 = tail.lastIndexOf(" ", Math.max(1, cols - 3));
+        var line2 = (c2 > 0 ? tail.slice(0, c2) : tail.slice(0, Math.max(1, cols - 3))).trim();
+        return line1 + "\n" + line2.replace(/[. ]+$/, "") + "...";
+    }
+
+    var out = [];
+    if (flow) {
+        out.push(wrapFlowMaxTwoRows(flow, maxLen));
+    }
+    rest.forEach(function (ln) {
+        var w = wrapWordsToMaxLineLength(ln, maxLen);
+        if (w) {
+            out.push(w);
+        }
+    });
+    return out.join("\n");
 }
 
 /**
