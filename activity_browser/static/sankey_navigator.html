@@ -4,8 +4,6 @@
 <!-- http-equiv="content-type" content="user-scalable=no, intial-scale=1"-->
 
 <body class="ab-sankey-tab">
-<h3 id="heading">Graph LCA</h3>
-
 <!--<p id="function" ></p>-->
 
 <!--<p id="data"> </p>-->
@@ -19,16 +17,13 @@
 <!--<script type="text/javascript_libs" src="jquery.tipsy.js"></script>-->
 <link href="css/navigator.common.css" rel="stylesheet" type="text/css" />
 <link href="css/sankey_navigator.css" rel="stylesheet" type="text/css" />
-<section>
-    <button id="resetButtonqPWKOg">Reset Zoom</button>
-    <button id="downloadSVGtButtonqPWKOg">Download SVG</button>
-</section>
-<section>
-    <select id="nodeSelectPWK0g"></select>
-    <button id="nodeSelectPWK0gExecute">Go to Node</button>
+<div id="canvasqPWKOg" class="canvas"></div>
+<section class="ab-sankey-controls" aria-label="Sankey actions">
+    <button type="button" id="downloadSVGtButtonqPWKOg">Download SVG</button>
+    <select id="nodeSelectPWK0g" aria-label="Node"></select>
+    <button type="button" id="nodeSelectPWK0gExecute">Go to Node</button>
     <label class="ab-sankey-minimap-label"><input type="checkbox" id="sankeyMinimapVisible" checked /> Show minimap</label>
 </section>
-<div id="canvasqPWKOg" class="canvas"></div>
 <script type="text/javascript" src="javascript/navigator.js"></script>
 
 </body>

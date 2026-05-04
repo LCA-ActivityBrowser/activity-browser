@@ -686,7 +686,10 @@ const cartographer = function () {
     cartographer.update_graph = function (json_data) {
         console.log("Updating Graph");
         data = JSON.parse(json_data);
-        if (data.title) {heading.innerHTML = data.title};
+        var headingEl = document.getElementById("heading");
+        if (data.title && headingEl) {
+            headingEl.innerHTML = data.title;
+        }
         // Reset graph to empty
         graph = new dagre.graphlib.Graph({multigraph: true}).setGraph(getGraphConfig());
         console.log(JSON.stringify(graph))
@@ -836,9 +839,14 @@ d3.select("#canvasqPWKOg").call(canvas);
     });
 })();
 
-d3.select("#resetButtonqPWKOg").on("click", function () {
-    canvas.reset();
-});
+(function wireResetZoom() {
+    var resetSel = d3.select("#resetButtonqPWKOg");
+    if (!resetSel.empty()) {
+        resetSel.on("click", function () {
+            canvas.reset();
+        });
+    }
+})();
 
 d3.select("#downloadSVGtButtonqPWKOg").on("click", function () {
 

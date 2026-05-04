@@ -251,19 +251,25 @@ body.ab-sankey-tab #canvasqPWKOg.canvas {
   width: 100%;
 }
 
-body.ab-sankey-tab h3#heading {
-  margin: 0.2em 0 0.12em 0.35em;
-  font-size: 1.05em;
+body.ab-sankey-tab .ab-sankey-controls {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.5em 0.75em;
+  margin: 0.35em 0.35em 0.45em 0.35em;
+  flex-shrink: 0;
+  overflow-x: auto;
 }
 
-body.ab-sankey-tab section {
-  margin-top: 0.08em;
-  margin-bottom: 0.08em;
-  margin-left: 0.25em;
+body.ab-sankey-tab .ab-sankey-controls select#nodeSelectPWK0g {
+  min-width: 10em;
+  flex: 1 1 8em;
+  max-width: min(28em, 45vw);
 }
 
 body.ab-sankey-tab .ab-sankey-minimap-label {
-  margin-left: 1em;
+  margin-left: 0;
   font-size: 0.95em;
   white-space: nowrap;
 }

@@ -14,14 +14,25 @@ from qtpy import QtWidgets
 from qtpy.QtCore import Slot
 from qtpy.QtWidgets import QComboBox
 
-from activity_browser import app
 from activity_browser.mod import bw2data as bd
 from bw2data.backends import ActivityDataset
 
 from activity_browser.bwutils.commontasks import identify_activity_type
 from activity_browser.bwutils.filesystem import get_package_path
-from activity_browser.ui import widgets
+from activity_browser.ui import icons, widgets
 
+from .style import header, horizontal_line
+
+
+def _header_layout_with_help(header_text: str, help_widget: QtWidgets.QWidget) -> QtWidgets.QVBoxLayout:
+    hlayout = QtWidgets.QHBoxLayout()
+    hlayout.addWidget(header(header_text))
+    hlayout.addWidget(help_widget)
+    hlayout.setStretch(0, 1)
+    vlayout = QtWidgets.QVBoxLayout()
+    vlayout.addLayout(hlayout)
+    vlayout.addWidget(horizontal_line())
+    return vlayout
 
 
 class SankeyNavigatorWidget(widgets.ABAbstractNavigator):
@@ -41,7 +52,6 @@ class SankeyNavigatorWidget(widgets.ABAbstractNavigator):
         self.parent = parent
         self.has_scenarios = self.parent.has_scenarios
         self.cs = cs_name
-        self.selected_db = None
         self.has_sankey = False
         self.func_units = []
         self.methods = []
@@ -58,6 +68,13 @@ class SankeyNavigatorWidget(widgets.ABAbstractNavigator):
         self.button_calculate = QtWidgets.QPushButton("Calculate")
         self.layout = QtWidgets.QVBoxLayout()
 
+        self.help_button = QtWidgets.QToolBar(self)
+        self.help_button.addAction(
+            icons.qicons.question,
+            "Left click for help on the Sankey diagram",
+            self.show_sankey_help,
+        )
+
         # graph
         self.draw_graph()
         self.construct_layout()
@@ -68,11 +85,21 @@ class SankeyNavigatorWidget(widgets.ABAbstractNavigator):
         if self.has_sankey:
             self.send_json()
 
+    @Slot()
+    def show_sankey_help(self):
+        QtWidgets.QMessageBox.question(
+            self,
+            "Sankey",
+            self.HELP_TEXT.strip(),
+            QtWidgets.QMessageBox.Ok,
+            QtWidgets.QMessageBox.Ok,
+        )
+
     def connect_signals(self):
-        super().connect_signals()
+        self.button_back.clicked.connect(self.go_back)
+        self.button_forward.clicked.connect(self.go_forward)
+        self.button_refresh.clicked.connect(self.draw_graph)
         self.button_calculate.clicked.connect(self.new_sankey)
-        app.signals.database_selected.connect(self.set_database)
-        # checkboxes
         self.func_unit_cb.currentIndexChanged.connect(self.new_sankey)
         self.method_cb.currentIndexChanged.connect(self.new_sankey)
         self.scenario_cb.currentIndexChanged.connect(self.new_sankey)
@@ -80,24 +107,45 @@ class SankeyNavigatorWidget(widgets.ABAbstractNavigator):
     def construct_layout(self) -> None:
         """Layout of Sankey Navigator"""
         super().construct_layout()
-        self.label_help.setVisible(False)
+        self.label_help.hide()
+        self.button_random_activity.hide()
+        self.button_toggle_help.hide()
 
         self.layout.setContentsMargins(4, 2, 4, 2)
         self.layout.setSpacing(4)
 
         self.update_calculation_setup()
 
-        hl_nav = QtWidgets.QHBoxLayout()
-        hl_nav.setSpacing(4)
-        hl_nav.addWidget(self.button_back)
-        hl_nav.addWidget(self.button_forward)
-        hl_nav.addWidget(self.button_refresh)
-        hl_nav.addWidget(self.button_random_activity)
-        hl_nav.addWidget(self.button_toggle_help)
-        hl_nav.addStretch(1)
+        self.layout.addLayout(_header_layout_with_help("Sankey", self.help_button))
+
         fixed = QtWidgets.QSizePolicy.Fixed
         for btn in (self.button_back, self.button_forward):
             btn.setSizePolicy(fixed, fixed)
+
+        top_row = QtWidgets.QHBoxLayout()
+        top_row.setSpacing(4)
+        top_row.addWidget(self.button_back)
+        top_row.addWidget(self.button_forward)
+        top_row.addWidget(self.button_refresh)
+        top_row.addSpacing(12)
+
+        self.cutoff_sb.setRange(0.0, 1.0)
+        self.cutoff_sb.setSingleStep(0.01)
+        self.cutoff_sb.setDecimals(3)
+        self.cutoff_sb.setValue(0.05)
+        self.cutoff_sb.setKeyboardTracking(False)
+        top_row.addWidget(QtWidgets.QLabel("Cutoff:"))
+        top_row.addWidget(self.cutoff_sb)
+
+        self.max_calc_sb.setRange(1, 2000)
+        self.max_calc_sb.setSingleStep(50)
+        self.max_calc_sb.setDecimals(0)
+        self.max_calc_sb.setValue(250)
+        self.max_calc_sb.setKeyboardTracking(False)
+        top_row.addWidget(QtWidgets.QLabel("Depth:"))
+        top_row.addWidget(self.max_calc_sb)
+        top_row.addWidget(self.button_calculate)
+        top_row.addStretch(1)
 
         params_row = QtWidgets.QHBoxLayout()
         params_row.setSpacing(6)
@@ -108,26 +156,8 @@ class SankeyNavigatorWidget(widgets.ABAbstractNavigator):
         params_row.addWidget(self.scenario_label)
         params_row.addWidget(self.scenario_cb)
 
-        self.cutoff_sb.setRange(0.0, 1.0)
-        self.cutoff_sb.setSingleStep(0.01)
-        self.cutoff_sb.setDecimals(3)
-        self.cutoff_sb.setValue(0.05)
-        self.cutoff_sb.setKeyboardTracking(False)
-        params_row.addWidget(QtWidgets.QLabel("Cutoff:"))
-        params_row.addWidget(self.cutoff_sb)
-
-        self.max_calc_sb.setRange(1, 2000)
-        self.max_calc_sb.setSingleStep(50)
-        self.max_calc_sb.setDecimals(0)
-        self.max_calc_sb.setValue(250)
-        self.max_calc_sb.setKeyboardTracking(False)
-        params_row.addWidget(QtWidgets.QLabel("Depth:"))
-        params_row.addWidget(self.max_calc_sb)
-        params_row.addWidget(self.button_calculate)
-
-        self.layout.addLayout(hl_nav)
+        self.layout.addLayout(top_row)
         self.layout.addLayout(params_row)
-        self.layout.addWidget(self.label_help)
         self.layout.addWidget(self.view, 1)
         self.setLayout(self.layout)
 
@@ -265,21 +295,9 @@ class SankeyNavigatorWidget(widgets.ABAbstractNavigator):
         self.has_sankey = bool(self.graph.json_data)
         self.send_json()
 
-    def set_database(self, name):
-        """Saves the currently selected database for graphing a random activity"""
-        self.selected_db = name
-
     def random_graph(self) -> None:
-        """Show graph for a random activity in the currently loaded database."""
-        if self.selected_db:
-            method = bd.methods.random()
-            act = bd.Database(self.selected_db).random()
-            demand = {act: 1.0}
-            self.update_sankey(demand, method)
-        else:
-            QtWidgets.QMessageBox.information(
-                None, "Not possible.", "Please load a database first."
-            )
+        """Not used in the Sankey tab (random activity is not offered here)."""
+        pass
 
 
 def convert_numpy_types(obj) -> int | float | list:
@@ -332,7 +350,6 @@ class Graph(widgets.ABAbstractGraph):
         ```python
         {
             'max_impact': float,  # Total LCA score,
-            'title': str,  # Graph title
             'edges': [{
                 'source_id': int,  # Unique ID of producer of material or energy in graph
                 'target_id': int,  # Unique ID of consumer of material or energy in graph
@@ -440,28 +457,9 @@ class Graph(widgets.ABAbstractGraph):
                 for edge in data["edges"]
                 if edge.producer_index != -1 and edge.consumer_index != -1
             ],
-            "title": "Sankey graph result",
-            # "title": self.build_title(demand, lca_score, lcia_unit),
         }
 
         return json.dumps(json_data)
-
-    def build_title(self, demand: tuple, lca_score: float, lcia_unit: str) -> str:
-        act, amount = demand[0], demand[1]
-        if type(act) is tuple or type(act) is int:
-            act = bd.get_activity(act)
-        format_str = (
-            "Reference flow: {:.2g} {} {} | {} | {} <br>" "Total impact: {:.2g} {}"
-        )
-        return format_str.format(
-            amount,
-            act.get("unit"),
-            act.get("reference product") or act.get("name"),
-            act.get("name"),
-            act.get("location"),
-            lca_score,
-            lcia_unit,
-        )
 
 
 def id_to_key(id):
