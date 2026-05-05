@@ -6,14 +6,7 @@ import bw_functional as bf
 
 from activity_browser import app
 from activity_browser.bwutils.commontasks import refresh_node, database_is_locked
-from activity_browser.ui import widgets, icons
-
-
-def _apply_compact_single_line_edit_metrics(edit: QtWidgets.QLineEdit) -> None:
-    """Shorter line edits so header rows match label height and vertical gaps read evenly."""
-    fm = QtGui.QFontMetrics(edit.font())
-    edit.setFixedHeight(fm.height() + 6)
-    edit.setStyleSheet("QLineEdit { padding: 1px 4px; }")
+from activity_browser.ui import icons
 
 
 class ActivityHeader(QtWidgets.QWidget):
@@ -84,35 +77,30 @@ class ActivityHeader(QtWidgets.QWidget):
         db_locked = database_is_locked(self.activity["database"])
 
         process_widget = (ActivityNameReadOnly(self) if db_locked else ActivityName(self))
-        location_widget = (
-            QtWidgets.QLabel(self.activity.get("location") or "unspecified", self)
-            if db_locked else ActivityLocation(self)
-        )
-        database_widget = QtWidgets.QLabel(self.activity.get("database", "unspecified"), self)
-
         # Tooltip texts
         tooltip_process = "ProcessWithReferenceProduct (sqlite backend)" if self._database_backend == "sqlite" else "Process (functional_sqlite backend)"
-        tooltip_location = "Location"
-        tooltip_database = "Database"
-        tooltip_properties = "Properties"
 
         process_icon = "processproduct" if self._database_backend == "sqlite" else "process"
 
         rows = [
             (self._icon_label(process_icon, tooltip_process), process_widget),
-            (self._icon_label("location", tooltip_location), location_widget),
-            (self._icon_label("database", tooltip_database), database_widget),
+            (self._icon_label("location", "Location"), LocationDatabaseRowWidget(self, disabled=db_locked)),
         ]
 
-        if isinstance(self.activity, bf.Process):
-            rows.append((self._icon_label("properties", tooltip_properties), ActivityProperties(self, disabled=db_locked)))
+        is_multifunctional = self.activity.get("type") == "multifunctional"
+        has_props = isinstance(self.activity, bf.Process)
 
-        if self.activity.get("type") == "multifunctional":
-            allocation_widget = (
-                QtWidgets.QLabel(self.activity.get("allocation", "unspecified"), self)
-                if db_locked else ActivityAllocation(self)
+        if is_multifunctional:
+            rows.append(
+                (
+                    self._icon_label("allocation", "Allocation"),
+                    AllocationAndPropertiesRow(self, disabled=db_locked),
+                )
             )
-            rows.append((widgets.ABLabel.demiBold("Alloc:", self), allocation_widget))
+        elif has_props:
+            rows.append(
+                (self._icon_label("properties", "Properties"), ActivityProperties(self, disabled=db_locked))
+            )
 
         for row, (left, right) in enumerate(rows):
             grid.addWidget(left, row, 0, alignment=QtCore.Qt.AlignmentFlag.AlignTop)
@@ -156,8 +144,6 @@ class ActivityName(QtWidgets.QLineEdit):
         self.setStyleSheet("QLineEdit { padding: 0px; }")
         fm = QtGui.QFontMetrics(self.font())
         self.setFixedHeight(fm.height() + 4)
-        # else:
-        #     _apply_compact_single_line_edit_metrics(self)
         self.editingFinished.connect(self.change_name)
 
     def change_name(self):
@@ -184,28 +170,99 @@ class ActivityLocation(QtWidgets.QLineEdit):
     A widget that displays and edits the location of the activity.
     """
 
-    def __init__(self, parent: ActivityHeader):
+    _WIDTH_PAD_PX = 14
+    _MIN_WIDTH_PX = 32
+
+    def __init__(self, header: ActivityHeader):
         """
         Initializes the ActivityLocation widget.
 
         Args:
-            parent (ActivityHeader): The parent widget.
+            header (ActivityHeader): Header owning the activity (Qt parent may be a row widget).
         """
-        super().__init__(parent.activity.get("location"), parent)
-        _apply_compact_single_line_edit_metrics(self)
+        self._header = header
+        super().__init__(header.activity.get("location"), header)
+        font = self.font()
+        font.setBold(False)
+        self.setFont(font)
+        self.setFrame(False)
+        self.setStyleSheet("QLineEdit { padding: 0px; }")
+        fm = QtGui.QFontMetrics(self.font())
+        self.setFixedHeight(fm.height() + 4)
+        self.setSizePolicy(QtWidgets.QSizePolicy.Policy.Fixed, QtWidgets.QSizePolicy.Policy.Fixed)
+        self.textChanged.connect(self._adjust_width_to_text)
+        self._adjust_width_to_text()
         self.editingFinished.connect(self.change_location)
 
         locations = set(app.metadata.dataframe.get("location", ["GLO"]))
         completer = QtWidgets.QCompleter(locations, self)
         self.setCompleter(completer)
 
+    def _adjust_width_to_text(self) -> None:
+        fm = QtGui.QFontMetrics(self.font())
+        t = self.text()
+        text_w = fm.horizontalAdvance(t) if t else fm.horizontalAdvance(" ")
+        self.setFixedWidth(max(text_w + self._WIDTH_PAD_PX, self._MIN_WIDTH_PX))
+
     def change_location(self):
         """
         Changes the location of the activity if it has been modified.
         """
-        if self.text() == self.parent().activity.get("location"):
+        if self.text() == self._header.activity.get("location"):
             return
-        app.actions.ActivityModify.run(self.parent().activity, "location", self.text())
+        app.actions.ActivityModify.run(self._header.activity, "location", self.text())
+
+
+class LocationDatabaseRowWidget(QtWidgets.QWidget):
+    """
+    A widget that puts location and database widgets into one row
+    """
+    def __init__(self, parent: ActivityHeader, disabled: bool = False):
+        super().__init__(parent)
+        layout = QtWidgets.QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(8)
+
+        location_widget = (
+            QtWidgets.QLabel(parent.activity.get("location") or "unspecified", self)
+            if disabled else ActivityLocation(parent)
+        )
+        if isinstance(location_widget, QtWidgets.QLabel):
+            location_widget.setSizePolicy(
+                QtWidgets.QSizePolicy.Policy.Maximum,
+                QtWidgets.QSizePolicy.Policy.Preferred,
+            )
+        database_widget = QtWidgets.QLabel(parent.activity.get("database", "unspecified"), self)
+        database_widget.setTextInteractionFlags(QtCore.Qt.TextInteractionFlag.TextSelectableByMouse)
+
+        layout.addWidget(location_widget, 0)
+        layout.addWidget(parent._icon_label("database", "Database"))
+        layout.addWidget(database_widget, 1)
+
+
+class AllocationAndPropertiesRow(QtWidgets.QWidget):
+    """
+    A widget that puts Allocation and Properties widgets into one row.
+    Used only for multifunctional processes.
+    The allocation icon is the grid's leading cell — not repeated here.
+    """
+
+    def __init__(self, parent: ActivityHeader, disabled: bool = False):
+        super().__init__(parent)
+        layout = QtWidgets.QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(8)
+
+        allocation_widget = (
+            QtWidgets.QLabel(parent.activity.get("allocation", "unspecified"), self)
+            if disabled
+            else ActivityAllocation(parent)
+        )
+        layout.addWidget(allocation_widget, 0)
+
+        if isinstance(parent.activity, bf.Process):
+            layout.addWidget(parent._icon_label("properties", "Properties"))
+            layout.addWidget(ActivityProperties(parent, disabled=disabled), 1)
 
 
 class ActivityProperties(QtWidgets.QWidget):
@@ -297,24 +354,25 @@ class ActivityAllocation(QtWidgets.QComboBox):
     A widget that displays and edits the allocation strategy of the activity.
     """
 
-    def __init__(self, parent: ActivityHeader):
+    def __init__(self, header: ActivityHeader):
         """
         Initializes the ActivityAllocation widget.
 
         Args:
-            parent (ActivityHeader): The parent widget.
+            header (ActivityHeader): Header owning the activity (Qt parent may be a row widget).
         """
-        if not isinstance(parent.activity, bf.Process):
+        if not isinstance(header.activity, bf.Process):
             raise TypeError("ActivityAllocation can only be used with bf.Process instances.")
 
-        super().__init__(parent)
+        self._header = header
+        super().__init__(header)
 
         self.addItems(sorted(bf.allocation_strategies))
-        if props := parent.activity.available_properties():
+        if props := header.activity.available_properties():
             self.insertSeparator(1000)  # Large number to make sure it's appended at the end
             self.addItems(sorted(props))
 
-        i = self.findText(parent.activity.get("allocation"))
+        i = self.findText(header.activity.get("allocation"))
         self.setCurrentIndex(i)
 
         self.currentTextChanged.connect(self.change_allocation)
@@ -326,7 +384,7 @@ class ActivityAllocation(QtWidgets.QComboBox):
         Args:
             allocation (str): The new allocation strategy.
         """
-        act = self.parent().activity
+        act = self._header.activity
         if act.get("allocation") == allocation:
             return
         app.actions.ActivityModify.run(act, "allocation", allocation)

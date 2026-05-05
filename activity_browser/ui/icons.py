@@ -79,6 +79,7 @@ icons = dict(
     # activity details
     location = create_path("activity details", "location.png"),
     database = create_path("activity details", "database.png"),
+    allocation = create_path("activity details", "allocation.png"),
     properties = create_path("activity details", "properties.png"),
 
     # other
