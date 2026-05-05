@@ -84,6 +84,10 @@ class ActivityHeader(QtWidgets.QWidget):
         setup = [
             ("Name:", ActivityName(self),),
             ("Location:", ActivityLocation(self),),
+            (
+                "Database:",
+                QtWidgets.QLabel(self.activity.get("database", "unspecified"), self),
+            ),
         ]
 
         if isinstance(self.activity, bf.Process):
@@ -99,6 +103,7 @@ class ActivityHeader(QtWidgets.QWidget):
         setup = [
             ("Name:", QtWidgets.QLabel(self.activity.get("name", "unspecified"), self),),
             ("Location:", QtWidgets.QLabel(self.activity.get("location", "unspecified"), self),),
+            ("Database:", QtWidgets.QLabel(self.activity.get("database", "unspecified"), self),),
         ]
 
         if isinstance(self.activity, bf.Process):
