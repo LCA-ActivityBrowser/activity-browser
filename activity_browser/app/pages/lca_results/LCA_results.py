@@ -70,6 +70,16 @@ def _style_plots_scroll_area(space: QtWidgets.QScrollArea, inner: QtWidgets.QWid
     """Remove default grey from scroll viewport / chrome around matplotlib plots."""
     space.setWidgetResizable(True)
     space.setFrameShape(QtWidgets.QFrame.NoFrame)
+    space.setMinimumWidth(0)
+    space.setSizePolicy(
+        QtWidgets.QSizePolicy.Policy.Ignored,
+        QtWidgets.QSizePolicy.Policy.Expanding,
+    )
+    inner.setMinimumWidth(0)
+    inner.setSizePolicy(
+        QtWidgets.QSizePolicy.Policy.Ignored,
+        QtWidgets.QSizePolicy.Policy.Expanding,
+    )
     bg = "background-color: white;"
     inner.setStyleSheet(bg)
     space.setStyleSheet(bg)
@@ -119,6 +129,18 @@ class LCAResultsPage(QtWidgets.QTabWidget):
         self.single_method = len(self.mlca.methods) == 1
 
         self.setMovable(True)
+        # Match ABTabWidget: long sub-tab names must not set a wide minimum for the main window
+        # or the central/dock splitter (QTabBar sizeHint is otherwise the full label widths).
+        self.setMinimumWidth(0)
+        self.setSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Ignored,
+            QtWidgets.QSizePolicy.Policy.Expanding,
+        )
+        self.tabBar().setUsesScrollButtons(True)
+        if hasattr(QtCore.Qt, "TextElideMode"):
+            self.setElideMode(QtCore.Qt.TextElideMode.ElideRight)
+        else:
+            self.setElideMode(QtCore.Qt.ElideRight)
         self.setVisible(False)
         self.visible = False
 

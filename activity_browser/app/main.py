@@ -21,6 +21,7 @@ class MainWindow(widgets.ABMainWindow):
         self.setMenuBar(self.menu_bar)
 
         self.central_widget = widgets.ABCentralPagesWidget(self)
+        self.central_widget.setMinimumWidth(0)
         self.setCentralWidget(self.central_widget)
 
         for page_name, page_class in app.pages.base_pages.items():

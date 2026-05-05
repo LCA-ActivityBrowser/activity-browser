@@ -465,7 +465,10 @@ class ABDataFrameView(QtWidgets.QTableView):
         self.setVerticalScrollMode(QTableView.ScrollPerPixel)
         self.setHorizontalScrollMode(QTableView.ScrollPerPixel)
 
-        self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Expanding)
+        # Preferred horizontally makes QTableView's sizeHint (sum of column widths)
+        # set the window minimum width; Ignored lets the table shrink and scroll.
+        self.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Expanding)
+        self.setMinimumWidth(0)
 
         self.setWordWrap(True)
         self.setAlternatingRowColors(True)
@@ -487,6 +490,14 @@ class ABDataFrameView(QtWidgets.QTableView):
         # valid attributes.
         self.model: Optional[PandasModel] = None
         self.proxy_model: Optional[ABSortProxyModel] = None
+
+    def sizeHint(self) -> QSize:  # noqa: N802 (Qt API)
+        sh = super().sizeHint()
+        return QSize(0, sh.height())
+
+    def minimumSizeHint(self) -> QSize:  # noqa: N802
+        mh = super().minimumSizeHint()
+        return QSize(0, mh.height())
 
     def rowCount(self) -> int:
         return 0 if self.model is None else self.model.rowCount()
