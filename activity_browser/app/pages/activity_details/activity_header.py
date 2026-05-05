@@ -6,7 +6,7 @@ import bw_functional as bf
 
 from activity_browser import app
 from activity_browser.bwutils.commontasks import refresh_node, database_is_locked
-from activity_browser.ui import widgets
+from activity_browser.ui import widgets, icons
 
 
 def _apply_compact_single_line_edit_metrics(edit: QtWidgets.QLineEdit) -> None:
@@ -37,9 +37,11 @@ class ActivityHeader(QtWidgets.QWidget):
         """
         super().__init__(parent)
         self.activity = parent.activity
+        self._database_backend = "sqlite"
 
         layout = QtWidgets.QVBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(4)
         self.setLayout(layout)
 
     def sync(self):
@@ -49,6 +51,7 @@ class ActivityHeader(QtWidgets.QWidget):
         logger.log("SYNC", f"{self.__class__.__name__}: {id(self)}")
 
         self.activity = refresh_node(self.activity)
+        self._database_backend = bd.databases[self.activity["database"]].get("backend", "sqlite")
 
         self.clear_layout()
 
@@ -75,54 +78,60 @@ class ActivityHeader(QtWidgets.QWidget):
         grid = QtWidgets.QGridLayout(self)
         grid.setContentsMargins(0, 2, 0, 2)
         grid.setHorizontalSpacing(8)
-        grid.setVerticalSpacing(4)
+        grid.setVerticalSpacing(6)
         grid.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop)
 
         db_locked = database_is_locked(self.activity["database"])
-        setup = self.disabled_setup() if db_locked else self.enabled_setup()
 
-        # Arrange widgets for display as a grid
-        for i, (title, widget) in enumerate(setup):
-            grid.addWidget(widgets.ABLabel.demiBold(title, self), i, 1)
-            grid.addWidget(widget, i, 2, 1, 4)
+        process_widget = (ActivityNameReadOnly(self) if db_locked else ActivityName(self))
+        location_widget = (
+            QtWidgets.QLabel(self.activity.get("location") or "unspecified", self)
+            if db_locked else ActivityLocation(self)
+        )
+        database_widget = QtWidgets.QLabel(self.activity.get("database", "unspecified"), self)
 
+        # Tooltip texts
+        tooltip_process = "ProcessWithReferenceProduct (sqlite backend)" if self._database_backend == "sqlite" else "Process (functional_sqlite backend)"
+        tooltip_location = "Location"
+        tooltip_database = "Database"
+        tooltip_properties = "Properties"
+
+        process_icon = "processproduct" if self._database_backend == "sqlite" else "process"
+
+        rows = [
+            (self._icon_label(process_icon, tooltip_process), process_widget),
+            (self._icon_label("location", tooltip_location), location_widget),
+            (self._icon_label("database", tooltip_database), database_widget),
+        ]
+
+        if isinstance(self.activity, bf.Process):
+            rows.append((self._icon_label("properties", tooltip_properties), ActivityProperties(self, disabled=db_locked)))
+
+        if self.activity.get("type") == "multifunctional":
+            allocation_widget = (
+                QtWidgets.QLabel(self.activity.get("allocation", "unspecified"), self)
+                if db_locked else ActivityAllocation(self)
+            )
+            rows.append((widgets.ABLabel.demiBold("Alloc:", self), allocation_widget))
+
+        for row, (left, right) in enumerate(rows):
+            grid.addWidget(left, row, 0, alignment=QtCore.Qt.AlignmentFlag.AlignTop)
+            grid.addWidget(right, row, 1)
+
+        grid.setColumnStretch(1, 1)
         return grid
 
-    def enabled_setup(self):
-        setup = [
-            ("Name:", ActivityName(self),),
-            ("Location:", ActivityLocation(self),),
-            ("Database:", QtWidgets.QLabel(self.activity.get("database", "unspecified"), self),),
-        ]
+    def _icon_label(self, icon_name, tool_tip_text) -> QtWidgets.QLabel:
+        label = QtWidgets.QLabel(self)
+        pixmap = getattr(icons.qicons, icon_name).pixmap(18, 18)
+        label.setPixmap(pixmap)
+        label.setFixedWidth(20)
+        label.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop | QtCore.Qt.AlignmentFlag.AlignHCenter)
+        label.setToolTip(tool_tip_text)
+        return label
 
-        if isinstance(self.activity, bf.Process):
-            setup.append(("Properties:", ActivityProperties(self),),)
-
-        # Add allocation strategy selector if the activity is multifunctional
-        if self.activity.get("type") == "multifunctional":
-            setup.append(("Allocation:", ActivityAllocation(self),))
-
-        return setup
-
-    def disabled_setup(self):
-        setup = [
-            ("Name:", QtWidgets.QLabel(self.activity.get("name", "unspecified"), self),),
-            ("Location:", QtWidgets.QLabel(self.activity.get("location", "unspecified"), self),),
-            ("Database:", QtWidgets.QLabel(self.activity.get("database", "unspecified"), self),),
-        ]
-
-        if isinstance(self.activity, bf.Process):
-            props = self.activity.available_properties()
-            prop_text = ", ".join(props) if props else "None"
-            setup.append(("Properties:", QtWidgets.QLabel(prop_text, self),))
-
-        # Add allocation strategy selector if the activity is multifunctional
-        if self.activity.get("type") == "multifunctional":
-            setup.append(("Allocation:", QtWidgets.QLabel(self.activity.get("allocation", "unspecified"), self),),)
-
-        return setup
-
-
+    def activity_name(self) -> str:
+        return self.activity.get("name", "unspecified")
 
 
 
@@ -138,8 +147,17 @@ class ActivityName(QtWidgets.QLineEdit):
         Args:
             parent (ActivityHeader): The parent widget.
         """
-        super().__init__(parent.activity["name"], parent)
-        _apply_compact_single_line_edit_metrics(self)
+        super().__init__(parent.activity_name())
+        font = self.font()
+        font.setBold(True)
+        font.setPointSize(font.pointSize() + 3)
+        self.setFont(font)
+        self.setFrame(False)
+        self.setStyleSheet("QLineEdit { padding: 0px; }")
+        fm = QtGui.QFontMetrics(self.font())
+        self.setFixedHeight(fm.height() + 4)
+        # else:
+        #     _apply_compact_single_line_edit_metrics(self)
         self.editingFinished.connect(self.change_name)
 
     def change_name(self):
@@ -149,6 +167,16 @@ class ActivityName(QtWidgets.QLineEdit):
         if self.text() == self.parent().activity["name"]:
             return
         app.actions.ActivityModify.run(self.parent().activity, "name", self.text())
+
+
+class ActivityNameReadOnly(QtWidgets.QLabel):
+    def __init__(self, parent: ActivityHeader):
+        super().__init__(parent.activity_name(), parent)
+        font = self.font()
+        font.setBold(True)
+        font.setPointSize(font.pointSize() + 3)
+        self.setFont(font)
+        self.setTextInteractionFlags(QtCore.Qt.TextInteractionFlag.TextSelectableByMouse)
 
 
 class ActivityLocation(QtWidgets.QLineEdit):
@@ -185,7 +213,7 @@ class ActivityProperties(QtWidgets.QWidget):
     A widget that displays and edits the properties of the activity.
     """
 
-    def __init__(self, parent: ActivityHeader):
+    def __init__(self, parent: ActivityHeader, disabled: bool = False):
         """
         Initializes the ActivityProperties widget.
 
@@ -203,11 +231,18 @@ class ActivityProperties(QtWidgets.QWidget):
             return
 
         for property_name in parent.activity.available_properties():
-            layout.addWidget(ActivityProperty(parent.activity, property_name))
+            if disabled:
+                prop = QtWidgets.QLabel(property_name, self)
+                prop.setStyleSheet("QLabel { border: 1px solid #8f8f91; padding: 1px 6px; }")
+                layout.addWidget(prop)
+            else:
+                layout.addWidget(ActivityProperty(parent.activity, property_name))
 
         add_label = QtWidgets.QLabel("<a style='text-decoration:underline;'>Add property</a>")
-        add_label.mouseReleaseEvent = lambda x: app.actions.ProcessPropertyModify.run(parent.activity)
-
+        if disabled:
+            add_label.setText("Add property")
+        else:
+            add_label.mouseReleaseEvent = lambda x: app.actions.ProcessPropertyModify.run(parent.activity)
         layout.addWidget(add_label)
 
         layout.addStretch(1)

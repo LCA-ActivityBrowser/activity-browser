@@ -76,6 +76,11 @@ icons = dict(
     unlink = create_path("exchanges", "unlink.png"),
     relink = create_path("exchanges", "relink.png"),
 
+    # activity details
+    location = create_path("activity details", "location.png"),
+    database = create_path("activity details", "database.png"),
+    properties = create_path("activity details", "properties.png"),
+
     # other
     superstructure = create_path("main", "superstructure.png"),
     copy_to_clipboard = create_path("main", "copy_to_clipboard.png"),

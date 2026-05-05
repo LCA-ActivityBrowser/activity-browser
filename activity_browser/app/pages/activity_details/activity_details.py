@@ -93,7 +93,6 @@ class ActivityDetailsPage(widgets.ABAbstractPage):
 
         # Add the activity data grid and tabs to the layout
         layout.addWidget(self.activity_data_grid)
-        layout.addWidget(widgets.ABHLine(self))
         layout.addWidget(self.tabs)
 
         self.setLayout(layout)
