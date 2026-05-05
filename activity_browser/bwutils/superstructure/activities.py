@@ -187,34 +187,38 @@ def get_activities_from_keys(
 
     db: the database name to check the Activities from the dataframe to
     """
+    # SQLite has a limit for bound query variables (often 999). Large scenario
+    # files can easily exceed this when we query `code.in_(...)` in one go.
+    max_sql_variables = 900
+
+    def existing_flows_for_codes(codes) -> set[tuple[str, str]]:
+        unique_codes = list(set(codes))
+        if not unique_codes:
+            return set()
+
+        found = set()
+        for i in range(0, len(unique_codes), max_sql_variables):
+            chunk = unique_codes[i:i + max_sql_variables]
+            query = (
+                ActivityDataset.select(ActivityDataset.code, ActivityDataset.database)
+                .where(
+                    (ActivityDataset.database == db)
+                    & (ActivityDataset.code.in_(chunk))
+                )
+                .namedtuples()
+            )
+            found.update((row.database, row.code) for row in query.iterator())
+        return found
+
     data_f = df.loc[(df["from database"] == db)]
     data_t = df.loc[(df["to database"] == db)]
     flows = set()
     if not data_f.empty:
-        f_db, f_keys = zip(
-            *data_f.loc[:, "from key"]
-        )  # extract just the key, avoiding the database
-        fqry = (
-            ActivityDataset.select(ActivityDataset.code, ActivityDataset.database)
-            .where(
-                (ActivityDataset.database == db)
-                & (ActivityDataset.code.in_(set(f_keys)))
-            )
-            .namedtuples()
-        )  # produces an iterator for the activities
-        flows.update(set(map(lambda row: (row.database, row.code), fqry.iterator())))
+        _, f_keys = zip(*data_f.loc[:, "from key"])  # extract just the key, avoiding the database
+        flows.update(existing_flows_for_codes(f_keys))
     if not data_t.empty:
-        t_db, t_keys = zip(*data_t.loc[:, "to key"])  # look at the above code block
-        tqry = (
-            ActivityDataset.select(ActivityDataset.code, ActivityDataset.database)
-            .where(
-                (ActivityDataset.database == db)
-                & (ActivityDataset.code.in_(set(t_keys)))
-            )
-            .namedtuples()
-        )
-
-        flows.update(set(map(lambda row: (row.database, row.code), tqry.iterator())))
+        _, t_keys = zip(*data_t.loc[:, "to key"])  # look at the above code block
+        flows.update(existing_flows_for_codes(t_keys))
     absent = pd.concat(
         [
             data_f.loc[
