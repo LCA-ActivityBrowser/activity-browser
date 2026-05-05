@@ -323,5 +323,5 @@ class DatabasesModel(core.ABTreeModel):
         if section == 1 and role == Qt.ItemDataRole.DisplayRole:
             return ""
         if section == 1 and role == Qt.ItemDataRole.DecorationRole:
-            return icons.qicons.unlocked
+            return icons.qicons.locked
         return super().headerData(section, orientation, role)

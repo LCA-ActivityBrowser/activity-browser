@@ -48,9 +48,6 @@ class ActivityHeader(QtWidgets.QWidget):
 
         self.clear_layout()
 
-        if database_is_locked(self.activity["database"]):
-            self.layout().addWidget(LockedWarningBar(self))
-
         self.layout().addLayout(self.build_grid())
 
     def clear_layout(self, layout: QtWidgets.QLayout = None):
@@ -76,7 +73,7 @@ class ActivityHeader(QtWidgets.QWidget):
 
         db_locked = database_is_locked(self.activity["database"])
 
-        process_widget = (ActivityNameReadOnly(self) if db_locked else ActivityName(self))
+        process_widget = LockedProcessTitleRow(self) if db_locked else UnlockedProcessTitleRow(self)
         # Tooltip texts
         tooltip_process = "ProcessWithReferenceProduct (sqlite backend)" if self._database_backend == "sqlite" else "Process (functional_sqlite backend)"
 
@@ -103,8 +100,14 @@ class ActivityHeader(QtWidgets.QWidget):
             )
 
         for row, (left, right) in enumerate(rows):
-            grid.addWidget(left, row, 0, alignment=QtCore.Qt.AlignmentFlag.AlignTop)
-            grid.addWidget(right, row, 1)
+            # Row 0: keep process icon, title, and lock icon vertically centered together.
+            row_align = (
+                QtCore.Qt.AlignmentFlag.AlignVCenter
+                if row == 0
+                else QtCore.Qt.AlignmentFlag.AlignTop
+            )
+            grid.addWidget(left, row, 0, alignment=row_align)
+            grid.addWidget(right, row, 1, alignment=row_align)
 
         grid.setColumnStretch(1, 1)
         return grid
@@ -128,14 +131,18 @@ class ActivityName(QtWidgets.QLineEdit):
     A widget that displays and edits the name of the activity.
     """
 
-    def __init__(self, parent: ActivityHeader):
+    _WIDTH_PAD_PX = 14
+    _MIN_WIDTH_PX = 40
+
+    def __init__(self, header: ActivityHeader):
         """
         Initializes the ActivityName widget.
 
         Args:
-            parent (ActivityHeader): The parent widget.
+            header (ActivityHeader): Header owning the activity (Qt parent may be a row widget).
         """
-        super().__init__(parent.activity_name())
+        self._header = header
+        super().__init__(header.activity_name(), header)
         font = self.font()
         font.setBold(True)
         font.setPointSize(font.pointSize() + 3)
@@ -144,25 +151,92 @@ class ActivityName(QtWidgets.QLineEdit):
         self.setStyleSheet("QLineEdit { padding: 0px; }")
         fm = QtGui.QFontMetrics(self.font())
         self.setFixedHeight(fm.height() + 4)
+        self.setSizePolicy(QtWidgets.QSizePolicy.Policy.Fixed, QtWidgets.QSizePolicy.Policy.Fixed)
+        self.textChanged.connect(self._adjust_width_to_text)
+        self._adjust_width_to_text()
         self.editingFinished.connect(self.change_name)
+
+    def _adjust_width_to_text(self) -> None:
+        fm = QtGui.QFontMetrics(self.font())
+        t = self.text()
+        text_w = fm.horizontalAdvance(t) if t else fm.horizontalAdvance(" ")
+        self.setFixedWidth(max(text_w + self._WIDTH_PAD_PX, self._MIN_WIDTH_PX))
 
     def change_name(self):
         """
         Changes the name of the activity if it has been modified.
         """
-        if self.text() == self.parent().activity["name"]:
+        if self.text() == self._header.activity["name"]:
             return
-        app.actions.ActivityModify.run(self.parent().activity, "name", self.text())
+        app.actions.ActivityModify.run(self._header.activity, "name", self.text())
 
 
 class ActivityNameReadOnly(QtWidgets.QLabel):
-    def __init__(self, parent: ActivityHeader):
-        super().__init__(parent.activity_name(), parent)
+    def __init__(self, header: ActivityHeader):
+        super().__init__(header.activity_name(), header)
         font = self.font()
         font.setBold(True)
         font.setPointSize(font.pointSize() + 3)
         self.setFont(font)
         self.setTextInteractionFlags(QtCore.Qt.TextInteractionFlag.TextSelectableByMouse)
+        self.setSizePolicy(QtWidgets.QSizePolicy.Policy.Maximum, QtWidgets.QSizePolicy.Policy.Fixed)
+        fm = QtGui.QFontMetrics(self.font())
+        self.setFixedHeight(fm.height() + 4)
+        self.setAlignment(QtCore.Qt.AlignmentFlag.AlignVCenter | QtCore.Qt.AlignmentFlag.AlignLeft)
+
+
+class DatabaseLockIconLabel(QtWidgets.QLabel):
+    """Lock pixmap that unlocks the activity's database on double-click."""
+
+    _TOOLTIP = (
+        "The database of this activity is currently locked.\n\n"
+        "Double-click this icon to unlock the database."
+    )
+
+    def __init__(self, header: ActivityHeader, parent: QtWidgets.QWidget | None = None):
+        super().__init__(parent)
+        self._header = header
+        self.setPixmap(icons.qicons.locked.pixmap(18, 18))
+        self.setFixedSize(20, 18)
+        self.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        self.setToolTip(self._TOOLTIP)
+
+    def mouseDoubleClickEvent(self, event: QtGui.QMouseEvent) -> None:
+        app.actions.DatabaseSetReadonly.run(self._header.activity["database"], False)
+        event.accept()
+
+
+class UnlockedProcessTitleRow(QtWidgets.QWidget):
+    """Editable process title row (width follows text); vertically aligns with the process icon."""
+
+    def __init__(self, header: ActivityHeader):
+        super().__init__(header)
+        layout = QtWidgets.QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+        layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignVCenter)
+        layout.addWidget(ActivityName(header), 0)
+        layout.addStretch(1)
+
+
+class LockedProcessTitleRow(QtWidgets.QWidget):
+    """Read-only process title with lock affordance when the database is read-only."""
+
+    def __init__(self, header: ActivityHeader):
+        super().__init__(header)
+        layout = QtWidgets.QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(6)
+        layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignVCenter)
+
+        name = ActivityNameReadOnly(header)
+        fm = QtGui.QFontMetrics(name.font())
+        text_w = fm.horizontalAdvance(name.text()) if name.text() else fm.horizontalAdvance(" ")
+        name.setFixedWidth(max(text_w + 8, 32))
+
+        layout.addWidget(name, 0)
+        layout.addWidget(DatabaseLockIconLabel(header, self), 0)
+        layout.addStretch(1)
 
 
 class ActivityLocation(QtWidgets.QLineEdit):
@@ -388,29 +462,4 @@ class ActivityAllocation(QtWidgets.QComboBox):
         if act.get("allocation") == allocation:
             return
         app.actions.ActivityModify.run(act, "allocation", allocation)
-
-
-class LockedWarningBar(QtWidgets.QToolBar):
-    def __init__(self, parent: ActivityHeader):
-        super().__init__(parent)
-        self.setMovable(False)
-        self.setContentsMargins(0, 0, 0, 0)
-
-        warning_label = QtWidgets.QLabel("The database of this activity is currently locked.")
-        height = warning_label.minimumSizeHint().height()
-
-        warning_icon = QtWidgets.QLabel(self)
-        qicon = app.application.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_MessageBoxWarning)
-        pixmap = qicon.pixmap(height, height)
-        warning_icon.setPixmap(pixmap)
-
-        migrate_label = QtWidgets.QLabel("<a style='text-decoration:underline;'>Unlock database</a>")
-        migrate_label.mouseReleaseEvent = lambda x: app.actions.DatabaseSetReadonly.run(parent.activity["database"], False)
-
-        self.addWidget(warning_icon)
-        self.addWidget(warning_label)
-        self.addWidget(migrate_label)
-
-    def contextMenuEvent(self, event):
-        return None
 
