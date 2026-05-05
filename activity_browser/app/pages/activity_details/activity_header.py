@@ -1,4 +1,4 @@
-from qtpy import QtWidgets, QtCore
+from qtpy import QtWidgets, QtCore, QtGui
 from loguru import logger
 
 import bw2data as bd
@@ -7,6 +7,13 @@ import bw_functional as bf
 from activity_browser import app
 from activity_browser.bwutils.commontasks import refresh_node, database_is_locked
 from activity_browser.ui import widgets
+
+
+def _apply_compact_single_line_edit_metrics(edit: QtWidgets.QLineEdit) -> None:
+    """Shorter line edits so header rows match label height and vertical gaps read evenly."""
+    fm = QtGui.QFontMetrics(edit.font())
+    edit.setFixedHeight(fm.height() + 6)
+    edit.setStyleSheet("QLineEdit { padding: 1px 4px; }")
 
 
 class ActivityHeader(QtWidgets.QWidget):
@@ -66,8 +73,9 @@ class ActivityHeader(QtWidgets.QWidget):
 
     def build_grid(self) -> QtWidgets.QGridLayout:
         grid = QtWidgets.QGridLayout(self)
-        grid.setContentsMargins(0, 5, 0, 5)
-        grid.setSpacing(10)
+        grid.setContentsMargins(0, 2, 0, 2)
+        grid.setHorizontalSpacing(8)
+        grid.setVerticalSpacing(4)
         grid.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop)
 
         db_locked = database_is_locked(self.activity["database"])
@@ -84,10 +92,7 @@ class ActivityHeader(QtWidgets.QWidget):
         setup = [
             ("Name:", ActivityName(self),),
             ("Location:", ActivityLocation(self),),
-            (
-                "Database:",
-                QtWidgets.QLabel(self.activity.get("database", "unspecified"), self),
-            ),
+            ("Database:", QtWidgets.QLabel(self.activity.get("database", "unspecified"), self),),
         ]
 
         if isinstance(self.activity, bf.Process):
@@ -134,6 +139,7 @@ class ActivityName(QtWidgets.QLineEdit):
             parent (ActivityHeader): The parent widget.
         """
         super().__init__(parent.activity["name"], parent)
+        _apply_compact_single_line_edit_metrics(self)
         self.editingFinished.connect(self.change_name)
 
     def change_name(self):
@@ -158,6 +164,7 @@ class ActivityLocation(QtWidgets.QLineEdit):
             parent (ActivityHeader): The parent widget.
         """
         super().__init__(parent.activity.get("location"), parent)
+        _apply_compact_single_line_edit_metrics(self)
         self.editingFinished.connect(self.change_location)
 
         locations = set(app.metadata.dataframe.get("location", ["GLO"]))
@@ -190,6 +197,7 @@ class ActivityProperties(QtWidgets.QWidget):
         self.setContentsMargins(0, 0, 0, 0)
         layout = QtWidgets.QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(4)
 
         if not isinstance(parent.activity, bf.Process):
             return
