@@ -88,12 +88,12 @@ class ActivityDetailsPage(widgets.ABAbstractPage):
         Builds the layout of the widget.
         """
         layout = QtWidgets.QVBoxLayout()
-        layout.setContentsMargins(10, 10, 4, 1)
+        layout.setContentsMargins(12, 12, 12, 8)
+        layout.setSpacing(10)
         layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignTop)
 
         # Add the activity data grid and tabs to the layout
         layout.addWidget(self.activity_data_grid)
-        layout.addWidget(widgets.ABHLine(self))
         layout.addWidget(self.tabs)
 
         self.setLayout(layout)

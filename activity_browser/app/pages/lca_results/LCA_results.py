@@ -70,6 +70,16 @@ def _style_plots_scroll_area(space: QtWidgets.QScrollArea, inner: QtWidgets.QWid
     """Remove default grey from scroll viewport / chrome around matplotlib plots."""
     space.setWidgetResizable(True)
     space.setFrameShape(QtWidgets.QFrame.NoFrame)
+    space.setMinimumWidth(0)
+    space.setSizePolicy(
+        QtWidgets.QSizePolicy.Policy.Ignored,
+        QtWidgets.QSizePolicy.Policy.Expanding,
+    )
+    inner.setMinimumWidth(0)
+    inner.setSizePolicy(
+        QtWidgets.QSizePolicy.Policy.Ignored,
+        QtWidgets.QSizePolicy.Policy.Expanding,
+    )
     bg = "background-color: white;"
     inner.setStyleSheet(bg)
     space.setStyleSheet(bg)
@@ -119,6 +129,18 @@ class LCAResultsPage(QtWidgets.QTabWidget):
         self.single_method = len(self.mlca.methods) == 1
 
         self.setMovable(True)
+        # Match ABTabWidget: long sub-tab names must not set a wide minimum for the main window
+        # or the central/dock splitter (QTabBar sizeHint is otherwise the full label widths).
+        self.setMinimumWidth(0)
+        self.setSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Ignored,
+            QtWidgets.QSizePolicy.Policy.Expanding,
+        )
+        self.tabBar().setUsesScrollButtons(True)
+        if hasattr(QtCore.Qt, "TextElideMode"):
+            self.setElideMode(QtCore.Qt.TextElideMode.ElideRight)
+        else:
+            self.setElideMode(QtCore.Qt.ElideRight)
         self.setVisible(False)
         self.visible = False
 
@@ -313,7 +335,8 @@ class NewAnalysisTab(QtWidgets.QWidget):
         """Assemble main space where plots, tables and relevant options are shown."""
         space = QtWidgets.QScrollArea()
         widget = QtWidgets.QWidget()
-        self.pt_layout.setAlignment(QtCore.Qt.AlignTop)
+        # Let Qt distribute extra vertical space to the visible content instead of pinning at top.
+        self.pt_layout.setAlignment(QtCore.Qt.AlignVCenter)
         widget.setLayout(self.pt_layout)
         space.setWidget(widget)
         _style_plots_scroll_area(space, widget)
@@ -328,7 +351,6 @@ class NewAnalysisTab(QtWidgets.QWidget):
             self.pt_layout.addWidget(self.plot, 1)
         if self.table:
             self.pt_layout.addWidget(self.table)
-        self.pt_layout.addStretch()
         self.space_check()
         return space
 
@@ -1089,7 +1111,8 @@ class ContributionTab(NewAnalysisTab):
         self._setup_plot_table_widgets(invertable=False)
         space = QtWidgets.QScrollArea()
         widget = QtWidgets.QWidget()
-        self.pt_layout.setAlignment(QtCore.Qt.AlignTop)
+        # Let Qt distribute extra vertical space to the visible content instead of pinning at top.
+        self.pt_layout.setAlignment(QtCore.Qt.AlignVCenter)
         widget.setLayout(self.pt_layout)
         space.setWidget(widget)
         _style_plots_scroll_area(space, widget)
@@ -1097,7 +1120,6 @@ class ContributionTab(NewAnalysisTab):
             self.pt_layout.addWidget(self.plot, 1)
         if self.table:
             self.pt_layout.addWidget(self.table)
-        self.pt_layout.addStretch()
         self.space_check()
         return space
 

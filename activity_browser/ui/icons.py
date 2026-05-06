@@ -76,13 +76,19 @@ icons = dict(
     unlink = create_path("exchanges", "unlink.png"),
     relink = create_path("exchanges", "relink.png"),
 
+    # activity details
+    location = create_path("activity details", "location.png"),
+    database = create_path("activity details", "database.png"),
+    allocation = create_path("activity details", "allocation.png"),
+    properties = create_path("activity details", "properties.png"),
+
     # other
     superstructure = create_path("main", "superstructure.png"),
     copy_to_clipboard = create_path("main", "copy_to_clipboard.png"),
     warning = create_path("context", "warning.png"),
     critical = create_path("context", "critical.png"),
     locked = create_path("main", "locked.png"),
-    unlocked = create_path("main", "unlocked.png"),
+    # unlocked = create_path("main", "unlocked.png"),
     star = create_path("main", "star.png"),
 )
 

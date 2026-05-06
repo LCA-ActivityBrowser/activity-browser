@@ -23,8 +23,8 @@ class LCAResultsBarChart(ABPlot):
 
     def plot(self, df: pd.DataFrame, method: tuple, labels: list):
         self.reset_plot()
-        height_inches, width_inches = self.get_canvas_size_in_inches()
-        self.figure.set_size_inches(height_inches, width_inches)
+        width_inches, height_inches = self.get_canvas_size_in_inches()
+        self.figure.set_size_inches(width_inches, height_inches, forward=False)
 
         # https://github.com/LCA-ActivityBrowser/activity-browser/issues/489
         df.index = pd.Index(labels)  # Replace index of tuples
@@ -45,6 +45,7 @@ class LCAResultsBarChart(ABPlot):
         self._set_plot_chrome_white()
         # draw
         self.canvas.draw()
+        self._schedule_figure_sync()
 
 
 class LCAResultsPlot(ABPlot):
@@ -102,14 +103,16 @@ class LCAResultsPlot(ABPlot):
             self.ax.set_xticklabels(self.ax.get_xticklabels(), rotation="vertical")
         self.ax.set_yticklabels(self.ax.get_yticklabels(), rotation="horizontal")
 
-        # refresh canvas
-        size_inches = (2 + dfp.shape[0] * 0.5, 4 + dfp.shape[0] * 0.55)
-        self.figure.set_size_inches(self.get_canvas_size_in_inches()[0], size_inches[1])
-        size_pixels = self.figure.get_size_inches() * self.figure.dpi
-        self.setMinimumHeight(size_pixels[1])
+        # refresh canvas — width from Qt layout, height from data (vertical scroll)
+        height_inches = 4 + dfp.shape[0] * 0.55
+        self.figure.set_size_inches(
+            self.get_canvas_size_in_inches()[0], height_inches, forward=False
+        )
+        self.set_minimum_height_for_figure_inches(height_inches)
 
         self._set_plot_chrome_white()
         self.canvas.draw()
+        self._schedule_figure_sync()
 
 
 class ContributionPlot(ABPlot):
@@ -143,7 +146,9 @@ class ContributionPlot(ABPlot):
         canvas_width_inches, canvas_height_inches = self.get_canvas_size_in_inches()
         optimal_height_inches = 4 + dfp.shape[1] * 0.55
         # print('Optimal Contribution plot height:', optimal_height_inches)
-        self.figure.set_size_inches(canvas_width_inches, optimal_height_inches)
+        self.figure.set_size_inches(
+            canvas_width_inches, optimal_height_inches, forward=False
+        )
 
         # avoid figures getting too large horizontally
         dfp.index = pd.Index([wrap_text(str(i), max_length=40) for i in dfp.index])
@@ -209,10 +214,10 @@ class ContributionPlot(ABPlot):
         # size_inches = (2 + dfp.shape[0] * 0.5, 4 + dfp.shape[1] * 0.55)
         # self.figure.set_size_inches(self.get_canvas_size_in_inches()[0], size_inches[1])
 
-        size_pixels = self.figure.get_size_inches() * self.figure.dpi
-        self.setMinimumHeight(size_pixels[1])
+        self.set_minimum_height_for_figure_inches(optimal_height_inches)
         self._set_plot_chrome_white()
         self.canvas.draw()
+        self._schedule_figure_sync()
 
 
 class CorrelationPlot(ABPlot):
@@ -225,10 +230,9 @@ class CorrelationPlot(ABPlot):
         # need to clear the figure and add axis again
         # because of the colorbar which does not get removed by the ax.clear()
         self.reset_plot()
-        canvas_size = self.canvas.get_width_height()
-        # print("Canvas size:", canvas_size)
-        size = (4 + df.shape[1] * 0.3, 4 + df.shape[1] * 0.3)
-        self.figure.set_size_inches(size[0], size[1])
+        canvas_width_inches, _ = self.get_canvas_size_in_inches()
+        height_inches = 4 + df.shape[1] * 0.3
+        self.figure.set_size_inches(canvas_width_inches, height_inches, forward=False)
 
         corr = df.corr()
         # Generate a mask for the upper triangle
@@ -273,11 +277,10 @@ class CorrelationPlot(ABPlot):
                 )
         self.ax.axis("off")
 
-        # refresh canvas
-        size_pixels = self.figure.get_size_inches() * self.figure.dpi
-        self.setMinimumHeight(size_pixels[1])
+        self.set_minimum_height_for_figure_inches(height_inches)
         self._set_plot_chrome_white()
         self.canvas.draw()
+        self._schedule_figure_sync()
 
 
 class MonteCarloPlot(ABPlot):
@@ -320,3 +323,4 @@ class MonteCarloPlot(ABPlot):
 
         self._set_plot_chrome_white()
         self.canvas.draw()
+        self._schedule_figure_sync()

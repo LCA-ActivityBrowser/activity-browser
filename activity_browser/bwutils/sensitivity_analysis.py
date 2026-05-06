@@ -3,7 +3,6 @@
 # =============================================================================
 # Global Sensitivity Analysis (GSA) functions and class for the Delta
 # Moment-Independent measure based on Monte Carlo simulation LCA results.
-# see: https://salib.readthedocs.io/en/latest/api.html#delta-moment-independent-measure
 # =============================================================================
 import os
 import traceback
@@ -11,74 +10,109 @@ from time import time
 from loguru import logger
 
 import bw2calc as bc
+import bw2data as bd
+import bw_functional as bf
 import numpy as np
 import pandas as pd
-import bw2data as bd
+from bw_graph_tools.graph_traversal import NewNodeEachVisitGraphTraversal
 from SALib.analyze import delta
-
-# SALib>=1.5 can call `numpy.trapezoid`, which is only available in NumPy 2.x.
-# Keep compatibility with NumPy 1.x environments by aliasing to `trapz`.
-# Can be removed when we move to numpy>1
-if not hasattr(np, "trapezoid"):
-    np.trapezoid = np.trapz
 
 from .montecarlo import MonteCarloLCA, perform_MonteCarlo_LCA
 
-try:
-    # attempt bw25 import
-    from bw_graph_tools.graph_traversal import NewNodeEachVisitGraphTraversal
-except ImportError:
-    # standard import on failure
-    from bw2calc import GraphTraversal
+# SALib>=1.5 can call `numpy.trapezoid`, which is only available in NumPy 2.x.
+if not hasattr(np, "trapezoid"):
+    np.trapezoid = np.trapz
+
+# ------------------------------
+# Resolution layer
+# ------------------------------
+def _rev_get(rev_mapping, idx):
+    if rev_mapping is None:
+        return None
+    if isinstance(rev_mapping, dict):
+        value = rev_mapping.get(idx)
+    else:
+        try:
+            value = rev_mapping[idx]
+        except (KeyError, IndexError, TypeError):
+            value = None
+    if value in (None, -1):
+        return None
+    return value
 
 
+def _node_from_rev_mapping(mapped):
+    if isinstance(mapped, tuple) and len(mapped) >= 2:
+        return bd.get_activity(mapped)
+    return bd.get_node(id=mapped)
 
+
+def _process_from_node(node):
+    if isinstance(node, bf.Product):
+        return bd.get_activity(node["processor"])
+    waste_cls = getattr(bf, "Waste", None)
+    if waste_cls is not None and isinstance(node, waste_cls):
+        return bd.get_activity(node["processor"])
+    return node
+
+
+def _matrix_index_to_process(lca, idx):
+    """Resolve matrix index to process for sqlite and functional_sqlite."""
+    for rev in (getattr(lca, "product_dict_rev", None), lca.activity_dict_rev):
+        mapped = _rev_get(rev, idx)
+        if mapped is None:
+            continue
+        return _process_from_node(_node_from_rev_mapping(mapped))
+    raise KeyError(f"Matrix index {idx} not found in reverse mappings")
+
+
+def _process_from_exchange_io(io_value):
+    node = bd.get_activity(io_value)
+    return _process_from_node(node)
+
+
+# ------------------------------
+# Extraction layer
+# ------------------------------
 def get_lca(fu, method):
-    """Calculates a non-stochastic LCA and returns a the LCA object."""
+    """Calculate deterministic LCA and add reverse dictionaries."""
     lca = bc.LCA(fu, method=method)
     lca.lci()
     lca.lcia()
     logger.info(f"Non-stochastic LCA score: {lca.score}")
-
-    # add reverse dictionaries
-    lca.activity_dict_rev, lca.product_dict_rev, lca.biosphere_dict_rev = (
-        lca.reverse_dict()
-    )
-
+    lca.activity_dict_rev, lca.product_dict_rev, lca.biosphere_dict_rev = lca.reverse_dict()
     return lca
 
 
 def filter_technosphere_exchanges(lca, cutoff=0.05, max_calc=1000):
-    """Use brightway's GraphTraversal to identify the relevant
-    technosphere exchanges in a non-stochastic LCA."""
     start = time()
-    res = NewNodeEachVisitGraphTraversal.calculate(lca, cutoff=cutoff, max_calc=int(max_calc))
-
-    # get all edges
-    technosphere_exchange_indices = []
-    for e in res["edges"]:
-        if e.consumer_index != -1:  # filter out head introduced in graph traversal
-            technosphere_exchange_indices.append((e.producer_index, e.consumer_index))
+    res = NewNodeEachVisitGraphTraversal.calculate(
+        lca,
+        cutoff=cutoff,
+        max_calc=int(max_calc),
+    )
+    indices = [
+        (edge.producer_index, edge.consumer_index)
+        for edge in res["edges"]
+        if edge.consumer_index != -1
+    ]
     logger.info(
         "TECHNOSPHERE {} filtering resulted in {} of {} exchanges and took {} iterations in {} seconds.".format(
             lca.technosphere_matrix.shape,
-            len(technosphere_exchange_indices),
+            len(indices),
             lca.technosphere_matrix.getnnz(),
             res["calculation_count"],
             np.round(time() - start, 2),
         )
     )
-    return technosphere_exchange_indices
+    return indices
 
 
 def filter_biosphere_exchanges(lca, cutoff=0.005):
-    """Reduce biosphere exchanges to those that matter for a given impact
-    category in a non-stochastic LCA."""
     start = time()
-
     inv = lca.characterized_inventory
     finv = inv.multiply(abs(inv) > abs(lca.score / (1 / cutoff)))
-    biosphere_exchange_indices = list(zip(*finv.nonzero()))
+    indices = list(zip(*finv.nonzero()))
     explained_fraction = finv.sum() / lca.score
     logger.info(
         "BIOSPHERE {} filtering resulted in {} of {} exchanges ({}% of total impact) and took {} seconds.".format(
@@ -89,132 +123,139 @@ def filter_biosphere_exchanges(lca, cutoff=0.005):
             np.round(time() - start, 2),
         )
     )
-    return biosphere_exchange_indices
+    return indices
+
+
+def _match_exchange(from_process, to_process, exc, biosphere=False):
+    if biosphere:
+        if exc.get("type") != "biosphere":
+            return False
+        try:
+            emitter = bd.get_activity(exc.input)
+            consumer = _process_from_exchange_io(exc.output)
+        except Exception:
+            return False
+        return emitter.id == from_process.id and consumer.id == to_process.id
+
+    if exc.get("type") != "technosphere":
+        return False
+    try:
+        supplier = _process_from_exchange_io(exc.input)
+        consumer = _process_from_exchange_io(exc.output)
+    except Exception:
+        return False
+    return supplier.id == from_process.id and consumer.id == to_process.id
 
 
 def get_exchanges(lca, indices, biosphere=False, only_uncertain=True):
-    """Get actual exchange objects from indices.
-    By default get only exchanges that have uncertainties.
+    """Resolve matrix indices to exchange objects."""
+    exchanges = []
+    matched_indices = []
 
-    Returns
-    -------
-    exchanges : list
-        List of exchange objects
-    indices : list of tuples
-        List of indices
-    """
-    exchanges = list()
-    for i in indices:
+    for idx in indices:
         if biosphere:
-            from_act = bd.get_activity(lca.biosphere_dict_rev[i[0]])
-        else:  # technosphere
-            from_act = bd.get_activity(lca.activity_dict_rev[i[0]])
-        to_act = bd.get_activity(lca.activity_dict_rev[i[1]])
+            from_process = bd.get_activity(lca.biosphere_dict_rev[idx[0]])
+            to_process = _matrix_index_to_process(lca, idx[1])
+        else:
+            from_process = _matrix_index_to_process(lca, idx[0])
+            to_process = _matrix_index_to_process(lca, idx[1])
 
-        for exc in to_act.exchanges():
-            if exc.input == from_act.key:
-                exchanges.append(exc)
-                # continue  # if there was always only one max exchange between two activities
+        matches = []
+        for exc in to_process.exchanges():
+            if _match_exchange(from_process, to_process, exc, biosphere=biosphere):
+                matches.append(exc)
 
-    # in theory there should be as many exchanges as indices, but since
-    # multiple exchanges are possible between two activities, the number of
-    # exchanges must be at least equal or higher to the number of indices
-    if len(exchanges) < len(
-        indices
-    ):  # must have at least as many exchanges as indices (assu)
-        raise ValueError(
-            "Error: mismatch between indices provided ({}) and Exchanges received ({}).".format(
-                len(indices), len(exchanges)
+        if not matches:
+            raise ValueError(
+                "Could not resolve exchange for indices {} (from id={}, to id={}).".format(
+                    idx,
+                    from_process.id,
+                    to_process.id,
+                )
             )
-        )
 
-    # by default drop exchanges and indices if the have no uncertainties
+        exchanges.extend(matches)
+        matched_indices.extend([idx] * len(matches))
+
     if only_uncertain:
-        exchanges, indices = drop_no_uncertainty_exchanges(exchanges, indices)
+        exchanges, matched_indices = drop_no_uncertainty_exchanges(exchanges, matched_indices)
 
-    return exchanges, indices
+    return exchanges, matched_indices
 
 
 def drop_no_uncertainty_exchanges(excs, indices):
-    excs_no = list()
-    indices_no = list()
-    for exc, ind in zip(excs, indices):
+    excs_filtered = []
+    indices_filtered = []
+    for exc, idx in zip(excs, indices):
         if exc.get("uncertainty type") and exc.get("uncertainty type") >= 1:
-            excs_no.append(exc)
-            indices_no.append(ind)
+            excs_filtered.append(exc)
+            indices_filtered.append(idx)
+
     logger.info(
         "Dropping {} exchanges of {} with no uncertainty. {} remaining.".format(
-            len(excs) - len(excs_no), len(excs), len(excs_no)
+            len(excs) - len(excs_filtered),
+            len(excs),
+            len(excs_filtered),
         )
     )
-    return excs_no, indices_no
+    return excs_filtered, indices_filtered
 
 
 def get_exchanges_dataframe(exchanges, indices, biosphere=False):
-    """Returns a Dataframe from the exchange data and a bit of additional information."""
+    records = []
+    for exc, idx in zip(exchanges, indices):
+        raw_input = bd.get_activity(exc.get("input"))
+        raw_output = bd.get_activity(exc.get("output"))
+        to_process = _process_from_node(raw_output)
 
-    for exc, i in zip(exchanges, indices):
-        from_act = bd.get_activity(exc.get("input"))
-        to_act = bd.get_activity(exc.get("output"))
-
-        exc.update(
-            {
-                "index": i,
-                "from name": from_act.get("name", np.nan),
-                "from location": from_act.get("location", np.nan),
-                "to name": to_act.get("name", np.nan),
-                "to location": to_act.get("location", np.nan),
-            }
-        )
-
-        # GSA name (needs to yield unique labels!)
         if biosphere:
-            exc.update(
-                {
-                    "GSA name": "B: {} // {} ({}) [{}]".format(
-                        from_act.get("name", ""),
-                        to_act.get("name", ""),
-                        to_act.get("reference product", ""),
-                        to_act.get("location", ""),
-                    )
-                }
+            from_obj = raw_input
+            gsa_name = "B: {} // {} ({}) [{}]".format(
+                from_obj.get("name", ""),
+                to_process.get("name", ""),
+                to_process.get("reference product", ""),
+                to_process.get("location", ""),
             )
         else:
-            exc.update(
-                {
-                    "GSA name": "T: {} FROM {} [{}] TO {} ({}) [{}]".format(
-                        from_act.get("reference product", ""),
-                        from_act.get("name", ""),
-                        from_act.get("location", ""),
-                        to_act.get("name", ""),
-                        to_act.get("reference product", ""),
-                        to_act.get("location", ""),
-                    )
-                }
+            from_obj = _process_from_node(raw_input)
+            gsa_name = "T: {} FROM {} [{}] TO {} ({}) [{}]".format(
+                from_obj.get("reference product", ""),
+                from_obj.get("name", ""),
+                from_obj.get("location", ""),
+                to_process.get("name", ""),
+                to_process.get("reference product", ""),
+                to_process.get("location", ""),
             )
 
-    return pd.DataFrame(exchanges)
+        rec = dict(exc)
+        rec.update(
+            {
+                "index": idx,
+                "from name": from_obj.get("name", np.nan),
+                "from location": from_obj.get("location", np.nan),
+                "to name": to_process.get("name", np.nan),
+                "to location": to_process.get("location", np.nan),
+                "GSA name": gsa_name,
+            }
+        )
+        records.append(rec)
+
+    return pd.DataFrame.from_records(records)
 
 
 def get_CF_dataframe(lca, only_uncertain_CFs=True):
-    """Returns a dataframe with the metadata for the characterization factors
-    (in the biosphere matrix). Filters non-stochastic CFs if desired (default)."""
-    data = dict()
+    data = {}
     for params_index, row in enumerate(lca.cf_params):
         if only_uncertain_CFs and row["uncertainty_type"] <= 1:
             continue
         cf_index = row["row"]
         bio_act = bd.get_activity(lca.biosphere_dict_rev[cf_index])
 
-        data.update({params_index: bio_act.as_dict()})
-
+        data[params_index] = bio_act.as_dict()
         for name in row.dtype.names:
             data[params_index][name] = row[name]
-
         data[params_index]["index"] = cf_index
-        data[params_index]["GSA name"] = (
-            "CF: " + bio_act["name"] + str(bio_act["categories"])
-        )
+        data[params_index]["GSA name"] = "CF: " + bio_act["name"] + str(bio_act["categories"])
 
     logger.info(
         "CHARACTERIZATION FACTORS filtering resulted in including {} of {} characteriation factors.".format(
@@ -222,55 +263,42 @@ def get_CF_dataframe(lca, only_uncertain_CFs=True):
             len(lca.cf_params),
         )
     )
+
     df = pd.DataFrame(data).T
     df.rename(columns={"uncertainty_type": "uncertainty type"}, inplace=True)
     return df
 
 
 def get_parameters_DF(mc):
-    """Product to make parameters dataframe"""
-    if bool(mc.parameter_data):  # returns False if dict is empty
+    if bool(mc.parameter_data):
         dfp = pd.DataFrame(mc.parameter_data).T
         dfp["GSA name"] = "P: " + dfp["name"]
         logger.info(f"PARAMETERS: {len(dfp)}")
         return dfp
-    else:
-        logger.info("PARAMETERS: None included.")
-        return pd.DataFrame()  # return emtpy df
+
+    logger.info("PARAMETERS: None included.")
+    return pd.DataFrame()
 
 
 def get_exchange_values(matrix, indices):
-    """Get technosphere exchanges values from a list of exchanges
-    (row and column information)"""
-    return [matrix[i] for i in indices]
+    return [matrix[idx] for idx in indices]
 
 
 def get_X(matrix_list, indices):
-    """Get the input data to the GSA, i.e. A and B matrix values for each
-    model run."""
     X = np.zeros((len(matrix_list), len(indices)))
-    for row, M in enumerate(matrix_list):
-        X[row, :] = get_exchange_values(M, indices)
+    for row, matrix in enumerate(matrix_list):
+        X[row, :] = get_exchange_values(matrix, indices)
     return X
 
 
 def get_X_CF(mc, dfcf, method):
-    """Get the characterization factors used for each model run. Only those CFs
-    that are in the dfcf dataframe will be returned (i.e. by default only the
-    CFs that have uncertainties."""
-    # get all CF inputs
-    CF_data = np.array(mc.CF_dict[method])  # has the same shape as the Xa and Xb below
-
-    # reduce this to uncertain CFs only (if this was done for the dfcf)
+    cf_data = np.array(mc.CF_dict[method])
     params_indices = dfcf.index.values
-
-    # if params_indices:
-    return CF_data[:, params_indices]
+    return cf_data[:, params_indices]
 
 
 def get_X_P(dfp):
-    """Get the parameter values for each model run"""
-    lists = [d for d in dfp["values"]]
+    lists = [values for values in dfp["values"]]
     return list(zip(*lists))
 
 
@@ -282,12 +310,11 @@ def get_problem(X, names):
     }
 
 
+# ------------------------------
+# Analysis layer / public API
+# ------------------------------
 class GlobalSensitivityAnalysis(object):
-    """Class for Global Sensitivity Analysis.
-    For now Delta Moment Independent Measure based on:
-    https://salib.readthedocs.io/en/latest/api.html#delta-moment-independent-measure
-    Builds on top of Monte Carlo Simulation results.
-    """
+    """Global Sensitivity Analysis using SALib Delta index."""
 
     def __init__(self, mc):
         self.update_mc(mc)
@@ -297,16 +324,101 @@ class GlobalSensitivityAnalysis(object):
         self.cutoff_biosphere = float()
 
     def update_mc(self, mc):
-        "Update the Monte Carlo Simulation object (and results)."
-        try:
-            assert isinstance(mc, MonteCarloLCA)
-            self.mc = mc
-        except AssertionError:
+        if not isinstance(mc, MonteCarloLCA):
             raise AssertionError(
                 "mc should be an instance of MonteCarloLCA, but instead it is a {}.".format(
                     type(mc)
                 )
             )
+        self.mc = mc
+
+    def _initialize_case(self, act_number, method_number, cutoff_technosphere, cutoff_biosphere):
+        self.act_number = act_number
+        self.method_number = method_number
+        self.cutoff_technosphere = cutoff_technosphere
+        self.cutoff_biosphere = cutoff_biosphere
+
+        self.fu = self.mc.cs["inv"][act_number]
+        self.activity = bd.get_activity(self.mc.rev_activity_index[act_number])
+        self.method = self.mc.cs["ia"][method_number]
+
+    def _collect_metadata_frames(self):
+        dfs = []
+
+        if self.mc.include_technosphere:
+            self.t_indices = filter_technosphere_exchanges(
+                self.lca,
+                cutoff=self.cutoff_technosphere,
+                max_calc=1e4,
+            )
+            self.t_exchanges, self.t_indices = get_exchanges(self.lca, self.t_indices)
+            self.dft = get_exchanges_dataframe(self.t_exchanges, self.t_indices)
+            if not self.dft.empty:
+                dfs.append(self.dft)
+
+        if self.mc.include_biosphere:
+            self.b_indices = filter_biosphere_exchanges(
+                self.lca,
+                cutoff=self.cutoff_biosphere,
+            )
+            self.b_exchanges, self.b_indices = get_exchanges(
+                self.lca,
+                self.b_indices,
+                biosphere=True,
+            )
+            self.dfb = get_exchanges_dataframe(
+                self.b_exchanges,
+                self.b_indices,
+                biosphere=True,
+            )
+            if not self.dfb.empty:
+                dfs.append(self.dfb)
+
+        if self.mc.include_cfs:
+            self.dfcf = get_CF_dataframe(self.lca, only_uncertain_CFs=True)
+            if not self.dfcf.empty:
+                dfs.append(self.dfcf)
+        else:
+            self.dfcf = pd.DataFrame()
+
+        self.dfp = get_parameters_DF(self.mc)
+        if not self.dfp.empty:
+            dfs.append(self.dfp)
+
+        self.metadata = pd.concat(dfs, axis=0, ignore_index=True, sort=False)
+        self.metadata.set_index("GSA name", inplace=True)
+
+    def _build_inputs(self):
+        X_list = []
+
+        if self.mc.include_technosphere and self.t_indices:
+            self.Xa = get_X(self.mc.A_matrices, self.t_indices)
+            X_list.append(self.Xa)
+
+        if self.mc.include_biosphere and self.b_indices:
+            self.Xb = get_X(self.mc.B_matrices, self.b_indices)
+            X_list.append(self.Xb)
+
+        if self.mc.include_cfs and not self.dfcf.empty:
+            self.Xc = get_X_CF(self.mc, self.dfcf, self.method)
+            X_list.append(self.Xc)
+
+        if self.mc.include_parameters and not self.dfp.empty:
+            self.Xp = get_X_P(self.dfp)
+            X_list.append(self.Xp)
+
+        self.X = np.concatenate(X_list, axis=1)
+        self.Y = self.mc.get_results_dataframe(act_key=self.activity.key)[self.method].to_numpy()
+
+    def _apply_log_transform(self):
+        if np.all(self.Y > 0):
+            self.Y = np.log(np.abs(self.Y))
+            logger.info("All positive LCA scores. Log-transformation performed.")
+        elif np.all(self.Y < 0):
+            self.Y = -np.log(np.abs(self.Y))
+            logger.info("All negative LCA scores. Log-transformation performed.")
+        else:
+            logger.warning("Log-transformation cannot be applied as LCA scores overlap zero.")
 
     def perform_GSA(
         self,
@@ -315,23 +427,18 @@ class GlobalSensitivityAnalysis(object):
         cutoff_technosphere=0.01,
         cutoff_biosphere=0.01,
     ):
-        """Perform GSA for specific reference flow and impact category."""
+        """Perform GSA for selected functional unit and impact method."""
         start = time()
 
-        # set FU and method
         try:
-            self.act_number = act_number
-            self.method_number = method_number
-            self.cutoff_technosphere = cutoff_technosphere
-            self.cutoff_biosphere = cutoff_biosphere
-
-            self.fu = self.mc.cs["inv"][act_number]
-            self.activity = bd.get_activity(self.mc.rev_activity_index[act_number])
-            self.method = self.mc.cs["ia"][method_number]
-
-        except Exception as e:
+            self._initialize_case(
+                act_number,
+                method_number,
+                cutoff_technosphere,
+                cutoff_biosphere,
+            )
+        except Exception:
             traceback.print_exc()
-            # todo: QMessageBox.warning(self, 'Could not perform Delta analysis', str(e))
             logger.error("Initializing the GSA failed.")
             return None
 
@@ -340,121 +447,21 @@ class GlobalSensitivityAnalysis(object):
             f"Activity: {self.activity} Method: {self.method}",
         )
 
-        # get non-stochastic LCA object with reverse dictionaries
         self.lca = get_lca(self.fu, self.method)
+        self._collect_metadata_frames()
+        self._build_inputs()
+        self._apply_log_transform()
 
-        # =============================================================================
-        #   Filter exchanges and get metadata DataFrames
-        # =============================================================================
-        dfs = []
-        # technosphere
-        if self.mc.include_technosphere:
-            self.t_indices = filter_technosphere_exchanges(
-                self.lca, cutoff=cutoff_technosphere, max_calc=1e4
-            )
-            self.t_exchanges, self.t_indices = get_exchanges(self.lca, self.t_indices)
-            self.dft = get_exchanges_dataframe(self.t_exchanges, self.t_indices)
-            if not self.dft.empty:
-                dfs.append(self.dft)
-
-        # biosphere
-        if self.mc.include_biosphere:
-            self.b_indices = filter_biosphere_exchanges(
-                self.lca, cutoff=cutoff_biosphere
-            )
-            self.b_exchanges, self.b_indices = get_exchanges(
-                self.lca, self.b_indices, biosphere=True
-            )
-            self.dfb = get_exchanges_dataframe(
-                self.b_exchanges, self.b_indices, biosphere=True
-            )
-            if not self.dfb.empty:
-                dfs.append(self.dfb)
-
-        # characterization factors
-        if self.mc.include_cfs:
-            self.dfcf = get_CF_dataframe(
-                self.lca, only_uncertain_CFs=True
-            )  # None if no stochastic CFs
-            if not self.dfcf.empty:
-                dfs.append(self.dfcf)
-
-        # parameters
-        # todo: if parameters, include df, but remove exchanges from T and B (skipped for now)
-        self.dfp = get_parameters_DF(self.mc)  # Empty df if no parameters
-        if not self.dfp.empty:
-            dfs.append(self.dfp)
-
-        # Join dataframes to get metadata
-        self.metadata = pd.concat(dfs, axis=0, ignore_index=True, sort=False)
-        self.metadata.set_index("GSA name", inplace=True)
-
-        # =============================================================================
-        #     GSA
-        # =============================================================================
-
-        # Get X (Technosphere, Biosphere and CF values)
-        X_list = list()
-        if self.mc.include_technosphere and self.t_indices:
-            self.Xa = get_X(self.mc.A_matrices, self.t_indices)
-            X_list.append(self.Xa)
-        if self.mc.include_biosphere and self.b_indices:
-            self.Xb = get_X(self.mc.B_matrices, self.b_indices)
-            X_list.append(self.Xb)
-        if self.mc.include_cfs and not self.dfcf.empty:
-            self.Xc = get_X_CF(self.mc, self.dfcf, self.method)
-            X_list.append(self.Xc)
-        if self.mc.include_parameters and not self.dfp.empty:
-            self.Xp = get_X_P(self.dfp)
-            X_list.append(self.Xp)
-
-        self.X = np.concatenate(X_list, axis=1)
-        # print('X', self.X.shape)
-
-        # Get Y (LCA scores)
-        self.Y = self.mc.get_results_dataframe(act_key=self.activity.key)[
-            self.method
-        ].to_numpy()
-
-        # log-transformation. This makes it more robust for very uneven distributions of LCA results (e.g. toxicity related impacts).
-        # Can only be applied if all Monte-Carlo LCA scores are either positive or negative.
-        # Should not be used when LCA scores overlap zero (sometimes positive and sometimes negative)
-        # if np.all(self.Y > 0) if self.Y[0] > 0 else np.all(self.Y < 0):  # check if all LCA scores are of the same sign
-        #     self.Y = np.log(np.abs(self.Y))  # this makes it more robust for very uneven distributions of LCA results
-        if np.all(self.Y > 0):  # all positive numbers
-            self.Y = np.log(np.abs(self.Y))
-            logger.info("All positive LCA scores. Log-transformation performed.")
-        elif np.all(self.Y < 0):  # all negative numbers
-            self.Y = -np.log(np.abs(self.Y))
-            logger.info("All negative LCA scores. Log-transformation performed.")
-        else:  # mixed positive and negative numbers
-            logger.warning(
-                "Log-transformation cannot be applied as LCA scores overlap zero."
-            )
-
-        # print('Filtering took {} seconds'.format(np.round(time() - start, 2)))
-
-        # define problem
-        self.names = self.metadata.index  # ['GSA name']
-        # print('Names:', len(self.names))
+        self.names = self.metadata.index
         self.problem = get_problem(self.X, self.names)
 
-        # perform delta analysis
         time_delta = time()
         self.Si = delta.analyze(self.problem, self.X, self.Y, print_to_console=False)
-        logger.info(
-            "Delta analysis took {} seconds".format(
-                np.round(time() - time_delta, 2),
-            )
-        )
+        logger.info("Delta analysis took {} seconds".format(np.round(time() - time_delta, 2)))
 
-        # put GSA results in to dataframe
-        self.dfgsa = pd.DataFrame(self.Si, index=self.names).sort_values(
-            by="delta", ascending=False
-        )
+        self.dfgsa = pd.DataFrame(self.Si, index=self.names).sort_values(by="delta", ascending=False)
         self.dfgsa.index.names = ["GSA name"]
 
-        # join with metadata
         self.df_final = self.dfgsa.join(self.metadata, on="GSA name")
         self.df_final.reset_index(inplace=True)
         if "pedigree" in self.df_final.columns:
@@ -473,8 +480,7 @@ class GlobalSensitivityAnalysis(object):
             + str(self.method)
             + ".xlsx"
         )
-        save_name = save_name.replace(",", "").replace("'", "").replace("/", "")
-        return save_name
+        return save_name.replace(",", "").replace("'", "").replace("/", "")
 
     def export_GSA_output(self):
         from ..settings import ab_settings
@@ -483,7 +489,6 @@ class GlobalSensitivityAnalysis(object):
         self.df_final.to_excel(os.path.join(ab_settings.data_dir, save_name))
 
     def export_GSA_input(self):
-        """Export the input data to the GSA with a human readible index"""
         from ..settings import ab_settings
 
         X_with_index = pd.DataFrame(self.X.T, index=self.metadata.index)
@@ -494,7 +499,4 @@ class GlobalSensitivityAnalysis(object):
 if __name__ == "__main__":
     mc = perform_MonteCarlo_LCA(project="ei34", cs_name="kraft paper", iterations=20)
     g = GlobalSensitivityAnalysis(mc)
-    g.perform_GSA(
-        act_number=0, method_number=1, cutoff_technosphere=0.01, cutoff_biosphere=0.01
-    )
-    g.export()
+    g.perform_GSA(act_number=0, method_number=1, cutoff_technosphere=0.01, cutoff_biosphere=0.01)

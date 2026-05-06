@@ -21,7 +21,11 @@ class MainWindow(widgets.ABMainWindow):
         self.setMenuBar(self.menu_bar)
 
         self.central_widget = widgets.ABCentralPagesWidget(self)
+        # Keep the central area readable on startup even when multiple docks are restored.
+        # This floor is relaxed after the first event loop tick so users can still resize freely.
+        self.central_widget.setMinimumWidth(720)
         self.setCentralWidget(self.central_widget)
+        QtCore.QTimer.singleShot(0, lambda: self.central_widget.setMinimumWidth(0))
 
         for page_name, page_class in app.pages.base_pages.items():
             page_instance = page_class(parent=self.central_widget)

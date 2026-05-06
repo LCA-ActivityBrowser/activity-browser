@@ -1,4 +1,4 @@
-from qtpy import QtWidgets
+from qtpy import QtCore, QtWidgets
 
 from .buttons import ABCloseButton, ABMinimizeButton
 
@@ -16,12 +16,18 @@ class ABTabWidget(QtWidgets.QTabWidget):
         self.setMovable(True)  # Allow tabs to be rearranged.
         self.setTabsClosable(True)  # Allow tabs to be closed.
         self.tabBar().setExpanding(False)
-        
-    
-    def resizeEvent(self, event):
-        super().resizeEvent(event)
-        # Force the tab bar to always fill the full width
-        self.tabBar().setMinimumWidth(self.width())
+        # Long tab titles otherwise give QTabBar a huge minimum width and block shrinking
+        # the central area when resizing the window or the dock splitter.
+        self.setMinimumWidth(0)
+        self.setSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Ignored,
+            QtWidgets.QSizePolicy.Policy.Expanding,
+        )
+        self.tabBar().setUsesScrollButtons(True)
+        if hasattr(QtCore.Qt, "TextElideMode"):
+            self.setElideMode(QtCore.Qt.TextElideMode.ElideRight)
+        else:
+            self.setElideMode(QtCore.Qt.ElideRight)
 
     def addTab(self, widget, label, show_minimize=False):
         """Override addTab to add custom buttons to each tab.
