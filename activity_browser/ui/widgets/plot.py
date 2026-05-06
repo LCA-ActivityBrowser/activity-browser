@@ -114,6 +114,11 @@ class ABPlot(QtWidgets.QWidget):
         super().showEvent(event)
         self._schedule_figure_sync()
 
+    def resizeEvent(self, event: QtGui.QResizeEvent) -> None:
+        super().resizeEvent(event)
+        # Keep matplotlib canvas synced when splitters/window are resized (incl. maximize).
+        self._schedule_figure_sync()
+
     def plot(self, *args, **kwargs):
         raise NotImplementedError
 

@@ -335,7 +335,8 @@ class NewAnalysisTab(QtWidgets.QWidget):
         """Assemble main space where plots, tables and relevant options are shown."""
         space = QtWidgets.QScrollArea()
         widget = QtWidgets.QWidget()
-        self.pt_layout.setAlignment(QtCore.Qt.AlignTop)
+        # Let Qt distribute extra vertical space to the visible content instead of pinning at top.
+        self.pt_layout.setAlignment(QtCore.Qt.AlignVCenter)
         widget.setLayout(self.pt_layout)
         space.setWidget(widget)
         _style_plots_scroll_area(space, widget)
@@ -350,7 +351,6 @@ class NewAnalysisTab(QtWidgets.QWidget):
             self.pt_layout.addWidget(self.plot, 1)
         if self.table:
             self.pt_layout.addWidget(self.table)
-        self.pt_layout.addStretch()
         self.space_check()
         return space
 
@@ -1111,7 +1111,8 @@ class ContributionTab(NewAnalysisTab):
         self._setup_plot_table_widgets(invertable=False)
         space = QtWidgets.QScrollArea()
         widget = QtWidgets.QWidget()
-        self.pt_layout.setAlignment(QtCore.Qt.AlignTop)
+        # Let Qt distribute extra vertical space to the visible content instead of pinning at top.
+        self.pt_layout.setAlignment(QtCore.Qt.AlignVCenter)
         widget.setLayout(self.pt_layout)
         space.setWidget(widget)
         _style_plots_scroll_area(space, widget)
@@ -1119,7 +1120,6 @@ class ContributionTab(NewAnalysisTab):
             self.pt_layout.addWidget(self.plot, 1)
         if self.table:
             self.pt_layout.addWidget(self.table)
-        self.pt_layout.addStretch()
         self.space_check()
         return space
 
