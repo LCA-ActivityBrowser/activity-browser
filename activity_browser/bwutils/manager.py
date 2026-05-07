@@ -13,6 +13,7 @@ from bw2parameters import ParameterSet, MissingName, Interpreter
 
 from .utils import Index, Indices, Parameters, StaticParameters
 
+from loguru import logger
 
 class ParameterManager(object):
     """A manager for Brightway2 parameters, allowing for formula evaluation
@@ -301,16 +302,74 @@ class ParameterManager(object):
 
         return complete
 
-    def exchanges_from_scenarios(self, scenario_names, data):
+    @staticmethod
+    def _exchange_formula_rows_for_selected_groups(selected_groups: set[str]) -> list[tuple[str, int, str]]:
+        """Read formulas directly from exchanges in selected output databases."""
+        rows = []
+        try:
+            query = ExchangeDataset.select().where(
+                ExchangeDataset.output_database << list(selected_groups)
+            )
+            for exc in query:
+                formula = ""
+                if isinstance(getattr(exc, "data", None), dict):
+                    formula = str((exc.data or {}).get("formula") or "").strip()
+                if not formula:
+                    formula = str(getattr(exc, "formula", "") or "").strip()
+                if formula:
+                    rows.append(
+                        (
+                            str(exc.output_database),
+                            int(exc.id),
+                            formula,
+                            0 if str(exc.input_database) == str(exc.output_database) else 1,
+                        )
+                    )
+        except Exception:
+            return []
+        rows.sort(key=lambda x: (x[0], x[3], x[2], x[1]))
+        return [(g, eid, f) for g, eid, f, _prio in rows]
+
+    def process_selected_exchange_formulas(
+        self,
+        project_params: dict,
+        database_params: dict,
+        selected_groups: set[str],
+    ) -> dict[int, float]:
+        rows = self._exchange_formula_rows_for_selected_groups(selected_groups)
+        if not rows:
+            return {}
+
+        complete = {}
+        for group, exc_id, formula in rows:
+            scope = project_params.copy()
+            scope.update(database_params.get(group, {}))
+            interpreter = Interpreter()
+            interpreter.symtable.update(scope)
+            complete[exc_id] = interpreter(formula)
+        return complete
+
+    def exchanges_from_scenarios(self, scenario_names, data, selected_groups: set[str] | None = None):
         scenario_dict = {name: dict(data[i]) for i, name in enumerate(scenario_names)}
         scenario_samples = {}
+        baseline = {(p.group, p.name): p.amount for p in self.parameters.data}
 
         for scenario, parameters in scenario_dict.items():
+            self.parameters.update(baseline)
             self.parameters.update(parameters)
 
             project_params = self.recalculate_project_parameters()
             database_params = self.process_database_parameters(project_params)
-            scenario_samples[scenario] = self.new_process_exchanges(project_params, database_params)
+            selected = set(selected_groups or [])
+            direct = (
+                self.process_selected_exchange_formulas(project_params, database_params, selected)
+                if selected
+                else {}
+            )
+            logger.info(f"Using the new DIRECT approach: {func} -- {time.time() - now}")
+            scenario_samples[scenario] = (
+                direct if direct else self.new_process_exchanges(project_params, database_params)
+            )
         return scenario_samples
 
 

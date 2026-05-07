@@ -89,17 +89,22 @@ def parameters_to_sdf(parameter_scenarios: pd.DataFrame) -> pd.DataFrame:
     from activity_browser.bwutils.utils import Parameters
     from activity_browser.bwutils import manager, superstructure
 
-    parameter_scenarios.set_index(["Group", "Name"], inplace=True)
+    selected_groups = set(parameter_scenarios["Group"].astype(str))
+    parameter_scenarios = parameter_scenarios.set_index(["Group", "Name"], inplace=False)
 
     defaults = [p[:3] for p in Parameters.from_bw_parameters()]
     df = pd.DataFrame(defaults, columns=["Name", "Group", "default"]).set_index(["Group", "Name"])
 
-    for name in [n for n in parameter_scenarios.columns]:
-        df[name] = df["default"]
-
-    df.update(parameter_scenarios)
+    scenario_columns = [c for c in parameter_scenarios.columns if c != "default"]
+    for scenario in scenario_columns:
+        df[scenario] = df["default"]
+    df.update(parameter_scenarios[scenario_columns])
 
     pm = manager.ParameterManager()
-    exchanges = pm.exchanges_from_scenarios(df.columns, [df[scenario] for scenario in df.columns])
+    exchanges = pm.exchanges_from_scenarios(
+        scenario_columns,
+        [df[scenario] for scenario in scenario_columns],
+        selected_groups=selected_groups,
+    )
     return superstructure.superstructure_from_scenario_exchanges(exchanges)
 

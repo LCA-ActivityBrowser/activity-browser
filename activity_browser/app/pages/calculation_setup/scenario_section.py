@@ -325,8 +325,8 @@ class ScenarioImportWidget(QtWidgets.QWidget):
                 if not df["Group"].dtype == object:
                     df["Group"] = df["Group"].astype(str)
 
-                df = ss.parameters_to_sdf(df)
-                self.sync_superstructure(df)
+                df_flow_scenarios = ss.parameters_to_sdf(df)
+                self.sync_superstructure(df_flow_scenarios)
 
             else:
                 # this is a wrong file type
