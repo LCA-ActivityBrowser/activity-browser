@@ -36,6 +36,7 @@ This directory contains the source files for Activity Browser's documentation we
 - **`advanced-topics/`** - Advanced features
   - `project-structure.md` - Understanding project structure
   - `scenario-calculations.md` - Scenario analysis
+  - `parameter-scenario-files.md` - Parameter scenario table format and import
   - `brightway-legacy.md` - Working with Brightway legacy versions
   - `multifunctional-databases/` - Multi-functionality documentation
   - `index.md` - Advanced topics overview
