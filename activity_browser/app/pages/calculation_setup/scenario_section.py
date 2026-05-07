@@ -226,8 +226,9 @@ class ScenarioSection(QtWidgets.QWidget):
             filter="Excel (*.xlsx *.xls);; CSV (*.csv)",
         )
         print("Saving scenario dataframe to file: ", filepath)
+        # Keep scenario columns in original order from imported files.
         scenarios = self._scenario_dataframe.columns.difference(
-            ["input", "output", "flow"]
+            ["input", "output", "flow"], sort=False
         )
         superstructure = ss.SUPERSTRUCTURE.tolist()
         cols = superstructure + scenarios.tolist()
@@ -325,8 +326,8 @@ class ScenarioImportWidget(QtWidgets.QWidget):
                 if not df["Group"].dtype == object:
                     df["Group"] = df["Group"].astype(str)
 
-                df = ss.parameters_to_sdf(df)
-                self.sync_superstructure(df)
+                df_flow_scenarios = ss.parameters_to_sdf(df)
+                self.sync_superstructure(df_flow_scenarios)
 
             else:
                 # this is a wrong file type

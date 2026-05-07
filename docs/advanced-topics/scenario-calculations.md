@@ -21,7 +21,7 @@ There are currently two ways to define scenarios:
 ### Parameter scenarios
 Parameter scenarios allow you to change the values of parameters defined in your model. This is useful for creating a clear and concise representation of changes that can be easily understood. For example, you might have a parameter called "electricity efficiency" that defines the efficiency of an electric motor. You can create a scenario that changes this parameter to see how it affects the overall environmental impact of your product.
 
-When you import a parameter scenario into a calculation setup, the Activity Browser will sample all edges affected by the parameter changes defined in the scenario file. During calculation, the sampled values will be used instead of the original values in the technosphere matrix.
+When you import a parameter scenario file, Activity Browser **converts** it into a **flow scenario** table (superstructure format): it evaluates parameters and formulas for each scenario column and fills in the affected exchange amounts. Calculations then use those flow-level values like any other scenario import. For column layout, the optional `default` column, empty cells, and export behavior, see **[Parameter scenario files](parameter-scenario-files.md)**.
 
 ### Flow scenarios
 Flow scenarios allow you to directly change the values of flows in the technosphere matrix. This is useful for making specific changes to your model that may not be easily represented by parameters. For example, you might want to change the amount of a specific material used in a process or switch to a different supplier.

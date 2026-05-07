@@ -1,6 +1,6 @@
 from abc import abstractmethod
-from collections import defaultdict
 from collections.abc import Iterator
+from copy import deepcopy
 from typing import Iterable, Optional, Tuple
 
 import numpy as np
@@ -8,16 +8,17 @@ from stats_arrays import MCRandomNumberGenerator, UncertaintyBase
 
 from bw2data.backends import ExchangeDataset
 from bw2data.parameters import get_new_symbols, ParameterizedExchange
-from bw2calc import LCA
 from bw2parameters import ParameterSet, MissingName, Interpreter
 
 from .utils import Index, Indices, Parameters, StaticParameters
-
 
 class ParameterManager(object):
     """A manager for Brightway2 parameters, allowing for formula evaluation
     without touching the database.
     """
+
+#TODO: several methods here are only kept as the MonteCarloParameterManager still relies on these
+#TODO: once the MonteCarloParameterManager is re-worked, these methods can be removed as well
 
     def __init__(self):
         self.parameters: Parameters = Parameters.from_bw_parameters()
@@ -38,9 +39,10 @@ class ParameterManager(object):
         return indices
 
     def recalculate_project_parameters(self) -> dict:
-        data = self.initial.project()
-        if not data:
+        raw = self.initial.project()
+        if not raw:
             return {}
+        data = deepcopy(raw)
 
         new_values = self.parameters.data_by_group("project")
 
@@ -53,9 +55,10 @@ class ParameterManager(object):
     def recalculate_database_parameters(
         self, database: str, global_params: dict = None
     ) -> dict:
-        data = self.initial.by_database(database)
-        if not data:
+        raw = self.initial.by_database(database)
+        if not raw:
             return {}
+        data = deepcopy(raw)
 
         glo = global_params or {}
         new_values = self.parameters.data_by_group(database)
@@ -85,9 +88,10 @@ class ParameterManager(object):
     def recalculate_activity_parameters(
         self, group: str, global_params: dict = None
     ) -> dict:
-        data = self.initial.act_by_group(group)
-        if not data:
+        raw = self.initial.act_by_group(group)
+        if not raw:
             return {}
+        data = deepcopy(raw)
 
         new_values = self.parameters.data_by_group(group)
         glo = global_params or {}
@@ -176,145 +180,9 @@ class ParameterManager(object):
         self.parameters.update(values)
         return self.calculate()
 
-    def ps_recalculate(self, values: dict[str, float]) -> np.ndarray:
-        """Used to recalculate brightway parameters without editing the database.
-        Leftover from Presamples.
-
-        Side-note on presamples: Presamples was used in AB for calculating scenarios,
-        presamples was superseded by this implementation. For more reading:
-        https://presamples.readthedocs.io/en/latest/index.html"""
-        data = self.recalculate(values)
-        # After recalculating all the exchanges format them according to
-        # presamples requirements: samples as a column of floats.
-        samples = data.reshape(1, -1).T
-        return samples
-
-    def reformat_indices(self) -> np.ndarray:
-        """Additional information is required for storing the indices as presamples.
-        Leftover from Presamples.
-
-        Side-note on presamples: Presamples was used in AB for calculating scenarios,
-        presamples was superseded by this implementation. For more reading:
-        https://presamples.readthedocs.io/en/latest/index.html"""
-        result = np.zeros(len(self.indices), dtype=object)
-        for i, idx in enumerate(self.indices):
-            result[i] = (idx.input, idx.output, idx.flow_type)
-        return result
-
-    def arrays_from_scenarios(self, scenarios) -> (np.ndarray, np.ndarray):
-        """Used to generate exchange scenario data from parameter scenario data.
-        Leftover from Presamples.
-
-        Side-note on presamples: Presamples was used in AB for calculating scenarios,
-        presamples was superseded by this implementation. For more reading:
-        https://presamples.readthedocs.io/en/latest/index.html"""
-        sample_data = [self.ps_recalculate(values.to_dict()) for _, values in scenarios]
-        samples = np.concatenate(sample_data, axis=1)
-        indices = self.reformat_indices()
-        return samples, indices
-
-    @staticmethod
-    def has_parameterized_exchanges() -> bool:
-        """Test if ParameterizedExchanges exist, no point to using this manager
-        otherwise.
-        """
-        return ParameterizedExchange.select().exists()
-
-    def parameter_exchange_dependencies(self) -> dict:
-        """
-
-        Schema: {param1: List[tuple], param2: List[tuple]}
-        """
-        parameters = defaultdict(list)
-        for act in self.initial.act_by_group_db:
-            exchanges = self.initial.exc_by_group(act.group)
-            for exc, formula in exchanges.items():
-                params = get_new_symbols([formula])
-                # Convert exchange from int to Index
-                exc = Index.build_from_exchange(ExchangeDataset.get_by_id(exc))
-                for param in params:
-                    parameters[param].append(exc)
-        return parameters
-
-    def extract_active_parameters(self, lca: LCA) -> dict:
-        """Given an LCA object, extract the used exchanges and build a
-        dictionary of parameters with the exchanges that use these parameters.
-
-        Schema: {param1: {"name":  str, "act": Optional[tuple],
-                          "group": str, "exchanges": List[tuple]}}
-        """
-        params = self.parameter_exchange_dependencies()
-        used_exchanges = set(lca.biosphere_dict.keys())
-        used_exchanges = used_exchanges.union(lca.activity_dict.keys())
-
-        # Make a pass through the 'params' dictionary and remove exchanges
-        # that don't exist in the 'used_exchanges' set.
-        for p in params:
-            keep = [
-                i
-                for i, exc in enumerate(params[p])
-                if (exc.input in used_exchanges and exc.output in used_exchanges)
-            ]
-            params[p] = [params[p][i] for i in keep]
-        # Now only keep parameters with exchanges.
-        keep = [p for p, excs in params.items() if len(excs) > 0]
-        schema = {
-            p: {"name": p, "act": None, "group": None, "exchanges": params[p]}
-            for p in keep
-        }
-        # Now start filling in the parameters that remain with information.
-        for group in self.initial.groups:
-            for name, data in self.initial.act_by_group(group).items():
-                key = (data.get("database"), data.get("code"))
-                if name in schema:
-                    # Make sure that the activity parameter matches the
-                    # output of the exchange.
-                    exc = next(e.output for e in schema[name]["exchanges"])
-                    if key == exc:
-                        schema[name]["name"] = name
-                        schema[name]["group"] = group
-                        schema[name]["act"] = key
-        # Lastly, determine for the remaining parameters if they are database
-        # or project parameters.
-        for db in self.initial.databases:
-            for name, data in self.initial.by_database(db).items():
-                if name in schema and schema[name]["group"] is None:
-                    schema[name]["group"] = db
-        for name in (n for n in schema if schema[n]["group"] is None):
-            schema[name]["group"] = "project"
-        return schema
-
-    def new_process_exchanges(self, project_params: dict, database_params: dict):
-        complete = {}
-        for p in self.initial.act_by_group_db:
-
-            scope = project_params.copy()
-            scope.update(database_params.get(p.database, {}))
-
-            activity_params = self.recalculate_activity_parameters(p.group, scope)
-
-            scope.update(activity_params)
-
-            exchanges = {exc_id: value for exc_id, value in self.recalculate_exchanges(p.group, scope)}
-
-            complete.update(exchanges)
-
-        return complete
-
-    def exchanges_from_scenarios(self, scenario_names, data):
-        scenario_dict = {name: dict(data[i]) for i, name in enumerate(scenario_names)}
-        scenario_samples = {}
-
-        for scenario, parameters in scenario_dict.items():
-            self.parameters.update(parameters)
-
-            project_params = self.recalculate_project_parameters()
-            database_params = self.process_database_parameters(project_params)
-            scenario_samples[scenario] = self.new_process_exchanges(project_params, database_params)
-        return scenario_samples
-
 
 class MonteCarloParameterManager(ParameterManager, Iterator):
+    # TODO: once the MonteCarloParameterManager is re-worked, remove unnecessary methods from ParameterManager
     """Use to sample the uncertainty of parameter values, mostly for use in
     Monte Carlo calculations.
 
