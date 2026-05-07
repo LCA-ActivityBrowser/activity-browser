@@ -226,8 +226,9 @@ class ScenarioSection(QtWidgets.QWidget):
             filter="Excel (*.xlsx *.xls);; CSV (*.csv)",
         )
         print("Saving scenario dataframe to file: ", filepath)
+        # Keep scenario columns in original order from imported files.
         scenarios = self._scenario_dataframe.columns.difference(
-            ["input", "output", "flow"]
+            ["input", "output", "flow"], sort=False
         )
         superstructure = ss.SUPERSTRUCTURE.tolist()
         cols = superstructure + scenarios.tolist()

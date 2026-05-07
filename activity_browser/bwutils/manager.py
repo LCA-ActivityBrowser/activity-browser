@@ -1,6 +1,6 @@
 from abc import abstractmethod
-from collections import defaultdict
 from collections.abc import Iterator
+from copy import deepcopy
 from typing import Iterable, Optional, Tuple
 
 import numpy as np
@@ -8,7 +8,6 @@ from stats_arrays import MCRandomNumberGenerator, UncertaintyBase
 
 from bw2data.backends import ExchangeDataset
 from bw2data.parameters import get_new_symbols, ParameterizedExchange
-from bw2calc import LCA
 from bw2parameters import ParameterSet, MissingName, Interpreter
 
 from .utils import Index, Indices, Parameters, StaticParameters
@@ -20,10 +19,14 @@ class ParameterManager(object):
     without touching the database.
     """
 
+#TODO: several methods here are only kept as the MonteCarloParameterManager still relies on these
+#TODO: once the MonteCarloParameterManager is re-worked, these methods can be removed as well
+
     def __init__(self):
         self.parameters: Parameters = Parameters.from_bw_parameters()
         self.initial: StaticParameters = StaticParameters()
         self.indices: Indices = self.construct_indices()
+        self._active_override_keys: set[tuple[str, str]] = set()
 
     def construct_indices(self) -> Indices:
         """Given that ParameterizedExchanges will always have the same order of
@@ -39,14 +42,17 @@ class ParameterManager(object):
         return indices
 
     def recalculate_project_parameters(self) -> dict:
-        data = self.initial.project()
-        if not data:
+        raw = self.initial.project()
+        if not raw:
             return {}
+        data = deepcopy(raw)
 
         new_values = self.parameters.data_by_group("project")
 
         for name, amount in new_values.items():
             data[name]["amount"] = amount
+            if ("project", str(name)) in self._active_override_keys:
+                data[name]["formula"] = ""
 
         ParameterSet(data).evaluate_and_set_amount_field()
         return StaticParameters.prune_result_data(data)
@@ -54,14 +60,17 @@ class ParameterManager(object):
     def recalculate_database_parameters(
         self, database: str, global_params: dict = None
     ) -> dict:
-        data = self.initial.by_database(database)
-        if not data:
+        raw = self.initial.by_database(database)
+        if not raw:
             return {}
+        data = deepcopy(raw)
 
         glo = global_params or {}
         new_values = self.parameters.data_by_group(database)
         for name, amount in new_values.items():
             data[name]["amount"] = amount
+            if (str(database), str(name)) in self._active_override_keys:
+                data[name]["formula"] = ""
 
         new_symbols = get_new_symbols(data.values(), set(data))
         missing = new_symbols.difference(glo)
@@ -86,14 +95,17 @@ class ParameterManager(object):
     def recalculate_activity_parameters(
         self, group: str, global_params: dict = None
     ) -> dict:
-        data = self.initial.act_by_group(group)
-        if not data:
+        raw = self.initial.act_by_group(group)
+        if not raw:
             return {}
+        data = deepcopy(raw)
 
         new_values = self.parameters.data_by_group(group)
         glo = global_params or {}
         for name, amount in new_values.items():
             data[name]["amount"] = amount
+            if (str(group), str(name)) in self._active_override_keys:
+                data[name]["formula"] = ""
 
         new_symbols = get_new_symbols(data.values(), set(data))
         missing = new_symbols.difference(global_params)
@@ -177,134 +189,20 @@ class ParameterManager(object):
         self.parameters.update(values)
         return self.calculate()
 
-    def ps_recalculate(self, values: dict[str, float]) -> np.ndarray:
-        """Used to recalculate brightway parameters without editing the database.
-        Leftover from Presamples.
-
-        Side-note on presamples: Presamples was used in AB for calculating scenarios,
-        presamples was superseded by this implementation. For more reading:
-        https://presamples.readthedocs.io/en/latest/index.html"""
-        data = self.recalculate(values)
-        # After recalculating all the exchanges format them according to
-        # presamples requirements: samples as a column of floats.
-        samples = data.reshape(1, -1).T
-        return samples
-
-    def reformat_indices(self) -> np.ndarray:
-        """Additional information is required for storing the indices as presamples.
-        Leftover from Presamples.
-
-        Side-note on presamples: Presamples was used in AB for calculating scenarios,
-        presamples was superseded by this implementation. For more reading:
-        https://presamples.readthedocs.io/en/latest/index.html"""
-        result = np.zeros(len(self.indices), dtype=object)
-        for i, idx in enumerate(self.indices):
-            result[i] = (idx.input, idx.output, idx.flow_type)
-        return result
-
-    def arrays_from_scenarios(self, scenarios) -> (np.ndarray, np.ndarray):
-        """Used to generate exchange scenario data from parameter scenario data.
-        Leftover from Presamples.
-
-        Side-note on presamples: Presamples was used in AB for calculating scenarios,
-        presamples was superseded by this implementation. For more reading:
-        https://presamples.readthedocs.io/en/latest/index.html"""
-        sample_data = [self.ps_recalculate(values.to_dict()) for _, values in scenarios]
-        samples = np.concatenate(sample_data, axis=1)
-        indices = self.reformat_indices()
-        return samples, indices
-
     @staticmethod
-    def has_parameterized_exchanges() -> bool:
-        """Test if ParameterizedExchanges exist, no point to using this manager
-        otherwise.
-        """
-        return ParameterizedExchange.select().exists()
-
-    def parameter_exchange_dependencies(self) -> dict:
-        """
-
-        Schema: {param1: List[tuple], param2: List[tuple]}
-        """
-        parameters = defaultdict(list)
-        for act in self.initial.act_by_group_db:
-            exchanges = self.initial.exc_by_group(act.group)
-            for exc, formula in exchanges.items():
-                params = get_new_symbols([formula])
-                # Convert exchange from int to Index
-                exc = Index.build_from_exchange(ExchangeDataset.get_by_id(exc))
-                for param in params:
-                    parameters[param].append(exc)
-        return parameters
-
-    def extract_active_parameters(self, lca: LCA) -> dict:
-        """Given an LCA object, extract the used exchanges and build a
-        dictionary of parameters with the exchanges that use these parameters.
-
-        Schema: {param1: {"name":  str, "act": Optional[tuple],
-                          "group": str, "exchanges": List[tuple]}}
-        """
-        params = self.parameter_exchange_dependencies()
-        used_exchanges = set(lca.biosphere_dict.keys())
-        used_exchanges = used_exchanges.union(lca.activity_dict.keys())
-
-        # Make a pass through the 'params' dictionary and remove exchanges
-        # that don't exist in the 'used_exchanges' set.
-        for p in params:
-            keep = [
-                i
-                for i, exc in enumerate(params[p])
-                if (exc.input in used_exchanges and exc.output in used_exchanges)
-            ]
-            params[p] = [params[p][i] for i in keep]
-        # Now only keep parameters with exchanges.
-        keep = [p for p, excs in params.items() if len(excs) > 0]
-        schema = {
-            p: {"name": p, "act": None, "group": None, "exchanges": params[p]}
-            for p in keep
-        }
-        # Now start filling in the parameters that remain with information.
-        for group in self.initial.groups:
-            for name, data in self.initial.act_by_group(group).items():
-                key = (data.get("database"), data.get("code"))
-                if name in schema:
-                    # Make sure that the activity parameter matches the
-                    # output of the exchange.
-                    exc = next(e.output for e in schema[name]["exchanges"])
-                    if key == exc:
-                        schema[name]["name"] = name
-                        schema[name]["group"] = group
-                        schema[name]["act"] = key
-        # Lastly, determine for the remaining parameters if they are database
-        # or project parameters.
-        for db in self.initial.databases:
-            for name, data in self.initial.by_database(db).items():
-                if name in schema and schema[name]["group"] is None:
-                    schema[name]["group"] = db
-        for name in (n for n in schema if schema[n]["group"] is None):
-            schema[name]["group"] = "project"
-        return schema
-
-    def new_process_exchanges(self, project_params: dict, database_params: dict):
-        complete = {}
-        for p in self.initial.act_by_group_db:
-
-            scope = project_params.copy()
-            scope.update(database_params.get(p.database, {}))
-
-            activity_params = self.recalculate_activity_parameters(p.group, scope)
-
-            scope.update(activity_params)
-
-            exchanges = {exc_id: value for exc_id, value in self.recalculate_exchanges(p.group, scope)}
-
-            complete.update(exchanges)
-
-        return complete
-
-    @staticmethod
-    def _exchange_formula_rows_for_selected_groups(selected_groups: set[str]) -> list[tuple[str, int, str]]:
+    def _exchange_formula_rows_for_selected_groups(
+        selected_groups: set[str],
+    ) -> list[tuple[str, int, str, str | None]]:
         """Read formulas directly from exchanges in selected output databases."""
+        from bw2data.parameters import ActivityParameter
+
+        # Map output activity keys to activity-parameter groups (if present).
+        activity_group_by_key = {}
+        for ap in ActivityParameter.select(
+            ActivityParameter.group, ActivityParameter.database, ActivityParameter.code
+        ).distinct():
+            activity_group_by_key[(str(ap.database), str(ap.code))] = str(ap.group)
+
         rows = []
         try:
             query = ExchangeDataset.select().where(
@@ -317,18 +215,22 @@ class ParameterManager(object):
                 if not formula:
                     formula = str(getattr(exc, "formula", "") or "").strip()
                 if formula:
+                    activity_group = activity_group_by_key.get(
+                        (str(exc.output_database), str(exc.output_code))
+                    )
                     rows.append(
                         (
                             str(exc.output_database),
                             int(exc.id),
                             formula,
+                            activity_group,
                             0 if str(exc.input_database) == str(exc.output_database) else 1,
                         )
                     )
         except Exception:
             return []
-        rows.sort(key=lambda x: (x[0], x[3], x[2], x[1]))
-        return [(g, eid, f) for g, eid, f, _prio in rows]
+        rows.sort(key=lambda x: (x[0], x[4], x[2], x[1]))
+        return [(g, eid, f, act_group) for g, eid, f, act_group, _prio in rows]
 
     def process_selected_exchange_formulas(
         self,
@@ -341,39 +243,60 @@ class ParameterManager(object):
             return {}
 
         complete = {}
-        for group, exc_id, formula in rows:
+        for group, exc_id, formula, activity_group in rows:
             scope = project_params.copy()
             scope.update(database_params.get(group, {}))
+            if activity_group:
+                activity_params = self.recalculate_activity_parameters(activity_group, scope)
+                scope.update(activity_params)
             interpreter = Interpreter()
             interpreter.symtable.update(scope)
             complete[exc_id] = interpreter(formula)
         return complete
 
     def exchanges_from_scenarios(self, scenario_names, data, selected_groups: set[str] | None = None):
-        scenario_dict = {name: dict(data[i]) for i, name in enumerate(scenario_names)}
+        names = list(scenario_names)
+        # Guard against accidental inclusion of a "default" pseudo-scenario name.
+        filtered_names = [n for n in names if str(n).strip().lower() != "default"]
+        if len(filtered_names) == len(data):
+            names = filtered_names
+        if len(names) != len(data):
+            raise ValueError(
+                f"Scenario name/value alignment mismatch: {len(names)} names for {len(data)} value columns"
+            )
+        scenario_dict = {name: dict(data[i]) for i, name in enumerate(names)}
         scenario_samples = {}
         baseline = {(p.group, p.name): p.amount for p in self.parameters.data}
+        selected = set(selected_groups or [])
+        if not selected:
+            raise ValueError("No selected groups provided for direct exchange conversion")
 
         for scenario, parameters in scenario_dict.items():
+            self._active_override_keys = {
+                (str(k[0]), str(k[1]))
+                for k, v in parameters.items()
+                if isinstance(k, tuple) and len(k) == 2 and not np.isnan(v)
+            }
             self.parameters.update(baseline)
             self.parameters.update(parameters)
 
             project_params = self.recalculate_project_parameters()
             database_params = self.process_database_parameters(project_params)
-            selected = set(selected_groups or [])
-            direct = (
-                self.process_selected_exchange_formulas(project_params, database_params, selected)
-                if selected
-                else {}
+            direct = self.process_selected_exchange_formulas(
+                project_params, database_params, selected
             )
-            logger.info(f"Using the new DIRECT approach: {func} -- {time.time() - now}")
-            scenario_samples[scenario] = (
-                direct if direct else self.new_process_exchanges(project_params, database_params)
-            )
+            if not direct:
+                raise ValueError(
+                    "No direct formula exchanges found for selected groups: "
+                    + ", ".join(sorted(selected))
+                )
+            scenario_samples[scenario] = direct
+        self._active_override_keys = set()
         return scenario_samples
 
 
 class MonteCarloParameterManager(ParameterManager, Iterator):
+    # TODO: once the MonteCarloParameterManager is re-worked, remove unnecessary methods from ParameterManager
     """Use to sample the uncertainty of parameter values, mostly for use in
     Monte Carlo calculations.
 
