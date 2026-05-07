@@ -1,4 +1,38 @@
 # -*- coding: utf-8 -*-
+"""
+Convert parameter scenario files into flow scenario files.
+
+Purpose
+-------
+This module contains the complete, standalone conversion pipeline used by the
+Activity Browser to transform a parameter scenario table (Name/Group/default +
+scenario columns) into a flow scenario table (SUPERSTRUCTURE columns + scenario
+columns).
+
+What it does
+------------
+- Reads scenario columns from the uploaded parameter scenario data.
+- Rebuilds parameter values per scenario (project, database, and activity scopes).
+- Evaluates formula-bearing exchanges for the selected output database groups.
+- Builds and returns a flow scenario DataFrame with preserved scenario order.
+
+Main entry points
+-----------------
+- ``convert_parameter_to_flow_scenarios(parameter_scenarios)``
+  Convert an in-memory parameter scenario DataFrame.
+- ``if __name__ == "__main__":``
+  Run a local file-to-file conversion script for manual testing/debugging.
+
+Legacy remark
+-------------
+The conversion logic is intentionally separated from ``ParameterManager`` so
+that:
+- conversion behavior is easy to run and test independently;
+- MonteCarlo-related logic can remain in ``ParameterManager`` without being
+  coupled to file conversion workflows.
+- However, ParameterManager and MonteCarloParameterManager should be reworked in the future
+
+"""
 from __future__ import annotations
 
 from copy import deepcopy
@@ -6,6 +40,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from loguru import logger
 from bw2data.backends import ExchangeDataset
 from bw2data.parameters import ActivityParameter, get_new_symbols
 from bw2parameters import Interpreter, MissingName, ParameterSet
@@ -16,7 +51,8 @@ from activity_browser.bwutils.superstructure.utils import SUPERSTRUCTURE
 from activity_browser.bwutils.utils import Parameters, StaticParameters
 
 
-def get_scenario_columns(parameter_scenarios: pd.DataFrame) -> list[str]:
+def scenario_columns(parameter_scenarios: pd.DataFrame) -> list[str]:
+    """Return scenario columns in file order, excluding Name/Group/default."""
     return [
         c
         for c in parameter_scenarios.columns
@@ -24,22 +60,34 @@ def get_scenario_columns(parameter_scenarios: pd.DataFrame) -> list[str]:
     ]
 
 
-def prepare_parameter_matrix(parameter_scenarios: pd.DataFrame) -> tuple[pd.DataFrame, list[str], set[str]]:
+def prepare_parameter_matrix(
+    parameter_scenarios: pd.DataFrame,
+) -> tuple[pd.DataFrame, pd.DataFrame, list[str], set[str]]:
+    """Build scenario matrix by overlaying uploaded values on BW parameter defaults."""
     selected_groups = set(parameter_scenarios["Group"].astype(str))
-    scenario_columns = get_scenario_columns(parameter_scenarios)
+    scenario_cols = scenario_columns(parameter_scenarios)
     ps = parameter_scenarios.set_index(["Group", "Name"], inplace=False)
 
     defaults = [p[:3] for p in Parameters.from_bw_parameters()]
     df = pd.DataFrame(defaults, columns=["Name", "Group", "default"]).set_index(["Group", "Name"])
-    for scenario in scenario_columns:
+    for scenario in scenario_cols:
         df[scenario] = df["default"]
-    df.update(ps[scenario_columns])
-    return df, scenario_columns, selected_groups
+    df.update(ps[scenario_cols])
+    return df, ps, scenario_cols, selected_groups
 
 
 def recalculate_project_parameters(
     initial: StaticParameters, parameters: Parameters, active_override_keys: set[tuple[str, str]]
 ) -> dict:
+    """Recalculate project parameters, keeping explicit scenario overrides fixed.
+
+    Why ``active_override_keys``:
+        When a parameter is explicitly provided in the scenario file, we want that
+        numeric override to win. We therefore blank out its formula for this
+        recalculation pass so ``ParameterSet`` doesn't recompute and overwrite it.
+        E.g.: if an exchange has a parameter CO2; if that parameter CO2 is calculated
+        from other parameters, CO2 = A*B; then the user can specify either A and or B or directly CO2
+    """
     raw = initial.project()
     if not raw:
         return {}
@@ -60,6 +108,11 @@ def recalculate_database_parameters(
     global_params: dict,
     active_override_keys: set[tuple[str, str]],
 ) -> dict:
+    """Recalculate database parameters for one database with override protection.
+
+    ``active_override_keys`` has the same role as in project recalculation: enforce
+    scenario-specified values over stored formulas for explicitly overridden params.
+    """
     raw = initial.by_database(database)
     if not raw:
         return {}
@@ -83,21 +136,6 @@ def recalculate_database_parameters(
     return StaticParameters.prune_result_data(data)
 
 
-def process_database_parameters(
-    initial: StaticParameters,
-    parameters: Parameters,
-    global_params: dict,
-    active_override_keys: set[tuple[str, str]],
-) -> dict:
-    all_db = {}
-    for database in initial.databases:
-        db = recalculate_database_parameters(
-            initial, parameters, database, global_params, active_override_keys
-        )
-        all_db[database] = {x: y for x, y in db.items()} if db else {}
-    return all_db
-
-
 def recalculate_activity_parameters(
     initial: StaticParameters,
     parameters: Parameters,
@@ -105,6 +143,11 @@ def recalculate_activity_parameters(
     global_params: dict,
     active_override_keys: set[tuple[str, str]],
 ) -> dict:
+    """Recalculate one activity-parameter group against provided scope.
+
+    ``active_override_keys`` ensures activity-level values supplied by the scenario
+    file are not re-derived from formulas in this pass.
+    """
     raw = initial.act_by_group(group)
     if not raw:
         return {}
@@ -128,9 +171,10 @@ def recalculate_activity_parameters(
     return StaticParameters.prune_result_data(data)
 
 
-def get_exchange_formula_rows_for_selected_groups(
+def exchange_formula_rows_for_selected_groups(
     selected_groups: set[str],
 ) -> list[tuple[str, int, str, str | None]]:
+    """Collect formula-bearing exchanges for selected output databases/groups."""
     activity_group_by_key = {}
     for ap in ActivityParameter.select(
         ActivityParameter.group, ActivityParameter.database, ActivityParameter.code
@@ -172,7 +216,8 @@ def process_selected_exchange_formulas(
     selected_groups: set[str],
     active_override_keys: set[tuple[str, str]],
 ) -> dict[int, float]:
-    rows = get_exchange_formula_rows_for_selected_groups(selected_groups)
+    """Evaluate selected exchange formulas for one scenario scope."""
+    rows = exchange_formula_rows_for_selected_groups(selected_groups)
     if not rows:
         return {}
 
@@ -192,29 +237,41 @@ def process_selected_exchange_formulas(
 
 
 def convert_parameter_to_flow_scenarios(parameter_scenarios: pd.DataFrame) -> pd.DataFrame:
-    df, scenario_columns, selected_groups = prepare_parameter_matrix(parameter_scenarios)
+    """Convert parameter scenarios DataFrame into flow scenarios DataFrame."""
+    df, ps, scenario_columns, selected_groups = prepare_parameter_matrix(parameter_scenarios)
     if not selected_groups:
         raise ValueError("No selected groups provided for direct exchange conversion")
 
     parameters = Parameters.from_bw_parameters()
     initial = StaticParameters()
+    # Why baseline:
+    # Parameter updates are sparse (NaNs are skipped). Resetting to baseline at the
+    # start of each scenario prevents value carry-over from previous scenarios.
     baseline = {(p.group, p.name): p.amount for p in parameters.data}
     exchanges_by_scenario = {}
 
     for scenario in scenario_columns:
         values = dict(df[scenario])
+        explicit_values = dict(ps[scenario]) if scenario in ps.columns else {}
         active_override_keys = {
             (str(k[0]), str(k[1]))
-            for k, v in values.items()
+            for k, v in explicit_values.items()
             if isinstance(k, tuple) and len(k) == 2 and not np.isnan(v)
         }
         parameters.update(baseline)
         parameters.update(values)
 
         project_params = recalculate_project_parameters(initial, parameters, active_override_keys)
-        database_params = process_database_parameters(
-            initial, parameters, project_params, active_override_keys
-        )
+        database_params = {}
+        for database in initial.databases:
+            db = recalculate_database_parameters(
+                initial,
+                parameters,
+                database,
+                project_params,
+                active_override_keys,
+            )
+            database_params[database] = {x: y for x, y in db.items()} if db else {}
         direct = process_selected_exchange_formulas(
             initial,
             parameters,
@@ -232,10 +289,22 @@ def convert_parameter_to_flow_scenarios(parameter_scenarios: pd.DataFrame) -> pd
 
     flow_df = superstructure.superstructure_from_scenario_exchanges(exchanges_by_scenario)
     ordered_columns = SUPERSTRUCTURE.tolist() + scenario_columns
-    return flow_df.reindex(columns=ordered_columns)
+    flow_df = flow_df.reindex(columns=ordered_columns)
+    logger.info(
+        "Converted parameter scenarios to flow scenarios: {} scenarios -> {} flows",
+        len(scenario_columns),
+        len(flow_df),
+    )
+    return flow_df
 
 
-def main(project: str, path: str, parameter_file: str, flow_file: str) -> None:
+if __name__ == "__main__":
+    """Example runnable script for local parameter->flow conversion."""
+    project = "paris-lca-course-2026"
+    path = r"C:\Users\steub\PycharmProjects\paris-mines-lca-school-2026\tutorials\DAY 3 - Premise and Activity Browser Part II\scenarios"
+    parameter_file = "_INPUT - parameter scenarios.xlsx"
+    flow_file = "_OUTPUT - flow scenarios.xlsx"
+
     bd.projects.set_current(project)
     base = Path(path)
     parameter_path = base / parameter_file
@@ -243,11 +312,3 @@ def main(project: str, path: str, parameter_file: str, flow_file: str) -> None:
     parameter_scenarios = pd.read_excel(parameter_path)
     flow_scenarios = convert_parameter_to_flow_scenarios(parameter_scenarios)
     flow_scenarios.to_excel(flow_path, index=False)
-
-
-if __name__ == "__main__":
-    project = "paris-lca-course-2026"
-    path = r"C:\Users\steub\PycharmProjects\paris-mines-lca-school-2026\tutorials\DAY 3 - Premise and Activity Browser Part II\scenarios"
-    parameter_file = "_INPUT - parameter scenarios.xlsx"
-    flow_file = "_OUTPUT - flow scenarios.xlsx"
-    main(project, path, parameter_file, flow_file)
