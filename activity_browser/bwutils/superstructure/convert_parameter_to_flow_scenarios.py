@@ -300,10 +300,10 @@ def convert_parameter_to_flow_scenarios(parameter_scenarios: pd.DataFrame) -> pd
 
 if __name__ == "__main__":
     """Example runnable script for local parameter->flow conversion."""
-    project = "paris-lca-course-2026"
-    path = r"C:\Users\steub\PycharmProjects\paris-mines-lca-school-2026\tutorials\DAY 3 - Premise and Activity Browser Part II\scenarios"
-    parameter_file = "_INPUT - parameter scenarios.xlsx"
-    flow_file = "_OUTPUT - flow scenarios.xlsx"
+    project = "a brightway 2.5 project"
+    path = r"path to scenario file"
+    parameter_file = "INPUT - parameter scenarios.xlsx"
+    flow_file = "OUTPUT - flow scenarios.xlsx"
 
     bd.projects.set_current(project)
     base = Path(path)
