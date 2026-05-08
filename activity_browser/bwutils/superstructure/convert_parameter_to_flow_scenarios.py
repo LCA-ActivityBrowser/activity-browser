@@ -253,6 +253,7 @@ def convert_parameter_to_flow_scenarios(parameter_scenarios: pd.DataFrame) -> pd
     for scenario in scenario_columns:
         values = dict(df[scenario])
         explicit_values = dict(ps[scenario]) if scenario in ps.columns else {}
+        # where parameter values have actually been defined in a parameter scenario (as opposed to empty cells)
         active_override_keys = {
             (str(k[0]), str(k[1]))
             for k, v in explicit_values.items()
@@ -311,4 +312,6 @@ if __name__ == "__main__":
     flow_path = base / flow_file
     parameter_scenarios = pd.read_excel(parameter_path)
     flow_scenarios = convert_parameter_to_flow_scenarios(parameter_scenarios)
+    pd.set_option('display.max_columns', None)
+    print(flow_scenarios)
     flow_scenarios.to_excel(flow_path, index=False)
