@@ -273,7 +273,24 @@ class ABTreeModel(QAbstractItemModel):
     
     def indexUserCheckable(self, index: QModelIndex) -> bool:
         return False
-    
+
+    def uncertainty_editor_initial(self, index: QModelIndex) -> dict:
+        """Seed ``UncertaintyDialog`` when editing the uncertainty column (display-only data).
+
+        Subclasses override for rows where the cell is not a dict (e.g. CF amount-only tuples).
+        """
+        if not index.isValid():
+            return {}
+        try:
+            if self.column_name(index) != "uncertainty":
+                return {}
+        except Exception:
+            return {}
+        raw = self.data(index, Qt.ItemDataRole.DisplayRole)
+        if isinstance(raw, dict):
+            return dict(raw)
+        return {}
+
     def isBranchNode(self, index: QModelIndex) -> bool:
         """Check if the given index represents a branch node (non-leaf)."""
         if not index.isValid():

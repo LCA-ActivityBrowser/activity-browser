@@ -416,6 +416,10 @@ class ProjectParametersModel(core.ABTreeModel):
         if self.get(index, "_class") == "broken":
             return False
 
+        # "New parameter..." placeholder: only the name cell is editable
+        if self.get(index, "_class") == "new" and column_name != "name":
+            return False
+
         # Allow editing for specific columns
         if column_name in ["formula", "uncertainty", "name", "comment"]:
             return True

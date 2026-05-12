@@ -422,7 +422,6 @@ class ExchangesView(widgets.ABTreeView):
 
     Attributes:
         defaultColumnDelegates (dict): The default column delegates for the view.
-        hovered_item (ExchangesItem): The item currently being hovered over.
     """
     defaultColumnDelegates = {
         "amount": delegates.AbsoluteAmountDelegate,
@@ -646,6 +645,21 @@ class ExchangesModel(core.ABTreeModel):
         exchanges = [exc for exc in exchanges if exc is not None]
         data.setPickleData("application/bw-exchangelist", exchanges)
         return data
+
+    def uncertainty_editor_initial(self, index: QtCore.QModelIndex) -> dict:
+        initial = super().uncertainty_editor_initial(index)
+        if initial:
+            return initial
+        row = self.row(index)
+        if row is None:
+            return {}
+        ex = row.get("_exchange")
+        if ex is None:
+            return {}
+        u = getattr(ex, "uncertainty", None)  # retrieve the existing uncertainty dict
+        if isinstance(u, dict):
+            return dict(u)
+        return {}
 
     def setData(self, index: QtCore.QModelIndex, value, role: int = Qt.ItemDataRole.EditRole) -> bool:
         """

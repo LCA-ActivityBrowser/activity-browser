@@ -105,6 +105,9 @@ class CharacterizationFactorsView(widgets.ABTreeView):
 
     class ContextMenu(widgets.ABMenu):
         menuSetup = [
+            lambda m: m.add(app.actions.CFUncertaintyModify, m.impact_category_name, m.char_factors,
+                            enable=bool(m.char_factors) and m.is_editable,
+                            text="Modify uncertainty…"),
             lambda m: m.add(app.actions.CFRemove, m.impact_category_name, m.char_factors,
                             enable=bool(m.char_factors) and m.is_editable,
                             text="Remove characterization factor(s)"),
@@ -208,6 +211,15 @@ class CharacterizationFactorsModel(core.ABTreeModel):
     def __init__(self, page: ImpactCategoryDetailsPage):
         super().__init__(parent=page, enable_sorting=True)
         self.page = page
+
+    def uncertainty_editor_initial(self, index: QtCore.QModelIndex) -> dict:
+        if self.column_name(index) != "uncertainty":
+            return {}
+        row = self.row(index)
+        if row is None:
+            return {}
+        u = self.page.uncertainty_from_cf(row.get("_cf"))  # retrieve the existing uncertainty dict
+        return u if isinstance(u, dict) else {}
 
     def sort(self, column: int, order: Qt.SortOrder = Qt.SortOrder.AscendingOrder) -> None:
         """

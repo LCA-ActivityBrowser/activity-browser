@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+"""Uncertainty column: same flow as ``FloatDelegate`` — dialog widget, then ``model.setData``."""
 from qtpy import QtCore, QtWidgets
 from stats_arrays import uncertainty_choices as uc
 
@@ -6,10 +7,8 @@ from activity_browser.ui.dialogs import UncertaintyDialog
 
 
 class UncertaintyDelegate(QtWidgets.QStyledItemDelegate):
-    """A combobox containing the sorted list of possible uncertainties
-    `setModelData` stores the integer id of the selected uncertainty
-    distribution.
-    """
+    """Delegate for uncertainty-type cells."""
+
     def displayText(self, value, locale):
         """Take the given integer id and return the description.
 
@@ -23,22 +22,19 @@ class UncertaintyDelegate(QtWidgets.QStyledItemDelegate):
         return uc[0].description
 
     def createEditor(self, parent, option, index):
-        """Simply use the wizard for updating uncertainties. Send a signal."""
         from activity_browser import app
 
-        item = index.internalPointer()
-        item_name = item.__class__.__name__
-
-        if item_name == "ParametersItem" or item_name == "ProjectParametersItem":
-            app.actions.ParameterUncertaintyModify.run(item["_parameter"].to_peewee_model())
-        elif item_name == "ExchangesItem":
-            app.actions.ExchangeUncertaintyModify.run([item.exchange])
-        elif item_name == "CharacterizationFactorsItem":
-            app.actions.CFUncertaintyModify.run(
-                item["_impact_category_name"], [(item["_id"], item["_cf"]),]
-            )
-        elif isinstance(index.data(), dict):
-            return UncertaintyDialog(parent=app.main_window, initial=index.data())
+        # get existing (initial) values for the uncertainty dict
+        model = index.model()
+        getter = getattr(model, "uncertainty_editor_initial", None)
+        if callable(getter):
+            initial = getter(index)
+        else:
+            raw = index.data(QtCore.Qt.ItemDataRole.DisplayRole)
+            initial = raw if isinstance(raw, dict) else {}
+        if not isinstance(initial, dict):
+            initial = {}
+        return UncertaintyDialog(parent=app.main_window, initial=initial)
 
     def setEditorData(self, editor, index: QtCore.QModelIndex):
         pass
@@ -52,8 +48,10 @@ class UncertaintyDelegate(QtWidgets.QStyledItemDelegate):
         model: QtCore.QAbstractItemModel,
         index: QtCore.QModelIndex,
     ):
-        """Read the current text and look up the actual ID of that uncertainty type."""
+        """Push accepted dialog values through the model like other delegates."""
+        if editor is None:
+            return
         if not editor.result() == QtWidgets.QDialog.Accepted:
             return
-        
+
         model.setData(index, editor.result_dict, QtCore.Qt.EditRole)

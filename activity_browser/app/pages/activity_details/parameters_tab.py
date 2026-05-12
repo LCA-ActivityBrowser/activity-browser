@@ -244,7 +244,7 @@ class ParametersModel(core.ABTreeModel):
     def __init__(self, tab: ParametersTab):
         super().__init__(parent=tab)
         self.tab = tab
-    
+
     def setData(self, index: QtCore.QModelIndex, value, role: int = Qt.ItemDataRole.EditRole) -> bool:
         """
         Sets the data for the given index.
@@ -359,6 +359,10 @@ class ParametersModel(core.ABTreeModel):
 
         # Prevent editing broken parameters
         if self.get(index, "_class") == "broken":
+            return False
+
+        # "New parameter..." placeholder: only the name cell is editable
+        if self.get(index, "_class") == "new" and column_name != "name":
             return False
 
         # Allow editing for specific columns
