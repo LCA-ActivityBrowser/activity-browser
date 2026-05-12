@@ -61,6 +61,9 @@ class UncertaintyDialog(QtWidgets.QDialog):
 		self.distribution.currentIndexChanged.connect(self._on_distribution_changed)
 
 		header_layout = QtWidgets.QGridLayout()
+		header_layout.setContentsMargins(4, 4, 4, 4)
+		header_layout.setHorizontalSpacing(8)
+		header_layout.setVerticalSpacing(4)
 		header_layout.addWidget(QtWidgets.QLabel("Distribution:"), 0, 0)
 		header_layout.addWidget(self.distribution, 0, 1)
 		box1.setLayout(header_layout)
@@ -121,6 +124,9 @@ class UncertaintyDialog(QtWidgets.QDialog):
 		self.negative.setHidden(True)
 
 		params_layout = QtWidgets.QGridLayout()
+		params_layout.setContentsMargins(8, 6, 8, 6)
+		params_layout.setHorizontalSpacing(8)
+		params_layout.setVerticalSpacing(4)
 		# row 0: read-only calculated mean (will be hidden for most dists)
 		params_layout.addWidget(self.calc_mean_label, 0, 0)
 		params_layout.addWidget(self.calc_mean, 0, 1)
@@ -152,6 +158,8 @@ class UncertaintyDialog(QtWidgets.QDialog):
 
 		# Layout
 		layout = QtWidgets.QVBoxLayout()
+		layout.setSpacing(6)
+		layout.setContentsMargins(12, 10, 12, 10)
 		layout.addWidget(box1)
 		layout.addWidget(self.fields_box)
 		layout.addWidget(self.plot)
@@ -277,14 +285,25 @@ class UncertaintyDialog(QtWidgets.QDialog):
 		self.calc_mean_label.setHidden(not show_calc)
 		self.calc_mean.setHidden(not show_calc)
 
+		# No parameter inputs for undefined / no uncertainty — hide entire group
+		self.fields_box.setVisible(
+			self.dist.id
+			not in (sa.UndefinedUncertainty.id, sa.NoUncertainty.id)
+		)
+
 		# Update labels
 		self.loc_label.setText(self._distribution_loc_label)
 		self.previous_dist_id = self.dist.id
-		self.fields_box.updateGeometry()
-
-		# Update plot and OK state
+		# Shrink/grow dialog after plot visibility matches the new distribution
+		# (otherwise adjustSize still sees the old plot and leaves excess height).
 		self._generate_plot()
 		self._update_ok_state()
+		self.fields_box.updateGeometry()
+		self.updateGeometry()
+		main_lay = self.layout()
+		if main_lay is not None:
+			main_lay.activate()
+		self.adjustSize()
 
 	def _extract_lognormal_loc_from_mean(self) -> None:
 		"""Set loc to ln(mean) when switching to lognormal, if mean is known."""
@@ -399,50 +418,64 @@ class UncertaintyDialog(QtWidgets.QDialog):
 		ok_btn = self.buttons.button(QtWidgets.QDialogButtonBox.Ok)
 		ok_btn.setEnabled(self._completed_active_fields())
 
+	def _clear_distribution_plot(self) -> None:
+		"""Blank and hide the preview when there is nothing to draw or drawing failed."""
+		try:
+			self.plot.reset_plot()
+			self.plot.canvas.draw_idle()
+		except Exception:
+			pass
+		self.plot.setVisible(False)
+
 	def _generate_plot(self) -> None:
-		# Update calculated mean if applicable and render sample
 		if self.dist is None:
 			return
-		complete = self._completed_active_fields() or self.dist.id in {sa.UndefinedUncertainty.id, sa.NoUncertainty.id}
-		if not complete:
+
+		# No distribution shape to visualize
+		if self.dist.id in (sa.UndefinedUncertainty.id, sa.NoUncertainty.id):
+			self._clear_distribution_plot()
 			self._update_ok_state()
 			return
-		array = self.dist.from_dicts(self._uncertainty_info)
-		# Calculated mean display for specific distributions
+
+		if not self._completed_active_fields():
+			self._clear_distribution_plot()
+			self._update_ok_state()
+			return
+
+		try:
+			array = self.dist.from_dicts(self._uncertainty_info)
+		except Exception:
+			self._clear_distribution_plot()
+			self._update_ok_state()
+			return
+
 		if self.dist.id in self.mean_is_calculated:
 			try:
 				calc = self.dist.statistics(array).get("mean")
 			except TypeError:
-				# DiscreteUniform workaround
 				array = self.dist.fix_nan_minimum(array)
 				calc = (array["maximum"] + array["minimum"]) / 2
 			calc = calc.mean() if isinstance(calc, np.ndarray) else calc
 			self.calc_mean.setText(str(float(calc)))
-		# Vertical line value
+
 		if self.dist.id == sa.LognormalUncertainty.id:
 			vline = self.dist.statistics(array).get("median")
-		elif self.dist.id in {sa.UndefinedUncertainty.id, sa.NoUncertainty.id}:
-			# Best effort: use loc as "mean" placeholder
-			try:
-				vline = float(self.loc.text()) if self.loc.text() else np.nan
-			except Exception:
-				vline = np.nan
 		else:
 			vline = self.dist.statistics(array).get("mean")
-		# Sample data
+
 		data = self.dist.random_variables(array, 1000)
-		if not np.any(np.isnan(data)):
-			try:
-				self.plot.plot(data, vline)
-			except RuntimeError as e:
-				logger.error("%s: plotting failed, retry without KDE", e)
-				try:
-					sns.histplot(data.T, kde=False, stat="density", ax=self.plot.ax, edgecolor="none")
-					self.plot.ax.axvline(vline, label="Mean / amount", c="r", ymax=0.98)
-					self.plot.ax.legend(loc="upper right")
-					self.plot.canvas.draw()
-				except Exception:
-					pass
+		if np.any(np.isnan(data)):
+			self._clear_distribution_plot()
+			self._update_ok_state()
+			return
+
+		try:
+			self.plot.plot(data, vline)
+		except Exception as e:
+			logger.warning("Uncertainty preview could not be drawn: {}", e)
+			self._clear_distribution_plot()
+			self._update_ok_state()
+			return
 		self._update_ok_state()
 
 	def _on_accept(self) -> None:
@@ -462,22 +495,31 @@ class UncertaintyDialog(QtWidgets.QDialog):
 
 
 class SimpleDistributionPlot(ABPlot):
+	_kde_plot_errors = (RuntimeError, np.linalg.LinAlgError, ValueError)
+
+	def __init__(self, parent=None):
+		super().__init__(parent)
+		# Fixed floor for the preview strip (logical px). Do not derive from MPL buffer.
+		self.setMinimumHeight(320)
+
 	def plot(self, data: np.ndarray, mean: float, label: str = "Value"):
 		self.reset_plot()
 		try:
 			sns.histplot(data.T, kde=True, stat="density", ax=self.ax, edgecolor="none")
-		except RuntimeError as e:
-			logger.error("%s: Plotting without KDE.", e)
+		except self._kde_plot_errors as e:
+			logger.warning("Uncertainty histogram KDE unavailable ({}), plotting without KDE", e)
 			sns.histplot(data.T, kde=False, stat="density", ax=self.ax, edgecolor="none")
 		self.ax.set_xlabel(label)
 		self.ax.set_ylabel("Probability density")
-		# Add vertical line at given mean of x-axis
-		self.ax.axvline(mean, label="Mean / amount", c="r", ymax=0.98)
-		self.ax.legend(loc="upper right")
-		_, height = self.canvas.get_width_height()
-		self.setMinimumHeight(height / 2)
+		try:
+			self.ax.axvline(mean, label="Mean / amount", c="r", ymax=0.98)
+			self.ax.legend(loc="upper right")
+		except np.linalg.LinAlgError:
+			logger.warning("Uncertainty preview: could not draw mean line (singular transform)")
+			self.ax.legend(loc="upper right")
 		self._set_plot_chrome_white()
 		self.canvas.draw()
+		self.setVisible(True)
 
 
 __all__ = ["UncertaintyDialog"]
