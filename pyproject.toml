@@ -55,6 +55,7 @@ dependencies = [
     "pyprind",
     "qtpy",
     "salib>=1.4",
+    "scipy>=1.10",
     "seaborn",
     "loguru>=0.7",
 ]

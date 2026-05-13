@@ -4,20 +4,16 @@ from loguru import logger
 from typing import Optional, Tuple
 
 import numpy as np
-import seaborn as sns
 
 from qtpy import QtCore, QtGui, QtWidgets
 import stats_arrays as sa
 
 from activity_browser.ui.widgets import ABPlot
 
-# ``stats_arrays`` validation uses a short random draw (same cost as preview path).
+from .uncertainty_pdf_preview import PreviewDensity, preview_density
+
+# ``stats_arrays`` validation uses a short random draw.
 _UNCERTAINTY_VALIDATION_N = 24
-# Histogram preview: keep N modest; ``sns.histplot(..., kde=True)`` can be very slow on
-# extreme scales / near-degenerate data even though ``random_variables`` is only O(n).
-_UNCERTAINTY_PREVIEW_DRAW_N = 500
-# Linear-axis preview: cap bin count so wide-range (e.g. lognormal with large σ) stays cheaper to draw.
-_UNCERTAINTY_PREVIEW_HIST_BINS = 36
 
 
 def _try_build_validate_sample(
@@ -70,7 +66,6 @@ _MSG_PREVIEW_INCOMPLETE = (
 	"Some required parameters are missing or not accepted by the validator. "
 	"Complete them to preview the distribution and enable OK."
 )
-_MSG_PREVIEW_NONFINITE = "Sampling produced non-finite values; adjust the parameters."
 
 
 def _scalar_stats_value(x) -> float:
@@ -81,6 +76,20 @@ def _scalar_stats_value(x) -> float:
 	if arr.size == 0:
 		return float("nan")
 	return float(arr[0])
+
+
+def _discrete_uniform_expected_first_row(array: np.ndarray) -> float:
+	"""Expected value for integers in ``[minimum, maximum)``, per :class:`stats_arrays.DiscreteUniform`."""
+	if array is None or len(array) == 0:
+		return float("nan")
+	row = array[0]
+	lo = int(round(float(row["minimum"])))
+	hi = int(round(float(row["maximum"])))
+	if hi < lo:
+		lo, hi = hi, lo
+	if hi <= lo:
+		return float("nan")
+	return (float(lo) + float(hi) - 1.0) / 2.0
 
 
 class UncertaintyDialog(QtWidgets.QDialog):
@@ -245,7 +254,8 @@ class UncertaintyDialog(QtWidgets.QDialog):
 		layout.setContentsMargins(12, 10, 12, 10)
 		layout.addWidget(box1)
 		layout.addWidget(self.fields_box)
-		layout.addWidget(self.plot)
+		# Stretch so the preview absorbs all extra height when the dialog is resized.
+		layout.addWidget(self.plot, 1)
 		layout.addWidget(self._plot_message)
 		layout.addWidget(self.buttons)
 		self.setLayout(layout)
@@ -401,6 +411,13 @@ class UncertaintyDialog(QtWidgets.QDialog):
 			self._hide_params("loc", "scale", "shape")
 			self._hide_params("min", "max", hide=False)
 			self.neg_samples_cb.setHidden(True)
+			if self.dist.id == sa.UniformUncertainty.id:
+				self.min_label.setText("Minimum:")
+				self.max_label.setText("Maximum:")
+			else:
+				# ``stats_arrays.DiscreteUniform``: integers in [minimum, maximum).
+				self.min_label.setText("Minimum (inclusive):")
+				self.max_label.setText("Maximum (exclusive):")
 		elif self.dist.id == sa.TriangularUncertainty.id:  # Triangular
 			self._hide_params("scale", "shape")
 			self._hide_params("loc", "min", "max", hide=False)
@@ -689,7 +706,11 @@ class UncertaintyDialog(QtWidgets.QDialog):
 		main_lay = self.layout()
 		if main_lay is not None:
 			main_lay.activate()
-		self.adjustSize()
+		# ``adjustSize`` collapses the dialog to minimum hints and defeats vertical stretch
+		# on the plot; only compact when the matplotlib preview is hidden.
+		plot = getattr(self, "plot", None)
+		if plot is None or plot.maximumHeight() <= 0 or not plot.isVisible():
+			self.adjustSize()
 
 	def _hide_plot_preview(self, message: Optional[str]) -> None:
 		"""Hide the matplotlib preview, collapse its layout height, optional status text."""
@@ -734,13 +755,19 @@ class UncertaintyDialog(QtWidgets.QDialog):
 
 			if self.dist.id in self.mean_is_calculated:
 				try:
-					try:
-						calc = self.dist.statistics(array).get("mean")
-					except TypeError:
-						array = self.dist.fix_nan_minimum(array)
-						calc = (array["maximum"] + array["minimum"]) / 2
-					calc = calc.mean() if isinstance(calc, np.ndarray) else calc
-					self.calc_mean.setText(str(float(calc)))
+					if self.dist.id == sa.DiscreteUniform.id:
+						calc = _discrete_uniform_expected_first_row(array)
+						self.calc_mean.setText(
+							str(float(calc)) if np.isfinite(calc) else "nan"
+						)
+					else:
+						try:
+							calc = self.dist.statistics(array).get("mean")
+						except TypeError:
+							array = self.dist.fix_nan_minimum(array)
+							calc = (array["maximum"] + array["minimum"]) / 2
+						calc = calc.mean() if isinstance(calc, np.ndarray) else calc
+						self.calc_mean.setText(str(float(calc)))
 				except Exception:
 					self.calc_mean.setText("nan")
 
@@ -749,63 +776,33 @@ class UncertaintyDialog(QtWidgets.QDialog):
 					ref_lin = _scalar_stats_value(
 						self.dist.statistics(array).get("median")
 					)
+				elif self.dist.id == sa.DiscreteUniform.id:
+					ref_lin = _discrete_uniform_expected_first_row(array)
 				else:
 					ref_lin = _scalar_stats_value(
 						self.dist.statistics(array).get("mean")
 					)
-				data = self.dist.random_variables(array, _UNCERTAINTY_PREVIEW_DRAW_N)
 			except Exception as e:
 				logger.debug(
-					"Uncertainty preview skipped (invalid or unsampled parameters): {}",
+					"Uncertainty preview skipped (invalid statistics): {}",
 					e,
 				)
 				self._hide_plot_preview(str(e).strip() or e.__class__.__name__)
 				self._update_ok_state()
 				return
 
-			if np.any(np.isnan(data)):
-				self._hide_plot_preview(_MSG_PREVIEW_NONFINITE)
+			curve = preview_density(self.dist, array)
+			if curve is None:
+				self._hide_plot_preview(
+					"Preview is not available for this uncertainty type or parameters."
+				)
 				self._update_ok_state()
 				return
 
-			# Linear scale on the axis (physical values). Speed: fewer hist bins + KDE off when spread is huge.
-			plot_vals = np.asarray(data, dtype=float)
-			xlabel = "Value"
-			vline_legend = (
-				"Median"
-				if self.dist.id == sa.LognormalUncertainty.id
-				else "Mean / amount"
-			)
-			ref_plot = ref_lin
-
 			try:
-				# Bernoulli samples are discrete {0,1}; Gaussian KDE is always singular here.
-				use_kde = self.dist.id != sa.BernoulliUncertainty.id
-				if use_kde:
-					flat = np.asarray(plot_vals, dtype=float).ravel()
-					flat = flat[np.isfinite(flat)]
-					if flat.size < 2:
-						use_kde = False
-					else:
-						spread = float(np.ptp(flat))
-						std = float(np.std(flat))
-						# Very wide or near-constant samples: KDE bandwidth/grid work is costly and unstable.
-						spread_cap = (
-							5e5 if self.dist.id == sa.LognormalUncertainty.id else 1e7
-						)
-						if (
-							spread == 0
-							or not np.isfinite(spread)
-							or spread > spread_cap
-							or std
-							<= 1e-12 * max(float(np.max(np.abs(flat))), 1.0)
-						):
-							use_kde = False
 				self._plot_message.hide()
 				self._plot_message.clear()
-				self.plot.plot(
-					plot_vals, ref_plot, kde=use_kde, label=xlabel, vline_legend=vline_legend
-				)
+				self.plot.plot_analytical(curve, ref_lin)
 			except Exception as e:
 				logger.warning("Uncertainty preview could not be drawn: {}", e)
 				self._hide_plot_preview(str(e).strip() or e.__class__.__name__)
@@ -836,93 +833,87 @@ class UncertaintyDialog(QtWidgets.QDialog):
 
 
 class SimpleDistributionPlot(ABPlot):
-	_kde_plot_errors = (RuntimeError, np.linalg.LinAlgError, ValueError)
-
 	def __init__(self, parent=None):
 		super().__init__(parent)
 		# Embedded in a dialog with changing height: constrained_layout fights 0-size passes and spams warnings.
 		if hasattr(self.figure, "set_constrained_layout"):
 			self.figure.set_constrained_layout(False)
-		# Fixed floor for the preview strip (logical px). Do not derive from MPL buffer.
-		self.setMinimumHeight(320)
+		# Fixed floor for the preview strip (logical px); extra height helps x-axis label fit.
+		self.setMinimumHeight(348)
+		exp = QtWidgets.QSizePolicy.Policy.Expanding
+		self.setSizePolicy(exp, exp)
+		self.canvas.setSizePolicy(exp, exp)
+		lay = self.layout()
+		if isinstance(lay, QtWidgets.QVBoxLayout):
+			m = lay.contentsMargins()
+			lay.setContentsMargins(m.left(), m.top(), m.right(), 6)
 
-	def plot(
-		self,
-		data: np.ndarray,
-		mean: float,
-		label: str = "Value",
-		*,
-		kde: bool = True,
-		vline_legend: str = "Mean / amount",
-	) -> None:
-		# Restore layout height after _hide_plot_preview collapsed this widget.
-		self.setMinimumHeight(320)
+	def plot_analytical(self, curve: PreviewDensity, vline_x: float) -> None:
+		"""Plot ``stats_arrays`` / SciPy PDF or PMF (no random sampling)."""
+		self.setMinimumHeight(348)
 		self.setMaximumHeight(16777215)
-		self.setSizePolicy(
-			QtWidgets.QSizePolicy.Policy.Ignored,
-			QtWidgets.QSizePolicy.Policy.Expanding,
-		)
+		exp = QtWidgets.QSizePolicy.Policy.Expanding
+		self.setSizePolicy(exp, exp)
+		self.canvas.setSizePolicy(exp, exp)
 		self.reset_plot()
-		# Match figure size to widget before plotting so axes bbox is non-zero for seaborn/matplotlib.
+		# Match figure size to widget before plotting so axes bbox is non-zero.
 		self.sync_figure_to_widget()
 
-		x = np.asarray(data, dtype=float).ravel()
-		x = x[np.isfinite(x)]
-		if x.size == 0:
-			self.ax.text(
-				0.5,
-				0.5,
-				"No finite samples",
-				transform=self.ax.transAxes,
-				ha="center",
-				va="center",
-			)
-			self.ax.set_xlabel(label)
-			self._set_plot_chrome_white()
-			self.sync_figure_to_widget()
-			self.canvas.draw_idle()
-			self.setVisible(True)
-			return
-
-		if kde:
-			try:
-				sns.histplot(
-					x=x,
-					kde=True,
-					stat="density",
-					ax=self.ax,
-					edgecolor="none",
-					bins=_UNCERTAINTY_PREVIEW_HIST_BINS,
-				)
-			except self._kde_plot_errors as e:
-				logger.warning("Uncertainty histogram KDE unavailable ({}), plotting without KDE", e)
-				sns.histplot(
-					x=x,
-					kde=False,
-					stat="density",
-					ax=self.ax,
-					edgecolor="none",
-					bins=_UNCERTAINTY_PREVIEW_HIST_BINS,
-				)
-		else:
-			sns.histplot(
-				x=x,
-				kde=False,
-				stat="density",
-				ax=self.ax,
+		if curve.kind == "bar":
+			self.ax.set_ylabel("PMF", labelpad=6)
+			w = 0.35 if curve.x.size <= 2 else min(0.45, 0.85 / max(int(curve.x.size), 1))
+			self.ax.bar(
+				curve.x,
+				curve.y,
+				width=w,
+				align="center",
 				edgecolor="none",
-				bins=_UNCERTAINTY_PREVIEW_HIST_BINS,
+				color="steelblue",
 			)
-		self.ax.set_xlabel(label)
-		self.ax.set_ylabel("Probability density")
-		try:
-			if np.isfinite(mean):
-				self.ax.axvline(mean, label=vline_legend, c="r", ymax=0.98)
-			self.ax.legend(loc="upper right")
-		except np.linalg.LinAlgError:
-			logger.warning("Uncertainty preview: could not draw mean line (singular transform)")
-			self.ax.legend(loc="upper right")
+		else:
+			self.ax.set_ylabel("Probability density", labelpad=6)
+			self.ax.plot(curve.x, curve.y, color="steelblue", linewidth=1.8)
+			self.ax.fill_between(
+				curve.x,
+				0.0,
+				curve.y,
+				alpha=0.22,
+				color="steelblue",
+				linewidth=0.0,
+			)
+
+		self.ax.set_xlabel(curve.xlabel, labelpad=7)
 		self._set_plot_chrome_white()
+		try:
+			if np.isfinite(vline_x):
+				self.ax.axvline(vline_x, label=curve.vline_legend, c="r", ymax=0.98)
+			handles, labels = self.ax.get_legend_handles_labels()
+			if handles:
+				self.ax.legend(loc="upper right", fontsize=9)
+		except np.linalg.LinAlgError:
+			logger.warning("Uncertainty preview: could not draw reference line")
+			handles, labels = self.ax.get_legend_handles_labels()
+			if handles:
+				self.ax.legend(loc="upper right", fontsize=9)
+
+		self.ax.tick_params(axis="both", which="major", labelsize=9)
+		self.ax.tick_params(axis="x", which="major", pad=4)
+		try:
+			self.figure.tight_layout(pad=0.28, h_pad=0.55, w_pad=0.35)
+		except Exception:
+			self.figure.subplots_adjust(left=0.09, right=0.99, top=0.96, bottom=0.18)
+		else:
+			p = self.figure.subplotpars
+			h_in = float(self.figure.get_figheight())
+			# Slightly more bottom margin when the figure is very short (labels + ticks).
+			bottom_floor = max(0.14, min(0.24, 1.05 / max(h_in, 0.25)))
+			self.figure.subplots_adjust(
+				left=max(p.left, 0.07),
+				right=min(p.right, 0.995),
+				top=min(p.top, 0.97),
+				bottom=max(p.bottom, bottom_floor),
+			)
+
 		self.sync_figure_to_widget()
 		self.canvas.draw_idle()
 		self.setVisible(True)
