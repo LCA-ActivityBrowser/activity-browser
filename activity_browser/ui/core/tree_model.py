@@ -62,7 +62,8 @@ class ABTreeModel(QAbstractItemModel):
         self.df = df if df is not None else pd.DataFrame()
         self.df.index = pd.MultiIndex.from_arrays([range(len(self.df))], names=[f"index"])
 
-        self.df_query: dict[str, str] = {"model": "index == index"}  # dictionary where queries can be registered
+        # dictionary where queries can be registered
+        self.df_query: dict[str, str] = {"model": "True"} # Placeholder so df_query is never empty; apply_filter skips this
         self.filtered_columns: set[int] = set()  # set of column indices that have active filters, only used for the header icon
         self.grouped_columns: list[str] = []  # list of columns currently used for grouping
 
@@ -290,6 +291,10 @@ class ABTreeModel(QAbstractItemModel):
         if isinstance(raw, dict):
             return dict(raw)
         return {}
+
+    def uncertainty_editor_read_only(self, index: QModelIndex) -> bool:
+        """If True, :class:`~activity_browser.ui.dialogs.UncertaintyDialog` opens read-only."""
+        return False
 
     def isBranchNode(self, index: QModelIndex) -> bool:
         """Check if the given index represents a branch node (non-leaf)."""
@@ -548,8 +553,13 @@ class ABTreeModel(QAbstractItemModel):
                 node.loaded_count = node.total_children()
 
     def apply_filter(self):
-        pandas_query = " & ".join(self.df_query.values())
-        filtered_df = self.df.query(pandas_query)
+        # Omit no-op clauses: DataFrame.query("True") can yield a scalar and then .loc[True] fails
+        # ("boolean label without boolean index") on MultiIndex frames.
+        clauses = [q.strip() for q in self.df_query.values() if q.strip() != "True"]
+        if not clauses:
+            filtered_df = self.df
+        else:
+            filtered_df = self.df.query(" & ".join(clauses))
         self.reset_hierarchy(filtered_df)
 
     def apply_sort(self):

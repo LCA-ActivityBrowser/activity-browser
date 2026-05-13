@@ -19,7 +19,14 @@ class CFUncertaintyModify(ABAction):
 
     @classmethod
     @exception_dialogs
-    def run(cls, method_name: tuple, char_factors: List[tuple], uncertainty_dict: dict = None):
+    def run(
+        cls,
+        method_name: tuple,
+        char_factors: List[tuple],
+        uncertainty_dict: dict = None,
+        *,
+        read_only: bool = False,
+    ):
 
         if uncertainty_dict is None:
             initial = char_factors[0][1]
@@ -28,11 +35,14 @@ class CFUncertaintyModify(ABAction):
             ok, uncertainty_dict = UncertaintyDialog.get_uncertainty_dict(
                 parent=app.main_window,
                 initial=initial,
-                )
+                read_only=read_only,
+            )
 
             if not ok:
                 return
-        
+        elif read_only:
+            return
+
         method = bd.Method(method_name)
         method_dict = {cf[0]: cf[1] for cf in method.load()}
 

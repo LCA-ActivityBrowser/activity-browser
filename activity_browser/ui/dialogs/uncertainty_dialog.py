@@ -77,8 +77,9 @@ class UncertaintyDialog(QtWidgets.QDialog):
 			# array is a numpy structured array compatible with stats_arrays
 	"""
 
-	def __init__(self, parent=None, initial: Optional[dict] = None):
+	def __init__(self, parent=None, initial: Optional[dict] = None, *, read_only: bool = False):
 		super().__init__(parent)
+		self._read_only = read_only
 		self.setWindowTitle("Set Uncertainty")
 		self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
 
@@ -241,21 +242,23 @@ class UncertaintyDialog(QtWidgets.QDialog):
 		self._on_distribution_changed(self.distribution.currentIndex())
 		self._sync_mean_from_loc()
 		self._generate_plot()
+		if read_only:
+			self._apply_read_only_mode()
 
 	# ---------- Public API ----------
 	@staticmethod
 	def get_uncertainty_array(
-		parent=None, initial: Optional[dict] = None
+		parent=None, initial: Optional[dict] = None, *, read_only: bool = False
 	) -> Tuple[bool, Optional[np.ndarray]]:
-		dlg = UncertaintyDialog(parent, initial=initial)
+		dlg = UncertaintyDialog(parent, initial=initial, read_only=read_only)
 		ok = dlg.exec_() == QtWidgets.QDialog.Accepted
 		return ok, dlg.result_array if ok else None
 	
 	@staticmethod
 	def get_uncertainty_dict(
-		parent=None, initial: Optional[dict] = None
+		parent=None, initial: Optional[dict] = None, *, read_only: bool = False
 	) -> Tuple[bool, Optional[dict]]:
-		dlg = UncertaintyDialog(parent, initial=initial)
+		dlg = UncertaintyDialog(parent, initial=initial, read_only=read_only)
 		ok = dlg.exec_() == QtWidgets.QDialog.Accepted
 		return ok, dlg.result_dict if ok else None
 
@@ -290,6 +293,17 @@ class UncertaintyDialog(QtWidgets.QDialog):
 		self.minimum.setText(to_str(data.get("minimum", np.nan)))
 		self.maximum.setText(to_str(data.get("maximum", np.nan)))
 		self._check_negative()
+
+	def _apply_read_only_mode(self) -> None:
+		self.setWindowTitle("View uncertainty")
+		self.distribution.setEnabled(False)
+		self.fields_box.setEnabled(False)
+		ok_btn = self.buttons.button(QtWidgets.QDialogButtonBox.Ok)
+		ok_btn.setVisible(False)
+		ok_btn.setEnabled(False)
+		cancel_btn = self.buttons.button(QtWidgets.QDialogButtonBox.Cancel)
+		cancel_btn.setText("Close")
+		cancel_btn.setDefault(True)
 
 	@property
 	def _distribution_loc_label(self) -> str:
@@ -627,6 +641,8 @@ class UncertaintyDialog(QtWidgets.QDialog):
 		return arr is not None
 
 	def _update_ok_state(self, structured: Optional[np.ndarray] = None) -> None:
+		if self._read_only:
+			return
 		ok_btn = self.buttons.button(QtWidgets.QDialogButtonBox.Ok)
 		if self.dist is None:
 			ok_btn.setEnabled(False)
@@ -746,6 +762,8 @@ class UncertaintyDialog(QtWidgets.QDialog):
 			self._relayout_dialog_compact()
 
 	def _on_accept(self) -> None:
+		if self._read_only:
+			return
 		if not self._ok_enabled():
 			return
 		try:

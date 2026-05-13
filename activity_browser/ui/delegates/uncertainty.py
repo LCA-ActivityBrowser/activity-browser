@@ -34,7 +34,13 @@ class UncertaintyDelegate(QtWidgets.QStyledItemDelegate):
             initial = raw if isinstance(raw, dict) else {}
         if not isinstance(initial, dict):
             initial = {}
-        return UncertaintyDialog(parent=app.main_window, initial=initial)
+        read_only = False
+        ro_getter = getattr(model, "uncertainty_editor_read_only", None)
+        if callable(ro_getter):
+            read_only = bool(ro_getter(index))
+        return UncertaintyDialog(
+            parent=app.main_window, initial=initial, read_only=read_only
+        )
 
     def setEditorData(self, editor, index: QtCore.QModelIndex):
         pass
@@ -50,6 +56,8 @@ class UncertaintyDelegate(QtWidgets.QStyledItemDelegate):
     ):
         """Push accepted dialog values through the model like other delegates."""
         if editor is None:
+            return
+        if getattr(editor, "_read_only", False):
             return
         if not editor.result() == QtWidgets.QDialog.Accepted:
             return
