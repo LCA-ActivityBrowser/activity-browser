@@ -52,11 +52,14 @@ class MethodDuplicate(ABAction):
         location = dialog.result_tuple
         new_names = [location + method.name[len(location) :] for method in all_methods]
 
-        # instruct the ImpactCategoryController to duplicate the methods to the new locations
+        # Duplicate CF data and rebuild the processed Brightway 2.5 datapackage (zip).
+        # copy().write() should process already, but an incomplete zip can be left if
+        # processing is interrupted; explicit process() matches MethodRename.
         for method, new_name in zip(all_methods, new_names):
-            if new_name in methods:
+            if new_name in bd.methods:
                 raise Exception("New method name already in use")
-            method.copy(new_name)
+            new_method = method.copy(new_name)
+            new_method.process()
             logger.info(f"Copied method {method.name} into {new_name}")
 
         MethodOpen.run(new_names)
