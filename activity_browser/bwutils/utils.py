@@ -145,7 +145,18 @@ class Index(NamedTuple):
 
     @property
     def exchange_type(self) -> int:
-        raise NotImplementedError("Not available in Brightway25")
+        """Legacy type code for Monte Carlo parameter rows (0/1 technosphere, 2 biosphere)."""
+        flow_type = self.flow_type
+        if flow_type is None:
+            flow_type = ExchangeDataset.get(
+                ExchangeDataset.input_code == self.input.code,
+                ExchangeDataset.input_database == self.input.database,
+                ExchangeDataset.output_code == self.output.code,
+                ExchangeDataset.output_database == self.output.database,
+            ).type
+        if flow_type in bd.labels.biosphere_edge_types:
+            return 2
+        return 1
 
     @property
     def flip(self) -> bool:

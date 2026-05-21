@@ -21,7 +21,7 @@ This module provides a collection of generic methods and utilities that wrap and
 - **`exporters.py`** - Export functionality for databases and activities
 - **`importers.py`** - Import functionality for various LCA data formats
 - **`filesystem.py`** - File system operations for Brightway2 data directories
-- **`manager.py`** - High-level management of Brightway2 projects and databases
+- **`parameters/`** - Parameter recalculation, Monte Carlo matrix hook, functional_sqlite identity (see `parameters/README.md`)
 - **`montecarlo.py`** - Monte Carlo simulation helpers
 - **`multilca.py`** - Multi-functional LCA calculation utilities
 - **`pedigree.py`** - Pedigree matrix uncertainty handling
