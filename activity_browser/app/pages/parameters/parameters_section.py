@@ -345,12 +345,23 @@ class ProjectParametersModel(core.ABTreeModel):
             app.actions.ParameterModify.run(parameter, column_name, value)
 
         if column_name == "uncertainty":
+            database = row.get("_database")
+            if not pd.isna(database) and database_is_locked(database):
+                return False
             parameter = refresh_parameter(parameter)
             app.actions.ParameterUncertaintyModify.run(parameter.to_peewee_model(), uncertainty_dict=value)
 
             return True
 
         return False
+
+    def uncertainty_editor_read_only(self, index: QtCore.QModelIndex) -> bool:
+        if self.column_name(index) != "uncertainty":
+            return False
+        database = self.get(index, "_database")
+        if pd.isna(database):
+            return False
+        return database_is_locked(database)
 
     def decorationData(self, index: QtCore.QModelIndex) -> any:
         """
@@ -407,13 +418,17 @@ class ProjectParametersModel(core.ABTreeModel):
         """
         column_name = self.column_name(index)
 
-        # Check if database is locked
+        # Check if database is locked (uncertainty remains openable read-only)
         database = self.get(index, "_database")
         if not pd.isna(database) and database_is_locked(database):
-            return False
+            return column_name == "uncertainty"
 
         # Prevent editing broken parameters
         if self.get(index, "_class") == "broken":
+            return False
+
+        # "New parameter..." placeholder: only the name cell is editable
+        if self.get(index, "_class") == "new" and column_name != "name":
             return False
 
         # Allow editing for specific columns

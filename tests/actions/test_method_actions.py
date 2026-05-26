@@ -151,6 +151,10 @@ def test_method_duplicate(monkeypatch, basic_database):
     assert method in methods
     assert duplicated_method in methods
 
+    # Duplicated methods must have a valid processed datapackage for LCA calculations.
+    duplicated = Method(duplicated_method)
+    duplicated.datapackage()
+
 
 def test_method_new(monkeypatch, basic_database):
     from activity_browser.ui.dialogs import ABListEditDialog

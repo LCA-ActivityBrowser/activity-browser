@@ -42,13 +42,25 @@ import numpy as np
 import pandas as pd
 from loguru import logger
 from bw2data.backends import ExchangeDataset
-from bw2data.parameters import ActivityParameter, get_new_symbols
+from bw2data.parameters import get_new_symbols
 from bw2parameters import Interpreter, MissingName, ParameterSet
 
 from activity_browser.mod import bw2data as bd
 from activity_browser.bwutils import superstructure
 from activity_browser.bwutils.superstructure.utils import SUPERSTRUCTURE
 from activity_browser.bwutils.utils import Parameters, StaticParameters
+
+
+def activity_group_by_output_key() -> dict[tuple[str, str], str]:
+    """Map ``(database, activity code)`` to parameter group for exchange output activities."""
+    from bw2data.parameters import ActivityParameter
+
+    return {
+        (str(ap.database), str(ap.code)): str(ap.group)
+        for ap in ActivityParameter.select(
+            ActivityParameter.group, ActivityParameter.database, ActivityParameter.code
+        ).distinct()
+    }
 
 
 def scenario_columns(parameter_scenarios: pd.DataFrame) -> list[str]:
@@ -175,13 +187,8 @@ def exchange_formula_rows_for_selected_groups(
     selected_groups: set[str],
 ) -> list[tuple[str, int, str, str | None]]:
     """Collect formula-bearing exchanges for selected output databases/groups."""
-    activity_group_by_key = {}
-    for ap in ActivityParameter.select(
-        ActivityParameter.group, ActivityParameter.database, ActivityParameter.code
-    ).distinct():
-        activity_group_by_key[(str(ap.database), str(ap.code))] = str(ap.group)
-
     rows = []
+    activity_groups = activity_group_by_output_key()
     query = ExchangeDataset.select().where(
         ExchangeDataset.output_database << list(selected_groups)
     )
@@ -192,7 +199,7 @@ def exchange_formula_rows_for_selected_groups(
         if not formula:
             formula = str(getattr(exc, "formula", "") or "").strip()
         if formula:
-            activity_group = activity_group_by_key.get(
+            activity_group = activity_groups.get(
                 (str(exc.output_database), str(exc.output_code))
             )
             rows.append(

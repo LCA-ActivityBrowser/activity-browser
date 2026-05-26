@@ -60,6 +60,7 @@ class ParameterizedExchangesSection(QtWidgets.QWidget):
         app.signals.parameter.deleted.connect(self.syncLater)
         app.signals.project.changed.connect(self.syncLater)
         app.signals.meta.databases_changed.connect(self.syncLater)
+        app.signals.edge.changed.connect(self.syncLater)
 
     def syncLater(self):
         """
@@ -108,6 +109,9 @@ class ParameterizedExchangesSection(QtWidgets.QWidget):
                 input_meta = app.metadata.get_metadata([input_key], ["name", "unit", "location", "database", "product"]).iloc[0]
                 output_meta = app.metadata.get_metadata([output_key], ["name"]).iloc[0]
 
+                u = getattr(exchange, "uncertainty", None)
+                if not isinstance(u, dict):
+                    u = {}
                 row = {
                     "amount": exchange.get("amount"),
                     "unit": input_meta.get("unit"),
@@ -116,7 +120,7 @@ class ParameterizedExchangesSection(QtWidgets.QWidget):
                     "database": input_meta.get("database"),
                     "formula": exchange.get("formula"),
                     "comment": exchange.get("comment"),
-                    "uncertainty": exchange.get("uncertainty type"),
+                    "uncertainty": dict(u),
                     "_exchange": exchange,
                     "_output_key": output_key,
                     "_input_key": input_key,
@@ -223,7 +227,41 @@ class ParameterizedExchangesModel(core.ABTreeModel):
             app.actions.ExchangeModify.run(exchange, {column_name.lower(): value})
             return True
 
+        if column_name == "uncertainty":
+            if database_is_locked(exchange.output[0]):
+                return False
+            if not isinstance(value, dict):
+                return False
+            app.actions.ExchangeUncertaintyModify.run([exchange], uncertainty_dict=value)
+            return True
+
         return False
+
+    def uncertainty_editor_initial(self, index: QtCore.QModelIndex) -> dict:
+        initial = super().uncertainty_editor_initial(index)
+        if initial:
+            return initial
+        row = self.row(index)
+        if row is None:
+            return {}
+        ex = row.get("_exchange")
+        if ex is None:
+            return {}
+        u = getattr(ex, "uncertainty", None)
+        if isinstance(u, dict):
+            return dict(u)
+        return {}
+
+    def uncertainty_editor_read_only(self, index: QtCore.QModelIndex) -> bool:
+        if self.column_name(index) != "uncertainty":
+            return False
+        row = self.row(index)
+        if row is None:
+            return True
+        ex = row.get("_exchange")
+        if ex is None:
+            return True
+        return database_is_locked(ex.output[0])
 
     def decorationData(self, index: QtCore.QModelIndex) -> any:
         """
@@ -261,13 +299,16 @@ class ParameterizedExchangesModel(core.ABTreeModel):
         if row is None:
             return False
 
-        # Check if database is locked
         exchange = row.get("_exchange")
-        if exchange and database_is_locked(exchange.output["database"]):
+        if exchange is None:
             return False
 
-        # Allow editing for specific columns
-        if column_name in ["amount", "formula", "comment"]:
+        db = exchange.output[0]
+        # Locked DB: uncertainty column stays openable (read-only dialog), like exchanges tab.
+        if database_is_locked(db):
+            return column_name == "uncertainty"
+
+        if column_name in ["amount", "formula", "comment", "uncertainty"]:
             return True
 
         return False

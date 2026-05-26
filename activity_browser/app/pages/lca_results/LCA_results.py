@@ -1814,11 +1814,13 @@ class MonteCarloTab(NewAnalysisTab):
         self.include_bio = QtWidgets.QCheckBox("Biosphere", self)
         self.include_bio.setChecked(True)
         self.include_cf = QtWidgets.QCheckBox("Characterization Factors", self)
-        self.include_cf.setChecked(False)
-        self.include_cf.setEnabled(False)
+        self.include_cf.setChecked(True)
         self.include_parameters = QtWidgets.QCheckBox("Parameters", self)
-        self.include_parameters.setChecked(False)
-        self.include_parameters.setEnabled(False)
+        self.include_parameters.setChecked(True)
+        self.include_parameters.setToolTip(
+            "Consider uncertainty distributions of parameters. "
+            "This overrides distributions set on exchanges if these are parameterized."
+        )
         self.label_include_uncertainty = QtWidgets.QLabel("Include uncertainty for:", self)
         self.label_include_uncertainty.setToolTip(
             "Which model elements use defined uncertainty distributions in this simulation."

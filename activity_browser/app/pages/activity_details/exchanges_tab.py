@@ -422,7 +422,6 @@ class ExchangesView(widgets.ABTreeView):
 
     Attributes:
         defaultColumnDelegates (dict): The default column delegates for the view.
-        hovered_item (ExchangesItem): The item currently being hovered over.
     """
     defaultColumnDelegates = {
         "amount": delegates.AbsoluteAmountDelegate,
@@ -647,6 +646,27 @@ class ExchangesModel(core.ABTreeModel):
         data.setPickleData("application/bw-exchangelist", exchanges)
         return data
 
+    def uncertainty_editor_initial(self, index: QtCore.QModelIndex) -> dict:
+        initial = super().uncertainty_editor_initial(index)
+        if initial:
+            return initial
+        row = self.row(index)
+        if row is None:
+            return {}
+        ex = row.get("_exchange")
+        if ex is None:
+            return {}
+        u = getattr(ex, "uncertainty", None)  # retrieve the existing uncertainty dict
+        if isinstance(u, dict):
+            return dict(u)
+        return {}
+
+    def uncertainty_editor_read_only(self, index: QtCore.QModelIndex) -> bool:
+        if self.column_name(index) != "uncertainty":
+            return False
+        database = self.get(index, "_exchange")["output"][0]
+        return database_is_locked(database)
+
     def setData(self, index: QtCore.QModelIndex, value, role: int = Qt.ItemDataRole.EditRole) -> bool:
         """
         Sets the data for the given index.
@@ -686,6 +706,8 @@ class ExchangesModel(core.ABTreeModel):
             return True
 
         if column_name == "uncertainty":
+            if database_is_locked(exchange.output[0]):
+                return False
             app.actions.ExchangeUncertaintyModify.run([exchange], uncertainty_dict=value)
             return True
 
@@ -768,10 +790,10 @@ class ExchangesModel(core.ABTreeModel):
         column_name = self.column_name(index)
         database = self.get(index, "_exchange")["output"][0]
 
-        # Prevent editing if the database is locked
+        # Prevent editing if the database is locked (uncertainty remains openable read-only)
         if database_is_locked(database):
-            return False
-        
+            return column_name == "uncertainty"
+
         functional = self.functional(index)
 
         # Allow editing for specific keys: "amount", "formula", and "uncertainty".

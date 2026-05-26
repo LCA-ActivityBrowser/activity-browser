@@ -105,6 +105,14 @@ class CharacterizationFactorsView(widgets.ABTreeView):
 
     class ContextMenu(widgets.ABMenu):
         menuSetup = [
+            lambda m: m.add(
+                app.actions.CFUncertaintyModify,
+                m.impact_category_name,
+                m.char_factors,
+                enable=bool(m.char_factors),
+                text="View uncertainty…" if not m.is_editable else "Modify uncertainty…",
+                read_only=not m.is_editable,
+            ),
             lambda m: m.add(app.actions.CFRemove, m.impact_category_name, m.char_factors,
                             enable=bool(m.char_factors) and m.is_editable,
                             text="Remove characterization factor(s)"),
@@ -209,6 +217,20 @@ class CharacterizationFactorsModel(core.ABTreeModel):
         super().__init__(parent=page, enable_sorting=True)
         self.page = page
 
+    def uncertainty_editor_initial(self, index: QtCore.QModelIndex) -> dict:
+        if self.column_name(index) != "uncertainty":
+            return {}
+        row = self.row(index)
+        if row is None:
+            return {}
+        u = self.page.uncertainty_from_cf(row.get("_cf"))  # retrieve the existing uncertainty dict
+        return u if isinstance(u, dict) else {}
+
+    def uncertainty_editor_read_only(self, index: QtCore.QModelIndex) -> bool:
+        if self.column_name(index) != "uncertainty":
+            return False
+        return not bool(self.get(index, "_editable"))
+
     def sort(self, column: int, order: Qt.SortOrder = Qt.SortOrder.AscendingOrder) -> None:
         """
         Sorts the model based on the given column and order.
@@ -248,6 +270,8 @@ class CharacterizationFactorsModel(core.ABTreeModel):
             return True
 
         if column_name == "uncertainty":
+            if not row.get("_editable"):
+                return False
             app.actions.CFUncertaintyModify.run(
                 row["_impact_category_name"], [(row["_id"], row["_cf"])], uncertainty_dict=value
             )
@@ -300,8 +324,9 @@ class CharacterizationFactorsModel(core.ABTreeModel):
             bool: True if the index is editable, False otherwise.
         """
         column_name = self.column_name(index)
-        # Allow editing for amount and uncertainty if editable
-        if column_name in ["amount", "uncertainty"] and self.get(index, "_editable"):
+        if column_name == "uncertainty":
+            return True
+        if column_name == "amount" and self.get(index, "_editable"):
             return True
 
         return False
