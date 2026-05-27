@@ -8,6 +8,7 @@ import numpy as np
 from qtpy import QtCore, QtGui, QtWidgets
 import stats_arrays as sa
 
+from activity_browser.bwutils.uncertainty import EMPTY_UNCERTAINTY, standard_uncertainty_fields
 from activity_browser.ui.widgets import ABPlot
 
 from .uncertainty_pdf_preview import PreviewDensity, preview_density
@@ -34,17 +35,6 @@ def _try_build_validate_sample(
 	except Exception as e:
 		msg = str(e).strip() or e.__class__.__name__
 		return None, msg
-
-
-EMPTY_UNCERTAINTY = {
-    "uncertainty type": sa.UndefinedUncertainty.id,
-    "loc": np.NaN,
-    "scale": np.NaN,
-    "shape": np.NaN,
-    "minimum": np.NaN,
-    "maximum": np.NaN,
-    "negative": False,
-}
 
 
 def _uncertainty_dict_is_sampleable(data: dict) -> bool:
@@ -533,28 +523,7 @@ class UncertaintyDialog(QtWidgets.QDialog):
 		self.negative.setChecked(bool(not np.isnan(val) and val < 0))
 
 	def _standard_dist_fields(self, dist_id: int) -> list:
-		"""Widget fields written into the uncertainty dict for each ``stats_arrays`` type."""
-		if dist_id in (sa.LognormalUncertainty.id, sa.NormalUncertainty.id):
-			return ["loc", "scale"]
-		if dist_id == sa.UniformUncertainty.id:
-			return ["minimum", "maximum"]
-		if dist_id == sa.DiscreteUniform.id:
-			return ["minimum", "maximum"]
-		if dist_id == sa.TriangularUncertainty.id:
-			return ["loc", "minimum", "maximum"]
-		if dist_id == sa.BernoulliUncertainty.id:
-			return ["loc"]
-		if dist_id in (
-			sa.WeibullUncertainty.id,
-			sa.GammaUncertainty.id,
-			sa.StudentsTUncertainty.id,
-		):
-			return ["loc", "scale", "shape"]
-		if dist_id == sa.BetaUncertainty.id:
-			return ["loc", "shape", "minimum", "maximum"]
-		if dist_id == sa.GeneralizedExtremeValueUncertainty.id:
-			return ["loc", "scale"]
-		return []
+		return standard_uncertainty_fields(dist_id)
 
 	def _completed_active_fields(self) -> bool:
 		dist_id = self.dist.id

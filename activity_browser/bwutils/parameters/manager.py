@@ -204,3 +204,28 @@ class MonteCarloParameterManager(ParameterManager, Iterator):
         self.parameters.update({key: value for key, value in zip(keys, values)})
         data = self.calculate()
         return self.indices.mock_params(data)
+
+    def init_gsa_parameter_data(self) -> dict:
+        """Build GSA metadata for uncertain parameters (``uncertainty type`` > 1)."""
+        data = {}
+        for p in self.parameters:
+            ut = p.data.get("uncertainty type", p.data.get("uncertainty_type", 0))
+            if int(ut or 0) <= 1:  # skip parameters without uncertainty
+                continue
+            key = (p.group, p.name)
+            name, scope, associated, _ = p.as_gsa_tuple()
+            data[key] = {
+                "name": name,
+                "group": p.group,
+                "scope": scope,
+                "act": associated,
+                "values": [],
+            }
+        return data
+
+    def populate_gsa_parameter_data(self, parameter_data: dict) -> None:
+        """Append current parameter amounts to the GSA ``parameter_data`` schema."""
+        for p in self.parameters:
+            key = (p.group, p.name)
+            if key in parameter_data:
+                parameter_data[key]["values"].append(p.amount)

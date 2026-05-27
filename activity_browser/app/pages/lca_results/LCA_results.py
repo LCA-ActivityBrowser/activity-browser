@@ -2113,6 +2113,8 @@ class MonteCarloTab(NewAnalysisTab):
 
 
 class GSATab(NewAnalysisTab):
+    """Global sensitivity analysis tab (requires a completed Monte Carlo run)."""
+
     def __init__(self, parent=None):
         super(GSATab, self).__init__(parent)
         self.parent = parent
@@ -2138,10 +2140,6 @@ class GSATab(NewAnalysisTab):
         self.table.table_name = "GSA_" + self.parent.cs_name
         self.layout.addWidget(self.table)
         self.table.hide()
-        # self.plot = MonteCarloPlot(self.parent)
-        # self.plot.hide()
-        # self.plot.plot_name = 'GSA_' + self.parent.cs_name
-        # self.layout.addWidget(self.plot)
 
         self.export_widget = self.build_export(has_plot=False, has_table=True)
         self.layout.addWidget(self.export_widget)
@@ -2239,10 +2237,7 @@ class GSATab(NewAnalysisTab):
         self.layout.addWidget(self.label_monte_carlo_first)
         self.layout.addWidget(self.widget_settings)
 
-        # at start
-        # todo: this is just for development, should be reversed later:
         self.widget_settings.hide()
-        # self.label_monte_carlo_first.hide()
 
     def update_tab(self):
         self.update_combobox(
@@ -2253,6 +2248,7 @@ class GSATab(NewAnalysisTab):
         )
 
     def monte_carlo_finished(self):
+        self.GSA.update_mc(self.parent.mc)
         self.button_run.setEnabled(True)
         self.widget_settings.show()
         self.label_monte_carlo_first.hide()
@@ -2262,7 +2258,6 @@ class GSATab(NewAnalysisTab):
         method_number = self.combobox_methods.currentIndex()
         cutoff_technosphere = float(self.cutoff_technosphere.text())
         cutoff_biosphere = float(self.cutoff_biosphere.text())
-        # print('Calculating GSA for: ', act_number, method_number, cutoff_technosphere, cutoff_biosphere)
 
         try:
             QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
@@ -2272,7 +2267,6 @@ class GSATab(NewAnalysisTab):
                 cutoff_technosphere=cutoff_technosphere,
                 cutoff_biosphere=cutoff_biosphere,
             )
-            # self.update_mc()
         except Exception as e:
             import traceback
             traceback.print_tb(e.__traceback__)
@@ -2295,7 +2289,7 @@ class GSATab(NewAnalysisTab):
 
         self.update_gsa()
 
-    def update_gsa(self, cs_name=None):
+    def update_gsa(self):
         self.df = getattr(self.GSA, "df_final", None)
         if self.df is None:
             return
@@ -2325,20 +2319,6 @@ class GSATab(NewAnalysisTab):
         # Hide widget until MC is calculated
         export_widget.hide()
         return export_widget
-
-    # TODO review if can be removed
-    # def set_filename(self, optional_fields: dict = None):
-    #     """Given a dictionary of fields, put together a usable filename for the plot and table."""
-    #     save_name = 'gsa_output_' + self.mc.cs_name + '_' + str(self.mc.iterations) + '_' + self.activity['name'] + \
-    #                 '_' + str(self.method) + '.xlsx'
-    #     save_name = save_name.replace(',', '').replace("'", '').replace("/", '')
-    #     self.table.table_name = save_name
-    #     optional = optional_fields or {}
-    #     fields = (
-    #         self.parent.cs_name, self.contribution_fn, optional.get("method"),
-    #         optional.get("functional_unit"), self.unit
-    #     )
-    #     filename = '_'.join((str(x) for x in fields if x is not None))
 
 
 class MonteCarloWorkerThread(QtCore.QThread):
