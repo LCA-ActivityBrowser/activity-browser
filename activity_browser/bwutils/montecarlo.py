@@ -1,3 +1,13 @@
+"""
+Monte Carlo LCA via Brightway ``MultiLCA``.
+
+When uncertainty layers are enabled, each iteration stores matrix snapshots for
+global sensitivity analysis (GSA):
+
+- ``A_matrices`` / ``B_matrices`` — technosphere and biosphere draws
+- ``CF_dict[method]`` — characterization factor vectors per iteration
+- ``parameter_data`` — sampled parameter amounts (when Parameters is checked)
+"""
 from collections import defaultdict
 from time import time
 from typing import Optional
@@ -8,10 +18,13 @@ import bw2calc as bc
 import numpy as np
 import pandas as pd
 
+from activity_browser.bwutils.montecarlo_matrix_utils_patch import apply_matrix_utils_mc_patch
 from activity_browser.bwutils.parameters import (
     MonteCarloParameterManager,
     bind_parameter_hook,
 )
+
+apply_matrix_utils_mc_patch()
 
 
 class MonteCarloLCA(object):
@@ -48,12 +61,10 @@ class MonteCarloLCA(object):
         self.method_index = {m: i for i, m in enumerate(self.methods)}
         self.rev_method_index = {i: m for i, m in enumerate(self.methods)}
 
-        # GSA calculation variables
+        # Per-iteration snapshots consumed by sensitivity_analysis.GlobalSensitivityAnalysis
         self.A_matrices = list()
         self.B_matrices = list()
         self.CF_dict = defaultdict(list)
-        self.parameter_exchanges = list()
-        self.parameters = list()
         self.parameter_data = defaultdict(dict)
 
         self.results = list()
@@ -124,12 +135,12 @@ class MonteCarloLCA(object):
 
         self.results = np.zeros((iterations, len(self.func_units), len(self.methods)))
 
-        # Reset GSA variables to empty.
         self.A_matrices = list()
         self.B_matrices = list()
         self.CF_dict = defaultdict(list)
-        self.parameter_exchanges = list()
-        self.parameters = list()
+        self.parameter_data = defaultdict(dict)
+        if self.parameter_mc_manager is not None:
+            self.parameter_data = self.parameter_mc_manager.init_gsa_parameter_data()
 
         for iteration in range(iterations):
             next(self.lca)
@@ -137,8 +148,13 @@ class MonteCarloLCA(object):
             self.A_matrices.append(self.lca.technosphere_matrix)
             self.B_matrices.append(self.lca.biosphere_matrix)
 
+            if self.include_cfs:
+                for method in self.methods:
+                    cf_mm = self.lca.characterization_mm_dict[method]
+                    self.CF_dict[method].append(cf_mm.input_data_vector())
+
             if self.parameter_mc_manager is not None:
-                self.parameters.append(self.parameter_mc_manager.parameters.to_gsa())
+                self.parameter_mc_manager.populate_gsa_parameter_data(self.parameter_data)
 
             for row, func_unit in self.func_units_multilca.items():
                 for col, m in enumerate(self.methods):

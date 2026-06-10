@@ -8,6 +8,7 @@ import numpy as np
 from qtpy import QtCore, QtGui, QtWidgets
 import stats_arrays as sa
 
+from activity_browser.bwutils.uncertainty import EMPTY_UNCERTAINTY, standard_uncertainty_fields
 from activity_browser.ui.widgets import ABPlot
 
 from .uncertainty_pdf_preview import PreviewDensity, preview_density
@@ -36,15 +37,49 @@ def _try_build_validate_sample(
 		return None, msg
 
 
-EMPTY_UNCERTAINTY = {
-    "uncertainty type": sa.UndefinedUncertainty.id,
-    "loc": np.NaN,
-    "scale": np.NaN,
-    "shape": np.NaN,
-    "minimum": np.NaN,
-    "maximum": np.NaN,
-    "negative": False,
-}
+def _uncertainty_dict_is_sampleable(data: dict) -> bool:
+	"""True if ``stats_arrays`` accepts parameters (``validate``) and a short sample works."""
+	try:
+		uc_type = int(data.get("uncertainty type", 0))
+	except Exception:
+		return False
+	if uc_type < 0 or uc_type >= len(sa.uncertainty_choices):
+		return False
+	dist = sa.uncertainty_choices[uc_type]
+	if dist.id in (sa.UndefinedUncertainty.id, sa.NoUncertainty.id):
+		return True
+	arr, err = _try_build_validate_sample(dist, data, _UNCERTAINTY_VALIDATION_N)
+	return arr is not None
+
+
+_MSG_PREVIEW_INCOMPLETE = (
+	"Some required parameters are missing or not accepted by the validator. "
+	"Complete them to preview the distribution and enable OK."
+)
+
+
+def _scalar_stats_value(x) -> float:
+	"""Single float from ``statistics()`` / similar (may be scalar or 0-d / 1-element array)."""
+	if x is None:
+		return float("nan")
+	arr = np.asarray(x, dtype=float).ravel()
+	if arr.size == 0:
+		return float("nan")
+	return float(arr[0])
+
+
+def _discrete_uniform_expected_first_row(array: np.ndarray) -> float:
+	"""Expected value for integers in ``[minimum, maximum)``, per :class:`stats_arrays.DiscreteUniform`."""
+	if array is None or len(array) == 0:
+		return float("nan")
+	row = array[0]
+	lo = int(round(float(row["minimum"])))
+	hi = int(round(float(row["maximum"])))
+	if hi < lo:
+		lo, hi = hi, lo
+	if hi <= lo:
+		return float("nan")
+	return (float(lo) + float(hi) - 1.0) / 2.0
 
 
 def _uncertainty_dict_is_sampleable(data: dict) -> bool:
@@ -533,28 +568,7 @@ class UncertaintyDialog(QtWidgets.QDialog):
 		self.negative.setChecked(bool(not np.isnan(val) and val < 0))
 
 	def _standard_dist_fields(self, dist_id: int) -> list:
-		"""Widget fields written into the uncertainty dict for each ``stats_arrays`` type."""
-		if dist_id in (sa.LognormalUncertainty.id, sa.NormalUncertainty.id):
-			return ["loc", "scale"]
-		if dist_id == sa.UniformUncertainty.id:
-			return ["minimum", "maximum"]
-		if dist_id == sa.DiscreteUniform.id:
-			return ["minimum", "maximum"]
-		if dist_id == sa.TriangularUncertainty.id:
-			return ["loc", "minimum", "maximum"]
-		if dist_id == sa.BernoulliUncertainty.id:
-			return ["loc"]
-		if dist_id in (
-			sa.WeibullUncertainty.id,
-			sa.GammaUncertainty.id,
-			sa.StudentsTUncertainty.id,
-		):
-			return ["loc", "scale", "shape"]
-		if dist_id == sa.BetaUncertainty.id:
-			return ["loc", "shape", "minimum", "maximum"]
-		if dist_id == sa.GeneralizedExtremeValueUncertainty.id:
-			return ["loc", "scale"]
-		return []
+		return standard_uncertainty_fields(dist_id)
 
 	def _completed_active_fields(self) -> bool:
 		dist_id = self.dist.id
