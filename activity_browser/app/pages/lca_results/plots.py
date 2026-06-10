@@ -2,11 +2,13 @@ import math
 from loguru import logger
 
 import matplotlib.pyplot as plt
+from matplotlib.patches import Patch
 import numpy as np
 import pandas as pd
 import seaborn as sns
 
 from bw2data import methods
+from qtpy import QtCore
 from activity_browser.ui.widgets import ABPlot
 from activity_browser.bwutils.commontasks import wrap_text
 
@@ -324,3 +326,88 @@ class MonteCarloPlot(ABPlot):
         self._set_plot_chrome_white()
         self.canvas.draw()
         self._schedule_figure_sync()
+
+
+GSA_TYPE_COLORS = {
+    "technosphere": "#1f77b4",
+    "biosphere": "#2ca02c",
+    "characterization factor": "#ff7f0e",
+    "parameter": "#9467bd",
+}
+
+
+class GSAPlot(ABPlot):
+    """Horizontal bar chart of SALib delta indices with ``delta_conf`` error bars."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.plot_name = "GSA"
+        self._plot_df: pd.DataFrame | None = None
+        self._max_rows = 10
+
+    def plot(self, df: pd.DataFrame, max_rows: int = 10):
+        self._plot_df = df
+        self._max_rows = max_rows
+        self._render()
+
+    def _render(self) -> None:
+        from activity_browser.bwutils.sensitivity_analysis import GSA_NAME_COLUMN, GSA_TYPE_COLUMN
+
+        df = self._plot_df
+        if df is None:
+            return
+
+        self.setMinimumHeight(0)
+        self.reset_plot()
+
+        dfp = df.dropna(subset=["delta", "delta_conf"]).head(max(1, int(self._max_rows))).copy()
+        if dfp.empty:
+            self.canvas.draw()
+            self._schedule_figure_sync()
+            return
+
+        width_inches, height_inches = self.get_canvas_size_in_inches()
+        if width_inches < 2:
+            width_inches = 6.0
+        if height_inches < 2:
+            height_inches = 4.0
+        self.figure.set_size_inches(width_inches, height_inches, forward=False)
+
+        # Highest delta at the top of a horizontal bar chart.
+        dfp = dfp.iloc[::-1]
+        n = len(dfp)
+        y_pos = np.arange(n)
+        deltas = dfp["delta"].to_numpy(dtype=float)
+        conf = dfp["delta_conf"].to_numpy(dtype=float)
+        colors = [GSA_TYPE_COLORS.get(t, "#7f7f7f") for t in dfp[GSA_TYPE_COLUMN]]
+        labels = [wrap_text(str(name), max_length=40) for name in dfp[GSA_NAME_COLUMN]]
+
+        label_fontsize = max(5, min(9, int(height_inches * 72 / max(n, 1) * 0.35)))
+
+        self.ax.barh(y_pos, deltas, xerr=conf, color=colors, capsize=3, ecolor="#333333", height=0.75)
+        self.ax.set_yticks(y_pos)
+        self.ax.set_yticklabels(labels, fontsize=label_fontsize)
+        self.ax.set_xlabel("Delta sensitivity index")
+        self.ax.grid(which="major", axis="x", color="grey", linestyle="dashed")
+        self.ax.set_axisbelow(True)
+        self.ax.tick_params(axis="y", length=0)
+
+        handles = []
+        for gsa_type in dfp[GSA_TYPE_COLUMN].drop_duplicates():
+            handles.append(
+                Patch(
+                    color=GSA_TYPE_COLORS.get(gsa_type, "#7f7f7f"),
+                    label=gsa_type,
+                )
+            )
+        if handles:
+            self.ax.legend(handles=handles, loc="lower right", fontsize=max(6, label_fontsize))
+
+        self._set_plot_chrome_white()
+        self.canvas.draw()
+        self._schedule_figure_sync()
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        if self._plot_df is not None and not self._plot_df.empty:
+            QtCore.QTimer.singleShot(0, self._render)

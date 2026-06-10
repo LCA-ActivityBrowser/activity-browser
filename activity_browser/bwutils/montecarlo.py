@@ -145,8 +145,9 @@ class MonteCarloLCA(object):
         for iteration in range(iterations):
             next(self.lca)
 
-            self.A_matrices.append(self.lca.technosphere_matrix)
-            self.B_matrices.append(self.lca.biosphere_matrix)
+            # Copy sparse matrices: MultiLCA updates technosphere/biosphere in place each iteration.
+            self.A_matrices.append(self.lca.technosphere_matrix.copy())
+            self.B_matrices.append(self.lca.biosphere_matrix.copy())
 
             if self.include_cfs:
                 for method in self.methods:

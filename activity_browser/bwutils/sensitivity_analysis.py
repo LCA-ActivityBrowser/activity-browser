@@ -33,8 +33,8 @@ Edit the constants under ``if __name__ == "__main__"`` and run this file
 """
 from __future__ import annotations
 
-import os
 import traceback
+from pathlib import Path
 from time import time
 
 import bw2calc as bc
@@ -46,6 +46,7 @@ from bw_graph_tools.graph_traversal import NewNodeEachVisitGraphTraversal
 from loguru import logger
 from SALib.analyze import delta
 
+from activity_browser.bwutils.filesystem import get_project_ab_path
 from activity_browser.bwutils.uncertainty import (
     uncertainty_parameters_summary,
     uncertainty_type_name,
@@ -556,19 +557,30 @@ class GlobalSensitivityAnalysis:
         name = f"{self.mc.cs_name}_{self.mc.iterations}_{self.activity['name']}_{self.method}.xlsx"
         return name.replace(",", "").replace("'", "").replace("/", "")
 
-    def export_GSA_output(self):
-        """Write :attr:`df_final` to the Activity Browser data directory."""
-        from ..settings import ab_settings
+    def _gsa_input_dataframe(self) -> pd.DataFrame:
+        return pd.DataFrame(self.X.T, index=self.metadata.index)
 
-        self.df_final.to_excel(os.path.join(ab_settings.data_dir, "gsa_output_" + self.get_save_name()))
+    def export_GSA_all(self, filepath: str | Path) -> Path:
+        """Write GSA results and MC input matrix to one Excel workbook (two sheets)."""
+        path = Path(filepath)
+        if path.suffix.lower() != ".xlsx":
+            path = path.with_suffix(".xlsx")
+        with pd.ExcelWriter(path) as writer:
+            self.df_final.to_excel(writer, sheet_name="GSA output", index=False)
+            self._gsa_input_dataframe().to_excel(writer, sheet_name="GSA input")
+        logger.info(f"GSA data exported to {path}")
+        return path
 
-    def export_GSA_input(self):
-        """Write the MC input matrix (variables × iterations) to Excel."""
-        from ..settings import ab_settings
-
-        pd.DataFrame(self.X.T, index=self.metadata.index).to_excel(
-            os.path.join(ab_settings.data_dir, "gsa_input_" + self.get_save_name())
-        )
+    def export_GSA_all_csv(self, filepath: str | Path) -> tuple[Path, Path]:
+        """Write GSA results and MC input matrix to two CSV files (*_output.csv, *_input.csv)."""
+        path = Path(filepath)
+        base = path.with_suffix("") if path.suffix.lower() == ".csv" else path
+        output_path = base.parent / f"{base.name}_output.csv"
+        input_path = base.parent / f"{base.name}_input.csv"
+        self.df_final.to_csv(output_path, index=False)
+        self._gsa_input_dataframe().to_csv(input_path)
+        logger.info(f"GSA data exported to {output_path} and {input_path}")
+        return output_path, input_path
 
 
 if __name__ == "__main__":
@@ -611,7 +623,6 @@ if __name__ == "__main__":
         raise SystemExit("GSA produced no results (check MC uncertainty flags and iterations).")
 
     if EXPORT_EXCEL:
-        gsa.export_GSA_input()
-        gsa.export_GSA_output()
+        gsa.export_GSA_all(get_project_ab_path() / f"gsa_{gsa.get_save_name()}")
 
     print(gsa.df_final.to_string())

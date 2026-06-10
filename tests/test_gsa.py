@@ -17,6 +17,8 @@ from activity_browser.bwutils.sensitivity_analysis import (
     get_CF_dataframe,
     get_lca,
 )
+from activity_browser.app.pages.lca_results.plots import GSAPlot
+from activity_browser.bwutils.sensitivity_analysis import GSA_NAME_COLUMN
 from activity_browser.bwutils.uncertainty import (
     uncertainty_field_name,
     uncertainty_parameters_summary,
@@ -45,6 +47,31 @@ def _run_gsa(mc: MonteCarloLCA) -> GlobalSensitivityAnalysis:
     gsa = GlobalSensitivityAnalysis(mc)
     gsa.perform_GSA(0, 0, 0.01, 0.01)
     return gsa
+
+
+def test_gsa_plot_renders_sample_dataframe():
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import pandas as pd
+    from qtpy import QtWidgets
+
+    from activity_browser.bwutils.sensitivity_analysis import GSA_TYPE_COLUMN
+
+    if QtWidgets.QApplication.instance() is None:
+        QtWidgets.QApplication([])
+
+    df = pd.DataFrame(
+        {
+            GSA_NAME_COLUMN: ["input A", "input B"],
+            GSA_TYPE_COLUMN: ["technosphere", "biosphere"],
+            "delta": [0.5, 0.3],
+            "delta_conf": [0.05, 0.04],
+        }
+    )
+    plot = GSAPlot()
+    plot.plot(df, max_rows=10)
+    assert len(plot.ax.patches) == 2
 
 
 def test_triangular_uncertainty_summary():
@@ -101,6 +128,30 @@ def test_gsa_runs_with_cf_uncertainty(mc_project):
     assert gsa.df_final is not None and not gsa.df_final.empty
     assert (gsa.df_final[GSA_TYPE_COLUMN] == "characterization factor").any()
     assert list(gsa.df_final.columns) == list(GSA_COLUMNS)
+
+
+def test_mc_matrix_snapshots_are_per_iteration(mc_project):
+    """Technosphere/biosphere draws must be copied each iteration, not shared references."""
+    mc = _run_mc(mc_project, technosphere=True, biosphere=True, cf=False, parameters=False)
+    assert len(mc.A_matrices) == ITERATIONS
+    assert len(mc.B_matrices) == ITERATIONS
+
+    for i in range(1, len(mc.A_matrices)):
+        assert mc.A_matrices[0] is not mc.A_matrices[i]
+        assert mc.B_matrices[0] is not mc.B_matrices[i]
+
+    a_snapshots = {tuple(m.data) for m in mc.A_matrices}
+    b_snapshots = {tuple(m.data) for m in mc.B_matrices}
+    assert len(a_snapshots) > 1
+    assert len(b_snapshots) > 1
+
+    gsa = _run_gsa(mc)
+    n_tech = len(gsa.t_indices)
+    n_bio = len(gsa.b_indices)
+    tech_X = gsa.X[:, :n_tech]
+    bio_X = gsa.X[:, n_tech : n_tech + n_bio]
+    assert not np.allclose(tech_X, tech_X[0])
+    assert not np.allclose(bio_X, bio_X[0])
 
 
 def test_exchange_gsa_name_format(mc_project):

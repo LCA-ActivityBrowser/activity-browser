@@ -19,7 +19,14 @@ from activity_browser.ui import icons, widgets
 
 from .style import header, horizontal_line, vertical_line
 from .tables import ContributionTable, InventoryTable, LCAResultsTable
-from .plots import ContributionPlot, CorrelationPlot, LCAResultsBarChart, LCAResultsPlot, MonteCarloPlot
+from .plots import (
+    ContributionPlot,
+    CorrelationPlot,
+    LCAResultsBarChart,
+    LCAResultsPlot,
+    MonteCarloPlot,
+    GSAPlot
+)
 from .sankey_navigator import SankeyNavigatorWidget
 from .tree_navigator import TreeNavigatorWidget
 
@@ -2136,12 +2143,16 @@ class GSATab(NewAnalysisTab):
 
         self.add_GSA_ui_elements()
 
+        self.df = None
         self.table = LCAResultsTable()
         self.table.table_name = "GSA_" + self.parent.cs_name
-        self.layout.addWidget(self.table)
+        self.plot = GSAPlot(self)
+        self.plot.plot_name = "GSA_" + self.parent.cs_name
+        self.layout.addWidget(self.build_main_space(), 1)
         self.table.hide()
+        self.plot.hide()
 
-        self.export_widget = self.build_export(has_plot=False, has_table=True)
+        self.export_widget = self.build_export(has_plot=True, has_table=True)
         self.layout.addWidget(self.export_widget)
         self.layout.setAlignment(QtCore.Qt.AlignTop)
         self.connect_signals()
@@ -2155,12 +2166,33 @@ class GSATab(NewAnalysisTab):
              upper bound for the variables, therefore, indicates the influence of the fixed variable on the overall 
              level of model variability. </p>
              <p>For a more detailed explanation <a href="https://github.com/LCA-ActivityBrowser/activity-browser/wiki/Global-Sensitivity-Analysis">see the wiki</a></p>
-             <p>The paper describing the methods is published by <a href="https://onlinelibrary.wiley.com/doi/10.1111/jiec.13194">Wiley online</a></p> 
+             <p>The paper describing the methods is published by <a href="https://onlinelibrary.wiley.com/doi/10.1111/jiec.13194">Wiley online</a></p>
+             <p>The plot shows the top inputs by delta (SALib) with confidence intervals (± delta_conf), coloured by type.</p>
         """
 
     def connect_signals(self):
         self.button_run.clicked.connect(self.calculate_gsa)
+        self.max_rows.editingFinished.connect(self._on_max_rows_changed)
         app.signals.monte_carlo_finished.connect(self.monte_carlo_finished)
+
+    def build_main_space(self, invertable: bool = False) -> QtWidgets.QWidget:
+        """Plot/table area without scroll — the GSA chart scales to the available height."""
+        container = QtWidgets.QWidget()
+        self.pt_layout.setAlignment(QtCore.Qt.AlignTop)
+        container.setLayout(self.pt_layout)
+        container.setMinimumWidth(0)
+        container.setSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Ignored,
+            QtWidgets.QSizePolicy.Policy.Expanding,
+        )
+        bg = "background-color: white;"
+        container.setStyleSheet(bg)
+        if self.plot:
+            self.pt_layout.addWidget(self.plot, 1)
+        if self.table:
+            self.pt_layout.addWidget(self.table, 1)
+        self.space_check()
+        return container
 
     def add_GSA_ui_elements(self):
         # H-LAYOUT SETTINGS ROW 1
@@ -2171,57 +2203,53 @@ class GSATab(NewAnalysisTab):
 
         # reference flow selection
         self.label_fu = QtWidgets.QLabel("Reference Flow:")
-        self.combobox_fu = QtWidgets.QComboBox()
+        self.combobox_fu = SmallComboBox(self)
 
         # method selection
         self.label_methods = QtWidgets.QLabel("Impact Category:")
-        self.combobox_methods = QtWidgets.QComboBox()
+        self.combobox_methods = SmallComboBox(self)
 
-        # arrange layout
+        self.label_cutoffs = QtWidgets.QLabel("Cutoffs:")
+        self.label_technosphere = QtWidgets.QLabel("Technosphere")
+        self.cutoff_technosphere = QtWidgets.QLineEdit("0.01")
+        self.cutoff_technosphere.setFixedWidth(40)
+        self.cutoff_technosphere.setValidator(QtGui.QDoubleValidator(0.0, 1.0, 5))
+        self.label_biosphere = QtWidgets.QLabel("Biosphere")
+        self.cutoff_biosphere = QtWidgets.QLineEdit("0.01")
+        self.cutoff_biosphere.setFixedWidth(40)
+        self.cutoff_biosphere.setValidator(QtGui.QDoubleValidator(0.0, 1.0, 5))
+
+        self.label_max_rows = QtWidgets.QLabel("Max rows shown:")
+        self.label_max_rows.setToolTip(
+            "Maximum number of inputs in the plot, ranked by delta (table shows all rows)."
+        )
+        self.max_rows = QtWidgets.QLineEdit("10")
+        self.max_rows.setFixedWidth(40)
+        self.max_rows.setValidator(QtGui.QIntValidator(1, 9999))
+
         self.hlayout_row1 = QtWidgets.QHBoxLayout()
         self.hlayout_row1.addWidget(self.button_run)
         self.hlayout_row1.addWidget(self.label_fu)
         self.hlayout_row1.addWidget(self.combobox_fu)
         self.hlayout_row1.addWidget(self.label_methods)
         self.hlayout_row1.addWidget(self.combobox_methods)
-
-        # self.hlayout_row1.addWidget(self.fu_selection_widget)
-        # self.hlayout_row1.addWidget(self.method_selection_widget)
+        self.hlayout_row1.addWidget(vertical_line())
+        self.hlayout_row1.addWidget(self.label_cutoffs)
+        self.hlayout_row1.addWidget(self.label_technosphere)
+        self.hlayout_row1.addWidget(self.cutoff_technosphere)
+        self.hlayout_row1.addWidget(self.label_biosphere)
+        self.hlayout_row1.addWidget(self.cutoff_biosphere)
         self.hlayout_row1.addStretch(1)
 
-        # H-LAYOUT SETTINGS ROW 2
         self.hlayout_row2 = QtWidgets.QHBoxLayout()
-
-        # cutoff technosphere
-        self.label_cutoff_technosphere = QtWidgets.QLabel("Cut-off technosphere:")
-        self.cutoff_technosphere = QtWidgets.QLineEdit("0.01")
-        self.cutoff_technosphere.setFixedWidth(40)
-        self.cutoff_technosphere.setValidator(QtGui.QDoubleValidator(0.0, 1.0, 5))
-
-        # cutoff biosphere
-        self.label_cutoff_biosphere = QtWidgets.QLabel("Cut-off biosphere:")
-        self.cutoff_biosphere = QtWidgets.QLineEdit("0.01")
-        self.cutoff_biosphere.setFixedWidth(40)
-        self.cutoff_biosphere.setValidator(QtGui.QDoubleValidator(0.0, 1.0, 5))
-
-        # export GSA input/output data automatically with run
-        self.checkbox_export_data_automatically = QtWidgets.QCheckBox(
-            "Save input/output data to Excel after run"
-        )
-        self.checkbox_export_data_automatically.setChecked(False)
-
-        # # exclude Pedigree
-        # self.checkbox_pedigree = QCheckBox('Include Pedigree uncertainties')
-        # self.checkbox_pedigree.setChecked(True)
-
-        # arrange layout
-        self.hlayout_row2.addWidget(self.label_cutoff_technosphere)
-        self.hlayout_row2.addWidget(self.cutoff_technosphere)
-        self.hlayout_row2.addWidget(self.label_cutoff_biosphere)
-        self.hlayout_row2.addWidget(self.cutoff_biosphere)
-        self.hlayout_row2.addWidget(self.checkbox_export_data_automatically)
-        # self.hlayout_row2.addWidget(self.checkbox_pedigree)
+        self._setup_plot_table_widgets(invertable=False)
+        self.hlayout_row2.addWidget(self.plot_table.plot)
+        self.hlayout_row2.addWidget(self.plot_table.table)
+        self.hlayout_row2.addWidget(vertical_line())
+        self.hlayout_row2.addWidget(self.label_max_rows)
+        self.hlayout_row2.addWidget(self.max_rows)
         self.hlayout_row2.addStretch(1)
+        self._set_max_rows_controls_enabled(True)
 
         # OVERALL LAYOUT OF SETTINGS
         self.layout_settings = QtWidgets.QVBoxLayout()
@@ -2289,23 +2317,85 @@ class GSATab(NewAnalysisTab):
 
         self.update_gsa()
 
+    def _set_max_rows_controls_enabled(self, plot_mode: bool) -> None:
+        self.label_max_rows.setEnabled(plot_mode)
+        self.max_rows.setEnabled(plot_mode)
+
+    @QtCore.Slot(QtWidgets.QAbstractButton)
+    def _on_plot_table_view_changed(self, button: QtWidgets.QAbstractButton) -> None:
+        self._set_max_rows_controls_enabled(self._plot_view_selected())
+        super()._on_plot_table_view_changed(button)
+
+    def _gsa_max_rows(self) -> int:
+        try:
+            return max(1, int(self.max_rows.text()))
+        except (TypeError, ValueError):
+            return 10
+
+    def _on_max_rows_changed(self):
+        if self.df is not None and self._plot_view_selected():
+            self.update_plot()
+
     def update_gsa(self):
         self.df = getattr(self.GSA, "df_final", None)
-        if self.df is None:
+        if self.df is None or self.df.empty:
             return
-        self.update_table()
-        self.table.show()
+
+        save_name = "gsa_output_" + self.GSA.get_save_name()
+        self.table.table_name = save_name
+        self.plot.plot_name = save_name.replace(".xlsx", "")
         self.export_widget.show()
+        self.space_check()
+        if self._plot_view_selected():
+            self.update_plot()
+        if self._table_view_selected():
+            self.update_table()
 
-        self.table.table_name = "gsa_output_" + self.GSA.get_save_name()
+    def export_all_gsa_data(self, *, as_csv: bool = False):
+        if self.df is None or self.df.empty:
+            QtWidgets.QMessageBox.warning(
+                self, "No GSA results", "Run GSA first before exporting data."
+            )
+            return
+        default_name = self.GSA.get_save_name().replace(".xlsx", "_all")
+        if as_csv:
+            default_name = f"{default_name}.csv"
+            file_filter = self.table.CSV_FILTER
+            caption = "Save GSA input and output (CSV)"
+        else:
+            file_filter = self.table.EXCEL_FILTER
+            caption = "Save GSA input and output (Excel)"
+        filepath = self.table.savefilepath(
+            default_name,
+            caption=caption,
+            file_filter=file_filter,
+        )
+        if not filepath:
+            return
+        filepath = str(filepath)
+        if as_csv:
+            if not filepath.endswith(".csv"):
+                filepath = f"{filepath}.csv"
+        elif not filepath.endswith(".xlsx"):
+            filepath = f"{filepath}.xlsx"
+        try:
+            if as_csv:
+                output_path, input_path = self.GSA.export_GSA_all_csv(filepath)
+                saved_paths = f"{output_path}\n{input_path}"
+            else:
+                saved_paths = str(self.GSA.export_GSA_all(filepath))
+        except Exception as e:
+            logger.exception(e)
+            QtWidgets.QMessageBox.warning(self, "Export failed", str(e))
+            return
+        QtWidgets.QMessageBox.information(
+            self, "Export complete", f"GSA data saved to:\n{saved_paths}"
+        )
 
-        if self.checkbox_export_data_automatically.isChecked():
-            logger.info("EXPORTING DATA")
-            self.GSA.export_GSA_input()
-            self.GSA.export_GSA_output()
-
-    def update_plot(self, method):
-        pass
+    def update_plot(self, *args, **kwargs):
+        if self.df is None or self.df.empty:
+            return
+        super().update_plot(self.df, max_rows=self._gsa_max_rows())
 
     def update_table(self):
         super().update_table(self.df)
@@ -2314,9 +2404,30 @@ class GSATab(NewAnalysisTab):
         """Construct the export layout but set it into a widget because we
         want to hide it."""
         export_layout = super().build_export(has_table, has_plot)
+        stretch = export_layout.takeAt(export_layout.count() - 1)
+        export_layout.addWidget(vertical_line())
+        gsa_data_layout = QtWidgets.QHBoxLayout()
+        gsa_data_layout.addWidget(QtWidgets.QLabel("Export all GSA data:"))
+        self.export_gsa_all_csv_btn = QtWidgets.QPushButton(".csv")
+        self.export_gsa_all_csv_btn.setToolTip(
+            "Save the GSA results table and MC input matrix as two CSV files "
+            "(*_output.csv and *_input.csv)."
+        )
+        self.export_gsa_all_csv_btn.clicked.connect(
+            lambda: self.export_all_gsa_data(as_csv=True)
+        )
+        gsa_data_layout.addWidget(self.export_gsa_all_csv_btn)
+        self.export_gsa_all_btn = QtWidgets.QPushButton("Excel")
+        self.export_gsa_all_btn.setToolTip(
+            "Save the GSA results table and MC input matrix to one Excel file (two sheets)."
+        )
+        self.export_gsa_all_btn.clicked.connect(self.export_all_gsa_data)
+        gsa_data_layout.addWidget(self.export_gsa_all_btn)
+        export_layout.addLayout(gsa_data_layout)
+        if stretch is not None:
+            export_layout.addItem(stretch)
         export_widget = QtWidgets.QWidget()
         export_widget.setLayout(export_layout)
-        # Hide widget until MC is calculated
         export_widget.hide()
         return export_widget
 
