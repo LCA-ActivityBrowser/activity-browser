@@ -24,7 +24,7 @@ from activity_browser.bwutils.parameters import (
     bind_parameter_hook,
 )
 
-apply_matrix_utils_mc_patch()
+apply_matrix_utils_mc_patch()  # TODO: remove this patch as soon as bw2data 4.8 is released (it should be fixed there, but test)
 
 
 class MonteCarloLCA(object):
@@ -145,8 +145,9 @@ class MonteCarloLCA(object):
         for iteration in range(iterations):
             next(self.lca)
 
-            self.A_matrices.append(self.lca.technosphere_matrix)
-            self.B_matrices.append(self.lca.biosphere_matrix)
+            # Copy sparse matrices: MultiLCA updates technosphere/biosphere in place each iteration.
+            self.A_matrices.append(self.lca.technosphere_matrix.copy())
+            self.B_matrices.append(self.lca.biosphere_matrix.copy())
 
             if self.include_cfs:
                 for method in self.methods:

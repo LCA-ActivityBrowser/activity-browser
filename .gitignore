@@ -23,3 +23,6 @@ test/.logs
 *.prof
 /venv/
 uv.lock
+/contrib/
+/local_testing/
+/scripts/
