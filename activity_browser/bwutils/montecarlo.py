@@ -24,7 +24,7 @@ from activity_browser.bwutils.parameters import (
     bind_parameter_hook,
 )
 
-apply_matrix_utils_mc_patch()
+apply_matrix_utils_mc_patch()  # TODO: remove this patch as soon as bw2data 4.8 is released (it should be fixed there, but test)
 
 
 class MonteCarloLCA(object):
