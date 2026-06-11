@@ -516,11 +516,13 @@ def savefilepath(
     """A central function to get a safe file path."""
     from qtpy import QtWidgets
 
+    from activity_browser.bwutils import filesystem
+
     safe_name = bd.utils.safe_filename(default_file_name, add_hash=False)
     filepath, _ = QtWidgets.QFileDialog.getSaveFileName(
         parent=None,
         caption="Choose location for saving",
-        dir=os.path.join(os.path.expanduser("~"), safe_name),
+        dir=os.path.join(filesystem.get_project_path(), safe_name),
         filter=file_filter,
     )
     return filepath

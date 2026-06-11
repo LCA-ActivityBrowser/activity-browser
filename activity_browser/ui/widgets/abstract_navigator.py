@@ -38,6 +38,7 @@ class ABAbstractNavigator(QtWidgets.QWidget):
         self.view.page().setWebChannel(self.channel)
         self.url = QUrl.fromLocalFile(self.HTML_FILE)
         self.css_file = css_file
+        self.plot_name = "Figure"
 
         # Various Qt objects
         self.label_help = QtWidgets.QLabel(self.HELP_TEXT)
@@ -97,6 +98,29 @@ class ABAbstractNavigator(QtWidgets.QWidget):
     def random_graph(self) -> None:
         pass
 
+    def update_plot_name(
+        self,
+        tab_label: str,
+        method,
+        demand_index: int | None = None,
+        scenario_index: int | None = None,
+    ) -> None:
+        """Default export basename: ``{cs}_{tab}_{functional unit}_{method}_{scenario}``."""
+        fu_label = None
+        if demand_index is not None and 0 <= demand_index < len(getattr(self, "func_units", [])):
+            act = list(self.func_units[demand_index].keys())[0]
+            fu_label = act.get("name") or act.get("reference product") or repr(act)
+        scenario = None
+        if getattr(self, "has_scenarios", False) and scenario_index is not None:
+            scenarios = getattr(self, "scenarios", [])
+            if 0 <= scenario_index < len(scenarios):
+                scenario = scenarios[scenario_index]
+        from activity_browser.bwutils.export_names import lca_export_basename
+
+        self.plot_name = lca_export_basename(
+            getattr(self, "cs", None), tab_label, fu_label, method, scenario
+        )
+
 
 ALL_FILTER = "All Files (*.*)"
 
@@ -115,10 +139,9 @@ def savefilepath(default_file_name: str, file_filter: str = ALL_FILTER):
     return filepath
 
 
-def to_svg(svg):
+def to_svg(svg, default_file_name: str = "Figure"):
     """Export to .svg format."""
-    # TODO: Exported filename
-    filepath = savefilepath(default_file_name="svg_export", file_filter="SVG (*.svg)")
+    filepath = savefilepath(default_file_name=default_file_name, file_filter="SVG (*.svg)")
     if filepath:
         if not filepath.endswith(".svg"):
             filepath += ".svg"
@@ -131,6 +154,10 @@ class Bridge(QObject):
     graph_ready = Signal(str)
     update_graph = Signal(object)
     style = Signal(str)
+
+    def __init__(self, navigator: ABAbstractNavigator, parent=None):
+        super().__init__(parent)
+        self._navigator = navigator
 
     @Slot(str, name="node_clicked")
     def node_clicked(self, click_text: str):
@@ -154,7 +181,7 @@ class Bridge(QObject):
         Args:
             svg: string of svg
         """
-        to_svg(svg)
+        to_svg(svg, default_file_name=self._navigator.plot_name)
 
 
 class ABAbstractGraph(object):

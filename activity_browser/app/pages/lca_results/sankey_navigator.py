@@ -18,6 +18,7 @@ from activity_browser.mod import bw2data as bd
 from bw2data.backends import ActivityDataset
 
 from activity_browser.bwutils.commontasks import identify_activity_type
+from activity_browser.bwutils.export_names import lca_export_basename
 from activity_browser.bwutils.filesystem import get_package_path
 from activity_browser.ui import icons, widgets
 
@@ -85,6 +86,7 @@ class SankeyNavigatorWidget(widgets.ABAbstractNavigator):
         self.parent = parent
         self.has_scenarios = self.parent.has_scenarios
         self.cs = cs_name
+        self.plot_name = lca_export_basename(cs_name, "Sankey")
         self.has_sankey = False
         self.func_units = []
         self.methods = []
@@ -286,6 +288,7 @@ class SankeyNavigatorWidget(widgets.ABAbstractNavigator):
             logger.debug(f"CACHED sankey for: {demand}, {method}, key: {cache_key}")
             self.graph.new_graph(data)
             self.has_sankey = bool(self.graph.json_data)
+            self.update_plot_name("Sankey", method, demand_index, scenario_index)
             self.send_json()
             return
 
@@ -326,6 +329,7 @@ class SankeyNavigatorWidget(widgets.ABAbstractNavigator):
         # generate the new Sankey
         self.graph.new_graph(data)
         self.has_sankey = bool(self.graph.json_data)
+        self.update_plot_name("Sankey", method, demand_index, scenario_index)
         self.send_json()
 
     def random_graph(self) -> None:

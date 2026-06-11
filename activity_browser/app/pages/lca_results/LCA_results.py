@@ -1,3 +1,4 @@
+import os
 from collections import namedtuple
 from copy import deepcopy
 from typing import List, Optional
@@ -12,7 +13,9 @@ from qtpy import QtCore, QtGui, QtWidgets
 from stats_arrays.errors import InvalidParamsError
 
 from activity_browser import app
+from activity_browser.bwutils import filesystem
 from activity_browser.bwutils.commontasks import unit_of_method, get_LCIA_method_name_dict, format_activity_label
+from activity_browser.bwutils.export_names import lca_export_basename
 from activity_browser.bwutils.sensitivity_analysis import GlobalSensitivityAnalysis
 from activity_browser.mod.bw2analyzer import ABContributionAnalysis
 from activity_browser.ui import icons, widgets
@@ -221,16 +224,25 @@ class LCAResultsPage(QtWidgets.QTabWidget):
                 logger.info("Generating Tree Tab")
                 self.tabs.tree.new_tree()
 
+    def _scenario_export_filepath(self, default_name: str, file_filter: str):
+        safe_name = bd.utils.safe_filename(default_name, add_hash=False)
+        filepath, _ = QtWidgets.QFileDialog.getSaveFileName(
+            parent=self,
+            caption="Choose location to save lca results",
+            dir=str(os.path.join(filesystem.get_project_path(), safe_name)),
+            filter=file_filter,
+        )
+        return str(filepath) if filepath else filepath
+
     @QtCore.Slot(name="lciaScenarioExport")
     def generate_lcia_scenario_csv(self):
         """Create a dataframe of the impact category results for all reference flows,
         impact categories and scenarios, then call the 'export to csv'
         """
         df = self.mlca.lca_scores_to_dataframe()
-        filepath, _ = QtWidgets.QFileDialog.getSaveFileName(
-            parent=self,
-            caption="Choose location to save lca results",
-            filter="Comma Separated Values (*.csv);; All Files (*.*)",
+        default_name = lca_export_basename(self.cs_name, "LCIA results_all")
+        filepath = self._scenario_export_filepath(
+            default_name, "Comma Separated Values (*.csv);; All Files (*.*)"
         )
         if filepath:
             if not filepath.endswith(".csv"):
@@ -243,10 +255,9 @@ class LCAResultsPage(QtWidgets.QTabWidget):
         impact categories and scenarios, then call the 'export to excel'
         """
         df = self.mlca.lca_scores_to_dataframe()
-        filepath, _ = QtWidgets.QFileDialog.getSaveFileName(
-            parent=self,
-            caption="Choose location to save lca results",
-            filter="Excel (*.xlsx);; All Files (*.*)",
+        default_name = lca_export_basename(self.cs_name, "LCIA results_all")
+        filepath = self._scenario_export_filepath(
+            default_name, "Excel (*.xlsx);; All Files (*.*)"
         )
         if filepath:
             if not filepath.endswith(".xlsx"):
@@ -454,7 +465,8 @@ class NewAnalysisTab(QtWidgets.QWidget):
         """Update the plot and/or table for the views that are selected."""
         if self.plot and self._plot_view_selected():
             self.update_plot()
-        if self.table and self._table_view_selected():
+        # Keep the table model in sync even when the plot view is shown (export uses it).
+        if self.table:
             self.update_table()
 
     def update_table(self, *args, **kwargs):
@@ -605,7 +617,7 @@ class InventoryTab(NewAnalysisTab):
         self.layout.addWidget(self.categorisation_filter_box)
         # table
         self.table = InventoryTable(self.parent)
-        self.table.table_name = "Inventory_" + self.parent.cs_name
+        self.table.table_name = lca_export_basename(self.parent.cs_name, "Inventory")
         self.layout.addWidget(self.table)
 
         self.layout.addLayout(self.build_export(has_plot=False, has_table=True))
@@ -666,8 +678,8 @@ class InventoryTab(NewAnalysisTab):
     @QtCore.Slot(bool, name="isBiosphereToggled")
     def button_clicked(self, toggled: bool):
         """Update table according to radiobutton selected."""
-        ext = "_Inventory" if toggled else "_Inventory_technosphere"
-        self.table.table_name = "{}{}".format(self.parent.cs_name, ext)
+        label = "Inventory" if toggled else "Inventory_technosphere"
+        self.table.table_name = lca_export_basename(self.parent.cs_name, label)
         self.update_table()
 
     def configure_scenario(self):
@@ -848,7 +860,7 @@ class LCAScoresTab(NewAnalysisTab):
         self.layout.addLayout(self.combobox_menu)
 
         self.plot = LCAResultsBarChart(self.parent)
-        self.plot.plot_name = "LCA scores_" + self.parent.cs_name
+        self.plot.plot_name = lca_export_basename(self.parent.cs_name, "LCIA scores")
         self.layout.addWidget(self.plot)
 
         self.layout.addLayout(self.build_export(has_plot=True, has_table=False))
@@ -913,7 +925,9 @@ class LCAScoresTab(NewAnalysisTab):
         self.layout.insertWidget(idx, self.plot)
         super().update_plot(df, method=method, labels=labels)
         self.updateGeometry()
-        self.plot.plot_name = "_".join([self.parent.cs_name, "LCA scores", str(method)])
+        self.plot.plot_name = lca_export_basename(
+            self.parent.cs_name, "LCIA scores", str(method)
+        )
 
 
 class LCIAResultsTab(NewAnalysisTab):
@@ -927,9 +941,10 @@ class LCIAResultsTab(NewAnalysisTab):
 
         # if not self.parent.single_func_unit:
         self.plot = LCAResultsPlot(self.parent)
-        self.plot.plot_name = self.parent.cs_name + "_LCIA results"
+        basename = lca_export_basename(self.parent.cs_name, "LCIA results")
+        self.plot.plot_name = basename
         self.table = LCAResultsTable(self.parent)
-        self.table.table_name = self.parent.cs_name + "_LCIA results"
+        self.table.table_name = basename
         self.relative = False
 
         self.layout.addWidget(self.build_main_space(True))
@@ -976,11 +991,13 @@ class LCIAResultsTab(NewAnalysisTab):
         """Update the plot."""
         idx = self.pt_layout.indexOf(self.plot)
         self.plot.figure.clf()
+        name = self.plot.plot_name
         self.plot.setVisible(False)
         self.plot.deleteLater()
         self.plot = LCAResultsPlot(self.parent)
         self.pt_layout.insertWidget(idx, self.plot)
         super().update_plot(self.df, invert_plot=self.plot_inversion)
+        self.plot.plot_name = name
         self.space_check()
         if self.pt_layout.parentWidget():
             self.pt_layout.parentWidget().updateGeometry()
@@ -1098,7 +1115,7 @@ class ContributionTab(NewAnalysisTab):
             self.unit,
         )
 
-        filename = "_".join((str(x) for x in fields if x is not None))
+        filename = lca_export_basename(*fields)
         self.plot.plot_name, self.table.table_name = filename, filename
 
     def build_cutoff_and_options_bar(self) -> QtWidgets.QHBoxLayout:
@@ -1836,10 +1853,11 @@ class MonteCarloTab(NewAnalysisTab):
         self.add_MC_ui_elements()
 
         self.table = LCAResultsTable()
-        self.table.table_name = "MonteCarlo_" + self.parent.cs_name
+        mc_basename = lca_export_basename(self.parent.cs_name, "Monte Carlo")
+        self.table.table_name = mc_basename
         self.plot = MonteCarloPlot(self.parent)
         self.plot.hide()
-        self.plot.plot_name = "MonteCarlo_" + self.parent.cs_name
+        self.plot.plot_name = mc_basename
         self.layout.addWidget(self.plot)
         self.export_widget = self.build_export(has_plot=True, has_table=True)
         self.layout.addWidget(self.export_widget)
@@ -2095,8 +2113,8 @@ class MonteCarloTab(NewAnalysisTab):
 
         self.update_table()
         self.update_plot(method=method)
-        filename = "_".join(
-            [str(x) for x in [self.parent.cs_name, "Monte Carlo results", str(method)]]
+        filename = lca_export_basename(
+            self.parent.cs_name, "Monte Carlo results", str(method)
         )
         self.plot.plot_name, self.table.table_name = filename, filename
 
@@ -2145,9 +2163,10 @@ class GSATab(NewAnalysisTab):
 
         self.df = None
         self.table = LCAResultsTable()
-        self.table.table_name = "GSA_" + self.parent.cs_name
+        gsa_basename = lca_export_basename(self.parent.cs_name, "GSA")
+        self.table.table_name = gsa_basename
         self.plot = GSAPlot(self)
-        self.plot.plot_name = "GSA_" + self.parent.cs_name
+        self.plot.plot_name = gsa_basename
         self.layout.addWidget(self.build_main_space(), 1)
         self.table.hide()
         self.plot.hide()
@@ -2341,15 +2360,14 @@ class GSATab(NewAnalysisTab):
         if self.df is None or self.df.empty:
             return
 
-        save_name = "gsa_output_" + self.GSA.get_save_name()
-        self.table.table_name = save_name
-        self.plot.plot_name = save_name.replace(".xlsx", "")
+        basename = self.GSA.get_save_name()
+        self.table.table_name = basename
+        self.plot.plot_name = basename
         self.export_widget.show()
         self.space_check()
         if self._plot_view_selected():
             self.update_plot()
-        if self._table_view_selected():
-            self.update_table()
+        self.update_table()
 
     def export_all_gsa_data(self, *, as_csv: bool = False):
         if self.df is None or self.df.empty:
@@ -2357,7 +2375,7 @@ class GSATab(NewAnalysisTab):
                 self, "No GSA results", "Run GSA first before exporting data."
             )
             return
-        default_name = self.GSA.get_save_name().replace(".xlsx", "_all")
+        default_name = lca_export_basename(self.GSA.get_save_name(), "all")
         if as_csv:
             default_name = f"{default_name}.csv"
             file_filter = self.table.CSV_FILTER

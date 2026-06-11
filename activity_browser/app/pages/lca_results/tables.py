@@ -230,10 +230,14 @@ class PandasModel(QtCore.QAbstractTableModel):
 
     def to_csv(self, path: str) -> None:
         """Store the dataframe as csv in the given path."""
+        if self._dataframe is None:
+            raise ValueError("No table data to export")
         self._dataframe.to_csv(path)
 
     def to_excel(self, path: str) -> None:
         """Store the underlying dataframe as excel in the given path"""
+        if self._dataframe is None:
+            raise ValueError("No table data to export")
         self._dataframe.to_excel(excel_writer=path)
 
     def sync(self, *args, **kwargs) -> None:
@@ -541,7 +545,10 @@ class ABDataFrameView(QtWidgets.QTableView):
         if filepath:
             if not filepath.endswith(".csv"):
                 filepath += ".csv"
-            self.model.to_csv(filepath)
+            try:
+                self.model.to_csv(filepath)
+            except ValueError as e:
+                QtWidgets.QMessageBox.warning(self, "Export failed", str(e))
 
     @Slot(name="exportToExcel")
     def to_excel(self, caption: str = None):
@@ -552,7 +559,10 @@ class ABDataFrameView(QtWidgets.QTableView):
         if filepath:
             if not filepath.endswith(".xlsx"):
                 filepath += ".xlsx"
-            self.model.to_excel(filepath)
+            try:
+                self.model.to_excel(filepath)
+            except ValueError as e:
+                QtWidgets.QMessageBox.warning(self, "Export failed", str(e))
 
     @Slot(QtGui.QKeyEvent, name="copyEvent")
     def keyPressEvent(self, e):

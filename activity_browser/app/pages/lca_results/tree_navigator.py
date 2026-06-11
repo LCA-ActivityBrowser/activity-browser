@@ -22,6 +22,7 @@ from bw_graph_tools.graph_traversal.graph_objects import (
 from bw2data.backends import ActivityDataset
 
 from activity_browser import app
+from activity_browser.bwutils.export_names import lca_export_basename
 from activity_browser.bwutils.filesystem import get_package_path
 from activity_browser.bwutils.commontasks import identify_activity_type
 from activity_browser.ui import widgets
@@ -55,6 +56,7 @@ class TreeNavigatorWidget(widgets.ABAbstractNavigator):
         self.parent = parent
         self.has_scenarios = self.parent.has_scenarios
         self.cs = cs_name
+        self.plot_name = lca_export_basename(cs_name, "Tree")
         self.selected_db = None
         self.has_rendered_once = False
         self.func_units = []
@@ -247,6 +249,7 @@ class TreeNavigatorWidget(widgets.ABAbstractNavigator):
             logger.debug(f"CACHED tree for: {demand}, {method}, key: {cache_key}")
             self.graph.new_graph(data)
             self.has_rendered_once = bool(self.graph.json_data)
+            self.update_plot_name("Tree", method, demand_index, scenario_index)
             self.send_json()
             return
 
@@ -296,6 +299,7 @@ class TreeNavigatorWidget(widgets.ABAbstractNavigator):
         # generate the new Graph
         self.graph.new_graph(data)
         self.has_rendered_once = bool(self.graph.json_data)
+        self.update_plot_name("Tree", method, demand_index, scenario_index)
         self.send_json()
 
     def set_database(self, name):

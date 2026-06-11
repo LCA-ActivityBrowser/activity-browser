@@ -181,3 +181,12 @@ def test_gsa_runs_with_parameter_uncertainty(mc_project_with_parameters):
     assert param[GSA_INDEX_COLUMN] == param[GSA_NAME_COLUMN]
     assert "Minimum: 8.0" in param["uncertainty"]
     assert "Maximum: 12.0" in param["uncertainty"]
+
+
+def test_gsa_export_basename(mc_project):
+    gsa = _run_gsa(_run_mc(mc_project, **ALL_UNCERTAINTY_LAYERS))
+    basename = gsa.get_save_name()
+    assert basename.startswith(f"{mc_project}_GSA_")
+    assert str(gsa.method) in basename
+    assert not basename.endswith(".xlsx")
+    assert "gsa_output" not in basename

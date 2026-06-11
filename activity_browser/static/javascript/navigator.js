@@ -1048,8 +1048,8 @@ const cartographer = function () {
 
     const buildGraphNode = function (n) {
         if (!is_sankey_mode) {
-            n.label = formatNodeText(n['name'], n['location']);
-            n.labelType = "html";
+            n.label = formatNodeTextPlain(n['name'], n['location']);
+            delete n.labelType;
         } else {
             var innerWidth = inferSankeyNodeInnerWidthPx(n);
             var wrapCols = inferSankeyNodeWrapColsFromWidth(innerWidth);
@@ -1073,8 +1073,8 @@ const cartographer = function () {
         e.curve = d3.curveBasis;
 
         if (!is_sankey_mode) {
-            e.label = formatEdgeText(e['product'], max_string_length);
-            e.labelType = "html";
+            e.label = formatEdgeTextPlain(e['product'], max_string_length);
+            delete e.labelType;
             e.arrowhead = "vee";
         } else {
             /* Sankey: plain-text labels only (see formatSankeyTwoLineEdgeLabel). */
@@ -1217,37 +1217,10 @@ d3.select("#canvasqPWKOg").call(canvas);
 })();
 
 d3.select("#downloadSVGtButtonqPWKOg").on("click", function () {
-
-    // create new svg element
-    var clone = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-
-    // copy figure content to new svg element
-    var inner_graphic = document.getElementsByClassName("inner")[0]
-    clone.innerHTML = inner_graphic.outerHTML;
-
-    // edit new svg element
-    var parentTag = document.getElementById("canvasqPWKOg");
-    var svg = parentTag.firstChild
-    var svg_rect = svg.getBBox(); // get the bounding rectangle
-    clone.setAttribute("width", String(svg_rect.width));
-    clone.setAttribute("height", String(svg_rect.height));
-
-    var inner_graphic_staging = clone.getElementsByClassName("inner")[0]
-    panCanvasElem = inner_graphic_staging.getElementsByClassName("panCanvas")[0]
-    panCanvasElem.removeAttribute("width")
-    panCanvasElem.removeAttribute("height")
-    panCanvasElem.removeAttribute("transform")
-    var rect_elem = inner_graphic_staging.getElementsByClassName("background")[0]
-    inner_graphic_staging.removeChild(rect_elem);
-
-    // insert style info
-    clone.insertAdjacentHTML('afterbegin', window.style_element_text)
-
-    //get svg source
-    var serializer = new XMLSerializer();
-    var source = serializer.serializeToString(clone);
-
-    window.bridge.download_triggered(source)
+    var svgMarkup = buildNavigatorSvgExport();
+    if (svgMarkup) {
+        window.bridge.download_triggered(svgMarkup);
+    }
 });
 
 // Construct 'render' object and initialize cartographer.
@@ -1302,22 +1275,85 @@ d3.select("#nodeSelectPWK0gExecute").on("click", function () {
 
 // break strings into multiple lines after certain length if necessary
 function wrapText(str, length) {
-    return str.replace(/.{15}\S*\s+/g, "$&@").split(/\s+@/).join(is_sankey_mode ? "\n" : "<br>")
+    return str.replace(/.{15}\S*\s+/g, "$&@").split(/\s+@/).join("\n");
 }
 
 function roundNumber(number) {
     return number.toPrecision(3)
 }
 
-function formatNodeText(name, location) {
-    html = '<text class="activityNameText">' + wrapText(name) + '<br>'
-        + '</span><span class="locationText">' + location + '</text>'
-    return html
+/** Plain-text node label (SVG tspans) for Tree and SVG export. */
+function formatNodeTextPlain(name, location) {
+    var lines = wrapText(String(name || "")).split("\n").filter(function (s) { return s.length; });
+    var loc = String(location != null ? location : "").trim();
+    if (loc) {
+        lines.push(loc);
+    }
+    return lines.join("\n");
 }
 
-function formatEdgeText(product) {
-    html = '<text class="edgeText">' + wrapText(product) + '</span>'
-    return html
+/** Plain-text edge label (SVG tspans) for Tree and SVG export. */
+function formatEdgeTextPlain(product) {
+    return wrapText(String(product || ""));
+}
+
+/**
+ * Styles for a standalone SVG file. Sankey rules in navigator CSS are scoped to
+ * body.ab-sankey-tab and do not apply after export; repeat the graph-relevant ones.
+ */
+function navigatorSvgExportStyles() {
+    var base = window.style_element_text || "";
+    var sankeySvgRules = is_sankey_mode
+        ? "<style>" +
+            "g.node text{font-size:12px;}" +
+            "g.node text tspan:nth-last-child(2){fill:#666;font-size:11px;}" +
+            "g.edgeLabel text,g.edgeLabel tspan{font-size:11px;}" +
+            "</style>"
+        : "";
+    return base + sankeySvgRules;
+}
+
+/**
+ * Export the dagre graph layer only (same nodes/labels as on screen), not the
+ * AB viewport chrome (grey/white pan background, minimap, clip rect).
+ */
+function buildNavigatorSvgExport() {
+    var output = document.querySelector(".panCanvas g.output");
+    if (!output) {
+        return null;
+    }
+
+    var bbox = output.getBBox();
+    if (!(bbox.width > 0) || !(bbox.height > 0)) {
+        return null;
+    }
+
+    var pad = 16;
+    var vbX = bbox.x - pad;
+    var vbY = bbox.y - pad;
+    var vbW = bbox.width + pad * 2;
+    var vbH = bbox.height + pad * 2;
+
+    var svgNS = "http://www.w3.org/2000/svg";
+    var out = document.createElementNS(svgNS, "svg");
+    out.setAttribute("xmlns", svgNS);
+    out.setAttribute("class", "svg canvas");
+    out.setAttribute("width", String(vbW));
+    out.setAttribute("height", String(vbH));
+    out.setAttribute("viewBox", vbX + " " + vbY + " " + vbW + " " + vbH);
+
+    out.insertAdjacentHTML("afterbegin", navigatorSvgExportStyles());
+
+    var backdrop = document.createElementNS(svgNS, "rect");
+    backdrop.setAttribute("x", String(vbX));
+    backdrop.setAttribute("y", String(vbY));
+    backdrop.setAttribute("width", String(vbW));
+    backdrop.setAttribute("height", String(vbH));
+    backdrop.setAttribute("fill", "#FFFFFF");
+    out.appendChild(backdrop);
+    out.appendChild(output.cloneNode(true));
+
+    return new XMLSerializer().serializeToString(out);
 }
 
 // Connect bridge to 'update_graph' function through QWebChannel.

@@ -545,8 +545,12 @@ class GlobalSensitivityAnalysis:
         logger.info(f"GSA took {np.round(time() - start, 2)} s")
 
     def get_save_name(self) -> str:
-        name = f"{self.mc.cs_name}_{self.mc.iterations}_{self.activity['name']}_{self.method}.xlsx"
-        return name.replace(",", "").replace("'", "").replace("/", "")
+        """Default export basename: ``{cs}_GSA_{activity}_{method}`` (no extension)."""
+        from .export_names import lca_export_basename
+
+        activity = self.activity or {}
+        activity_name = activity.get("name") or activity.get("reference product") or ""
+        return lca_export_basename(self.mc.cs_name, "GSA", activity_name, self.method)
 
     def _gsa_input_dataframe(self) -> pd.DataFrame:
         return pd.DataFrame(self.X.T, index=self.metadata.index)
@@ -614,6 +618,6 @@ if __name__ == "__main__":
         raise SystemExit("GSA produced no results (check MC uncertainty flags and iterations).")
 
     if EXPORT_EXCEL:
-        gsa.export_GSA_all(get_project_ab_path() / f"gsa_{gsa.get_save_name()}")
+        gsa.export_GSA_all(get_project_ab_path() / f"{gsa.get_save_name()}.xlsx")
 
     print(gsa.df_final.to_string())
