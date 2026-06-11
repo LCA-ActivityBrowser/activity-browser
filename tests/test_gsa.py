@@ -190,3 +190,9 @@ def test_gsa_export_basename(mc_project):
     assert str(gsa.method) in basename
     assert not basename.endswith(".xlsx")
     assert "gsa_output" not in basename
+
+
+def test_gsa_input_export_order_matches_output(mc_project):
+    gsa = _run_gsa(_run_mc(mc_project, **ALL_UNCERTAINTY_LAYERS))
+    input_df = gsa._gsa_input_dataframe()
+    assert input_df.index.tolist() == gsa.df_final[GSA_INDEX_COLUMN].tolist()

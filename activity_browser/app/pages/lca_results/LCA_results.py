@@ -2369,20 +2369,20 @@ class GSATab(NewAnalysisTab):
             self.update_plot()
         self.update_table()
 
-    def export_all_gsa_data(self, *, as_csv: bool = False):
+    def export_gsa_data(self, *, as_csv: bool = False):
         if self.df is None or self.df.empty:
             QtWidgets.QMessageBox.warning(
                 self, "No GSA results", "Run GSA first before exporting data."
             )
             return
-        default_name = lca_export_basename(self.GSA.get_save_name(), "all")
+        default_name = self.GSA.get_save_name()
         if as_csv:
             default_name = f"{default_name}.csv"
             file_filter = self.table.CSV_FILTER
-            caption = "Save GSA input and output (CSV)"
+            caption = "Export GSA data (CSV)"
         else:
             file_filter = self.table.EXCEL_FILTER
-            caption = "Save GSA input and output (Excel)"
+            caption = "Export GSA data (Excel)"
         filepath = self.table.savefilepath(
             default_name,
             caption=caption,
@@ -2419,29 +2419,35 @@ class GSATab(NewAnalysisTab):
         super().update_table(self.df)
 
     def build_export(self, has_table: bool = True, has_plot: bool = True) -> QtWidgets.QWidget:
-        """Construct the export layout but set it into a widget because we
-        want to hide it."""
-        export_layout = super().build_export(has_table, has_plot)
+        """Plot export, copy-results, and full GSA data export (inputs + outputs)."""
+        export_layout = super().build_export(has_table=False, has_plot=has_plot)
         stretch = export_layout.takeAt(export_layout.count() - 1)
+
+        if has_plot:
+            export_layout.addWidget(vertical_line())
+
+        copy_btn = QtWidgets.QPushButton("Copy")
+        copy_btn.setToolTip("Copy the GSA results table shown in the UI to the clipboard.")
+        copy_btn.clicked.connect(self.table.to_clipboard)
+        export_layout.addWidget(copy_btn)
+
         export_layout.addWidget(vertical_line())
         gsa_data_layout = QtWidgets.QHBoxLayout()
-        gsa_data_layout.addWidget(QtWidgets.QLabel("Export all GSA data:"))
-        self.export_gsa_all_csv_btn = QtWidgets.QPushButton(".csv")
-        self.export_gsa_all_csv_btn.setToolTip(
-            "Save the GSA results table and MC input matrix as two CSV files "
-            "(*_output.csv and *_input.csv)."
+        gsa_data_layout.addWidget(QtWidgets.QLabel("Export GSA data:"))
+        export_gsa_csv_btn = QtWidgets.QPushButton(".csv")
+        export_gsa_csv_btn.setToolTip(
+            "Save GSA results and MC inputs as two CSV files (*_output.csv and *_input.csv)"
         )
-        self.export_gsa_all_csv_btn.clicked.connect(
-            lambda: self.export_all_gsa_data(as_csv=True)
+        export_gsa_csv_btn.clicked.connect(lambda: self.export_gsa_data(as_csv=True))
+        gsa_data_layout.addWidget(export_gsa_csv_btn)
+        export_gsa_excel_btn = QtWidgets.QPushButton("Excel")
+        export_gsa_excel_btn.setToolTip(
+            "Save GSA results and MC inputs to one Excel file (GSA output and GSA input sheets)."
         )
-        gsa_data_layout.addWidget(self.export_gsa_all_csv_btn)
-        self.export_gsa_all_btn = QtWidgets.QPushButton("Excel")
-        self.export_gsa_all_btn.setToolTip(
-            "Save the GSA results table and MC input matrix to one Excel file (two sheets)."
-        )
-        self.export_gsa_all_btn.clicked.connect(self.export_all_gsa_data)
-        gsa_data_layout.addWidget(self.export_gsa_all_btn)
+        export_gsa_excel_btn.clicked.connect(self.export_gsa_data)
+        gsa_data_layout.addWidget(export_gsa_excel_btn)
         export_layout.addLayout(gsa_data_layout)
+
         if stretch is not None:
             export_layout.addItem(stretch)
         export_widget = QtWidgets.QWidget()

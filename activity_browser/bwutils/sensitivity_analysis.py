@@ -553,7 +553,12 @@ class GlobalSensitivityAnalysis:
         return lca_export_basename(self.mc.cs_name, "GSA", activity_name, self.method)
 
     def _gsa_input_dataframe(self) -> pd.DataFrame:
-        return pd.DataFrame(self.X.T, index=self.metadata.index)
+        """MC input matrix with rows in the same order as :attr:`df_final`."""
+        df_input = pd.DataFrame(self.X.T, index=self.metadata.index)
+        if self.df_final is not None and not self.df_final.empty:
+            order = self.df_final[GSA_INDEX_COLUMN].tolist()
+            df_input = df_input.reindex(order)
+        return df_input
 
     def export_GSA_all(self, filepath: str | Path) -> Path:
         """Write GSA results and MC input matrix to one Excel workbook (two sheets)."""
