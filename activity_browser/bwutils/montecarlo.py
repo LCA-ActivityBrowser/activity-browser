@@ -130,8 +130,8 @@ class MonteCarloLCA(object):
 
         self.lca.lci()
         self.lca.lcia()
-        # Reuse the LCI/LCIA baseline matrices for iteration 0 (see bw2calc MultiLCA).
-        self.lca.keep_first_iteration_flag = True
+        # Always sample iteration 0; do not reuse the deterministic baseline matrices.
+        self.lca.keep_first_iteration_flag = False
 
         self.results = np.zeros((iterations, len(self.func_units), len(self.methods)))
 
