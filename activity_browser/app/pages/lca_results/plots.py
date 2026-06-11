@@ -294,17 +294,18 @@ class MonteCarloPlot(ABPlot):
 
     def plot(self, df: pd.DataFrame, method: tuple):
         self.ax.clear()
+        n_series = df.shape[1]
 
         # Use Axes.hist per series. Use iloc so duplicate column labels (possible after
         # get_labels) never return a 2-column DataFrame — 2D input makes hist() treat each
         # column as a separate dataset and reject a single color=.
-        for j in range(df.shape[1]):
+        for j in range(n_series):
             series = df.iloc[:, j]
             vals = np.ravel(np.asarray(series.dropna(), dtype=float))
             if vals.size == 0:
                 continue
             color = self.ax._get_lines.get_next_color()
-            label = str(df.columns[j])
+            label = wrap_text(str(df.columns[j]), max_length=40)
             self.ax.hist(
                 vals,
                 density=True,
@@ -316,12 +317,21 @@ class MonteCarloPlot(ABPlot):
 
         self.ax.set_xlabel(methods[method]["unit"])
         self.ax.set_ylabel("Probability")
-        self.ax.legend(
-            loc="upper center",
-            bbox_to_anchor=(0.5, -0.07),
-        )  # ncol=2
 
-        # lconfi, upconfi =mc['statistics']['interval'][0], mc['statistics']['interval'][1]
+        # Legend below the axes steals vertical space under constrained_layout and can
+        # squash histograms when labels are long; keep the legend beside the plot.
+        if n_series > 1:
+            legend_ncol = 2 if n_series > 10 else 1
+            self.ax.legend(
+                loc="center left",
+                bbox_to_anchor=(1.02, 0.5),
+                fontsize=8,
+                ncol=legend_ncol,
+                frameon=False,
+            )
+
+        height_inches = max(4.0, 3.5 + min(n_series, 20) * 0.12)
+        self.set_minimum_height_for_figure_inches(height_inches)
 
         self._set_plot_chrome_white()
         self.canvas.draw()

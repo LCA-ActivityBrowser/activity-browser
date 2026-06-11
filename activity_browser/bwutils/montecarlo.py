@@ -239,6 +239,12 @@ class MonteCarloLCA(object):
         translated_keys = [
             separator.join([act.get(field, "") for field in fields]) for act in acts
         ]
+        if max_length is not None:
+            from activity_browser.bwutils.commontasks import wrap_text
+
+            translated_keys = [
+                wrap_text(label, max_length=max_length) for label in translated_keys
+            ]
         return translated_keys
 
 
