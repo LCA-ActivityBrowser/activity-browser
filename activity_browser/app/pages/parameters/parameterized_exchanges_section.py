@@ -11,6 +11,7 @@ from bw2data.backends import ExchangeDataset
 from activity_browser import app
 from activity_browser.ui import widgets, icons, delegates, core
 from activity_browser.bwutils.commontasks import database_is_locked
+from activity_browser.bwutils.uncertainty import uncertainty_cell_summary
 from activity_browser.bwutils.utils import Parameter
 
 
@@ -120,7 +121,7 @@ class ParameterizedExchangesSection(QtWidgets.QWidget):
                     "database": input_meta.get("database"),
                     "formula": exchange.get("formula"),
                     "comment": exchange.get("comment"),
-                    "uncertainty": dict(u),
+                    "uncertainty": uncertainty_cell_summary(u),
                     "_exchange": exchange,
                     "_output_key": output_key,
                     "_input_key": input_key,
@@ -130,7 +131,10 @@ class ParameterizedExchangesSection(QtWidgets.QWidget):
                 # Skip if exchange can't be loaded
                 continue
 
-        columns = ["amount", "unit", "from", "to", "database", "formula", "comment", "uncertainty", "_exchange", "_output_key", "_input_key"]
+        columns = [
+            "amount", "unit", "from", "to", "database", "formula", "comment",
+            "uncertainty", "_exchange", "_output_key", "_input_key",
+        ]
         return pd.DataFrame(translated, columns=columns)
 
 

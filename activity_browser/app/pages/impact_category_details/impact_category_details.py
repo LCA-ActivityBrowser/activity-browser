@@ -8,6 +8,7 @@ import pandas as pd
 from activity_browser import app
 from activity_browser.ui import widgets, icons, delegates, core
 from activity_browser.bwutils.commontasks import is_node_biosphere
+from activity_browser.bwutils.uncertainty import EMPTY_UNCERTAINTY, uncertainty_cell_summary
 
 from .impact_category_header import ImpactCategoryHeader
 
@@ -70,7 +71,9 @@ class ImpactCategoryDetailsPage(widgets.ABAbstractPage):
     def build_df(self):
         df = pd.DataFrame(self.impact_category.load(), columns=["id", "data"])
         df["amount"] = df["data"].apply(lambda x: x if isinstance(x, (float, int)) else x.get("amount"))
-        df["uncertainty"] = df["data"].apply(self.uncertainty_from_cf)
+        df["uncertainty"] = df["data"].apply(
+            lambda cf: uncertainty_cell_summary(cf) if isinstance(cf, dict) else ""
+        )
 
         other = app.metadata.dataframe[["id", "name", "categories", "database", "unit"]]
 
@@ -78,22 +81,16 @@ class ImpactCategoryDetailsPage(widgets.ABAbstractPage):
         df["_impact_category_name"] = [self.name for i in range(len(df))]
         df["_editable"] = self.is_editable
 
-        cols = ["name", "categories", "database", "amount", "unit", "uncertainty", "_id", "_impact_category_name", "_cf", "_editable"]
+        cols = [
+            "name", "categories", "database", "amount", "unit", "uncertainty",
+            "_id", "_impact_category_name", "_cf", "_editable",
+        ]
         return df[cols]
 
     def uncertainty_from_cf(self, cf):
-        if isinstance(cf, dict):
-            uncertainty_keys = {
-                "uncertainty type",
-                "loc",
-                "scale",
-                "shape",
-                "minimum",
-                "maximum",
-                "negative",
-            }
-            return {k: v for k, v in cf.items() if k in uncertainty_keys}
-        return 0
+        if not isinstance(cf, dict):
+            return {}
+        return {k: v for k, v in cf.items() if k in EMPTY_UNCERTAINTY}
 
 
 class CharacterizationFactorsView(widgets.ABTreeView):
@@ -223,8 +220,7 @@ class CharacterizationFactorsModel(core.ABTreeModel):
         row = self.row(index)
         if row is None:
             return {}
-        u = self.page.uncertainty_from_cf(row.get("_cf"))  # retrieve the existing uncertainty dict
-        return u if isinstance(u, dict) else {}
+        return self.page.uncertainty_from_cf(row.get("_cf"))
 
     def uncertainty_editor_read_only(self, index: QtCore.QModelIndex) -> bool:
         if self.column_name(index) != "uncertainty":

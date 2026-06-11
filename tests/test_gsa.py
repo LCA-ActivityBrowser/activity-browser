@@ -11,8 +11,6 @@ from activity_browser.bwutils.sensitivity_analysis import (
     GSA_INDEX_COLUMN,
     GSA_NAME_COLUMN,
     GSA_TYPE_COLUMN,
-    GSA_UNCERTAINTY_DIST_COLUMN,
-    GSA_UNCERTAINTY_INFO_COLUMN,
     GlobalSensitivityAnalysis,
     get_CF_dataframe,
     get_lca,
@@ -20,6 +18,7 @@ from activity_browser.bwutils.sensitivity_analysis import (
 from activity_browser.app.pages.lca_results.plots import GSAPlot
 from activity_browser.bwutils.sensitivity_analysis import GSA_NAME_COLUMN
 from activity_browser.bwutils.uncertainty import (
+    uncertainty_cell_summary,
     uncertainty_field_name,
     uncertainty_parameters_summary,
 )
@@ -75,13 +74,13 @@ def test_gsa_plot_renders_sample_dataframe():
 
 
 def test_triangular_uncertainty_summary():
+    data = {"uncertainty type": sa.TriangularUncertainty.id, "loc": 5.0, "minimum": 0.0, "maximum": 10.0}
     assert uncertainty_field_name(sa.TriangularUncertainty.id, "loc") == "Mode"
     assert (
-        uncertainty_parameters_summary(
-            {"uncertainty type": sa.TriangularUncertainty.id, "loc": 5.0, "minimum": 0.0, "maximum": 10.0}
-        )
+        uncertainty_parameters_summary(data)
         == "Mode: 5.0; Minimum: 0.0; Maximum: 10.0"
     )
+    assert uncertainty_cell_summary(data) == "Triangular; Mode: 5.0; Minimum: 0.0; Maximum: 10.0"
 
 
 def test_get_cf_dataframe_uses_method_uncertainty(mc_project):
@@ -91,8 +90,8 @@ def test_get_cf_dataframe_uses_method_uncertainty(mc_project):
 
     assert not dfcf.empty
     assert dfcf.iloc[0][GSA_TYPE_COLUMN] == "characterization factor"
-    assert dfcf.iloc[0][GSA_UNCERTAINTY_DIST_COLUMN] == "Uniform"
-    assert "Minimum:" in dfcf.iloc[0][GSA_UNCERTAINTY_INFO_COLUMN]
+    assert dfcf.iloc[0]["uncertainty"].startswith("Uniform")
+    assert "Minimum:" in dfcf.iloc[0]["uncertainty"]
 
 
 def test_mc_populates_cf_dict(mc_project):
@@ -180,5 +179,5 @@ def test_gsa_runs_with_parameter_uncertainty(mc_project_with_parameters):
     param = gsa.df_final.loc[gsa.df_final[GSA_TYPE_COLUMN] == "parameter"].iloc[0]
     assert "bio_amount" in param[GSA_NAME_COLUMN]
     assert param[GSA_INDEX_COLUMN] == param[GSA_NAME_COLUMN]
-    assert "Minimum: 8.0" in param[GSA_UNCERTAINTY_INFO_COLUMN]
-    assert "Maximum: 12.0" in param[GSA_UNCERTAINTY_INFO_COLUMN]
+    assert "Minimum: 8.0" in param["uncertainty"]
+    assert "Maximum: 12.0" in param["uncertainty"]

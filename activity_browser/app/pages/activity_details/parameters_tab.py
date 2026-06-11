@@ -10,6 +10,7 @@ from bw2data.parameters import ProjectParameter, DatabaseParameter, ActivityPara
 from activity_browser import app
 from activity_browser.ui import widgets, icons, delegates, core
 from activity_browser.bwutils.commontasks import refresh_node, refresh_parameter, parameters_in_scope, database_is_locked, node_group
+from activity_browser.bwutils.uncertainty import uncertainty_cell_summary
 from activity_browser.bwutils.utils import Parameter
 
 
@@ -132,8 +133,10 @@ class ParametersTab(QtWidgets.QWidget):
                 "_class": "new",
             })
 
-        columns = ["name", "amount", "formula", "uncertainty", "comment", "_parameter", "_scope", "_database", "_group",
-                   "_param_type", "_class"]
+        columns = [
+            "name", "amount", "formula", "uncertainty", "comment",
+            "_parameter", "_scope", "_database", "_group", "_param_type", "_class",
+        ]
         df = pd.DataFrame(translated, columns=columns)
 
         df["_activity"] = [self.activity for i in range(len(df))]
@@ -172,9 +175,9 @@ class ParametersTab(QtWidgets.QWidget):
         row = {
             "name": parameter.name,
             "amount": parameter.amount,
-            "uncertainty": parameter.uncertainty,
             "formula": data.get("formula"),
             "comment": data.get("comment"),
+            "uncertainty": uncertainty_cell_summary(parameter.uncertainty),
             "_param_type": param_type,
             "_parameter": parameter,
             "_scope": scope_label,
@@ -299,6 +302,16 @@ class ParametersModel(core.ABTreeModel):
             return True
 
         return False
+
+    def uncertainty_editor_initial(self, index: QtCore.QModelIndex) -> dict:
+        initial = super().uncertainty_editor_initial(index)
+        if initial:
+            return initial
+        parameter = self.get(index, "_parameter")
+        if parameter is None:
+            return {}
+        u = parameter.uncertainty
+        return dict(u) if u else {}
 
     def uncertainty_editor_read_only(self, index: QtCore.QModelIndex) -> bool:
         if self.column_name(index) != "uncertainty":

@@ -3,6 +3,7 @@
 from qtpy import QtCore, QtWidgets
 from stats_arrays import uncertainty_choices as uc
 
+from activity_browser.bwutils.uncertainty import uncertainty_cell_summary
 from activity_browser.ui.dialogs import UncertaintyDialog
 
 
@@ -10,16 +11,11 @@ class UncertaintyDelegate(QtWidgets.QStyledItemDelegate):
     """Delegate for uncertainty-type cells."""
 
     def displayText(self, value, locale):
-        """Take the given integer id and return the description.
-
-        Will return the 'Unknown' uncertainty description if the given id
-        either cannot be found or the value is 'nan' (when id is not set)
-        """
+        if isinstance(value, dict):
+            return uncertainty_cell_summary(value)
         if isinstance(value, (int, float)) and int(value) in uc.id_dict:
-            return uc.id_dict[int(value)].description
-        elif isinstance(value, dict) and value.get("uncertainty type") in uc.id_dict:
-            return uc[value["uncertainty type"]].description
-        return uc[0].description
+            return uncertainty_cell_summary({"uncertainty type": int(value)})
+        return "" if value is None else str(value)
 
     def createEditor(self, parent, option, index):
         from activity_browser import app
