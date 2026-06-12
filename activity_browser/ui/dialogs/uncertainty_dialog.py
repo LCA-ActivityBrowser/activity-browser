@@ -903,12 +903,12 @@ class SimpleDistributionPlot(ABPlot):
 				self.ax.axvline(vline_x, label=curve.vline_legend, c="r", ymax=0.98)
 			handles, labels = self.ax.get_legend_handles_labels()
 			if handles:
-				self.ax.legend(loc="upper right", fontsize=9)
+				self.ax.legend(loc="upper right", fontsize=9, ncol=1, frameon=False)
 		except np.linalg.LinAlgError:
 			logger.warning("Uncertainty preview: could not draw reference line")
 			handles, labels = self.ax.get_legend_handles_labels()
 			if handles:
-				self.ax.legend(loc="upper right", fontsize=9)
+				self.ax.legend(loc="upper right", fontsize=9, ncol=1, frameon=False)
 
 		self.ax.tick_params(axis="both", which="major", labelsize=9)
 		self.ax.tick_params(axis="x", which="major", pad=4)

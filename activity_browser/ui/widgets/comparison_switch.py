@@ -4,9 +4,40 @@ from collections import namedtuple
 from qtpy import QtWidgets
 
 Switches = namedtuple("switches", ("func", "method", "scenario"))
+LCIASwitches = namedtuple(
+    "lcia_switches",
+    (
+        "reference_flows",
+        "flows_x_methods",
+        "flows_x_scenarios",
+        "flows_x_scenarios_x_methods",
+    ),
+)
 
 
-class SwitchComboBox(QtWidgets.QComboBox):
+class LCAscoresSwitchComboBox(QtWidgets.QComboBox):
+    """Compare modes for the LCIA results landing tab."""
+
+    def __init__(self, parent: QtWidgets.QWidget = None):
+        super().__init__(parent)
+        self.switches = LCIASwitches(
+            "Reference Flows",
+            "Reference Flows × Impact Categories",
+            "Reference Flows × Scenarios",
+            "Reference Flows × Scenarios × Impact Categories",
+        )
+        self.indexes = LCIASwitches(0, 1, 2, 3)
+
+    def configure(self, modes: list[str]) -> None:
+        self.blockSignals(True)
+        self.clear()
+        if modes:
+            self.addItems(modes)
+        self.setVisible(bool(modes))
+        self.blockSignals(False)
+
+
+class ContributionsSwitchComboBox(QtWidgets.QComboBox):
     """For keeping track of contribution tab comparisons."""
 
     def __init__(self, parent: QtWidgets.QWidget = None):

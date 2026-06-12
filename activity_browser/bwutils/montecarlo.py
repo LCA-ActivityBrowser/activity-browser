@@ -233,12 +233,21 @@ class MonteCarloLCA(object):
     def get_labels(
         key_list, fields: list = None, separator=" | ", max_length: int = None
     ) -> list:
-        fields = fields or ["name", "reference product", "location", "database"]
-        # need to do this as the keys come from a pd.Multiindex
-        acts = (bd.get_activity(key).as_dict() for key in (k for k in key_list))
-        translated_keys = [
-            separator.join([act.get(field, "") for field in fields]) for act in acts
-        ]
+        from activity_browser.bwutils.commontasks import (
+            REFERENCE_FLOW_LABEL_FIELDS,
+            format_reference_flow_label,
+        )
+
+        use_reference_flow_labels = fields is None or tuple(fields) == REFERENCE_FLOW_LABEL_FIELDS
+        translated_keys = []
+        for key in key_list:
+            if use_reference_flow_labels:
+                translated_keys.append(format_reference_flow_label(bd.get_activity(key)))
+            else:
+                act = bd.get_activity(key).as_dict()
+                translated_keys.append(
+                    separator.join([act.get(field, "") for field in fields])
+                )
         if max_length is not None:
             from activity_browser.bwutils.commontasks import wrap_text
 

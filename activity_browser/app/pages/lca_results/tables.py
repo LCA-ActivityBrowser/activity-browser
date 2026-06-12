@@ -992,10 +992,10 @@ class InventoryTable(ABFilterableDataFrameView):
 
 
 class ContributionModel(PandasModel):
-    def sync(self, df, unit="relative share"):
+    def sync(self, df, unit="% of range"):
 
         if "unit" in df.columns:
-            # overwrite the unit col with 'relative share' if looking at relative results (except 3 'total' and 'rest' rows)
+            # overwrite the unit col when showing relative results (except 3 'total' and 'rest' rows)
             df["unit"] = [""] * 3 + [unit] * (len(df) - 3)
 
         # drop any rows where all numbers are 0

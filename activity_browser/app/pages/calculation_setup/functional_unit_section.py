@@ -76,9 +76,8 @@ class FunctionalUnitSection(QtWidgets.QWidget):
         # Add the "process" column to the activity DataFrame using the processor names.
         act_df["process"] = processor_df["name"]
 
-        # Use "product" if available otherwise use "name"
-        act_df.update(act_df["product"].rename("name"))
-        act_df["product"] = act_df["name"]
+        # Product nodes: metadata "name" is the product; keep process from the processor.
+        act_df["product"] = act_df["product"].fillna(act_df["name"])
 
         act_df.rename({"type": "_type"}, axis="columns", inplace=True)
 

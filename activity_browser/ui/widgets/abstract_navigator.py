@@ -108,8 +108,12 @@ class ABAbstractNavigator(QtWidgets.QWidget):
         """Default export basename: ``{cs}_{tab}_{functional unit}_{method}_{scenario}``."""
         fu_label = None
         if demand_index is not None and 0 <= demand_index < len(getattr(self, "func_units", [])):
-            act = list(self.func_units[demand_index].keys())[0]
-            fu_label = act.get("name") or act.get("reference product") or repr(act)
+            import bw2data as bd
+
+            from activity_browser.bwutils.commontasks import format_reference_flow_label
+
+            key = list(self.func_units[demand_index].keys())[0]
+            fu_label = format_reference_flow_label(bd.get_activity(key))
         scenario = None
         if getattr(self, "has_scenarios", False) and scenario_index is not None:
             scenarios = getattr(self, "scenarios", [])
