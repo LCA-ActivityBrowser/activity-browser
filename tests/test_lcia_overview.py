@@ -68,7 +68,15 @@ class _FakeContributions:
     pass
 
 
-def test_build_flows_x_methods_default_orientation():
+@pytest.fixture
+def stub_method_units(monkeypatch):
+    monkeypatch.setattr(
+        "activity_browser.bwutils.lcia_overview.unit_of_method",
+        lambda method: "kg",
+    )
+
+
+def test_build_flows_x_methods_default_orientation(stub_method_units):
     scores = np.array([[10.0, 20.0], [5.0, 15.0]])
     mlca = _FakeMLCA(
         scores,
@@ -87,7 +95,7 @@ def test_build_flows_x_methods_default_orientation():
     assert data.series_labels[0].startswith("product ")
 
 
-def test_build_flows_x_methods_flip_is_transpose_of_column_normalization():
+def test_build_flows_x_methods_flip_is_transpose_of_column_normalization(stub_method_units):
     scores = np.array([[10.0, 20.0], [5.0, 15.0]])
     mlca = _FakeMLCA(
         scores,
@@ -133,7 +141,7 @@ def test_near_square_subplot_grid(n, expected):
     assert ABPlot.near_square_subplot_grid(n) == expected
 
 
-def test_build_flows_x_scenarios_x_methods_panels():
+def test_build_flows_x_scenarios_x_methods_panels(stub_method_units):
     scores = np.array(
         [
             [[1.0, 2.0], [3.0, 4.0]],
@@ -190,6 +198,7 @@ def test_lcia_1x1_calculation(lcia_overview_project):
     from activity_browser.bwutils.multilca import MLCA
 
     mlca = MLCA("lcia_1x1")
+    mlca.calculate()
     assert mlca.lca_scores.shape == (1, 1)
     assert mlca.lca_scores[0, 0] > 0
 
@@ -198,6 +207,7 @@ def test_lcia_3x3_all_negative_column_normalization(lcia_overview_project):
     from activity_browser.bwutils.multilca import MLCA
 
     mlca = MLCA("lcia_3x3_neg")
+    mlca.calculate()
     col = mlca.lca_scores[:, 1]
     assert np.all(col < 0)
     normalized = normalize_column(col, relative=True)
@@ -211,17 +221,16 @@ def test_lcia_overview_plot_smoke(lcia_overview_project):
     from qtpy import QtWidgets
 
     from activity_browser.app.pages.lca_results.plots import LCIAResultsOverviewPlot
-    from activity_browser.bwutils.multilca import MLCA
-    from activity_browser.mod.bw2analyzer import ABContributionAnalysis
+    from activity_browser.bwutils.multilca import MLCA, ca
 
     if QtWidgets.QApplication.instance() is None:
         QtWidgets.QApplication([])
 
     mlca = MLCA("lcia_3x3")
-    contributions = ABContributionAnalysis(mlca)
+    mlca.calculate()
     data = build_lcia_overview(
         mlca,
-        contributions,
+        ca,
         compare=LCIACompareMode.FLOWS_X_METHODS,
         relative=True,
     )

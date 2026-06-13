@@ -201,10 +201,12 @@ def test_gsa_runs_with_parameter_uncertainty(mc_project_with_parameters):
 
 
 def test_gsa_export_basename(mc_project):
+    from activity_browser.bwutils.export_names import export_name_slug
+
     gsa = _run_gsa(_run_mc(mc_project, **ALL_UNCERTAINTY_LAYERS))
     basename = gsa.get_save_name()
     assert basename.startswith(f"{mc_project}_GSA_")
-    assert str(gsa.method) in basename
+    assert export_name_slug(gsa.method) in basename
     assert not basename.endswith(".xlsx")
     assert "gsa_output" not in basename
 

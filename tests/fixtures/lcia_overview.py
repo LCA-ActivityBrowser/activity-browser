@@ -18,8 +18,6 @@ Edge cases:
 
 from __future__ import annotations
 
-from copy import deepcopy
-
 from stats_arrays.distributions import NoUncertainty, UniformUncertainty
 
 DATABASE_NAME = "LCIA_overview_test"
@@ -81,7 +79,7 @@ def _main_process_key(index: int) -> tuple[str, str]:
     return (DATABASE_NAME, f"main_{index}")
 
 
-def build_database() -> dict:
+def build_database(*, parameterize_prod_0_biosphere: bool = False) -> dict:
     data: dict = {}
 
     for i in range(N_PRODUCTS):
@@ -127,6 +125,7 @@ def build_database() -> dict:
         mk = _main_process_key(i)
         data[pk] = {
             "name": f"product {i}",
+            "reference product": f"product {i}",
             "code": f"prod_{i}",
             "location": "GLO",
             "type": "product",
@@ -152,7 +151,7 @@ def build_database() -> dict:
                 **(NO_UNCERTAINTY if i != 0 else UNIFORM_UNCERTAINTY),
             },
         ]
-        if i == 0:
+        if parameterize_prod_0_biosphere and i == 0:
             exchanges[-1]["formula"] = "bio_amount"
         data[mk] = {
             "name": f"main process {i}",
@@ -166,7 +165,7 @@ def build_database() -> dict:
 
 
 DATABASE = build_database()
-DATABASE_WITH_PARAMETER_FORMULA = deepcopy(DATABASE)
+DATABASE_WITH_PARAMETER_FORMULA = build_database(parameterize_prod_0_biosphere=True)
 
 
 def build_methods() -> dict[str, list]:

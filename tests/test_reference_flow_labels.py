@@ -176,7 +176,6 @@ def test_join_df_with_metadata_reference_flow_columns(
     product_activity, monkeypatch
 ):
     """Process contribution tables should split product and process name columns."""
-    from activity_browser.bwutils import multilca as multilca_module
     from activity_browser.bwutils.multilca import Contributions
 
     key = ("LCIA_overview_test", "prod_0")
@@ -198,31 +197,33 @@ def test_join_df_with_metadata_reference_flow_columns(
 
     meta_df = pd.DataFrame(
         {
-            "name": ["product 0"],
-            "product": [pd.NA],
+            "name": [None],
+            "product": [None],
             "location": ["GLO"],
             "database": ["LCIA_overview_test"],
         },
         index=pd.MultiIndex.from_tuples([key], names=["database", "code"]),
     )
+
+    class _FakeMetadata:
+        @property
+        def keys(self):
+            return {key}
+
+        def get_metadata(self, keys, columns=None):
+            frame = meta_df.loc[keys]
+            if columns is not None:
+                return frame[list(columns)]
+            return frame
+
     monkeypatch.setattr(
-        multilca_module.metadata,
-        "keys",
-        {key},
-        raising=False,
-    )
-    monkeypatch.setattr(
-        multilca_module.metadata,
-        "get_metadata",
-        lambda keys, columns=None: meta_df.loc[keys],
+        "activity_browser.bwutils.multilca.metadata",
+        _FakeMetadata(),
     )
 
     df = pd.DataFrame({"impact": [1.0]}, index=[key])
     joined = Contributions.join_df_with_metadata(df, x_fields=None)
 
-    assert joined.loc[
-        "product 0 | main process 0 | GLO | LCIA_overview_test", "product"
-    ] == "product 0"
-    assert joined.loc[
-        "product 0 | main process 0 | GLO | LCIA_overview_test", "name"
-    ] == "main process 0"
+    label = "product 0 | main process 0 | GLO | LCIA_overview_test"
+    assert joined.loc[label, "product"] == "product 0"
+    assert joined.loc[label, "name"] == "main process 0"

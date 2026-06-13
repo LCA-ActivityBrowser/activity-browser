@@ -115,15 +115,11 @@ def lcia_overview_project():
     from fixtures.lcia_overview import (
         CALCULATION_SETUPS,
         DATABASE_NAME,
-        DATABASE_WITH_PARAMETER_FORMULA,
+        DATABASE,
         METHODS,
-        PARAMETER_SETUP,
     )
 
-    write_functional_database(
-        DATABASE_NAME, DATABASE_WITH_PARAMETER_FORMULA, process=True
-    )
-    register_parameter_setup(DATABASE_NAME, PARAMETER_SETUP)
+    write_functional_database(DATABASE_NAME, DATABASE, process=True)
     for method_key, cfs in METHODS.items():
         write_method(method_key, cfs, process=True)
     for cs_name, setup in CALCULATION_SETUPS.items():
