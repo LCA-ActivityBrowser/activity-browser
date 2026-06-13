@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 import pandas as pd
 import pytest
 
-from activity_browser.app.pages.lca_results.plots import (
+from activity_browser.bwutils.contribution_labels import (
     contribution_column_labels,
     contribution_row_labels,
 )
@@ -113,7 +113,7 @@ def test_contribution_row_labels_from_metadata_keys(
         raise KeyError(key)
 
     monkeypatch.setattr(
-        "activity_browser.app.pages.lca_results.plots.bd.get_activity", get_activity
+        "activity_browser.bwutils.contribution_labels.bd.get_activity", get_activity
     )
     monkeypatch.setattr(
         "activity_browser.bwutils.commontasks.bd.get_activity", get_activity
@@ -148,7 +148,7 @@ def test_contribution_column_labels_reference_flows(
         raise KeyError(key)
 
     monkeypatch.setattr(
-        "activity_browser.app.pages.lca_results.plots.bd.get_activity", get_activity
+        "activity_browser.bwutils.contribution_labels.bd.get_activity", get_activity
     )
     monkeypatch.setattr(
         "activity_browser.bwutils.commontasks.bd.get_activity", get_activity
@@ -170,3 +170,59 @@ def test_contribution_column_labels_reference_flows(
     tab = type("Tab", (), {"switches": Switches(), "parent": Parent()})()
     labels = contribution_column_labels(tab, ["stale column label"])
     assert labels == ["product 0 | main process 0 | GLO | LCIA_overview_test"]
+
+
+def test_join_df_with_metadata_reference_flow_columns(
+    product_activity, monkeypatch
+):
+    """Process contribution tables should split product and process name columns."""
+    from activity_browser.bwutils import multilca as multilca_module
+    from activity_browser.bwutils.multilca import Contributions
+
+    key = ("LCIA_overview_test", "prod_0")
+
+    def get_activity(k):
+        if k == ("LCIA_overview_test", "main_0"):
+            return {
+                "name": "main process 0",
+                "type": "process",
+                "location": "GLO",
+                "database": "LCIA_overview_test",
+            }
+        if k == key:
+            return product_activity
+        raise KeyError(k)
+
+    monkeypatch.setattr("activity_browser.bwutils.commontasks.bd.get_activity", get_activity)
+    monkeypatch.setattr("activity_browser.bwutils.multilca.bd.get_activity", get_activity)
+
+    meta_df = pd.DataFrame(
+        {
+            "name": ["product 0"],
+            "product": [pd.NA],
+            "location": ["GLO"],
+            "database": ["LCIA_overview_test"],
+        },
+        index=pd.MultiIndex.from_tuples([key], names=["database", "code"]),
+    )
+    monkeypatch.setattr(
+        multilca_module.metadata,
+        "keys",
+        {key},
+        raising=False,
+    )
+    monkeypatch.setattr(
+        multilca_module.metadata,
+        "get_metadata",
+        lambda keys, columns=None: meta_df.loc[keys],
+    )
+
+    df = pd.DataFrame({"impact": [1.0]}, index=[key])
+    joined = Contributions.join_df_with_metadata(df, x_fields=None)
+
+    assert joined.loc[
+        "product 0 | main process 0 | GLO | LCIA_overview_test", "product"
+    ] == "product 0"
+    assert joined.loc[
+        "product 0 | main process 0 | GLO | LCIA_overview_test", "name"
+    ] == "main process 0"

@@ -72,6 +72,23 @@ def test_gsa_plot_renders_sample_dataframe():
     plot.plot(df, max_rows=10)
     assert len(plot.ax.patches) == 2
 
+    plot.figure.canvas.draw()
+    patch = [c for c in plot.ax.containers if getattr(c, "patches", None)][0].patches[0]
+    renderer = plot.figure.canvas.get_renderer()
+    bbox = patch.get_window_extent(renderer)
+    from matplotlib.backend_bases import MouseEvent
+
+    event = MouseEvent(
+        "motion_notify_event",
+        plot.figure.canvas,
+        (bbox.x0 + bbox.x1) / 2,
+        (bbox.y0 + bbox.y1) / 2,
+    )
+    tip = plot.bar_patch_tooltip(event)
+    assert tip is not None
+    assert "input A" in tip
+    assert "0.5" in tip
+
 
 def test_triangular_uncertainty_summary():
     data = {"uncertainty type": sa.TriangularUncertainty.id, "loc": 5.0, "minimum": 0.0, "maximum": 10.0}

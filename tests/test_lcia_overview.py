@@ -5,7 +5,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from activity_browser.app.pages.lca_results.plots import near_square_subplot_grid
+from activity_browser.ui.widgets.plot import ABPlot
 from activity_browser.bwutils.lcia_overview import (
     LCIACompareMode,
     available_compare_modes,
@@ -130,7 +130,7 @@ def test_build_flows_x_methods_flip_is_transpose_of_column_normalization():
     ],
 )
 def test_near_square_subplot_grid(n, expected):
-    assert near_square_subplot_grid(n) == expected
+    assert ABPlot.near_square_subplot_grid(n) == expected
 
 
 def test_build_flows_x_scenarios_x_methods_panels():

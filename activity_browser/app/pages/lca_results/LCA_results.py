@@ -15,7 +15,15 @@ from stats_arrays.errors import InvalidParamsError
 from activity_browser import app
 from activity_browser.bwutils import filesystem
 from activity_browser.bwutils.commontasks import unit_of_method, get_LCIA_method_name_dict, format_activity_label
-from activity_browser.bwutils.export_names import lca_export_basename
+from activity_browser.bwutils.export_names import (
+    contribution_compare_export_slug,
+    contribution_tab_slug,
+    export_name_slug,
+    flip_export_slug,
+    lcia_compare_export_slug,
+    lca_export_basename,
+    relativity_export_slug,
+)
 from activity_browser.bwutils.lcia_overview import (
     LCIACompareMode,
     available_compare_modes,
@@ -26,11 +34,18 @@ from activity_browser.bwutils.sensitivity_analysis import GlobalSensitivityAnaly
 from activity_browser.mod.bw2analyzer import ABContributionAnalysis
 from activity_browser.ui import icons, widgets
 
-from .style import header, horizontal_line, vertical_line
+from .style import (
+    configure_lca_tab_layout,
+    lca_header_layout,
+    lca_help_tool_button,
+    lca_run_button,
+    lca_tab_control_row,
+    lca_tab_controls_section,
+    vertical_line,
+)
 from .tables import ContributionTable, InventoryTable, LCAResultsTable
 from .plots import (
     ContributionPlot,
-    CorrelationPlot,
     LCIAResultsOverviewPlot,
     MonteCarloPlot,
     GSAPlot,
@@ -41,22 +56,11 @@ ca = ABContributionAnalysis()
 
 
 def get_header_layout(header_text: str) -> QtWidgets.QVBoxLayout:
-    vlayout = QtWidgets.QVBoxLayout()
-    vlayout.addWidget(header(header_text))
-    vlayout.addWidget(horizontal_line())
-    return vlayout
+    return lca_header_layout(header_text)
 
 
 def get_header_layout_w_help(header_text: str, help_widget) -> QtWidgets.QVBoxLayout:
-    hlayout = QtWidgets.QHBoxLayout()
-    hlayout.addWidget(header(header_text))
-    hlayout.addWidget(help_widget)
-    hlayout.setStretch(0, 1)
-
-    vlayout = QtWidgets.QVBoxLayout()
-    vlayout.addLayout(hlayout)
-    vlayout.addWidget(horizontal_line())
-    return vlayout
+    return lca_header_layout(header_text, help_widget)
 
 
 def get_unit(
@@ -297,6 +301,87 @@ class NewAnalysisTab(QtWidgets.QWidget):
         self.pt_layout = QtWidgets.QVBoxLayout()
         self.layout = QtWidgets.QVBoxLayout()
         self.setLayout(self.layout)
+        configure_lca_tab_layout(self.layout)
+
+    def add_tab_header(
+        self, title: str, help_tooltip: Optional[str] = None
+    ) -> None:
+        """Title row; optional compact help button (same height as plain headers)."""
+        help_widget = None
+        if help_tooltip is not None:
+            help_widget = lca_help_tool_button(self, help_tooltip, self.explanation)
+        self.layout.addLayout(lca_header_layout(title, help_widget))
+
+    def add_tab_control_rows(self, *rows: QtWidgets.QHBoxLayout) -> None:
+        for row in rows:
+            self.layout.addLayout(row)
+
+    def build_tab_body(
+        self,
+        alignment: QtCore.Qt.Alignment = QtCore.Qt.AlignVCenter,
+    ) -> QtWidgets.QWidget:
+        """Standard expandable plot/table area used across LCA result tabs."""
+        widget = QtWidgets.QWidget()
+        widget.setSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Ignored,
+            QtWidgets.QSizePolicy.Policy.Expanding,
+        )
+        widget.setMinimumWidth(0)
+        widget.setStyleSheet("background-color: white;")
+        self.pt_layout.setContentsMargins(0, 0, 0, 0)
+        self.pt_layout.setAlignment(alignment)
+        widget.setLayout(self.pt_layout)
+        return widget
+
+    def populate_tab_body(
+        self,
+        *,
+        plot_stretch: int = 1,
+        table_stretch: int = 1,
+        alignment: QtCore.Qt.Alignment = QtCore.Qt.AlignVCenter,
+    ) -> QtWidgets.QWidget:
+        if self.plot:
+            self.pt_layout.addWidget(self.plot, plot_stretch)
+        if self.table:
+            self.pt_layout.addWidget(self.table, table_stretch)
+        self.space_check()
+        return self.build_tab_body(alignment=alignment)
+
+    def add_tab_footer(
+        self,
+        has_plot: bool = True,
+        has_table: bool = True,
+        *,
+        wrapped: bool = False,
+    ) -> Optional[QtWidgets.QWidget]:
+        export_layout = self.build_export(has_table=has_table, has_plot=has_plot)
+        if wrapped:
+            footer = QtWidgets.QWidget(self)
+            footer.setLayout(export_layout)
+            self.layout.addWidget(footer)
+            return footer
+        self.layout.addLayout(export_layout)
+        return None
+
+    def add_tab_body_with_placeholder(self) -> QtWidgets.QWidget:
+        """Add expandable body plus placeholder so chrome stays at the top when empty."""
+        self.body_placeholder = QtWidgets.QWidget()
+        self.body_placeholder.setSizePolicy(
+            QtWidgets.QSizePolicy.Policy.Ignored,
+            QtWidgets.QSizePolicy.Policy.Expanding,
+        )
+        self.main_content = self.populate_tab_body()
+        self.main_content.hide()
+        self.layout.addWidget(self.body_placeholder, 1)
+        self.layout.addWidget(self.main_content, 1)
+        return self.main_content
+
+    def set_tab_body_visible(self, visible: bool) -> None:
+        """Toggle between placeholder stretch and the results body."""
+        if not hasattr(self, "body_placeholder"):
+            return
+        self.body_placeholder.setVisible(not visible)
+        self.main_content.setVisible(visible)
 
     def _setup_plot_table_widgets(self, invertable: bool = False) -> None:
         """Create Plot/Table view controls (exclusive radio buttons) and optional Invert."""
@@ -358,29 +443,6 @@ class NewAnalysisTab(QtWidgets.QWidget):
             row.addWidget(self.plot_table.invert)
         self._append_plot_options_widgets(row)
 
-    def build_main_space(self, invertable: bool = False) -> QtWidgets.QScrollArea:
-        """Assemble main space where plots, tables and relevant options are shown."""
-        space = QtWidgets.QScrollArea()
-        widget = QtWidgets.QWidget()
-        # Let Qt distribute extra vertical space to the visible content instead of pinning at top.
-        self.pt_layout.setAlignment(QtCore.Qt.AlignVCenter)
-        widget.setLayout(self.pt_layout)
-        space.setWidget(widget)
-        _style_plots_scroll_area(space, widget)
-
-        self._setup_plot_table_widgets(invertable)
-        row = QtWidgets.QHBoxLayout()
-        self._append_toolbar_widgets(row, invertable)
-
-        if self.table and self.plot:
-            self.pt_layout.addLayout(row)
-        if self.plot:
-            self.pt_layout.addWidget(self.plot, 1)
-        if self.table:
-            self.pt_layout.addWidget(self.table)
-        self.space_check()
-        return space
-
     @QtCore.Slot(name="invertPlot")
     def invert_plot(self):
         if not self.plot_table or self.plot_table.invert is None:
@@ -413,7 +475,16 @@ class NewAnalysisTab(QtWidgets.QWidget):
     def relativity_check(self, checked: bool):
         """Check if the relative or absolute option is selected."""
         self.relative = checked
+        self._update_score_range_enabled()
         self.update_tab()
+
+    def _update_score_range_enabled(self) -> None:
+        """Score/Range normalization only applies in relative mode."""
+        if not self.total_menu:
+            return
+        enabled = bool(self.relative)
+        self.total_menu.score.setEnabled(enabled)
+        self.total_menu.range.setEnabled(enabled)
 
     @QtCore.Slot(bool, name="isTotalToggled")
     def total_check(self, checked: bool):
@@ -492,8 +563,26 @@ class NewAnalysisTab(QtWidgets.QWidget):
     def update_plot(self, *args, **kwargs):
         """Update the plot."""
         self.plot.plot(*args, **kwargs)
-        self.export_plot.png.clicked.connect(self.plot.to_png)
-        self.export_plot.svg.clicked.connect(self.plot.to_svg)
+
+    def _export_plot_png(self) -> None:
+        if self.plot is not None:
+            self.plot.to_png()
+
+    def _export_plot_svg(self) -> None:
+        if self.plot is not None:
+            self.plot.to_svg()
+
+    def _export_table_copy(self) -> None:
+        if self.table is not None:
+            self.table.to_clipboard()
+
+    def _export_table_csv(self) -> None:
+        if self.table is not None:
+            self.table.to_csv()
+
+    def _export_table_excel(self) -> None:
+        if self.table is not None:
+            self.table.to_excel()
 
     def build_export(
         self, has_table: bool = True, has_plot: bool = True
@@ -520,8 +609,8 @@ class NewAnalysisTab(QtWidgets.QWidget):
                 QtWidgets.QPushButton(".png"),
                 QtWidgets.QPushButton(".svg"),
             )
-            self.export_plot.png.clicked.connect(self.plot.to_png)
-            self.export_plot.svg.clicked.connect(self.plot.to_svg)
+            self.export_plot.png.clicked.connect(self._export_plot_png)
+            self.export_plot.svg.clicked.connect(self._export_plot_svg)
             for obj in self.export_plot:
                 plot_layout.addWidget(obj)
             export_menu.addLayout(plot_layout)
@@ -539,9 +628,9 @@ class NewAnalysisTab(QtWidgets.QWidget):
                 QtWidgets.QPushButton(".csv"),
                 QtWidgets.QPushButton("Excel"),
             )
-            self.export_table.copy.clicked.connect(self.table.to_clipboard)
-            self.export_table.csv.clicked.connect(self.table.to_csv)
-            self.export_table.excel.clicked.connect(self.table.to_excel)
+            self.export_table.copy.clicked.connect(self._export_table_copy)
+            self.export_table.csv.clicked.connect(self._export_table_csv)
+            self.export_table.excel.clicked.connect(self._export_table_excel)
             for obj in self.export_table:
                 table_layout.addWidget(obj)
             export_menu.addLayout(table_layout)
@@ -569,28 +658,36 @@ class InventoryTab(NewAnalysisTab):
         Export options
     """
 
+    _CF_FILTER_OPTIONS = (
+        ("All flows", "No filtering with categorisation factors"),
+        ("Without CFs", "Flows without categorisation factors"),
+        ("With CFs", "Flows with categorisation factors"),
+    )
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.df_biosphere = None
         self.df_technosphere = None
 
-        self.layout.addLayout(get_header_layout("Inventory"))
-        self.bio_tech_button_group = QtWidgets.QButtonGroup()
-        self.bio_categorisation_factor_group = QtWidgets.QComboBox()
-        # buttons
-        button_layout = QtWidgets.QHBoxLayout()
+        self.add_tab_header("Inventory")
+        self.bio_tech_button_group = QtWidgets.QButtonGroup(self)
+        self.bio_categorisation_factor_group = SmallComboBox(self)
+        self.bio_categorisation_factor_group.setToolTip(
+            "Filter biosphere flows by characterization-factor coverage:\n"
+            "All flows — no filter\n"
+            "Without CFs — flows without characterization factors\n"
+            "With CFs — flows with characterization factors"
+        )
+
         self.radio_button_biosphere = QtWidgets.QRadioButton("Biosphere flows")
         self.radio_button_biosphere.setChecked(True)
-
         self.radio_button_technosphere = QtWidgets.QRadioButton("Technosphere flows")
+        self.bio_tech_button_group.addButton(self.radio_button_biosphere)
+        self.bio_tech_button_group.addButton(self.radio_button_technosphere)
+
         self.remove_zeros_checkbox = QtWidgets.QCheckBox("Remove '0' values")
         self.remove_zero_state = False
 
-        self.categorisation_factor_filters = [
-            "No filtering with categorisation factors",
-            "Flows without categorisation factors",
-            "Flows with categorisation factors",
-        ]
         self.categorisation_factor_state = None
         self.old_categorisation_factor_state = self.categorisation_factor_state
 
@@ -603,40 +700,32 @@ class InventoryTab(NewAnalysisTab):
         )
         self.scenario_label = QtWidgets.QLabel("Scenario:")
 
-        # Group the radio buttons into the appropriate groups for the window
-        self.update_combobox(
-            self.bio_categorisation_factor_group, self.categorisation_factor_filters
-        )
-        self.bio_categorisation_factor_group.setMaximumWidth(300)
-        self.bio_categorisation_factor_group.setSizeAdjustPolicy(
-            QtWidgets.QComboBox.AdjustToContentsOnFirstShow
-        )
-
-        # Setup the Qt environment for the buttons, including the arrangement
-        self.categorisation_filter_layout = QtWidgets.QVBoxLayout()
-        self.categorisation_filter_layout.addWidget(QtWidgets.QLabel("Filter flows:"))
-        self.categorisation_filter_layout.addWidget(
-            self.bio_categorisation_factor_group
-        )
-        self.categorisation_filter_box = QtWidgets.QWidget()
-        self.categorisation_filter_box.setLayout(self.categorisation_filter_layout)
-        self.categorisation_filter_box.setVisible(True)
+        for short_label, full_label in self._CF_FILTER_OPTIONS:
+            self.bio_categorisation_factor_group.addItem(short_label)
+            index = self.bio_categorisation_factor_group.count() - 1
+            self.bio_categorisation_factor_group.setItemData(
+                index, full_label, QtCore.Qt.ToolTipRole
+            )
         self.categorisation_filter_with_flows = None
 
-        button_layout.addWidget(self.radio_button_biosphere)
-        button_layout.addWidget(self.radio_button_technosphere)
-        button_layout.addWidget(self.scenario_label)
-        button_layout.addWidget(self.scenario_box)
-        button_layout.addStretch(1)
-        button_layout.addWidget(self.remove_zeros_checkbox)
-        self.layout.addLayout(button_layout)
-        self.layout.addWidget(self.categorisation_filter_box)
-        # table
+        self.filter_flows_label = QtWidgets.QLabel("Filter flows:")
+
+        controls_layout = lca_tab_control_row()
+        controls_layout.addWidget(self.radio_button_biosphere)
+        controls_layout.addWidget(self.radio_button_technosphere)
+        controls_layout.addWidget(self.scenario_label)
+        controls_layout.addWidget(self.scenario_box)
+        controls_layout.addWidget(self.filter_flows_label)
+        controls_layout.addWidget(self.bio_categorisation_factor_group)
+        controls_layout.addWidget(self.remove_zeros_checkbox)
+        controls_layout.addStretch(1)
+        self.add_tab_control_rows(controls_layout)
+        self._set_flow_filter_visible(self.radio_button_biosphere.isChecked())
         self.table = InventoryTable(self.parent)
         self.table.table_name = lca_export_basename(self.parent.cs_name, "Inventory")
-        self.layout.addWidget(self.table)
+        self.layout.addWidget(self.table, 1)
 
-        self.layout.addLayout(self.build_export(has_plot=False, has_table=True))
+        self.add_tab_footer(has_plot=False, has_table=True)
         self.connect_signals()
 
     def connect_signals(self):
@@ -658,16 +747,10 @@ class InventoryTab(NewAnalysisTab):
 
     @QtCore.Slot(QtWidgets.QRadioButton, name="addCategorisationFactorFilter")
     def add_categorisation_factor_filter(self, index: int):
-        if (
-            self.bio_categorisation_factor_group.currentText()
-            == "Flows without categorisation factors"
-        ):
+        if index == 1:
             self.categorisation_filter_with_flows = False
             self.categorisation_factor_state = False
-        elif (
-            self.bio_categorisation_factor_group.currentText()
-            == "Flows with categorisation factors"
-        ):
+        elif index == 2:
             self.categorisation_filter_with_flows = True
             self.categorisation_factor_state = True
         else:
@@ -676,12 +759,16 @@ class InventoryTab(NewAnalysisTab):
         self.update_table()
         self.old_categorisation_factor_state = self.categorisation_factor_state
 
+    def _set_flow_filter_visible(self, visible: bool) -> None:
+        self.filter_flows_label.setVisible(visible)
+        self.bio_categorisation_factor_group.setVisible(visible)
+
     @QtCore.Slot(QtWidgets.QRadioButton, name="toggleCategorisationFactorFilterButtons")
     def toggle_categorisation_factor_filter_buttons(self, bttn: QtWidgets.QRadioButton):
         if bttn.text() == "Biosphere flows":
-            self.categorisation_filter_box.setVisible(True)
+            self._set_flow_filter_visible(True)
         else:
-            self.categorisation_filter_box.setVisible(False)
+            self._set_flow_filter_visible(False)
             self.categorisation_factor_state = None
 
     @QtCore.Slot(bool, name="isRemoveZerosToggled")
@@ -694,14 +781,35 @@ class InventoryTab(NewAnalysisTab):
     @QtCore.Slot(bool, name="isBiosphereToggled")
     def button_clicked(self, toggled: bool):
         """Update table according to radiobutton selected."""
-        label = "Inventory" if toggled else "Inventory_technosphere"
-        self.table.table_name = lca_export_basename(self.parent.cs_name, label)
+        self._set_flow_filter_visible(toggled)
+        if not toggled:
+            self.categorisation_factor_state = None
+        self._update_inventory_export_names()
         self.update_table()
+
+    def _update_inventory_export_names(self) -> None:
+        inventory = (
+            "biosphere" if self.radio_button_biosphere.isChecked() else "technosphere"
+        )
+        fields = [self.parent.cs_name, "Inventory", inventory]
+        if self.has_scenarios:
+            scenario_index = max(self.scenario_box.currentIndex(), 0)
+            scenario_names = self.get_scenario_labels()
+            if scenario_names and 0 <= scenario_index < len(scenario_names):
+                fields.append(scenario_names[scenario_index])
+        if inventory == "biosphere":
+            filter_index = self.bio_categorisation_factor_group.currentIndex()
+            if filter_index > 0:
+                fields.append(export_name_slug(self._CF_FILTER_OPTIONS[filter_index][0]))
+        if self.remove_zero_state:
+            fields.append("no_zeros")
+        self.table.table_name = lca_export_basename(*fields)
 
     def configure_scenario(self):
         """Allow scenarios options to be visible when used."""
         super().configure_scenario()
         self.scenario_label.setVisible(self.has_scenarios)
+        self._set_flow_filter_visible(self.radio_button_biosphere.isChecked())
 
     def update_tab(self):
         """Update the tab."""
@@ -768,6 +876,7 @@ class InventoryTab(NewAnalysisTab):
             self.df_technosphere = filter_zeroes(self.df_technosphere)
 
         self._update_table(getattr(self, attr_name))
+        self._update_inventory_export_names()
 
     def clear_tables(self) -> None:
         """Set the biosphere and technosphere to None."""
@@ -844,21 +953,54 @@ class LCAResultsTab(NewAnalysisTab):
         self.table.table_name = basename
         self.plot = self.overview_plot
 
-        self.layout.setAlignment(QtCore.Qt.AlignTop)
-        self.layout.addLayout(get_header_layout("LCA scores"))
-        self.layout.addLayout(self._build_controls())
-        self.layout.addWidget(self._build_content(), 1)
-        self.layout.addLayout(self.build_export(True, True))
+        self.add_tab_header("LCA scores")
+        self.add_tab_control_rows(
+            self._build_compare_row(),
+            self._build_view_options_row(),
+        )
+        self.layout.addWidget(self.populate_tab_body(), 1)
+        self.table.hide()
+        self.add_tab_footer(has_plot=True, has_table=True)
 
         self._configure_compare_modes()
         self.connect_signals()
         self._update_selector_visibility()
+        self._update_export_names()
 
-    def _build_controls(self) -> QtWidgets.QVBoxLayout:
-        controls = QtWidgets.QVBoxLayout()
-        controls.setSpacing(4)
+    def _update_export_names(self) -> None:
+        """Set plot/table export basenames from the current view options."""
+        mode = self._compare_mode()
+        fields = [
+            self.parent.cs_name,
+            "LCA scores",
+            lcia_compare_export_slug(mode),
+            relativity_export_slug(relative=self.relative),
+        ]
+        flip = flip_export_slug(flipped=self.flip_groups and compare_mode_supports_flip(mode))
+        if flip:
+            fields.append(flip)
+        scenario_index = max(self.scenario_box.currentIndex(), 0)
+        method_index = self.method_box.currentIndex()
+        if mode in (
+            LCIACompareMode.REFERENCE_FLOWS,
+            LCIACompareMode.FLOWS_X_SCENARIOS,
+        ):
+            methods = self.parent.mlca.methods
+            if 0 <= method_index < len(methods):
+                fields.append(methods[method_index])
+        if self.has_scenarios and mode in (
+            LCIACompareMode.REFERENCE_FLOWS,
+            LCIACompareMode.FLOWS_X_METHODS,
+        ):
+            scenario_names = self.get_scenario_labels()
+            if scenario_names and 0 <= scenario_index < len(scenario_names):
+                fields.append(scenario_names[scenario_index])
+        name = lca_export_basename(*fields)
+        self.overview_plot.plot_name = name
+        self.table.table_name = name
 
-        compare_row = QtWidgets.QHBoxLayout()
+    def _build_compare_row(self) -> QtWidgets.QHBoxLayout:
+        compare_row = lca_tab_control_row()
         compare_row.addWidget(self.compare_label)
         compare_row.addWidget(self.compare_switch)
         compare_row.addWidget(self._selectors_separator)
@@ -868,29 +1010,15 @@ class LCAResultsTab(NewAnalysisTab):
         compare_row.addWidget(self.scenario_box)
         compare_row.addWidget(self.flip_groups_checkbox)
         compare_row.addStretch()
-        controls.addLayout(compare_row)
+        return compare_row
 
-        options_row = QtWidgets.QHBoxLayout()
+    def _build_view_options_row(self) -> QtWidgets.QHBoxLayout:
+        options_row = lca_tab_control_row()
         options_row.addWidget(self.view_plot)
         options_row.addWidget(self.view_table)
         options_row.addWidget(vertical_line())
         self._append_plot_options_widgets(options_row)
-        controls.addLayout(options_row)
-
-        return controls
-
-    def _build_content(self) -> QtWidgets.QWidget:
-        widget = QtWidgets.QWidget()
-        widget.setSizePolicy(
-            QtWidgets.QSizePolicy.Policy.Ignored,
-            QtWidgets.QSizePolicy.Policy.Expanding,
-        )
-        widget.setLayout(self.pt_layout)
-        self.pt_layout.setContentsMargins(0, 0, 0, 0)
-        self.pt_layout.addWidget(self.overview_plot, 1)
-        self.pt_layout.addWidget(self.table, 1)
-        self.table.hide()
-        return widget
+        return options_row
 
     def _compare_mode(self) -> LCIACompareMode:
         text = self.compare_switch.currentText()
@@ -1009,10 +1137,11 @@ class LCAResultsTab(NewAnalysisTab):
             flip_groups=self.flip_groups,
         )
         self.df = self.overview_data.table_df
+        self._update_export_names()
         if self._plot_view_selected():
             self.update_plot()
-        if self._table_view_selected():
-            self.update_table()
+        # Keep table in sync for export even when the plot view is shown.
+        self.update_table()
 
     def _plot_view_selected(self) -> bool:
         return self.view_plot.isChecked()
@@ -1028,7 +1157,8 @@ class LCAResultsTab(NewAnalysisTab):
         )
 
     def update_table(self):
-        super().update_table(self.df)
+        if self.df is not None:
+            super().update_table(self.df)
 
 
 class SmallComboBox(QtWidgets.QComboBox):
@@ -1094,6 +1224,7 @@ class ContributionTab(NewAnalysisTab):
         self.total_group = QtWidgets.QButtonGroup(self)
         self.total_group.addButton(self.total_menu.score)
         self.total_group.addButton(self.total_menu.range)
+        self._update_score_range_enabled()
 
         self.horizontal_bars = True
         self.full_labels = False
@@ -1117,7 +1248,6 @@ class ContributionTab(NewAnalysisTab):
 
         self.has_been_opened = False
 
-        # set-up the help button
         self.explain_text = """
                 <p>There are three ways of doing Contribtion Analysis in Activity Browser:</h4>
                 <p>- <b>Elementary Flow (EF) Contributions</b></p>
@@ -1130,21 +1260,50 @@ class ContributionTab(NewAnalysisTab):
                 about manipulating results. 
                 """
 
-        self.help_button = QtWidgets.QToolBar(self)
-        self.help_button.addAction(
-            icons.qicons.question, "Left click for help on Contribution Analysis Functions", self.explanation
+    def assemble_contribution_tab_layout(
+        self,
+        title: str,
+        *,
+        has_method: bool = True,
+        has_func: bool = False,
+    ) -> None:
+        """Header, two control rows, main body, and export footer."""
+        self.add_tab_header(
+            title,
+            "Left click for help on Contribution Analysis Functions",
         )
+        self.add_tab_control_rows(
+            self.build_compare_row(has_method=has_method, has_func=has_func),
+            self.build_view_options_row(),
+        )
+        self.layout.addWidget(self.populate_tab_body(), 1)
+        self.add_tab_footer(has_plot=True, has_table=True)
 
     def set_filename(self, optional_fields: dict = None):
         """Given a dictionary of fields, put together a usable filename for the plot and table."""
         optional = optional_fields or {}
-        fields = (
+        fields = [
             self.parent.cs_name,
-            self.contribution_fn,
-            optional.get("method"),
-            optional.get("functional_unit"),
-            self.unit,
-        )
+            contribution_tab_slug(self.contribution_fn),
+            contribution_compare_export_slug(
+                self.switches.currentIndex(), self.switches.indexes
+            ),
+            relativity_export_slug(
+                relative=self.relative, total_range=self.total_range
+            ),
+        ]
+        aggregator = optional.get("aggregator")
+        if aggregator:
+            fields.append(f"agg_{export_name_slug(aggregator)}")
+        if optional.get("method") is not None:
+            fields.append(optional["method"])
+        if optional.get("functional_unit"):
+            fields.append(optional["functional_unit"])
+        scenario_index = optional.get("scenario")
+        if scenario_index is not None and self.has_scenarios:
+            scenario_names = self.get_scenario_labels()
+            if scenario_names and 0 <= scenario_index < len(scenario_names):
+                fields.append(scenario_names[scenario_index])
 
         filename = lca_export_basename(*fields)
         self.plot.plot_name, self.table.table_name = filename, filename
@@ -1158,7 +1317,7 @@ class ContributionTab(NewAnalysisTab):
     def build_view_options_row(self, invertable: bool = False) -> QtWidgets.QHBoxLayout:
         """Row 2: Plot/Table, then cut-off and other plot options."""
         self._setup_plot_table_widgets(invertable)
-        row = QtWidgets.QHBoxLayout()
+        row = lca_tab_control_row()
         row.addWidget(self.plot_table.plot)
         row.addWidget(self.plot_table.table)
         row.addWidget(vertical_line())
@@ -1177,28 +1336,11 @@ class ContributionTab(NewAnalysisTab):
         """Deprecated: use :meth:`build_view_options_row`."""
         return self.build_view_options_row(invertable=False)
 
-    def build_main_space(self, invertable: bool = False) -> QtWidgets.QScrollArea:
-        """Plot/table area only; toolbar lives in :meth:`build_view_options_row`."""
-        self._setup_plot_table_widgets(invertable=False)
-        space = QtWidgets.QScrollArea()
-        widget = QtWidgets.QWidget()
-        # Let Qt distribute extra vertical space to the visible content instead of pinning at top.
-        self.pt_layout.setAlignment(QtCore.Qt.AlignVCenter)
-        widget.setLayout(self.pt_layout)
-        space.setWidget(widget)
-        _style_plots_scroll_area(space, widget)
-        if self.plot:
-            self.pt_layout.addWidget(self.plot, 1)
-        if self.table:
-            self.pt_layout.addWidget(self.table)
-        self.space_check()
-        return space
-
     def build_combobox(
         self, has_method: bool = True, has_func: bool = False
     ) -> QtWidgets.QHBoxLayout:
         """Construct a horizontal layout for picking and choosing what data to show and how."""
-        menu = QtWidgets.QHBoxLayout()
+        menu = lca_tab_control_row()
         # Populate the drop-down boxes with their relevant values.
         self.combobox_menu.func.addItems(
             list(self.parent.mlca.func_unit_translation_dict.keys())
@@ -1360,12 +1502,11 @@ class ElementaryFlowContributionTab(ContributionTab):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        header = get_header_layout_w_help("Elementary Flow Contributions", self.help_button)
-        self.layout.addLayout(header)
-        self.layout.addLayout(self.build_compare_row(has_method=True, has_func=True))
-        self.layout.addLayout(self.build_view_options_row())
-        self.layout.addWidget(self.build_main_space())
-        self.layout.addLayout(self.build_export(True, True))
+        self.assemble_contribution_tab_layout(
+            "Elementary Flow Contributions",
+            has_method=True,
+            has_func=True,
+        )
 
         self.contribution_fn = "EF contributions"
         self.switches.configure(self.has_func, self.has_method)
@@ -1409,12 +1550,11 @@ class ProcessContributionsTab(ContributionTab):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        header = get_header_layout_w_help("Process Contributions", self.help_button)
-        self.layout.addLayout(header)
-        self.layout.addLayout(self.build_compare_row(has_method=True, has_func=True))
-        self.layout.addLayout(self.build_view_options_row())
-        self.layout.addWidget(self.build_main_space())
-        self.layout.addLayout(self.build_export(True, True))
+        self.assemble_contribution_tab_layout(
+            "Process Contributions",
+            has_method=True,
+            has_func=True,
+        )
 
         self.contribution_fn = "Process contributions"
         self.switches.configure(self.has_func, self.has_method)
@@ -1473,12 +1613,11 @@ class FirstTierContributionsTab(ContributionTab):
         # we also cache scores/ranges, not for calculation speed, but to be able to easily convert for relative results
         self.caching = True  # set to False to disable caching for debug
 
-        header = get_header_layout_w_help("First Tier Contributions", self.help_button)
-        self.layout.addLayout(header)
-        self.layout.addLayout(self.build_compare_row(has_method=True, has_func=True))
-        self.layout.addLayout(self.build_view_options_row())
-        self.layout.addWidget(self.build_main_space())
-        self.layout.addLayout(self.build_export(True, True))
+        self.assemble_contribution_tab_layout(
+            "First Tier Contributions",
+            has_method=True,
+            has_func=True,
+        )
 
         # get relevant data from calculation setup
         self.cs = cs_name
@@ -1836,53 +1975,26 @@ class FirstTierContributionsTab(ContributionTab):
         return df
 
 
-class CorrelationsTab(NewAnalysisTab):
-    def __init__(self, parent):
-        super().__init__(parent)
-        self.parent = parent
-
-        self.tab_text = "Correlations"
-        self.layout.addLayout(get_header_layout("Correlation Analysis"))
-
-        if not self.parent.single_func_unit:
-            self.plot = CorrelationPlot(self.parent)
-
-        self.layout.addWidget(self.build_main_space())
-        self.layout.addLayout(
-            self.build_export(
-                has_table=False, has_plot=not self.parent.single_func_unit
-            )
-        )
-
-    def update_plot(self):
-        """Update the plot."""
-        idx = self.pt_layout.indexOf(self.plot)
-        self.plot.figure.clf()
-        self.plot.setVisible(False)
-        self.plot.deleteLater()
-        self.plot = CorrelationPlot(self.parent)
-        self.pt_layout.insertWidget(idx, self.plot)
-        df = self.parent.mlca.get_normalized_scores_df()
-        super().update_plot(df)
-        self.space_check()
-        if self.pt_layout.parentWidget():
-            self.pt_layout.parentWidget().updateGeometry()
-
-
 class MonteCarloTab(NewAnalysisTab):
     def __init__(self, parent=None):
         super(MonteCarloTab, self).__init__(parent)
         self.parent: LCAResultsSubTab = parent
-        header_ = QtWidgets.QToolBar()
-        _header = header("Monte Carlo Simulation")
-        _header.setToolTip("Left click on the question mark for help")
-        header_.addWidget(_header)
-        header_.addAction(
-            icons.qicons.question,
+
+        self.explain_text = """
+            <p><b>Monte Carlo Analyses</b></p>
+            <p><b>Monte Carlo</b> simulations generate stochastic data samples using existing data defined parameter 
+            distributions for generating the expected distribution for the reference flows. </p>
+            <p>More <b>simply</b>, within the LCA model the user may define certain uncertainty distributions for some 
+            (or all) parameters. Monte Carlo analysis uses these defined uncertainty distributions with a stochastic 
+            generator to sample from these distributions. This results in a "posterior" (or final) probability 
+            distribution, expressing the expected variance, for the reference flows.</p>
+             <p><a href="https://github.com/LCA-ActivityBrowser/activity-browser/wiki/Monte-Carlo-Simulation">More 
+             information can be found here</a></p>
+        """
+        self.add_tab_header(
+            "Monte Carlo Simulation",
             "Left click for help on Monte Carlo analysis",
-            self.explanation,
         )
-        self.layout.addWidget(header_)
         self.scenario_label = QtWidgets.QLabel("Scenario:")
         self.include_tech = QtWidgets.QCheckBox("Technosphere", self)
         self.include_tech.setChecked(True)
@@ -1907,24 +2019,14 @@ class MonteCarloTab(NewAnalysisTab):
         mc_basename = lca_export_basename(self.parent.cs_name, "Monte Carlo")
         self.table.table_name = mc_basename
         self.plot = MonteCarloPlot(self.parent)
-        self.plot.hide()
         self.plot.plot_name = mc_basename
-        self.layout.addWidget(self.plot)
-        self.export_widget = self.build_export(has_plot=True, has_table=True)
-        self.layout.addWidget(self.export_widget)
-        self.layout.setAlignment(QtCore.Qt.AlignTop)
+
+        self.add_tab_body_with_placeholder()
+        self.export_widget = self.add_tab_footer(
+            has_plot=True, has_table=True, wrapped=True
+        )
+        self.export_widget.hide()
         self.connect_signals()
-        self.explain_text = """
-            <p><b>Monte Carlo Analyses</b></p>
-            <p><b>Monte Carlo</b> simulations generate stochastic data samples using existing data defined parameter 
-            distributions for generating the expected distribution for the reference flows. </p>
-            <p>More <b>simply</b>, within the LCA model the user may define certain uncertainty distributions for some 
-            (or all) parameters. Monte Carlo analysis uses these defined uncertainty distributions with a stochastic 
-            generator to sample from these distributions. This results in a "posterior" (or final) probability 
-            distribution, expressing the expected variance, for the reference flows.</p>
-             <p><a href="https://github.com/LCA-ActivityBrowser/activity-browser/wiki/Monte-Carlo-Simulation">More 
-             information can be found here</a></p>
-        """
 
     def connect_signals(self):
         self.button_run.clicked.connect(self.calculate_mc_lca)
@@ -1948,12 +2050,8 @@ class MonteCarloTab(NewAnalysisTab):
             )
 
     def add_MC_ui_elements(self):
-        layout_mc = QtWidgets.QVBoxLayout()
-        layout_mc.setSpacing(8)
-        layout_mc.setContentsMargins(0, 0, 0, 0)
-
         # H-LAYOUT start simulation
-        self.button_run = QtWidgets.QPushButton("Run")
+        self.button_run = lca_run_button(self)
         self.label_iterations = QtWidgets.QLabel("Iterations:")
         self.iterations = QtWidgets.QLineEdit("30")
         self.iterations.setFixedWidth(40)
@@ -1966,11 +2064,10 @@ class MonteCarloTab(NewAnalysisTab):
         self.seed = QtWidgets.QLineEdit("")
         self.seed.setFixedWidth(30)
 
-        self.hlayout_run = QtWidgets.QHBoxLayout()
-        self.hlayout_run.setSpacing(8)
+        self.hlayout_run = lca_tab_control_row()
+        self.hlayout_run.addWidget(self.button_run)
         self.hlayout_run.addWidget(self.scenario_label)
         self.hlayout_run.addWidget(self.scenario_box)
-        self.hlayout_run.addWidget(self.button_run)
         self.hlayout_run.addWidget(self.label_iterations)
         self.hlayout_run.addWidget(self.iterations)
         self.hlayout_run.addWidget(self.label_seed)
@@ -1982,7 +2079,7 @@ class MonteCarloTab(NewAnalysisTab):
         self.hlayout_run.addWidget(self.include_cf)
         self.hlayout_run.addWidget(self.include_parameters)
         self.hlayout_run.addStretch(1)
-        layout_mc.addLayout(self.hlayout_run)
+        self.add_tab_control_rows(self.hlayout_run)
 
         # self.label_running = QLabel('Running a Monte Carlo simulation. Please allow some time for this. '
         #                             'Please do not run another simulation at the same time.')
@@ -2010,36 +2107,25 @@ class MonteCarloTab(NewAnalysisTab):
         # self.hlayout_fu.addStretch()
         # self.layout_mc.addLayout(self.hlayout_fu)
 
-        # method selection
-        self.method_selection_widget = QtWidgets.QWidget()
-        self.label_methods = QtWidgets.QLabel("Choose impact category")
+        # method selection + plot/table (row 2, aligned with other LCA result tabs)
+        self.label_methods = QtWidgets.QLabel("Impact Category:")
         self.combobox_methods = QtWidgets.QComboBox()
-        self.hlayout_methods = QtWidgets.QHBoxLayout()
-
-        self.hlayout_methods.addWidget(self.label_methods)
-        self.hlayout_methods.addWidget(self.combobox_methods)
-        self.hlayout_methods.addStretch()
-        self.method_selection_widget.setLayout(self.hlayout_methods)
-
-        layout_mc.addWidget(self.method_selection_widget)
-        self.method_selection_widget.hide()
-
-        self.layout.addLayout(layout_mc)
-
-    def build_export(self, has_table: bool = True, has_plot: bool = True) -> QtWidgets.QWidget:
-        """Construct the export layout but set it into a widget because we
-        want to hide it."""
-        export_layout = super().build_export(has_table, has_plot)
-        export_widget = QtWidgets.QWidget()
-        export_widget.setLayout(export_layout)
-        # Hide widget until MC is calculated
-        export_widget.hide()
-        return export_widget
+        self._setup_plot_table_widgets(invertable=False)
+        self.hlayout_row2 = lca_tab_control_row()
+        self.hlayout_row2.addWidget(self.plot_table.plot)
+        self.hlayout_row2.addWidget(self.plot_table.table)
+        self.hlayout_row2.addWidget(self.label_methods)
+        self.hlayout_row2.addWidget(self.combobox_methods)
+        self.hlayout_row2.addStretch(1)
+        self.view_options_widget = QtWidgets.QWidget()
+        self.view_options_widget.setLayout(self.hlayout_row2)
+        self.view_options_widget.hide()
+        self.layout.addWidget(self.view_options_widget)
 
     @QtCore.Slot(name="calculateMcLca")
     def calculate_mc_lca(self):
-        self.method_selection_widget.hide()
-        self.plot.hide()
+        self.view_options_widget.hide()
+        self.set_tab_body_visible(False)
         self.export_widget.hide()
 
         iterations = int(self.iterations.text())
@@ -2153,7 +2239,8 @@ class MonteCarloTab(NewAnalysisTab):
         #     return
 
         # self.label_running.hide()
-        self.method_selection_widget.show()
+        self.view_options_widget.show()
+        self.set_tab_body_visible(True)
         self.export_widget.show()
 
         method_index = self.combobox_methods.currentIndex()
@@ -2163,29 +2250,25 @@ class MonteCarloTab(NewAnalysisTab):
         self.df = self.parent.mc.get_results_dataframe(method=method)
 
         self.update_table()
-        self.update_plot(method=method)
-        filename = lca_export_basename(
-            self.parent.cs_name, "Monte Carlo results", str(method)
-        )
+        if self._plot_view_selected():
+            self.update_plot(method=method)
+        self.space_check()
+        fields = [self.parent.cs_name, "Monte Carlo", method]
+        if self.has_scenarios:
+            scenario_index = max(self.scenario_box.currentIndex(), 0)
+            scenario_names = self.get_scenario_labels()
+            if scenario_names and 0 <= scenario_index < len(scenario_names):
+                fields.append(scenario_names[scenario_index])
+        filename = lca_export_basename(*fields)
         self.plot.plot_name, self.table.table_name = filename, filename
 
     def update_plot(self, method):
-        idx = self.layout.indexOf(self.plot)
-        self.plot.figure.clf()
-        self.plot.setVisible(False)
-        self.plot.deleteLater()
-        # name is already altered by update_mc before update_plot
-        name = self.plot.plot_name
-        self.plot = MonteCarloPlot(self.parent)
-        self.layout.insertWidget(idx, self.plot)
         super().update_plot(self.df, method=method)
-        self.plot.plot_name = name
-        self.plot.show()
-        if self.layout.parentWidget():
-            self.layout.parentWidget().updateGeometry()
+        self.space_check()
 
     def update_table(self):
         super().update_table(self.df)
+        self.space_check()
 
 
 class GSATab(NewAnalysisTab):
@@ -2196,36 +2279,6 @@ class GSATab(NewAnalysisTab):
         self.parent = parent
 
         self.GSA = GlobalSensitivityAnalysis(self.parent.mc)
-
-        header_ = QtWidgets.QToolBar()
-        _header = header("Global Sensitivity Analysis")
-        _header.setToolTip("Left click on the question mark for help")
-        header_.addWidget(_header)
-        header_.addAction(
-            icons.qicons.question,
-            "Left click for help on Global Sensitivity Analysis",
-            self.explanation,
-        )
-
-        self.layout.addWidget(header_)
-        self.scenario_box = None
-
-        self.add_GSA_ui_elements()
-
-        self.df = None
-        self.table = LCAResultsTable()
-        gsa_basename = lca_export_basename(self.parent.cs_name, "GSA")
-        self.table.table_name = gsa_basename
-        self.plot = GSAPlot(self)
-        self.plot.plot_name = gsa_basename
-        self.layout.addWidget(self.build_main_space(), 1)
-        self.table.hide()
-        self.plot.hide()
-
-        self.export_widget = self.build_export(has_plot=True, has_table=True)
-        self.layout.addWidget(self.export_widget)
-        self.layout.setAlignment(QtCore.Qt.AlignTop)
-        self.connect_signals()
 
         self.explain_text = """
             <p><b>Global Sensitivity Analysis (GSA)</b> is a family of methods that, used in conjunction with distribution
@@ -2239,6 +2292,29 @@ class GSATab(NewAnalysisTab):
              <p>The paper describing the methods is published by <a href="https://onlinelibrary.wiley.com/doi/10.1111/jiec.13194">Wiley online</a></p>
              <p>The plot shows the top inputs by delta (SALib) with confidence intervals (± delta_conf), coloured by type.</p>
         """
+        self.add_tab_header(
+            "Global Sensitivity Analysis",
+            "Left click for help on Global Sensitivity Analysis",
+        )
+        self.scenario_box = None
+
+        self.add_GSA_ui_elements()
+
+        self.df = None
+        self.table = LCAResultsTable()
+        gsa_basename = lca_export_basename(self.parent.cs_name, "GSA")
+        self.table.table_name = gsa_basename
+        self.plot = GSAPlot(self)
+        self.plot.plot_name = gsa_basename
+        self.add_tab_body_with_placeholder()
+        self.table.hide()
+        self.plot.hide()
+
+        self.export_widget = self.add_tab_footer(
+            has_plot=True, has_table=False, wrapped=True
+        )
+        self.export_widget.hide()
+        self.connect_signals()
 
     def connect_signals(self):
         self.button_run.clicked.connect(self.calculate_gsa)
@@ -2246,25 +2322,6 @@ class GSATab(NewAnalysisTab):
         self.horizontal_checkbox.toggled.connect(self._horizontal_bars_check)
         self.full_labels_checkbox.toggled.connect(self._full_labels_check)
         app.signals.monte_carlo_finished.connect(self.monte_carlo_finished)
-
-    def build_main_space(self, invertable: bool = False) -> QtWidgets.QWidget:
-        """Plot/table area without scroll — the GSA chart scales to the available height."""
-        container = QtWidgets.QWidget()
-        self.pt_layout.setAlignment(QtCore.Qt.AlignTop)
-        container.setLayout(self.pt_layout)
-        container.setMinimumWidth(0)
-        container.setSizePolicy(
-            QtWidgets.QSizePolicy.Policy.Ignored,
-            QtWidgets.QSizePolicy.Policy.Expanding,
-        )
-        bg = "background-color: white;"
-        container.setStyleSheet(bg)
-        if self.plot:
-            self.pt_layout.addWidget(self.plot, 1)
-        if self.table:
-            self.pt_layout.addWidget(self.table, 1)
-        self.space_check()
-        return container
 
     def add_GSA_ui_elements(self):
         self.horizontal_bars = False
@@ -2283,7 +2340,7 @@ class GSATab(NewAnalysisTab):
         # H-LAYOUT SETTINGS ROW 1
 
         # run button
-        self.button_run = QtWidgets.QPushButton("Run")
+        self.button_run = lca_run_button(self)
         self.button_run.setEnabled(False)
 
         # reference flow selection
@@ -2312,7 +2369,7 @@ class GSATab(NewAnalysisTab):
         self.max_rows.setFixedWidth(40)
         self.max_rows.setValidator(QtGui.QIntValidator(1, 9999))
 
-        self.hlayout_row1 = QtWidgets.QHBoxLayout()
+        self.hlayout_row1 = lca_tab_control_row()
         self.hlayout_row1.addWidget(self.button_run)
         self.hlayout_row1.addWidget(self.label_fu)
         self.hlayout_row1.addWidget(self.combobox_fu)
@@ -2326,7 +2383,7 @@ class GSATab(NewAnalysisTab):
         self.hlayout_row1.addWidget(self.cutoff_biosphere)
         self.hlayout_row1.addStretch(1)
 
-        self.hlayout_row2 = QtWidgets.QHBoxLayout()
+        self.hlayout_row2 = lca_tab_control_row()
         self._setup_plot_table_widgets(invertable=False)
         self.hlayout_row2.addWidget(self.plot_table.plot)
         self.hlayout_row2.addWidget(self.plot_table.table)
@@ -2340,9 +2397,9 @@ class GSATab(NewAnalysisTab):
         self._set_max_rows_controls_enabled(True)
 
         # OVERALL LAYOUT OF SETTINGS
-        self.layout_settings = QtWidgets.QVBoxLayout()
-        self.layout_settings.addLayout(self.hlayout_row1)
-        self.layout_settings.addLayout(self.hlayout_row2)
+        self.layout_settings = lca_tab_controls_section(
+            self.hlayout_row1, self.hlayout_row2
+        )
         self.widget_settings = QtWidgets.QWidget()
         self.widget_settings.setLayout(self.layout_settings)
 
@@ -2422,6 +2479,23 @@ class GSATab(NewAnalysisTab):
             return 10
 
     def _on_max_rows_changed(self):
+        if self.df is not None and not self.df.empty:
+            basename = self._gsa_export_basename()
+            self.plot.plot_name = basename
+            self.table.table_name = basename
+        if self.df is not None and self._plot_view_selected():
+            self.update_plot()
+
+    def _gsa_export_basename(self) -> str:
+        return lca_export_basename(self.GSA.get_save_name(), f"top{self._gsa_max_rows()}")
+
+    @QtCore.Slot(bool, name="gsaHorizontalBarsToggled")
+    def _horizontal_bars_check(self, checked: bool) -> None:
+        self.horizontal_bars = checked
+        if self.df is not None and not self.df.empty:
+            basename = self._gsa_export_basename()
+            self.plot.plot_name = basename
+            self.table.table_name = basename
         if self.df is not None and self._plot_view_selected():
             self.update_plot()
 
@@ -2430,9 +2504,10 @@ class GSATab(NewAnalysisTab):
         if self.df is None or self.df.empty:
             return
 
-        basename = self.GSA.get_save_name()
+        basename = self._gsa_export_basename()
         self.table.table_name = basename
         self.plot.plot_name = basename
+        self.set_tab_body_visible(True)
         self.export_widget.show()
         self.space_check()
         if self._plot_view_selected():
@@ -2445,7 +2520,7 @@ class GSATab(NewAnalysisTab):
                 self, "No GSA results", "Run GSA first before exporting data."
             )
             return
-        default_name = self.GSA.get_save_name()
+        default_name = self._gsa_export_basename()
         if as_csv:
             default_name = f"{default_name}.csv"
             file_filter = self.table.CSV_FILTER
@@ -2489,7 +2564,9 @@ class GSATab(NewAnalysisTab):
         if self.df is not None:
             super().update_table(self.df)
 
-    def build_export(self, has_table: bool = True, has_plot: bool = True) -> QtWidgets.QWidget:
+    def build_export(
+        self, has_table: bool = True, has_plot: bool = True
+    ) -> QtWidgets.QHBoxLayout:
         """Plot export, copy-results, and full GSA data export (inputs + outputs)."""
         export_layout = super().build_export(has_table=False, has_plot=has_plot)
         stretch = export_layout.takeAt(export_layout.count() - 1)
@@ -2499,7 +2576,7 @@ class GSATab(NewAnalysisTab):
 
         copy_btn = QtWidgets.QPushButton("Copy")
         copy_btn.setToolTip("Copy the GSA results table shown in the UI to the clipboard.")
-        copy_btn.clicked.connect(self.table.to_clipboard)
+        copy_btn.clicked.connect(self._export_table_copy)
         export_layout.addWidget(copy_btn)
 
         export_layout.addWidget(vertical_line())
@@ -2521,10 +2598,7 @@ class GSATab(NewAnalysisTab):
 
         if stretch is not None:
             export_layout.addItem(stretch)
-        export_widget = QtWidgets.QWidget()
-        export_widget.setLayout(export_layout)
-        export_widget.hide()
-        return export_widget
+        return export_layout
 
 
 class MonteCarloWorkerThread(QtCore.QThread):

@@ -30,11 +30,11 @@ from stats_arrays import uncertainty_choices as uc
 # Cleared uncertainty state for remove-uncertainty actions and dialog defaults.
 EMPTY_UNCERTAINTY = {
     "uncertainty type": UndefinedUncertainty.id,
-    "loc": np.NaN,
-    "scale": np.NaN,
-    "shape": np.NaN,
-    "minimum": np.NaN,
-    "maximum": np.NaN,
+    "loc": np.nan,
+    "scale": np.nan,
+    "shape": np.nan,
+    "minimum": np.nan,
+    "maximum": np.nan,
     "negative": False,
 }
 

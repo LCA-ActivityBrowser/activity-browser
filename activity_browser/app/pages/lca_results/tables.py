@@ -223,10 +223,14 @@ class PandasModel(QtCore.QAbstractTableModel):
         return self._dataframe.iloc[index, :].tolist()
 
     def to_clipboard(self, rows, columns, include_header: bool = False):
-        """Copy the given rows and columns of the dataframe to clipboard"""
-        self._dataframe.iloc[rows, columns].to_clipboard(
-            index=False, header=include_header
-        )
+        """Copy the given rows and columns of the dataframe to clipboard."""
+        if self._dataframe is None or not rows or not columns:
+            return
+        subset = self._dataframe.iloc[rows, columns]
+        text = subset.to_csv(sep="\t", index=False, header=include_header)
+        clipboard = QtWidgets.QApplication.clipboard()
+        if clipboard is not None:
+            clipboard.setText(text)
 
     def to_csv(self, path: str) -> None:
         """Store the dataframe as csv in the given path."""

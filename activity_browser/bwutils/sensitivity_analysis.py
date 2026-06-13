@@ -545,12 +545,14 @@ class GlobalSensitivityAnalysis:
         logger.info(f"GSA took {np.round(time() - start, 2)} s")
 
     def get_save_name(self) -> str:
-        """Default export basename: ``{cs}_GSA_{activity}_{method}`` (no extension)."""
-        from .export_names import lca_export_basename
+        """Default export basename: ``{cs}_GSA_{product}_{process}_{location}_{db}_{method}``."""
+        from .export_names import activity_export_fields, lca_export_basename
 
-        activity = self.activity or {}
-        activity_name = activity.get("name") or activity.get("reference product") or ""
-        return lca_export_basename(self.mc.cs_name, "GSA", activity_name, self.method)
+        fields = [self.mc.cs_name, "GSA"]
+        if self.activity is not None:
+            fields.extend(activity_export_fields(self.activity))
+        fields.append(self.method)
+        return lca_export_basename(*fields)
 
     def _gsa_input_dataframe(self) -> pd.DataFrame:
         """MC input matrix with rows in the same order as :attr:`df_final`."""

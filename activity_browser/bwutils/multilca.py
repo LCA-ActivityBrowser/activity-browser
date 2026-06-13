@@ -13,6 +13,7 @@ from activity_browser.mod.bw2analyzer import ABContributionAnalysis
 from .commontasks import (
     REFERENCE_FLOW_LABEL_FIELDS,
     format_reference_flow_label,
+    reference_flow_parts,
     wrap_text,
 )
 from .errors import ReferenceFlowValueError
@@ -298,11 +299,6 @@ class MLCA(object):
             )
         return out
 
-    def get_normalized_scores_df(self) -> pd.DataFrame:
-        """To be used for the currently inactive CorrelationPlot."""
-        labels = [str(x + 1) for x in range(len(self.func_units))]
-        return pd.DataFrame(data=self.lca_scores_normalized.T, columns=labels)
-
     def lca_scores_to_dataframe(self) -> pd.DataFrame:
         """Returns a dataframe of LCA scores using FU labels as index and
         methods as columns.
@@ -532,6 +528,24 @@ class Contributions(object):
             ]
         return translated_keys
 
+    @staticmethod
+    def _apply_reference_flow_columns(meta: pd.DataFrame, keys: list) -> pd.DataFrame:
+        """Align product/name metadata with reference-flow semantics for table display."""
+        for key in keys:
+            if key not in metadata.keys:
+                continue
+            try:
+                product, process_name, _, _ = reference_flow_parts(bd.get_activity(key))
+            except Exception:
+                continue
+            if "product" in meta.columns:
+                meta.at[key, "product"] = product
+            if "name" in meta.columns:
+                meta.at[key, "name"] = process_name
+            if "reference product" in meta.columns:
+                meta.at[key, "reference product"] = product
+        return meta
+
     @classmethod
     def join_df_with_metadata(
         cls,
@@ -570,6 +584,8 @@ class Contributions(object):
         # get metadata for rows
         keys = [k for k in df.index if k in metadata.keys]
         meta = metadata.get_metadata(keys, x_fields).astype(object)
+        if x_fields is None:
+            meta = cls._apply_reference_flow_columns(meta, keys)
 
         # join data with metadata
         joined = meta.join(df, how="outer")

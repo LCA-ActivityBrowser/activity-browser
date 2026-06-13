@@ -20,9 +20,16 @@ from bw2data.backends import ActivityDataset
 from activity_browser.bwutils.commontasks import identify_activity_type
 from activity_browser.bwutils.export_names import lca_export_basename
 from activity_browser.bwutils.filesystem import get_package_path
-from activity_browser.ui import icons, widgets
+from activity_browser.ui import widgets
 
-from .style import header, horizontal_line
+from .style import (
+    configure_lca_tab_layout,
+    lca_header_layout,
+    lca_help_tool_button,
+    lca_tab_control_row,
+    SmallComboBox,
+    vertical_line,
+)
 
 
 def _flow_product_name_from_edge(lca, edge: GraphEdge) -> str:
@@ -59,14 +66,7 @@ def _flow_product_name_from_edge(lca, edge: GraphEdge) -> str:
 
 
 def _header_layout_with_help(header_text: str, help_widget: QtWidgets.QWidget) -> QtWidgets.QVBoxLayout:
-    hlayout = QtWidgets.QHBoxLayout()
-    hlayout.addWidget(header(header_text))
-    hlayout.addWidget(help_widget)
-    hlayout.setStretch(0, 1)
-    vlayout = QtWidgets.QVBoxLayout()
-    vlayout.addLayout(hlayout)
-    vlayout.addWidget(horizontal_line())
-    return vlayout
+    return lca_header_layout(header_text, help_widget)
 
 
 class SankeyNavigatorWidget(widgets.ABAbstractNavigator):
@@ -94,18 +94,20 @@ class SankeyNavigatorWidget(widgets.ABAbstractNavigator):
         self.graph = Graph()
 
         # Additional Qt objects
-        self.scenario_label = QtWidgets.QLabel("Scenario: ")
-        self.func_unit_cb = QtWidgets.QComboBox()
-        self.method_cb = QtWidgets.QComboBox()
-        self.scenario_cb = QtWidgets.QComboBox()
+        self.scenario_label = QtWidgets.QLabel("Scenario:")
+        self.func_unit_cb = SmallComboBox(self)
+        self.method_cb = SmallComboBox(self)
+        self.scenario_cb = SmallComboBox(self)
         self.cutoff_sb = QtWidgets.QDoubleSpinBox()
         self.max_calc_sb = QtWidgets.QDoubleSpinBox()
-        self.button_calculate = QtWidgets.QPushButton("Calculate")
+        self.button_adjust = QtWidgets.QPushButton("Adjust", self)
+        self.button_adjust.setToolTip(
+            "Recalculate the Sankey diagram with the current cutoff and depth"
+        )
         self.layout = QtWidgets.QVBoxLayout()
 
-        self.help_button = QtWidgets.QToolBar(self)
-        self.help_button.addAction(
-            icons.qicons.question,
+        self.help_button = lca_help_tool_button(
+            self,
             "Left click for help on the Sankey diagram",
             self.show_sankey_help,
         )
@@ -133,8 +135,7 @@ class SankeyNavigatorWidget(widgets.ABAbstractNavigator):
     def connect_signals(self):
         self.button_back.clicked.connect(self.go_back)
         self.button_forward.clicked.connect(self.go_forward)
-        self.button_refresh.clicked.connect(self.draw_graph)
-        self.button_calculate.clicked.connect(self.new_sankey)
+        self.button_adjust.clicked.connect(self.new_sankey)
         self.func_unit_cb.currentIndexChanged.connect(self.new_sankey)
         self.method_cb.currentIndexChanged.connect(self.new_sankey)
         self.scenario_cb.currentIndexChanged.connect(self.new_sankey)
@@ -145,54 +146,54 @@ class SankeyNavigatorWidget(widgets.ABAbstractNavigator):
         self.label_help.hide()
         self.button_random_activity.hide()
         self.button_toggle_help.hide()
+        self.button_refresh.hide()
 
-        self.layout.setContentsMargins(4, 2, 4, 2)
-        self.layout.setSpacing(4)
+        configure_lca_tab_layout(self.layout)
 
         self.update_calculation_setup()
 
         self.layout.addLayout(_header_layout_with_help("Sankey", self.help_button))
 
         fixed = QtWidgets.QSizePolicy.Fixed
+        self.button_back.setToolTip(
+            "Go back to the previous diagram in the navigation history"
+        )
+        self.button_forward.setToolTip(
+            "Go forward to the next diagram in the navigation history"
+        )
         for btn in (self.button_back, self.button_forward):
             btn.setSizePolicy(fixed, fixed)
 
-        top_row = QtWidgets.QHBoxLayout()
-        top_row.setSpacing(4)
-        top_row.addWidget(self.button_back)
-        top_row.addWidget(self.button_forward)
-        top_row.addWidget(self.button_refresh)
-        top_row.addSpacing(12)
+        controls_row = lca_tab_control_row()
+        controls_row.addWidget(QtWidgets.QLabel("Reference Flow:"))
+        controls_row.addWidget(self.func_unit_cb)
+        controls_row.addWidget(QtWidgets.QLabel("Impact Category:"))
+        controls_row.addWidget(self.method_cb)
+        controls_row.addWidget(self.scenario_label)
+        controls_row.addWidget(self.scenario_cb)
+        controls_row.addWidget(self.button_back)
+        controls_row.addWidget(self.button_forward)
+        controls_row.addWidget(vertical_line())
 
         self.cutoff_sb.setRange(0.0, 1.0)
         self.cutoff_sb.setSingleStep(0.01)
         self.cutoff_sb.setDecimals(3)
         self.cutoff_sb.setValue(0.05)
         self.cutoff_sb.setKeyboardTracking(False)
-        top_row.addWidget(QtWidgets.QLabel("Cutoff:"))
-        top_row.addWidget(self.cutoff_sb)
+        controls_row.addWidget(QtWidgets.QLabel("Cutoff:"))
+        controls_row.addWidget(self.cutoff_sb)
 
         self.max_calc_sb.setRange(1, 2000)
         self.max_calc_sb.setSingleStep(50)
         self.max_calc_sb.setDecimals(0)
         self.max_calc_sb.setValue(250)
         self.max_calc_sb.setKeyboardTracking(False)
-        top_row.addWidget(QtWidgets.QLabel("Depth:"))
-        top_row.addWidget(self.max_calc_sb)
-        top_row.addWidget(self.button_calculate)
-        top_row.addStretch(1)
+        controls_row.addWidget(QtWidgets.QLabel("Depth:"))
+        controls_row.addWidget(self.max_calc_sb)
+        controls_row.addWidget(self.button_adjust)
+        controls_row.addStretch(1)
 
-        params_row = QtWidgets.QHBoxLayout()
-        params_row.setSpacing(6)
-        params_row.addWidget(QtWidgets.QLabel("Reference flow:"))
-        params_row.addWidget(self.func_unit_cb, 1)
-        params_row.addWidget(QtWidgets.QLabel("Impact:"))
-        params_row.addWidget(self.method_cb, 1)
-        params_row.addWidget(self.scenario_label)
-        params_row.addWidget(self.scenario_cb)
-
-        self.layout.addLayout(top_row)
-        self.layout.addLayout(params_row)
+        self.layout.addLayout(controls_row)
         self.layout.addWidget(self.view, 1)
         self.setLayout(self.layout)
 
