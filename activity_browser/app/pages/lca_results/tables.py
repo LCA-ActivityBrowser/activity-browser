@@ -1,3 +1,5 @@
+"""LCA Results tables: pandas models and filterable views for inventory and contributions."""
+
 import os
 import datetime
 from typing import Optional, Any

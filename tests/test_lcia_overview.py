@@ -228,3 +228,16 @@ def test_lcia_overview_plot_smoke(lcia_overview_project):
     plot = LCIAResultsOverviewPlot()
     plot.plot(data)
     assert len(plot.ax.patches) > 0
+
+
+def test_lcia_compare_label_helpers_round_trip():
+    from activity_browser.bwutils.lcia_overview import (
+        LCIA_COMPARE_LABELS,
+        lcia_compare_label,
+        lcia_compare_mode_from_label,
+    )
+
+    for mode in LCIACompareMode:
+        label = lcia_compare_label(mode)
+        assert label == LCIA_COMPARE_LABELS[mode]
+        assert lcia_compare_mode_from_label(label) == mode

@@ -5,10 +5,21 @@ from __future__ import annotations
 import bw2data as bd
 import pandas as pd
 
-from activity_browser.bwutils.commontasks import format_reference_flow_label
+from activity_browser.bwutils.commontasks import format_reference_flow_label, unit_of_method
 
 REST_ROWS = frozenset({"Rest (+)", "Rest (-)"})
 SPECIAL_ROWS = frozenset({"Score", *REST_ROWS})
+
+
+def contribution_axis_unit(
+    method: tuple | None, *, relative: bool = False, total_range: bool = True
+) -> str:
+    """Y-axis unit string for contribution plots (absolute or relative normalization)."""
+    if relative:
+        return "% of range" if total_range else "% of score"
+    if method:
+        return unit_of_method(method)
+    return "units of each impact category"
 
 
 def is_rest_row(label: str) -> bool:

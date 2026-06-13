@@ -1,3 +1,10 @@
+"""LCA Results page: tab widget shell and analysis sub-tabs.
+
+Each calculation setup opens an :class:`LCAResultsPage` with sub-tabs for inventory,
+LCIA scores, contributions, Sankey, Monte Carlo, and GSA. Shared tab chrome lives in
+:mod:`style`; tables and plots in sibling modules; data builders in ``bwutils``.
+"""
+
 import os
 from collections import namedtuple
 from copy import deepcopy
@@ -14,7 +21,8 @@ from stats_arrays.errors import InvalidParamsError
 
 from activity_browser import app
 from activity_browser.bwutils import filesystem
-from activity_browser.bwutils.commontasks import unit_of_method, get_LCIA_method_name_dict, format_activity_label
+from activity_browser.bwutils.commontasks import get_LCIA_method_name_dict
+from activity_browser.bwutils.contribution_labels import contribution_axis_unit
 from activity_browser.bwutils.export_names import (
     contribution_compare_export_slug,
     contribution_tab_slug,
@@ -29,11 +37,14 @@ from activity_browser.bwutils.lcia_overview import (
     available_compare_modes,
     build_lcia_overview,
     compare_mode_supports_flip,
+    lcia_compare_labels_for_modes,
+    lcia_compare_mode_from_label,
 )
 from activity_browser.bwutils.sensitivity_analysis import GlobalSensitivityAnalysis
 from activity_browser.mod.bw2analyzer import ABContributionAnalysis
-from activity_browser.ui import icons, widgets
+from activity_browser.ui import widgets
 
+from .combobox_utils import set_combobox_index, update_combobox
 from .style import (
     configure_lca_tab_layout,
     lca_header_layout,
@@ -41,6 +52,7 @@ from .style import (
     lca_run_button,
     lca_tab_control_row,
     lca_tab_controls_section,
+    SmallComboBox,
     vertical_line,
 )
 from .tables import ContributionTable, InventoryTable, LCAResultsTable
@@ -55,57 +67,10 @@ from .sankey_navigator import SankeyNavigatorWidget
 ca = ABContributionAnalysis()
 
 
-def get_header_layout(header_text: str) -> QtWidgets.QVBoxLayout:
-    return lca_header_layout(header_text)
-
-
-def get_header_layout_w_help(header_text: str, help_widget) -> QtWidgets.QVBoxLayout:
-    return lca_header_layout(header_text, help_widget)
-
-
-def get_unit(
-    method: tuple, relative: bool = False, total_range: bool = True
-) -> str:
-    """Get the unit for plot axis naming.
-
-    Determine the unit based on whether a plot is shown:
-    - for a number of reference flows
-    - for a number of impact categories
-    and whether the axis are related to:
-    - relative or
-    - absolute numbers.
-    """
-    if relative:
-        return "% of range" if total_range else "% of score"
-    if method:  # for all reference flows
-        return unit_of_method(method)
-    return "units of each impact category"
-
-
 # Special namedtuple for the LCAResults TabWidget.
 Tabs = namedtuple(
     "tabs", ("inventory", "results", "ef", "process", "sankey", "tree", "mc", "gsa")
 )
-def _style_plots_scroll_area(space: QtWidgets.QScrollArea, inner: QtWidgets.QWidget) -> None:
-    """Remove default grey from scroll viewport / chrome around matplotlib plots."""
-    space.setWidgetResizable(True)
-    space.setFrameShape(QtWidgets.QFrame.NoFrame)
-    space.setMinimumWidth(0)
-    space.setSizePolicy(
-        QtWidgets.QSizePolicy.Policy.Ignored,
-        QtWidgets.QSizePolicy.Policy.Expanding,
-    )
-    inner.setMinimumWidth(0)
-    inner.setSizePolicy(
-        QtWidgets.QSizePolicy.Policy.Ignored,
-        QtWidgets.QSizePolicy.Policy.Expanding,
-    )
-    bg = "background-color: white;"
-    inner.setStyleSheet(bg)
-    space.setStyleSheet(bg)
-    space.viewport().setStyleSheet(bg)
-
-
 Relativity = namedtuple("relativity", ("relative", "absolute"))
 TotalMenu = namedtuple("total_menu", ("score", "range"))
 FULL_LABELS_TOOLTIP = (
@@ -138,8 +103,6 @@ class LCAResultsPage(QtWidgets.QTabWidget):
         For each calculation setup-tab one array of relevant tabs.
     """
 
-    update_scenario_box_index: QtCore.SignalInstance = QtCore.Signal(int)
-
     def __init__(self, cs_name, mlca, contributions, mc, parent=None):
         super().__init__(parent)
         self.setObjectName(f"{cs_name}-{datetime.now().strftime('%H:%M:%S')}")
@@ -149,8 +112,6 @@ class LCAResultsPage(QtWidgets.QTabWidget):
         self.cs = bd.calculation_setups[self.cs_name]
         self.has_scenarios: bool = hasattr(mlca, "scenario_names")
         self.method_dict = get_LCIA_method_name_dict(self.mlca.methods)
-        self.single_func_unit = len(self.mlca.func_units) == 1
-        self.single_method = len(self.mlca.methods) == 1
 
         self.setMovable(True)
         # Match ABTabWidget: long sub-tab names must not set a wide minimum for the main window
@@ -176,9 +137,7 @@ class LCAResultsPage(QtWidgets.QTabWidget):
             # ft=FirstTierContributionsTab(self.cs_name, parent=self),
             sankey=SankeyNavigatorWidget(self.cs_name, parent=self),
             tree=None,
-            mc=MonteCarloTab(
-                self
-            ),  # mc=None if self.mc is None else MonteCarloTab(self),
+            mc=MonteCarloTab(self),  # mc=None if self.mc is None else MonteCarloTab(self),
             gsa=GSATab(self),
         )
         self.tab_names = Tabs(
@@ -211,15 +170,6 @@ class LCAResultsPage(QtWidgets.QTabWidget):
             if tab and hasattr(tab, "update_tab"):
                 tab.update_tab()
         self.tabs.sankey.update_calculation_setup(cs_name=self.cs_name)
-
-    @QtCore.Slot(int, name="updateUnderlyingMatrices")
-    def update_scenario_data(self, index: int) -> None:
-        """Will calculate which scenario array to use and update all child tabs."""
-        if index == self.mlca.current:
-            return
-        self.mlca.set_scenario(index)
-        self._update_tabs()
-        self.update_scenario_box_index.emit(index)
 
     @QtCore.Slot(int, name="generateSankeyOnClick")
     def generate_content_on_click(self, index):
@@ -432,17 +382,6 @@ class NewAnalysisTab(QtWidgets.QWidget):
                 self._full_labels_toggle_connected = True
         row.addStretch()
 
-    def _append_toolbar_widgets(
-        self, row: QtWidgets.QHBoxLayout, invertable: bool = False
-    ) -> None:
-        """Append Plot/Table view controls, then plot options (legacy single-row helper)."""
-        row.addWidget(self.plot_table.plot)
-        row.addWidget(self.plot_table.table)
-        row.addWidget(vertical_line())
-        if invertable and self.plot_table.invert is not None:
-            row.addWidget(self.plot_table.invert)
-        self._append_plot_options_widgets(row)
-
     @QtCore.Slot(name="invertPlot")
     def invert_plot(self):
         if not self.plot_table or self.plot_table.invert is None:
@@ -504,7 +443,9 @@ class NewAnalysisTab(QtWidgets.QWidget):
 
     def get_scenario_labels(self) -> List[str]:
         """Get scenario labels if scenarios are used."""
-        return self.parent.mlca.scenario_names if self.has_scenarios else []
+        from .combobox_utils import scenario_labels
+
+        return scenario_labels(self.parent)
 
     def configure_scenario(self):
         """Determine if scenario Qt widgets are visible or not and retrieve
@@ -512,26 +453,15 @@ class NewAnalysisTab(QtWidgets.QWidget):
         """
         if self.scenario_box:
             self.scenario_box.setVisible(self.has_scenarios)
-            self.update_combobox(self.scenario_box, self.get_scenario_labels())
+            update_combobox(self.scenario_box, self.get_scenario_labels())
 
-    @staticmethod
-    @QtCore.Slot(int, name="setBoxIndex")
-    def set_combobox_index(box: QtWidgets.QComboBox, index: int) -> None:
-        """Update the index on the given QComboBox without sending a signal."""
-        box.blockSignals(True)
-        box.setCurrentIndex(index)
-        box.blockSignals(False)
+    set_combobox_index = staticmethod(set_combobox_index)
+    update_combobox = staticmethod(update_combobox)
 
-    @staticmethod
-    def update_combobox(box: QtWidgets.QComboBox, labels: List[str]) -> None:
-        """Update the combobox menu, preserving the current selection when possible."""
-        current = box.currentText()
-        box.blockSignals(True)
-        box.clear()
-        box.insertItems(0, labels)
-        if current in labels:
-            box.setCurrentIndex(labels.index(current))
-        box.blockSignals(False)
+    @QtCore.Slot(int, name="scenarioIndexChanged")
+    def _on_scenario_index_changed(self, index: int) -> None:
+        """Refresh this tab when its scenario selector changes (tab-local state)."""
+        self.update_tab()
 
     def _plot_view_selected(self) -> bool:
         """Whether the Plot view is selected (ignores real visibility in the window).
@@ -739,10 +669,7 @@ class InventoryTab(NewAnalysisTab):
         )
         if self.has_scenarios:
             self.scenario_box.currentIndexChanged.connect(
-                self.parent.update_scenario_data
-            )
-            self.parent.update_scenario_box_index.connect(
-                lambda index: self.set_combobox_index(self.scenario_box, index)
+                self._on_scenario_index_changed
             )
 
     @QtCore.Slot(QtWidgets.QRadioButton, name="addCategorisationFactorFilter")
@@ -804,6 +731,14 @@ class InventoryTab(NewAnalysisTab):
         if self.remove_zero_state:
             fields.append("no_zeros")
         self.table.table_name = lca_export_basename(*fields)
+
+    @QtCore.Slot(int, name="inventoryScenarioIndexChanged")
+    def _on_scenario_index_changed(self, index: int) -> None:
+        """Switch superstructure matrices when this tab's scenario changes."""
+        mlca = self.parent.mlca
+        if hasattr(mlca, "set_scenario") and getattr(mlca, "current", None) != index:
+            mlca.set_scenario(index)
+        super()._on_scenario_index_changed(index)
 
     def configure_scenario(self):
         """Allow scenarios options to be visible when used."""
@@ -889,15 +824,6 @@ class InventoryTab(NewAnalysisTab):
 
 class LCAResultsTab(NewAnalysisTab):
     """LCIA results landing tab: grouped bar chart (default) or table."""
-
-    _COMPARE_LABELS = {
-        LCIACompareMode.REFERENCE_FLOWS: "Reference Flows",
-        LCIACompareMode.FLOWS_X_METHODS: "Reference Flows × Impact Categories",
-        LCIACompareMode.FLOWS_X_SCENARIOS: "Reference Flows × Scenarios",
-        LCIACompareMode.FLOWS_X_SCENARIOS_X_METHODS: (
-            "Reference Flows × Scenarios × Impact Categories"
-        ),
-    }
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -1021,16 +947,11 @@ class LCAResultsTab(NewAnalysisTab):
         return options_row
 
     def _compare_mode(self) -> LCIACompareMode:
-        text = self.compare_switch.currentText()
-        for mode, label in self._COMPARE_LABELS.items():
-            if label == text:
-                return mode
-        return LCIACompareMode.REFERENCE_FLOWS
+        return lcia_compare_mode_from_label(self.compare_switch.currentText())
 
     def _configure_compare_modes(self) -> None:
         modes = available_compare_modes(self.parent.mlca, self.has_scenarios)
-        labels = [self._COMPARE_LABELS[m] for m in modes]
-        self.compare_switch.configure(labels)
+        self.compare_switch.configure(lcia_compare_labels_for_modes(modes))
 
     def _update_selector_visibility(self) -> None:
         mode = self._compare_mode()
@@ -1067,10 +988,7 @@ class LCAResultsTab(NewAnalysisTab):
         self.method_box.currentIndexChanged.connect(self.update_tab)
         if self.has_scenarios:
             self.scenario_box.currentIndexChanged.connect(
-                self.parent.update_scenario_data
-            )
-            self.parent.update_scenario_box_index.connect(
-                lambda index: self.set_combobox_index(self.scenario_box, index)
+                self._on_scenario_index_changed
             )
         self._view_group.buttonClicked.connect(self._on_view_changed)
         self.relativity.relative.toggled.connect(self.relativity_check)
@@ -1159,17 +1077,6 @@ class LCAResultsTab(NewAnalysisTab):
     def update_table(self):
         if self.df is not None:
             super().update_table(self.df)
-
-
-class SmallComboBox(QtWidgets.QComboBox):
-    """A small combo box that does not expand to fill the available space."""
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
-        self.setMinimumWidth(100)
-        self.setMaximumWidth(200)
-        self.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToContentsOnFirstShow)
 
 
 class ContributionTab(NewAnalysisTab):
@@ -1332,10 +1239,6 @@ class ContributionTab(NewAnalysisTab):
         self._append_plot_options_widgets(row)
         return row
 
-    def build_cutoff_and_options_bar(self) -> QtWidgets.QHBoxLayout:
-        """Deprecated: use :meth:`build_view_options_row`."""
-        return self.build_view_options_row(invertable=False)
-
     def build_combobox(
         self, has_method: bool = True, has_func: bool = False
     ) -> QtWidgets.QHBoxLayout:
@@ -1432,8 +1335,8 @@ class ContributionTab(NewAnalysisTab):
 
         # Determine the unit for the figure, update the filenames and the
         # underlying dataframe.
-        self.unit = get_unit(
-            compare_fields.get("method"), self.relative, self.total_range
+        self.unit = contribution_axis_unit(
+            compare_fields.get("method"), relative=self.relative, total_range=self.total_range
         )
         self.set_filename(compare_fields)
         self.df = self.update_dataframe(**compare_fields)
@@ -1581,26 +1484,11 @@ class ProcessContributionsTab(ContributionTab):
 
 
 class FirstTierContributionsTab(ContributionTab):
-    """Class for the 'First Tier Contributions' sub-tab.
+    """First-tier (direct supplier) contributions tab.
 
-    This tab allows for analysis of first-tier (product) contributions.
-    The direct impact (from biosphere exchanges from the FU)
-    and cumulative impacts from all exchange inputs to the FU (first level) are calculated.
-
-    e.g. the direct emissions from steel production and the cumulative impact for all electricity input
-    into that activity. This works on the basis of input products and their total (cumulative) impact, scaled to
-    how much of that product is needed in the FU.
-
-    Example questions that can be answered by this tab:
-        What is the contribution of electricity (product) to reference flow XXX?
-        Which input product contributes the most to impact category YYY?
-        What products contribute most to reference flow ZZZ?
-
-    Shows:
-        Compare row, then Plot/Table, cut-off, Relative/Absolute, Score/Range, Horizontal
-        Compare options button to change between 'Reference Flows' and 'Impact Categories'
-        'Impact Category'/'Reference Flow' chooser with aggregation method
-        Export options
+    Not registered in :class:`LCAResultsPage` by default (see commented ``ft=`` slot).
+    Calculation logic remains here for potential re-enablement; consider moving heavy
+    logic to ``bwutils`` if this tab is restored.
     """
 
     def __init__(self, cs_name, parent=None):
@@ -1859,14 +1747,14 @@ class FirstTierContributionsTab(ContributionTab):
             all_data[i] = item, data, col_name
 
         if compare == "Impact Categories":
-            self.unit = get_unit(
-                method=False, relative=self.relative, total_range=self.total_range
+            self.unit = contribution_axis_unit(
+                None, relative=self.relative, total_range=self.total_range
             )
         else:
-            self.unit = get_unit(
+            self.unit = contribution_axis_unit(
                 self.parent.method_dict[self.combobox_menu.method.currentText()],
-                self.relative,
-                self.total_range,
+                relative=self.relative,
+                total_range=self.total_range,
             )
 
         # convert to dict format to feed into dataframe
@@ -2018,7 +1906,7 @@ class MonteCarloTab(NewAnalysisTab):
         self.table = LCAResultsTable()
         mc_basename = lca_export_basename(self.parent.cs_name, "Monte Carlo")
         self.table.table_name = mc_basename
-        self.plot = MonteCarloPlot(self.parent)
+        self.plot = MonteCarloPlot(self)
         self.plot.plot_name = mc_basename
 
         self.add_tab_body_with_placeholder()
@@ -2043,10 +1931,7 @@ class MonteCarloTab(NewAnalysisTab):
 
         if self.has_scenarios:
             self.scenario_box.currentIndexChanged.connect(
-                self.parent.update_scenario_data
-            )
-            self.parent.update_scenario_box_index.connect(
-                lambda index: self.set_combobox_index(self.scenario_box, index)
+                self._on_scenario_index_changed
             )
 
     def add_MC_ui_elements(self):
@@ -2108,6 +1993,11 @@ class MonteCarloTab(NewAnalysisTab):
         # self.layout_mc.addLayout(self.hlayout_fu)
 
         # method selection + plot/table (row 2, aligned with other LCA result tabs)
+        self.full_labels = False
+        self.full_labels_checkbox = QtWidgets.QCheckBox("Full labels")
+        self.full_labels_checkbox.setToolTip(FULL_LABELS_TOOLTIP)
+        self.full_labels_checkbox.setChecked(self.full_labels)
+
         self.label_methods = QtWidgets.QLabel("Impact Category:")
         self.combobox_methods = QtWidgets.QComboBox()
         self._setup_plot_table_widgets(invertable=False)
@@ -2116,7 +2006,8 @@ class MonteCarloTab(NewAnalysisTab):
         self.hlayout_row2.addWidget(self.plot_table.table)
         self.hlayout_row2.addWidget(self.label_methods)
         self.hlayout_row2.addWidget(self.combobox_methods)
-        self.hlayout_row2.addStretch(1)
+        self.hlayout_row2.addWidget(vertical_line())
+        self._append_plot_options_widgets(self.hlayout_row2)
         self.view_options_widget = QtWidgets.QWidget()
         self.view_options_widget.setLayout(self.hlayout_row2)
         self.view_options_widget.hide()
@@ -2225,11 +2116,23 @@ class MonteCarloTab(NewAnalysisTab):
         super().configure_scenario()
         self.scenario_label.setVisible(self.has_scenarios)
 
+    @QtCore.Slot(int, name="mcScenarioIndexChanged")
+    def _on_scenario_index_changed(self, index: int) -> None:
+        """Scenario only affects export names after MC has been run."""
+        if self.df is not None:
+            self.update_mc()
+
     def update_tab(self):
         self.update_combobox(
             self.combobox_methods, [str(m) for m in self.parent.mc.methods]
         )
         # self.update_combobox(self.combobox_methods, [str(m) for m in self.parent.mct.mc.methods])
+
+    @QtCore.Slot(bool, name="mcFullLabelsToggled")
+    def _full_labels_check(self, checked: bool) -> None:
+        self.full_labels = checked
+        if self.df is not None:
+            self.update_mc()
 
     def update_mc(self, cs_name=None):
         # act = self.combobox_fu.currentText()
@@ -2543,17 +2446,13 @@ class GSATab(NewAnalysisTab):
             filepath = f"{filepath}.xlsx"
         try:
             if as_csv:
-                output_path, input_path = self.GSA.export_GSA_all_csv(filepath)
-                saved_paths = f"{output_path}\n{input_path}"
+                self.GSA.export_GSA_all_csv(filepath)
             else:
-                saved_paths = str(self.GSA.export_GSA_all(filepath))
+                self.GSA.export_GSA_all(filepath)
         except Exception as e:
             logger.exception(e)
             QtWidgets.QMessageBox.warning(self, "Export failed", str(e))
             return
-        QtWidgets.QMessageBox.information(
-            self, "Export complete", f"GSA data saved to:\n{saved_paths}"
-        )
 
     def update_plot(self, *args, **kwargs):
         if self.df is None or self.df.empty:
@@ -2602,13 +2501,17 @@ class GSATab(NewAnalysisTab):
 
 
 class MonteCarloWorkerThread(QtCore.QThread):
-    """A worker for Monte Carlo simulations.
+    """Background worker for Monte Carlo (reserved for future use).
 
-    Unfortunately, pyparadiso does not allow parallel calculations on Windows (crashes).
-    So this is for future reference in case this issue is solved..."""
+    Not used today: MC runs synchronously in the UI thread because pyparadiso
+    does not safely support parallel solves on Windows. Kept as a reference if
+    that limitation is lifted.
+    """
 
     def __init__(self):
-        pass
+        super().__init__()
+        self.mc = None
+        self.iterations = 20
 
     def set_mc(self, mc, iterations=20):
         self.mc = mc
@@ -2617,32 +2520,10 @@ class MonteCarloWorkerThread(QtCore.QThread):
     def run(self):
         logger.info(f"Starting new Worker Thread. Iterations: {self.iterations}")
         self.mc.calculate(iterations=self.iterations)
-        # res = bw.GraphTraversal().calculate(self.demand, self.method, self.cutoff, self.max_calc)
         logger.info("in thread {}".format(QtCore.QThread.currentThread()))
-        app.signals.monte_carlo_ready.emit(self.mc.cs_name)
+        # Legacy hook; live code uses app.signals.monte_carlo_finished instead.
+        if hasattr(app.signals, "monte_carlo_ready"):
+            app.signals.monte_carlo_ready.emit(self.mc.cs_name)
 
 
 worker_thread = MonteCarloWorkerThread()
-
-# TODO review if can be removed
-
-# class Worker(QtCore.QObject):
-#
-#     def __init__(self):
-#         super().__init__()
-#
-#     def do_something(self, text):
-#         print('in thread {} message {}'.format(QtCore.QThread.currentThread(), text))
-#
-#
-# class SomeObject(QtCore.QObject):
-#
-#     finished = QtCore.pyqtSignal()
-#
-#     def long_running(self):
-#         count = 0
-#         while count < 5:
-#             time.sleep(1)
-#             print("B Increasing")
-#             count += 1
-#         self.finished.emit()

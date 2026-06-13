@@ -23,6 +23,34 @@ class LCIACompareMode(str, Enum):
     FLOWS_X_SCENARIOS_X_METHODS = "flows_x_scenarios_x_methods"
 
 
+LCIA_COMPARE_LABELS: dict[LCIACompareMode, str] = {
+    LCIACompareMode.REFERENCE_FLOWS: "Reference Flows",
+    LCIACompareMode.FLOWS_X_METHODS: "Reference Flows × Impact Categories",
+    LCIACompareMode.FLOWS_X_SCENARIOS: "Reference Flows × Scenarios",
+    LCIACompareMode.FLOWS_X_SCENARIOS_X_METHODS: (
+        "Reference Flows × Scenarios × Impact Categories"
+    ),
+}
+
+
+def lcia_compare_label(mode: LCIACompareMode) -> str:
+    """UI label for an LCIA compare mode."""
+    return LCIA_COMPARE_LABELS[mode]
+
+
+def lcia_compare_mode_from_label(label: str) -> LCIACompareMode:
+    """Map combo-box text back to :class:`LCIACompareMode`."""
+    for mode, text in LCIA_COMPARE_LABELS.items():
+        if text == label:
+            return mode
+    return LCIACompareMode.REFERENCE_FLOWS
+
+
+def lcia_compare_labels_for_modes(modes: list[LCIACompareMode]) -> list[str]:
+    """Ordered UI labels for the compare modes available in the current setup."""
+    return [LCIA_COMPARE_LABELS[mode] for mode in modes]
+
+
 RELATIVE_Y_LABEL = "% of max |impact|"
 
 

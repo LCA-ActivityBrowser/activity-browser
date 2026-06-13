@@ -1,3 +1,9 @@
+"""Shared Qt layout and chrome for LCA Results sub-tabs.
+
+Provides consistent margins, control rows, headers, run buttons, and compact
+combo boxes used across matplotlib tabs and web navigators (Sankey/Tree).
+"""
+
 from qtpy import QtWidgets, QtGui, QtCore
 
 from activity_browser.ui.icons import qicons

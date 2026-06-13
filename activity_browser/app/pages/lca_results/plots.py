@@ -173,7 +173,7 @@ class LCIAResultsOverviewPlot(ABPlot):
             return
 
         if not data.group_labels or not data.series_labels:
-            self.canvas.draw()
+            self._schedule_figure_sync()
             return
 
         self._configure_figure_layout(n_panels=1, max_groups=len(data.group_labels))
@@ -447,12 +447,10 @@ class GSAPlot(ABPlot):
 
         if self._plot_df is None:
             return
-        self.setMinimumHeight(0)
         self.reset_plot()
 
         dfp = self._plot_df.dropna(subset=["delta", "delta_conf"]).head(max(1, int(self._max_rows))).copy()
         if dfp.empty:
-            self.canvas.draw()
             self._schedule_figure_sync()
             return
 

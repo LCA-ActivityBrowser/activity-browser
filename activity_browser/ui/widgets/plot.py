@@ -45,7 +45,7 @@ def lca_results_tab_from_widget(widget) -> object | None:
     """Walk parents to the LCA results sub-tab with display options."""
     node = widget
     while node is not None:
-        if hasattr(node, "horizontal_bars") and hasattr(node, "full_labels"):
+        if hasattr(node, "full_labels"):
             parent = getattr(node, "parent", None)
             parent = parent() if callable(parent) else parent
             if parent is not None and hasattr(parent, "mlca"):
@@ -266,6 +266,11 @@ class ABPlot(QtWidgets.QWidget):
             return float(self.canvas.devicePixelRatioF())
         return float(self.canvas.devicePixelRatio())
 
+    def _canvas_has_size(self) -> bool:
+        return max(self.canvas.width(), self.width()) > 0 and max(
+            self.canvas.height(), self.height()
+        ) > 0
+
     def _qt_physical_pixel_size(self) -> tuple[float, float]:
         dpr = self._device_pixel_ratio()
         cw = max(self.canvas.width(), self.width(), 1)
@@ -277,11 +282,11 @@ class ABPlot(QtWidgets.QWidget):
         return w_px / self.figure.dpi, h_px / self.figure.dpi
 
     def sync_figure_to_widget(self) -> None:
+        if not self._canvas_has_size():
+            return
         w_px, h_px = self._qt_physical_pixel_size()
         dpi = self.figure.dpi
-        self.figure.set_size_inches(
-            max(w_px, 1.0) / dpi, max(h_px, 1.0) / dpi, forward=False
-        )
+        self.figure.set_size_inches(w_px / dpi, h_px / dpi, forward=False)
         self.canvas.draw_idle()
 
     def _schedule_figure_sync(self) -> None:
@@ -708,8 +713,7 @@ class ABPlot(QtWidgets.QWidget):
         self.apply_standard_fonts()
         self._set_plot_chrome_white()
         self.sync_figure_to_widget()
-        w_px, h_px = self._qt_physical_pixel_size()
-        if w_px >= 16 and h_px >= 16:
+        if self._canvas_has_size():
             self.canvas.draw()
         self.set_motion_tooltip(
             on_hover, y=tooltip_y, x=tooltip_x, legend=tooltip_legend
@@ -718,7 +722,7 @@ class ABPlot(QtWidgets.QWidget):
 
     def _save_figure(self, extension: str, file_filter: str) -> None:
         from activity_browser.bwutils.commontasks import savefilepath
-
+        
         filepath = savefilepath(
             default_file_name=self.plot_name, file_filter=file_filter
         )

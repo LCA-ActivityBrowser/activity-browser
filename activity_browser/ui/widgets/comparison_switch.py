@@ -3,6 +3,8 @@ from collections import namedtuple
 
 from qtpy import QtWidgets
 
+from activity_browser.bwutils.lcia_overview import LCIACompareMode, LCIA_COMPARE_LABELS
+
 Switches = namedtuple("switches", ("func", "method", "scenario"))
 LCIASwitches = namedtuple(
     "lcia_switches",
@@ -21,10 +23,10 @@ class LCAscoresSwitchComboBox(QtWidgets.QComboBox):
     def __init__(self, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
         self.switches = LCIASwitches(
-            "Reference Flows",
-            "Reference Flows × Impact Categories",
-            "Reference Flows × Scenarios",
-            "Reference Flows × Scenarios × Impact Categories",
+            LCIA_COMPARE_LABELS[LCIACompareMode.REFERENCE_FLOWS],
+            LCIA_COMPARE_LABELS[LCIACompareMode.FLOWS_X_METHODS],
+            LCIA_COMPARE_LABELS[LCIACompareMode.FLOWS_X_SCENARIOS],
+            LCIA_COMPARE_LABELS[LCIACompareMode.FLOWS_X_SCENARIOS_X_METHODS],
         )
         self.indexes = LCIASwitches(0, 1, 2, 3)
 
