@@ -19,8 +19,7 @@ shown in the LCA results GSA tab. Column names are defined in ``GSA_COLUMNS``:
 | ``Type`` | ``technosphere``, ``biosphere``, ``characterization factor``, ``parameter`` |
 | ``Shortname (without databases)`` | Same path without database suffixes (compact display) |
 | ``delta``, ``delta_conf`` | SALib sensitivity indices |
-| ``Uncertainty distribution`` | e.g. ``Uniform``, ``Triangular`` |
-| ``Uncertainty parameters`` | Dialog-aligned parameter summary |
+| ``uncertainty`` | Distribution type and parameters (``Uniform; Minimum: 0; Maximum: 1``) |
 
 For technosphere exchanges, ``index`` and the shortname differ; for parameters and
 most CFs they are usually identical.
@@ -47,10 +46,7 @@ from loguru import logger
 from SALib.analyze import delta
 
 from activity_browser.bwutils.filesystem import get_project_ab_path
-from activity_browser.bwutils.uncertainty import (
-    uncertainty_parameters_summary,
-    uncertainty_type_name,
-)
+from activity_browser.bwutils.uncertainty import uncertainty_cell_summary
 
 from .montecarlo import MonteCarloLCA
 
@@ -61,9 +57,6 @@ if not hasattr(np, "trapezoid"):  # SALib>=1.5 on NumPy 1.x
 GSA_INDEX_COLUMN = "index"
 GSA_TYPE_COLUMN = "Type"
 GSA_NAME_COLUMN = "Shortname (without databases)"
-GSA_UNCERTAINTY_DIST_COLUMN = "Uncertainty distribution"
-GSA_UNCERTAINTY_INFO_COLUMN = "Uncertainty parameters"
-
 GSA_RESULT_COLUMNS = ("delta", "delta_conf")
 
 GSA_COLUMNS = (
@@ -71,8 +64,7 @@ GSA_COLUMNS = (
     GSA_TYPE_COLUMN,
     GSA_NAME_COLUMN,
     *GSA_RESULT_COLUMNS,
-    GSA_UNCERTAINTY_DIST_COLUMN,
-    GSA_UNCERTAINTY_INFO_COLUMN,
+    "uncertainty",
 )
 GSA_METADATA_COLUMNS = tuple(c for c in GSA_COLUMNS if c not in GSA_RESULT_COLUMNS)
 
@@ -97,8 +89,7 @@ def _gsa_record(
         GSA_INDEX_COLUMN: full_index,
         GSA_TYPE_COLUMN: gsa_type,
         GSA_NAME_COLUMN: shortname,
-        GSA_UNCERTAINTY_DIST_COLUMN: uncertainty_type_name(uncertainty_source),
-        GSA_UNCERTAINTY_INFO_COLUMN: uncertainty_parameters_summary(uncertainty_source),
+        "uncertainty": uncertainty_cell_summary(uncertainty_source),
     }
 
 
@@ -554,11 +545,22 @@ class GlobalSensitivityAnalysis:
         logger.info(f"GSA took {np.round(time() - start, 2)} s")
 
     def get_save_name(self) -> str:
-        name = f"{self.mc.cs_name}_{self.mc.iterations}_{self.activity['name']}_{self.method}.xlsx"
-        return name.replace(",", "").replace("'", "").replace("/", "")
+        """Default export basename: ``{cs}_GSA_{product}_{process}_{location}_{db}_{method}``."""
+        from .export_names import activity_export_fields, lca_export_basename
+
+        fields = [self.mc.cs_name, "GSA"]
+        if self.activity is not None:
+            fields.extend(activity_export_fields(self.activity))
+        fields.append(self.method)
+        return lca_export_basename(*fields)
 
     def _gsa_input_dataframe(self) -> pd.DataFrame:
-        return pd.DataFrame(self.X.T, index=self.metadata.index)
+        """MC input matrix with rows in the same order as :attr:`df_final`."""
+        df_input = pd.DataFrame(self.X.T, index=self.metadata.index)
+        if self.df_final is not None and not self.df_final.empty:
+            order = self.df_final[GSA_INDEX_COLUMN].tolist()
+            df_input = df_input.reindex(order)
+        return df_input
 
     def export_GSA_all(self, filepath: str | Path) -> Path:
         """Write GSA results and MC input matrix to one Excel workbook (two sheets)."""
@@ -623,6 +625,6 @@ if __name__ == "__main__":
         raise SystemExit("GSA produced no results (check MC uncertainty flags and iterations).")
 
     if EXPORT_EXCEL:
-        gsa.export_GSA_all(get_project_ab_path() / f"gsa_{gsa.get_save_name()}")
+        gsa.export_GSA_all(get_project_ab_path() / f"{gsa.get_save_name()}.xlsx")
 
     print(gsa.df_final.to_string())

@@ -40,55 +40,99 @@ def wrap_text(string: str, max_length: int = 80) -> str:
     return "\n".join(map(fold, string.splitlines()))
 
 
+def shorten_label(text: str, max_length: int = 40) -> str:
+    """Single-line label for axes/legends; use a tooltip for the full string."""
+    collapsed = " ".join(str(text).split())
+    if len(collapsed) <= max_length:
+        return collapsed
+    return collapsed[: max_length - 1].rstrip() + "…"
+
+
+REFERENCE_FLOW_LABEL_FIELDS = ("name", "reference product", "location", "database")
+
+
+def _activity_as_dict(act) -> dict:
+    if hasattr(act, "as_dict"):
+        return act.as_dict()
+    return dict(act)
+
+
+def reference_flow_parts(act) -> tuple[str, str, str, str]:
+    """Return ``product, process, location, database`` for a functional-unit activity."""
+    act_dict = _activity_as_dict(act)
+    act_type = act_dict.get("type", "")
+    product_types = tuple(getattr(bd.labels, "product_node_types", ("product", "waste")))
+
+    if act_type in product_types:
+        product = (
+            act_dict.get("reference product")
+            or act_dict.get("product")
+            or act_dict.get("name", "")
+        )
+        process_name = ""
+        processor = act_dict.get("processor")
+        if processor:
+            try:
+                process_name = bd.get_activity(processor).get("name", "")
+            except Exception:
+                process_name = ""
+    else:
+        process_name = act_dict.get("name", "")
+        product = act_dict.get("reference product")
+        if not product:
+            for exc in act_dict.get("exchanges") or []:
+                if exc.get("type") == "production" and exc.get("amount", 0) > 0:
+                    try:
+                        ref_product, _, _, _ = reference_flow_parts(
+                            bd.get_activity(exc["input"])
+                        )
+                        if ref_product:
+                            product = ref_product
+                            break
+                    except Exception:
+                        pass
+        if not product:
+            product = process_name or "Unknown"
+
+    location = str(act_dict.get("location", "") or "")
+    database = str(act_dict.get("database", "") or "")
+    return product, process_name, location, database
+
+
+def format_reference_flow_label(
+    act,
+    amount: float | None = None,
+    *,
+    separator: str = " | ",
+) -> str:
+    """Single-line functional-unit label: product | process | location | database [| amount]."""
+    product, process_name, location, database = reference_flow_parts(act)
+    parts = [product, process_name, location, database]
+    if amount is not None:
+        parts.append(f"{amount}")
+    return separator.join(parts)
+
+
 def format_activity_label(key, style="pnl", max_length=40):
     try:
         act = bd.get_activity(key)
+        product, process_name, location, database = reference_flow_parts(act)
 
         if style == "pnl":
-            label = "\n".join(
-                [
-                    act.get("reference product", ""),
-                    act.get("name", ""),
-                    str(act.get("location", "")),
-                ]
-            )
+            label = "\n".join([product, process_name, location])
         elif style == "pnl_":
-            label = " | ".join(
-                [
-                    act.get("reference product", ""),
-                    act.get("name", ""),
-                    str(act.get("location", "")),
-                ]
-            )
+            label = " | ".join([product, process_name, location])
         elif style == "pnld":
-            label = " | ".join(
-                [
-                    act.get("reference product", ""),
-                    act.get("name", ""),
-                    str(act.get("location", "")),
-                    act.get("database", ""),
-                ]
-            )
+            label = " | ".join([product, process_name, location, database])
         elif style == "pl":
-            label = ", ".join(
-                [
-                    act.get("reference product", "") or act.get("name", ""),
-                    str(act.get("location", "")),
-                ]
-            )
+            label = ", ".join([product or process_name, location])
         elif style == "key":
             label = str(act.key)  # safer to use key, code does not always exist
 
         elif style == "bio":
             label = ",\n".join([act.get("name", ""), str(act.get("categories", ""))])
         else:
-            label = "\n".join(
-                [
-                    act.get("reference product", ""),
-                    act.get("name", ""),
-                    str(act.get("location", "")),
-                ]
-            )
+            label = "\n".join([product, process_name, location])
     except:
         if isinstance(key, tuple):
             return wrap_text(str("".join(key)))
@@ -516,11 +560,13 @@ def savefilepath(
     """A central function to get a safe file path."""
     from qtpy import QtWidgets
 
+    from activity_browser.bwutils import filesystem
+
     safe_name = bd.utils.safe_filename(default_file_name, add_hash=False)
     filepath, _ = QtWidgets.QFileDialog.getSaveFileName(
         parent=None,
         caption="Choose location for saving",
-        dir=os.path.join(os.path.expanduser("~"), safe_name),
+        dir=os.path.join(filesystem.get_project_path(), safe_name),
         filter=file_filter,
     )
     return filepath

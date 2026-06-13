@@ -12,8 +12,9 @@ Two roles:
 
    - ``standard_uncertainty_fields`` — active stats_arrays keys per distribution type
    - ``uncertainty_type_name`` — distribution name (e.g. ``Uniform``)
-   - ``uncertainty_parameters_summary`` — one-line parameter summary (e.g.
+   - ``uncertainty_parameters_summary`` — parameter summary (e.g.
      ``Mode: 5.0; Minimum: 0.0; Maximum: 10.0``)
+   - ``uncertainty_cell_summary`` — combined table cell (``Uniform; Minimum: 0; Maximum: 1``)
 """
 from __future__ import annotations
 
@@ -29,11 +30,11 @@ from stats_arrays import uncertainty_choices as uc
 # Cleared uncertainty state for remove-uncertainty actions and dialog defaults.
 EMPTY_UNCERTAINTY = {
     "uncertainty type": UndefinedUncertainty.id,
-    "loc": np.NaN,
-    "scale": np.NaN,
-    "shape": np.NaN,
-    "minimum": np.NaN,
-    "maximum": np.NaN,
+    "loc": np.nan,
+    "scale": np.nan,
+    "shape": np.nan,
+    "minimum": np.nan,
+    "maximum": np.nan,
     "negative": False,
 }
 
@@ -153,6 +154,15 @@ def uncertainty_parameters_summary(source) -> str:
     if ut_id in (sa.LognormalUncertainty.id, sa.GammaUncertainty.id, sa.WeibullUncertainty.id):
         parts.append(f"Negative: {bool(raw.get('negative', False))}")
     return "; ".join(parts)
+
+
+def uncertainty_cell_summary(source) -> str:
+    """Single-table-cell text: distribution type and parameters (``Type; param: val; …``)."""
+    type_name = uncertainty_type_name(source)
+    params = uncertainty_parameters_summary(source)
+    if type_name and params:
+        return f"{type_name}; {params}"
+    return type_name or params
 
 
 class BaseUncertaintyInterface(abc.ABC):

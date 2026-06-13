@@ -14,6 +14,7 @@ from activity_browser import app
 from activity_browser.bwutils.commontasks import (refresh_node, database_is_locked, database_is_legacy,
                                                   is_node_product_or_waste, is_node_biosphere, parameters_in_scope,
                                                   is_node_product, is_node_waste)
+from activity_browser.bwutils.uncertainty import uncertainty_cell_summary
 from activity_browser.ui import widgets, icons, delegates, core
 
 
@@ -150,7 +151,7 @@ class ExchangesTab(QtWidgets.QWidget):
 
         # Create a DataFrame from the exchanges
         exc_df = pd.DataFrame(exchanges, columns=["amount", "input", "formula", "comment", "type"])
-        exc_df["uncertainty"] = [x.uncertainty for x in exchanges]
+        exc_df["uncertainty"] = [uncertainty_cell_summary(x.uncertainty) for x in exchanges]
         act_df = app.metadata.get_metadata(exc_df["input"].unique(), cols).rename(columns={"type": "_producer_type"})
 
         # Merge the exchanges DataFrame with the metadata DataFrame
@@ -796,7 +797,6 @@ class ExchangesModel(core.ABTreeModel):
 
         functional = self.functional(index)
 
-        # Allow editing for specific keys: "amount", "formula", and "uncertainty".
         if column_name in ["amount", "formula", "uncertainty", "comment"]:
             return True
 

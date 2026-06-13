@@ -11,8 +11,6 @@ from activity_browser.bwutils.sensitivity_analysis import (
     GSA_INDEX_COLUMN,
     GSA_NAME_COLUMN,
     GSA_TYPE_COLUMN,
-    GSA_UNCERTAINTY_DIST_COLUMN,
-    GSA_UNCERTAINTY_INFO_COLUMN,
     GlobalSensitivityAnalysis,
     get_CF_dataframe,
     get_lca,
@@ -20,6 +18,7 @@ from activity_browser.bwutils.sensitivity_analysis import (
 from activity_browser.app.pages.lca_results.plots import GSAPlot
 from activity_browser.bwutils.sensitivity_analysis import GSA_NAME_COLUMN
 from activity_browser.bwutils.uncertainty import (
+    uncertainty_cell_summary,
     uncertainty_field_name,
     uncertainty_parameters_summary,
 )
@@ -73,15 +72,32 @@ def test_gsa_plot_renders_sample_dataframe():
     plot.plot(df, max_rows=10)
     assert len(plot.ax.patches) == 2
 
+    plot.figure.canvas.draw()
+    patch = [c for c in plot.ax.containers if getattr(c, "patches", None)][0].patches[0]
+    renderer = plot.figure.canvas.get_renderer()
+    bbox = patch.get_window_extent(renderer)
+    from matplotlib.backend_bases import MouseEvent
+
+    event = MouseEvent(
+        "motion_notify_event",
+        plot.figure.canvas,
+        (bbox.x0 + bbox.x1) / 2,
+        (bbox.y0 + bbox.y1) / 2,
+    )
+    tip = plot.bar_patch_tooltip(event)
+    assert tip is not None
+    assert "input A" in tip
+    assert "0.5" in tip
+
 
 def test_triangular_uncertainty_summary():
+    data = {"uncertainty type": sa.TriangularUncertainty.id, "loc": 5.0, "minimum": 0.0, "maximum": 10.0}
     assert uncertainty_field_name(sa.TriangularUncertainty.id, "loc") == "Mode"
     assert (
-        uncertainty_parameters_summary(
-            {"uncertainty type": sa.TriangularUncertainty.id, "loc": 5.0, "minimum": 0.0, "maximum": 10.0}
-        )
+        uncertainty_parameters_summary(data)
         == "Mode: 5.0; Minimum: 0.0; Maximum: 10.0"
     )
+    assert uncertainty_cell_summary(data) == "Triangular; Mode: 5.0; Minimum: 0.0; Maximum: 10.0"
 
 
 def test_get_cf_dataframe_uses_method_uncertainty(mc_project):
@@ -91,8 +107,8 @@ def test_get_cf_dataframe_uses_method_uncertainty(mc_project):
 
     assert not dfcf.empty
     assert dfcf.iloc[0][GSA_TYPE_COLUMN] == "characterization factor"
-    assert dfcf.iloc[0][GSA_UNCERTAINTY_DIST_COLUMN] == "Uniform"
-    assert "Minimum:" in dfcf.iloc[0][GSA_UNCERTAINTY_INFO_COLUMN]
+    assert dfcf.iloc[0]["uncertainty"].startswith("Uniform")
+    assert "Minimum:" in dfcf.iloc[0]["uncertainty"]
 
 
 def test_mc_populates_cf_dict(mc_project):
@@ -180,5 +196,22 @@ def test_gsa_runs_with_parameter_uncertainty(mc_project_with_parameters):
     param = gsa.df_final.loc[gsa.df_final[GSA_TYPE_COLUMN] == "parameter"].iloc[0]
     assert "bio_amount" in param[GSA_NAME_COLUMN]
     assert param[GSA_INDEX_COLUMN] == param[GSA_NAME_COLUMN]
-    assert "Minimum: 8.0" in param[GSA_UNCERTAINTY_INFO_COLUMN]
-    assert "Maximum: 12.0" in param[GSA_UNCERTAINTY_INFO_COLUMN]
+    assert "Minimum: 8.0" in param["uncertainty"]
+    assert "Maximum: 12.0" in param["uncertainty"]
+
+
+def test_gsa_export_basename(mc_project):
+    from activity_browser.bwutils.export_names import export_name_slug
+
+    gsa = _run_gsa(_run_mc(mc_project, **ALL_UNCERTAINTY_LAYERS))
+    basename = gsa.get_save_name()
+    assert basename.startswith(f"{mc_project}_GSA_")
+    assert export_name_slug(gsa.method) in basename
+    assert not basename.endswith(".xlsx")
+    assert "gsa_output" not in basename
+
+
+def test_gsa_input_export_order_matches_output(mc_project):
+    gsa = _run_gsa(_run_mc(mc_project, **ALL_UNCERTAINTY_LAYERS))
+    input_df = gsa._gsa_input_dataframe()
+    assert input_df.index.tolist() == gsa.df_final[GSA_INDEX_COLUMN].tolist()

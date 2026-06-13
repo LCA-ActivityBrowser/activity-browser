@@ -28,7 +28,7 @@ LCI / LCIA → scores
 | `parameter_montecarlo.py` | Map recalculated amounts to `bw2calc` matrix indices; `functional_sqlite` process ↔ product via `bw_functional` |
 | `utils.py` (parent `bwutils`) | `Parameter`, `Parameters`, `StaticParameters`, `Index`, `Indices` |
 
-`montecarlo.MonteCarloLCA` wires the hook and sets `keep_first_iteration_flag = True` (reuse baseline matrix for iteration 0).
+`montecarlo.MonteCarloLCA` wires the hook and sets `keep_first_iteration_flag = False` (every iteration is sampled).
 
 ## Imports
 
