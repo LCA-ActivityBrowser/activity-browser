@@ -26,3 +26,4 @@ uv.lock
 /contrib/
 /local_testing/
 /scripts/
+/.ci-test-venv/
