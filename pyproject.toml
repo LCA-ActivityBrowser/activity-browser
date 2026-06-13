@@ -95,6 +95,10 @@ norecursedirs = [
 testpaths = ["tests"]
 log_cli = true
 
+[tool.coverage.run]
+source = ["activity_browser"]
+relative_files = true
+
 [tool.black]
 line-length = 88
 
