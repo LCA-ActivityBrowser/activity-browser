@@ -43,7 +43,6 @@ requirements:
     - qtpy
     - salib >=1.4
     - scipy >=1.10
-    - seaborn
 
 about:
   home: https://github.com/LCA-ActivityBrowser/activity-browser
