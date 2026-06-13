@@ -9,8 +9,14 @@ import os
 import bw2data as bd
 from PySide6 import QtCore
 
-import bw_functional as bf
 from bw2data.tests import bw2test
+
+from fixtures.bw_helpers import (
+    register_parameter_setup,
+    write_calculation_setup,
+    write_functional_database,
+    write_method,
+)
 
 os.environ["AB_SKIP_SETTINGS_ON_STARTUP"] = "1"
 os.environ["AB_NO_SEARCHER"] = "1"
@@ -46,12 +52,13 @@ def main_window(qtbot, monkeypatch, no_exception_dialogs):
 
     qtbot.wait(10)
 
+
 @pytest.fixture
 @bw2test
 def basic_database(qapp, main_window):
     import time
     from activity_browser.app import metadata
-    from fixtures.basic import DATABASE, METHOD, CALCULATION_SETUP
+    from fixtures.basic import CALCULATION_SETUP, DATABASE, METHOD
 
     qapp.processEvents(QtCore.QEventLoop.ProcessEventsFlag.AllEvents)
 
@@ -62,17 +69,9 @@ def basic_database(qapp, main_window):
         qapp.processEvents(QtCore.QEventLoop.ProcessEventsFlag.AllEvents)
         i += 1
 
-    db = bf.FunctionalSQLiteDatabase("basic")
-    db.write(deepcopy(DATABASE), process=False)
-    db.metadata["dirty"] = True
-    bd.databases.flush()
-
-    mthd = bd.Method(("basic_method",))
-    mthd.register(unit="kilogram", num_cfs=1)
-    mthd.write(deepcopy(METHOD), process=False)
-
-    bd.calculation_setups["basic_calculation_setup"] = CALCULATION_SETUP
-    bd.calculation_setups.flush()
+    db = write_functional_database("basic", DATABASE, process=False, mark_dirty=True)
+    write_method("basic_method", METHOD, process=False)
+    write_calculation_setup("basic_calculation_setup", CALCULATION_SETUP)
 
     i = 0
     while metadata.loader.secondary_status != "done" and i < 60:
@@ -86,3 +85,66 @@ def basic_database(qapp, main_window):
 
     yield db
 
+
+@pytest.fixture
+@bw2test
+def mc_project():
+    """
+    Minimal functional_sqlite project for Monte Carlo uncertainty tests.
+
+    Yields the calculation setup name. Does not load the Activity Browser UI.
+    """
+    from fixtures.monte_carlo import (
+        CALCULATION_SETUP,
+        CALCULATION_SETUP_NAME,
+        DATABASE,
+        METHOD,
+        METHOD_NAME,
+    )
+
+    write_functional_database("mc", DATABASE, process=True)
+    write_method(METHOD_NAME, METHOD, process=True)
+    write_calculation_setup(CALCULATION_SETUP_NAME, CALCULATION_SETUP)
+    yield CALCULATION_SETUP_NAME
+
+
+@pytest.fixture
+@bw2test
+def lcia_overview_project():
+    """LCIA overview test database and calculation setups (1×1 … 10×10, MC)."""
+    from fixtures.lcia_overview import (
+        CALCULATION_SETUPS,
+        DATABASE_NAME,
+        DATABASE,
+        METHODS,
+    )
+
+    write_functional_database(DATABASE_NAME, DATABASE, process=True)
+    for method_key, cfs in METHODS.items():
+        write_method(method_key, cfs, process=True)
+    for cs_name, setup in CALCULATION_SETUPS.items():
+        write_calculation_setup(cs_name, setup)
+    yield DATABASE_NAME
+
+
+@pytest.fixture
+@bw2test
+def mc_project_with_parameters():
+    """
+    Like ``mc_project`` but with uncertain parameter ``bio_amount`` on the main biosphere exchange.
+    """
+    from fixtures.monte_carlo import (
+        CALCULATION_SETUP,
+        CALCULATION_SETUP_NAME,
+        DATABASE_NAME,
+        DATABASE_WITH_PARAMETER_FORMULA,
+        METHOD,
+        METHOD_NAME,
+        PARAMETER_SETUP,
+    )
+
+    write_functional_database("mc", DATABASE_WITH_PARAMETER_FORMULA, process=True)
+    register_parameter_setup(DATABASE_NAME, PARAMETER_SETUP)
+    write_method(METHOD_NAME, METHOD, process=True)
+    write_calculation_setup(CALCULATION_SETUP_NAME, CALCULATION_SETUP)
+    yield CALCULATION_SETUP_NAME

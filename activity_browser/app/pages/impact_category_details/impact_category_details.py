@@ -8,6 +8,7 @@ import pandas as pd
 from activity_browser import app
 from activity_browser.ui import widgets, icons, delegates, core
 from activity_browser.bwutils.commontasks import is_node_biosphere
+from activity_browser.bwutils.uncertainty import EMPTY_UNCERTAINTY, uncertainty_cell_summary
 
 from .impact_category_header import ImpactCategoryHeader
 
@@ -70,7 +71,9 @@ class ImpactCategoryDetailsPage(widgets.ABAbstractPage):
     def build_df(self):
         df = pd.DataFrame(self.impact_category.load(), columns=["id", "data"])
         df["amount"] = df["data"].apply(lambda x: x if isinstance(x, (float, int)) else x.get("amount"))
-        df["uncertainty"] = df["data"].apply(self.uncertainty_from_cf)
+        df["uncertainty"] = df["data"].apply(
+            lambda cf: uncertainty_cell_summary(cf) if isinstance(cf, dict) else ""
+        )
 
         other = app.metadata.dataframe[["id", "name", "categories", "database", "unit"]]
 
@@ -78,22 +81,16 @@ class ImpactCategoryDetailsPage(widgets.ABAbstractPage):
         df["_impact_category_name"] = [self.name for i in range(len(df))]
         df["_editable"] = self.is_editable
 
-        cols = ["name", "categories", "database", "amount", "unit", "uncertainty", "_id", "_impact_category_name", "_cf", "_editable"]
+        cols = [
+            "name", "categories", "database", "amount", "unit", "uncertainty",
+            "_id", "_impact_category_name", "_cf", "_editable",
+        ]
         return df[cols]
 
     def uncertainty_from_cf(self, cf):
-        if isinstance(cf, dict):
-            uncertainty_keys = {
-                "uncertainty type",
-                "loc",
-                "scale",
-                "shape",
-                "minimum",
-                "maximum",
-                "negative",
-            }
-            return {k: v for k, v in cf.items() if k in uncertainty_keys}
-        return 0
+        if not isinstance(cf, dict):
+            return {}
+        return {k: v for k, v in cf.items() if k in EMPTY_UNCERTAINTY}
 
 
 class CharacterizationFactorsView(widgets.ABTreeView):
@@ -105,6 +102,14 @@ class CharacterizationFactorsView(widgets.ABTreeView):
 
     class ContextMenu(widgets.ABMenu):
         menuSetup = [
+            lambda m: m.add(
+                app.actions.CFUncertaintyModify,
+                m.impact_category_name,
+                m.char_factors,
+                enable=bool(m.char_factors),
+                text="View uncertainty…" if not m.is_editable else "Modify uncertainty…",
+                read_only=not m.is_editable,
+            ),
             lambda m: m.add(app.actions.CFRemove, m.impact_category_name, m.char_factors,
                             enable=bool(m.char_factors) and m.is_editable,
                             text="Remove characterization factor(s)"),
@@ -209,6 +214,19 @@ class CharacterizationFactorsModel(core.ABTreeModel):
         super().__init__(parent=page, enable_sorting=True)
         self.page = page
 
+    def uncertainty_editor_initial(self, index: QtCore.QModelIndex) -> dict:
+        if self.column_name(index) != "uncertainty":
+            return {}
+        row = self.row(index)
+        if row is None:
+            return {}
+        return self.page.uncertainty_from_cf(row.get("_cf"))
+
+    def uncertainty_editor_read_only(self, index: QtCore.QModelIndex) -> bool:
+        if self.column_name(index) != "uncertainty":
+            return False
+        return not bool(self.get(index, "_editable"))
+
     def sort(self, column: int, order: Qt.SortOrder = Qt.SortOrder.AscendingOrder) -> None:
         """
         Sorts the model based on the given column and order.
@@ -248,6 +266,8 @@ class CharacterizationFactorsModel(core.ABTreeModel):
             return True
 
         if column_name == "uncertainty":
+            if not row.get("_editable"):
+                return False
             app.actions.CFUncertaintyModify.run(
                 row["_impact_category_name"], [(row["_id"], row["_cf"])], uncertainty_dict=value
             )
@@ -300,8 +320,9 @@ class CharacterizationFactorsModel(core.ABTreeModel):
             bool: True if the index is editable, False otherwise.
         """
         column_name = self.column_name(index)
-        # Allow editing for amount and uncertainty if editable
-        if column_name in ["amount", "uncertainty"] and self.get(index, "_editable"):
+        if column_name == "uncertainty":
+            return True
+        if column_name == "amount" and self.get(index, "_editable"):
             return True
 
         return False

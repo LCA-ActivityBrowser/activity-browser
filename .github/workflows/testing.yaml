@@ -2,10 +2,11 @@ name: Automated Testing
 on:
   pull_request:
     branches:
-      - major
       - beta
+      - major
   push:
     branches:
+      - beta
       - major
 
 jobs:
@@ -43,4 +44,4 @@ jobs:
 
       - name: Test with pytest
         run: |
-          pytest -s --no-header --no-summary -q
+          pytest -s --no-header --no-summary -q --no-cov

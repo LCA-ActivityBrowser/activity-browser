@@ -10,8 +10,14 @@ import pandas as pd
 
 from activity_browser.mod.bw2analyzer import ABContributionAnalysis
 
-from .commontasks import wrap_text
+from .commontasks import (
+    REFERENCE_FLOW_LABEL_FIELDS,
+    format_reference_flow_label,
+    reference_flow_parts,
+    wrap_text,
+)
 from .errors import ReferenceFlowValueError
+from .lcia_overview import normalize_column
 from .metadata import MetaDataStore
 
 metadata = MetaDataStore()
@@ -193,13 +199,7 @@ class MLCA(object):
             amount = fu[key]
             act = bd.get_activity(key)
             self.func_unit_translation_dict[
-                (
-                    f'{act["name"]} | '
-                    f'{act.get("reference product", act.get("name", "Unknown"))} | '
-                    f'{act["location"]} | '
-                    f'{act["database"]} | '
-                    f"{amount}"
-                )
+                format_reference_flow_label(act, amount)
             ] = fu
         self.func_key_dict = {
             m: i for i, m in enumerate(self.func_unit_translation_dict.keys())
@@ -288,13 +288,16 @@ class MLCA(object):
 
     @property
     def lca_scores_normalized(self) -> np.ndarray:
-        """Normalize LCA scores by impact assessment method."""
-        return self.lca_scores / self.lca_scores.max(axis=0)
-
-    def get_normalized_scores_df(self) -> pd.DataFrame:
-        """To be used for the currently inactive CorrelationPlot."""
-        labels = [str(x + 1) for x in range(len(self.func_units))]
-        return pd.DataFrame(data=self.lca_scores_normalized.T, columns=labels)
+        """Normalize LCA scores per impact category (0–1 scale; safe for zero columns)."""
+        scores = np.asarray(self.lca_scores, dtype=float)
+        if scores.size == 0:
+            return scores
+        out = np.empty_like(scores)
+        for col in range(scores.shape[1]):
+            out[:, col] = (
+                normalize_column(scores[:, col], relative=True) / 100.0
+            )
+        return out
 
     def lca_scores_to_dataframe(self) -> pd.DataFrame:
         """Returns a dataframe of LCA scores using FU labels as index and
@@ -390,24 +393,24 @@ class Contributions(object):
             ),
         }
 
-    def normalize(self, contribution_array: np.ndarray, total_range:bool=True) -> np.ndarray:
-        """Normalize the contribution array based on range or score
+    def normalize(self, contribution_array: np.ndarray, total_range: bool = True) -> np.ndarray:
+        """Normalize the contribution array based on range or score.
 
-        Parameters
-        ----------
-        contribution_array : A 2-dimensional contribution array
-        total_range : A bool, True for normalization based on range, False for score
-
-        Returns
-        -------
-        2-dimensional array of same shape, with scores normalized.
-
+        Percent scale (0–100), consistent with LCIA overview / LCA scores plots.
+        Score mode uses ``|net total|``; when the net is zero but contributions
+        have mixed signs, falls back to the range (sum of absolute values).
         """
-        if total_range:  # total is based on the range
-            total = abs(abs(contribution_array).sum(axis=1, keepdims=True))
-        else:  # total is based on the score
-            total = abs(contribution_array.sum(axis=1, keepdims=True))
-        return contribution_array / total
+        if total_range:
+            total = np.abs(contribution_array).sum(axis=1, keepdims=True)
+        else:
+            total = np.abs(contribution_array.sum(axis=1, keepdims=True))
+            zero_net = (total == 0) | ~np.isfinite(total)
+            if np.any(zero_net):
+                range_total = np.abs(contribution_array).sum(axis=1, keepdims=True)
+                total = np.where(zero_net, range_total, total)
+        with np.errstate(divide="ignore", invalid="ignore"):
+            result = 100.0 * contribution_array / total
+        return np.where(total == 0, 0.0, result)
 
     def _build_dict(
         self,
@@ -496,9 +499,9 @@ class Contributions(object):
         Translated and/or joined (and wrapped) labels matching the keys
 
         """
-        fields = (
-            fields if fields else ["name", "reference product", "location", "database"]
-        )
+        use_reference_flow_labels = fields is None or tuple(fields) == REFERENCE_FLOW_LABEL_FIELDS
+        if fields is None:
+            fields = list(REFERENCE_FLOW_LABEL_FIELDS)
         keys = (
             k for k in key_list
         )  # need to do this as the keys come from a pd.Multiindex
@@ -508,12 +511,15 @@ class Contributions(object):
                 translated_keys.append(k)
             elif isinstance(k, str):
                 translated_keys.append(k)
-            elif k in metadata.dataframe.index:
-                translated_keys.append(
-                    separator.join(
-                        [str(l) for l in list(metadata.get_metadata(k, fields))]
+            elif k in metadata.keys:
+                if use_reference_flow_labels:
+                    translated_keys.append(format_reference_flow_label(bd.get_activity(k)))
+                else:
+                    translated_keys.append(
+                        separator.join(
+                            [str(l) for l in list(metadata.get_metadata(k, fields))]
+                        )
                     )
-                )
             else:
                 translated_keys.append(separator.join([i for i in k if i != ""]))
         if max_length:
@@ -521,6 +527,24 @@ class Contributions(object):
                 wrap_text(k, max_length=max_length) for k in translated_keys
             ]
         return translated_keys
+
+    @staticmethod
+    def _apply_reference_flow_columns(meta: pd.DataFrame, keys: list) -> pd.DataFrame:
+        """Align product/name metadata with reference-flow semantics for table display."""
+        for key in keys:
+            if key not in metadata.keys:
+                continue
+            try:
+                product, process_name, _, _ = reference_flow_parts(bd.get_activity(key))
+            except Exception:
+                continue
+            if "product" in meta.columns:
+                meta.at[key, "product"] = product
+            if "name" in meta.columns:
+                meta.at[key, "name"] = process_name
+            if "reference product" in meta.columns:
+                meta.at[key, "reference product"] = product
+        return meta
 
     @classmethod
     def join_df_with_metadata(
@@ -558,8 +582,10 @@ class Contributions(object):
             df.index.names = ["database", "code"]
 
         # get metadata for rows
-        keys = [k for k in df.index if k in metadata.dataframe.index]
+        keys = [k for k in df.index if k in metadata.keys]
         meta = metadata.get_metadata(keys, x_fields).astype(object)
+        if x_fields is None:
+            meta = cls._apply_reference_flow_columns(meta, keys)
 
         # join data with metadata
         joined = meta.join(df, how="outer")
@@ -610,13 +636,14 @@ class Contributions(object):
         # replace all 0 values with NaN and drop all rows with only NaNs
         df = df.replace(0, np.nan)
 
-        # sort on mean square of a row
+        # sort on mean square of a row (avoid a temporary column — breaks with MultiIndex cols)
         df_bot = deepcopy(df.iloc[3:, :])
         func = lambda row: np.nanmean(np.square(row))
-        if len(df_bot) > 1:  # but only sort if there is something to sort
-            df_bot["_sort_me_"] = (df_bot.select_dtypes(include=np.number)).apply(func, axis=1)
-            df_bot.sort_values(by="_sort_me_", ascending=False, inplace=True)
-            del df_bot["_sort_me_"]
+        if len(df_bot) > 1:
+            numeric = df_bot.select_dtypes(include=np.number)
+            if not numeric.columns.empty:
+                sort_order = numeric.apply(func, axis=1).sort_values(ascending=False).index
+                df_bot = df_bot.loc[sort_order]
 
         df = pd.concat([df.iloc[:3, :], df_bot], axis=0)
         df.dropna(how="all", inplace=True)
@@ -783,7 +810,10 @@ class Contributions(object):
 
     def _contribution_rows(self, contribution: str, aggregator=None):
         if aggregator is None:
-            return self.act_fields if contribution == self.ACT else self.ef_fields
+            if contribution == self.ACT:
+                # Same labels as reference flows (product | process | location | database).
+                return None
+            return self.ef_fields
         return aggregator if isinstance(aggregator, list) else [aggregator]
 
     def _correct_method_index(self, mthd_indx: list) -> dict:
@@ -808,7 +838,8 @@ class Contributions(object):
 
     def _contribution_index_cols(self, **kwargs) -> tuple[dict, Optional[Iterable]]:
         if kwargs.get("method") is not None:
-            return self.mlca.fu_index, self.act_fields
+            # Reference-flow columns: same labels as MLCA / LCA scores (product | process | …).
+            return self.mlca.fu_index, None
         return self._correct_method_index(self.mlca.methods), None
 
     def top_elementary_flow_contributions(

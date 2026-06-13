@@ -1,3 +1,5 @@
+"""In-memory parameter recalculation (project → database → activity → exchanges)."""
+
 from abc import abstractmethod
 from collections.abc import Iterator
 from copy import deepcopy
@@ -8,17 +10,18 @@ from stats_arrays import MCRandomNumberGenerator, UncertaintyBase
 
 from bw2data.backends import ExchangeDataset
 from bw2data.parameters import get_new_symbols, ParameterizedExchange
-from bw2parameters import ParameterSet, MissingName, Interpreter
+from bw2parameters import Interpreter, MissingName, ParameterSet
 
-from .utils import Index, Indices, Parameters, StaticParameters
+from activity_browser.bwutils.utils import Index, Indices, Parameters, StaticParameters
 
-class ParameterManager(object):
-    """A manager for Brightway2 parameters, allowing for formula evaluation
-    without touching the database.
+
+class ParameterManager:
     """
+    Evaluate Brightway parameter formulas without writing to the database.
 
-#TODO: several methods here are only kept as the MonteCarloParameterManager still relies on these
-#TODO: once the MonteCarloParameterManager is re-worked, these methods can be removed as well
+    Recalculation order: project → database → activity parameters, then
+    parameterized exchange formulas (per activity group).
+    """
 
     def __init__(self):
         self.parameters: Parameters = Parameters.from_bw_parameters()
@@ -26,9 +29,7 @@ class ParameterManager(object):
         self.indices: Indices = self.construct_indices()
 
     def construct_indices(self) -> Indices:
-        """Given that ParameterizedExchanges will always have the same order of
-        indices, construct them once and reuse when needed.
-        """
+        """Build stable exchange indices for all parameterized exchanges in the project."""
         indices = Indices()
         for p in self.initial.act_by_group_db:
             params = self.initial.exc_by_group(p.group)
@@ -45,7 +46,6 @@ class ParameterManager(object):
         data = deepcopy(raw)
 
         new_values = self.parameters.data_by_group("project")
-
         for name, amount in new_values.items():
             data[name]["amount"] = amount
 
@@ -73,7 +73,6 @@ class ParameterManager(object):
             )
 
         glo = Parameters.static(glo, needed=new_symbols) if new_symbols else None
-
         ParameterSet(data, glo).evaluate_and_set_amount_field()
         return StaticParameters.prune_result_data(data)
 
@@ -99,23 +98,20 @@ class ParameterManager(object):
             data[name]["amount"] = amount
 
         new_symbols = get_new_symbols(data.values(), set(data))
-        missing = new_symbols.difference(global_params)
+        missing = new_symbols.difference(glo)
         if missing:
             raise MissingName(
                 "The following variables aren't defined:\n{}".format("|".join(missing))
             )
 
         glo = Parameters.static(glo, needed=new_symbols) if new_symbols else None
-
         ParameterSet(data, glo).evaluate_and_set_amount_field()
         return StaticParameters.prune_result_data(data)
 
     def recalculate_exchanges(
         self, group: str, global_params: dict = None
     ) -> Iterable[Tuple[int, float]]:
-        """Constructs a list of exc.id/amount tuples for the
-        ParameterizedExchanges in the given group.
-        """
+        """Return ``(exchange_id, amount)`` for parameterized exchanges in a group."""
         params = self.initial.exc_by_group(group)
         if not params:
             return []
@@ -129,7 +125,6 @@ class ParameterManager(object):
         self,
         global_params: dict = None,
         db_params: dict = None,
-        build_indices: bool = True,
     ) -> np.ndarray:
         dbs = db_params or {}
         complete_data = np.zeros(len(self.indices))
@@ -147,10 +142,8 @@ class ParameterManager(object):
             recalculated = self.recalculate_exchanges(
                 p.group, global_params=combination
             )
-            # If the parameter group contains no ParameterizedExchanges, skip.
             if not recalculated:
                 continue
-            # `data` contains the recalculated amounts for the exchanges.
             _, data = zip(*recalculated)
             complete_data[offset : len(data) + offset] = data
             offset += len(data)
@@ -158,43 +151,23 @@ class ParameterManager(object):
         return complete_data
 
     def calculate(self) -> np.ndarray:
-        """Convenience function that takes calculates the current parameters
-        and returns a fully-formed set of exchange amounts and indices.
-
-        All parameter types are recalculated in turn before interpreting the
-        ParameterizedExchange formulas into amounts.
-        """
+        """Recalculate all parameters and return exchange amounts (index order)."""
         global_project = self.recalculate_project_parameters()
         all_db = self.process_database_parameters(global_project)
-        data = self.process_exchanges(global_project, all_db)
-        return data
+        return self.process_exchanges(global_project, all_db)
 
     @abstractmethod
     def recalculate(self, values: dict[str, float]) -> np.ndarray:
-        """Convenience function that takes the given new values and recalculates.
-        Returning a fully-formed set of exchange amounts and indices.
-
-        All parameter types are recalculated in turn before interpreting the
-        ParameterizedExchange formulas into amounts.
-        """
         self.parameters.update(values)
         return self.calculate()
 
 
 class MonteCarloParameterManager(ParameterManager, Iterator):
-    # TODO: once the MonteCarloParameterManager is re-worked, remove unnecessary methods from ParameterManager
-    """Use to sample the uncertainty of parameter values, mostly for use in
-    Monte Carlo calculations.
+    """
+    Sample uncertain parameters and recalculate exchange amounts each draw.
 
-    Each iteration will sample the parameter uncertainty, after which
-    all parameters and parameterized exchanges are recalculated. These
-    recalculated values are then returned as a simplified `params` array,
-    which is similar to the `tech_params` and `bio_params` arrays in the
-    LCA classes.
-
-    Makes use of the `MCRandomNumberGenerator` to sample from all of the
-    distributions in the same way.
-
+    Output rows match ``Indices.mock_params`` for
+    :func:`~activity_browser.bwutils.parameters.parameter_montecarlo.apply_parameter_exchanges`.
     """
 
     def __init__(self, seed: Optional[int] = None):
@@ -214,13 +187,9 @@ class MonteCarloParameterManager(ParameterManager, Iterator):
         assert iterations > 0, "Must have a positive amount of iterations"
         if iterations == 1:
             return self.next()
-        # Construct indices, prepare sized array and sample parameter
-        # uncertainty distributions `interations` times.
         all_data = np.empty((iterations, len(self.indices)), dtype=Indices.array_dtype)
         random_bounded_values = self.mc_generator.generate(iterations)
 
-        # Now, repeatedly replace parameter amounts with sampled data and
-        # recalculate. Every processed row is added to the sized array.
         for i in range(iterations):
             values = random_bounded_values.take(i, axis=1)
             self.parameters.update(values)
@@ -230,28 +199,33 @@ class MonteCarloParameterManager(ParameterManager, Iterator):
         return all_data
 
     def next(self) -> np.ndarray:
-        """Similar to `recalculate` but only performs a single sampling and
-        recalculation.
-        """
         values = self.mc_generator.next()
         keys = [(p.group, p.name) for p in self.parameters]
         self.parameters.update({key: value for key, value in zip(keys, values)})
         data = self.calculate()
         return self.indices.mock_params(data)
 
-    def retrieve_sampled_values(self, data: dict):
-        """Enters the sampled values into the 'exchanges' list in the 'data'
-        dictionary.
-        """
-        for name, vals in data.items():
-            param = next(
-                (
-                    p
-                    for p in self.parameters
-                    if p.name == vals.get("name") and p.group == vals.get("group")
-                ),
-                None,
-            )
-            if param is None:
+    def init_gsa_parameter_data(self) -> dict:
+        """Build GSA metadata for uncertain parameters (``uncertainty type`` > 1)."""
+        data = {}
+        for p in self.parameters:
+            ut = p.data.get("uncertainty type", p.data.get("uncertainty_type", 0))
+            if int(ut or 0) <= 1:  # skip parameters without uncertainty
                 continue
-            data[name]["values"].append(param.amount)
+            key = (p.group, p.name)
+            name, scope, associated, _ = p.as_gsa_tuple()
+            data[key] = {
+                "name": name,
+                "group": p.group,
+                "scope": scope,
+                "act": associated,
+                "values": [],
+            }
+        return data
+
+    def populate_gsa_parameter_data(self, parameter_data: dict) -> None:
+        """Append current parameter amounts to the GSA ``parameter_data`` schema."""
+        for p in self.parameters:
+            key = (p.group, p.name)
+            if key in parameter_data:
+                parameter_data[key]["values"].append(p.amount)

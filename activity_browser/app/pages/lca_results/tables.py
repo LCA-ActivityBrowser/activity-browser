@@ -1,3 +1,5 @@
+"""LCA Results tables: pandas models and filterable views for inventory and contributions."""
+
 import os
 import datetime
 from typing import Optional, Any
@@ -223,17 +225,25 @@ class PandasModel(QtCore.QAbstractTableModel):
         return self._dataframe.iloc[index, :].tolist()
 
     def to_clipboard(self, rows, columns, include_header: bool = False):
-        """Copy the given rows and columns of the dataframe to clipboard"""
-        self._dataframe.iloc[rows, columns].to_clipboard(
-            index=False, header=include_header
-        )
+        """Copy the given rows and columns of the dataframe to clipboard."""
+        if self._dataframe is None or not rows or not columns:
+            return
+        subset = self._dataframe.iloc[rows, columns]
+        text = subset.to_csv(sep="\t", index=False, header=include_header)
+        clipboard = QtWidgets.QApplication.clipboard()
+        if clipboard is not None:
+            clipboard.setText(text)
 
     def to_csv(self, path: str) -> None:
         """Store the dataframe as csv in the given path."""
+        if self._dataframe is None:
+            raise ValueError("No table data to export")
         self._dataframe.to_csv(path)
 
     def to_excel(self, path: str) -> None:
         """Store the underlying dataframe as excel in the given path"""
+        if self._dataframe is None:
+            raise ValueError("No table data to export")
         self._dataframe.to_excel(excel_writer=path)
 
     def sync(self, *args, **kwargs) -> None:
@@ -541,7 +551,10 @@ class ABDataFrameView(QtWidgets.QTableView):
         if filepath:
             if not filepath.endswith(".csv"):
                 filepath += ".csv"
-            self.model.to_csv(filepath)
+            try:
+                self.model.to_csv(filepath)
+            except ValueError as e:
+                QtWidgets.QMessageBox.warning(self, "Export failed", str(e))
 
     @Slot(name="exportToExcel")
     def to_excel(self, caption: str = None):
@@ -552,7 +565,10 @@ class ABDataFrameView(QtWidgets.QTableView):
         if filepath:
             if not filepath.endswith(".xlsx"):
                 filepath += ".xlsx"
-            self.model.to_excel(filepath)
+            try:
+                self.model.to_excel(filepath)
+            except ValueError as e:
+                QtWidgets.QMessageBox.warning(self, "Export failed", str(e))
 
     @Slot(QtGui.QKeyEvent, name="copyEvent")
     def keyPressEvent(self, e):
@@ -982,10 +998,10 @@ class InventoryTable(ABFilterableDataFrameView):
 
 
 class ContributionModel(PandasModel):
-    def sync(self, df, unit="relative share"):
+    def sync(self, df, unit="% of range"):
 
         if "unit" in df.columns:
-            # overwrite the unit col with 'relative share' if looking at relative results (except 3 'total' and 'rest' rows)
+            # overwrite the unit col when showing relative results (except 3 'total' and 'rest' rows)
             df["unit"] = [""] * 3 + [unit] * (len(df) - 3)
 
         # drop any rows where all numbers are 0

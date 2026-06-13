@@ -22,20 +22,13 @@ from bw_graph_tools.graph_traversal.graph_objects import (
 from bw2data.backends import ActivityDataset
 
 from activity_browser import app
+from activity_browser.bwutils.export_names import lca_export_basename
 from activity_browser.bwutils.filesystem import get_package_path
 from activity_browser.bwutils.commontasks import identify_activity_type
 from activity_browser.ui import widgets
 
-
-class SmallComboBox(QtWidgets.QComboBox):
-    """A small combo box that does not expand to fill the available space."""
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
-        self.setMinimumWidth(100)
-        self.setMaximumWidth(200)
-        self.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToContentsOnFirstShow)
+from .combobox_utils import configure_scenario_widgets, scenario_labels, update_combobox
+from .style import SmallComboBox
 
 
 class TreeNavigatorWidget(widgets.ABAbstractNavigator):
@@ -55,6 +48,7 @@ class TreeNavigatorWidget(widgets.ABAbstractNavigator):
         self.parent = parent
         self.has_scenarios = self.parent.has_scenarios
         self.cs = cs_name
+        self.plot_name = lca_export_basename(cs_name, "Tree")
         self.selected_db = None
         self.has_rendered_once = False
         self.func_units = []
@@ -151,25 +145,21 @@ class TreeNavigatorWidget(widgets.ABAbstractNavigator):
 
     def get_scenario_labels(self) -> List[str]:
         """Get scenario labels if scenario is used."""
-        return self.parent.mlca.scenario_names if self.has_scenarios else []
+        return scenario_labels(self.parent)
 
     def configure_scenario(self):
         """Determine if scenario Qt widgets are visible or not and retrieve
         scenario labels for the selection drop-down box.
         """
-        self.scenario_cb.setVisible(self.has_scenarios)
-        self.scenario_label.setVisible(self.has_scenarios)
-        if self.has_scenarios:
-            self.scenarios = self.get_scenario_labels()
-            self.update_combobox(self.scenario_cb, self.scenarios)
+        configure_scenario_widgets(
+            has_scenarios=self.has_scenarios,
+            scenario_box=self.scenario_cb,
+            scenario_label=self.scenario_label,
+            parent=self.parent,
+        )
+        self.scenarios = self.get_scenario_labels()
 
-    @staticmethod
-    def update_combobox(box: QComboBox, labels: List[str]) -> None:
-        """Update the combobox menu."""
-        box.blockSignals(True)
-        box.clear()
-        box.insertItems(0, labels)
-        box.blockSignals(False)
+    update_combobox = staticmethod(update_combobox)
 
     def update_calculation_setup(self, cs_name=None) -> None:
         """Update Calculation Setup, reference flows and impact categories, and dropdown menus."""
@@ -247,6 +237,7 @@ class TreeNavigatorWidget(widgets.ABAbstractNavigator):
             logger.debug(f"CACHED tree for: {demand}, {method}, key: {cache_key}")
             self.graph.new_graph(data)
             self.has_rendered_once = bool(self.graph.json_data)
+            self.update_plot_name("Tree", method, demand_index, scenario_index)
             self.send_json()
             return
 
@@ -296,6 +287,7 @@ class TreeNavigatorWidget(widgets.ABAbstractNavigator):
         # generate the new Graph
         self.graph.new_graph(data)
         self.has_rendered_once = bool(self.graph.json_data)
+        self.update_plot_name("Tree", method, demand_index, scenario_index)
         self.send_json()
 
     def set_database(self, name):

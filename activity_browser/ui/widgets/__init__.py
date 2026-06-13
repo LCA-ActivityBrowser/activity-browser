@@ -1,7 +1,7 @@
 from .plot import ABPlot
 from .abstract_pane import ABAbstractPane
 from .abstract_page import ABAbstractPage
-from .comparison_switch import SwitchComboBox
+from .comparison_switch import LCAscoresSwitchComboBox, ContributionsSwitchComboBox
 from .cutoff_menu import CutoffMenu
 from .line_edit import (ABLineEdit, SignalledComboEdit, SignalledLineEdit,
                         SignalledPlainTextEdit)

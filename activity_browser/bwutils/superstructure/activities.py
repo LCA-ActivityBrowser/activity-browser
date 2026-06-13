@@ -63,11 +63,11 @@ def construct_ad_data(row) -> tuple:
     """
     key = (row.database, row.code)
     if row.type == "process":
-        data = (row.name, row.product, row.location, np.NaN, row.database)
+        data = (row.name, row.product, row.location, np.nan, row.database)
     elif "categories" in row.data:
-        data = (row.name, np.NaN, np.NaN, row.data["categories"], row.database)
+        data = (row.name, np.nan, np.nan, row.data["categories"], row.database)
     else:
-        data = (row.name, np.NaN, np.NaN, np.NaN, row.database)
+        data = (row.name, np.nan, np.nan, np.nan, row.database)
     return key, data
 
 
@@ -95,7 +95,7 @@ def data_from_index(index: tuple) -> dict:
         "to categories": to_data[3],
         "to database": to_data[4],
         "to key": to_key,
-        "flow type": index[2] if len(index) > 2 else np.NaN,
+        "flow type": index[2] if len(index) > 2 else np.nan,
     }
 
 
@@ -159,7 +159,7 @@ def match_fields_for_key(df: pd.DataFrame, matchbook: dict) -> pd.Series:
             match = (row.iat[0], row.iat[3])
         else:
             match = (row.iat[0], row.iat[1], row.iat[2])
-        return matchbook.get(match, np.NaN)
+        return matchbook.get(match, np.nan)
 
     return df.apply(build_match, axis=1)
 
