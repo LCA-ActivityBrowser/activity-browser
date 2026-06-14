@@ -221,10 +221,10 @@ def scenario_replace_databases(df_: pd.DataFrame, replacements: dict) -> pd.Data
                 # try to find the matching records (after loaded into the metadata)
                 if isinstance(ds_[field[1]], float):
                     # try to find a technosphere record
-                    key = metadata[
-                        (metadata[DB_FIELDS[0]] == ds_[field[0]])
-                        & (metadata[DB_FIELDS[2]] == ds_[field[2]])
-                        & (metadata[DB_FIELDS[3]] == ds_[field[3]])
+                    key = activity_metadata[
+                        (activity_metadata[DB_FIELDS[0]] == ds_[field[0]])
+                        & (activity_metadata[DB_FIELDS[2]] == ds_[field[2]])
+                        & (activity_metadata[DB_FIELDS[3]] == ds_[field[3]])
                     ].copy()
                 else:
                     # try to find a biosphere record
@@ -232,9 +232,9 @@ def scenario_replace_databases(df_: pd.DataFrame, replacements: dict) -> pd.Data
                         categories = ast.literal_eval(ds_[field[1]])
                     else:
                         categories = ds_[field[1]]
-                    key = metadata[
-                        (metadata[DB_FIELDS[0]] == ds_[field[0]])
-                        & (metadata[DB_FIELDS[1]] == categories)
+                    key = activity_metadata[
+                        (activity_metadata[DB_FIELDS[0]] == ds_[field[0]])
+                        & (activity_metadata[DB_FIELDS[1]] == categories)
                     ].copy()
                 # replace the records that can be found
                 for j, col in enumerate(
@@ -274,7 +274,7 @@ def scenario_replace_databases(df_: pd.DataFrame, replacements: dict) -> pd.Data
     TO_FIELDS = pd.Index(
         ["to activity name", "to categories", "to reference product", "to location"]
     )
-    DB_FIELDS = ["name", "categories", "reference product", "location"]
+    DB_FIELDS = ["name", "categories", "product", "location"]
 
     # setting up the variables in case some exchanges cannot be relinked
     critical = {
@@ -286,9 +286,8 @@ def scenario_replace_databases(df_: pd.DataFrame, replacements: dict) -> pd.Data
     }  # To be used in the exchange_replace_database internal method scope
     changes = ["from database", "from key", "to database", "to key"]
 
-    # Load all required databases into the metadata
-    metadata.add_metadata(replacements.values())
-    meta = metadata.dataframe
+    # Project metadata already contains all Brightway databases after startup.
+    activity_metadata = metadata.dataframe.reset_index(drop=True)
 
     for idx in df.index:
         df.loc[idx, changes] = exchange_replace_database(
