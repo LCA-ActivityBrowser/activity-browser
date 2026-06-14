@@ -69,7 +69,7 @@ class ProjectDelete(ABAction):
 
         # try to delete the project, delete directory if user specified so
         if bd.projects.current in project_names:
-            ProjectSwitch.run(settings.ab_settings.startup_project)
+            ProjectSwitch.run(app.settings["startup"]["startup_project"])
 
         for project in project_names:
             ProjectDelete.delete_project(project, delete_dialog.deletion_warning_checked())
