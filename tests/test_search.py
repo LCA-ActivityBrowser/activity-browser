@@ -201,6 +201,29 @@ def test_search_remove_identifier(caplog):
     assert se.search("find") == []
 
 
+def test_search_remove_identifiers_batch():
+    """Batch removal matches removing items one at a time."""
+    df = data_for_test()
+    se = SearchEngine(df, identifier_name="id")
+
+    se_batch = SearchEngine(df, identifier_name="id")
+    se_batch.remove_identifiers(["a", "b", "c"])
+    assert se_batch.search("coal production") == ["d", "h", "f", "g"]
+
+    se.remove_identifier("a")
+    se.remove_identifier("b")
+    se.remove_identifier("c")
+    assert se.search("coal production") == se_batch.search("coal production")
+
+
+def test_search_remove_identifiers_ignores_unknown():
+    df = data_for_test()
+    se = SearchEngine(df, identifier_name="id")
+    se.remove_identifiers(["a", "missing"])
+    assert "a" not in se.df.index
+    assert se.search("coal production") == ["c", "b", "d", "h", "f", "g"]
+
+
 def test_search_change_identifier():
     """Do tests for changing identifier."""
     df = data_for_test()

@@ -117,3 +117,18 @@ def test_empty_search_all_databases(multi_db_mds):
     results = searcher.search("", database=None)
     assert len(results) == 7  # All items in all databases
 
+
+def test_remove_database(multi_db_mds):
+    """Removing a database drops all its activities from the search index at once."""
+    searcher = MDSSearcher(multi_db_mds)
+
+    assert len(searcher.search("coal", database="db1")) == 2
+    assert len(searcher.search("coal", database=None)) == 5
+
+    searcher.remove_database("db1")
+
+    assert len(searcher.search("coal", database="db1")) == 0
+    assert len(searcher.search("coal", database=None)) == 3
+    assert len(searcher.df[searcher.df["database"] == "db1"]) == 0
+    assert len(searcher.df) == 4
+

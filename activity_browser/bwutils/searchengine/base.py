@@ -269,51 +269,62 @@ class SearchEngine:
         # update the search index data
         self.update_index(data)
 
+    def _drop_identifiers_from_inverted_index(self, identifiers: Iterable) -> None:
+        """Remove identifiers from word/q-gram inverted indexes (``self.df`` unchanged)."""
+        for identifier in identifiers:
+            words = self.identifier_to_word.pop(identifier, None)
+            if words is None:
+                continue
+            for word in words:
+                if len(self.word_to_identifier[word]) == 1:
+                    del self.word_to_identifier[word]
+
+                    q_grams = self.word_to_q_grams[word]
+                    for q_gram in q_grams:
+                        if len(self.q_gram_to_word[q_gram]) == 1:
+                            del self.q_gram_to_word[q_gram]
+                        else:
+                            del self.q_gram_to_word[q_gram][word]
+
+                    del self.word_to_q_grams[word]
+                else:
+                    del self.word_to_identifier[word][identifier]
+
     def remove_identifier(self, identifier, logging=True) -> None:
-        """Remove this identifier from self.df and the search index.
-        """
+        """Remove this identifier from self.df and the search index."""
         if logging:
             t = time()
 
-        # make sure the identifier exists
-        if identifier not in self.df.index.to_list():
+        if identifier not in self.df.index:
             logger.warning(
                 f"Identifier '{identifier}' does not exist in the search data, cannot remove identifier that do not exist."
             )
             return
 
         self.df = self.df.drop(identifier)
-
-        # find words that may need to be removed
-        words = self.identifier_to_word[identifier]
-        for word in words:
-            if len(self.word_to_identifier[word]) == 1:
-                # this word is only found in this identifier,
-                # remove the word and check for q grams
-                del self.word_to_identifier[word]
-
-                q_grams = self.word_to_q_grams[word]
-                for q_gram in q_grams:
-                    if len(self.q_gram_to_word[q_gram]) == 1:
-                        # this q_gram is only used in this word,
-                        #  remove it
-                        del self.q_gram_to_word[q_gram]
-                    elif len(self.q_gram_to_word[q_gram]) > 1:
-                        # this q_gram is used in multiple words, only remove the word from the q_gram
-                        del self.q_gram_to_word[q_gram][word]
-
-                del self.word_to_q_grams[word]
-            else:
-                # this word is found in multiple identifiers
-                # word_to_q_gram and q_gram_to_word do not need to be changed, the word still exists
-                # remove the identifier the word in word_to_identifier
-                del self.word_to_identifier[word][identifier]
-        # finally, remove the identifier
-        del self.identifier_to_word[identifier]
+        self._drop_identifiers_from_inverted_index([identifier])
 
         if logging:
             logger.debug(f"Search index updated in {time() - t:.2f} seconds "
-                         f"for 1 removed item ({len(self.df)}.")
+                         f"for 1 removed item ({len(self.df)}).")
+
+    def remove_identifiers(self, identifiers, logging=True) -> None:
+        """Remove many identifiers in one dataframe drop and a single inverted-index pass."""
+        if logging:
+            t = time()
+
+        identifiers = set(identifiers) & set(self.df.index)
+        if not identifiers:
+            return
+
+        self.df = self.df.drop(list(identifiers))
+        self._drop_identifiers_from_inverted_index(identifiers)
+
+        if logging:
+            logger.debug(
+                f"Search index updated in {time() - t:.2f} seconds "
+                f"for {len(identifiers)} removed items ({len(self.df)} remaining)."
+            )
 
     def change_identifier(self, identifier, data: pd.DataFrame) -> None:
         """Change this identifier.
@@ -328,7 +339,7 @@ class SearchEngine:
             raise Exception(
                 f"change data must be for exactly 1 identifier, but {len(data)} items were given.")
         # make sure correct use of identifier
-        if identifier not in self.df.index.to_list():
+        if identifier not in self.df.index:
             raise Exception(
                 f"Identifier '{identifier}' does not exist in the search data, use an existing identifier or use the add_identifier function.")
         if self.identifier_name in data.columns and data[self.identifier_name].to_list() != [identifier]:

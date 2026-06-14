@@ -119,7 +119,7 @@ class MDSUpdater(QObject):
         node_id = ds["id"]
 
         self.mds.searcher.remove_identifier(identifier=node_id)
-        self.mds.searcher.reset_all_caches(ds["database"])
+        self.mds.searcher.reset_all_caches([ds.key[0]])
 
     # database methods
     def add_database(self, db_name: str):
@@ -132,16 +132,12 @@ class MDSUpdater(QObject):
         for code in self.mds.dataframe.loc[db_name].index:
             self.mds.register_mutation((db_name, code), "delete")
 
-        ids = self.mds.get_database_metadata(db_name, ["id"])["id"].tolist()
-
         self.mds.dataframe = self.mds.dataframe.drop(db_name, level=0)
 
         if self.mds.searcher is None:
             return
 
-        for node_id in ids:
-            self.mds.searcher.remove_identifier(identifier=node_id)
-        self.mds.searcher.reset_all_caches(db_name)
+        self.mds.searcher.remove_database(db_name)
 
     # utility functions
     @staticmethod

@@ -88,20 +88,25 @@ class MetaDataSearchEngine(SearchEngine):
     def remove_identifiers(self, identifiers, logging=True) -> None:
         t = time()
 
-        identifiers = set(identifiers)
-        current_identifiers = set(self.df.index.to_list())
-        identifiers = identifiers | current_identifiers  # only remove identifiers currently in the data
-        databases = self.df.loc[identifiers, ["databases"]].unique()  # extract databases for cache cleaning
-        if len(identifiers) == 0:
+        identifiers = set(identifiers) & set(self.df.index)
+        if not identifiers:
             return
 
-        for identifier in identifiers:
-            super().remove_identifier(identifier, logging=False)
+        databases = self.df.loc[list(identifiers), "database"].unique()
+        super().remove_identifiers(identifiers, logging=False)
 
         if logging:
-            log.debug(f"Search index updated in {time() - t:.2f} seconds "
-                      f"for {len(identifiers)} removed items ({len(self.df)} items ({self.size_of_index()}) currently).")
+            log.debug(
+                f"Search index updated in {time() - t:.2f} seconds "
+                f"for {len(identifiers)} removed items ({len(self.df)} remaining)."
+            )
         self.reset_all_caches(databases)
+
+    def remove_database(self, db_name: str, logging=True) -> None:
+        identifiers = self.df.index[self.df["database"] == db_name]
+        if len(identifiers) == 0:
+            return
+        self.remove_identifiers(identifiers, logging=logging)
 
     def change_identifier(self, identifier, data: pd.DataFrame) -> None:
         super().change_identifier(identifier, data)
