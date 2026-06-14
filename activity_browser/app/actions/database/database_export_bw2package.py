@@ -34,6 +34,9 @@ class DatabaseExportBW2Package(ABAction):
             else:
                 return
 
+        if not cls._confirm_parameter_warning(application.main_window, db_names):
+            return
+
         # Get export directory or file from user
         if len(db_names) == 1:
             # Single database - suggest a filename
@@ -65,6 +68,24 @@ class DatabaseExportBW2Package(ABAction):
             context=context
         )
         export_dialog.show()
+
+    @staticmethod
+    def _confirm_parameter_warning(parent, db_names: List[str]) -> bool:
+        affected = exporters.databases_with_parameters(db_names)
+        if not affected:
+            return True
+        names = ", ".join(f"'{n}'" for n in affected)
+        reply = QtWidgets.QMessageBox.warning(
+            parent,
+            "Parameters not included in BW2Package",
+            f"These databases contain parameters: {names}.\n\n"
+            "BW2Package export does not preserve parameters. "
+            "Use Export to Excel (.xlsx) instead.\n\n"
+            "Continue anyway?",
+            QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
+            QtWidgets.QMessageBox.No,
+        )
+        return reply == QtWidgets.QMessageBox.Yes
 
 
 class ExportBW2PackageSetup(widgets.ABWizard):

@@ -1,19 +1,93 @@
 import bw2data as bd
 from qtpy import QtWidgets
 
-from activity_browser import app, app
+from activity_browser import app
 
 
-def test_database_delete(monkeypatch, basic_database):
+def _confirm_delete(monkeypatch) -> None:
     monkeypatch.setattr(
         QtWidgets.QMessageBox,
         "question",
         staticmethod(lambda *args, **kwargs: QtWidgets.QMessageBox.Yes),
     )
 
+
+def _broken_activity_parameter_groups() -> list[str]:
+    """Groups the Parameters pane would label as broken."""
+    from bw2data.parameters import ActivityParameter, Group
+
+    reserved = {"project"} | set(bd.databases.list)
+    broken = []
+    for group in Group.select():
+        if group.name in reserved:
+            continue
+        if not ActivityParameter.select().where(
+            ActivityParameter.group == group.name
+        ).exists():
+            broken.append(group.name)
+    return broken
+
+
+def test_database_delete(monkeypatch, basic_database):
+    _confirm_delete(monkeypatch)
+
     app.actions.DatabaseDelete.run([basic_database.name])
 
     assert basic_database.name not in bd.databases
+
+
+def test_database_delete_clears_orphan_activity_parameter_groups(monkeypatch, basic_database):
+    """Deleting a DB must not leave hashed activity parameter groups behind."""
+    from bw2data.parameters import ActivityParameter
+    from fixtures.database_roundtrip import write_source_db
+
+    _confirm_delete(monkeypatch)
+
+    db_name = "db_with_params"
+    write_source_db(db_name, "sqlite", parameters=True)
+
+    activity_groups = {
+        row.group
+        for row in ActivityParameter.select(ActivityParameter.group).where(
+            ActivityParameter.database == db_name
+        )
+    }
+    assert activity_groups
+    assert db_name not in activity_groups
+
+    app.actions.DatabaseDelete.run([db_name])
+
+    assert db_name not in bd.databases
+    assert not ActivityParameter.select().where(
+        ActivityParameter.database == db_name
+    ).exists()
+    assert _broken_activity_parameter_groups() == []
+
+
+def test_fix_broken_groups_removes_orphan_activity_groups(basic_database):
+    """Brightway removes parameter rows on delete; AB must drop the leftover groups."""
+    from bw2data.parameters import ActivityParameter, Group
+    from activity_browser.app.actions.parameter.parameter_modify import ParameterModify
+    from fixtures.database_roundtrip import write_source_db
+
+    db_name = "db_orphan_groups"
+    write_source_db(db_name, "sqlite", parameters=True)
+
+    activity_groups = {
+        row.group
+        for row in ActivityParameter.select(ActivityParameter.group).where(
+            ActivityParameter.database == db_name
+        )
+    }
+    assert activity_groups
+
+    ActivityParameter.delete().where(ActivityParameter.database == db_name).execute()
+    assert _broken_activity_parameter_groups()
+
+    ParameterModify.fix_broken_groups()
+
+    assert _broken_activity_parameter_groups() == []
+    assert not {g.name for g in Group.select()} & activity_groups
 
 
 def test_database_duplicate(monkeypatch, qtbot, basic_database):

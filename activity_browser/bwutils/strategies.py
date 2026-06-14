@@ -1,4 +1,9 @@
 # -*- coding: utf-8 -*-
+"""Activity Browser import strategies used on top of bw2io.
+
+These run during Excel and scripted imports to fix AB-specific linking issues
+(functional product/processor relationships, metadata-store fallbacks, etc.).
+"""
 import hashlib
 import json
 from typing import Collection
@@ -29,45 +34,111 @@ RELINK_FIELDS = (
     "location",
 )
 
+PROCESS_NODE_TYPES = {"process", "multifunctional"}
+PRODUCT_NODE_TYPES = {"product", "waste"}
+
+# Exchange field -> MetaDataStore column for metadatastore_link.
+MDS_EXCHANGE_FIELDS = (
+    ("name", "name"),
+    ("database", "database"),
+    ("categories", "categories"),
+    ("unit", "unit"),
+    ("reference product", "product"),
+    ("location", "location"),
+)
+
+
+def _relink_exchange_input(exc: dict, relink: dict) -> None:
+    """Replace ``exc['input']`` when its database is listed in *relink*."""
+    input_key = exc.get("input", ("", ""))
+    if input_key[0] not in relink:
+        return
+    new_key = (relink[input_key[0]], input_key[1])
+    try:
+        bd.get_activity(new_key)
+    except ActivityDataset.DoesNotExist as e:
+        raise ValueError(
+            "Cannot relink exchange '{}', key '{}' not found.".format(exc, new_key)
+        ).with_traceback(e.__traceback__)
+    exc["input"] = new_key
+
+
+def link_functional_processors(data: list) -> list:
+    """Ensure product ``processor`` fields reference process nodes in the same import.
+
+    Excel re-import can leave stale processor codes when ``set_code_by_activity_hash``
+    assigns new activity codes while ``processor`` still references spreadsheet codes.
+    """
+    codes = {
+        (ds.get("database"), ds.get("code"))
+        for ds in data
+        if ds.get("database") and ds.get("code")
+    }
+    process_by_product = {}
+    for ds in data:
+        if ds.get("type") not in PROCESS_NODE_TYPES:
+            continue
+        process_key = (ds.get("database"), ds.get("code"))
+        for exc in ds.get("exchanges", []):
+            if exc.get("type") != "production":
+                continue
+            inp = exc.get("input")
+            if isinstance(inp, tuple) and len(inp) == 2:
+                process_by_product[inp] = process_key
+
+    for ds in data:
+        if ds.get("type") not in PRODUCT_NODE_TYPES:
+            continue
+        processor = ds.get("processor")
+        product_key = (ds.get("database"), ds.get("code"))
+        db = ds.get("database")
+
+        if isinstance(processor, tuple) and len(processor) == 2:
+            processor = (db, processor[1]) if processor[0] != db else processor
+        else:
+            processor = None
+
+        if processor not in codes and product_key in process_by_product:
+            processor = process_by_product[product_key]
+
+        if processor:
+            ds["processor"] = processor
+
+    return data
+
+
 def metadatastore_link(data: list) -> list:
+    """Link remaining unlinked exchanges using the project MetaDataStore."""
     from .metadata import MetaDataStore
     mds = MetaDataStore()
 
+    if mds.dataframe is None or mds.dataframe.empty:
+        return data
+
+    columns = set(mds.dataframe.columns)
     for act in data:
         for exc in act.get("exchanges", []):
-            match = mds.match(
-                name=exc.get("name"),
-                database=exc.get("database"),
-                categories=exc.get("categories"),
-                unit=exc.get("unit"),
-                product=exc.get("reference product"),
-                location=exc.get("location"),
-            )
+            if exc.get("input"):
+                continue
+            kwargs = {
+                mds_col: exc.get(exc_key)
+                for exc_key, mds_col in MDS_EXCHANGE_FIELDS
+                if mds_col in columns
+                and (value := exc.get(exc_key)) is not None
+                and value != ""
+            }
+            if not kwargs:
+                continue
+            try:
+                match = mds.match(**kwargs)
+            except Exception as e:
+                logger.debug(f"metadatastore_link skipped exchange: {e}")
+                continue
             if len(match) == 1:
                 exc["input"] = match.index[0]
 
     return data
 
-
-
-def relink_exchanges_dbs(data: Collection, relink: dict) -> Collection:
-    """Use this to relink exchanges during an actual import."""
-    for act in data:
-        for exc in act.get("exchanges", []):
-            input_key = exc.get("input", ("", ""))
-            if input_key[0] in relink:
-                new_key = (relink[input_key[0]], input_key[1])
-                try:
-                    # try and find the new key
-                    _ = bd.get_activity(new_key)
-                    exc["input"] = new_key
-                except ActivityDataset.DoesNotExist as e:
-                    raise ValueError(
-                        "Cannot relink exchange '{}', key '{}' not found.".format(
-                            exc, new_key
-                        )
-                    ).with_traceback(e.__traceback__)
-    return data
 
 
 def relink_exchanges_with_db(data: list, old: str, new: str) -> list:
@@ -101,22 +172,10 @@ def _relink_exchanges(data: list, other: str) -> list:
 
 
 def relink_exchanges_bw2package(data: dict, relink: dict) -> dict:
-    """Use this to relink exchanges during an BW2Package import."""
-    for key, value in data.items():
+    """Relink exchange inputs during a BW2Package import (keyed activity dict)."""
+    for value in data.values():
         for exc in value.get("exchanges", []):
-            input_key = exc.get("input", ("", ""))
-            if input_key[0] in relink:
-                new_key = (relink[input_key[0]], input_key[1])
-                try:
-                    # try and find the new key
-                    _ = bd.get_activity(new_key)
-                    exc["input"] = new_key
-                except ActivityDataset.DoesNotExist as e:
-                    raise ValueError(
-                        "Cannot relink exchange '{}', key '{}' not found.".format(
-                            exc, new_key
-                        )
-                    ).with_traceback(e.__traceback__)
+            _relink_exchange_input(exc, relink)
     return data
 
 

@@ -3,11 +3,12 @@ from typing import List
 from qtpy import QtCore, QtWidgets
 
 import bw2data as bd
-from bw2data.parameters import Group
-from bw2data.backends.proxies import ExchangeDataset, Exchanges
+from bw2data.backends.proxies import ExchangeDataset
+from bw2data.parameters import Group, parameters
 
 from activity_browser import app
 from activity_browser.app.actions.base import ABAction, exception_dialogs
+from activity_browser.app.actions.parameter.parameter_modify import ParameterModify
 from activity_browser.ui.icons import qicons
 
 
@@ -85,6 +86,10 @@ class DatabaseDelete(ABAction):
 
             # delete database parameters
             Group.delete().where(Group.name == db_name).execute()
+
+        ParameterModify.fix_broken_groups()
+        parameters.recalculate()
+        app.signals.parameter.recalculated.emit()
 
         QtWidgets.QApplication.restoreOverrideCursor()
 

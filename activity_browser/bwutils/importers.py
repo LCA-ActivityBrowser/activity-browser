@@ -6,8 +6,7 @@ from pathlib import Path
 import tqdm
 from bw2io import BW2Package, ExcelImporter
 from bw2io.errors import InvalidPackage, StrategyError
-from bw2io.strategies import (assign_only_product_as_production,
-                              convert_activity_parameters_to_list,
+from bw2io.strategies import (convert_activity_parameters_to_list,
                               convert_uncertainty_types_to_integers,
                               csv_add_missing_exchanges_section,
                               csv_drop_unknown, csv_numerize,
@@ -20,12 +19,53 @@ from bw2io.strategies import (assign_only_product_as_production,
                               set_code_by_activity_hash,
                               strip_biosphere_exc_locations)
 import bw2data as bd
+from bw2data.serialization import JsonSanitizer, JsonWrapper
 
 from .errors import LinkingFailed
 from .strategies import (alter_database_name, csv_rewrite_product_key,
                          hash_parameter_group, link_exchanges_without_db,
-                         relink_exchanges_bw2package, relink_exchanges_with_db,
-                         rename_db_bw2package, parse_JSON_fields, metadatastore_link, alter_exchange_database_name)
+                         link_functional_processors, relink_exchanges_bw2package,
+                         relink_exchanges_with_db, rename_db_bw2package,
+                         parse_JSON_fields, metadatastore_link,
+                         alter_exchange_database_name)
+
+
+_EXCEL_PREP = (
+    csv_restore_tuples,
+    csv_restore_booleans,
+    csv_numerize,
+    csv_drop_unknown,
+    csv_add_missing_exchanges_section,
+    csv_rewrite_product_key,
+    normalize_units,
+    normalize_biosphere_categories,
+    normalize_biosphere_names,
+    strip_biosphere_exc_locations,
+    set_code_by_activity_hash,
+    drop_falsey_uncertainty_fields_but_keep_zeros,
+    convert_uncertainty_types_to_integers,
+    hash_parameter_group,
+    convert_activity_parameters_to_list,
+    parse_JSON_fields,
+)
+
+
+def _excel_link_strategies(relink: dict | None = None):
+    strategies = [
+        functools.partial(
+            link_iterable_by_fields,
+            other=bd.Database(bd.config.biosphere),
+            kind="biosphere",
+        ),
+        link_technosphere_by_activity_hash,
+    ]
+    if relink is not None:
+        strategies.extend([
+            functools.partial(alter_exchange_database_name, linking_dict=relink),
+            metadatastore_link,
+        ])
+    strategies.append(link_functional_processors)
+    return strategies
 
 
 class ABExcelImporter(ExcelImporter):
@@ -68,40 +108,18 @@ class ABExcelImporter(ExcelImporter):
 
     def automated_import(self, db_name: str, relink: dict = None) -> list:
         self.strategies = [
-            csv_restore_tuples,
+            _EXCEL_PREP[0],
             functools.partial(alter_database_name, old=self.db_name, new=db_name),
-            csv_restore_booleans,
-            csv_numerize,
-            csv_drop_unknown,
-            csv_add_missing_exchanges_section,
-            csv_rewrite_product_key,
-            normalize_units,
-            normalize_biosphere_categories,
-            normalize_biosphere_names,
-            strip_biosphere_exc_locations,
-            set_code_by_activity_hash,
-            functools.partial(
-                link_iterable_by_fields,
-                other=bd.Database(bd.config.biosphere),
-                kind="biosphere",
-            ),
-            link_technosphere_by_activity_hash,
-            drop_falsey_uncertainty_fields_but_keep_zeros,
-            convert_uncertainty_types_to_integers,
-            hash_parameter_group,
-            convert_activity_parameters_to_list,
-            parse_JSON_fields,
+            *_EXCEL_PREP[1:],
+            *_excel_link_strategies(),
         ]
         self.db_name = db_name
 
-        # Test if the import contains any parameters.
-        has_params = any(
-            [
-                self.project_parameters,
-                self.database_parameters,
-                any("parameters" in ds for ds in self.data),
-            ]
-        )
+        has_params = any([
+            self.project_parameters,
+            self.database_parameters,
+            any("parameters" in ds for ds in self.data),
+        ])
         self.apply_strategies()
         if any(self.unlinked) and relink:
             for db, new_db in relink.items():
@@ -135,24 +153,7 @@ class ABExcelImporter(ExcelImporter):
         return [db]
 
     def apply_basic_strategies(self):
-        self.apply_strategies([
-            csv_restore_tuples,
-            csv_restore_booleans,
-            csv_numerize,
-            csv_drop_unknown,
-            csv_add_missing_exchanges_section,
-            csv_rewrite_product_key,
-            normalize_units,
-            normalize_biosphere_categories,
-            normalize_biosphere_names,
-            strip_biosphere_exc_locations,
-            set_code_by_activity_hash,
-            drop_falsey_uncertainty_fields_but_keep_zeros,
-            convert_uncertainty_types_to_integers,
-            hash_parameter_group,
-            convert_activity_parameters_to_list,
-            parse_JSON_fields,
-        ])
+        self.apply_strategies(_EXCEL_PREP)
 
     def apply_db_name(self, db_name: str):
         """Apply a database name change strategy."""
@@ -162,11 +163,7 @@ class ABExcelImporter(ExcelImporter):
         self.db_name = db_name
 
     def apply_linking(self, relink: dict):
-        self.apply_strategies([
-            link_technosphere_by_activity_hash,  # internal linking
-            functools.partial(alter_exchange_database_name, linking_dict=relink),  # change db names
-            metadatastore_link,  # link using metadatastore
-        ])
+        self.apply_strategies(_excel_link_strategies(relink))
 
 
     def apply_strategies(self, strategies=None, verbose=False):
@@ -198,6 +195,23 @@ class ABPackage(BW2Package):
         return path
 
     @classmethod
+    def _read_package_objects(cls, filepath):
+        """Load bw2package JSON without resolving stored class names."""
+        raw_data = JsonSanitizer.load(JsonWrapper.load_bz2(filepath))
+        if isinstance(raw_data, dict):
+            return [raw_data]
+        return list(raw_data)
+
+    @classmethod
+    def missing_dependencies(cls, filepath) -> set[str]:
+        """Return dependency database names from the package that are not in the project."""
+        missing = set()
+        for obj in cls._read_package_objects(filepath):
+            depends = obj.get("metadata", {}).get("depends", [])
+            missing.update(set(depends).difference(bd.databases))
+        return missing
+
+    @classmethod
     def evaluate_metadata(cls, metadata: dict, ignore_dbs: set):
         """Take the given metadata dictionary and test it against realities
         of the current brightway project.
@@ -215,35 +229,30 @@ class ABPackage(BW2Package):
                 )
 
     @classmethod
-    def load_file(cls, filepath, whitelist=True, **kwargs):
-        """Similar to how the base class loads the data, but also perform
-        a number of evaluations on the metadata.
+    def _apply_package_options(cls, obj: dict, db_name: str | None, relink: dict | None) -> dict:
+        ignore = set(relink or {})
+        if "metadata" in obj:
+            cls.evaluate_metadata(obj["metadata"], ignore)
+        if db_name and obj.get("name") != db_name:
+            old = obj.pop("name")
+            obj["name"] = db_name
+            obj["data"] = rename_db_bw2package(obj["data"], old, db_name)
+        if relink:
+            obj["data"] = relink_exchanges_bw2package(obj["data"], relink)
+        return obj
 
-        Also, if given a 'relink' dictionary, perform relinking of exchanges.
-        """
-        relink = kwargs.get("relink", None)
-        db_name = kwargs.get("rename", None)
-        data = super().load_file(filepath, whitelist)
-        relinking = set(relink.keys()) if relink else set([])
-        if isinstance(data, dict):
-            if "metadata" in data:
-                cls.evaluate_metadata(data["metadata"], relinking)
-            if db_name and "name" in data and data["name"] != db_name:
-                old_name = data.pop("name")
-                data["name"] = db_name
-                data["data"] = rename_db_bw2package(data["data"], old_name, db_name)
-            if relink:
-                data["data"] = relink_exchanges_bw2package(data["data"], relink)
+    @classmethod
+    def load_file(cls, filepath, whitelist=True, **kwargs):
+        relink = kwargs.get("relink")
+        db_name = kwargs.get("rename")
+        data = [
+            cls._load_obj(obj, whitelist)
+            for obj in cls._read_package_objects(filepath)
+        ]
+        if len(data) == 1:
+            data = cls._apply_package_options(data[0], db_name, relink)
         else:
-            for obj in data:
-                if "metadata" in obj:
-                    cls.evaluate_metadata(obj["metadata"], relinking)
-                if db_name and "name" in obj and obj["name"] != db_name:
-                    old_name = obj.pop("name")
-                    obj["name"] = db_name
-                    obj["data"] = rename_db_bw2package(obj["data"], old_name, db_name)
-                if relink:
-                    obj["data"] = relink_exchanges_bw2package(obj["data"], relink)
+            data = [cls._apply_package_options(obj, db_name, relink) for obj in data]
         return data
 
     @classmethod

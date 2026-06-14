@@ -12,6 +12,8 @@ from bw2io.export.excel import CSVFormatter, create_valid_worksheet_name
 from .importers import ABPackage
 from .pedigree import PedigreeMatrix
 
+from bw2data.parameters import ActivityParameter, DatabaseParameter
+
 # Copied most of this code wholesale from bw2io package.
 # TODO: reminder to make a pull-request for these things in bw2io repo.
 #  - Add the 'nan_inf_to_errors' option when opening the xlsxwriter.Workbook.
@@ -132,6 +134,21 @@ def write_lci_excel(db_name: str, path: str, objs=None, sections=None) -> Path:
     workbook.close()
 
     return out_file
+
+
+def database_has_parameters(db_name: str) -> bool:
+    """True if the database has database- or activity-level parameters."""
+    if DatabaseParameter.select().where(DatabaseParameter.database == db_name).count():
+        return True
+    return bool(
+        ActivityParameter.select()
+        .where(ActivityParameter.database == db_name)
+        .count()
+    )
+
+
+def databases_with_parameters(db_names: list[str]) -> list[str]:
+    return [name for name in db_names if database_has_parameters(name)]
 
 
 def store_database_as_package(db_name: str, directory: str = None) -> bool:

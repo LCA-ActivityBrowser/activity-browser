@@ -53,5 +53,7 @@ class ParameterModify(ABAction):
                 ActivityParameter._static_dependencies(group.name)
             except DoesNotExist:
                 logger.warning(f"Removing broken parameter group {group.name}")
-                GroupDependency.get(GroupDependency.group == group.name).delete_instance()
+                GroupDependency.delete().where(
+                    GroupDependency.group == group.name
+                ).execute()
                 group.delete_instance()
