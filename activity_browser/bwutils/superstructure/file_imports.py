@@ -220,12 +220,13 @@ class ABCSVImporter(ABFileImporter):
             separator = kwargs["separator"]
         else:
             separator = ";"
-        df = pd.read_csv(
-            path,
-            compression="infer",
-            sep=separator,
-            index_col=False,
-            converters={"from key": ast.literal_eval, "to key": ast.literal_eval},
-        )
+        with Path(path).open("rb") as f:
+            df = pd.read_csv(
+                f,
+                compression="infer",
+                sep=separator,
+                index_col=False,
+                converters={"from key": ast.literal_eval, "to key": ast.literal_eval},
+            )
         # ... execute code
         return df

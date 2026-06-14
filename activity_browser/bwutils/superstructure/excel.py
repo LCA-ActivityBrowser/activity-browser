@@ -21,8 +21,9 @@ def convert_tuple_str(x):
 
 def get_sheet_names(document_path: Union[str, Path]) -> List[str]:
     try:
-        wb = openpyxl.load_workbook(filename=document_path, read_only=True)
-        return wb.sheetnames
+        with Path(document_path).open("rb") as f:
+            wb = openpyxl.load_workbook(filename=f, read_only=True)
+            return wb.sheetnames
     except UnicodeDecodeError as e:
         logger.error("Given document uses an unknown encoding: {}".format(e))
 
@@ -32,13 +33,14 @@ def get_header_index(document_path: Union[str, Path], import_sheet: int):
     exception if not found in the first 10 rows.
     """
     try:
-        wb = openpyxl.load_workbook(filename=document_path, read_only=True)
-        sheet = wb.worksheets[import_sheet]
-        for i in range(10):
-            value = sheet.cell(i + 1, 1).value
-            if isinstance(value, str):
-                wb.close()
-                return i
+        with Path(document_path).open("rb") as f:
+            wb = openpyxl.load_workbook(filename=f, read_only=True)
+            sheet = wb.worksheets[import_sheet]
+            for i in range(10):
+                value = sheet.cell(i + 1, 1).value
+                if isinstance(value, str):
+                    wb.close()
+                    return i
     except IndexError as e:
         wb.close()
         raise IndexError("Expected headers not found in file").with_traceback(
@@ -75,16 +77,17 @@ def import_from_excel(
     data = pd.DataFrame({})
     try:
         header_idx = get_header_index(document_path, import_sheet)
-        data = pd.read_excel(
-            document_path,
-            sheet_name=import_sheet,
-            header=header_idx,
-            usecols=valid_cols,
-            comment="*",
-            na_values="",
-            keep_default_na=False,
-            engine="openpyxl",
-        )
+        with Path(document_path).open("rb") as f:
+            data = pd.read_excel(
+                f,
+                sheet_name=import_sheet,
+                header=header_idx,
+                usecols=valid_cols,
+                comment="*",
+                na_values="",
+                keep_default_na=False,
+                engine="openpyxl",
+            )
         diff = SUPERSTRUCTURE.difference(data.columns)
         if not diff.empty:
             raise ValueError(
