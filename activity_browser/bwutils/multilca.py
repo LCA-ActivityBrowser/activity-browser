@@ -11,8 +11,8 @@ import pandas as pd
 from activity_browser.mod.bw2analyzer import ABContributionAnalysis
 
 from .commontasks import (
-    REFERENCE_FLOW_LABEL_FIELDS,
-    format_reference_flow_label,
+    get_fu_label,
+    get_method_label,
     reference_flow_parts,
     wrap_text,
 )
@@ -24,6 +24,48 @@ metadata = MetaDataStore()
 
 
 ca = ABContributionAnalysis()
+
+
+def _load_cs(obj, inv: list, ia: list) -> None:
+    """Brightway 2.5 inv/ia keys and full label dicts on ``obj``."""
+    obj.func_units = list(inv)
+    obj.fu_demands = {str(i): fu for i, fu in enumerate(obj.func_units)}
+    obj.fu_keys = tuple(obj.fu_demands)
+    obj.fu_activity_keys = list(next(iter(fu)) for fu in obj.func_units)
+    obj.methods = list(ia)
+    obj.fu_labels = {
+        i: get_fu_label(bd.get_activity(next(iter(fu))))
+        for i, fu in enumerate(obj.func_units)
+    }
+    obj.method_labels = {i: get_method_label(m) for i, m in enumerate(obj.methods)}
+    obj.scenario_labels = {}
+
+
+def _index_label(mlca: "MLCA", key, fields: list | None = None) -> str:
+    """Index key → display label (reference flow, method, or metadata fields)."""
+    if fields is not None:
+        if isinstance(key, str):
+            return key.strip()
+        if key in metadata.keys:
+            return " | ".join(
+                str(v).strip()
+                for v in metadata.get_metadata(key, fields).values
+                if pd.notna(v) and str(v).strip()
+            )
+        if isinstance(key, tuple):
+            return " | ".join(str(i) for i in key if i != "")
+        return str(key)
+    if isinstance(key, str):
+        sk = key.strip()
+        if sk.isdigit() and int(sk) in mlca.fu_labels:
+            return mlca.fu_labels[int(sk)]
+        return sk
+    if isinstance(key, tuple) and key in mlca.methods:
+        return mlca.method_labels[mlca.methods.index(key)]
+    try:
+        return get_fu_label(bd.get_activity(key))
+    except Exception:
+        return get_method_label(key) if isinstance(key, tuple) else str(key)
 
 
 class MLCA(object):
@@ -55,12 +97,18 @@ class MLCA(object):
     func_units: list
         List of dictionaries, each containing the reference flow key and
         its required output
+    fu_labels: dict[int, str]
+        Full display label per ``inv`` row index
+    method_labels: dict[int, str]
+        Full display label per impact category index
+    scenario_labels: dict[int, str]
+        Full display label per scenario index (superstructure only)
+    fu_keys: tuple[str, ...]
+        Brightway ``inv`` position keys (``"0"``, ``"1"``, …)
+    fu_demands: dict[str, dict]
+        ``inv`` demands keyed by position
     fu_activity_keys: list
-        The reference flow keys
-    fu_index: dict
-        Links the reference flows to a specific index
-    rev_fu_index: dict
-        Same as `fu_index` but using the indexes as keys
+        Brightway activity keys per ``inv`` row (duplicates allowed)
     methods: list
         The impact categories of the calculation setup
     method_index: dict
@@ -101,14 +149,6 @@ class MLCA(object):
         3-dimensional array of shape (`func_units`, `methods`, `technosphere`)
         which holds the characterized inventory results summed along the
         biosphere axis
-    func_unit_translation_dict: dict
-        Contains the reference flow key and its expected output linked to
-        the brightway activity label.
-    func_key_dict: dict
-        An index of the brightway activity labels
-    func_key_list: list
-        A derivative of `func_key_dict` containing just the keys
-
     Raises
     ------
     ValueError
@@ -139,14 +179,7 @@ class MLCA(object):
             msg.exec_()
             raise ReferenceFlowValueError("Reference flow == 0")
 
-        # reference flows and related indexes
-        self.func_units = cs["inv"]
-        self.fu_activity_keys = [list(fu.keys())[0] for fu in self.func_units]
-        self.fu_index = {k: i for i, k in enumerate(self.fu_activity_keys)}
-        self.rev_fu_index = {v: k for k, v in self.fu_index.items()}
-
-        # Methods and related indexes
-        self.methods = cs["ia"]
+        _load_cs(self, cs["inv"], cs["ia"])
         self.method_index = {m: i for i, m in enumerate(self.methods)}
         self.rev_method_index = {v: k for k, v in self.method_index.items()}
 
@@ -193,19 +226,6 @@ class MLCA(object):
             )
         )
 
-        self.func_unit_translation_dict = {}
-        for fu in self.func_units:
-            key = next(iter(fu))
-            amount = fu[key]
-            act = bd.get_activity(key)
-            self.func_unit_translation_dict[
-                format_reference_flow_label(act, amount)
-            ] = fu
-        self.func_key_dict = {
-            m: i for i, m in enumerate(self.func_unit_translation_dict.keys())
-        }
-        self.func_key_list = list(self.func_unit_translation_dict.keys())
-
     def _construct_lca(self, lca_class: bc.LCA):
         return lca_class(demand=self.func_units_dict, method=self.methods[0])
 
@@ -214,6 +234,7 @@ class MLCA(object):
         to either alter the code or redo calculations after matrix substitution.
         """
         for row, func_unit in enumerate(self.func_units):
+            fu_key = self.fu_keys[row]
             # Do the LCA for the current reference flow
             try:
                 self.lca.redo_lci(func_unit)
@@ -228,18 +249,12 @@ class MLCA(object):
             # - Life cycle inventory
             # - Life-cycle inventory (disaggregated by contributing process)
             # for current reference flow
-            self.scaling_factors.update({str(func_unit): self.lca.supply_array})
-            self.technosphere_flows.update(
-                {
-                    str(func_unit): np.multiply(
-                        self.lca.supply_array, self.lca.technosphere_matrix.diagonal()
-                    )
-                }
+            self.scaling_factors[fu_key] = self.lca.supply_array
+            self.technosphere_flows[fu_key] = np.multiply(
+                self.lca.supply_array, self.lca.technosphere_matrix.diagonal()
             )
-            self.inventory.update(
-                {str(func_unit): np.array(self.lca.inventory.sum(axis=1)).ravel()}
-            )
-            self.inventories.update({str(func_unit): self.lca.inventory})
+            self.inventory[fu_key] = np.array(self.lca.inventory.sum(axis=1)).ravel()
+            self.inventories[fu_key] = self.lca.inventory
 
             # Now, for each method, take the current reference flow and do inventory analysis
             for col, cf_matrix in enumerate(self.method_matrices):
@@ -284,7 +299,7 @@ class MLCA(object):
 
     def get_results_for_method(self, index: int = 0) -> pd.DataFrame:
         data = self.lca_scores[:, index]
-        return pd.DataFrame(data, index=self.fu_activity_keys)
+        return pd.DataFrame(data, index=list(self.fu_labels.values()))
 
     @property
     def lca_scores_normalized(self) -> np.ndarray:
@@ -305,8 +320,8 @@ class MLCA(object):
         """
         return pd.DataFrame(
             data=self.lca_scores,
-            index=pd.Index(self.fu_activity_keys),
-            columns=pd.Index(self.methods),
+            index=pd.Index(self.fu_labels.values()),
+            columns=pd.Index(self.method_labels.values()),
         )
 
 
@@ -369,13 +384,13 @@ class Contributions(object):
             "biosphere": (
                 self.mlca.inventory,
                 self.mlca.rev_biosphere_dict,
-                self.mlca.fu_activity_keys,
+                self.mlca.fu_keys,
                 self.ef_fields,
             ),
             "technosphere": (
                 self.mlca.technosphere_flows,
                 self.mlca.rev_activity_dict,
-                self.mlca.fu_activity_keys,
+                self.mlca.fu_keys,
                 self.act_fields,
             ),
         }
@@ -473,62 +488,6 @@ class Contributions(object):
         return topcontribution_dict
 
     @staticmethod
-    def get_labels(
-        key_list: pd.MultiIndex,
-        fields: Optional[list] = None,
-        separator: str = " | ",
-        max_length: int = False,
-        mask: Optional[list] = None,
-    ) -> list:
-        """Generate labels from metadata information.
-
-        Setting max_length will wrap the label into a multi-line string if
-        size is larger than max_length.
-
-        Parameters
-        ----------
-        key_list : An index containing 'keys' to be retrieved from the MetaDataStore
-        fields : List of column-names to be included from the MetaDataStore
-        separator : Specific separator to use when joining strings together
-        max_length : Allowed character length before string is wrapped over multiple lines
-        mask : Instead of the metadata, this list is used to check keys against.
-            Use if data is aggregated or keys do not exist in MetaDataStore
-
-        Returns
-        -------
-        Translated and/or joined (and wrapped) labels matching the keys
-
-        """
-        use_reference_flow_labels = fields is None or tuple(fields) == REFERENCE_FLOW_LABEL_FIELDS
-        if fields is None:
-            fields = list(REFERENCE_FLOW_LABEL_FIELDS)
-        keys = (
-            k for k in key_list
-        )  # need to do this as the keys come from a pd.Multiindex
-        translated_keys = []
-        for k in keys:
-            if mask and k in mask:
-                translated_keys.append(k)
-            elif isinstance(k, str):
-                translated_keys.append(k)
-            elif k in metadata.keys:
-                if use_reference_flow_labels:
-                    translated_keys.append(format_reference_flow_label(bd.get_activity(k)))
-                else:
-                    translated_keys.append(
-                        separator.join(
-                            [str(l) for l in list(metadata.get_metadata(k, fields))]
-                        )
-                    )
-            else:
-                translated_keys.append(separator.join([i for i in k if i != ""]))
-        if max_length:
-            translated_keys = [
-                wrap_text(k, max_length=max_length) for k in translated_keys
-            ]
-        return translated_keys
-
-    @staticmethod
     def _apply_reference_flow_columns(meta: pd.DataFrame, keys: list) -> pd.DataFrame:
         """Align product/name metadata with reference-flow semantics for table display."""
         for key in keys:
@@ -553,6 +512,7 @@ class Contributions(object):
         x_fields: Optional[list] = None,
         y_fields: Optional[list] = None,
         special_keys: Optional[list] = None,
+        mlca: MLCA | None = None,
     ) -> pd.DataFrame:
         """Join a dataframe that has keys on the index with metadata.
 
@@ -573,8 +533,7 @@ class Contributions(object):
 
         """
 
-        # replace column keys with labels
-        df.columns = cls.get_labels(df.columns, fields=y_fields)
+        # Column keys stay internal (inv indices / method tuples); relabel at plot time.
         # Coerce index to MultiIndex if it currently isn't
         if not isinstance(df.index, pd.MultiIndex):
             df.index = pd.MultiIndex.from_tuples(ids_to_keys(df.index), names=["database", "code"])
@@ -599,7 +558,7 @@ class Contributions(object):
                 logger.error(
                     "Could not put 'Total', 'Rest (+)' and 'Rest (-)' on positions 0, 1 and 2 in the dataframe."
                 )
-        joined.index = cls.get_labels(joined.index, fields=x_fields)
+        joined.index = [_index_label(mlca, k, x_fields) for k in joined.index]
         return joined
 
     def get_labelled_contribution_dict(
@@ -650,16 +609,22 @@ class Contributions(object):
 
         if not mask:
             joined = self.join_df_with_metadata(
-                df, x_fields=x_fields, y_fields=y_fields, special_keys=special_keys
+                df,
+                x_fields=x_fields,
+                y_fields=y_fields,
+                special_keys=special_keys,
+                mlca=self.mlca,
             )
         else:
-            df.columns = self.get_labels(df.columns, fields=y_fields)
+            df.columns = list(df.columns)
             keys = [k for k in df.index if k in mask]
             combined_keys = special_keys + keys
             # Reindex the combined_keys to ensure they always exist in the dataframe,
             # this avoids keys with 0 values not existing due to the 'dropna' action above.
             df = df.reindex(combined_keys, axis="index", fill_value=0.0)
-            df.index = self.get_labels(df.index, mask=mask)
+            df.index = [
+                k if k in mask else _index_label(self.mlca, k) for k in df.index
+            ]
             joined = df
         if joined is not None:
             return joined.reset_index(drop=False)
@@ -669,18 +634,33 @@ class Contributions(object):
         """Given a dataframe, adjust the unit of the table to either match the given method, or not exist."""
         if "unit" not in df.columns:
             return df
-        keys = df.index[~df["index"].isin({"Score", "Rest (+)", "Rest (-)"})]
+        special = {"Score", "Rest (+)", "Rest (-)"}
+        if "index" in df.columns:
+            row_mask = ~df["index"].isin(special)
+        elif "database" in df.columns:
+            row_mask = ~df["database"].isin(special)
+        else:
+            return df
+        keys = df.index[row_mask]
         unit = bd.Method(method).metadata.get("unit") if method else "unit"
         df.loc[keys, "unit"] = unit
         return df
 
-    @staticmethod
     def _build_inventory(
-        inventory: dict, indices: dict, columns: list, fields: list
+        self,
+        inventory: dict,
+        indices: dict,
+        columns: list,
+        fields: list,
     ) -> pd.DataFrame:
         data = pd.DataFrame(inventory)
         data.index = indices.values()
-        data.columns = Contributions.get_labels(columns, max_length=30)
+        data.columns = [
+            wrap_text(self.mlca.fu_labels[int(k)], max_length=30)
+            if str(k).strip().isdigit() and int(str(k).strip()) in self.mlca.fu_labels
+            else str(k)
+            for k in columns
+        ]
 
         data = pd.merge(
             metadata.dataframe[fields], data, right_index=True, left_on="id", how="right"
@@ -703,34 +683,34 @@ class Contributions(object):
                 "Type must be either 'biosphere' or 'technosphere', "
                 "'{}' given.".format(inventory_type)
             )
-        return self._build_inventory(*data)
+        df = self._build_inventory(*data)
+        return df
 
     def _build_lca_scores_df(self, scores: np.ndarray) -> pd.DataFrame:
-        df = pd.DataFrame(
-            scores,
-            index=pd.MultiIndex.from_tuples(self.mlca.fu_activity_keys),
-            columns=self.mlca.methods,
-        )
-        # Add amounts column.
-        df["amount"] = [next(iter(fu.values()), 1.0) for fu in self.mlca.func_units]
-        joined = Contributions.join_df_with_metadata(
-            df, x_fields=self.act_fields, y_fields=None
-        )
-        # Precisely order the columns that are shown in the LCA Results overview
-        # tab: “X kg of product Y from activity Z in location L, and database D”
+        rows = []
+        for i, fu in enumerate(self.mlca.func_units):
+            key = next(iter(fu))
+            meta = metadata.get_metadata([key], self.act_fields)
+            meta = self._apply_reference_flow_columns(meta, [key]).iloc[0]
+            row = {col: meta[col] for col in self.act_fields if col in meta.index}
+            row["amount"] = next(iter(fu.values()))
+            for j, method in enumerate(self.mlca.methods):
+                row[method] = scores[i, j]
+            rows.append(row)
+
+        joined = pd.DataFrame(rows)
         col_order = pd.Index(
             [
                 "amount",
                 "unit",
-                #"reference product",
                 "name",
                 "location",
                 "database",
             ]
         )
         methods = joined.columns.difference(col_order, sort=False)
-        joined = joined.loc[:, col_order.append(methods)]
-        return joined.reset_index(drop=False)
+        joined = joined.loc[:, col_order.intersection(joined.columns).append(methods)]
+        return joined.reset_index(drop=True)
 
     def lca_scores_df(self, normalized: bool = False) -> pd.DataFrame:
         """Return a metadata-annotated DataFrame of the LCA scores."""
@@ -764,7 +744,7 @@ class Contributions(object):
             )
         elif functional_unit:
             return self._build_contributions(
-                dataset[contribution], self.mlca.func_key_dict[functional_unit], 0
+                dataset[contribution], int(functional_unit), 0
             )
 
     def aggregate_by_parameters(
@@ -838,8 +818,10 @@ class Contributions(object):
 
     def _contribution_index_cols(self, **kwargs) -> tuple[dict, Optional[Iterable]]:
         if kwargs.get("method") is not None:
-            # Reference-flow columns: same labels as MLCA / LCA scores (product | process | …).
-            return self.mlca.fu_index, None
+            # Brightway keys ("0", "1", …); display names applied after build.
+            return {
+                self.mlca.fu_keys[i]: i for i in range(len(self.mlca.func_units))
+            }, None
         return self._correct_method_index(self.mlca.methods), None
 
     def top_elementary_flow_contributions(

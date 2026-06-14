@@ -115,21 +115,6 @@ def normalize_lcia_matrix(scores: np.ndarray, *, relative: bool) -> np.ndarray:
     return out
 
 
-def _fu_labels(mlca: MLCA) -> list[str]:
-    """Match MLCA reference-flow labels (process name included)."""
-    labels = []
-    for label in mlca.func_key_list:
-        if " | " in label:
-            labels.append(label.rsplit(" | ", 1)[0])
-        else:
-            labels.append(label)
-    return labels
-
-
-def _method_labels(mlca: MLCA) -> list[str]:
-    return [", ".join(str(p) for p in m if p) for m in mlca.methods]
-
-
 def compare_mode_supports_flip(mode: LCIACompareMode) -> bool:
     return mode in (
         LCIACompareMode.FLOWS_X_METHODS,
@@ -254,8 +239,8 @@ def build_lcia_overview(
     flip_groups: bool = False,
 ) -> LCIAOverviewData:
     """Build grouped-bar data for the LCIA landing tab."""
-    fu_labels = _fu_labels(mlca)
-    method_labels = _method_labels(mlca)
+    fu_labels = list(mlca.fu_labels.values())
+    method_labels = list(mlca.method_labels.values())
     method_units = _method_group_units(method_labels, mlca)
 
     if compare == LCIACompareMode.REFERENCE_FLOWS:

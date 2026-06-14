@@ -48,9 +48,6 @@ def shorten_label(text: str, max_length: int = 40) -> str:
     return collapsed[: max_length - 1].rstrip() + "…"
 
 
-REFERENCE_FLOW_LABEL_FIELDS = ("name", "reference product", "location", "database")
-
-
 def _activity_as_dict(act) -> dict:
     if hasattr(act, "as_dict"):
         return act.as_dict()
@@ -58,7 +55,7 @@ def _activity_as_dict(act) -> dict:
 
 
 def reference_flow_parts(act) -> tuple[str, str, str, str]:
-    """Return ``product, process, location, database`` for a functional-unit activity."""
+    """Return ``(product, process, location, database)`` for a reference-flow activity."""
     act_dict = _activity_as_dict(act)
     act_type = act_dict.get("type", "")
     product_types = tuple(getattr(bd.labels, "product_node_types", ("product", "waste")))
@@ -99,13 +96,13 @@ def reference_flow_parts(act) -> tuple[str, str, str, str]:
     return product, process_name, location, database
 
 
-def format_reference_flow_label(
+def get_fu_label(
     act,
     amount: float | None = None,
     *,
     separator: str = " | ",
 ) -> str:
-    """Single-line functional-unit label: product | process | location | database [| amount]."""
+    """AB convention: product | process | location | database."""
     product, process_name, location, database = reference_flow_parts(act)
     parts = [product, process_name, location, database]
     if amount is not None:
@@ -113,32 +110,13 @@ def format_reference_flow_label(
     return separator.join(parts)
 
 
-def format_activity_label(key, style="pnl", max_length=40):
-    try:
-        act = bd.get_activity(key)
-        product, process_name, location, database = reference_flow_parts(act)
-
-        if style == "pnl":
-            label = "\n".join([product, process_name, location])
-        elif style == "pnl_":
-            label = " | ".join([product, process_name, location])
-        elif style == "pnld":
-            label = " | ".join([product, process_name, location, database])
-        elif style == "pl":
-            label = ", ".join([product or process_name, location])
-        elif style == "key":
-            label = str(act.key)  # safer to use key, code does not always exist
-
-        elif style == "bio":
-            label = ",\n".join([act.get("name", ""), str(act.get("categories", ""))])
-        else:
-            label = "\n".join([product, process_name, location])
-    except:
-        if isinstance(key, tuple):
-            return wrap_text(str("".join(key)))
-        else:
-            return wrap_text(str(key))
-    return wrap_text(label, max_length=max_length)
+def get_method_label(method, *, separator: str = ", ") -> str:
+    """AB convention: joined Brightway method tuple parts."""
+    if isinstance(method, str):
+        return method
+    if not isinstance(method, (tuple, list)):
+        return str(method)
+    return separator.join(str(part) for part in method if part)
 
 
 def cleanup_deleted_bw_projects() -> None:

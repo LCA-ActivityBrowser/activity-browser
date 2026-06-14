@@ -284,17 +284,15 @@ class ContributionPlot(ABPlot):
         col_units: dict[str, str] = {}
         tab = self.parent
         if not relative and tab.switches.currentIndex() == tab.switches.indexes.method:
-            contributions = tab.parent.contributions
+            mlca = tab.parent.mlca
             for method in tab.parent.mlca.methods:
-                u = unit_of_method(method)
-                col_units[contributions.get_labels([method])[0].strip()] = u
-                col_units[" | ".join(list(method))] = u
+                col_units[mlca.method_labels[mlca.methods.index(method)]] = unit_of_method(method)
 
         value_cols = list(dfp.select_dtypes(include=np.number).columns)
-        full_cols = contribution_column_labels(self.parent, value_cols)
         if not relative and "Score" in dfp.index:
             score = dfp.loc["Score"]
-            for raw_col, label in zip(value_cols, full_cols):
+            preview_cols = contribution_column_labels(self.parent, value_cols)
+            for raw_col, label in zip(value_cols, preview_cols):
                 if pd.notna(score.get(raw_col)):
                     col_scores[label] = float(score[raw_col])
 
@@ -305,7 +303,11 @@ class ContributionPlot(ABPlot):
             dfp.index[(dfp == 0).all(axis=1) & ~dfp.index.isin(REST_ROWS)]
         )
         full_rows = [str(i).strip() for i in dfp.index]
-        dfp = dfp[value_cols]
+        if value_cols:
+            dfp = dfp[value_cols]
+        full_cols = contribution_column_labels(self.parent, list(dfp.columns))
+        if len(full_cols) != len(dfp.columns):
+            full_cols = [str(c) for c in dfp.columns]
         dfp.columns = full_cols
         return _ContributionFrame(
             dfp, full_rows, full_cols, dfp.to_numpy(dtype=float),
@@ -341,6 +343,9 @@ class ContributionPlot(ABPlot):
         row_colors = self.stack_contributor_colors(frame.full_rows, display_rows)
         show_legend = dfp.shape[0] < self.MAX_LEGEND
         legend_ratio = 0.18 if show_legend else 0.0
+        legend_full = list(frame.full_rows)
+        legend_display = self.legend_labels(legend_full)
+        n = 0
 
         plot_kw = dict(stacked=True, color=row_colors, ax=self.ax, legend=False)
         if frame.horizontal:
@@ -358,13 +363,15 @@ class ContributionPlot(ABPlot):
         )
         self.set_signed_value_grid(self.ax, horizontal=frame.horizontal)
         if show_legend:
-            handles, _ = self.ax.get_legend_handles_labels()
-            if not handles:
-                handles = [c.patches[0] for c in self.ax.containers if c.patches]
-            self.add_legend(
-                handles, self.legend_labels(frame.full_rows),
-                loc="center left", bbox_to_anchor=(1, 0.5),
-            )
+            handles = [c.patches[0] for c in self.ax.containers if c.patches]
+            n = min(len(handles), len(legend_display), len(legend_full))
+            if n:
+                self.add_legend(
+                    handles[:n],
+                    legend_display[:n],
+                    loc="center left",
+                    bbox_to_anchor=(1, 0.5),
+                )
 
         self._draw_net_markers(self.ax, dfp, horizontal=frame.horizontal)
         self.set_plot_context(
@@ -380,7 +387,7 @@ class ContributionPlot(ABPlot):
         self.finish_plot(
             tooltip_x=tip_x,
             tooltip_y=tip_y,
-            tooltip_legend=frame.full_rows if show_legend else None,
+            tooltip_legend=legend_full[:n] if show_legend else None,
         )
 
 
@@ -397,6 +404,7 @@ class MonteCarloPlot(ABPlot):
         n_series = df.shape[1]
         unit = methods[method]["unit"]
         legend_full = [str(c) for c in df.columns]
+        legend_display = self.legend_labels(legend_full)
         hist_series: list[np.ndarray] = []
 
         for j in range(n_series):
@@ -405,9 +413,10 @@ class MonteCarloPlot(ABPlot):
             if vals.size == 0:
                 continue
             color = self.series_color(j)
+            label = legend_display[j] if j < len(legend_display) else legend_full[j]
             self.ax.hist(
                 vals, density=True, alpha=0.5,
-                label=self.legend_labels([legend_full[j]])[0], color=color,
+                label=label, color=color,
             )
             self.ax.axvline(float(np.mean(vals)), color=color)
 
@@ -460,6 +469,7 @@ class GSAPlot(ABPlot):
         conf = dfp["delta_conf"].to_numpy(dtype=float)
         colors = [self.gsa_type_color(t) for t in dfp[GSA_TYPE_COLUMN]]
         names = [str(n) for n in dfp[GSA_NAME_COLUMN]]
+        type_labels = [str(t) for t in dfp[GSA_TYPE_COLUMN].drop_duplicates()]
         handles = [
             Patch(color=self.gsa_type_color(t), label=t)
             for t in dfp[GSA_TYPE_COLUMN].drop_duplicates()
@@ -498,7 +508,11 @@ class GSAPlot(ABPlot):
             bar_errors=conf.reshape(1, -1),
         )
         tip_x, tip_y = self.category_axis_tooltips(names, horizontal=horizontal)
-        self.finish_plot(tooltip_x=tip_x, tooltip_y=tip_y)
+        self.finish_plot(
+            tooltip_x=tip_x,
+            tooltip_y=tip_y,
+            tooltip_legend=type_labels if handles else None,
+        )
 
     def resizeEvent(self, event):
         super().resizeEvent(event)

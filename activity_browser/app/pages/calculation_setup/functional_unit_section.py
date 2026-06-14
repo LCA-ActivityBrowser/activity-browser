@@ -57,24 +57,8 @@ class FunctionalUnitSection(QtWidgets.QWidget):
         act_df["_processor_key"] = act_df["processor"]
         act_df["_processor_key"] = act_df["_processor_key"].fillna(act_df["_activity_key"])
 
-        # Retrieve metadata for unique processor keys, focusing on the "name" column.
-        processor_df = app.metadata.get_metadata(act_df["_processor_key"].unique(), ["name"])
-
-        # Flatten the index of the processor DataFrame to ensure compatibility with merging.
-        processor_df.index = processor_df.index.to_flat_index()
-
-        # Merge the processor keys from the activity DataFrame with the processor metadata.
-        processor_df = pd.merge(act_df["_processor_key"].astype(object), processor_df, "right",
-                                left_on="_processor_key", right_index=True, )
-
-        # Add a column for function keys by flattening the index of the processor DataFrame.
-        processor_df["function_keys"] = processor_df.index.to_flat_index()
-
-        # Remove duplicate rows from the processor DataFrame to ensure uniqueness.
-        processor_df = processor_df.drop_duplicates()
-
-        # Add the "process" column to the activity DataFrame using the processor names.
-        act_df["process"] = processor_df["name"]
+        proc_meta = app.metadata.get_metadata(act_df["_processor_key"].unique(), ["name"])
+        act_df["process"] = act_df["_processor_key"].map(proc_meta["name"])
 
         # Product nodes: metadata "name" is the product; keep process from the processor.
         act_df["product"] = act_df["product"].fillna(act_df["name"])

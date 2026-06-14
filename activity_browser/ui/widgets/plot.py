@@ -316,6 +316,8 @@ class ABPlot(QtWidgets.QWidget):
     # --- label formatting -------------------------------------------------------
 
     def shorten_labels(self, labels: list[str], max_length: int | None = None) -> list[str]:
+        if isinstance(labels, str):
+            labels = [labels]
         if self.use_full_labels():
             return [str(label) for label in labels]
         ml = max_length or self.LABEL_MAX_LENGTH
@@ -328,6 +330,8 @@ class ABPlot(QtWidgets.QWidget):
         return shorten_label(str(title), ml)
 
     def legend_labels(self, labels: list[str], max_length: int | None = None) -> list[str]:
+        if isinstance(labels, str):
+            labels = [labels]
         ml = max_length or self.LABEL_MAX_LENGTH
         if self.use_full_labels():
             return [wrap_text(str(label), max_length=ml) for label in labels]
@@ -598,9 +602,49 @@ class ABPlot(QtWidgets.QWidget):
                 return f"{name}\n{line}" if name else line
         return None
 
+    def _legend_tooltip(self, event) -> str | None:
+        if not self._tooltip_legend or event.x is None or event.y is None:
+            return None
+        renderer = self.figure.canvas.get_renderer()
+        legends = [
+            leg
+            for leg in (
+                *(ax.get_legend() for ax in self.figure.axes),
+                *self.figure.legends,
+            )
+            if leg is not None
+        ]
+        for legend in legends:
+            _, info = legend.contains(event)
+            ind = info.get("ind") if info else None
+            if ind is not None:
+                try:
+                    return str(self._tooltip_legend[int(ind[0])]).strip()
+                except (IndexError, TypeError, ValueError):
+                    pass
+            for idx, handle in enumerate(legend.legend_handles):
+                if handle.get_window_extent(renderer).contains(event.x, event.y):
+                    try:
+                        return str(self._tooltip_legend[idx]).strip()
+                    except IndexError:
+                        return None
+            for idx, text in enumerate(legend.get_texts()):
+                try:
+                    full = str(self._tooltip_legend[idx]).strip()
+                except IndexError:
+                    continue
+                if self.label_needs_tooltip(
+                    text.get_text(), full
+                ) and text.get_window_extent(renderer).contains(event.x, event.y):
+                    return full
+        return None
+
     def _truncated_label_tooltip(self, event) -> str | None:
         if event.x is None or event.y is None:
             return None
+        tip = self._legend_tooltip(event)
+        if tip is not None:
+            return tip
         renderer = self.figure.canvas.get_renderer()
         for ctx in self._tooltip_axis_contexts():
             ax = ctx["ax"]
@@ -620,14 +664,6 @@ class ABPlot(QtWidgets.QWidget):
                 ax.title.get_text(), full_title
             ) and ax.title.get_window_extent(renderer).contains(event.x, event.y):
                 return full_title
-        for legend in self.figure.legends:
-            if not self._tooltip_legend:
-                break
-            for text, full in zip(legend.get_texts(), self._tooltip_legend):
-                if self.label_needs_tooltip(
-                    text.get_text(), full
-                ) and text.get_window_extent(renderer).contains(event.x, event.y):
-                    return full
         return None
 
     def set_motion_tooltip(

@@ -58,10 +58,19 @@ class _FakeMLCA:
         self.func_units = func_units
         self.methods = methods
         self.scenario_names = scenario_names or []
-        self.func_key_list = [
-            f"product {i} | process {i} | GLO | db | 1.0"
-            for i in range(len(func_units))
-        ]
+        self.setup = type(
+            "Setup",
+            (),
+            {
+                "fu_labels": [
+                    f"product {i} | process {i} | GLO | db"
+                    for i in range(len(func_units))
+                ],
+                "method_labels": [
+                    ", ".join(str(p) for p in m if p) for m in methods
+                ],
+            },
+        )()
 
 
 class _FakeContributions:
@@ -187,11 +196,11 @@ def test_compare_mode_supports_flip():
 def test_reference_flow_label_uses_processor_name(lcia_overview_project):
     import bw2data as bd
 
-    from activity_browser.bwutils.commontasks import format_reference_flow_label
+    from activity_browser.bwutils.commontasks import get_fu_label
     from tests.fixtures.lcia_overview import DATABASE_NAME
 
     act = bd.get_activity((DATABASE_NAME, "prod_0"))
-    label = format_reference_flow_label(act, 1.0)
+    label = get_fu_label(act, 1.0)
     assert label == f"product 0 | main process 0 | GLO | {DATABASE_NAME} | 1.0"
 
 

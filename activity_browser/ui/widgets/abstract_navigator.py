@@ -110,10 +110,10 @@ class ABAbstractNavigator(QtWidgets.QWidget):
         if demand_index is not None and 0 <= demand_index < len(getattr(self, "func_units", [])):
             import bw2data as bd
 
-            from activity_browser.bwutils.commontasks import format_reference_flow_label
+            from activity_browser.bwutils.commontasks import get_fu_label
 
             key = list(self.func_units[demand_index].keys())[0]
-            fu_label = format_reference_flow_label(bd.get_activity(key))
+            fu_label = get_fu_label(bd.get_activity(key))
         scenario = None
         if getattr(self, "has_scenarios", False) and scenario_index is not None:
             scenarios = getattr(self, "scenarios", [])

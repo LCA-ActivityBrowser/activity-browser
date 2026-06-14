@@ -1245,9 +1245,7 @@ class ContributionTab(NewAnalysisTab):
         """Construct a horizontal layout for picking and choosing what data to show and how."""
         menu = lca_tab_control_row()
         # Populate the drop-down boxes with their relevant values.
-        self.combobox_menu.func.addItems(
-            list(self.parent.mlca.func_unit_translation_dict.keys())
-        )
+        self.combobox_menu.func.addItems(list(self.parent.mlca.fu_labels.values()))
         self.combobox_menu.method.addItems(list(self.parent.method_dict.keys()))
 
         menu.addWidget(self.switch_label)
@@ -1307,7 +1305,7 @@ class ContributionTab(NewAnalysisTab):
         """
         # gather the combobox values
         method = self.parent.method_dict[self.combobox_menu.method.currentText()]
-        functional_unit = self.combobox_menu.func.currentText()
+        functional_unit = str(self.combobox_menu.func.currentIndex())
         scenario = max(self.combobox_menu.scenario.currentIndex(), 0)  # set scenario 0 if not initiated yet
         aggregator = self.combobox_menu.agg.currentText()
 
@@ -1736,7 +1734,9 @@ class FirstTierContributionsTab(ContributionTab):
             if compare == "Reference Flows":
                 col_name = self.metadata_to_index(self.key_to_metadata(item))
             elif compare == "Impact Categories":
-                col_name = self.metadata_to_index(list(item))
+                from activity_browser.bwutils.commontasks import get_method_label
+
+                col_name = get_method_label(item, separator=" | ")
             elif compare == "Scenarios":
                 col_name = item
 
@@ -2135,13 +2135,6 @@ class MonteCarloTab(NewAnalysisTab):
             self.update_mc()
 
     def update_mc(self, cs_name=None):
-        # act = self.combobox_fu.currentText()
-        # activity_index = self.combobox_fu.currentIndex()
-        # act_key = self.parent.mc.activity_keys[activity_index]
-        # if cs_name != self.parent.cs_name:  # relevant if several CS are open at the same time
-        #     return
-
-        # self.label_running.hide()
         self.view_options_widget.show()
         self.set_tab_body_visible(True)
         self.export_widget.show()
@@ -2149,7 +2142,6 @@ class MonteCarloTab(NewAnalysisTab):
         method_index = self.combobox_methods.currentIndex()
         method = self.parent.mc.methods[method_index]
 
-        # data = self.parent.mc.get_results_by(act_key=act_key, method=method)
         self.df = self.parent.mc.get_results_dataframe(method=method)
 
         self.update_table()
@@ -2320,7 +2312,7 @@ class GSATab(NewAnalysisTab):
             self.combobox_methods, [str(m) for m in self.parent.mc.methods]
         )
         self.update_combobox(
-            self.combobox_fu, list(self.parent.mlca.func_unit_translation_dict.keys())
+            self.combobox_fu, list(self.parent.mlca.fu_labels.values())
         )
         super().update_tab()
 

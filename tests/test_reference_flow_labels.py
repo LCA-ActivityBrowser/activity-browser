@@ -1,23 +1,18 @@
-"""Reference-flow label formatting (product nodes with processor activities)."""
-
-from unittest.mock import MagicMock
+"""Reference-flow and method label formatting."""
 
 import pandas as pd
 import pytest
 
+from activity_browser.bwutils.commontasks import get_fu_label, get_method_label, reference_flow_parts
 from activity_browser.bwutils.contribution_labels import (
     contribution_column_labels,
     contribution_row_labels,
 )
-from activity_browser.bwutils.commontasks import (
-    format_reference_flow_label,
-    reference_flow_parts,
-)
+from activity_browser.bwutils.multilca import _load_cs
 
 
 @pytest.fixture
 def product_activity(monkeypatch):
-    """Product node like ``LCIA_overview_test`` (processor = main process)."""
     processor = {
         "name": "main process 0",
         "type": "process",
@@ -38,29 +33,16 @@ def product_activity(monkeypatch):
             return processor
         raise KeyError(key)
 
-    monkeypatch.setattr(
-        "activity_browser.bwutils.commontasks.bd.get_activity", get_activity
-    )
+    monkeypatch.setattr("activity_browser.bwutils.commontasks.bd.get_activity", get_activity)
     return product
 
 
-def test_reference_flow_parts_product_with_processor(product_activity):
-    product, process_name, location, database = reference_flow_parts(product_activity)
-    assert product == "product 0"
-    assert process_name == "main process 0"
-    assert location == "GLO"
-    assert database == "LCIA_overview_test"
-
-
-def test_format_reference_flow_label_product_with_processor(product_activity):
-    label = format_reference_flow_label(product_activity)
-    assert label == "product 0 | main process 0 | GLO | LCIA_overview_test"
-    assert "None" not in label
+def test_get_fu_label_product_with_processor(product_activity):
+    assert get_fu_label(product_activity) == "product 0 | main process 0 | GLO | LCIA_overview_test"
 
 
 @pytest.fixture
 def main_process_activity(monkeypatch, product_activity):
-    """Process node linked to a product via its production exchange."""
     product_key = ("LCIA_overview_test", "prod_0")
 
     def get_activity(key):
@@ -70,112 +52,73 @@ def main_process_activity(monkeypatch, product_activity):
                 "type": "process",
                 "location": "GLO",
                 "database": "LCIA_overview_test",
-                "exchanges": [
-                    {"type": "production", "amount": 1, "input": product_key},
-                ],
+                "exchanges": [{"type": "production", "amount": 1, "input": product_key}],
             }
         if key == product_key:
             return product_activity
         raise KeyError(key)
 
-    monkeypatch.setattr(
-        "activity_browser.bwutils.commontasks.bd.get_activity", get_activity
-    )
+    monkeypatch.setattr("activity_browser.bwutils.commontasks.bd.get_activity", get_activity)
     return get_activity(("LCIA_overview_test", "main_0"))
 
 
-def test_reference_flow_parts_process_via_production_exchange(main_process_activity):
-    product, process_name, location, database = reference_flow_parts(
-        main_process_activity
-    )
-    assert product == "product 0"
-    assert process_name == "main process 0"
-    assert location == "GLO"
-    assert database == "LCIA_overview_test"
+def test_get_fu_label_process_via_production_exchange(main_process_activity):
+    assert get_fu_label(main_process_activity) == "product 0 | main process 0 | GLO | LCIA_overview_test"
 
 
-def test_format_reference_flow_label_process_via_production_exchange(
-    main_process_activity,
-):
-    label = format_reference_flow_label(main_process_activity)
-    assert label == "product 0 | main process 0 | GLO | LCIA_overview_test"
-    assert "None" not in label
+def test_get_method_label():
+    assert get_method_label(("IPCC", "GWP100")) == "IPCC, GWP100"
+    assert get_method_label("x") == "x"
 
 
-def test_contribution_row_labels_from_metadata_keys(
-    product_activity, main_process_activity, monkeypatch
-):
-    def get_activity(key):
-        if key == ("LCIA_overview_test", "main_0"):
-            return main_process_activity
-        if key == ("LCIA_overview_test", "prod_0"):
-            return product_activity
-        raise KeyError(key)
-
+def test_load_cs_label_dicts(product_activity, monkeypatch):
     monkeypatch.setattr(
-        "activity_browser.bwutils.contribution_labels.bd.get_activity", get_activity
+        "activity_browser.bwutils.multilca.bd.get_activity", lambda key: product_activity
     )
-    monkeypatch.setattr(
-        "activity_browser.bwutils.commontasks.bd.get_activity", get_activity
-    )
+    key = ("LCIA_overview_test", "prod_0")
+    obj = type("Obj", (), {})()
+    _load_cs(obj, [{key: 1.0}, {key: 2.0}], [("m", "a")])
+    assert obj.fu_labels[0] == obj.fu_labels[1]
+    assert obj.fu_labels[0] == get_fu_label(product_activity)
+    assert obj.method_labels[0] == "m, a"
+
+
+def test_contribution_row_labels_biosphere():
     df = pd.DataFrame(
         {
-            "index": ["None | product 0 | GLO"],
-            "database": ["LCIA_overview_test"],
-            "code": ["main_0"],
-            "prod_0": [1.0],
+            "name": ["Carbon dioxide, fossil"],
+            "categories": ["air"],
+            "database": ["biosphere3"],
+            "code": ["abc"],
+            "0": [1.0],
         }
     )
-    labels = contribution_row_labels(df)
-    assert labels == ["product 0 | main process 0 | GLO | LCIA_overview_test"]
+    assert contribution_row_labels(df) == ["Carbon dioxide, fossil | air"]
 
 
-def test_contribution_column_labels_reference_flows(
-    product_activity, monkeypatch
-):
-    processor = {
-        "name": "main process 0",
-        "type": "process",
-        "location": "GLO",
-        "database": "LCIA_overview_test",
-    }
-
-    def get_activity(key):
-        if key == ("LCIA_overview_test", "prod_0"):
-            return product_activity
-        if key == ("LCIA_overview_test", "main_0"):
-            return processor
-        raise KeyError(key)
-
+def test_contribution_column_labels(product_activity, monkeypatch):
     monkeypatch.setattr(
-        "activity_browser.bwutils.contribution_labels.bd.get_activity", get_activity
+        "activity_browser.bwutils.multilca.bd.get_activity", lambda key: product_activity
     )
-    monkeypatch.setattr(
-        "activity_browser.bwutils.commontasks.bd.get_activity", get_activity
-    )
+    key = ("LCIA_overview_test", "prod_0")
+    mlca = type("MLCA", (), {})()
+    _load_cs(mlca, [{key: 1.0}], [("m", "a")])
 
     class Switches:
         indexes = type("I", (), {"func": 0, "method": 1})()
+        mode = 0
 
         def currentIndex(self):
-            return self.indexes.func
+            return self.mode
 
-    class Parent:
-        mlca = type(
-            "MLCA",
-            (),
-            {"fu_activity_keys": [("LCIA_overview_test", "prod_0")]},
-        )()
-
-    tab = type("Tab", (), {"switches": Switches(), "parent": Parent()})()
-    labels = contribution_column_labels(tab, ["stale column label"])
-    assert labels == ["product 0 | main process 0 | GLO | LCIA_overview_test"]
+    switches = Switches()
+    tab = type("Tab", (), {"switches": switches, "parent": type("P", (), {"mlca": mlca})()})()
+    assert contribution_column_labels(tab, ["0"]) == [mlca.fu_labels[0]]
+    switches.mode = switches.indexes.method
+    assert contribution_column_labels(tab, [("m", "a")]) == ["m, a"]
 
 
-def test_join_df_with_metadata_reference_flow_columns(
-    product_activity, monkeypatch
-):
-    """Process contribution tables should split product and process name columns."""
+def test_join_df_with_metadata_reference_flow_columns(product_activity, monkeypatch):
     from activity_browser.bwutils.multilca import Contributions
 
     key = ("LCIA_overview_test", "prod_0")
@@ -188,9 +131,7 @@ def test_join_df_with_metadata_reference_flow_columns(
                 "location": "GLO",
                 "database": "LCIA_overview_test",
             }
-        if k == key:
-            return product_activity
-        raise KeyError(k)
+        return product_activity
 
     monkeypatch.setattr("activity_browser.bwutils.commontasks.bd.get_activity", get_activity)
     monkeypatch.setattr("activity_browser.bwutils.multilca.bd.get_activity", get_activity)
@@ -216,14 +157,46 @@ def test_join_df_with_metadata_reference_flow_columns(
                 return frame[list(columns)]
             return frame
 
-    monkeypatch.setattr(
-        "activity_browser.bwutils.multilca.metadata",
-        _FakeMetadata(),
-    )
+    monkeypatch.setattr("activity_browser.bwutils.multilca.metadata", _FakeMetadata())
 
+    mlca = type("MLCA", (), {"fu_labels": {}, "method_labels": {}, "methods": []})()
     df = pd.DataFrame({"impact": [1.0]}, index=[key])
-    joined = Contributions.join_df_with_metadata(df, x_fields=None)
+    joined = Contributions.join_df_with_metadata(df, x_fields=None, mlca=mlca)
 
     label = "product 0 | main process 0 | GLO | LCIA_overview_test"
     assert joined.loc[label, "product"] == "product 0"
     assert joined.loc[label, "name"] == "main process 0"
+
+
+def test_join_df_with_metadata_ef_fields(monkeypatch):
+    from activity_browser.bwutils.multilca import Contributions
+
+    key = ("biosphere3", "co2")
+    fields = ["name", "categories", "database"]
+    meta_df = pd.DataFrame(
+        {
+            "name": ["Carbon dioxide, fossil"],
+            "categories": ["air"],
+            "database": ["biosphere3"],
+        },
+        index=pd.MultiIndex.from_tuples([key], names=["database", "code"]),
+    )
+
+    class _FakeMetadata:
+        @property
+        def keys(self):
+            return {key}
+
+        def get_metadata(self, keys, columns=None):
+            frame = meta_df.loc[keys]
+            if columns is not None:
+                return frame[list(columns)]
+            return frame
+
+    monkeypatch.setattr("activity_browser.bwutils.multilca.metadata", _FakeMetadata())
+
+    mlca = type("MLCA", (), {"fu_labels": {}, "method_labels": {}, "methods": []})()
+    df = pd.DataFrame({"0": [1.0]}, index=[key])
+    joined = Contributions.join_df_with_metadata(df, x_fields=fields, mlca=mlca)
+    assert joined.index[0] == "Carbon dioxide, fossil | air | biosphere3"
+    joined.reset_index(drop=False)  # must not raise "database already exists"

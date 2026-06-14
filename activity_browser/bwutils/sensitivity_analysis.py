@@ -402,7 +402,7 @@ class GlobalSensitivityAnalysis:
         self.cutoff_technosphere = cutoff_technosphere
         self.cutoff_biosphere = cutoff_biosphere
         self.fu = self.mc.cs["inv"][act_number]
-        self.activity = bd.get_activity(self.mc.rev_activity_index[act_number])
+        self.activity = bd.get_activity(self.mc.fu_activity_keys[act_number])
         self.method = self.mc.cs["ia"][method_number]
 
     def _collect_exchange_metadata(self, *, biosphere=False):
@@ -466,7 +466,9 @@ class GlobalSensitivityAnalysis:
             parts.append(get_X_P(self.mc.parameter_data, self.dfp[GSA_INDEX_COLUMN].tolist()))
 
         self.X = np.concatenate(parts, axis=1)
-        self.Y = self.mc.get_results_dataframe(act_key=self.activity.key)[self.method].to_numpy()
+        self.Y = self.mc.get_results_dataframe(fu_row=self.act_number)[
+            self.mc.method_labels[self.mc.methods.index(self.method)]
+        ].to_numpy()
 
     def _validate_mc_inputs(self) -> bool:
         if self.X.shape[0] != len(self.Y):

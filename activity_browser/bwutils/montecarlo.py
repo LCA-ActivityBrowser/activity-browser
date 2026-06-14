@@ -18,6 +18,7 @@ import bw2calc as bc
 import numpy as np
 import pandas as pd
 
+from activity_browser.bwutils.multilca import _load_cs
 from activity_browser.bwutils.montecarlo_matrix_utils_patch import apply_matrix_utils_mc_patch
 from activity_browser.bwutils.parameters import (
     MonteCarloParameterManager,
@@ -43,21 +44,7 @@ class MonteCarloLCA(object):
         self.include_cfs = False
         self.include_parameters = False
 
-        self.func_units = self.cs["inv"]
-        self.rev_fu_index = {i: fu for i, fu in enumerate(self.func_units)}
-        self.func_units_multilca = {str(i): fu for i, fu in enumerate(self.func_units)}
-
-        # activities
-        self.activity_keys = [list(fu.keys())[0] for fu in self.func_units]
-        self.activity_index = {
-            key: index for index, key in enumerate(self.activity_keys)
-        }
-        self.rev_activity_index = {
-            index: key for index, key in enumerate(self.activity_keys)
-        }
-
-        # methods
-        self.methods = list(self.cs["ia"])
+        _load_cs(self, self.cs["inv"], self.cs["ia"])
         self.method_index = {m: i for i, m in enumerate(self.methods)}
         self.rev_method_index = {i: m for i, m in enumerate(self.methods)}
 
@@ -115,7 +102,7 @@ class MonteCarloLCA(object):
             bd.parameters.recalculate()
 
         self.lca = self.construct_lca(
-            demands=self.func_units_multilca,
+            demands=self.fu_demands,
             method_config={"impact_categories": self.methods},
             technosphere=self.include_technosphere,
             biosphere=self.include_biosphere,
@@ -157,7 +144,7 @@ class MonteCarloLCA(object):
             if self.parameter_mc_manager is not None:
                 self.parameter_mc_manager.populate_gsa_parameter_data(self.parameter_data)
 
-            for row, func_unit in self.func_units_multilca.items():
+            for row, func_unit in self.fu_demands.items():
                 for col, m in enumerate(self.methods):
                     self.results[iteration, int(row), col] = self.lca.scores[(m, row)]
 
@@ -171,90 +158,42 @@ class MonteCarloLCA(object):
         """Return a dictionary of reference flows (key, demand)."""
         return {key: 1 for func_unit in self.func_units for key in func_unit}
 
-    def get_results_by(self, act_key=None, method=None):
-        """Get a slice or all of the results.
-        - if a method is provided, results will be given for all reference flows and runs
-        - if a reference flow is provided, results will be given for all impact categories and runs
-        - if a reference flow and impact category is provided, results will be given for all runs of that combination
-        - if nothing is given, all results are returned
-        """
-
+    def get_results_by(self, fu_row=None, method=None):
+        """Slice Monte Carlo results by ``inv`` row index and/or impact method."""
         if not self.results.any():
             raise ValueError("You need to perform a Monte Carlo Simulation first.")
-            return None
 
-        if act_key:
-            act_index = self.activity_index.get(act_key)
-            logger.info(f"Activity key provided: {act_key} {act_index}")
-        if method:
-            method_index = self.method_index.get(method)
-            logger.info(f"Method provided: {method} {method_index}")
+        fu_index = int(fu_row) if fu_row is not None else None
+        method_index = self.method_index.get(method) if method else None
 
-        if not act_key and not method:
+        if fu_index is None and method_index is None:
             return self.results
-        elif act_key and not method:
-            return np.squeeze(self.results[:, act_index, :])
-        elif method and not act_key:
+        if fu_index is not None and method_index is None:
+            return np.squeeze(self.results[:, fu_index, :])
+        if method_index is not None and fu_index is None:
             return np.squeeze(self.results[:, :, method_index])
-        elif method and act_key:
-            return np.squeeze(self.results[:, act_index, method_index])
+        return np.squeeze(self.results[:, fu_index, method_index])
 
-    def get_results_dataframe(self, act_key=None, method=None, labelled=True):
-        """Return a Pandas DataFrame with results for all runs either for
-        - all reference flows and a selected impact categories or
-        - all impact categories and a selected reference flow.
-
-        If labelled=True, then the activity keys are converted to a human
-        readable format.
-        """
-
+    def get_results_dataframe(self, fu_row=None, method=None, labelled=True):
+        """DataFrame of MC runs for all reference flows (one method) or all methods (one row)."""
         if not self.results.any():
             raise ValueError("You need to perform a Monte Carlo Simulation first.")
-            return None
 
-        if act_key and method or not act_key and not method:
-            raise ValueError("Must provide activity key or method, but not both.")
-        data = self.get_results_by(act_key=act_key, method=method)
+        if (fu_row is not None and method is not None) or (
+            fu_row is None and method is None
+        ):
+            raise ValueError("Must provide fu_row or method, but not both.")
 
-        if method:
-            labels = self.activity_keys
-        elif act_key:
-            labels = self.methods
-
+        data = self.get_results_by(fu_row=fu_row, method=method)
+        labels = self.fu_keys if method is not None else self.methods
         df = pd.DataFrame(data, columns=labels)
 
-        # optionally convert activity keys to human readable output
-        if labelled and method:
-            df.columns = self.get_labels(df.columns, max_length=20)
+        if labelled and method is not None:
+            df.columns = list(self.fu_labels.values())
+        elif labelled and fu_row is not None:
+            df.columns = list(self.method_labels.values())
 
         return df
-
-    @staticmethod
-    def get_labels(
-        key_list, fields: list = None, separator=" | ", max_length: int = None
-    ) -> list:
-        from activity_browser.bwutils.commontasks import (
-            REFERENCE_FLOW_LABEL_FIELDS,
-            format_reference_flow_label,
-        )
-
-        use_reference_flow_labels = fields is None or tuple(fields) == REFERENCE_FLOW_LABEL_FIELDS
-        translated_keys = []
-        for key in key_list:
-            if use_reference_flow_labels:
-                translated_keys.append(format_reference_flow_label(bd.get_activity(key)))
-            else:
-                act = bd.get_activity(key).as_dict()
-                translated_keys.append(
-                    separator.join([act.get(field, "") for field in fields])
-                )
-        if max_length is not None:
-            from activity_browser.bwutils.commontasks import wrap_text
-
-            translated_keys = [
-                wrap_text(label, max_length=max_length) for label in translated_keys
-            ]
-        return translated_keys
 
 
 def perform_MonteCarlo_LCA(
@@ -267,20 +206,3 @@ def perform_MonteCarlo_LCA(
     mc = MonteCarloLCA(cs_name)
     mc.calculate(iterations=iterations, **calculate_kwargs)
     return mc
-
-
-if __name__ == "__main__":
-    mc = perform_MonteCarlo_LCA(project="ei34", cs_name="kraft paper", iterations=15)
-
-    # test the get_results_by() method
-    #    print('\nTesting the get_results_by() method')
-    act_key = mc.activity_keys[0]
-    method = mc.methods[0]
-#    print(mc.get_results_by(act_key=act_key, method=method))
-#    print(mc.get_results_by(act_key=act_key, method=None))
-#    print(mc.get_results_by(act_key=None, method=method))
-#    print(mc.get_results_by(act_key=None, method=None))
-
-# testing the dataframe output
-#    print(mc.get_results_dataframe(method=mc.methods[0]))
-#    print(mc.get_results_dataframe(act_key=mc.activity_keys[0]))

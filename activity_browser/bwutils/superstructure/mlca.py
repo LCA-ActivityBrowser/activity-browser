@@ -8,7 +8,6 @@ from qtpy.QtWidgets import QPushButton
 
 from activity_browser.mod import bw2data as bd
 
-from ..commontasks import format_activity_label
 from ..errors import ScenarioExchangeNotFoundError
 from ..multilca import MLCA, Contributions
 from ..utils import Index
@@ -47,9 +46,9 @@ class SuperstructureMLCA(MLCA):
         assert self.total > 0, "Cannot run analysis without scenarios"
 
         super().__init__(cs_name)
+        self.scenario_labels = {i: n for i, n in enumerate(self.scenario_names)}
 
         # Scenarios overwrite the lca.xxx_matrix. For supporting absent values
-        # in scenario files defaults are required, to prevent these from being
         # overwritten duplicates are required...
         self.default_technosphere_matrix = self.lca.technosphere_matrix.copy()
         self.default_biosphere_matrix = self.lca.biosphere_matrix.copy()
@@ -270,7 +269,7 @@ class SuperstructureMLCA(MLCA):
         as columns
         """
         data = self.lca_scores[:, index, :]
-        return pd.DataFrame(data, index=self.func_key_list, columns=self.scenario_names)
+        return pd.DataFrame(data, index=list(self.fu_labels.values()), columns=self.scenario_names)
 
     def _get_steps_to_index(self, index: int) -> list:
         """Determine how many steps to take when given the index we want
@@ -293,8 +292,8 @@ class SuperstructureMLCA(MLCA):
         """Returns a dataframe of LCA scores using FU labels as index and
         the product of methods and scenarios as columns.
         """
-        labels = [format_activity_label(k, style="pnld") for k in self.fu_activity_keys]
-        methods = [", ".join(m) for m in self.methods]
+        labels = list(self.fu_labels.values())
+        methods = list(self.method_labels.values())
         df = pd.DataFrame(
             data=[],
             index=pd.Index(labels),
@@ -365,7 +364,7 @@ class SuperstructureContributions(Contributions):
         if method and functional_unit:
             return self._build_scenario_contributions(
                 dataset[contribution],
-                self.mlca.func_key_dict[functional_unit],
+                int(functional_unit),
                 self.mlca.method_index[method],
             )
         self.mlca.current = scenario
