@@ -6,7 +6,11 @@ import bw2data as bd
 import bw_functional as bf
 
 from activity_browser import app
-from activity_browser.bwutils.commontasks import refresh_node
+from activity_browser.bwutils.commontasks import (
+    exchange_consumer_parts,
+    exchange_product_name,
+    refresh_node,
+)
 from activity_browser.ui import widgets, icons, core
 
 
@@ -77,24 +81,35 @@ class ConsumersTab(QtWidgets.QWidget):
             pd.DataFrame: The DataFrame containing the exchanges data.
         """
         exc_df = pd.DataFrame(exchanges, columns=["amount", "input", "output"])
-        input_df = app.metadata.get_metadata(exc_df["input"].unique(), ["name", "type", "unit", "key"])
-        output_df = app.metadata.get_metadata(exc_df["output"].unique(), ["name", "type", "key"])
+
+        input_meta = app.metadata.get_metadata(
+            exc_df["input"].unique(), ["unit", "type", "key"]
+        )
+        output_meta = app.metadata.get_metadata(
+            exc_df["output"].unique(), ["type", "key"]
+        )
+
+        exc_df["product"] = exc_df["input"].map(exchange_product_name)
+        consumer_parts = exc_df["output"].map(exchange_consumer_parts)
+        exc_df["process"] = consumer_parts.map(lambda parts: parts[0])
+        exc_df["location"] = consumer_parts.map(lambda parts: parts[1])
+        exc_df["database"] = consumer_parts.map(lambda parts: parts[2])
 
         df = exc_df.merge(
-            input_df.rename({"name": "product", "type": "_product_type"}, axis="columns"),
+            input_meta.rename({"type": "_product_type"}, axis="columns"),
             left_on="input",
             right_on="key",
         ).drop(columns=["key"])
 
         df = df.merge(
-            output_df.rename({"name": "consumer", "type": "_consumer_type"}, axis="columns"),
+            output_meta.rename({"type": "_consumer_type"}, axis="columns"),
             left_on="output",
             right_on="key",
         ).drop(columns=["key"])
 
         df = df.rename({"input": "_product_key", "output": "_consumer_key"}, axis="columns")
 
-        cols = ["amount", "unit", "product", "consumer"]
+        cols = ["amount", "unit", "product", "process", "location", "database"]
         cols += [col for col in df.columns if col.startswith("_")]
 
         return df[cols]
@@ -141,12 +156,12 @@ class ConsumersModel(core.ABTreeModel):
         if row is None:
             return None
 
-        if column_name not in ["product", "consumer"]:
+        if column_name not in ["product", "process"]:
             return None
 
         if column_name == "product":
             activity_type = row.get("_product_type")
-        else:  # column_name == "consumer"
+        else:
             activity_type = row.get("_consumer_type")
 
         if activity_type in ["natural resource", "emission", "inventory indicator", "economic", "social"]:
