@@ -35,7 +35,7 @@ class SuperstructureMLCA(MLCA):
         "production": "technosphere_matrix",
     }
 
-    def __init__(self, cs_name: str, df: pd.DataFrame):
+    def __init__(self, cs_name: str, df: pd.DataFrame, cs: dict | None = None):
         assert isinstance(df, pd.DataFrame), (
             "Check if you have provided at least 1 reference flow, 1 impact category "
             "and 1 scenario file. "
@@ -45,7 +45,7 @@ class SuperstructureMLCA(MLCA):
         self.total = len(self.scenario_names)
         assert self.total > 0, "Cannot run analysis without scenarios"
 
-        super().__init__(cs_name)
+        super().__init__(cs_name, cs=cs)
         self.scenario_labels = {i: n for i, n in enumerate(self.scenario_names)}
 
         # Scenarios overwrite the lca.xxx_matrix. For supporting absent values

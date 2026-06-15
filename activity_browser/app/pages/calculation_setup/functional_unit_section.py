@@ -7,7 +7,9 @@ import pandas as pd
 
 from activity_browser import app
 from activity_browser.ui import widgets, icons, delegates, core
+from activity_browser.bwutils.calculation_setup import active_flags, ensure_active_lists
 from activity_browser.bwutils.commontasks import is_node_product_or_waste
+from .cs_table import CSListModel, CSTableView, try_reorder_drop
 
 
 class FunctionalUnitSection(QtWidgets.QWidget):
@@ -52,6 +54,7 @@ class FunctionalUnitSection(QtWidgets.QWidget):
         act_df = app.metadata.get_metadata(keys, cols)
         act_df["amount"] = amounts
         act_df["_activity_key"] = keys
+        act_df["_active"] = active_flags(self.calculation_setup, "inv")
         act_df["_cs_name"] = self.calculation_setup_name
 
         act_df["_processor_key"] = act_df["processor"]
@@ -65,12 +68,12 @@ class FunctionalUnitSection(QtWidgets.QWidget):
 
         act_df.rename({"type": "_type"}, axis="columns", inplace=True)
 
-        cols = ["amount", "unit", "product", "process", "database", "location", "_processor_key", "_activity_key", "_cs_name", "_type"]
+        cols = ["amount", "unit", "product", "process", "database", "location", "_processor_key", "_activity_key", "_cs_name", "_type", "_active"]
 
         return act_df[cols].reset_index(drop=True)
 
 
-class FunctionalUnitView(widgets.ABTreeView):
+class FunctionalUnitView(CSTableView):
     defaultColumnDelegates = {
         "amount": delegates.AmountDelegate
     }
@@ -91,7 +94,6 @@ class FunctionalUnitView(widgets.ABTreeView):
     
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setAcceptDrops(True)
         self.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
         self.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
 
@@ -113,7 +115,10 @@ class FunctionalUnitView(widgets.ABTreeView):
         return None
 
     def dragMoveEvent(self, event) -> None:
-        pass
+        if event.mimeData().hasFormat("application/bw-nodekeylist"):
+            event.acceptProposedAction()
+        else:
+            super().dragMoveEvent(event)
 
     def dragEnterEvent(self, event):
         if event.mimeData().hasFormat("application/bw-nodekeylist"):
@@ -126,11 +131,17 @@ class FunctionalUnitView(widgets.ABTreeView):
                 return
 
             event.accept()
+            return
+        super().dragEnterEvent(event)
 
     def dropEvent(self, event) -> None:
+        if try_reorder_drop(self, event):
+            return
+        if not event.mimeData().hasFormat("application/bw-nodekeylist"):
+            super().dropEvent(event)
+            return
         event.accept()
         cs_name = self.parent().calculation_setup_name
-
         keys: list = event.mimeData().retrievePickleData("application/bw-nodekeylist")
         for key in keys.copy():
             if not is_node_product_or_waste(key):
@@ -148,23 +159,15 @@ class FunctionalUnitView(widgets.ABTreeView):
         return list(set(self.model().values_from_indices("_processor_key", self.selectedIndexes())))
 
 
-class FunctionalUnitModel(core.ABTreeModel):
+class FunctionalUnitModel(CSListModel):
+    list_key = "inv"
     """
     A model representing the data for the functional units.
     """
     
     def setData(self, index: QtCore.QModelIndex, value, role: int = Qt.ItemDataRole.EditRole) -> bool:
-        """
-        Sets the data for the given index.
-
-        Args:
-            index (QtCore.QModelIndex): The index to set data for.
-            value: The value to set.
-            role (int): The role for which to set the data.
-
-        Returns:
-            bool: True if the data was set successfully, False otherwise.
-        """
+        if role == Qt.ItemDataRole.CheckStateRole:
+            return super().setData(index, value, role)
         if role != Qt.ItemDataRole.EditRole:
             return False
 

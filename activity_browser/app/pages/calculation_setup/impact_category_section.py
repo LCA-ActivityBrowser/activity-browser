@@ -5,7 +5,9 @@ import bw2data as bd
 import pandas as pd
 
 from activity_browser import app
-from activity_browser.ui import widgets, delegates, core
+from activity_browser.ui import widgets, delegates
+from activity_browser.bwutils.calculation_setup import active_flags
+from .cs_table import CSListModel, CSTableView, try_reorder_drop
 
 
 class ImpactCategorySection(QtWidgets.QWidget):
@@ -43,14 +45,15 @@ class ImpactCategorySection(QtWidgets.QWidget):
         df = pd.DataFrame(data, columns=["name", "unit", "num_cfs"])
 
         df["name"] = self.calculation_setup.get("ia", [])
+        df["_active"] = active_flags(self.calculation_setup, "ia")
         df["_cs_name"] = self.calculation_setup_name
 
-        cols = ["name", "unit", "num_cfs", "_cs_name"]
+        cols = ["name", "unit", "num_cfs", "_cs_name", "_active"]
 
         return df[cols]
 
 
-class ImpactCategoryView(widgets.ABTreeView):
+class ImpactCategoryView(CSTableView):
     defaultColumnDelegates = {
         "name": delegates.StringDelegate
     }
@@ -73,26 +76,32 @@ class ImpactCategoryView(widgets.ABTreeView):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setAcceptDrops(True)
         self.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
         self.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
 
     def dragMoveEvent(self, event) -> None:
-        pass
+        if event.mimeData().hasFormat("application/bw-methodnamelist"):
+            event.acceptProposedAction()
+        else:
+            super().dragMoveEvent(event)
 
     def dragEnterEvent(self, event):
         if event.mimeData().hasFormat("application/bw-methodnamelist"):
             event.accept()
+            return
+        super().dragEnterEvent(event)
 
     def dropEvent(self, event) -> None:
+        if try_reorder_drop(self, event):
+            return
+        if not event.mimeData().hasFormat("application/bw-methodnamelist"):
+            super().dropEvent(event)
+            return
         event.accept()
         cs_name = self.parent().calculation_setup_name
         method_names = event.mimeData().retrievePickleData("application/bw-methodnamelist")
         app.actions.CSAddImpactCategory.run(cs_name, method_names)
 
 
-class ImpactCategoryModel(core.ABTreeModel):
-    """
-    A model representing the data for the impact categories.
-    """
-    pass
+class ImpactCategoryModel(CSListModel):
+    list_key = "ia"

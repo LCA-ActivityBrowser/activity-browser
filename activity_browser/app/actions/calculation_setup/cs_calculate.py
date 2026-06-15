@@ -6,6 +6,7 @@ import bw2data as bd
 from qtpy import QtCore, QtWidgets
 
 from activity_browser import app
+from activity_browser.bwutils.calculation_setup import active_calculation_setup
 from activity_browser.bwutils.multilca import MLCA, Contributions
 from activity_browser.bwutils.superstructure import SuperstructureMLCA, SuperstructureContributions
 from activity_browser.bwutils.montecarlo import MonteCarloLCA
@@ -38,20 +39,30 @@ class CSCalculate(ABAction):
         if not cs.get("ia"):
             raise Exception(f"Calculation setup '{cs_name}' has no impact assessment methods.")
 
+        active_cs = active_calculation_setup(cs_name)
+        if not active_cs["inv"]:
+            raise Exception(
+                f"Calculation setup '{cs_name}' has no active functional units."
+            )
+        if not active_cs["ia"]:
+            raise Exception(
+                f"Calculation setup '{cs_name}' has no active impact categories."
+            )
+
         dialog = CalculationDialog(cs_name, app.main_window)
         dialog.show()
         app.application.thread().eventDispatcher().processEvents(QtCore.QEventLoop.ProcessEventsFlag.AllEvents)
 
         try:
             if scenario_data is None:
-                mlca = MLCA(cs_name)
+                mlca = MLCA(cs_name, cs=active_cs)
                 contributions = Contributions(mlca)
             else:
-                mlca = SuperstructureMLCA(cs_name, scenario_data)
+                mlca = SuperstructureMLCA(cs_name, scenario_data, cs=active_cs)
                 contributions = SuperstructureContributions(mlca)
 
             mlca.calculate()
-            mc = MonteCarloLCA(cs_name)
+            mc = MonteCarloLCA(cs_name, cs=active_cs)
 
             page = pages.LCAResultsPage(cs_name, mlca, contributions, mc)
             central = app.main_window.centralWidget()

@@ -31,12 +31,12 @@ apply_matrix_utils_mc_patch()  # TODO: remove this patch as soon as bw2data 4.8 
 class MonteCarloLCA(object):
     """Monte Carlo LCA for multiple reference flows and methods from a calculation setup."""
 
-    def __init__(self, cs_name):
-        if cs_name not in bd.calculation_setups:
+    def __init__(self, cs_name, cs: dict | None = None):
+        if cs_name not in bd.calculation_setups and cs is None:
             raise ValueError("{} is not a known `calculation_setup`.".format(cs_name))
 
         self.cs_name = cs_name
-        self.cs = bd.calculation_setups[cs_name]
+        self.cs = cs if cs is not None else bd.calculation_setups[cs_name]
         self.seed = None
         self.parameter_mc_manager = None
         self.include_technosphere = True

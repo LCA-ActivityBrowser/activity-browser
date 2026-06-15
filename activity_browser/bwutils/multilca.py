@@ -156,11 +156,12 @@ class MLCA(object):
 
     """
 
-    def __init__(self, cs_name: str, lca_class: bc.LCA = bc.LCA):
+    def __init__(self, cs_name: str, lca_class: bc.LCA = bc.LCA, cs: dict | None = None):
         from qtpy.QtWidgets import QApplication, QMessageBox
 
+        self.cs_name = cs_name
         try:
-            cs = bd.calculation_setups[cs_name]
+            cs = cs if cs is not None else bd.calculation_setups[cs_name]
         except KeyError:
             raise ValueError(f"{cs_name} is not a known `calculation_setup`.")
 
