@@ -522,6 +522,12 @@ class ExchangesView(widgets.ABTreeView):
                             enable=not m.locked and not database_is_legacy(m.activity["database"]),
                             text="Create waste"
                             ),
+            lambda m: m.add(
+                app.actions.NewElementaryFlow,
+                link_to_process=m.activity.key,
+                enable=not m.locked,
+                text="New elementary flow",
+            ),
             lambda m: m.addSeparator(),
             lambda m: m.add(app.actions.ExchangeDelete, m.exchanges, enable=bool(m.exchanges) and not m.locked),
             lambda m: m.add(app.actions.ExchangeSDFToClipboard, m.exchanges, enable=bool(m.exchanges)),

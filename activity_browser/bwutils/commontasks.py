@@ -181,6 +181,18 @@ def is_technosphere_db(db_name: str) -> bool:
     return True
 
 
+def get_writable_databases() -> list[str]:
+    """Get the list of databases that are not locked."""
+    names = []
+    for name in bd.databases:
+        if bd.databases[name].get("read_only", True):
+            continue
+        if database_is_locked(name):
+            continue
+        names.append(name)
+    return sorted(names)
+
+
 def count_database_records(name: str) -> int:
     """To account for possible brightway database types that do not implement
     the __len__ method.

@@ -6,6 +6,7 @@ from .activity.activity_duplicate_to_db import ActivityDuplicateToDB
 from .activity.activity_modify import ActivityModify
 from .activity.activity_new_process import ActivityNewProcess
 from .activity.activity_new_product import ActivityNewProduct
+from .activity.new_elementary_flow import NewElementaryFlow
 from .activity.activity_open import ActivityOpen
 from .activity.activity_relink import ActivityRelink
 from .activity.activity_sdf_to_clipboard import ActivitySDFToClipboard
