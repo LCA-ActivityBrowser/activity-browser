@@ -6,7 +6,7 @@ import bw2data as bd
 
 from activity_browser import app
 from activity_browser.bwutils.commontasks import refresh_node_or_none
-from activity_browser.ui import widgets
+from activity_browser.ui import widgets, core
 
 from .activity_header import ActivityHeader
 from .exchanges_tab import ExchangesTab
@@ -130,22 +130,8 @@ class ActivityDetailsPage(widgets.ABAbstractPage):
             self.deleteLater()
 
     def syncLater(self):
-        """
-        Schedules a sync operation to be performed later.
-        """
-
-        def slot():
-            self._populate_later_flag = False
-            try:
-                self.sync()
-            finally:
-                self.thread().eventDispatcher().awake.disconnect(slot)
-
-        if self._populate_later_flag:
-            return
-
-        self._populate_later_flag = True
-        self.thread().eventDispatcher().awake.connect(slot)
+        """Schedules a sync operation to be performed later."""
+        core.schedule_awake_sync(self, self.sync)
 
     def sync(self):
         """

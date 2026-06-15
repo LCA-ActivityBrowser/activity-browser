@@ -3,7 +3,6 @@ from loguru import logger
 
 from qtpy import QtWidgets, QtGui, QtCore
 from qtpy.QtCore import Qt
-from shiboken6 import isValid
 
 import bw2data as bd
 import pandas as pd
@@ -64,32 +63,14 @@ class DatabasesPane(widgets.ABAbstractPane):
         self.setLayout(layout)
 
     def syncLater(self):
-        """
-        Schedules a sync operation to be performed later.
-        """
-
-        def slot():
-            self._populate_later_flag = False
-            try:
-                self.sync()
-            except RuntimeError:
-                pass
-            try:
-                self.thread().eventDispatcher().awake.disconnect(slot)
-            except (TypeError, RuntimeError):
-                pass
-
-        if self._populate_later_flag:
-            return
-
-        self._populate_later_flag = True
-        self.thread().eventDispatcher().awake.connect(slot)
+        """Schedules a sync operation to be performed later."""
+        core.schedule_awake_sync(self, self.sync)
 
     def sync(self):
         """
         Synchronizes the model with the current state of the databases.
         """
-        if not isValid(self.model):
+        if not core.qt_is_valid(self.model):
             return
 
         logger.log("SYNC", f"{self.__class__.__name__}: {id(self)}")

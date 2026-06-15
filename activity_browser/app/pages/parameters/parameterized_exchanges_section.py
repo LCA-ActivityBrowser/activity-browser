@@ -69,25 +69,16 @@ class ParameterizedExchangesSection(QtWidgets.QWidget):
         app.signals.edge.changed.connect(self.syncLater)
 
     def syncLater(self):
-        """
-        Schedules a sync operation to be performed later.
-        """
-
-        def slot():
-            self._populate_later_flag = False
-            self.sync()
-            self.thread().eventDispatcher().awake.disconnect(slot)
-
-        if self._populate_later_flag:
-            return
-
-        self._populate_later_flag = True
-        self.thread().eventDispatcher().awake.connect(slot)
+        """Schedules a sync operation to be performed later."""
+        core.schedule_awake_sync(self, self.sync)
 
     def sync(self):
         """
         Synchronizes the widget with the current state of parameterized exchanges.
         """
+        if not core.qt_is_valid(self.model):
+            return
+
         logger.log("SYNC", f"{self.__class__.__name__}: {id(self)}")
 
         df = self.build_exchanges_df()

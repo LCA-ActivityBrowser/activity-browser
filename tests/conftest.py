@@ -7,7 +7,7 @@ import pytest
 import os
 
 import bw2data as bd
-from PySide6 import QtCore
+from PySide6 import QtCore, QtWidgets
 
 from bw2data.tests import bw2test
 
@@ -37,6 +37,7 @@ def main_window(qtbot, monkeypatch, no_exception_dialogs):
     """Return the main window of the application instance."""
     from activity_browser import app
     from activity_browser.bwutils.metadata import metadata
+    from activity_browser.ui import core
 
     # Reload modules to ensure a clean state for each test
     reload(metadata)
@@ -48,9 +49,14 @@ def main_window(qtbot, monkeypatch, no_exception_dialogs):
 
     yield app.main_window
 
-    app.main_window.deleteLater()
+    if core.qt_is_valid(app.main_window):
+        app.main_window.close()
+        app.main_window.deleteLater()
 
-    qtbot.wait(10)
+    qapp = QtWidgets.QApplication.instance()
+    if qapp is not None:
+        qapp.processEvents(QtCore.QEventLoop.ProcessEventsFlag.AllEvents)
+    qtbot.wait(100)
 
 
 @pytest.fixture

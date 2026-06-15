@@ -8,6 +8,7 @@ from PySide6.QtCore import QModelIndex, Qt, QAbstractItemModel
 from PySide6.QtWidgets import QWidget
 
 from activity_browser.ui.icons import qicons
+from .qt_sync import qt_is_valid
 
 
 class TreeNode:
@@ -365,6 +366,8 @@ class ABTreeModel(QAbstractItemModel):
 
     # --- helper functions ---
     def set_dataframe(self, df: pd.DataFrame, group: list[str] = None) -> None:
+        if not qt_is_valid(self):
+            return
         self.beginResetModel()
 
         self.df = df
@@ -377,6 +380,8 @@ class ABTreeModel(QAbstractItemModel):
         self.endResetModel()
 
     def update_dataframe(self, df: pd.DataFrame, group: list[str] = None) -> None:
+        if not qt_is_valid(self):
+            return
         self.layoutAboutToBeChanged.emit()
         self.df = df
         self.grouped_columns = group or self.grouped_columns
