@@ -15,6 +15,8 @@ from .impact_category_header import ImpactCategoryHeader
 
 
 class ImpactCategoryDetailsPage(widgets.ABAbstractPage):
+    _populate_later_flag = False
+
     def __init__(self, name: tuple, parent=None):
         super().__init__(parent)
         self.name = name
@@ -37,11 +39,13 @@ class ImpactCategoryDetailsPage(widgets.ABAbstractPage):
     def connect_signals(self):
         app.signals.method.renamed.connect(self.on_method_renamed)
         app.signals.method.deleted.connect(self.on_method_deleted)
-        app.signals.method.changed.connect(lambda _method: self.sync())
-        app.signals.database.deleted.connect(lambda _name: self.sync())
-        app.signals.meta.methods_changed.connect(self.sync)
+        app.signals.method.changed.connect(lambda _method: self.syncLater())
+        app.signals.database.deleted.connect(lambda _name: self.syncLater())
+        app.signals.meta.methods_changed.connect(self.syncLater)
 
     def on_method_renamed(self, old_name, new_name):
+        if not core.qt_is_valid(self):
+            return
         if self.name == old_name:
             self.name = new_name
             self.setObjectName(" | ".join(new_name))
@@ -49,13 +53,23 @@ class ImpactCategoryDetailsPage(widgets.ABAbstractPage):
 
     def on_method_deleted(self, method):
         if method.name == self.name:
+            self._close_page()
+
+    def syncLater(self):
+        core.schedule_awake_sync(self, self.sync)
+
+    def _close_page(self):
+        if core.qt_is_valid(self):
             self.deleteLater()
 
     def sync(self):
+        if not core.qt_is_valid(self):
+            return
+
         logger.log("SYNC", f"{self.__class__.__name__}: {id(self)}")
 
         if self.name not in bd.methods:
-            self.deleteLater()
+            self._close_page()
             return
 
         self.impact_category = bd.Method(self.name)

@@ -58,17 +58,21 @@ class _FakeMLCA:
         self.func_units = func_units
         self.methods = methods
         self.scenario_names = scenario_names or []
+        fu_label_list = [
+            f"product {i} | process {i} | GLO | db"
+            for i in range(len(func_units))
+        ]
+        method_label_list = [
+            ", ".join(str(p) for p in m if p) for m in methods
+        ]
+        self.fu_labels = {i: label for i, label in enumerate(fu_label_list)}
+        self.method_labels = {i: label for i, label in enumerate(method_label_list)}
         self.setup = type(
             "Setup",
             (),
             {
-                "fu_labels": [
-                    f"product {i} | process {i} | GLO | db"
-                    for i in range(len(func_units))
-                ],
-                "method_labels": [
-                    ", ".join(str(p) for p in m if p) for m in methods
-                ],
+                "fu_labels": fu_label_list,
+                "method_labels": method_label_list,
             },
         )()
 

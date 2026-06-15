@@ -22,6 +22,41 @@ os.environ["AB_SKIP_SETTINGS_ON_STARTUP"] = "1"
 os.environ["AB_NO_SEARCHER"] = "1"
 
 
+def _destroy_main_window(qtbot):
+    """Close dynamic tabs/panes and reset the main-window singleton between tests."""
+    from activity_browser import app
+    from activity_browser.ui import core
+
+    qapp = QtWidgets.QApplication.instance()
+    mw = getattr(app, "main_window", None)
+
+    if mw is not None and core.qt_is_valid(mw):
+        central = mw.centralWidget()
+        if central is not None and core.qt_is_valid(central):
+            for index in range(central.count() - 1, -1, -1):
+                widget = central.widget(index)
+                central.removeTab(index)
+                if widget is not None and core.qt_is_valid(widget):
+                    widget.deleteLater()
+
+        for pane in list(mw.panes()):
+            if core.qt_is_valid(pane):
+                pane.hide()
+                pane.deleteLater()
+
+        mw.close()
+        mw.deleteLater()
+
+    if qapp is not None:
+        for _ in range(3):
+            qapp.processEvents(QtCore.QEventLoop.ProcessEventsFlag.AllEvents)
+        qtbot.wait(100)
+
+    from activity_browser.app.main import MainWindow
+
+    MainWindow._instance = None
+
+
 @pytest.fixture
 def no_exception_dialogs(monkeypatch):
     """Monkeypatch QMessageBox.critical to do nothing, to avoid blocking tests."""
@@ -37,7 +72,8 @@ def main_window(qtbot, monkeypatch, no_exception_dialogs):
     """Return the main window of the application instance."""
     from activity_browser import app
     from activity_browser.bwutils.metadata import metadata
-    from activity_browser.ui import core
+
+    _destroy_main_window(qtbot)
 
     # Reload modules to ensure a clean state for each test
     reload(metadata)
@@ -49,14 +85,7 @@ def main_window(qtbot, monkeypatch, no_exception_dialogs):
 
     yield app.main_window
 
-    if core.qt_is_valid(app.main_window):
-        app.main_window.close()
-        app.main_window.deleteLater()
-
-    qapp = QtWidgets.QApplication.instance()
-    if qapp is not None:
-        qapp.processEvents(QtCore.QEventLoop.ProcessEventsFlag.AllEvents)
-    qtbot.wait(100)
+    _destroy_main_window(qtbot)
 
 
 @pytest.fixture

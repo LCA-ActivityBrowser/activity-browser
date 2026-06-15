@@ -7,8 +7,8 @@ import pandas as pd
 
 from activity_browser import app
 from activity_browser.ui import widgets, icons, delegates, core
-from activity_browser.bwutils.calculation_setup import active_flags, ensure_active_lists
-from activity_browser.bwutils.commontasks import is_node_product_or_waste
+from activity_browser.bwutils.calculation_setup import INV_ACTIVE, active_flags, ensure_active_lists
+from activity_browser.bwutils.commontasks import is_node_product_or_waste, refresh_node_or_none
 from .cs_table import CSListModel, CSTableView, try_reorder_drop
 
 
@@ -35,12 +35,39 @@ class FunctionalUnitSection(QtWidgets.QWidget):
 
         try:
             self.calculation_setup = bd.calculation_setups[self.calculation_setup_name]
+            if self._prune_missing_functional_units():
+                self.calculation_setup = bd.calculation_setups[self.calculation_setup_name]
             df = self.build_df()
             df.reset_index(drop=True, inplace=True)
             self.model.set_dataframe(df)
         except KeyError:
             self.parent().close()
             self.parent().deleteLater()
+
+    def _prune_missing_functional_units(self) -> bool:
+        """Drop ``inv`` entries whose reference flow no longer exists in Brightway."""
+        cs = self.calculation_setup
+        inv = cs.get("inv", [])
+        if not inv:
+            return False
+
+        ensure_active_lists(cs)
+        kept_inv: list[dict] = []
+        kept_flags: list[bool] = []
+        for fu, flag in zip(inv, cs[INV_ACTIVE]):
+            key = next(iter(fu))
+            if refresh_node_or_none(key) is not None:
+                kept_inv.append(fu)
+                kept_flags.append(flag)
+
+        if len(kept_inv) == len(inv):
+            return False
+
+        cs["inv"] = kept_inv
+        cs[INV_ACTIVE] = kept_flags
+        bd.calculation_setups[self.calculation_setup_name] = cs
+        bd.calculation_setups.serialize()
+        return True
 
     def build_df(self):
         keys, amounts = [], []
