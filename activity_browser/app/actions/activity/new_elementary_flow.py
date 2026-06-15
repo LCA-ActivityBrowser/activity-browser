@@ -1,5 +1,3 @@
-from uuid import uuid4
-
 from qtpy import QtWidgets
 
 import bw2data as bd
@@ -7,6 +5,7 @@ import bw2data as bd
 from activity_browser import app
 from activity_browser.app.actions.base import ABAction, exception_dialogs
 from activity_browser.bwutils.commontasks import get_writable_databases
+from activity_browser.bwutils.elementary_flows import create_elementary_flow
 from activity_browser.ui.icons import qicons
 
 
@@ -17,18 +16,15 @@ def _parse_categories(text: str) -> tuple[str, ...]:
 
 
 class NewElementaryFlow(ABAction):
-    """Create a new elementary flow in a writable database."""
+    """Create a new elementary flow (biosphere node) in a writable database."""
 
     icon = qicons.add
     text = "New elementary flow"
 
     @staticmethod
     @exception_dialogs
-    def run(
-        database_name: str | None = None,
-        *,
-        link_to_process: tuple | None = None,
-    ):
+    def run(database_name: str | None = None):
+        """Prompt for flow metadata and save a new emission or resource flow."""
         writable = get_writable_databases()
         if not writable:
             QtWidgets.QMessageBox.warning(
@@ -50,22 +46,18 @@ class NewElementaryFlow(ABAction):
         if not name:
             return
 
-        flow = bd.Database(db_name).new_activity(
-            code=uuid4().hex,
+        create_elementary_flow(
+            db_name,
             name=name,
             unit=unit,
-            type=flow_type,
+            flow_type=flow_type,
             categories=categories,
         )
-        flow.save()
-
-        if link_to_process is not None:
-            from activity_browser.app.actions.exchange.exchange_new import ExchangeNew
-
-            ExchangeNew.run([flow.key], link_to_process, "biosphere")
 
 
 class NewElementaryFlowDialog(QtWidgets.QDialog):
+    """Dialog for name, unit, type, and categories of a new elementary flow."""
+
     def __init__(
         self,
         default_database: str,

@@ -9,6 +9,8 @@ from bw2data.parameters import Group, parameters
 from activity_browser import app
 from activity_browser.app.actions.base import ABAction, exception_dialogs
 from activity_browser.app.actions.parameter.parameter_modify import ParameterModify
+from activity_browser.bwutils.characterization_factors import remove_characterization_factors_for_database
+from activity_browser.bwutils.calculation_setup import remove_functional_units_from_calculation_setup
 from activity_browser.ui.icons import qicons
 
 
@@ -78,6 +80,9 @@ class DatabaseDelete(ABAction):
         QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
 
         for db_name in db_names:
+            remove_characterization_factors_for_database(db_name)
+            remove_functional_units_from_calculation_setup(db_name)
+
             # delete upstream exchanges
             ExchangeDataset.delete().where(ExchangeDataset.input_database == db_name).execute()
 

@@ -36,6 +36,29 @@ def test_database_delete(monkeypatch, basic_database):
     assert basic_database.name not in bd.databases
 
 
+def test_database_delete_removes_functional_units(monkeypatch, basic_database):
+    cs_name = "basic_calculation_setup"
+    assert bd.calculation_setups[cs_name]["inv"]
+
+    _confirm_delete(monkeypatch)
+    app.actions.DatabaseDelete.run([basic_database.name])
+
+    assert bd.calculation_setups[cs_name]["inv"] == []
+    assert bd.calculation_setups[cs_name]["inv_active"] == []
+
+
+def test_database_delete_removes_characterization_factors(monkeypatch, basic_database):
+    from activity_browser.bwutils.characterization_factors import impact_methods_with_flows
+
+    elementary = basic_database.get("elementary")
+    assert impact_methods_with_flows({elementary.id})
+
+    _confirm_delete(monkeypatch)
+    app.actions.DatabaseDelete.run([basic_database.name])
+
+    assert not impact_methods_with_flows({elementary.id})
+
+
 def test_database_delete_clears_orphan_activity_parameter_groups(monkeypatch, basic_database):
     """Deleting a DB must not leave hashed activity parameter groups behind."""
     from bw2data.parameters import ActivityParameter
@@ -92,8 +115,10 @@ def test_fix_broken_groups_removes_orphan_activity_groups(basic_database):
 
 def test_database_duplicate(monkeypatch, qtbot, basic_database):
     from activity_browser.app.actions.database.database_duplicate import NewDatabaseDialog, DuplicateDatabaseDialog
+    from activity_browser.bwutils.commontasks import count_database_records
 
     dup_db = "db_that_is_duplicated"
+    source_count = count_database_records(basic_database.name)
 
     monkeypatch.setattr(
         NewDatabaseDialog,
@@ -111,6 +136,18 @@ def test_database_duplicate(monkeypatch, qtbot, basic_database):
 
     assert basic_database.name in bd.databases
     assert dup_db in bd.databases
+    assert count_database_records(dup_db) == source_count
+
+    loader = app.metadata.loader
+    for _ in range(200):
+        if len(app.metadata.get_database_metadata(dup_db, ["name"])) == source_count:
+            break
+        if loader.secondary_status != "done":
+            qtbot.wait(50)
+            continue
+        qtbot.wait(50)
+
+    assert len(app.metadata.get_database_metadata(dup_db, ["name"])) == source_count
 
 
 def test_database_export_excel(monkeypatch, qtbot, basic_database, tmp_path):

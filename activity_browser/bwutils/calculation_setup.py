@@ -61,3 +61,49 @@ def active_calculation_setup(cs_name: str) -> dict:
     cs["inv"] = [fu for fu, ok in zip(cs["inv"], cs[INV_ACTIVE]) if ok]
     cs["ia"] = [m for m, ok in zip(cs["ia"], cs[IA_ACTIVE]) if ok]
     return cs
+
+
+def functional_unit_key(functional_unit: dict) -> tuple | int:
+    """Reference-flow key from a Brightway calculation-setup ``inv`` entry."""
+    return next(iter(functional_unit))
+
+
+def remove_functional_units_from_calculation_setup(database_name: str) -> bool:
+    """Remove ``inv`` entries whose reference flow belongs to *database_name*.
+
+    Brightway does not update ``bd.calculation_setups`` when a database is
+    deleted. Call this before ``del bd.databases[...]`` so reference-flow keys
+    are still resolvable.
+
+    Returns ``True`` if any calculation setup was modified.
+    """
+    from activity_browser.bwutils.commontasks import refresh_node
+
+    changed_any = False
+    for cs_name, cs in bd.calculation_setups.items():
+        inv = cs.get("inv", [])
+        if not inv:
+            continue
+        ensure_active_lists(cs)
+        kept_inv: list[dict] = []
+        kept_flags: list[bool] = []
+        for fu, flag in zip(inv, cs[INV_ACTIVE]):
+            key = functional_unit_key(fu)
+            if isinstance(key, tuple):
+                reference_database = key[0]
+            else:
+                try:
+                    reference_database = refresh_node(key)["database"]
+                except Exception:
+                    reference_database = None
+            if reference_database == database_name:
+                continue
+            kept_inv.append(fu)
+            kept_flags.append(flag)
+        if len(kept_inv) == len(inv):
+            continue
+        cs["inv"] = kept_inv
+        cs[INV_ACTIVE] = kept_flags
+        _save(cs_name, cs)
+        changed_any = True
+    return changed_any

@@ -42,6 +42,42 @@ def test_cf_new(basic_database):
     assert cf[0][1] == 0.0
 
 
+def test_cf_new_detects_duplicate_by_tuple_key(basic_database, monkeypatch):
+    method = ("basic_method",)
+    elementary = basic_database.get("elementary")
+    initial_count = len([cf for cf in Method(method).load() if cf[0] == elementary.id])
+    assert initial_count == 1
+
+    monkeypatch.setattr(
+        QtWidgets.QMessageBox,
+        "warning",
+        staticmethod(lambda *args, **kwargs: QtWidgets.QMessageBox.Ok),
+    )
+
+    app.actions.CFNew.run(method, [elementary.key])
+
+    assert len([cf for cf in Method(method).load() if cf[0] == elementary.id]) == initial_count
+
+
+def test_cf_new_drops_orphaned_characterization_factors(basic_database):
+    method = ("basic_method",)
+    elementary = basic_database.get("elementary")
+    fake_id = 999999999999999
+    method_obj = Method(method)
+
+    method_obj.write(list(method_obj.load()) + [(fake_id, 1.0)], process=False)
+
+    basic_database.new_node("new_ef", type="emission", name="new_ef").save()
+    new_ef = basic_database.get("new_ef")
+
+    app.actions.CFNew.run(method, [new_ef.key])
+
+    ids = [cf[0] for cf in Method(method).load()]
+    assert fake_id not in ids
+    assert new_ef.id in ids
+    assert elementary.id in ids
+
+
 def test_cf_remove(monkeypatch, basic_database):
     method = ("basic_method",)
     elementary = basic_database.get("elementary")

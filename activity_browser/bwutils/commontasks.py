@@ -156,13 +156,13 @@ def get_database_metadata(name):
     return d
 
 def database_is_locked(name: str) -> bool:
-    """Returns True if the database is locked, False otherwise."""
+    """Returns True if the database is locked."""
     if not name in bd.databases:
         raise KeyError("Not an existing database:", name)
     return bd.databases[name].get("read_only", True)
 
 def database_is_legacy(name: str) -> bool:
-    """Returns True if the database is locked, False otherwise."""
+    """Returns True if the database is sqlite."""
     if not name in bd.databases:
         raise KeyError("Not an existing database:", name)
 
@@ -228,6 +228,14 @@ def get_activity_name(key, str_length=22):
     return ",".join(key.get("name", "").split(",")[:3])[:str_length]
 
 
+@lru_cache(maxsize=1)
+def biosphere_node_types() -> frozenset[str]:
+    """Elementary-flow node types from Brightway ``typo_settings`` vs ``labels.lci_node_types``."""
+    from bw2data.configuration import labels, typo_settings
+
+    return frozenset(typo_settings.node_types) - frozenset(labels.lci_node_types)
+
+
 def is_node_product_or_waste(node: tuple | int | bd.Node) -> bool:
     return is_node_product(node) or is_node_waste(node)
 
@@ -254,12 +262,9 @@ def is_node_waste(node: tuple | int | bd.Node) -> bool:
 
 
 def is_node_biosphere(node: tuple | int | bd.Node) -> bool:
+    """True if *node* is an elementary flow (biosphere node, not technosphere)."""
     node = refresh_node(node)
-    raw_type = node._document.type
-
-    if raw_type in ["natural resource", "emission", "inventory indicator", "economic", "social"]:
-        return True
-    return False
+    return node._document.type in biosphere_node_types()
 
 def is_node_process(node: tuple | int | bd.Node) -> bool:
     node = refresh_node(node)

@@ -12,14 +12,21 @@ import bw2data as bd
 
 from activity_browser import ui, app
 from activity_browser.ui import core, widgets, delegates, icons
-from activity_browser.bwutils.commontasks import database_is_locked, database_is_legacy, is_node_biosphere, nodes_to_excel
+from activity_browser.bwutils.commontasks import (
+    biosphere_node_types,
+    database_is_locked,
+    database_is_legacy,
+    get_writable_databases,
+    is_node_biosphere,
+    nodes_to_excel,
+)
 
 
 NODETYPES = {
     "all_nodes": [],
     "processes": ["process", "multifunctional", "processwithreferenceproduct", "nonfunctional"],
     "products": ["product", "processwithreferenceproduct", "waste"],
-    "biosphere": ["natural resource", "emission", "inventory indicator", "economic", "social"],
+    "biosphere": sorted(biosphere_node_types()),
 }
 
 
@@ -267,11 +274,15 @@ class ProductView(ui.widgets.ABTreeView):
         menuSetup = [
             lambda m, p: m.add(app.actions.ActivityOpen, p.selected_activities,
                                text="Open process" if len(p.selected_activities) == 1 else "Open processes",
-                               enable=len(p.selected_activities) > 0
+                               enable=len(p.selected_activities) > 0,
                                ),
             lambda m: m.addSeparator(),
             lambda m, p: m.add(app.actions.ActivityNewProcess, p.db_name,
                                enable=not database_is_locked(p.db_name),
+                               ),
+            lambda m, p: m.add(app.actions.NewElementaryFlow, p.db_name,
+                               enable=p.db_name in get_writable_databases(),
+                               text="New elementary flow",
                                ),
             lambda m, p: m.add(app.actions.ActivityDuplicate, p.selected_activities,
                                text="Duplicate process" if len(p.selected_activities) == 1 else "Duplicate processes",
@@ -282,6 +293,10 @@ class ProductView(ui.widgets.ABTreeView):
                                enable=len(p.selected_activities) > 0 and not database_is_locked(p.db_name),
                                ),
             lambda m: m.addSeparator(),
+            lambda m, p: m.add(app.actions.DeleteElementaryFlow, p.selected_elementary_flows,
+                               text="Delete elementary flow" if len(p.selected_elementary_flows) == 1 else "Delete elementary flows",
+                               enable=len(p.selected_elementary_flows) > 0 and p.db_name in get_writable_databases(),
+                               ),
             lambda m, p: m.add(app.actions.ActivityDelete, p.selected_activities,
                                text="Delete process" if len(p.selected_activities) == 1 else "Delete processes",
                                enable=len(p.selected_activities) > 0 and not database_is_locked(p.db_name),
@@ -296,7 +311,7 @@ class ProductView(ui.widgets.ABTreeView):
             lambda m, p: m.add(app.actions.CSNew,
                                functional_units=[{prod: m.get_functional_unit_amount(prod)} for prod in p.selected_products],
                                enable=len(p.selected_products) > 0,
-                               text="Create setup"
+                               text="Create setup",
                                ),
             lambda m, p: m.add(app.actions.ActivitySDFToClipboard, p.selected_products,
                                enable=len(p.selected_products) > 0,
@@ -376,6 +391,9 @@ class ProductView(ui.widgets.ABTreeView):
                 return
         if event.key() == Qt.Key.Key_Delete:
             if database_is_locked(self.db_name):
+                return
+            if self.selected_elementary_flows():
+                app.actions.DeleteElementaryFlow.run(self.selected_elementary_flows())
                 return
             if self.selected_products:
                 app.actions.ActivityDelete.run(self.selected_products)
@@ -457,30 +475,32 @@ class ProductView(ui.widgets.ABTreeView):
         app.actions.ActivityDuplicateToDB.run(keys, self.db_name)
 
     @property
-    def selected_products(self) -> list[tuple]:
-        """
-        Returns the selected products.
-
-        Returns:
-            list[tuple]: The list of selected products.
-        """
+    def selected_elementary_flows(self) -> list[tuple]:
+        """Keys of selected biosphere nodes (elementary flows)."""
         keys = self.model().values_from_indices("key", self.selectedIndexes())
         types = self.model().values_from_indices("type", self.selectedIndexes())
+        return list(dict.fromkeys(k for k, t in zip(keys, types) if t in biosphere_node_types()))
 
-        return list({key for key, type in zip(keys, types) if not type == "nonfunctional"})
+    @property
+    def selected_products(self) -> list[tuple]:
+        keys = self.model().values_from_indices("key", self.selectedIndexes())
+        types = self.model().values_from_indices("type", self.selectedIndexes())
+        return list(dict.fromkeys(
+            k for k, t in zip(keys, types) if t not in biosphere_node_types() and t != "nonfunctional"
+        ))
 
     @property
     def selected_activities(self) -> list[tuple]:
-        """
-        Returns the selected activities.
-
-        Returns:
-            list[tuple]: The list of selected activities.
-        """
+        """Keys of selected technosphere activities (processes), excluding elementary flows."""
         processors = self.model().values_from_indices("processor", self.selectedIndexes())
         keys = self.model().values_from_indices("key", self.selectedIndexes())
-
-        return list({processor if not pd.isna(processor) else key for processor, key in zip(processors, keys)})
+        types = self.model().values_from_indices("type", self.selectedIndexes())
+        activities = []
+        for processor, key, node_type in zip(processors, keys, types):
+            if node_type in biosphere_node_types():
+                continue
+            activities.append(processor if not pd.isna(processor) else key)
+        return list(dict.fromkeys(activities))
 
 
 class ProductModel(ui.core.ABTreeModel):

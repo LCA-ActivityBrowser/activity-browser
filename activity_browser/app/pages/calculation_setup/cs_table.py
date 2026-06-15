@@ -42,7 +42,7 @@ class CSListModel(core.ABTreeModel):
         if role == QtCore.Qt.ItemDataRole.CheckStateRole and self.indexUserCheckable(index):
             on = bool(self.get(index, "_active"))
             return QtCore.Qt.CheckState.Checked if on else QtCore.Qt.CheckState.Unchecked
-        if role == QtCore.Qt.ItemDataRole.ForegroundRole and index.column() > 0 and self.row(index):
+        if role == QtCore.Qt.ItemDataRole.ForegroundRole and index.column() > 0 and _df_row(index) is not None:
             if not bool(self.get(index, "_active")):
                 return QtGui.QBrush(QtGui.QColor(QtCore.Qt.GlobalColor.gray))
         return super().data(index, role)

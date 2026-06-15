@@ -136,8 +136,10 @@ class ActivityDetailsPage(widgets.ABAbstractPage):
 
         def slot():
             self._populate_later_flag = False
-            self.sync()
-            self.thread().eventDispatcher().awake.disconnect(slot)
+            try:
+                self.sync()
+            finally:
+                self.thread().eventDispatcher().awake.disconnect(slot)
 
         if self._populate_later_flag:
             return

@@ -51,17 +51,41 @@ class FunctionalUnitSection(QtWidgets.QWidget):
                 keys.append(key)
                 amounts.append(amount)
 
-        act_df = app.metadata.get_metadata(keys, cols)
-        act_df["amount"] = amounts
-        act_df["_activity_key"] = keys
-        act_df["_active"] = active_flags(self.calculation_setup, "inv")
-        act_df["_cs_name"] = self.calculation_setup_name
+        if not keys:
+            return pd.DataFrame(
+                columns=[
+                    "amount", "unit", "product", "process", "database", "location",
+                    "_processor_key", "_activity_key", "_cs_name", "_type", "_active",
+                ]
+            )
+
+        flags = active_flags(self.calculation_setup, "inv")
+        rows = []
+        for index, (key, amount) in enumerate(zip(keys, amounts)):
+            if key in app.metadata.keys:
+                row = app.metadata.get_metadata([key], cols).iloc[0].to_dict()
+            else:
+                row = {col: None for col in cols}
+                if isinstance(key, tuple):
+                    row["database"] = key[0]
+                row["name"] = "(missing reference flow)"
+            row["amount"] = amount
+            row["_activity_key"] = key
+            row["_active"] = flags[index] if index < len(flags) else True
+            row["_cs_name"] = self.calculation_setup_name
+            rows.append(row)
+
+        act_df = pd.DataFrame(rows)
 
         act_df["_processor_key"] = act_df["processor"]
         act_df["_processor_key"] = act_df["_processor_key"].fillna(act_df["_activity_key"])
 
-        proc_meta = app.metadata.get_metadata(act_df["_processor_key"].unique(), ["name"])
-        act_df["process"] = act_df["_processor_key"].map(proc_meta["name"])
+        proc_keys = [key for key in act_df["_processor_key"].unique() if key in app.metadata.keys]
+        if proc_keys:
+            proc_meta = app.metadata.get_metadata(proc_keys, ["name"])
+            act_df["process"] = act_df["_processor_key"].map(proc_meta["name"])
+        else:
+            act_df["process"] = None
 
         # Product nodes: metadata "name" is the product; keep process from the processor.
         act_df["product"] = act_df["product"].fillna(act_df["name"])
