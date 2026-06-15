@@ -133,11 +133,19 @@ class CharacterizationFactorsView(widgets.ABTreeView):
         def char_factors(self):
             table_view: CharacterizationFactorsView = self.parent()
             table_model: CharacterizationFactorsModel = table_view.model()
-            
-            selected_indices = table_view.selectedIndexes()
-            ids = table_model.values_from_indices("_id", selected_indices)
-            cfs = table_model.values_from_indices("_cf", selected_indices)
-            return list(zip(ids, cfs))
+
+            # SelectRows still returns one index per visible column; keep one CF per row.
+            char_factors = []
+            seen_rows: set[int] = set()
+            for index in table_view.selectedIndexes():
+                if index.row() in seen_rows:
+                    continue
+                seen_rows.add(index.row())
+                char_factors.append((
+                    table_model.get(index, "_id"),
+                    table_model.get(index, "_cf"),
+                ))
+            return char_factors
 
     def __init__(self, parent):
         super().__init__(parent)
