@@ -1,6 +1,6 @@
 from loguru import logger
 
-from qtpy import QtWidgets, QtCore
+from qtpy import QtWidgets, QtCore, QtGui
 from qtpy.QtCore import Qt
 
 import pandas as pd
@@ -10,7 +10,12 @@ from bw2data.backends import ExchangeDataset
 
 from activity_browser import app
 from activity_browser.ui import widgets, icons, delegates, core
-from activity_browser.bwutils.commontasks import database_is_locked
+from activity_browser.bwutils.commontasks import (
+    database_is_locked,
+    exchange_consumer_parts,
+    exchange_label,
+    exchange_product_name,
+)
 from activity_browser.bwutils.uncertainty import uncertainty_cell_summary
 from activity_browser.bwutils.utils import Parameter
 
@@ -102,13 +107,15 @@ class ParameterizedExchangesSection(QtWidgets.QWidget):
             try:
                 exchange = bd.Edge(document=ExchangeDataset.get_by_id(param_exc.exchange))
 
-                # Get keys for input and output
                 input_key = exchange.get("input")
                 output_key = exchange.get("output")
 
-                # Get metadata from metadata store
-                input_meta = app.metadata.get_metadata([input_key], ["name", "unit", "location", "database", "product"]).iloc[0]
-                output_meta = app.metadata.get_metadata([output_key], ["name"]).iloc[0]
+                input_meta = app.metadata.get_metadata(
+                    [input_key], ["name", "unit", "location", "database", "product"]
+                ).iloc[0]
+
+                product = exchange_product_name(input_key)
+                process, location, database = exchange_consumer_parts(output_key)
 
                 u = getattr(exchange, "uncertainty", None)
                 if not isinstance(u, dict):
@@ -116,24 +123,27 @@ class ParameterizedExchangesSection(QtWidgets.QWidget):
                 row = {
                     "amount": exchange.get("amount"),
                     "unit": input_meta.get("unit"),
-                    "from": input_meta.get("product") or input_meta.get("name"),
-                    "to": output_meta.get("name"),
-                    "database": input_meta.get("database"),
+                    "product": product,
+                    "process": process,
+                    "location": location,
+                    "database": database,
                     "formula": exchange.get("formula"),
                     "comment": exchange.get("comment"),
                     "uncertainty": uncertainty_cell_summary(u),
+                    "_exchange_label": exchange_label(input_key, output_key, include_database=True),
                     "_exchange": exchange,
                     "_output_key": output_key,
                     "_input_key": input_key,
                 }
                 translated.append(row)
-            except Exception as e:
+            except Exception:
                 # Skip if exchange can't be loaded
                 continue
 
         columns = [
-            "amount", "unit", "from", "to", "database", "formula", "comment",
-            "uncertainty", "_exchange", "_output_key", "_input_key",
+            "amount", "unit", "product", "process", "location", "database",
+            "formula", "comment", "uncertainty",
+            "_exchange_label", "_exchange", "_output_key", "_input_key",
         ]
         return pd.DataFrame(translated, columns=columns)
 
@@ -149,13 +159,17 @@ class ParameterizedExchangesView(widgets.ABTreeView):
         "amount": delegates.FloatDelegate,
         "unit": delegates.StringDelegate,
         "product": delegates.StringDelegate,
-        "producer": delegates.StringDelegate,
+        "process": delegates.StringDelegate,
         "location": delegates.StringDelegate,
         "database": delegates.StringDelegate,
         "formula": delegates.NewFormulaDelegate,
         "comment": delegates.StringDelegate,
         "uncertainty": delegates.UncertaintyDelegate,
     }
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setSortingEnabled(True)
 
     class ContextMenu(QtWidgets.QMenu):
         """
@@ -176,17 +190,23 @@ class ParameterizedExchangesView(widgets.ABTreeView):
                 row = view.model().row(index)
                 if row is not None:
                     output_key = row.get("_output_key")
-                    if output_key:
-                        # Open activity action
-                        open_action = app.actions.ActivityOpen.get_QAction([output_key])
-                        open_action.setText("Open activity")
-                        self.addAction(open_action)
+                    exchange = row.get("_exchange")
+                    if output_key and exchange is not None:
+                        action = QtGui.QAction("Open process", view)
+                        action.triggered.connect(
+                            lambda: app.actions.ActivityOpen.run(
+                                [output_key], focus_exchange=exchange
+                            )
+                        )
+                        self.addAction(action)
 
 
 class ParameterizedExchangesModel(core.ABTreeModel):
     """
     A model representing the data for parameterized exchanges.
     """
+
+    _TOOLTIP_COLUMNS = frozenset({"unit", "product", "process", "location", "database"})
 
     def __init__(self, parent=None):
         """
@@ -195,7 +215,13 @@ class ParameterizedExchangesModel(core.ABTreeModel):
         Args:
             parent (QtWidgets.QWidget, optional): The parent widget. Defaults to None.
         """
-        super().__init__(df=pd.DataFrame(), parent=parent)
+        super().__init__(df=pd.DataFrame(), parent=parent, enable_sorting=True)
+
+    def toolTipData(self, index: QtCore.QModelIndex):
+        column_name = self.column_name(index)
+        if column_name in self._TOOLTIP_COLUMNS:
+            return self.get(index, "_exchange_label")
+        return None
 
     def setData(self, index: QtCore.QModelIndex, value, role: int = Qt.ItemDataRole.EditRole) -> bool:
         """
@@ -338,4 +364,3 @@ class ParameterizedExchangesModel(core.ABTreeModel):
             return {}
 
         return parameters_in_scope(node=exchange.output)
-

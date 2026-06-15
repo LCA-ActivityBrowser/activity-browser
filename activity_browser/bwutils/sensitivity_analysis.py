@@ -45,6 +45,7 @@ from bw_graph_tools.graph_traversal import NewNodeEachVisitGraphTraversal
 from loguru import logger
 from SALib.analyze import delta
 
+from activity_browser.bwutils.commontasks import exchange_label
 from activity_browser.bwutils.filesystem import get_project_ab_path
 from activity_browser.bwutils.uncertainty import uncertainty_cell_summary
 
@@ -131,54 +132,12 @@ def _process_from_exchange_io(io_value):
     return _process_from_node(bd.get_activity(io_value))
 
 
-# --- Exchange labels (shortname vs full index) --------------------------------
-
-
-def _reference_product(node, process) -> str:
-    return node.get("reference product") or process.get("reference product") or node.get("name", "")
-
-
-def _format_process_segment(
-    product, process, location=None, *, include_database: bool = True
-) -> str:
-    loc = f" [{location}]" if location else ""
-    database = process.get("database", "")
-    db = f" ({database})" if database and include_database else ""
-    return f"{product} | {process.get('name', '')}{loc}{db}"
-
-
 def _format_exchange_names(raw_input, raw_output) -> tuple[str, str]:
     """Return ``(shortname, index)`` for a technosphere or biosphere exchange."""
-    from_process = _process_from_node(raw_input)
-    to_process = _process_from_node(raw_output)
-
-    if raw_input.get("type") == "emission":
-        flow_name = raw_input.get("name", "")
-        categories = raw_input.get("categories")
-        left_process = (
-            ", ".join(categories) if isinstance(categories, (list, tuple)) else str(categories or flow_name)
-        )
-        database = raw_input.get("database") or ""
-        left_full = f"{flow_name} | {left_process} ({database})" if database else f"{flow_name} | {left_process}"
-        left_display = f"{flow_name} | {left_process}"
-    else:
-        location = from_process.get("location") or raw_input.get("location", "")
-        product = _reference_product(raw_input, from_process)
-        left_display = _format_process_segment(product, from_process, location, include_database=False)
-        left_full = _format_process_segment(product, from_process, location, include_database=True)
-
-    right_location = to_process.get("location") or raw_output.get("location", "")
-    right_product = _reference_product(raw_output, to_process)
-    right_display = _format_process_segment(
-        right_product, to_process, right_location, include_database=False
+    return (
+        exchange_label(raw_input, raw_output, include_database=False),
+        exchange_label(raw_input, raw_output, include_database=True),
     )
-    right_full = _format_process_segment(
-        right_product, to_process, right_location, include_database=True
-    )
-    return f"{left_display} --> {right_display}", f"{left_full} --> {right_full}"
-
-
-# --- Deterministic LCA + exchange filtering -----------------------------------
 
 
 def get_lca(fu, method):

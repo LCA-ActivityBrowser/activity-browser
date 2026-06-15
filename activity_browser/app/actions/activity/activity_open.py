@@ -2,6 +2,7 @@ from loguru import logger
 
 import bw2data as bd
 import bw_functional as bf
+from qtpy import QtCore
 
 from activity_browser import app
 from activity_browser.bwutils.commontasks import refresh_node, is_node_process
@@ -29,7 +30,11 @@ class ActivityOpen(ABAction):
 
     @staticmethod
     @exception_dialogs
-    def run(activities: list[tuple | int | bd.Node]):
+    def run(
+        activities: list[tuple | int | bd.Node],
+        *,
+        focus_exchange=None,
+    ):
         """
         Execute the action to open activities.
 
@@ -38,6 +43,7 @@ class ActivityOpen(ABAction):
 
         Args:
             activities (list[tuple | int | bd.Node]): A list of activities to process.
+            focus_exchange: Optional exchange to select on the Exchanges tab after open.
 
         Logs:
             Warning: If an activity type is not supported.
@@ -61,3 +67,13 @@ class ActivityOpen(ABAction):
 
             # Add the details page to the "Activity Details" group in the central widget
             central.addToGroup("Activity Details", page)
+
+            if focus_exchange is not None:
+                try:
+                    consumer = refresh_node(focus_exchange.output)
+                    if refresh_node(act).id == consumer.id:
+                        QtCore.QTimer.singleShot(
+                            0, lambda p=page, exc=focus_exchange: p.exchanges_tab.focus_exchange(exc)
+                        )
+                except Exception:
+                    pass

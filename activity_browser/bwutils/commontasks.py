@@ -119,6 +119,53 @@ def get_method_label(method, *, separator: str = ", ") -> str:
     return separator.join(str(part) for part in method if part)
 
 
+def exchange_part_label(node, *, include_database: bool = True) -> str:
+    """Human-readable label for one exchange end (input or output part).
+
+    For technosphere nodes: ``product | process [location] (database)``.
+    For biosphere nodes: ``flow | categories (database)``.
+    """
+    node = refresh_node(node)
+    if is_node_biosphere(node):
+        flow_name = node.get("name", "")
+        categories = node.get("categories")
+        if isinstance(categories, (list, tuple)):
+            category_text = ", ".join(str(c) for c in categories)
+        else:
+            category_text = str(categories or flow_name)
+        database = node.get("database") or ""
+        if include_database and database:
+            return f"{flow_name} | {category_text} ({database})"
+        return f"{flow_name} | {category_text}"
+
+    product, process_name, location, database = reference_flow_parts(node)
+    location_text = f" [{location}]" if location else ""
+    database_text = f" ({database})" if database and include_database else ""
+    return f"{product} | {process_name}{location_text}{database_text}"
+
+
+def exchange_label(input_node, output_node, *, include_database: bool = True) -> str:
+    """Full exchange label ``input --> output`` for tooltips and GSA metadata."""
+    left = exchange_part_label(input_node, include_database=include_database)
+    right = exchange_part_label(output_node, include_database=include_database)
+    return f"{left} --> {right}"
+
+
+def exchange_product_name(input_node) -> str:
+    """Reference product or flow name for the exchange input side."""
+    node = refresh_node(input_node)
+    if is_node_biosphere(node):
+        return node.get("name", "")
+    product, _, _, _ = reference_flow_parts(node)
+    return product
+
+
+def exchange_consumer_parts(output_node) -> tuple[str, str, str]:
+    """Return ``(process, location, database)`` for the exchange consumer (output)."""
+    _, process, location, database = reference_flow_parts(refresh_node(output_node))
+    return process, location, database
+
+
 def cleanup_deleted_bw_projects() -> None:
     """Clean up the deleted projects from disk.
 

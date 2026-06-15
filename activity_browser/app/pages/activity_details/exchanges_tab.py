@@ -135,6 +135,39 @@ class ExchangesTab(QtWidgets.QWidget):
         self.input_model.set_dataframe(input_df)
         self.input_view.drag_drop_hint.setVisible(input_df.empty)
 
+    def focus_exchange(self, exchange) -> bool:
+        """Open the Exchanges tab and select *exchange* in the input or output table. (deferred navigation)"""
+        from activity_browser.app.pages.activity_details.activity_details import ActivityDetailsPage
+
+        page = self.parent()
+        if isinstance(page, ActivityDetailsPage):
+            page.tabs.setCurrentWidget(self)
+
+        exc_id = getattr(getattr(exchange, "_document", None), "id", None)
+        if exc_id is None:
+            return False
+
+        for view, model in ((self.input_view, self.input_model), (self.output_view, self.output_model)):
+            for row in range(model.rowCount()):
+                index = model.index(row, 1)
+                if not index.isValid():
+                    continue
+                row_exchange = model.get(index, "_exchange")
+                row_id = getattr(getattr(row_exchange, "_document", None), "id", None)
+                if row_id != exc_id:
+                    continue
+                view.setFocus()
+                view.setCurrentIndex(index)
+                view.scrollTo(index, QtWidgets.QAbstractItemView.ScrollHint.PositionAtCenter)
+                selection = view.selectionModel()
+                selection.select(
+                    index,
+                    QtCore.QItemSelectionModel.SelectionFlag.ClearAndSelect
+                    | QtCore.QItemSelectionModel.SelectionFlag.Rows,
+                )
+                return True
+        return False
+
     def build_df(self, exchanges) -> pd.DataFrame:
         """
         Builds a DataFrame from the given exchanges.
