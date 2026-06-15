@@ -3,6 +3,7 @@ from loguru import logger
 
 from qtpy import QtWidgets, QtGui, QtCore
 from qtpy.QtCore import Qt
+from shiboken6 import isValid
 
 import bw2data as bd
 import pandas as pd
@@ -69,8 +70,14 @@ class DatabasesPane(widgets.ABAbstractPane):
 
         def slot():
             self._populate_later_flag = False
-            self.sync()
-            self.thread().eventDispatcher().awake.disconnect(slot)
+            try:
+                self.sync()
+            except RuntimeError:
+                pass
+            try:
+                self.thread().eventDispatcher().awake.disconnect(slot)
+            except (TypeError, RuntimeError):
+                pass
 
         if self._populate_later_flag:
             return
@@ -82,6 +89,9 @@ class DatabasesPane(widgets.ABAbstractPane):
         """
         Synchronizes the model with the current state of the databases.
         """
+        if not isValid(self.model):
+            return
+
         logger.log("SYNC", f"{self.__class__.__name__}: {id(self)}")
 
         df = self.build_df()

@@ -46,7 +46,7 @@ def main_window(qtbot, monkeypatch, no_exception_dialogs):
 
     app.main_window.show()
 
-    yield main_window
+    yield app.main_window
 
     app.main_window.deleteLater()
 

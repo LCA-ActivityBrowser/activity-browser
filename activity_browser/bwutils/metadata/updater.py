@@ -123,7 +123,9 @@ class MDSUpdater(QObject):
 
     # database methods
     def add_database(self, db_name: str):
-        self.mds.loader.load_database(db_name)
+        from activity_browser.bwutils.metadata.loader import schedule_database_metadata_reload
+
+        schedule_database_metadata_reload(db_name)
 
     def delete_database(self, db_name: str):
         if db_name not in self.mds.databases:
