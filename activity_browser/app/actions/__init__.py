@@ -7,6 +7,7 @@ from .activity.activity_modify import ActivityModify
 from .activity.activity_new_process import ActivityNewProcess
 from .activity.activity_new_product import ActivityNewProduct
 from .activity.new_elementary_flow import NewElementaryFlow
+from .activity.edit_elementary_flow import EditElementaryFlow
 from .activity.delete_elementary_flow import DeleteElementaryFlow
 from .activity.activity_open import ActivityOpen
 from .activity.activity_relink import ActivityRelink

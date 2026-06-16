@@ -4,7 +4,7 @@ import bw2data as bd
 
 from activity_browser import app
 from activity_browser.app.actions.base import ABAction, exception_dialogs
-from activity_browser.bwutils.commontasks import get_writable_databases
+from activity_browser.bwutils.commontasks import biosphere_node_types, get_writable_databases
 from activity_browser.bwutils.elementary_flows import create_elementary_flow
 from activity_browser.ui.icons import qicons
 
@@ -13,6 +13,12 @@ def _parse_categories(text: str) -> tuple[str, ...]:
     if not text or not text.strip():
         return ()
     return tuple(part.strip() for part in text.split(",") if part.strip())
+
+
+def _format_categories(categories) -> str:
+    if not categories:
+        return ""
+    return ", ".join(str(part) for part in categories)
 
 
 class NewElementaryFlow(ABAction):
@@ -38,7 +44,7 @@ class NewElementaryFlow(ABAction):
             (d for d in (database_name, bd.config.biosphere) if d in writable),
             writable[0],
         )
-        dialog = NewElementaryFlowDialog(default_db, writable, app.main_window)
+        dialog = ElementaryFlowDialog(default_db, writable, app.main_window)
         if dialog.exec_() != QtWidgets.QDialog.DialogCode.Accepted:
             return
 
@@ -55,33 +61,52 @@ class NewElementaryFlow(ABAction):
         )
 
 
-class NewElementaryFlowDialog(QtWidgets.QDialog):
-    """Dialog for name, unit, type, and categories of a new elementary flow."""
+class ElementaryFlowDialog(QtWidgets.QDialog):
+    """Dialog for name, unit, type, and categories of an elementary flow."""
 
     def __init__(
         self,
         default_database: str,
         databases: list[str],
         parent: QtWidgets.QWidget | None = None,
+        *,
+        flow: bd.Node | None = None,
     ):
         super().__init__(parent)
-        self.setWindowTitle("New elementary flow")
+        self._edit_mode = flow is not None
+        self.setWindowTitle("Edit elementary flow" if self._edit_mode else "New elementary flow")
 
         self._database_combo = QtWidgets.QComboBox()
         self._database_combo.addItems(databases)
         if default_database in databases:
             self._database_combo.setCurrentText(default_database)
+        self._database_combo.setVisible(not self._edit_mode)
 
         self._name_edit = QtWidgets.QLineEdit()
         self._unit_edit = QtWidgets.QLineEdit("kilogram")
         self._type_combo = QtWidgets.QComboBox()
-        self._type_combo.addItems(["emission", "natural resource"])
+        type_options = (
+            sorted(biosphere_node_types())
+            if self._edit_mode
+            else ["emission", "natural resource"]
+        )
+        self._type_combo.addItems(type_options)
         self._categories_edit = QtWidgets.QLineEdit()
         self._categories_edit.setPlaceholderText("e.g. air, non-urban")
 
-        self._ok_button = QtWidgets.QPushButton("Create")
+        if self._edit_mode:
+            self._name_edit.setText(flow.get("name", ""))
+            self._unit_edit.setText(flow.get("unit", "kilogram"))
+            flow_type = flow.get("type", "")
+            if flow_type and self._type_combo.findText(flow_type) < 0:
+                self._type_combo.addItem(flow_type)
+            if flow_type:
+                self._type_combo.setCurrentText(flow_type)
+            self._categories_edit.setText(_format_categories(flow.get("categories", ())))
+
+        self._ok_button = QtWidgets.QPushButton("Save" if self._edit_mode else "Create")
         self._ok_button.clicked.connect(self.accept)
-        self._ok_button.setEnabled(False)
+        self._ok_button.setEnabled(self._edit_mode and bool(self._name_edit.text().strip()))
         self._cancel_button = QtWidgets.QPushButton("Cancel")
         self._cancel_button.clicked.connect(self.reject)
 
@@ -91,9 +116,10 @@ class NewElementaryFlowDialog(QtWidgets.QDialog):
 
         layout = QtWidgets.QGridLayout()
         row = 0
-        layout.addWidget(QtWidgets.QLabel("Database"), row, 0)
-        layout.addWidget(self._database_combo, row, 1)
-        row += 1
+        if not self._edit_mode:
+            layout.addWidget(QtWidgets.QLabel("Database"), row, 0)
+            layout.addWidget(self._database_combo, row, 1)
+            row += 1
         layout.addWidget(QtWidgets.QLabel("Name"), row, 0)
         layout.addWidget(self._name_edit, row, 1)
         row += 1

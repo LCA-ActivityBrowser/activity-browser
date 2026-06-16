@@ -37,7 +37,7 @@ def test_writable_databases_includes_basic(basic_database):
 
 def test_activity_new_elementary_flow(basic_database, monkeypatch):
     _make_database_writable(basic_database.name)
-    monkeypatch.setattr(mod, "NewElementaryFlowDialog", _AcceptedDialog)
+    monkeypatch.setattr(mod, "ElementaryFlowDialog", _AcceptedDialog)
 
     app.actions.NewElementaryFlow.run(database_name="basic")
 
