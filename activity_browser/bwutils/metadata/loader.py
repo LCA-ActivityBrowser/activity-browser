@@ -77,6 +77,7 @@ class MDSLoader(QObject):
             cached_df = pd.read_pickle(cache_path)
         except (
             EOFError,
+            ModuleNotFoundError,
             NotImplementedError,
             OSError,
             pickle.UnpicklingError,
@@ -85,6 +86,8 @@ class MDSLoader(QObject):
         ) as exc:
             # NotImplementedError: pandas StringDtype / ndarray-backed columns can fail
             # to unpickle across pandas versions (see pandas GH issues on read_pickle).
+            # ModuleNotFoundError: numpy 1.x vs 2.x pickles reference different internal modules
+            # (e.g. numpy._core.numeric vs numpy.core.numeric).
             logger.warning(
                 f"Metadata cache could not be loaded, rebuilding from database: {exc}"
             )
