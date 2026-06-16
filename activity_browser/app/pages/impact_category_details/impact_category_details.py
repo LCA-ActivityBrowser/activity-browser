@@ -42,6 +42,25 @@ class ImpactCategoryDetailsPage(widgets.ABAbstractPage):
         app.signals.method.changed.connect(lambda _method: self.syncLater())
         app.signals.database.deleted.connect(lambda _name: self.syncLater())
         app.signals.meta.methods_changed.connect(self.syncLater)
+        app.signals.metadata.synced.connect(self.on_metadata_changed)
+
+    def on_metadata_changed(self, added, updated, deleted):
+        if not core.qt_is_valid(self):
+            return
+        changed_keys = added | updated | deleted
+        if not changed_keys:
+            return
+        try:
+            cf_ids = {cf[0] for cf in self.impact_category.load()}
+        except Exception:
+            return
+        mdf = app.metadata.dataframe
+        for key in changed_keys:
+            if key not in mdf.index:
+                continue
+            if mdf.loc[key, "id"] in cf_ids:
+                self.syncLater()
+                return
 
     def on_method_renamed(self, old_name, new_name):
         if not core.qt_is_valid(self):

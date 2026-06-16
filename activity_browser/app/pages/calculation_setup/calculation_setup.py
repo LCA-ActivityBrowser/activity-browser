@@ -67,6 +67,7 @@ class CalculationSetupPage(widgets.ABAbstractPage):
     def connect_signals(self):
         app.signals.project.changed.connect(self.sync)
         app.signals.meta.calculation_setups_changed.connect(self.sync)
+        app.signals.meta.methods_changed.connect(self.sync)
 
         self.type_dropdown.currentTextChanged.connect(self.type_switch)
         self.run_button.released.connect(self.run_calculation)
