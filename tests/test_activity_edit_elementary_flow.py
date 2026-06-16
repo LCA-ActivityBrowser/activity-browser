@@ -19,6 +19,14 @@ class _AcceptedDialog:
         return ("edited emission", "tonne", "natural resource", ("water",))
 
 
+def _dismiss_messagebox(monkeypatch) -> None:
+    monkeypatch.setattr(
+        QtWidgets.QMessageBox,
+        "warning",
+        staticmethod(lambda *args, **kwargs: QtWidgets.QMessageBox.Ok),
+    )
+
+
 def _make_database_writable(db_name: str) -> None:
     import bw2data as bd
 
@@ -68,6 +76,7 @@ def test_edit_elementary_flow_requires_single_biosphere_selection(basic_database
         flow_type="emission",
     )
     _make_database_writable(basic_database.name)
+    _dismiss_messagebox(monkeypatch)
 
     called = False
 
