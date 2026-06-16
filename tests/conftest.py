@@ -88,6 +88,7 @@ def main_window(qtbot, monkeypatch, no_exception_dialogs):
     _destroy_main_window(qtbot)
 
 
+
 @pytest.fixture
 @bw2test
 def basic_database(qapp, main_window):
