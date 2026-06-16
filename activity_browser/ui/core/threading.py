@@ -101,6 +101,7 @@ class InfoToSlot:
                 pass
         return
 
+
 class LoggingProgressSink:
     def __init__(self, level="INFO"):
         self.level = level

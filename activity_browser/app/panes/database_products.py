@@ -137,16 +137,13 @@ class DatabaseProductsPane(widgets.ABAbstractPane):
             self.sync()
 
     def update_loading_state(self):
-        """
-        Updates the loading state based on whether metadata for this database is available.
-        """
+        """Show the spinner until metadata for this database is available."""
         db_name = self.database.name
         if app.metadata.loader.secondary_status == "done":
             self.stacked_layout.setCurrentIndex(1)
         elif db_name in app.metadata.databases:
             self.stacked_layout.setCurrentIndex(1)
         else:
-            # Show loading indicator
             self.stacked_layout.setCurrentIndex(0)
 
     def sync(self):

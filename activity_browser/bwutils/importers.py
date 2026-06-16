@@ -93,7 +93,11 @@ class ABExcelImporter(ExcelImporter):
         This is important because we want to return a Database instance
         """
         kwargs["activate_parameters"] = kwargs.get("activate_parameters", True)
-        return super(ExcelImporter, self).write_database(**kwargs)
+        db = super(ExcelImporter, self).write_database(**kwargs)
+        # bw2io writes with signal=False when projects.dataset.is_sourced is False.
+        from bw2data import signals
+        signals.on_database_write.send(name=db.name)
+        return db
 
     @classmethod
     def simple_automated_import(
@@ -254,6 +258,19 @@ class ABPackage(BW2Package):
         else:
             data = [cls._apply_package_options(obj, db_name, relink) for obj in data]
         return data
+
+    @classmethod
+    def _create_obj(cls, data):
+        instance = data["class"](data["name"])
+
+        if data["name"] not in instance._metadata:
+            instance.register(**data["metadata"])
+        else:
+            instance.backup()
+            instance.metadata = data["metadata"]
+
+        instance.write(data["data"], signal=True)
+        return instance
 
     @classmethod
     def import_file(cls, filepath, whitelist=True, **kwargs):

@@ -7,7 +7,6 @@ import bw_functional as bf
 
 from activity_browser.app import application
 from activity_browser.app.actions.base import ABAction, exception_dialogs
-from activity_browser.bwutils.metadata.loader import schedule_database_metadata_reload
 from activity_browser.ui.icons import qicons
 from activity_browser.ui.core.threading import ABThread
 
@@ -79,8 +78,6 @@ class DuplicateDatabaseDialog(QtWidgets.QProgressDialog):
         self.dup_thread.exit(0)
         self.setMaximum(1)
         self.setValue(1)
-        if self.to_db in bd.databases:
-            schedule_database_metadata_reload(self.to_db)
 
 
 class DuplicateDatabaseThread(ABThread):

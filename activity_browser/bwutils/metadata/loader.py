@@ -6,7 +6,7 @@ from loguru import logger
 from typing import Literal
 import pandas as pd
 
-from qtpy.QtCore import QObject, QThread, Signal, SignalInstance, Qt, Slot
+from qtpy.QtCore import QObject, QThread, Signal, SignalInstance, Qt, Slot, QTimer
 
 from activity_browser.bwutils.settings import Settings
 
@@ -19,7 +19,7 @@ class MDSLoader(QObject):
 
     Project-wide loads run at startup; :meth:`load_database` refreshes a single
     database after import. Reloads never block the GUI thread — concurrent
-    requests are queued in :attr:`_pending_database_load`.
+    requests are queued in :attr:`_pending_database_loads`.
     """
     primary_status: Literal["idle", "loading", "done"] = "idle"
     secondary_status: Literal["idle", "loading", "done"] = "idle"
@@ -29,14 +29,19 @@ class MDSLoader(QObject):
 
         self.mds = mds
         self.thread: QThread | None = None
-        self._pending_database_load: str | None = None
+        self._pending_database_loads: list[str] = []
         self.connect_signals()
 
     def connect_signals(self):
         from bw2data import signals
-        
-        # Connect to Brightway's project_changed signal
+
         signals.project_changed.connect(self.on_project_changed)
+        # Brightway does not emit project_changed for the project already active at startup.
+        QTimer.singleShot(0, self._ensure_initial_load)
+
+    def _ensure_initial_load(self) -> None:
+        if self.primary_status == "idle":
+            self.load_project()
 
     def on_project_changed(self, sender):
         """Called when the Brightway project changes."""
@@ -55,16 +60,7 @@ class MDSLoader(QObject):
             self.cache_load_project()
             return
 
-        # start loading thread for secondary metadata
-        self.thread = SecondaryLoadThread(
-            databases=list(bd.databases),
-            sqlite_db=str(sqlite3_lci_db._filepath),
-            parent=self,
-        )
-        self.thread.result.connect(self.secondary_load_project)
-        self.thread.start()
-
-        # load primary metadata in the main thread
+        self._begin_secondary_load(list(bd.databases), self.secondary_load_project)
         self.primary_load_project()
 
     def cache_load_project(self):
@@ -167,33 +163,36 @@ class MDSLoader(QObject):
     def load_database(self, database_name: str):
         """Reload primary and secondary metadata for one database."""
         if self.thread is not None and self.thread.isRunning():
-            logger.debug(
-                "Metadata load already in progress, queueing reload for {!r}",
-                database_name,
-            )
-            self._pending_database_load = database_name
+            if database_name not in self._pending_database_loads:
+                logger.debug(
+                    "Metadata load already in progress, queueing reload for {!r}",
+                    database_name,
+                )
+                self._pending_database_loads.append(database_name)
             return
 
         self._start_database_load(database_name)
 
-    def _start_database_load(self, database_name: str):
+    def _begin_secondary_load(self, databases: list[str], result_slot) -> None:
         from bw2data.backends import sqlite3_lci_db
 
         self._disconnect_thread_results()
-
         self.thread = SecondaryLoadThread(
-            databases=[database_name],
+            databases=databases,
             sqlite_db=str(sqlite3_lci_db._filepath),
             parent=self,
         )
-        self.thread.result.connect(self.secondary_load_database)
+        self.thread.result.connect(result_slot)
         self.thread.finished.connect(self._on_load_thread_finished)
         self.thread.start()
 
+    def _start_database_load(self, database_name: str) -> None:
+        self.secondary_status = "loading"
+        self._begin_secondary_load([database_name], self.secondary_load_database)
         self.primary_load_database(database_name)
 
     def _disconnect_thread_results(self):
-        if self.thread is None:
+        if self.thread is None or self.thread.isRunning():
             return
         for slot in (self.secondary_load_project, self.secondary_load_database):
             try:
@@ -205,19 +204,21 @@ class MDSLoader(QObject):
         except (TypeError, RuntimeError):
             pass
 
-    def _on_load_thread_finished(self):
-        pending = getattr(self, "_pending_database_load", None)
-        if not pending:
+    def _on_load_thread_finished(self) -> None:
+        if not self._pending_database_loads:
             return
-        self._pending_database_load = None
-        self._start_database_load(pending)
+        self._start_database_load(self._pending_database_loads.pop(0))
 
-    def primary_load_database(self, database_name: str):
+    def primary_load_database(self, database_name: str) -> None:
         from bw2data.backends import sqlite3_lci_db
 
         with sqlite3.connect(sqlite3_lci_db._filepath) as con:
-            fields = ', '.join(primary[1:])  # Exclude 'key' as it's constructed
-            primary_df = pd.read_sql(f"SELECT {fields} FROM activitydataset WHERE database = '{database_name}'", con)
+            fields = ', '.join(primary[1:])
+            primary_df = pd.read_sql(
+                f"SELECT {fields} FROM activitydataset WHERE database = ?",
+                con,
+                params=(database_name,),
+            )
 
         primary_df["key"] = list(zip(primary_df["database"], primary_df["code"]))
         primary_df.index = pd.MultiIndex.from_tuples(primary_df["key"], names=["database", "code"])
@@ -244,7 +245,7 @@ class MDSLoader(QObject):
         database = secondary_df.index[0][0]
         indices = self.mds.get_database_metadata(database, []).index
 
-        if not all(secondary_df.index.isin(indices)):
+        if len(indices) and not all(secondary_df.index.isin(indices)):
             logger.debug("Secondary database metadata dropping rows")
             secondary_df = secondary_df[secondary_df.index.isin(indices)]
 
@@ -432,10 +433,7 @@ class _DatabaseReloadScheduler(QObject):
 
 
 def schedule_database_metadata_reload(db_name: str) -> None:
-    """Queue a metadata reload on the Qt GUI thread.
-
-    Safe to call from AB import worker threads (unlike ``QTimer.singleShot``).
-    """
+    """Queue a per-database metadata reload on the Qt GUI thread."""
     from activity_browser import app
 
     global _reload_scheduler

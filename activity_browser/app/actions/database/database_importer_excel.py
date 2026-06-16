@@ -210,9 +210,12 @@ class ImportSetup(widgets.ABWizard):
 
         def initializePage(self, context: dict):
             """Start the download thread"""
-            importer = context["importer"]
             self._import_database_name = context["database_name"]
-            self.thread.start(importer, self._import_database_name, context.get("linking_dict", {}))
+            self.thread.start(
+                context["importer"],
+                self._import_database_name,
+                context.get("linking_dict", {}),
+            )
 
     pages = [ExtractPage, DatabaseName, DatabaseLink, ConfirmPage, InstallPage]
 
