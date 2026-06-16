@@ -40,15 +40,25 @@ class NewElementaryFlow(ABAction):
             )
             return
 
-        default_db = next(
-            (d for d in (database_name, bd.config.biosphere) if d in writable),
-            writable[0],
-        )
-        dialog = ElementaryFlowDialog(default_db, writable, app.main_window)
+        db_name = database_name
+        if db_name not in writable:
+            if db_name:
+                QtWidgets.QMessageBox.warning(
+                    app.main_window,
+                    "Database is read-only",
+                    f"Cannot create elementary flows in read-only or locked database: {db_name}",
+                )
+                return
+            db_name = next(
+                (d for d in (bd.config.biosphere,) if d in writable),
+                writable[0],
+            )
+
+        dialog = ElementaryFlowDialog(app.main_window)
         if dialog.exec_() != QtWidgets.QDialog.DialogCode.Accepted:
             return
 
-        db_name, name, unit, flow_type, categories = dialog.get_data()
+        name, unit, flow_type, categories = dialog.get_data()
         if not name:
             return
 
@@ -66,8 +76,6 @@ class ElementaryFlowDialog(QtWidgets.QDialog):
 
     def __init__(
         self,
-        default_database: str,
-        databases: list[str],
         parent: QtWidgets.QWidget | None = None,
         *,
         flow: bd.Node | None = None,
@@ -75,12 +83,6 @@ class ElementaryFlowDialog(QtWidgets.QDialog):
         super().__init__(parent)
         self._edit_mode = flow is not None
         self.setWindowTitle("Edit elementary flow" if self._edit_mode else "New elementary flow")
-
-        self._database_combo = QtWidgets.QComboBox()
-        self._database_combo.addItems(databases)
-        if default_database in databases:
-            self._database_combo.setCurrentText(default_database)
-        self._database_combo.setVisible(not self._edit_mode)
 
         self._name_edit = QtWidgets.QLineEdit()
         self._unit_edit = QtWidgets.QLineEdit("kilogram")
@@ -116,10 +118,6 @@ class ElementaryFlowDialog(QtWidgets.QDialog):
 
         layout = QtWidgets.QGridLayout()
         row = 0
-        if not self._edit_mode:
-            layout.addWidget(QtWidgets.QLabel("Database"), row, 0)
-            layout.addWidget(self._database_combo, row, 1)
-            row += 1
         layout.addWidget(QtWidgets.QLabel("Name"), row, 0)
         layout.addWidget(self._name_edit, row, 1)
         row += 1
@@ -136,9 +134,8 @@ class ElementaryFlowDialog(QtWidgets.QDialog):
         layout.addWidget(self._cancel_button, row, 1)
         self.setLayout(layout)
 
-    def get_data(self) -> tuple[str, str, str, str, tuple[str, ...]]:
+    def get_data(self) -> tuple[str, str, str, tuple[str, ...]]:
         return (
-            self._database_combo.currentText(),
             self._name_edit.text().strip(),
             self._unit_edit.text().strip() or "kilogram",
             self._type_combo.currentText(),

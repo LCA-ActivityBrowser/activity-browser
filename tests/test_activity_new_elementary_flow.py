@@ -15,7 +15,7 @@ class _AcceptedDialog:
         return QtWidgets.QDialog.DialogCode.Accepted
 
     def get_data(self):
-        return ("basic", "custom emission", "kg", "emission", ("air", "custom"))
+        return ("custom emission", "kg", "emission", ("air", "custom"))
 
 
 def test_parse_categories():

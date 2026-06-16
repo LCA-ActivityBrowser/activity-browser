@@ -16,7 +16,7 @@ class _AcceptedDialog:
         return QtWidgets.QDialog.DialogCode.Accepted
 
     def get_data(self):
-        return ("basic", "edited emission", "tonne", "natural resource", ("water",))
+        return ("edited emission", "tonne", "natural resource", ("water",))
 
 
 def _make_database_writable(db_name: str) -> None:

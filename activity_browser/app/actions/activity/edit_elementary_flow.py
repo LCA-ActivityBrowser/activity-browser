@@ -46,16 +46,11 @@ class EditElementaryFlow(ABAction):
             )
             return
 
-        dialog = ElementaryFlowDialog(
-            flow["database"],
-            sorted(writable),
-            app.main_window,
-            flow=flow,
-        )
+        dialog = ElementaryFlowDialog(app.main_window, flow=flow)
         if dialog.exec_() != QtWidgets.QDialog.DialogCode.Accepted:
             return
 
-        _, name, unit, flow_type, categories = dialog.get_data()
+        name, unit, flow_type, categories = dialog.get_data()
         if not name:
             return
 
