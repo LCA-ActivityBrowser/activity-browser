@@ -31,11 +31,12 @@ jobs:
           python-version: 3.11
           activate-environment: build
           environment-file: .github/conda-envs/build.yml
-          channels: conda-forge
           conda-build-version: "*"
       - name: Build activity-browser stable
+        env:
+          VERSION: ${{ github.ref_name }}
         run: |
-          conda build -c conda-forge -c cmutel -c lca recipe/
+          conda build -c conda-forge -c cmutel -c lca -c mrvisscher recipe/
       - name: Upload to anaconda.org
         run: |
           anaconda -t ${{ secrets.CONDA_UPLOAD_TOKEN }} upload \
