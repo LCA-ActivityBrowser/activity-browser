@@ -36,6 +36,8 @@ jobs:
         env:
           VERSION: ${{ github.ref_name }}
         run: |
+          export VERSION="${VERSION}"
+          echo "Building conda package with VERSION=${VERSION}"
           conda build -c conda-forge -c cmutel -c lca -c mrvisscher recipe/
       - name: Upload to anaconda.org
         run: |

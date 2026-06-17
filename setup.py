@@ -2,11 +2,8 @@
 import os
 from setuptools import setup
 
-if "VERSION" in os.environ:
-    version = os.environ["VERSION"]
-elif "PKG_VERSION" in os.environ:
-    version = os.environ["PKG_VERSION"]
-else:
+version = os.environ.get("VERSION") or os.environ.get("PKG_VERSION")
+if not version:
     version = os.environ.get("GIT_DESCRIBE_TAG", "0.0.0")
     if "-" in version:
         versions = version.split("-")
