@@ -54,11 +54,13 @@ jobs:
         python-version: 3.11
         activate-environment: build
         environment-file: .github/conda-envs/build.yml
+        channels: conda-forge
+        conda-build-version: "*"
     - name: Build a Conda tarbal
       run: |
         conda build -c conda-forge -c cmutel ./recipe/
     - name: Publish to Anaconda
       run: |
         anaconda -t ${{ secrets.CONDA_LCA }} upload \
-        /usr/share/miniconda/envs/build/conda-bld/noarch/*.conda
+        /usr/share/miniconda/conda-bld/noarch/*.conda
 

@@ -1,6 +1,16 @@
 from qtpy.QtCore import QEvent, Qt, Signal
 from qtpy.QtGui import QFontMetrics, QStandardItem, QPalette
-from qtpy.QtWidgets import QComboBox, QStyledItemDelegate, QApplication
+from qtpy.QtWidgets import QComboBox, QStyledItemDelegate, QApplication, QSizePolicy
+
+_LCA_COMBO_MAX_LABEL = "Impact Categories"
+_LCA_COMBO_PADDING = 32
+
+
+def apply_lca_combo_width(combo: QComboBox) -> None:
+    """Cap combo width for compact LCA Results selectors."""
+    metrics = QFontMetrics(combo.font())
+    combo.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+    combo.setMaximumWidth(metrics.horizontalAdvance(_LCA_COMBO_MAX_LABEL) + _LCA_COMBO_PADDING)
 
 
 class CheckableComboBox(QComboBox):

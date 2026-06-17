@@ -95,16 +95,47 @@ def test_duplicate_reference_flow_contribution_columns(basic_database):
     contributions = Contributions(mlca)
     method = mlca.methods[0]
 
-    index, _ = contributions._contribution_index_cols(method=method)
-    assert len(index) == 2
-    assert set(index) == {"0", "1"}
-
     matrix = contributions.get_contributions("process", method=method)
     assert matrix.shape[0] == 2
 
     df = contributions.top_process_contributions(method=method, limit=5)
-    assert set(mlca.fu_keys) <= set(str(c) for c in df.columns)
-    assert len([c for c in df.columns if str(c) in mlca.fu_keys]) == 2
+    numeric_cols = df.select_dtypes(include="number").columns
+    assert set(numeric_cols) == {0, 1}
+
+
+def test_superstructure_build_inventory_keeps_duplicate_reference_flows(basic_database):
+    """Scenario inventory table must have one column per inv row."""
+    from activity_browser.bwutils.multilca import MLCA
+    from activity_browser.bwutils.superstructure.mlca import (
+        SuperstructureContributions,
+        SuperstructureMLCA,
+    )
+
+    cs_name = "basic_calculation_setup"
+    key = ("basic", "product_1")
+    cs = bd.calculation_setups[cs_name]
+    cs["inv"] = [{key: 1.0}, {key: 1.0}, {key: 2.0}]
+    bd.calculation_setups[cs_name] = cs
+    bd.calculation_setups.serialize()
+
+    bd.Method(("basic_method",)).process()
+
+    mlca = MLCA(cs_name)
+    mlca.calculate()
+
+    fake = object.__new__(SuperstructureMLCA)
+    fake.__dict__.update(mlca.__dict__)
+    fake.total = 1
+    fake._current_index = 0
+    fake.inventory = {(fu_key, 0): mlca.inventory[fu_key] for fu_key in mlca.fu_keys}
+    fake.technosphere_flows = {
+        (fu_key, 0): mlca.technosphere_flows[fu_key] for fu_key in mlca.fu_keys
+    }
+
+    contributions = SuperstructureContributions(fake)
+    contributions.inventory_df(inventory_type="biosphere")
+    contributions.inventory_df(inventory_type="technosphere")
+
 
 
 def test_build_df_handles_missing_reference_flow(basic_database):
