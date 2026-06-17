@@ -58,7 +58,7 @@ jobs:
         conda-build-version: "*"
     - name: Build a Conda tarbal
       run: |
-        conda build -c conda-forge -c cmutel ./recipe/
+        conda build -c conda-forge -c cmutel -c lca ./recipe/
     - name: Publish to Anaconda
       run: |
         anaconda -t ${{ secrets.CONDA_LCA }} upload \
