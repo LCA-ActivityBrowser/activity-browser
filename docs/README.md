@@ -191,12 +191,12 @@ Target audience: Power users
 To contribute to documentation:
 
 1. Fork the repository
-2. Create a branch for your changes
+2. Create a branch from `major` for your changes
 3. Edit/add Markdown files in `docs/`
 4. Test locally with Jekyll
-5. Submit a pull request
+5. Submit a pull request into `major`
 
-See [CONTRIBUTING.md](../CONTRIBUTING.md) for more details.
+See [CONTRIBUTING.md](../CONTRIBUTING.md) for the full branching and git workflow.
 
 ## Resources
 

@@ -3,6 +3,9 @@ Thank you for your pull request.
 Please provide a description above and review the checklist below.
 
 Contributors guide: ./CONTRIBUTING.md
+
+Target branch: open feature pull requests into `major`. Maintainer release pull requests target `beta`.
+When merging, use "Create a merge commit" (not squash and merge) — especially for `major` → `beta`.
 -->
 
 ## Checklist

@@ -18,16 +18,35 @@ The Activity Browser project uses several GitHub Actions workflows to automate t
 
 ## Branch context
 
-- **`main`**: Legacy branch.
+- **`main`**: Legacy branch. Do not use for new development.
+- **`major`**: Integration branch for ongoing development and testing.
 - **`beta`**: Stable branch for the current Activity Browser; this branch is deployed to PyPI and Conda.
-- **`major`**: Main branch for ongoing new developments. From time to time, `major` is merged into `beta` for major updates once they are stable enough.
 
 ### General developer workflow
 
-- Develop fixes/features in dedicated branches.
-- Merge these branches into **`major`** via pull requests (preferred).
-- Direct pushes to **`major`** are allowed, but PRs are recommended.
-- Automated testing runs on both **`major`** (main development/testing line) and **`beta`** (stability guardrail).
+```text
+feature/short-topic  →  pull request  →  major  →  pull request  →  beta
+```
+
+1. Create a short-lived feature branch from **`major`**.
+2. Open a pull request into **`major`** when the change is ready (preferred over direct pushes).
+3. Merge feature pull requests with **“Create a merge commit”**.
+4. When a milestone is stable enough, open a pull request from **`major` into `beta`**.
+5. Merge into **`beta`** with **“Create a merge commit”** — not squash and merge.
+
+**Why not squash into `beta`?** Squash merges create new commits that are not ancestors of the commits on
+`major`. Later pull requests from `major` to `beta` will then list already-released work again. Regular merge
+commits keep the branches linked.
+
+If hotfixes land on **`beta`** first, merge **`beta` back into `major`** so both branches stay aligned.
+
+See [`CONTRIBUTING.md`](../../CONTRIBUTING.md#branching-and-git-workflow) for the full contributor and
+maintainer guide (fork workflow, local merges, and release steps).
+
+### CI and deployment
+
+- Automated testing runs on pushes and pull requests to **`major`** and **`beta`**.
+- Pushing to **`beta`** triggers beta deployment (see [Beta Deployment](#3-beta-deployment-python-package-deployyml) below).
 
 ---
 

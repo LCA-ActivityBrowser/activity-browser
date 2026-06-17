@@ -147,6 +147,66 @@ If you want to contribute code, we suggest the following setup:
 
 ![image](https://github.com/LCA-ActivityBrowser/activity-browser/assets/34626062/de77953f-12c1-4188-9898-1e44a9ce04df) 
 
+### Branching and git workflow
+
+Activity Browser uses three long-lived branches:
+
+| Branch | Role |
+|--------|------|
+| **`major`** | Integration branch for ongoing development and testing |
+| **`beta`** | Stable branch for the current Activity Browser; deployed to PyPI and Conda |
+| **`main`** | Legacy branch (do not use for new work) |
+
+The recommended workflow is:
+
+```text
+feature/short-topic  →  pull request  →  major  →  pull request  →  beta
+```
+
+#### For all contributors
+
+1. Create a **short-lived feature branch** from `major` (not `main`).
+2. Make commits on the feature branch. Small, descriptive commits are welcome.
+3. Open a **pull request into `major`** when the change is ready.
+4. After review and passing CI, merge the pull request using **“Create a merge commit”**. 
+
+External contributors use the [fork and pull model](https://help.github.com/articles/about-collaborative-development-models/):
+fork the repository, branch from `major` in your fork, and open a pull request back to `major`.
+
+Maintainers with write access may push directly to `major`, but pull requests are preferred because they
+trigger review and keep a clear record of changes.
+
+#### For maintainers: releasing to beta
+
+When a [milestone](https://github.com/LCA-ActivityBrowser/activity-browser/milestones) is stable enough to publish:
+
+1. Open a pull request from **`major` into `beta`**.
+2. Review the changes carefully — merging into `beta` triggers beta deployment to PyPI and Conda.
+3. Merge using **“Create a merge commit”**.
+
+**Do not squash and merge into `beta`.** Squash merges break the shared history between `major` and `beta`,
+which causes later pull requests to list already-released commits again.
+
+If changes land on `beta` first (for example a hotfix), merge `beta` back into `major` so the branches stay aligned.
+
+See [`.github/workflows/README.md`](.github/workflows/README.md) for details on CI and deployment triggers.
+
+#### Merging locally
+
+Pull requests are a GitHub feature, but the underlying git operation is a branch merge. Maintainers may merge
+locally when appropriate (for example after running tests), as long as the same rules apply — especially using
+regular merges for `major` → `beta`:
+
+```bash
+git fetch origin
+git checkout major
+git pull origin major
+git merge origin/feature/my-fix
+git push origin major
+```
+
+Prefer GitHub pull requests when review, CI gating, or a release record matters.
+
 ### Running and writing tests
 If you want to check whether your changes break anything essential, you can run the automated tests. 
 This requires some additional packages.
@@ -177,11 +237,11 @@ Please see the tests that are already present in the
 [pytest-qt documentation](https://pytest-qt.readthedocs.io/en/latest/) for inspiration and examples.
 
 ### Pull requests
-Once you are happy with your changes to AB, please open a pull-request. 
+Once you are happy with your changes to AB, please open a pull-request **into `major`**. 
 We use the
 [fork and pull model](https://help.github.com/articles/about-collaborative-development-models/)
 for external contributions. 
-Fork the AB repository, create a new branch from the `main` branch, apply your changes on the new branch in your 
+Fork the AB repository, create a new branch from the `major` branch, apply your changes on the new branch in your 
 forked repository and open a pull request from there. 
 When creating a pull-request, please add a description of what your new changes should accomplish (and if this wasn't a 
 known problem, _why_ AB needs this).
@@ -225,6 +285,7 @@ When the tests pass on a pull-request, one of the maintainers of AB will review 
   If some complex data processing is needed, see if your use-case is covered by bwutils instead. 
   If bwutils does not contain any for your use-case you are welcome to add it.
 - Always create changes on your own fork, even if you have write access to the main repository
+- Do not squash and merge pull requests into `beta` (or from `major` into `beta`); use **“Create a merge commit”**
 - Do try to write descriptive commit messages:
   - This is a [BAD example](https://github.com/LCA-ActivityBrowser/activity-browser/commit/86922c1578c9d9d9fd034a7048bc9c74fae20e4a):
 
@@ -303,7 +364,13 @@ In addition, the tests that run when a pull-request is opened can pass, while st
 
 If any installation problems occur or warnings happen in the pull-requests tests, they should be resolved. 
 
-### Creating a new release of Activity Browser
+### Releasing to beta (Activity Browser 3)
+
+Beta releases are published automatically when changes are merged into the `beta` branch.
+Follow the [branching and git workflow](#branching-and-git-workflow) steps for maintainers: open a pull request
+from `major` into `beta` and merge with **“Create a merge commit”** once the milestone is ready.
+
+### Creating a new stable release of Activity Browser
 Activity Browser versions and related information can be found on the
 [__releases__](https://github.com/LCA-ActivityBrowser/activity-browser/releases)
 page.
