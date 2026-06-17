@@ -12,25 +12,12 @@ Install the Activity Browser 3 from either PyPI or Anaconda.
 
 This page provides step-by-step instructions to help you set up the Activity Browser 3 on your system. Whether you prefer using PyPI or Anaconda, we've got you covered with detailed instructions for both methods. 
 
-{: .important }
-> This is a **beta installation**. As always, the use of the Activity Browser is **at your own risk**, but take extra care with this installation. Back-up critical projects before opening them. 
-
 ## Distributions on PyPI and Anaconda
-The Activity Browser 3 Beta is available both on [PyPI](#installing-from-pypi) and [Anaconda](#installing-from-anaconda). Because not all necessary libraries are available on Anaconda right now you need to do an extra `pip install` inside your Conda environment. 
+The Activity Browser 3 Beta is available both on [PyPI](#installing-from-pypi) and [Anaconda](#installing-from-anaconda). Because not all necessary libraries are available on Anaconda right now you need to do an extra `pip install` inside your Conda environment.
 
-#### Quick-Install PyPI
-```
-pip install activity-browser
-```
+### New to Python?
 
-#### Quick-Install Anaconda
-```
-conda create -n ab_beta -c conda-forge lca::activity-browser
-conda activate ab_beta
-pip install PySide6==6.9.3
-```
-
-For more elaborate installing instructions check out the page below for both [installing from PyPI](#installing-from-pypi) and [installing from Anaconda](#installing-from-anaconda).
+Activity Browser runs on Python. If you have never installed or used Python before, start by installing a supported version (3.10, 3.11, or 3.12) from [python.org](https://www.python.org/downloads/) — their [beginner's guide](https://wiki.python.org/moin/BeginnersGuide) walks through the basics. If you prefer the Anaconda route below, install [Miniconda](https://docs.anaconda.com/miniconda/) instead and follow the [official installation instructions](https://docs.anaconda.com/miniconda/install/).
 
 ## Installing from PyPI
 Installing from the Python Package Index (PyPI) can be done using the standard `pip` command. We strongly recommended installing the Activity Browser into a separate [virtual environment](https://realpython.com/python-virtual-environments-a-primer/)
@@ -44,7 +31,7 @@ python --version
 If you get an error please install Python [using their install instructions](https://www.python.org/downloads/).
 
 ### Creating a virtual environment
-Firstly, create a directory for your virtual environments, such as C:/Users/me/virtualenvs/. Then create a virtual environment in that location using the following command:
+Firstly, create a directory for your virtual environments, such as C:/Users/me/virtualenvs/. Then create a virtual environment in that location using the following command (IF YOUR PYTHON VERSION WAS 3.10, 3.11, OR 3.12):
 ```
 python -m venv C:/Users/me/virtualenvs/ab-beta
 ```
@@ -56,8 +43,6 @@ Afterwards, you need to activate the virtual environment, which differs between 
 ```
 C:\Users\me\virtualenvs\ab-beta\Scripts\activate.bat
 ```
-Possibly double-check if the Python version of your virtual environment is compatible with the AB.
-For a full overview of activation commands, [check out the documentation here](https://docs.python.org/3/library/venv.html#how-venvs-work)
 
 ### Activity Browser installation
 After creating and activating the virtual environment, installing the Beta should be as simple as using the following command:
