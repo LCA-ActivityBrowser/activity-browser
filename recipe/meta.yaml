@@ -1,7 +1,6 @@
-{% set ab_version = os.environ.get('VERSION', 'dev') %}
 package:
   name: activity-browser
-  version: {{ ab_version }}
+  version: "{{ os.environ.get('VERSION', 'dev') }}"
 
 source:
   path: ..
@@ -9,7 +8,7 @@ source:
 build:
   noarch: python
   number: 0
-  script: export VERSION="{{ ab_version }}" && {{ PYTHON }} setup.py install --single-version-externally-managed --record record.txt
+  script: "{{ PYTHON }} setup.py install --single-version-externally-managed --record record.txt"
   entry_points:
     - activity-browser = activity_browser:run_activity_browser
     - activity-browser-cleanup = activity_browser.bwutils:cleanup

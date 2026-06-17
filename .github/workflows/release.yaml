@@ -31,17 +31,14 @@ jobs:
           python-version: 3.11
           activate-environment: build
           environment-file: .github/conda-envs/build.yml
-          conda-build-version: "*"
       - name: Build activity-browser stable
         env:
           VERSION: ${{ github.ref_name }}
         run: |
-          export VERSION="${VERSION}"
-          echo "Building conda package with VERSION=${VERSION}"
-          conda build -c conda-forge -c cmutel -c lca -c mrvisscher recipe/
+          conda build -c conda-forge -c cmutel -c lca recipe/
       - name: Upload to anaconda.org
         run: |
           anaconda -t ${{ secrets.CONDA_UPLOAD_TOKEN }} upload \
-          /usr/share/miniconda/conda-bld/noarch/*.conda
+          /usr/share/miniconda/envs/build/conda-bld/noarch/*.conda
       - name: Update wiki
         run: ./.github/scripts/update_wiki.sh "Automated documentation update for $GITHUB_REF_NAME" "${{ secrets.GITHUB_TOKEN }}"
