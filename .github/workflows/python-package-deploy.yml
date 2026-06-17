@@ -55,10 +55,10 @@ jobs:
         activate-environment: build
         environment-file: .github/conda-envs/build.yml
         channels: |
-          conda-forge
-          lca
-          cmutel
-          mrvisscher
+          - conda-forge
+          - lca
+          - cmutel
+          - mrvisscher
         conda-build-version: "*"
     - name: Build a Conda tarbal
       env:
