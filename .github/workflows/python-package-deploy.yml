@@ -34,8 +34,6 @@ jobs:
         build
         --user
     - name: Build a binary wheel and a source tarball
-      env:
-        VERSION: ${{ env.VERSION }}
       run: >-
         python -m
         build
@@ -56,16 +54,10 @@ jobs:
         python-version: 3.11
         activate-environment: build
         environment-file: .github/conda-envs/build.yml
-        conda-build-version: "*"
     - name: Build a Conda tarbal
-      env:
-        VERSION: ${{ env.VERSION }}
       run: |
-        export VERSION="${VERSION}"
-        echo "Building conda package with VERSION=${VERSION}"
-        conda build -c conda-forge -c cmutel -c lca -c mrvisscher ./recipe/
+        conda build -c conda-forge -c cmutel -c lca ./recipe/
     - name: Publish to Anaconda
       run: |
         anaconda -t ${{ secrets.CONDA_LCA }} upload \
-        /usr/share/miniconda/conda-bld/noarch/*.conda
-
+        /usr/share/miniconda/envs/build/conda-bld/noarch/*.conda
