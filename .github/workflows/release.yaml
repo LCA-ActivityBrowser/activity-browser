@@ -35,7 +35,7 @@ jobs:
           conda-build-version: "*"
       - name: Build activity-browser stable
         run: |
-          conda build recipe/
+          conda build -c conda-forge -c cmutel -c lca recipe/
       - name: Upload to anaconda.org
         run: |
           anaconda -t ${{ secrets.CONDA_UPLOAD_TOKEN }} upload \
