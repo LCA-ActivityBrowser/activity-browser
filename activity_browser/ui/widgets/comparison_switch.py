@@ -3,7 +3,9 @@ from collections import namedtuple
 
 from qtpy import QtWidgets
 
+from activity_browser.ui.widgets.combobox import apply_lca_combo_width
 from activity_browser.bwutils.lcia_overview import LCIACompareMode, LCIA_COMPARE_LABELS
+
 
 Switches = namedtuple("switches", ("func", "method", "scenario"))
 LCIASwitches = namedtuple(
@@ -22,6 +24,7 @@ class LCAscoresSwitchComboBox(QtWidgets.QComboBox):
 
     def __init__(self, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
+        apply_lca_combo_width(self)
         self.switches = LCIASwitches(
             LCIA_COMPARE_LABELS[LCIACompareMode.REFERENCE_FLOWS],
             LCIA_COMPARE_LABELS[LCIACompareMode.FLOWS_X_METHODS],
@@ -44,15 +47,17 @@ class ContributionsSwitchComboBox(QtWidgets.QComboBox):
 
     def __init__(self, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
+        apply_lca_combo_width(self)
         self.has_scenarios = getattr(parent, "has_scenarios")
         self.switches = Switches("Reference Flows", "Impact Categories", "Scenarios")
         self.indexes = Switches(0, 1, 2)
 
     def configure(self, has_func: bool = True, has_method: bool = True):
         self.blockSignals(True)
+        self.clear()
         if all([has_func, has_method]):
-            self.insertItems(0, [self.switches.func, self.switches.method])
+            self.addItems([self.switches.func, self.switches.method])
         if self.has_scenarios:
-            self.insertItems(self.indexes.scenario, [self.switches.scenario])
+            self.addItem(self.switches.scenario)
         self.setVisible(self.count() > 0)
         self.blockSignals(False)

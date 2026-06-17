@@ -28,7 +28,7 @@ from activity_browser.bwutils.commontasks import identify_activity_type
 from activity_browser.ui import widgets
 
 from .combobox_utils import configure_scenario_widgets, scenario_labels, update_combobox
-from .style import SmallComboBox
+from .style import SmallComboBox, apply_lca_combo_width
 
 
 class TreeNavigatorWidget(widgets.ABAbstractNavigator):
@@ -62,6 +62,7 @@ class TreeNavigatorWidget(widgets.ABAbstractNavigator):
         self.method_cb = SmallComboBox()
         self.scenario_cb = SmallComboBox()
         self.tag_cb = widgets.CheckableComboBox()
+        apply_lca_combo_width(self.tag_cb)
         self.cutoff_sb = QtWidgets.QDoubleSpinBox()
         self.max_calc_sb = QtWidgets.QDoubleSpinBox()
         self.button_calculate = QtWidgets.QPushButton("Calculate")

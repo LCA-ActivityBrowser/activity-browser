@@ -4,7 +4,26 @@ from __future__ import annotations
 
 from typing import Sequence
 
-from qtpy import QtCore, QtWidgets
+from qtpy import QtWidgets
+
+from activity_browser.ui.widgets.combobox import apply_lca_combo_width
+
+__all__ = [
+    "SmallComboBox",
+    "apply_lca_combo_width",
+    "set_combobox_index",
+    "update_combobox",
+    "scenario_labels",
+    "configure_scenario_widgets",
+]
+
+
+class SmallComboBox(QtWidgets.QComboBox):
+    """Compact combo box for LCA Results control rows."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        apply_lca_combo_width(self)
 
 
 def set_combobox_index(box: QtWidgets.QComboBox, index: int) -> None:

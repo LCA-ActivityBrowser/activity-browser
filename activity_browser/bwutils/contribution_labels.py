@@ -2,13 +2,25 @@
 
 from __future__ import annotations
 
-import bw2data as bd
 import pandas as pd
 
-from activity_browser.bwutils.commontasks import get_fu_label, get_method_label, unit_of_method
+from activity_browser.bwutils.commontasks import (
+    exchange_part_label,
+    get_fu_label,
+    get_method_label,
+    is_node_biosphere,
+    refresh_node,
+    unit_of_method,
+)
+from activity_browser.bwutils.multilca import setup_index
 
 REST_ROWS = frozenset({"Rest (+)", "Rest (-)"})
 SPECIAL_ROWS = frozenset({"Score", *REST_ROWS})
+_COMPARE_LABELS = {
+    "fu": "fu_labels",
+    "method": "method_labels",
+    "scenario": "scenario_labels",
+}
 
 
 def contribution_axis_unit(
@@ -28,10 +40,6 @@ def is_rest_row(label: str) -> bool:
 def contribution_row_labels(df: pd.DataFrame) -> list[str]:
     """Contributor labels for process or elementary-flow rows."""
     has_keys = "database" in df.columns and "code" in df.columns
-    biosphere = "categories" in df.columns or (
-        has_keys
-        and df["database"].dropna().astype(str).str.strip().isin({"biosphere3", "biosphere"}).any()
-    )
     labels: list[str] = []
     for _, row in df.iterrows():
         text = str(row["index"]).strip() if "index" in df.columns else ""
@@ -45,23 +53,19 @@ def contribution_row_labels(df: pd.DataFrame) -> list[str]:
         if pd.isna(db) or pd.isna(code):
             labels.append(text)
             continue
-        if biosphere:
-            parts = [
-                str(row[f]).strip()
-                for f in ("name", "categories")
-                if f in row.index and pd.notna(row[f]) and str(row[f]).strip()
-            ]
-            labels.append(" | ".join(parts) if parts else text)
-            continue
         try:
-            labels.append(get_fu_label(bd.get_activity((db, code))))
+            node = refresh_node((db, code))
+            if is_node_biosphere(node):
+                labels.append(exchange_part_label(node))
+            else:
+                labels.append(get_fu_label(node))
         except Exception:
             labels.append(text)
     return labels
 
 
 def contribution_column_labels(tab, column_keys: list) -> list[str]:
-    """Map internal column keys (inv indices or method tuples) to display labels."""
+    """Map setup indices (0, 1, …) to MLCA display labels."""
     if tab is None or not hasattr(tab, "switches"):
         return [_fallback_column_label(c) for c in column_keys]
 
@@ -71,18 +75,19 @@ def contribution_column_labels(tab, column_keys: list) -> list[str]:
 
     mode = tab.switches.currentIndex()
     if mode == tab.switches.indexes.func:
-        return [mlca.fu_labels[int(str(c).strip())] for c in column_keys]
-    if mode == tab.switches.indexes.method:
-        labels = []
-        for c in column_keys:
-            if isinstance(c, tuple):
-                labels.append(mlca.method_labels[mlca.methods.index(c)])
-            elif str(c).strip().isdigit():
-                labels.append(mlca.method_labels[int(str(c).strip())])
-            else:
-                labels.append(_fallback_column_label(c))
-        return labels
-    return [_fallback_column_label(c) for c in column_keys]
+        compare = "fu"
+    elif mode == tab.switches.indexes.method:
+        compare = "method"
+    elif mode == tab.switches.indexes.scenario:
+        compare = "scenario"
+    else:
+        return [_fallback_column_label(c) for c in column_keys]
+
+    label_dict = getattr(mlca, _COMPARE_LABELS[compare], {}) or {}
+    return [
+        label_dict.get(setup_index(col), str(col)) if setup_index(col) is not None else str(col)
+        for col in column_keys
+    ]
 
 
 def _fallback_column_label(col) -> str:

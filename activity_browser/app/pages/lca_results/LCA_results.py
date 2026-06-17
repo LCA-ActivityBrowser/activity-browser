@@ -1086,7 +1086,7 @@ class ContributionTab(NewAnalysisTab):
         super().__init__(parent)
         self.cutoff_menu = widgets.CutoffMenu(self, cutoff_value=0.05)
         self.combobox_menu = Combobox(
-            func=QtWidgets.QComboBox(self),
+            func=SmallComboBox(self),
             func_label=QtWidgets.QLabel("Reference Flow:"),
             method=SmallComboBox(self),
             method_label=QtWidgets.QLabel("Impact Category:"),
@@ -1133,12 +1133,12 @@ class ContributionTab(NewAnalysisTab):
         self.total_group.addButton(self.total_menu.range)
         self._update_score_range_enabled()
 
-        self.horizontal_bars = True
+        self.horizontal_bars = False
         self.full_labels = False
 
         self.horizontal_checkbox = QtWidgets.QCheckBox("Horizontal")
         self.horizontal_checkbox.setToolTip(
-            "Draw bar charts horizontally (default for contribution plots)"
+            "Draw bar charts horizontally (default is vertical)"
         )
         self.horizontal_checkbox.setChecked(self.horizontal_bars)
 
@@ -1999,7 +1999,7 @@ class MonteCarloTab(NewAnalysisTab):
         self.full_labels_checkbox.setChecked(self.full_labels)
 
         self.label_methods = QtWidgets.QLabel("Impact Category:")
-        self.combobox_methods = QtWidgets.QComboBox()
+        self.combobox_methods = SmallComboBox(self)
         self._setup_plot_table_widgets(invertable=False)
         self.hlayout_row2 = lca_tab_control_row()
         self.hlayout_row2.addWidget(self.plot_table.plot)

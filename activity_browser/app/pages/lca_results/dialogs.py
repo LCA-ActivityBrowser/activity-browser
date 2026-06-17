@@ -3,7 +3,7 @@ from qtpy.QtCore import Qt
 
 from activity_browser.ui.icons import qicons
 
-from .style import vertical_line
+from .style import SmallComboBox, vertical_line
 
 
 class ColumnFilterTab(QtWidgets.QWidget):
@@ -214,7 +214,7 @@ class FilterRow(QtWidgets.QWidget):
         self.row_layout = QtWidgets.QHBoxLayout()
 
         # create a 'filter type' combobox
-        self.filter_type_box = QtWidgets.QComboBox()
+        self.filter_type_box = SmallComboBox()
         self.filter_type_box.addItems(self.filter_type)
         # set a preset type if given
         if isinstance(preset_type, str):

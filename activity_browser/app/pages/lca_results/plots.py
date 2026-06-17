@@ -291,7 +291,9 @@ class ContributionPlot(ABPlot):
         value_cols = list(dfp.select_dtypes(include=np.number).columns)
         if not relative and "Score" in dfp.index:
             score = dfp.loc["Score"]
-            preview_cols = contribution_column_labels(self.parent, value_cols)
+            if isinstance(score, pd.DataFrame):
+                score = score.iloc[0]
+            preview_cols = contribution_column_labels(self.parent, list(value_cols))
             for raw_col, label in zip(value_cols, preview_cols):
                 if pd.notna(score.get(raw_col)):
                     col_scores[label] = float(score[raw_col])
@@ -341,20 +343,23 @@ class ContributionPlot(ABPlot):
         dfp.index = pd.Index(display_rows)
         dfp.columns = pd.Index(self.shorten_labels(frame.full_cols))
         row_colors = self.stack_contributor_colors(frame.full_rows, display_rows)
+        # Matplotlib stacks first series at the bar base; reverse so segments match legend order.
+        dfp_plot = dfp.iloc[::-1]
+        plot_colors = row_colors[::-1]
         show_legend = dfp.shape[0] < self.MAX_LEGEND
         legend_ratio = 0.18 if show_legend else 0.0
         legend_full = list(frame.full_rows)
         legend_display = self.legend_labels(legend_full)
         n = 0
 
-        plot_kw = dict(stacked=True, color=row_colors, ax=self.ax, legend=False)
+        plot_kw = dict(stacked=True, color=plot_colors, ax=self.ax, legend=False)
         if frame.horizontal:
-            dfp.T.plot.barh(**plot_kw)
+            dfp_plot.T.plot.barh(**plot_kw)
             self.ax.invert_yaxis()
             if frame.unit:
                 self.ax.set_xlabel(frame.unit)
         else:
-            dfp.T.plot.bar(**plot_kw)
+            dfp_plot.T.plot.bar(**plot_kw)
             if frame.unit:
                 self.ax.set_ylabel(frame.unit)
 
@@ -364,6 +369,7 @@ class ContributionPlot(ABPlot):
         self.set_signed_value_grid(self.ax, horizontal=frame.horizontal)
         if show_legend:
             handles = [c.patches[0] for c in self.ax.containers if c.patches]
+            handles = handles[::-1]
             n = min(len(handles), len(legend_display), len(legend_full))
             if n:
                 self.add_legend(
@@ -377,9 +383,9 @@ class ContributionPlot(ABPlot):
         self.set_plot_context(
             unit=frame.unit,
             relative=frame.relative,
-            row_labels=frame.full_rows,
+            row_labels=list(reversed(frame.full_rows)),
             col_labels=frame.full_cols,
-            bar_values=frame.bar_values,
+            bar_values=frame.bar_values[::-1],
             col_scores=frame.col_scores,
             col_units=frame.col_units,
         )

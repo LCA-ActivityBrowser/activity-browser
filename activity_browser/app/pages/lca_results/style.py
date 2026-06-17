@@ -8,11 +8,12 @@ from qtpy import QtWidgets, QtGui, QtCore
 
 from activity_browser.ui.icons import qicons
 
+from .combobox_utils import SmallComboBox, apply_lca_combo_width
+
 LCA_TAB_LAYOUT_SPACING = 6
 LCA_TAB_CONTENT_MARGINS = (10, 10, 10, 10)
 LCA_HEADER_ROW_MIN_HEIGHT = 32
 LCA_RUN_BUTTON_STYLE = "background-color: #57965C;"
-
 
 def configure_lca_tab_layout(layout: QtWidgets.QVBoxLayout) -> None:
     """Shared vertical spacing and edge padding for LCA Results sub-tabs."""
@@ -51,19 +52,6 @@ def lca_run_button(
     button.setIcon(qicons.forward)
     button.setStyleSheet(LCA_RUN_BUTTON_STYLE)
     return button
-
-
-class SmallComboBox(QtWidgets.QComboBox):
-    """Compact combo box that does not expand to fill available space."""
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setSizePolicy(
-            QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed
-        )
-        self.setMinimumWidth(100)
-        self.setMaximumWidth(200)
-        self.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToContentsOnFirstShow)
 
 
 def vertical_line():

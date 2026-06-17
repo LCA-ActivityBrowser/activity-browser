@@ -200,6 +200,7 @@ class SuperstructureMLCA(MLCA):
         for ps_col in range(self.total):
             self.next_scenario()
             for row, func_unit in enumerate(self.func_units):
+                fu_key = self.fu_keys[row]
                 try:
                     self.lca.redo_lci(func_unit)
                 except:
@@ -208,11 +209,11 @@ class SuperstructureMLCA(MLCA):
                     self.lca.redo_lci({bd.get_activity(key).id: func_unit[key]})
 
                 self.scaling_factors.update(
-                    {(str(func_unit), ps_col): self.lca.supply_array}
+                    {(fu_key, ps_col): self.lca.supply_array}
                 )
                 self.technosphere_flows.update(
                     {
-                        (str(func_unit), ps_col): np.multiply(
+                        (fu_key, ps_col): np.multiply(
                             self.lca.supply_array,
                             self.lca.technosphere_matrix.diagonal(),
                         )
@@ -220,12 +221,12 @@ class SuperstructureMLCA(MLCA):
                 )
                 self.inventory.update(
                     {
-                        (str(func_unit), ps_col): np.array(
+                        (fu_key, ps_col): np.array(
                             self.lca.inventory.sum(axis=1)
                         ).ravel()
                     }
                 )
-                self.inventories.update({(str(func_unit), ps_col): self.lca.inventory})
+                self.inventories.update({(fu_key, ps_col): self.lca.inventory})
 
                 for col, cf_matrix in enumerate(self.method_matrices):
                     self.lca.characterization_matrix = cf_matrix
@@ -323,7 +324,9 @@ class SuperstructureContributions(Contributions):
         self, inventory: dict, indices: dict, columns: list, fields: list
     ) -> pd.DataFrame:
         inventory = {k[0]: v for k, v in inventory.items() if k[1] == self.mlca.current}
-        return super()._build_inventory(inventory, indices, columns, fields)
+        return super()._build_inventory(
+            inventory, indices, list(inventory.keys()), fields
+        )
 
     def lca_scores_df(self, normalized: bool = False) -> pd.DataFrame:
         """Returns a metadata-annotated DataFrame of the LCA scores."""
@@ -344,12 +347,13 @@ class SuperstructureContributions(Contributions):
         return data[fu_index, m_index, :]
 
     def get_contributions(
-        self, contribution, functional_unit=None, method=None, scenario=0
+        self, contribution, functional_unit=None, method=None, scenario=0, **kwargs
     ) -> np.ndarray:
         """Return a contribution matrix given the type and fu / method
 
         Allow for both fu and method to exist.
         """
+        kwargs.pop("aggregator", None)
         if not any([functional_unit, method]):
             raise ValueError(
                 "Either reference flow, impact category or both should be given. Provided:"
@@ -370,9 +374,4 @@ class SuperstructureContributions(Contributions):
         self.mlca.current = scenario
         return super().get_contributions(contribution, functional_unit, method)
 
-    def _contribution_index_cols(self, **kwargs) -> (dict, Optional[Iterable]):
-        # If both functional_unit and method are given, return scenario index.
-        if all(kwargs.values()):
-            return self.mlca.scenario_index, self.act_fields
-        else:
-            return super()._contribution_index_cols(**kwargs)
+
