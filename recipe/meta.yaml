@@ -9,6 +9,8 @@ build:
   noarch: python
   number: 0
   script: "{{ PYTHON }} setup.py install --single-version-externally-managed --record record.txt"
+  script_env:
+    - VERSION
   entry_points:
     - activity-browser = activity_browser:run_activity_browser
     - activity-browser-cleanup = activity_browser.bwutils:cleanup

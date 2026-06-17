@@ -57,6 +57,8 @@ jobs:
         channels: conda-forge
         conda-build-version: "*"
     - name: Build a Conda tarbal
+      env:
+        VERSION: ${{ env.VERSION }}
       run: |
         conda build -c conda-forge -c cmutel -c lca ./recipe/
     - name: Publish to Anaconda
