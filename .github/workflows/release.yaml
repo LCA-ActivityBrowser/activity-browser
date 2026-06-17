@@ -35,9 +35,14 @@ jobs:
         env:
           VERSION: ${{ github.ref_name }}
         run: |
+          source "${CONDA}/etc/profile.d/conda.sh"
+          conda activate build
+          echo "Building conda package with VERSION=${VERSION}"
           conda build -c conda-forge -c cmutel -c lca recipe/
       - name: Upload to anaconda.org
         run: |
+          source "${CONDA}/etc/profile.d/conda.sh"
+          conda activate build
           anaconda -t ${{ secrets.CONDA_UPLOAD_TOKEN }} upload \
           /usr/share/miniconda/envs/build/conda-bld/noarch/*.conda
       - name: Update wiki
