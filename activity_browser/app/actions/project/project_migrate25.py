@@ -3,7 +3,6 @@ from loguru import logger
 from qtpy import QtWidgets, QtGui, QtCore
 
 import bw2data as bd
-import pandas as pd
 
 from activity_browser import app
 from activity_browser.app.actions.base import ABAction, exception_dialogs
@@ -109,26 +108,20 @@ class MigrateThread(ABThread):
     @classmethod
     def pre_process_methods(cls):
         logger.info("Pre-processing methods for migration to bw25")
-        data = {m: bd.Method(m).load() for m in bd.methods}
-        df = pd.DataFrame([(k, v[0][0], v[0][1], v[1])
-                           for k, values in data.items() for v in values
-                           if isinstance(v[0], tuple) and len(v) == 2 and len(v[0]) == 2],
-                          columns=["method", "database", "code", "value"])
-
-        df = df.merge(app.metadata.dataframe["id"], left_on=["database", "code"], right_index=True)
 
         app.signals.method.blockSignals(True)
         app.signals.meta.blockSignals(True)
 
-        for name in tqdm(df["method"].unique(), desc="Pre-processing methods", unit="method", total=len(df["method"].unique())):
-            method_df = df[df["method"] == name][["id", "value"]]
-            method_list = list(method_df.itertuples(index=False, name=None))
-            bd.Method(name).write(method_list, process=False)
+        for name in tqdm(bd.methods, desc="Pre-processing methods", unit="method"):
+            method = bd.Method(name)
+            data = list(method.load())
+            if not any(isinstance(row[0], tuple) for row in data):
+                continue
+            # Method.write resolves (database, code) keys via get_node, same as bw25.
+            method.write(data, process=False)
 
         app.signals.method.blockSignals(False)
         app.signals.meta.blockSignals(False)
-
-        return
 
     @classmethod
     def update_database_activity_types(cls, db_name: str):
