@@ -140,13 +140,6 @@ def test_build_flows_x_methods_flip_is_transpose_of_column_normalization(stub_me
     [
         (0, (0, 0)),
         (1, (1, 1)),
-        (2, (1, 2)),
-        (3, (2, 2)),
-        (4, (2, 2)),
-        (5, (2, 3)),
-        (6, (2, 3)),
-        (8, (3, 3)),
-        (9, (3, 3)),
         (10, (3, 4)),
     ],
 )

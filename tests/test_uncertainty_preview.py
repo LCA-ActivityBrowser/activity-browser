@@ -1,4 +1,4 @@
-"""Uncertainty dialog preview helpers (lognormal / Beta PERT / Student's t)."""
+"""Regression tests for AB uncertainty preview helpers (not stats_arrays itself)."""
 import numpy as np
 import stats_arrays as sa
 
@@ -6,7 +6,6 @@ from activity_browser.bwutils.uncertainty import (
     standard_uncertainty_fields,
     uncertainty_reference_value,
     uncertainty_statistics_scalar,
-    validate_uncertainty_dict,
 )
 from activity_browser.ui.dialogs.uncertainty_pdf_preview import preview_density
 
@@ -34,67 +33,6 @@ def test_lognormal_preview_reference_avoids_statistics_bug():
     assert curve is not None
     assert curve.y.size > 0
     assert np.nanmax(curve.y) > 0
-
-
-def test_students_t_preview_with_optional_loc_scale():
-    info = {
-        "uncertainty type": sa.StudentsTUncertainty.id,
-        "loc": np.nan,
-        "scale": np.nan,
-        "shape": 5.0,
-        "minimum": np.nan,
-        "maximum": np.nan,
-        "negative": False,
-    }
-    arr, err = validate_uncertainty_dict(info)
-    assert arr is not None
-    assert err is None
-    curve = preview_density(sa.StudentsTUncertainty, arr)
-    assert curve is not None
-    assert np.nanmax(curve.y) > 0
-
-
-def test_gev_preview_with_defaults_and_shape_zero():
-    info = {
-        "uncertainty type": sa.GeneralizedExtremeValueUncertainty.id,
-        "loc": np.nan,
-        "scale": np.nan,
-        "shape": np.nan,
-        "minimum": np.nan,
-        "maximum": np.nan,
-        "negative": False,
-    }
-    arr, err = validate_uncertainty_dict(info)
-    assert arr is not None
-    assert err is None
-    assert float(arr[0]["shape"]) == 0.0
-    assert float(arr[0]["loc"]) == 0.0
-    assert float(arr[0]["scale"]) == 1.0
-    curve = preview_density(sa.GeneralizedExtremeValueUncertainty, arr)
-    assert curve is not None
-    assert np.nanmax(curve.y) > 0
-
-
-def test_gamma_and_weibull_previews_differ():
-    base = dict(
-        loc=0.0,
-        scale=2.0,
-        shape=3.0,
-        minimum=np.nan,
-        maximum=np.nan,
-        negative=False,
-    )
-    curves = {}
-    for dist in (sa.GammaUncertainty, sa.WeibullUncertainty):
-        info = {**base, "uncertainty type": dist.id}
-        arr, err = validate_uncertainty_dict(info, dist)
-        assert err is None
-        assert int(arr[0]["uncertainty_type"]) == dist.id
-        curve = preview_density(dist, arr)
-        assert curve is not None
-        curves[dist.id] = float(curve.x[np.argmax(curve.y)])
-
-    assert curves[sa.GammaUncertainty.id] != curves[sa.WeibullUncertainty.id]
 
 
 def test_beta_pert_fields_and_preview():

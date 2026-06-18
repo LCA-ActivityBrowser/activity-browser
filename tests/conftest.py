@@ -1,11 +1,10 @@
-from copy import deepcopy
 from importlib import reload
 from loguru import logger
 
 import pandas as pd
 import pytest
 import os
-import sys
+import time
 
 import bw2data as bd
 from PySide6 import QtCore, QtWidgets
@@ -22,43 +21,56 @@ from fixtures.bw_helpers import (
 os.environ["AB_SKIP_SETTINGS_ON_STARTUP"] = "1"
 os.environ["AB_NO_SEARCHER"] = "1"
 
+_MAIN_WINDOW_READY = False
 
-def _destroy_main_window(qtbot):
-    """Close dynamic tabs/panes and reset the main-window singleton between tests."""
+
+def _wait_for_loader(qapp, loader, timeout: float = 30.0) -> None:
+    """Poll metadata loader with short sleeps instead of blocking 1s per iteration."""
+    deadline = time.monotonic() + timeout
+    while loader.secondary_status != "done" and time.monotonic() < deadline:
+        qapp.processEvents(QtCore.QEventLoop.ProcessEventsFlag.AllEvents)
+        time.sleep(0.05)
+    if loader.secondary_status != "done":
+        raise TimeoutError("Metadata loader did not finish in time.")
+
+
+def _ensure_main_window() -> None:
+    """Create the main window once per process; tests only reset lightweight state."""
+    global _MAIN_WINDOW_READY
+    from activity_browser import app
+    from activity_browser.bwutils.metadata import metadata
+
+    if _MAIN_WINDOW_READY:
+        return
+
+    reload(metadata)
+    reload(app.main)
+    reload(app)
+    _MAIN_WINDOW_READY = True
+
+
+def _reset_main_window(qtbot) -> None:
+    """Close extra tabs opened during a test; keep the main window alive."""
     from activity_browser import app
     from activity_browser.ui import core
 
     qapp = QtWidgets.QApplication.instance()
     mw = getattr(app, "main_window", None)
+    if mw is None or not core.qt_is_valid(mw):
+        return
 
-    if mw is not None and core.qt_is_valid(mw):
-        central = mw.centralWidget()
-        if central is not None and core.qt_is_valid(central):
-            for index in range(central.count() - 1, -1, -1):
-                widget = central.widget(index)
-                central.removeTab(index)
-                if widget is not None and core.qt_is_valid(widget):
-                    widget.deleteLater()
-
-        for pane in list(mw.panes()):
-            if core.qt_is_valid(pane):
-                pane.hide()
-                pane.deleteLater()
-
-        mw.close()
-        mw.deleteLater()
+    central = mw.centralWidget()
+    if central is not None and core.qt_is_valid(central):
+        while central.count() > 1:
+            index = central.count() - 1
+            widget = central.widget(index)
+            central.removeTab(index)
+            if widget is not None and core.qt_is_valid(widget):
+                widget.deleteLater()
 
     if qapp is not None:
-        for _ in range(3):
-            qapp.processEvents(QtCore.QEventLoop.ProcessEventsFlag.AllEvents)
-        if sys.platform == "darwin":  # MacOS
-            qapp.processEvents(QtCore.QEventLoop.ProcessEventsFlag.AllEvents, 100)
-        else:
-            qtbot.wait(100)
-
-    from activity_browser.app.main import MainWindow
-
-    MainWindow._instance = None
+        qapp.processEvents(QtCore.QEventLoop.ProcessEventsFlag.AllEvents)
+    qtbot.wait(10)
 
 
 @pytest.fixture
@@ -68,7 +80,6 @@ def no_exception_dialogs(monkeypatch):
 
     monkeypatch.setattr(QtWidgets.QMessageBox, "critical", lambda *args, **kwargs: None)
     yield
-    # No need to undo the monkeypatch, pytest does it automatically
 
 
 @pytest.fixture
@@ -77,52 +88,29 @@ def main_window(qtbot, monkeypatch, no_exception_dialogs):
     from activity_browser import app
     from activity_browser.bwutils.metadata import metadata
 
-    _destroy_main_window(qtbot)
-
-    # Reload modules to ensure a clean state for each test
-    reload(metadata)
-    reload(app.main)
-    reload(app)
+    _ensure_main_window()
     metadata.dataframe = pd.DataFrame()
-
     app.main_window.show()
 
     yield app.main_window
 
-    _destroy_main_window(qtbot)
-
+    _reset_main_window(qtbot)
 
 
 @pytest.fixture
 @bw2test
 def basic_database(qapp, main_window):
-    import time
     from activity_browser.app import metadata
     from fixtures.basic import CALCULATION_SETUP, DATABASE, METHOD
 
     qapp.processEvents(QtCore.QEventLoop.ProcessEventsFlag.AllEvents)
-
-    i = 0
-    while metadata.loader.secondary_status != "done" and i < 60:
-        logger.warning("Waiting for project load to finish")
-        time.sleep(1)
-        qapp.processEvents(QtCore.QEventLoop.ProcessEventsFlag.AllEvents)
-        i += 1
+    _wait_for_loader(qapp, metadata.loader)
 
     db = write_functional_database("basic", DATABASE, process=False, mark_dirty=True)
     write_method("basic_method", METHOD, process=False)
     write_calculation_setup("basic_calculation_setup", CALCULATION_SETUP)
 
-    i = 0
-    while metadata.loader.secondary_status != "done" and i < 60:
-        logger.warning("Waiting for database load to finish...")
-        time.sleep(1)
-        qapp.processEvents(QtCore.QEventLoop.ProcessEventsFlag.AllEvents)
-        i += 1
-
-    if i >= 60:
-        raise TimeoutError("Metadata loader did not finish in time.")
-
+    _wait_for_loader(qapp, metadata.loader)
     yield db
 
 

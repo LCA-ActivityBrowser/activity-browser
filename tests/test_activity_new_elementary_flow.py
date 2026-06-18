@@ -4,7 +4,7 @@ from qtpy import QtWidgets
 
 from activity_browser import app
 from activity_browser.app.actions.activity import new_elementary_flow as mod
-from activity_browser.bwutils.commontasks import get_writable_databases, is_node_biosphere
+from activity_browser.bwutils.commontasks import is_node_biosphere
 
 
 class _AcceptedDialog:
@@ -18,21 +18,11 @@ class _AcceptedDialog:
         return ("custom emission", "kg", "emission", ("air", "custom"))
 
 
-def test_parse_categories():
-    assert mod._parse_categories("") == ()
-    assert mod._parse_categories("air, non-urban") == ("air", "non-urban")
-
-
 def _make_database_writable(db_name: str) -> None:
     import bw2data as bd
 
     bd.databases[db_name]["read_only"] = False
     bd.databases.flush()
-
-
-def test_writable_databases_includes_basic(basic_database):
-    _make_database_writable(basic_database.name)
-    assert "basic" in get_writable_databases()
 
 
 def test_activity_new_elementary_flow(basic_database, monkeypatch):

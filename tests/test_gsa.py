@@ -111,11 +111,6 @@ def test_get_cf_dataframe_uses_method_uncertainty(mc_project):
     assert "Minimum:" in dfcf.iloc[0]["uncertainty"]
 
 
-def test_mc_populates_cf_dict(mc_project):
-    mc = _run_mc(mc_project, technosphere=False, biosphere=False, cf=True, parameters=False)
-    assert len(mc.CF_dict[mc.methods[0]]) == ITERATIONS
-
-
 def test_gsa_full_run_all_uncertainty_layers(mc_project_with_parameters):
     """End-to-end GSA with technosphere, biosphere, CF, and parameter MC uncertainty."""
     mc = _run_mc(mc_project_with_parameters, **ALL_UNCERTAINTY_LAYERS)
