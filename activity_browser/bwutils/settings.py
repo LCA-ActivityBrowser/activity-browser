@@ -18,6 +18,7 @@ defaults = {
         "theme": "default",
         "pane_tab_position": "bottom",
         "database_products_as_cards": False,
+        "plot_palette": "tab20",
     },
     "metadatastore": {
         "caching_enabled": True,

@@ -94,7 +94,11 @@ class ProjectManagerSettingsChapter(BaseSettingsChapter):
         data = []
 
         templates = get_templates()
-        remote_templates = remote.get_projects()
+        try:
+            remote_templates = remote.get_projects() or {}
+        except Exception as exc:
+            logger.warning(f"Could not fetch remote project templates: {exc}")
+            remote_templates = {}
 
         for name in sorted(templates):
             data.append({

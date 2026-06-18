@@ -897,7 +897,7 @@ class SimpleDistributionPlot(ABPlot):
 			)
 
 		self.ax.set_xlabel(curve.xlabel, labelpad=7)
-		self._sync_plot_chrome_to_theme()
+		self._sync_plot_to_theme()
 		try:
 			if np.isfinite(vline_x):
 				self.ax.axvline(vline_x, label=curve.vline_legend, c="r", ymax=0.98)
