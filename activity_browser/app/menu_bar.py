@@ -7,7 +7,7 @@ from qtpy import QtGui, QtWidgets, QtCore
 from qtpy.QtCore import QSize, QUrl, Qt
 
 from activity_browser import app
-from activity_browser.bwutils.commontasks import get_templates
+from activity_browser.bwutils.commontasks import fetch_remote_projects, get_templates
 
 from ..ui.icons import qicons
 
@@ -111,8 +111,7 @@ class ProjectNewTemplateMenu(QtWidgets.QMenu):
 
     def get_projects(self):
         if not self.remote_projects:
-            from bw2io.remote import get_projects
-            ProjectNewTemplateMenu.remote_projects = get_projects()
+            ProjectNewTemplateMenu.remote_projects = fetch_remote_projects()
         return self.remote_projects
 
 

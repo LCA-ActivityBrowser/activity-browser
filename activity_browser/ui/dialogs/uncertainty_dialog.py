@@ -8,123 +8,28 @@ import numpy as np
 from qtpy import QtCore, QtGui, QtWidgets
 import stats_arrays as sa
 
-from activity_browser.bwutils.uncertainty import EMPTY_UNCERTAINTY, standard_uncertainty_fields
+from activity_browser.bwutils.uncertainty import (
+	DISTRIBUTIONS_WITH_CALCULATED_MEAN,
+	EMPTY_UNCERTAINTY,
+	OPTIONAL_UNCERTAINTY_FIELDS,
+	UNCERTAINTY_VALIDATION_N,
+	prepare_uncertainty_dict,
+	uncertainty_dict_is_sampleable,
+	uncertainty_field_name,
+	uncertainty_reference_value,
+	uncertainty_statistics_scalar,
+	standard_uncertainty_fields,
+	validate_uncertainty_dict,
+)
+from stats_arrays import UncertaintyBase
 from activity_browser.ui.widgets import ABPlot
 
 from .uncertainty_pdf_preview import PreviewDensity, preview_density
 
-# ``stats_arrays`` validation uses a short random draw.
-_UNCERTAINTY_VALIDATION_N = 24
-
-
-def _try_build_validate_sample(
-	dist,
-	info: dict,
-	n: int,
-) -> Tuple[Optional[np.ndarray], Optional[str]]:
-	"""Build params via ``from_dicts``, run ``stats_arrays`` :meth:`validate`, then a short draw.
-
-	Returns ``(array, None)`` on success, or ``(None, message)`` where *message* is the
-	exception string from ``stats_arrays`` (e.g. :class:`InvalidParamsError`) or NumPy.
-	"""
-	try:
-		array = dist.from_dicts(info)
-		dist.validate(array)
-		dist.random_variables(array, n)
-		return array, None
-	except Exception as e:
-		msg = str(e).strip() or e.__class__.__name__
-		return None, msg
-
-
-def _uncertainty_dict_is_sampleable(data: dict) -> bool:
-	"""True if ``stats_arrays`` accepts parameters (``validate``) and a short sample works."""
-	try:
-		uc_type = int(data.get("uncertainty type", 0))
-	except Exception:
-		return False
-	if uc_type < 0 or uc_type >= len(sa.uncertainty_choices):
-		return False
-	dist = sa.uncertainty_choices[uc_type]
-	if dist.id in (sa.UndefinedUncertainty.id, sa.NoUncertainty.id):
-		return True
-	arr, err = _try_build_validate_sample(dist, data, _UNCERTAINTY_VALIDATION_N)
-	return arr is not None
-
-
 _MSG_PREVIEW_INCOMPLETE = (
 	"Some required parameters are missing or not accepted by the validator. "
 	"Complete them to preview the distribution and enable OK."
 )
-
-
-def _scalar_stats_value(x) -> float:
-	"""Single float from ``statistics()`` / similar (may be scalar or 0-d / 1-element array)."""
-	if x is None:
-		return float("nan")
-	arr = np.asarray(x, dtype=float).ravel()
-	if arr.size == 0:
-		return float("nan")
-	return float(arr[0])
-
-
-def _discrete_uniform_expected_first_row(array: np.ndarray) -> float:
-	"""Expected value for integers in ``[minimum, maximum)``, per :class:`stats_arrays.DiscreteUniform`."""
-	if array is None or len(array) == 0:
-		return float("nan")
-	row = array[0]
-	lo = int(round(float(row["minimum"])))
-	hi = int(round(float(row["maximum"])))
-	if hi < lo:
-		lo, hi = hi, lo
-	if hi <= lo:
-		return float("nan")
-	return (float(lo) + float(hi) - 1.0) / 2.0
-
-
-def _uncertainty_dict_is_sampleable(data: dict) -> bool:
-	"""True if ``stats_arrays`` accepts parameters (``validate``) and a short sample works."""
-	try:
-		uc_type = int(data.get("uncertainty type", 0))
-	except Exception:
-		return False
-	if uc_type < 0 or uc_type >= len(sa.uncertainty_choices):
-		return False
-	dist = sa.uncertainty_choices[uc_type]
-	if dist.id in (sa.UndefinedUncertainty.id, sa.NoUncertainty.id):
-		return True
-	arr, err = _try_build_validate_sample(dist, data, _UNCERTAINTY_VALIDATION_N)
-	return arr is not None
-
-
-_MSG_PREVIEW_INCOMPLETE = (
-	"Some required parameters are missing or not accepted by the validator. "
-	"Complete them to preview the distribution and enable OK."
-)
-
-
-def _scalar_stats_value(x) -> float:
-	"""Single float from ``statistics()`` / similar (may be scalar or 0-d / 1-element array)."""
-	if x is None:
-		return float("nan")
-	arr = np.asarray(x, dtype=float).ravel()
-	if arr.size == 0:
-		return float("nan")
-	return float(arr[0])
-
-
-def _discrete_uniform_expected_first_row(array: np.ndarray) -> float:
-	"""Expected value for integers in ``[minimum, maximum)``, per :class:`stats_arrays.DiscreteUniform`."""
-	if array is None or len(array) == 0:
-		return float("nan")
-	row = array[0]
-	lo = int(round(float(row["minimum"])))
-	hi = int(round(float(row["maximum"])))
-	if hi < lo:
-		lo, hi = hi, lo
-	if hi <= lo:
-		return float("nan")
-	return (float(lo) + float(hi) - 1.0) / 2.0
 
 
 class UncertaintyDialog(QtWidgets.QDialog):
@@ -150,12 +55,6 @@ class UncertaintyDialog(QtWidgets.QDialog):
 		self.result_array = None  # Filled on accept
 		self.result_dict = None  # Filled on accept
 		self.previous_dist_id: Optional[int] = None
-		self.mean_is_calculated = {
-			sa.TriangularUncertainty.id,
-			sa.UniformUncertainty.id,
-			sa.DiscreteUniform.id,
-			sa.BetaUncertainty.id,
-		}
 
 		# Top: distribution selection
 		box1 = QtWidgets.QGroupBox("Select the uncertainty distribution")
@@ -331,7 +230,7 @@ class UncertaintyDialog(QtWidgets.QDialog):
 		data = {k: v for k, v in EMPTY_UNCERTAINTY.items()}
 		data.update(initial or {})
 		# Do not load numerics that cannot be sampled (e.g. Student's T with df <= 0).
-		if not _uncertainty_dict_is_sampleable(data):
+		if not uncertainty_dict_is_sampleable(data):
 			try:
 				uc_type = int(data.get("uncertainty type", 0))
 			except Exception:
@@ -348,7 +247,9 @@ class UncertaintyDialog(QtWidgets.QDialog):
 		self.distribution.setCurrentIndex(uc_type)
 		# Fields (string form for QLineEdit)
 		def to_str(val):
-			return "nan" if val is None or (isinstance(val, float) and np.isnan(val)) else str(val)
+			if val is None or (isinstance(val, float) and np.isnan(val)):
+				return ""
+			return str(val)
 
 		self.loc.setText(to_str(data.get("loc", np.nan)))
 		self.scale.setText(to_str(data.get("scale", np.nan)))
@@ -369,129 +270,45 @@ class UncertaintyDialog(QtWidgets.QDialog):
 		cancel_btn.setDefault(True)
 
 	@property
-	def _distribution_loc_label(self) -> str:
-		if self.dist is None:
-			return "Mean / location:"
-		if self.dist.id == sa.BernoulliUncertainty.id:
-			return "Probability (0 ≤ p ≤ 1):"
-		if self.dist.id == sa.LognormalUncertainty.id:
-			return "Loc (ln(mean)):"
-		elif self.dist.id == sa.TriangularUncertainty.id:
-			return "Mode:"
-		elif self.dist.id == sa.BetaUncertainty.id:
-			return "Alpha (α):"
-		elif self.dist.id in {sa.GammaUncertainty.id, sa.WeibullUncertainty.id}:
-			return "Loc / offset:"
-		else:
-			return "Mean / location:"
+	def _field_widgets(self) -> dict[str, tuple[QtWidgets.QWidget, QtWidgets.QLineEdit]]:
+		return {
+			"loc": (self.loc_label, self.loc),
+			"scale": (self.scale_label, self.scale),
+			"shape": (self.shape_label, self.shape),
+			"minimum": (self.min_label, self.minimum),
+			"maximum": (self.max_label, self.maximum),
+		}
 
-	def _refresh_axis_labels(self) -> None:
-		"""Scale/shape captions aligned with stats_arrays parameter names."""
-		if self.dist is None:
-			return
-		d = self.dist.id
-		if d in (
-			sa.NormalUncertainty.id,
-			sa.LognormalUncertainty.id,
-			sa.StudentsTUncertainty.id,
-			sa.GeneralizedExtremeValueUncertainty.id,
-		):
-			self.scale_label.setText("Scale (σ):")
-		elif d == sa.GammaUncertainty.id:
-			self.scale_label.setText("Scale (θ):")
-		elif d == sa.WeibullUncertainty.id:
-			self.scale_label.setText("Scale (λ):")
-		else:
-			self.scale_label.setText("Sigma/scale:")
-		if d == sa.BetaUncertainty.id:
-			self.shape_label.setText("Beta (β):")
-		elif d == sa.StudentsTUncertainty.id:
-			self.shape_label.setText("Degrees of freedom (ν):")
-		elif d == sa.GammaUncertainty.id:
-			self.shape_label.setText("Shape (k):")
-		elif d == sa.WeibullUncertainty.id:
-			self.shape_label.setText("Shape (k):")
-		else:
-			self.shape_label.setText("Shape:")
-
-	def _hide_params(self, *params, hide: bool = True) -> None:
-		if "loc" in params:
-			self.loc_label.setHidden(hide)
-			self.loc.setHidden(hide)
-		if "scale" in params:
-			self.scale_label.setHidden(hide)
-			self.scale.setHidden(hide)
-		if "shape" in params:
-			self.shape_label.setHidden(hide)
-			self.shape.setHidden(hide)
-		if "min" in params:
-			self.min_label.setHidden(hide)
-			self.minimum.setHidden(hide)
-		if "max" in params:
-			self.max_label.setHidden(hide)
-			self.maximum.setHidden(hide)
+	def _sync_parameter_fields(self) -> None:
+		"""Show/hide inputs and captions from ``standard_uncertainty_fields``."""
+		dist_id = self.dist.id
+		active = set(standard_uncertainty_fields(dist_id))
+		for key, (label, widget) in self._field_widgets.items():
+			visible = key in active
+			label.setVisible(visible)
+			widget.setVisible(visible)
+			if visible:
+				label.setText(f"{uncertainty_field_name(dist_id, key)}:")
+				if widget.text().strip().lower() == "nan":
+					widget.clear()
+		self.neg_samples_cb.setVisible(
+			dist_id in (sa.GammaUncertainty.id, sa.WeibullUncertainty.id)
+		)
 
 	def _on_distribution_changed(self, index: int) -> None:
+		self._plot_refresh_timer.stop()
 		self.dist = sa.uncertainty_choices[index]
+		self._sync_parameter_fields()
 
-		# Show/hide fields per stats_arrays parameter usage
-		if self.dist.id in {0, 1}:  # Undefined / NoUncertainty
-			self._hide_params("loc", "scale", "shape", "min", "max")
-			self.neg_samples_cb.setHidden(True)
-		elif self.dist.id in {2, 3}:  # Lognormal / Normal
-			self._hide_params("shape", "min", "max")
-			self._hide_params("loc", "scale", hide=False)
-			self.neg_samples_cb.setHidden(True)
-		elif self.dist.id in {4, 7}:  # Uniform / Discrete uniform
-			self._hide_params("loc", "scale", "shape")
-			self._hide_params("min", "max", hide=False)
-			self.neg_samples_cb.setHidden(True)
-			if self.dist.id == sa.UniformUncertainty.id:
-				self.min_label.setText("Minimum:")
-				self.max_label.setText("Maximum:")
-			else:
-				# ``stats_arrays.DiscreteUniform``: integers in [minimum, maximum).
-				self.min_label.setText("Minimum (inclusive):")
-				self.max_label.setText("Maximum (exclusive):")
-		elif self.dist.id == sa.TriangularUncertainty.id:  # Triangular
-			self._hide_params("scale", "shape")
-			self._hide_params("loc", "min", "max", hide=False)
-			self.neg_samples_cb.setHidden(True)
-		elif self.dist.id == sa.BernoulliUncertainty.id:  # Bernoulli — loc only (probability)
-			self._hide_params("scale", "shape", "min", "max")
-			self._hide_params("loc", hide=False)
-			self.neg_samples_cb.setHidden(True)
-		elif self.dist.id == sa.BetaUncertainty.id:  # Beta — loc (α), shape (β), optional bounds; no ``scale``
-			self._hide_params("scale")
-			self._hide_params("loc", "shape", "min", "max", hide=False)
-			self.neg_samples_cb.setHidden(True)
-		elif self.dist.id == sa.GeneralizedExtremeValueUncertainty.id:  # GEV — μ, σ only (ξ must be 0)
-			self._hide_params("shape", "min", "max")
-			self._hide_params("loc", "scale", hide=False)
-			self.neg_samples_cb.setHidden(True)
-		elif self.dist.id in (
-			sa.WeibullUncertainty.id,
-			sa.GammaUncertainty.id,
-			sa.StudentsTUncertainty.id,
-		):
-			self._hide_params("min", "max")
-			self._hide_params("loc", "scale", "shape", hide=False)
-			self.neg_samples_cb.setHidden(
-				self.dist.id not in (sa.WeibullUncertainty.id, sa.GammaUncertainty.id)
-			)
-
-		# Special handling (lognormal and calculated mean label)
 		if self.dist.id == sa.LognormalUncertainty.id:
 			self.mean.setHidden(False)
 			self.mean_label.setHidden(False)
-			# Convert existing loc to log-space if coming from non-lognormal
 			if self.previous_dist_id is not None and self.previous_dist_id != sa.LognormalUncertainty.id:
 				self._extract_lognormal_loc_from_mean()
 				self._sync_mean_from_loc()
 		else:
 			self.mean.setHidden(True)
 			self.mean_label.setHidden(True)
-			# If switching away from lognormal, set loc to linear amount if mean present
 			if self.previous_dist_id == sa.LognormalUncertainty.id:
 				try:
 					mean_val = float(self.mean.text()) if self.mean.text() else np.nan
@@ -500,20 +317,12 @@ class UncertaintyDialog(QtWidgets.QDialog):
 				except Exception:
 					pass
 
-		# Calculated mean visibility
-		show_calc = self.dist.id in self.mean_is_calculated
+		show_calc = self.dist.id in DISTRIBUTIONS_WITH_CALCULATED_MEAN
 		self.calc_mean_label.setHidden(not show_calc)
 		self.calc_mean.setHidden(not show_calc)
-
-		# No parameter inputs for undefined / no uncertainty — hide entire group
 		self.fields_box.setVisible(
-			self.dist.id
-			not in (sa.UndefinedUncertainty.id, sa.NoUncertainty.id)
+			self.dist.id not in (sa.UndefinedUncertainty.id, sa.NoUncertainty.id)
 		)
-
-		# Update labels
-		self.loc_label.setText(self._distribution_loc_label)
-		self._refresh_axis_labels()
 		self.previous_dist_id = self.dist.id
 		self._generate_plot()
 
@@ -567,86 +376,35 @@ class UncertaintyDialog(QtWidgets.QDialog):
 			val = float("nan")
 		self.negative.setChecked(bool(not np.isnan(val) and val < 0))
 
-	def _standard_dist_fields(self, dist_id: int) -> list:
-		return standard_uncertainty_fields(dist_id)
+	def _field_has_value(self, text: str) -> bool:
+		"""False for blank fields and the ``nan`` placeholder shown in line edits."""
+		t = text.strip().lower()
+		return bool(t and t != "nan")
 
-	def _completed_active_fields(self) -> bool:
-		dist_id = self.dist.id
-
-		def ok_lineedit(le: QtWidgets.QLineEdit) -> bool:
-			return bool(le.hasAcceptableInput() and le.text())
-
-		if dist_id in (0, 1):
-			return True
-		if dist_id in (sa.LognormalUncertainty.id, sa.NormalUncertainty.id):
-			return ok_lineedit(self.loc) and ok_lineedit(self.scale)
-		if dist_id == sa.UniformUncertainty.id:
-			return ok_lineedit(self.minimum) and ok_lineedit(self.maximum)
-		if dist_id == sa.DiscreteUniform.id:
-			if not ok_lineedit(self.maximum):
-				return False
-			if not self.minimum.text().strip():
+	def _any_parameter_text(self) -> bool:
+		"""True if the user has entered any value for the active distribution."""
+		optional = OPTIONAL_UNCERTAINTY_FIELDS.get(self.dist.id, frozenset())
+		for field in standard_uncertainty_fields(self.dist.id):
+			if field in optional:
+				continue
+			_, widget = self._field_widgets[field]
+			if widget.isVisible() and self._field_has_value(widget.text()):
 				return True
-			return ok_lineedit(self.minimum)
-		if dist_id == sa.TriangularUncertainty.id:
-			if not (
-				ok_lineedit(self.minimum)
-				and ok_lineedit(self.maximum)
-				and ok_lineedit(self.loc)
-			):
-				return False
-			try:
-				return (
-					float(self.minimum.text())
-					< float(self.loc.text())
-					< float(self.maximum.text())
-				)
-			except Exception:
-				return False
-		if dist_id == sa.BernoulliUncertainty.id:
-			if not ok_lineedit(self.loc):
-				return False
-			try:
-				p = float(self.loc.text())
-				return 0.0 <= p <= 1.0
-			except Exception:
-				return False
-		if dist_id in (
-			sa.WeibullUncertainty.id,
-			sa.GammaUncertainty.id,
-			sa.StudentsTUncertainty.id,
-		):
-			return (
-				ok_lineedit(self.loc)
-				and ok_lineedit(self.scale)
-				and ok_lineedit(self.shape)
-			)
-		if dist_id == sa.BetaUncertainty.id:
-			if not (ok_lineedit(self.loc) and ok_lineedit(self.shape)):
-				return False
-			try:
-				if float(self.loc.text()) <= 0 or float(self.shape.text()) <= 0:
-					return False
-			except Exception:
-				return False
-			if not self.minimum.text().strip() and not self.maximum.text().strip():
-				return True
-			if not (ok_lineedit(self.minimum) and ok_lineedit(self.maximum)):
-				return False
-			try:
-				return float(self.minimum.text()) < float(self.maximum.text())
-			except Exception:
-				return False
-		if dist_id == sa.GeneralizedExtremeValueUncertainty.id:
-			return ok_lineedit(self.loc) and ok_lineedit(self.scale)
 		return False
+
+	def _parse_field(self, text: str) -> float:
+		if not self._field_has_value(text):
+			return float("nan")
+		try:
+			return float(text)
+		except (TypeError, ValueError):
+			return float("nan")
 
 	@property
 	def _uncertainty_info(self) -> dict:
-		data = {k: v for k, v in EMPTY_UNCERTAINTY.items()}
-		data["uncertainty type"] = self.distribution.currentIndex()
 		if self.dist is None:
-			return data
+			return {**EMPTY_UNCERTAINTY}
+		data = {**EMPTY_UNCERTAINTY, "uncertainty type": self.dist.id}
 		if self.dist.id == sa.LognormalUncertainty.id:
 			data["negative"] = bool(self.negative.isChecked())
 		elif self.dist.id in (sa.GammaUncertainty.id, sa.WeibullUncertainty.id):
@@ -654,59 +412,29 @@ class UncertaintyDialog(QtWidgets.QDialog):
 		else:
 			data["negative"] = False
 
-		def as_float(txt: str) -> float:
-			try:
-				val = float(txt)
-				return val
-			except Exception:
-				return float("nan")
-
-		for field in self._standard_dist_fields(data["uncertainty type"]):
-			widget = {
-				"loc": self.loc,
-				"scale": self.scale,
-				"shape": self.shape,
-				"minimum": self.minimum,
-				"maximum": self.maximum,
-			}[field]
-			data[field] = as_float(widget.text())
-		# stats_arrays GEV implementation only supports xi (shape) == 0
-		if self.dist.id == sa.GeneralizedExtremeValueUncertainty.id:
-			data["shape"] = 0.0
-		return data
+		for field in standard_uncertainty_fields(self.dist.id):
+			_, widget = self._field_widgets[field]
+			data[field] = self._parse_field(widget.text())
+		return prepare_uncertainty_dict(data, self.dist)
 
 	def _structured_array_if_sampleable(self) -> Tuple[Optional[np.ndarray], Optional[str]]:
-		"""Build params, ``stats_arrays`` validation, and a short random draw."""
-		return _try_build_validate_sample(self.dist, self._uncertainty_info, _UNCERTAINTY_VALIDATION_N)
+		return validate_uncertainty_dict(self._uncertainty_info, self.dist, UNCERTAINTY_VALIDATION_N)
 
 	def _ok_enabled(self) -> bool:
 		if self.dist is None:
 			return False
 		if self.dist.id in (sa.UndefinedUncertainty.id, sa.NoUncertainty.id):
 			return True
-		if not self._completed_active_fields():
-			return False
-		arr, _ = self._structured_array_if_sampleable()
-		return arr is not None
+		array, _ = self._structured_array_if_sampleable()
+		return array is not None
 
 	def _update_ok_state(self, structured: Optional[np.ndarray] = None) -> None:
 		if self._read_only:
 			return
 		ok_btn = self.buttons.button(QtWidgets.QDialogButtonBox.Ok)
-		if self.dist is None:
-			ok_btn.setEnabled(False)
-			return
-		if self.dist.id in (sa.UndefinedUncertainty.id, sa.NoUncertainty.id):
-			ok_btn.setEnabled(True)
-			return
-		if not self._completed_active_fields():
-			ok_btn.setEnabled(False)
-			return
-		if structured is not None:
-			ok_btn.setEnabled(True)
-			return
-		arr, _ = self._structured_array_if_sampleable()
-		ok_btn.setEnabled(arr is not None)
+		ok_btn.setEnabled(
+			structured is not None if structured is not None else self._ok_enabled()
+		)
 
 	def _schedule_plot_refresh(self) -> None:
 		"""Refresh OK state immediately; defer heavy matplotlib work to avoid UI stalls."""
@@ -754,54 +482,24 @@ class UncertaintyDialog(QtWidgets.QDialog):
 				self._update_ok_state()
 				return
 
-			if not self._completed_active_fields():
-				self._hide_plot_preview(_MSG_PREVIEW_INCOMPLETE)
-				self._update_ok_state()
-				return
-
 			array, sample_err = self._structured_array_if_sampleable()
 			if array is None:
-				self._hide_plot_preview(
-					sample_err or "Invalid parameters for this distribution."
+				msg = (
+					_MSG_PREVIEW_INCOMPLETE
+					if not self._any_parameter_text()
+					else (sample_err or "Invalid parameters for this distribution.")
 				)
+				self._hide_plot_preview(msg)
 				self._update_ok_state()
 				return
 
-			if self.dist.id in self.mean_is_calculated:
-				try:
-					if self.dist.id == sa.DiscreteUniform.id:
-						calc = _discrete_uniform_expected_first_row(array)
-						self.calc_mean.setText(
-							str(float(calc)) if np.isfinite(calc) else "nan"
-						)
-					else:
-						try:
-							calc = self.dist.statistics(array).get("mean")
-						except TypeError:
-							array = self.dist.fix_nan_minimum(array)
-							calc = (array["maximum"] + array["minimum"]) / 2
-						calc = calc.mean() if isinstance(calc, np.ndarray) else calc
-						self.calc_mean.setText(str(float(calc)))
-				except Exception:
-					self.calc_mean.setText("nan")
+			if self.dist.id in DISTRIBUTIONS_WITH_CALCULATED_MEAN:
+				calc = uncertainty_statistics_scalar(self.dist, array, "mean")
+				self.calc_mean.setText(str(calc) if np.isfinite(calc) else "nan")
 
-			try:
-				if self.dist.id == sa.LognormalUncertainty.id:
-					ref_lin = _scalar_stats_value(
-						self.dist.statistics(array).get("median")
-					)
-				elif self.dist.id == sa.DiscreteUniform.id:
-					ref_lin = _discrete_uniform_expected_first_row(array)
-				else:
-					ref_lin = _scalar_stats_value(
-						self.dist.statistics(array).get("mean")
-					)
-			except Exception as e:
-				logger.debug(
-					"Uncertainty preview skipped (invalid statistics): {}",
-					e,
-				)
-				self._hide_plot_preview(str(e).strip() or e.__class__.__name__)
+			ref_lin = uncertainty_reference_value(self.dist, array)
+			if not np.isfinite(ref_lin):
+				self._hide_plot_preview("Could not compute distribution statistics for preview.")
 				self._update_ok_state()
 				return
 
@@ -816,7 +514,7 @@ class UncertaintyDialog(QtWidgets.QDialog):
 			try:
 				self._plot_message.hide()
 				self._plot_message.clear()
-				self.plot.plot_analytical(curve, ref_lin)
+				self.plot.plot_analytical(curve, ref_lin, title=self.dist.description)
 			except Exception as e:
 				logger.warning("Uncertainty preview could not be drawn: {}", e)
 				self._hide_plot_preview(str(e).strip() or e.__class__.__name__)
@@ -833,7 +531,7 @@ class UncertaintyDialog(QtWidgets.QDialog):
 			return
 		try:
 			self.result_dict = self._uncertainty_info
-			self.result_array = self.dist.from_dicts(self._uncertainty_info)
+			self.result_array = UncertaintyBase.from_dicts(self._uncertainty_info)
 		except Exception as e:
 			QtWidgets.QMessageBox.warning(
 				self,
@@ -862,16 +560,16 @@ class SimpleDistributionPlot(ABPlot):
 			m = lay.contentsMargins()
 			lay.setContentsMargins(m.left(), m.top(), m.right(), 6)
 
-	def plot_analytical(self, curve: PreviewDensity, vline_x: float) -> None:
+	def plot_analytical(
+		self, curve: PreviewDensity, vline_x: float, *, title: str = ""
+	) -> None:
 		"""Plot ``stats_arrays`` / SciPy PDF or PMF (no random sampling)."""
 		self.setMinimumHeight(348)
 		self.setMaximumHeight(16777215)
-		exp = QtWidgets.QSizePolicy.Policy.Expanding
-		self.setSizePolicy(exp, exp)
-		self.canvas.setSizePolicy(exp, exp)
+		self.setVisible(True)
 		self.reset_plot()
-		# Match figure size to widget before plotting so axes bbox is non-zero.
-		self.sync_figure_to_widget()
+		if title:
+			self.ax.set_title(title, fontsize=10, pad=6)
 
 		if curve.kind == "bar":
 			self.ax.set_ylabel("PMF", labelpad=6)
@@ -912,6 +610,17 @@ class SimpleDistributionPlot(ABPlot):
 
 		self.ax.tick_params(axis="both", which="major", labelsize=9)
 		self.ax.tick_params(axis="x", which="major", pad=4)
+		# Layout after Qt assigns the restored height (first show is often still 0×0).
+		QtCore.QTimer.singleShot(0, self._fit_preview_to_widget)
+
+	def _fit_preview_to_widget(self, _attempt: int = 0) -> None:
+		self.sync_figure_to_widget()
+		if not self._canvas_has_size():
+			if _attempt < 8:
+				QtCore.QTimer.singleShot(0, lambda: self._fit_preview_to_widget(_attempt + 1))
+			else:
+				self.canvas.draw_idle()
+			return
 		try:
 			self.figure.tight_layout(pad=0.28, h_pad=0.55, w_pad=0.35)
 		except Exception:
@@ -919,7 +628,6 @@ class SimpleDistributionPlot(ABPlot):
 		else:
 			p = self.figure.subplotpars
 			h_in = float(self.figure.get_figheight())
-			# Slightly more bottom margin when the figure is very short (labels + ticks).
 			bottom_floor = max(0.14, min(0.24, 1.05 / max(h_in, 0.25)))
 			self.figure.subplots_adjust(
 				left=max(p.left, 0.07),
@@ -927,10 +635,7 @@ class SimpleDistributionPlot(ABPlot):
 				top=min(p.top, 0.97),
 				bottom=max(p.bottom, bottom_floor),
 			)
-
-		self.sync_figure_to_widget()
 		self.canvas.draw_idle()
-		self.setVisible(True)
 
 
 __all__ = ["UncertaintyDialog"]
