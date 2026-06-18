@@ -22,7 +22,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # general Python setup
       - name: Set up Python ${{ matrix.py-version }}
         uses: actions/setup-python@v5
         with:
@@ -37,11 +36,9 @@ jobs:
           python -VV
           python -m pip install --upgrade pip setuptools wheel
 
-      # install testing
       - name: Install package and test deps
         run: |
-          pip install .[testing] # install the package and the testing deps
+          pip install .[testing]
 
       - name: Test with pytest
-        run: |
-          pytest -s --no-header --no-summary -q --no-cov
+        run: pytest -q --no-cov -o log_cli=false

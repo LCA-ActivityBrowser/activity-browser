@@ -30,9 +30,22 @@ from activity_browser.bwutils.commontasks import shorten_label, wrap_text
 from activity_browser.bwutils.contribution_labels import is_rest_row
 
 _GOLDEN_RATIO = 0.618033988749895
-_BASE_SERIES_PALETTE: tuple[tuple[float, float, float, float], ...] = tuple(
-    plt.get_cmap("tab10").colors
-) + tuple(plt.get_cmap("tab20").colors)
+DEFAULT_PLOT_PALETTE = "tab20"
+PLOT_PALETTES: tuple[str, ...] = (  # qualitative colormaps from https://matplotlib.org/stable/gallery/color/colormap_reference.html
+    "Pastel1",
+    "Pastel2",
+    "Paired",
+    "Accent",
+    "okabe_ito",
+    "Dark2",
+    "Set1",
+    "Set2",
+    "Set3",
+    "tab10",
+    "tab20",
+    "tab20b",
+    "tab20c",
+)
 _GSA_TYPE_ORDER = (
     "technosphere",
     "biosphere",
@@ -53,6 +66,23 @@ def lca_results_tab_from_widget(widget) -> object | None:
         parent = getattr(node, "parent", None)
         node = parent() if callable(parent) else parent
     return None
+
+
+def _categorical_palette() -> tuple[tuple[float, float, float, float], ...]:
+    from activity_browser import app
+
+    name = app.settings["appearance"].get("plot_palette", DEFAULT_PLOT_PALETTE)
+    if name not in PLOT_PALETTES:
+        name = DEFAULT_PLOT_PALETTE
+    for candidate in (name, DEFAULT_PLOT_PALETTE):
+        try:
+            return tuple(
+                (float(r), float(g), float(b), 1.0)
+                for r, g, b in plt.get_cmap(candidate).colors
+            )
+        except (ValueError, TypeError, AttributeError):
+            continue
+    return (0.5, 0.5, 0.5, 1.0),
 
 
 class ABFigureCanvas(FigureCanvasQTAgg):
@@ -79,16 +109,16 @@ class ABPlot(QtWidgets.QWidget):
     HORIZONTAL_AXIS_LABEL_WRAP_LENGTH = 40
 
     REST_BAR_COLOR = (0.8, 0.8, 0.8, 1.0)
-    BAR_EDGE_COLOR = "white"
     BAR_EDGE_WIDTH = 0.3
 
     # --- series color palette -------------------------------------------------
 
     @classmethod
     def series_color(cls, index: int) -> tuple[float, float, float, float]:
-        """RGBA for categorical series ``index`` (30 curated colors, then golden-ratio hues)."""
-        if index < len(_BASE_SERIES_PALETTE):
-            return _BASE_SERIES_PALETTE[index]
+        """RGBA for categorical series ``index`` (palette colors, then golden-ratio hues)."""
+        palette = _categorical_palette()
+        if index < len(palette):
+            return palette[index]
         hue = (index * _GOLDEN_RATIO) % 1.0
         rgb = mcolors.hsv_to_rgb((hue, 0.72, 0.88))
         return (float(rgb[0]), float(rgb[1]), float(rgb[2]), 1.0)
@@ -150,12 +180,13 @@ class ABPlot(QtWidgets.QWidget):
     @staticmethod
     def set_signed_value_grid(ax, *, horizontal: bool) -> None:
         """Zero reference line and dashed grid on the value axis."""
+        zero_color = plt.rcParams["axes.edgecolor"]
         ax.set_axisbelow(True)
         if horizontal:
-            ax.axvline(0, color="black", linewidth=0.8, zorder=1)
+            ax.axvline(0, color=zero_color, linewidth=0.8, zorder=1)
             ax.grid(axis="x", linestyle="dashed", color="grey", alpha=0.7)
         else:
-            ax.axhline(0, color="black", linewidth=0.8, zorder=1)
+            ax.axhline(0, color=zero_color, linewidth=0.8, zorder=1)
             ax.grid(axis="y", linestyle="dashed", color="grey", alpha=0.7)
 
     def plot_bar_strip(
@@ -172,7 +203,7 @@ class ABPlot(QtWidgets.QWidget):
         kw = dict(
             label=label,
             color=[color] * len(heights),
-            edgecolor=self.BAR_EDGE_COLOR,
+            edgecolor=plt.rcParams["axes.facecolor"],
             linewidth=self.BAR_EDGE_WIDTH,
         )
         size = thickness * 0.92
@@ -234,7 +265,10 @@ class ABPlot(QtWidgets.QWidget):
         self._axis_contexts: list[dict] = []
         self._current_bar_ctx: dict | None = None
 
-        self._set_plot_chrome_white()
+        self._sync_plot_to_theme()
+        from activity_browser import app
+
+        app.application.theme_changed.connect(self._on_theme_changed)
 
         layout = QtWidgets.QVBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
@@ -710,13 +744,80 @@ class ABPlot(QtWidgets.QWidget):
     def plot(self, *args, **kwargs):
         raise NotImplementedError
 
-    def _set_plot_chrome_white(self) -> None:
-        self.figure.patch.set_facecolor("white")
-        if self.ax is not None:
-            self.ax.set_facecolor("white")
-        bg = "background-color: white;"
-        self.canvas.setStyleSheet(bg)
-        self.setStyleSheet(bg)
+    @staticmethod
+    def _color_line_artists(artists, color) -> None:
+        if artists is None:
+            return
+        if not isinstance(artists, (list, tuple)):
+            artists = (artists,)
+        for artist in artists:
+            if artist is None:
+                continue
+            if hasattr(artist, "set_color"):
+                artist.set_color(color)
+            elif hasattr(artist, "set_edgecolor"):
+                artist.set_edgecolor(color)
+
+    def _sync_axes_to_theme(self, ax) -> None:
+        from matplotlib.container import ErrorbarContainer
+
+        rc = plt.rcParams
+        edge, tick = rc["axes.edgecolor"], rc["xtick.color"]
+        ax.set_facecolor(rc["axes.facecolor"])
+        for spine in ax.spines.values():
+            spine.set_color(edge)
+        ax.tick_params(axis="both", colors=tick, labelcolor=tick, which="both")
+        if ax.xaxis.label:
+            ax.xaxis.label.set_color(rc["axes.labelcolor"])
+        if ax.yaxis.label:
+            ax.yaxis.label.set_color(rc["axes.labelcolor"])
+        if ax.title:
+            ax.title.set_color(rc["text.color"])
+        for line in ax.lines:
+            x, y = np.asarray(line.get_xdata()), np.asarray(line.get_ydata())
+            if x.size >= 2 and y.size >= 2 and (
+                (np.allclose(y, 0) and not np.allclose(x, 0))
+                or (np.allclose(x, 0) and not np.allclose(y, 0))
+            ):
+                line.set_color(edge)
+            elif (
+                line.get_marker() not in (None, "none", "None")
+                and str(line.get_linestyle()).lower() == "none"
+            ):
+                line.set_markerfacecolor(edge)
+                line.set_markeredgecolor(edge)
+        for patch in ax.patches:
+            patch.set_edgecolor(rc["axes.facecolor"])
+        for axis in (ax.xaxis, ax.yaxis):
+            for gridline in axis.get_gridlines():
+                gridline.set_color(rc.get("grid.color", "0.5"))
+                gridline.set_alpha(rc.get("grid.alpha", 0.7))
+        for container in ax.containers:
+            if isinstance(container, ErrorbarContainer):
+                self._color_line_artists(container.lines[1], edge)
+                self._color_line_artists(container.lines[2], edge)
+
+    def _sync_plot_to_theme(self) -> None:
+        rc = plt.rcParams
+        self.figure.patch.set_facecolor(rc["figure.facecolor"])
+        axes = list(self.figure.axes)
+        if self.ax is not None and self.ax not in axes:
+            axes.append(self.ax)
+        for ax in axes:
+            self._sync_axes_to_theme(ax)
+        for legend in self.figure.legends:
+            for text in legend.get_texts():
+                text.set_color(rc["text.color"])
+        qapp = QtWidgets.QApplication.instance()
+        if qapp is not None:
+            bg = f"background-color: {qapp.palette().color(QtGui.QPalette.ColorRole.Window).name()};"
+            self.canvas.setStyleSheet(bg)
+            self.setStyleSheet(bg)
+
+    def _on_theme_changed(self) -> None:
+        self._sync_plot_to_theme()
+        if self.figure.axes:
+            self.canvas.draw_idle()
 
     def reset_plot(self) -> None:
         self.clear_hover_tooltip()
@@ -724,7 +825,7 @@ class ABPlot(QtWidgets.QWidget):
         self._current_bar_ctx = None
         self.figure.clf()
         self.ax = self.figure.add_subplot(111)
-        self._set_plot_chrome_white()
+        self._sync_plot_to_theme()
 
     def add_legend(self, *args, ax=None, **kwargs):
         kwargs.setdefault("ncol", 1)
@@ -747,7 +848,7 @@ class ABPlot(QtWidgets.QWidget):
     ) -> None:
         """Apply fonts, draw, and wire hover tooltips. Call once per :meth:`plot`."""
         self.apply_standard_fonts()
-        self._set_plot_chrome_white()
+        self._sync_plot_to_theme()
         self.sync_figure_to_widget()
         if self._canvas_has_size():
             self.canvas.draw()

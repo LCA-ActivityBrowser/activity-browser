@@ -4,10 +4,9 @@ import pandas as pd
 from qtpy import QtWidgets, QtGui
 
 import bw2data as bd
-from bw2io import remote
 
 from activity_browser import app, ui
-from activity_browser.bwutils.commontasks import get_templates
+from activity_browser.bwutils.commontasks import fetch_remote_projects, get_templates
 from activity_browser.ui import widgets, core
 
 from .base import BaseSettingsChapter
@@ -94,7 +93,7 @@ class ProjectManagerSettingsChapter(BaseSettingsChapter):
         data = []
 
         templates = get_templates()
-        remote_templates = remote.get_projects()
+        remote_templates = fetch_remote_projects()
 
         for name in sorted(templates):
             data.append({

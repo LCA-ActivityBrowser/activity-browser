@@ -252,6 +252,7 @@ class NewAnalysisTab(QtWidgets.QWidget):
         self.layout = QtWidgets.QVBoxLayout()
         self.setLayout(self.layout)
         configure_lca_tab_layout(self.layout)
+        app.application.theme_changed.connect(self.update_tab)
 
     def add_tab_header(
         self, title: str, help_tooltip: Optional[str] = None
@@ -277,7 +278,6 @@ class NewAnalysisTab(QtWidgets.QWidget):
             QtWidgets.QSizePolicy.Policy.Expanding,
         )
         widget.setMinimumWidth(0)
-        widget.setStyleSheet("background-color: white;")
         self.pt_layout.setContentsMargins(0, 0, 0, 0)
         self.pt_layout.setAlignment(alignment)
         widget.setLayout(self.pt_layout)

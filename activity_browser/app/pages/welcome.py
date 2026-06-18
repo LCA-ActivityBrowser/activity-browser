@@ -35,7 +35,24 @@ class WelcomePage(widgets.ABAbstractPage):
         self.setLayout(self.vl)
 
         self.bridge.ready.connect(self.update_welcome)
-        app.signals.project.changed.connect(lambda: self.page.load(self.url))
+        app.application.theme_changed.connect(self._reload_page)
+        app.signals.project.changed.connect(self._reload_page)
+        self.page.loadFinished.connect(self._on_load_finished)
+
+    def _reload_page(self, *_args) -> None:
+        self.page.load(self.url)
+
+    def _on_load_finished(self, ok: bool) -> None:
+        if not ok:
+            return
+        scheme = (
+            "dark"
+            if app.application.styleHints().colorScheme() == QtCore.Qt.ColorScheme.Dark
+            else "light"
+        )
+        self.page.runJavaScript(
+            f'document.documentElement.style.colorScheme = "{scheme}";'
+        )
 
     def update_welcome(self):
         projects = projects_by_last_opened()

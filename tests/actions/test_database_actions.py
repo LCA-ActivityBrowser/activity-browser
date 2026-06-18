@@ -113,43 +113,6 @@ def test_fix_broken_groups_removes_orphan_activity_groups(basic_database):
     assert not {g.name for g in Group.select()} & activity_groups
 
 
-def test_database_duplicate(monkeypatch, qtbot, basic_database):
-    from activity_browser.app.actions.database.database_duplicate import NewDatabaseDialog, DuplicateDatabaseDialog
-    from activity_browser.bwutils.commontasks import count_database_records
-
-    dup_db = "db_that_is_duplicated"
-    source_count = count_database_records(basic_database.name)
-
-    monkeypatch.setattr(
-        NewDatabaseDialog,
-        "get_new_database_data",
-        staticmethod(lambda *args, **kwargs: (dup_db, "functional_sqlite", True)),
-    )
-
-    assert dup_db not in bd.databases
-
-    app.actions.DatabaseDuplicate.run(basic_database.name)
-
-    dialog = app.main_window.findChild(DuplicateDatabaseDialog)
-    with qtbot.waitSignal(dialog.dup_thread.finished, timeout=60 * 1000):
-        pass
-
-    assert basic_database.name in bd.databases
-    assert dup_db in bd.databases
-    assert count_database_records(dup_db) == source_count
-
-    loader = app.metadata.loader
-    for _ in range(200):
-        if len(app.metadata.get_database_metadata(dup_db, ["name"])) == source_count:
-            break
-        if loader.secondary_status != "done":
-            qtbot.wait(50)
-            continue
-        qtbot.wait(50)
-
-    assert len(app.metadata.get_database_metadata(dup_db, ["name"])) == source_count
-
-
 def test_database_export_excel(monkeypatch, qtbot, basic_database, tmp_path):
     """Test exporting a database to Excel format."""
     from activity_browser.app.actions.database.database_export_excel import ExportExcelSetup

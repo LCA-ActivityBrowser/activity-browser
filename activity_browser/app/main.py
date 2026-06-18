@@ -115,7 +115,7 @@ class MainWindow(widgets.ABMainWindow):
         else:
             hint = QtCore.Qt.ColorScheme.Unknown
         
-        app.application.styleHints().setColorScheme(hint)
+        app.application.apply_color_scheme(hint)
 
         # apply pane tab position
         position = app.settings["appearance"]["pane_tab_position"]

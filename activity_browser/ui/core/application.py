@@ -3,15 +3,32 @@ from pathlib import Path
 from loguru import logger
 
 from qtpy import QtGui, QtWidgets, QtCore, PYSIDE6
-from qtpy.QtCore import Qt
+from qtpy.QtCore import Qt, Signal
 from qtpy.QtGui import QFontDatabase
 
 from activity_browser.static import fonts, icons
 
 
+_OFFSCREEN_FLAGS = ("--disable-gpu", "--disable-gpu-compositing", "--no-sandbox")
+
+
+def _webengine_flags(*add: str, drop: tuple[str, ...] = ()) -> None:
+    """Set QTWEBENGINE_CHROMIUM_FLAGS before QtWebEngineQuick.initialize()."""
+    skip = set(drop)
+    order = (
+        *(_OFFSCREEN_FLAGS if os.environ.get("QT_QPA_PLATFORM") == "offscreen" else ()),
+        *os.environ.get("QTWEBENGINE_CHROMIUM_FLAGS", "").split(),
+        *add,
+    )
+    os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = " ".join(
+        dict.fromkeys(f for f in order if f and f not in skip)
+    )
+
+
 class ABApplication(QtWidgets.QApplication):
     _main_window = None
     _instance = None
+    theme_changed = Signal()
 
     windows = []
         
@@ -51,6 +68,8 @@ class ABApplication(QtWidgets.QApplication):
 
     def pyside6_setup(self):
         from qtpy.QtWebEngineQuick import QtWebEngineQuick
+
+        _webengine_flags()
         QtWebEngineQuick.initialize()
 
         style = QtWidgets.QStyleFactory().create("fusion")
@@ -68,14 +87,25 @@ class ABApplication(QtWidgets.QApplication):
 
             plt.style.use("dark_background")
 
-            os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = "--force-dark-mode"
+            _webengine_flags("--force-dark-mode")
         else:
             palette = self.style().standardPalette()
 
             plt.style.use("default")
 
-            os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = ""
+            _webengine_flags(drop=("--force-dark-mode",))
         self.setPalette(palette)
+        self.theme_changed.emit()
+
+    def apply_color_scheme(self, hint) -> None:
+        """Set Qt color scheme and refresh matplotlib / WebEngine styling."""
+        hints = self.styleHints()
+        hints.blockSignals(True)
+        try:
+            hints.setColorScheme(hint)
+        finally:
+            hints.blockSignals(False)
+        self.check_palette(hints.colorScheme())
 
     @property
     def main_window(self) -> QtWidgets.QMainWindow:

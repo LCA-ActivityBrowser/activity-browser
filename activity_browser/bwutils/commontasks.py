@@ -629,6 +629,20 @@ def get_templates() -> dict:
 
     return collection
 
+
+def fetch_remote_projects() -> dict:
+    """Remote template catalogue from ``bw2io``; empty dict if unreachable."""
+    try:
+        from bw2io.remote import get_projects
+
+        return get_projects() or {}
+    except Exception as exc:
+        from loguru import logger
+
+        logger.warning(f"Could not fetch remote project templates: {exc}")
+        return {}
+
+
 def nodes_to_excel(nodes: list[tuple | int | bd.Node]) -> str:
     """Convert a list of nodes to an HTML table suitable for Excel."""
     from .exporters import ABCSVFormatter

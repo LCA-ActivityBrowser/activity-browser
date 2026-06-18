@@ -11,6 +11,7 @@ from typing import NamedTuple
 
 from matplotlib.gridspec import GridSpec
 from matplotlib.patches import Patch
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from bw2data import methods
@@ -318,13 +319,14 @@ class ContributionPlot(ABPlot):
 
     @staticmethod
     def _draw_net_markers(ax, dfp: pd.DataFrame, *, horizontal: bool) -> None:
-        """Black dot at bar tip when positive and negative stacks do not cancel."""
+        """Dot at bar tip when positive and negative stacks do not cancel."""
+        edge_color = plt.rcParams["axes.edgecolor"]
         kw = dict(
             markersize=5,
             marker="o",
             linestyle="none",
-            markerfacecolor="black",
-            markeredgecolor="black",
+            markerfacecolor=edge_color,
+            markeredgecolor=edge_color,
         )
         for i in range(dfp.shape[1]):
             s = dfp.iloc[:, i]
@@ -480,7 +482,7 @@ class GSAPlot(ABPlot):
             Patch(color=self.gsa_type_color(t), label=t)
             for t in dfp[GSA_TYPE_COLUMN].drop_duplicates()
         ]
-        err_kw = dict(capsize=3, ecolor="#333333")
+        err_kw = dict(capsize=3, ecolor=plt.rcParams["axes.edgecolor"])
         legend_ratio = 0.18 if handles else 0.0
         value_label = "Delta sensitivity index"
 

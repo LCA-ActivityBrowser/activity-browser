@@ -24,8 +24,7 @@ import numpy as np
 import stats_arrays as sa
 from bw2data.parameters import ParameterBase
 from bw2data.proxies import ExchangeProxyBase
-from stats_arrays import UncertaintyBase, UndefinedUncertainty
-from stats_arrays import uncertainty_choices as uc
+from stats_arrays import UncertaintyBase, UndefinedUncertainty, uncertainty_choices as uc
 
 # Cleared uncertainty state for remove-uncertainty actions and dialog defaults.
 EMPTY_UNCERTAINTY = {
@@ -37,6 +36,127 @@ EMPTY_UNCERTAINTY = {
     "maximum": np.nan,
     "negative": False,
 }
+
+# Fields that may be left empty; ``stats_arrays`` supplies defaults or ignores them.
+OPTIONAL_UNCERTAINTY_FIELDS = {
+    sa.BetaUncertainty.id: frozenset({"minimum", "maximum"}),
+    sa.BetaPERTUncertainty.id: frozenset({"scale"}),
+    sa.DiscreteUniform.id: frozenset({"minimum"}),
+    sa.StudentsTUncertainty.id: frozenset({"loc", "scale"}),
+    sa.GeneralizedExtremeValueUncertainty.id: frozenset({"loc", "scale"}),
+}
+
+# Distributions whose arithmetic mean is shown read-only (from ``statistics()``).
+DISTRIBUTIONS_WITH_CALCULATED_MEAN = frozenset({
+    sa.TriangularUncertainty.id,
+    sa.UniformUncertainty.id,
+    sa.DiscreteUniform.id,
+    sa.BetaUncertainty.id,
+    sa.BetaPERTUncertainty.id,
+})
+
+_UNCERTAINTY_VALIDATION_N = 24
+UNCERTAINTY_VALIDATION_N = _UNCERTAINTY_VALIDATION_N
+
+
+def as_scalar(value) -> float:
+    """One float from a stats_arrays statistic (scalar, 0-d, or 1-element array)."""
+    if value is None:
+        return float("nan")
+    arr = np.asarray(value, dtype=float).ravel()
+    if arr.size == 0:
+        return float("nan")
+    return float(arr[0])
+
+
+def discrete_uniform_expected(array: np.ndarray) -> float:
+    """Expected value on integers ``[minimum, maximum)`` (:class:`stats_arrays.DiscreteUniform`)."""
+    if array is None or len(array) == 0:
+        return float("nan")
+    row = array[0]
+    lo = int(round(as_scalar(row["minimum"])))
+    hi = int(round(as_scalar(row["maximum"])))
+    if hi < lo:
+        lo, hi = hi, lo
+    if hi <= lo:
+        return float("nan")
+    return (float(lo) + float(hi) - 1.0) / 2.0
+
+
+def prepare_uncertainty_dict(info: dict, dist=None) -> dict:
+    """Merge defaults and apply ``stats_arrays``-specific fixes before validate/sample."""
+    data = {**EMPTY_UNCERTAINTY, **(info or {})}
+    ut_id = int(data.get("uncertainty type", 0) or 0)
+    if dist is not None:
+        ut_id = dist.id
+    data["uncertainty type"] = ut_id
+
+    # Only ξ = 0 (Gumbel) is implemented; ``nan != 0`` would fail validation otherwise.
+    if ut_id == sa.GeneralizedExtremeValueUncertainty.id:
+        data["shape"] = 0.0
+        if np.isnan(data.get("loc", np.nan)):
+            data["loc"] = 0.0
+        if np.isnan(data.get("scale", np.nan)):
+            data["scale"] = 1.0
+    return data
+
+
+def validate_uncertainty_dict(
+    info: dict, dist=None, n: int = _UNCERTAINTY_VALIDATION_N
+) -> tuple[np.ndarray | None, str | None]:
+    """Build via ``UncertaintyBase.from_dicts``, then ``validate`` and sample."""
+    data = prepare_uncertainty_dict(info, dist)
+    cls = uc[int(data["uncertainty type"])]
+    try:
+        array = UncertaintyBase.from_dicts(data)
+        cls.validate(array)
+        cls.random_variables(array, n)
+        return array, None
+    except Exception as exc:
+        msg = str(exc).strip() or exc.__class__.__name__
+        return None, msg
+
+
+def uncertainty_dict_is_sampleable(data: dict) -> bool:
+    """True when ``stats_arrays`` accepts *data* (undefined / no-uncertainty always pass)."""
+    try:
+        ut_id = int(data.get("uncertainty type", 0))
+    except (TypeError, ValueError):
+        return False
+    if ut_id < 0 or ut_id >= len(uc):
+        return False
+    dist = uc[ut_id]
+    if dist.id in (sa.UndefinedUncertainty.id, sa.NoUncertainty.id):
+        return True
+    array, _ = validate_uncertainty_dict(data)
+    return array is not None
+
+
+def uncertainty_statistics_scalar(dist, array: np.ndarray, key: str = "mean") -> float:
+    """One distribution statistic; works around NumPy 2.x bugs in some ``statistics()`` methods."""
+    if array is None or len(array) == 0 or dist is None:
+        return float("nan")
+    try:
+        stats = dist.statistics(array)
+        val = stats.get(key)
+        if val in (None, "Not Implemented"):
+            val = stats.get("mean")
+        return as_scalar(val)
+    except (TypeError, ValueError, IndexError):
+        pass
+    if dist.id == sa.LognormalUncertainty.id and key == "median":
+        row = array[0]
+        sign = -1.0 if bool(row["negative"]) else 1.0
+        return sign * float(np.exp(as_scalar(row["loc"])))
+    if dist.id == sa.DiscreteUniform.id:
+        return discrete_uniform_expected(array)
+    return float("nan")
+
+
+def uncertainty_reference_value(dist, array: np.ndarray) -> float:
+    """Preview plot reference line (median for lognormal, mean otherwise)."""
+    stat = "median" if dist.id == sa.LognormalUncertainty.id else "mean"
+    return uncertainty_statistics_scalar(dist, array, stat)
 
 
 def uncertainty_type_id(source) -> int:
@@ -79,6 +199,8 @@ def standard_uncertainty_fields(ut_id: int) -> list[str]:
         return ["loc", "scale", "shape"]
     if ut_id == sa.BetaUncertainty.id:
         return ["loc", "shape", "minimum", "maximum"]
+    if ut_id == sa.BetaPERTUncertainty.id:
+        return ["minimum", "loc", "maximum", "scale"]
     if ut_id == sa.GeneralizedExtremeValueUncertainty.id:
         return ["loc", "scale"]
     return []
@@ -94,11 +216,13 @@ def uncertainty_field_name(ut_id: int, field_key: str) -> str:
             sa.LognormalUncertainty.id: "Loc (ln(mean))",
             sa.TriangularUncertainty.id: "Mode",
             sa.BetaUncertainty.id: "Alpha (α)",
+            sa.BetaPERTUncertainty.id: "Mean (B)",
         }.get(ut_id, "Loc / offset" if ut_id in (sa.GammaUncertainty.id, sa.WeibullUncertainty.id) else "Mean / location")
     if field_key == "scale":
         return {
             sa.GammaUncertainty.id: "Scale (θ)",
             sa.WeibullUncertainty.id: "Scale (λ)",
+            sa.BetaPERTUncertainty.id: "Lambda (λ)",
         }.get(
             ut_id,
             "Scale (σ)"
@@ -120,9 +244,13 @@ def uncertainty_field_name(ut_id: int, field_key: str) -> str:
             "Shape (k)" if ut_id in (sa.GammaUncertainty.id, sa.WeibullUncertainty.id) else "Shape",
         )
     if field_key == "minimum":
-        return "Minimum (inclusive)" if ut_id == sa.DiscreteUniform.id else "Minimum"
+        return "Minimum (A)" if ut_id == sa.BetaPERTUncertainty.id else (
+            "Minimum (inclusive)" if ut_id == sa.DiscreteUniform.id else "Minimum"
+        )
     if field_key == "maximum":
-        return "Maximum (exclusive)" if ut_id == sa.DiscreteUniform.id else "Maximum"
+        return "Maximum (C)" if ut_id == sa.BetaPERTUncertainty.id else (
+            "Maximum (exclusive)" if ut_id == sa.DiscreteUniform.id else "Maximum"
+        )
     return field_key
 
 
