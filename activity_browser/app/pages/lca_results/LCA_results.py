@@ -277,7 +277,6 @@ class NewAnalysisTab(QtWidgets.QWidget):
             QtWidgets.QSizePolicy.Policy.Expanding,
         )
         widget.setMinimumWidth(0)
-        widget.setStyleSheet("background-color: white;")
         self.pt_layout.setContentsMargins(0, 0, 0, 0)
         self.pt_layout.setAlignment(alignment)
         widget.setLayout(self.pt_layout)

@@ -28,6 +28,7 @@ import matplotlib.pyplot as plt
 
 from activity_browser.bwutils.commontasks import shorten_label, wrap_text
 from activity_browser.bwutils.contribution_labels import is_rest_row
+from activity_browser.ui.core.application import ABApplication
 
 _GOLDEN_RATIO = 0.618033988749895
 _BASE_SERIES_PALETTE: tuple[tuple[float, float, float, float], ...] = tuple(
@@ -79,8 +80,17 @@ class ABPlot(QtWidgets.QWidget):
     HORIZONTAL_AXIS_LABEL_WRAP_LENGTH = 40
 
     REST_BAR_COLOR = (0.8, 0.8, 0.8, 1.0)
-    BAR_EDGE_COLOR = "white"
     BAR_EDGE_WIDTH = 0.3
+
+    @classmethod
+    def bar_edge_color(cls) -> str:
+        """Bar outline color matching the active axes background."""
+        return plt.rcParams["axes.facecolor"]
+
+    @classmethod
+    def zero_line_color(cls) -> str:
+        """Zero baseline color matching the active matplotlib style."""
+        return plt.rcParams["axes.edgecolor"]
 
     # --- series color palette -------------------------------------------------
 
@@ -150,12 +160,13 @@ class ABPlot(QtWidgets.QWidget):
     @staticmethod
     def set_signed_value_grid(ax, *, horizontal: bool) -> None:
         """Zero reference line and dashed grid on the value axis."""
+        zero_color = ABPlot.zero_line_color()
         ax.set_axisbelow(True)
         if horizontal:
-            ax.axvline(0, color="black", linewidth=0.8, zorder=1)
+            ax.axvline(0, color=zero_color, linewidth=0.8, zorder=1)
             ax.grid(axis="x", linestyle="dashed", color="grey", alpha=0.7)
         else:
-            ax.axhline(0, color="black", linewidth=0.8, zorder=1)
+            ax.axhline(0, color=zero_color, linewidth=0.8, zorder=1)
             ax.grid(axis="y", linestyle="dashed", color="grey", alpha=0.7)
 
     def plot_bar_strip(
@@ -172,7 +183,7 @@ class ABPlot(QtWidgets.QWidget):
         kw = dict(
             label=label,
             color=[color] * len(heights),
-            edgecolor=self.BAR_EDGE_COLOR,
+            edgecolor=self.bar_edge_color(),
             linewidth=self.BAR_EDGE_WIDTH,
         )
         size = thickness * 0.92
@@ -234,7 +245,10 @@ class ABPlot(QtWidgets.QWidget):
         self._axis_contexts: list[dict] = []
         self._current_bar_ctx: dict | None = None
 
-        self._set_plot_chrome_white()
+        self._sync_plot_to_theme()
+        ab_app = QtWidgets.QApplication.instance()
+        if isinstance(ab_app, ABApplication):
+            ab_app.theme_changed.connect(self._on_theme_changed)
 
         layout = QtWidgets.QVBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
@@ -710,13 +724,28 @@ class ABPlot(QtWidgets.QWidget):
     def plot(self, *args, **kwargs):
         raise NotImplementedError
 
-    def _set_plot_chrome_white(self) -> None:
-        self.figure.patch.set_facecolor("white")
-        if self.ax is not None:
-            self.ax.set_facecolor("white")
-        bg = "background-color: white;"
-        self.canvas.setStyleSheet(bg)
-        self.setStyleSheet(bg)
+    def _sync_plot_to_theme(self) -> None:
+        fig_color = plt.rcParams["figure.facecolor"]
+        ax_color = plt.rcParams["axes.facecolor"]
+        self.figure.patch.set_facecolor(fig_color)
+        for ax in self.figure.axes:
+            ax.set_facecolor(ax_color)
+        if self.ax is not None and self.ax not in self.figure.axes:
+            self.ax.set_facecolor(ax_color)
+        qapp = QtWidgets.QApplication.instance()
+        if qapp is not None:
+            qcolor = qapp.palette().color(QtGui.QPalette.ColorRole.Window)
+            bg = f"background-color: {qcolor.name()};"
+            self.canvas.setStyleSheet(bg)
+            self.setStyleSheet(bg)
+
+    def _sync_plot_chrome_to_theme(self) -> None:
+        self._sync_plot_to_theme()
+
+    def _on_theme_changed(self) -> None:
+        self._sync_plot_to_theme()
+        if self.figure.axes:
+            self.canvas.draw_idle()
 
     def reset_plot(self) -> None:
         self.clear_hover_tooltip()
@@ -724,7 +753,7 @@ class ABPlot(QtWidgets.QWidget):
         self._current_bar_ctx = None
         self.figure.clf()
         self.ax = self.figure.add_subplot(111)
-        self._set_plot_chrome_white()
+        self._sync_plot_to_theme()
 
     def add_legend(self, *args, ax=None, **kwargs):
         kwargs.setdefault("ncol", 1)
@@ -747,7 +776,7 @@ class ABPlot(QtWidgets.QWidget):
     ) -> None:
         """Apply fonts, draw, and wire hover tooltips. Call once per :meth:`plot`."""
         self.apply_standard_fonts()
-        self._set_plot_chrome_white()
+        self._sync_plot_to_theme()
         self.sync_figure_to_widget()
         if self._canvas_has_size():
             self.canvas.draw()

@@ -3,7 +3,7 @@ from pathlib import Path
 from loguru import logger
 
 from qtpy import QtGui, QtWidgets, QtCore, PYSIDE6
-from qtpy.QtCore import Qt
+from qtpy.QtCore import Qt, Signal
 from qtpy.QtGui import QFontDatabase
 
 from activity_browser.static import fonts, icons
@@ -12,6 +12,7 @@ from activity_browser.static import fonts, icons
 class ABApplication(QtWidgets.QApplication):
     _main_window = None
     _instance = None
+    theme_changed = Signal()
 
     windows = []
         
@@ -76,6 +77,17 @@ class ABApplication(QtWidgets.QApplication):
 
             os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = ""
         self.setPalette(palette)
+        self.theme_changed.emit()
+
+    def apply_color_scheme(self, hint) -> None:
+        """Set Qt color scheme and refresh matplotlib / WebEngine styling."""
+        hints = self.styleHints()
+        hints.blockSignals(True)
+        try:
+            hints.setColorScheme(hint)
+        finally:
+            hints.blockSignals(False)
+        self.check_palette(hints.colorScheme())
 
     @property
     def main_window(self) -> QtWidgets.QMainWindow:

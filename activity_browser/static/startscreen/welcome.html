@@ -4,11 +4,16 @@
     <meta content="text/html; charset=ISO-8859-1" http-equiv="content-type">
     <title>Welcome</title>
 
-    <style type="text/css"></style>
     <style>
-        body, html{
+        html {
+            color-scheme: light dark;
+        }
+
+        body, html {
             margin: 0;
             font-family: system-ui, sans-serif;
+            background: Canvas;
+            color: CanvasText;
         }
         h1{
             font-size: 2em;
@@ -32,7 +37,6 @@
             display: grid;
             height: 100vh;
             width: 100vw;
-            background: #FBFBFB;
             grid-template-columns: auto 250px 250px auto;
             grid-template-rows: auto 80px 250px 150px 45px auto;
         }
@@ -65,18 +69,18 @@
         }
 
         .linkitem{
-            background: #0070c033;
-            color: black;
+            background: color-mix(in srgb, LinkText 18%, Canvas);
+            color: CanvasText;
             font-weight: bold;
             font-size: smaller;
             padding: 5px 10px 5px 10px;
             text-decoration: none;
-            border-bottom: 2px solid black;
+            border-bottom: 2px solid CanvasText;
         }
 
         .linkitem:hover{
-            background: #0070C0;
-            color: white;
+            background: LinkText;
+            color: Canvas;
             cursor: pointer;
         }
 
@@ -85,7 +89,7 @@
             grid-column-end: 4;
             grid-row-start: 4;
             grid-row-end: 5;
-            background: #EFEFEF;
+            background: color-mix(in srgb, CanvasText 8%, Canvas);
             padding-left: 8px;
         }
 
@@ -94,7 +98,7 @@
             padding-top: 3px;
             cursor: pointer;
             text-decoration: underline;
-            color: #007acc;
+            color: LinkText;
             width: fit-content;
         }
 
@@ -103,16 +107,17 @@
             grid-column-end: 4;
             grid-row-start: 5;
             grid-row-end: 6;
-            background: #0070c033;
+            background: color-mix(in srgb, LinkText 18%, Canvas);
+            color: CanvasText;
             padding: 8px;
             margin-top: 10px;
             font-weight: bold;
             font-size: smaller;
-            border-bottom: 2px solid black;
+            border-bottom: 2px solid CanvasText;
         }
         .subscribe:hover {
-            background: #0070C0;
-            color: white;
+            background: LinkText;
+            color: Canvas;
             cursor: pointer;
         }
     </style>
