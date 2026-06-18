@@ -131,8 +131,9 @@ def test_database_duplicate(monkeypatch, qtbot, basic_database):
     app.actions.DatabaseDuplicate.run(basic_database.name)
 
     dialog = app.main_window.findChild(DuplicateDatabaseDialog)
-    with qtbot.waitSignal(dialog.dup_thread.finished, timeout=60 * 1000):
-        pass
+    assert dialog is not None
+    qtbot.waitUntil(lambda: not dialog.dup_thread.isRunning(), timeout=60_000)
+    dialog.close()
 
     assert basic_database.name in bd.databases
     assert dup_db in bd.databases

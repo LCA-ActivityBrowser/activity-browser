@@ -5,6 +5,7 @@ from loguru import logger
 import pandas as pd
 import pytest
 import os
+import sys
 
 import bw2data as bd
 from PySide6 import QtCore, QtWidgets
@@ -50,7 +51,10 @@ def _destroy_main_window(qtbot):
     if qapp is not None:
         for _ in range(3):
             qapp.processEvents(QtCore.QEventLoop.ProcessEventsFlag.AllEvents)
-        qtbot.wait(100)
+        if sys.platform == "darwin":  # MacOS
+            qapp.processEvents(QtCore.QEventLoop.ProcessEventsFlag.AllEvents, 100)
+        else:
+            qtbot.wait(100)
 
     from activity_browser.app.main import MainWindow
 
