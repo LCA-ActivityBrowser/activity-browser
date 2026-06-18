@@ -54,17 +54,14 @@ jobs:
         python-version: 3.11
         activate-environment: build
         environment-file: .github/conda-envs/build.yml
+        conda-build-version: "*"
     - name: Build a Conda tarbal
       env:
         VERSION: ${{ env.VERSION }}
       run: |
-        source "${CONDA}/etc/profile.d/conda.sh"
-        conda activate build
         echo "Building conda package with VERSION=${VERSION}"
         conda build -c conda-forge -c cmutel -c lca ./recipe/
     - name: Publish to Anaconda
       run: |
-        source "${CONDA}/etc/profile.d/conda.sh"
-        conda activate build
         anaconda -t ${{ secrets.CONDA_LCA }} upload \
-        /usr/share/miniconda/envs/build/conda-bld/noarch/*.conda
+        /usr/share/miniconda/conda-bld/noarch/*.conda
