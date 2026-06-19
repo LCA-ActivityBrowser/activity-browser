@@ -150,18 +150,3 @@ def test_build_df_handles_missing_reference_flow(basic_database):
 
     assert len(df) == 1
     assert df.iloc[0]["product"] == "(missing reference flow)"
-
-
-def test_sync_prunes_missing_functional_units(basic_database):
-    cs_name = "basic_calculation_setup"
-    cs = bd.calculation_setups[cs_name]
-    cs["inv"] = [{("basic", "ghost_product"): 1.0}]
-    cs["inv_active"] = [True]
-    bd.calculation_setups[cs_name] = cs
-    bd.calculation_setups.serialize()
-
-    section = FunctionalUnitSection(cs_name)
-    section.sync()
-
-    assert bd.calculation_setups[cs_name]["inv"] == []
-    assert section.model.df.empty

@@ -9,8 +9,6 @@ from activity_browser import app
 from activity_browser.ui import widgets, icons, delegates, core
 from activity_browser.bwutils.commontasks import is_node_biosphere
 from activity_browser.bwutils.uncertainty import EMPTY_UNCERTAINTY, uncertainty_cell_summary
-from activity_browser.bwutils.characterization_factors import remove_orphaned_characterization_factors
-
 from .impact_category_header import ImpactCategoryHeader
 
 
@@ -92,7 +90,6 @@ class ImpactCategoryDetailsPage(widgets.ABAbstractPage):
             return
 
         self.impact_category = bd.Method(self.name)
-        remove_orphaned_characterization_factors(self.impact_category)
         df = self.build_df()
         df.reset_index(drop=True, inplace=True)
         self.model.set_dataframe(df)
