@@ -2,7 +2,7 @@ from qtpy import QtWidgets
 from loguru import logger
 
 from activity_browser import app
-from activity_browser.ui import widgets, icons
+from activity_browser.ui import widgets, icons, core
 
 from .scenario_section import ScenarioSection
 from .functional_unit_section import FunctionalUnitSection
@@ -65,12 +65,16 @@ class CalculationSetupPage(widgets.ABAbstractPage):
         self.setLayout(layout)
 
     def connect_signals(self):
-        app.signals.project.changed.connect(self.sync)
-        app.signals.meta.calculation_setups_changed.connect(self.sync)
-        app.signals.meta.methods_changed.connect(self.sync)
+        app.signals.project.changed.connect(self.syncLater)
+        app.signals.meta.calculation_setups_changed.connect(self.syncLater)
+        app.signals.meta.methods_changed.connect(self.syncLater)
+        app.signals.metadata.synced.connect(self.syncLater)
 
         self.type_dropdown.currentTextChanged.connect(self.type_switch)
         self.run_button.released.connect(self.run_calculation)
+
+    def syncLater(self):
+        core.schedule_awake_sync(self, self.sync)
 
     def sync(self) -> None:
         logger.log("SYNC", f"{self.__class__.__name__}: {id(self)}")

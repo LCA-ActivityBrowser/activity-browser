@@ -108,6 +108,7 @@ class ActivityDetailsPage(widgets.ABAbstractPage):
         app.signals.parameter.recalculated.connect(self.syncLater)
         app.signals.node.changed.connect(self.syncLater)
         app.signals.edge.changed.connect(self.syncLater)
+        app.signals.metadata.synced.connect(self.syncLater)
 
     def on_node_deleted(self, node):
         """
