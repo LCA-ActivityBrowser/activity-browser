@@ -2,7 +2,7 @@ import os
 
 import pandas as pd
 
-from qtpy import QtWidgets
+from qtpy import QtCore, QtGui, QtWidgets
 
 from activity_browser.app import application
 from activity_browser.app.actions.base import ABAction, exception_dialogs
@@ -36,4 +36,4 @@ class SaveParametersToExcel(ABAction):
         df = pd.DataFrame(data, columns=["Name", "Group", "default"]).set_index("Name")
         df.to_excel(file_path)
 
-        os.startfile(file_path)
+        QtGui.QDesktopServices.openUrl(QtCore.QUrl.fromLocalFile(file_path))
