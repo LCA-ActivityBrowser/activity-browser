@@ -16,7 +16,7 @@ class DatabaseExportExcel(ABAction):
     """
 
     icon = application.style().standardIcon(QtWidgets.QStyle.SP_DriveHDIcon)
-    text = "Export to Excel (.xlsx)"
+    text = "Export to Excel (.xlsx)..."
     tool_tip = "Export database(s) to Excel format"
 
     @classmethod

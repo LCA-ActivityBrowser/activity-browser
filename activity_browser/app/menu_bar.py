@@ -20,13 +20,17 @@ class MenuBar(QtWidgets.QMenuBar):
         super().__init__(parent=window)
 
         self.project_menu = ProjectMenu(self)
-        self.view_menu = ViewMenu(self)
+        self.database_menu = DatabaseMenu(self)
+        self.impact_categories_menu = ImpactCategoriesMenu(self)
         self.calculate_menu = CalculateMenu(self)
+        self.view_menu = ViewMenu(self)
         self.help_menu = HelpMenu(self)
 
         self.addMenu(self.project_menu)
-        self.addMenu(self.view_menu)
+        self.addMenu(self.database_menu)
+        self.addMenu(self.impact_categories_menu)
         self.addMenu(self.calculate_menu)
+        self.addMenu(self.view_menu)
         self.addMenu(self.help_menu)
 
         self.search_button = QtWidgets.QPushButton(self)
@@ -40,52 +44,74 @@ class MenuBar(QtWidgets.QMenuBar):
 
 
 class ProjectMenu(QtWidgets.QMenu):
-    """
-    Project menu: contains actions related to managing the project, such as project duplication, database importing etc.
-    """
+    """Project lifecycle: open, create, duplicate, export, delete, and manage projects."""
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
 
         self.setTitle("&Project")
 
-        self.dup_proj_action = app.actions.ProjectDuplicate.get_QAction()
-        self.delete_proj_action = app.actions.ProjectDelete.get_QAction()
+        self.dup_proj_action = app.actions.ProjectDuplicate.get_QAction(parent=self)
+        self.export_proj_action = app.actions.ProjectExport.get_QAction(parent=self)
+        self.delete_proj_action = app.actions.ProjectDelete.get_QAction(parent=self)
+        self.manage_proj_action = app.actions.ProjectManagerOpen.get_QAction(parent=self)
 
-        self.import_proj_action = app.actions.ProjectImport.get_QAction()
-        self.export_proj_action = app.actions.ProjectExport.get_QAction()
+        self.open_menu = ProjectSelectionMenu(self)
+        self.new_menu = ProjectNewMenu(self)
 
-        self.addMenu(ProjectSelectionMenu(self))
-        self.addMenu(ProjectNewMenu(self))
+        self.addMenu(self.open_menu)
+        self.addMenu(self.new_menu)
         self.addAction(self.dup_proj_action)
+        self.addAction(self.export_proj_action)
         self.addAction(self.delete_proj_action)
         self.addSeparator()
-        self.addAction(self.import_proj_action)
-        self.addAction(self.export_proj_action)
+        self.addAction(self.manage_proj_action)
+
+
+class DatabaseMenu(QtWidgets.QMenu):
+    """Database create, import, and export."""
+
+    def __init__(self, parent=None) -> None:
+        super().__init__(parent)
+
+        self.setTitle("&Database")
+
+        # Keep Python refs: QActions created with parent=None are otherwise GC'd
+        # and vanish from the menu (PySide).
+        self.new_db_action = app.actions.DatabaseNew.get_QAction(parent=self)
+        self.import_menu = ImportDatabaseMenu(self)
+        self.export_menu = ExportDatabaseMenu(self)
+
+        self.addAction(self.new_db_action)
         self.addSeparator()
-        self.addMenu(ImportDatabaseMenu(self))
-        self.addMenu(ExportDatabaseMenu(self))
-        self.addSeparator()
-        self.addMenu(ImportICMenu(self))
+        self.addMenu(self.import_menu)
+        self.addMenu(self.export_menu)
+
+
+class ImpactCategoriesMenu(QtWidgets.QMenu):
+    """Impact category (LCIA method) import."""
+
+    def __init__(self, parent=None) -> None:
+        super().__init__(parent)
+
+        self.setTitle("&Impact categories")
+
+        self.import_menu = ImportICMenu(self)
+        self.addMenu(self.import_menu)
 
 
 class ProjectNewMenu(QtWidgets.QMenu):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
 
-        self.setTitle("New project")
-        self.new_proj_action = app.actions.ProjectNew.get_QAction()
-        self.import_proj_action = app.actions.ProjectImport.get_QAction()
-
-        self.new_proj_action.setText("Empty project")
-        self.import_proj_action.setText("From .tar.gz file")
-
-        self.new_proj_action.setIcon(QtGui.QIcon())
-        self.import_proj_action.setIcon(QtGui.QIcon())
+        self.setTitle("New")
+        self.new_proj_action = app.actions.ProjectNew.get_QAction(parent=self)
+        self.import_proj_action = app.actions.ProjectImport.get_QAction(parent=self)
+        self.template_menu = ProjectNewTemplateMenu(self)
 
         self.addAction(self.new_proj_action)
         self.addAction(self.import_proj_action)
-        self.addMenu(ProjectNewTemplateMenu(self))
+        self.addMenu(self.template_menu)
 
 
 class ProjectNewTemplateMenu(QtWidgets.QMenu):
@@ -93,18 +119,18 @@ class ProjectNewTemplateMenu(QtWidgets.QMenu):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setTitle("From template")
+        self.setTitle("Import from template")
 
         self.actions = {}
 
         for key in get_templates():
-            action = app.actions.ProjectNewFromTemplate.get_QAction(key)
+            action = app.actions.ProjectNewFromTemplate.get_QAction(key, parent=self)
             action.setText(key)
             self.actions[key] = action
             self.addAction(action)
 
         for key in self.get_projects():
-            action = app.actions.ProjectNewRemote.get_QAction(key)
+            action = app.actions.ProjectNewRemote.get_QAction(key, parent=self)
             action.setText(key)
             self.actions[key] = action
             self.addAction(action)
@@ -123,28 +149,6 @@ class ViewMenu(QtWidgets.QMenu):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
         self.setTitle("&View")
-    #
-    #
-    #     # Populate pages
-    #     self.page_actions = {}
-    #     for page_name in app.pages.base_pages.keys():
-    #         action = QtWidgets.QAction(page_name, self)
-    #         action.setCheckable(True)
-    #         action.triggered.connect(lambda checked, name=page_name: app.main_window.toggle_page(name))
-    #         # Update checked state when menu is about to show
-    #         self.page_actions[page_name] = action
-    #         self.addAction(action)
-    #
-    #     # # Update the checked state when menu is about to show
-    #     # self.aboutToShow.connect(self.update_page_actions)
-    #
-    #     self.addSeparator()
-    #
-    # # def update_page_actions(self):
-    # #     """Update the checked state of page actions based on which pages are visible."""
-    # #     for page_name, action in self.page_actions.items():
-    # #         is_visible = app.main_window.is_page_visible(page_name)
-    # #         action.setChecked(is_visible)
 
 
 class CalculateMenu(QtWidgets.QMenu):
@@ -157,8 +161,7 @@ class CalculateMenu(QtWidgets.QMenu):
         self.setTitle("&Calculate")
         self.cs_actions = []
 
-        self.new_cs_action = app.actions.CSNew.get_QAction()
-        self.new_cs_action.setText("New setup...")
+        self.new_cs_action = app.actions.CSNew.get_QAction(parent=self)
         self.addAction(self.new_cs_action)
         self.addSeparator()
 
@@ -168,9 +171,11 @@ class CalculateMenu(QtWidgets.QMenu):
     def sync(self):
         logger.log("SYNC", f"{self.__class__.__name__}: {id(self)}")
 
+        for action in self.cs_actions:
+            self.removeAction(action)
         self.cs_actions.clear()
         for cs in bd.calculation_setups:
-            action = app.actions.CSOpen.get_QAction(cs)
+            action = app.actions.CSOpen.get_QAction(cs, parent=self)
             action.setText(cs)
             self.cs_actions.append(action)
             self.addAction(action)
@@ -200,25 +205,22 @@ class HelpMenu(QtWidgets.QMenu):
 
     def about(self):
         """Displays an 'about' window to the user containing e.g. the version of the AB and copyright info"""
-        # set the window text in html format
         text = f"""
         Activity Browser - a graphical interface for Brightway2.<br><br>
         Application version: <b>{version("activity_browser")}</b><br>
         bw2data version: <b>{version("bw2data")}</b><br>
-        bw2io version: <b>{version("bw2calc")}</b><br>
-        bw2calc version: <b>{version("bw2io")}</b><br><br>
+        bw2io version: <b>{version("bw2io")}</b><br>
+        bw2calc version: <b>{version("bw2calc")}</b><br><br>
         All development happens on <a href="https://github.com/LCA-ActivityBrowser/activity-browser">github</a>.<br><br>
         For copyright information please see the copyright on <a href="https://github.com/LCA-ActivityBrowser/activity-browser/tree/main#copyright">this page</a>.<br><br>
         For license information please see the copyright on <a href="https://github.com/LCA-ActivityBrowser/activity-browser/blob/main/LICENSE.txt">this page</a>.<br><br>
         """
 
-        # set up the window
         about_window = QtWidgets.QMessageBox(parent=app.main_window)
         about_window.setWindowTitle("About the Activity Browser")
         about_window.setIconPixmap(qicons.ab.pixmap(QSize(150, 150)))
         about_window.setText(text)
 
-        # execute
         about_window.exec_()
 
     def open_wiki(self):
@@ -242,7 +244,7 @@ class ProjectSelectionMenu(QtWidgets.QMenu):
     """
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setTitle("Open project")
+        self.setTitle("Open")
         self.populate()
 
         self.aboutToShow.connect(self.populate)
@@ -279,16 +281,12 @@ class ProjectSelectionMenu(QtWidgets.QMenu):
 class ImportDatabaseMenu(QtWidgets.QMenu):
     def __init__(self, parent=None) -> None:
         super().__init__(parent=parent)
-        self.setTitle("Import database")
+        self.setTitle("Import")
         self.setIcon(qicons.import_db)
 
-        self.import_from_ecoinvent_action = app.actions.DatabaseImportFromEcoinvent.get_QAction()
-        self.import_from_excel_action = app.actions.DatabaseImporterExcel.get_QAction()
-        self.import_from_bw2package_action = app.actions.DatabaseImporterBW2Package.get_QAction()
-
-        self.import_from_ecoinvent_action.setText("ecoinvent...")
-        self.import_from_excel_action.setText("from .xlsx")
-        self.import_from_bw2package_action.setText("from .bw2package")
+        self.import_from_excel_action = app.actions.DatabaseImporterExcel.get_QAction(parent=self)
+        self.import_from_bw2package_action = app.actions.DatabaseImporterBW2Package.get_QAction(parent=self)
+        self.import_from_ecoinvent_action = app.actions.DatabaseImportFromEcoinvent.get_QAction(parent=self)
 
         self.addAction(self.import_from_excel_action)
         self.addAction(self.import_from_bw2package_action)
@@ -299,13 +297,10 @@ class ImportDatabaseMenu(QtWidgets.QMenu):
 class ExportDatabaseMenu(QtWidgets.QMenu):
     def __init__(self, parent=None) -> None:
         super().__init__(parent=parent)
-        self.setTitle("Export database")
+        self.setTitle("Export")
 
-        self.export_to_excel_action = app.actions.DatabaseExportExcel.get_QAction()
-        self.export_to_bw2package_action = app.actions.DatabaseExportBW2Package.get_QAction()
-
-        self.export_to_excel_action.setText("to .xlsx")
-        self.export_to_bw2package_action.setText("to .bw2package")
+        self.export_to_excel_action = app.actions.DatabaseExportExcel.get_QAction(parent=self)
+        self.export_to_bw2package_action = app.actions.DatabaseExportBW2Package.get_QAction(parent=self)
 
         self.addAction(self.export_to_excel_action)
         self.addAction(self.export_to_bw2package_action)
@@ -314,22 +309,11 @@ class ExportDatabaseMenu(QtWidgets.QMenu):
 class ImportICMenu(QtWidgets.QMenu):
     def __init__(self, parent=None) -> None:
         super().__init__(parent=parent)
-        self.setTitle("Import impact categories")
+        self.setTitle("Import")
         self.setIcon(qicons.import_db)
 
-        self.beta_warning = QtWidgets.QWidgetAction(self)
-        self.beta_warning.setDefaultWidget(QtWidgets.QLabel("Beta features, use at your own risk"))
+        self.import_from_ei_excel_action = app.actions.MethodImporterEcoinvent.get_QAction(parent=self)
+        self.import_from_bw2io_action = app.actions.MethodImporterBW2IO.get_QAction(parent=self)
 
-        self.import_from_ei_excel_action = app.actions.MethodImporterEcoinvent.get_QAction()
-        self.import_from_bw2io_action = app.actions.MethodImporterBW2IO.get_QAction()
-
-        self.import_from_ei_excel_action.setText("from ecoinvent excel")
-        self.import_from_bw2io_action.setText("from bw2io")
-
-        self.import_from_ei_excel_action.setIcon(QtGui.QIcon())
-        self.import_from_bw2io_action.setIcon(QtGui.QIcon())
-
-        self.addAction(self.beta_warning)
-        self.addSeparator()
         self.addAction(self.import_from_ei_excel_action)
         self.addAction(self.import_from_bw2io_action)

@@ -17,15 +17,15 @@ Although not strictly necessary, most projects will rely on some sort of backgro
 If you are using a Brightway template project, it will come pre-loaded with an elementary flow database (e.g. **biosphere3**). If you are starting from an empty project, you will need to import or create one before you can start effectively modeling your own processes.
 
 ### Background data from ecoinvent
-If you have access to the ecoinvent database, you can import it into your project using the Activity Browser. To do this, open the **Project** menu in the top left corner of the application window and select **Import database > ecoinvent...** This will open a wizard to guide you through importing the ecoinvent database, biosphere and impact categories.
+If you have access to the ecoinvent database, you can import it into your project using the Activity Browser. To do this, open the **Database** menu in the top left corner of the application window and select **Import > Import from ecoinvent...** This will open a wizard to guide you through importing the ecoinvent database, biosphere and impact categories.
 
 ## Foreground databases
 Foreground databases contain the processes and products that you create and modify yourself. You can create multiple foreground databases within a single project to help organize your work in a meaningful way. For example, you might have one database for a specific product system and another for a different product system.
 
 ### Creating a new foreground database
-To create a new foreground database, open the **Project** menu in the top left corner of the application window and select **New database...** You will be prompted to enter a name for your new database. Choose a descriptive name that will help you identify the database later. After entering the name, click **Ok**. The new database will be created and opened in the Activity Browser so you can start adding processes and products.
+To create a new foreground database, open the **Database** menu in the top left corner of the application window and select **New database...** You will be prompted to enter a name for your new database. Choose a descriptive name that will help you identify the database later. After entering the name, click **Ok**. The new database will be created and opened in the Activity Browser so you can start adding processes and products.
 
 ### Importing and exporting databases
-You can also import and export databases in Activity Browser. This is useful if you want to share your databases with others or if you want to back up your work. Activity Browser supports importing and exporting databases in several formats, including Brightway's `.bw2data` format and `.xlsx`.
+You can also import and export databases in Activity Browser. This is useful if you want to share your databases with others or if you want to back up your work. Activity Browser supports importing and exporting databases in several formats, including Brightway's `.bw2package` format and `.xlsx`.
 
-To import a database, open the **Project** menu in the top left corner of the application window and select **Import database** You will be prompted to select the file containing the database you want to import. After selecting the file, click **Ok**. The database will be imported and opened in the Activity Browser.
+To import a database, open the **Database** menu in the top left corner of the application window and select **Import**, then choose the format that matches your file. You will be prompted to select the file containing the database you want to import. After selecting the file, click **Ok**. The database will be imported and opened in the Activity Browser.

@@ -23,7 +23,7 @@ This module orchestrates the main application components including the main wind
   - `main_window` - MainWindow instance
 
 - **`main_window.py`** - MainWindow class that holds the central widget and dock panes
-- **`menu_bar.py`** - Application menu bar with File, Edit, View, Tools, Help menus
+- **`menu_bar.py`** - Application menu bar with Project, Database, Impact categories, Calculate, View, and Help menus
 - **`signalling.py`** - ABSignals class that bridges bw2data signals to Qt signals
 
 ## Architecture

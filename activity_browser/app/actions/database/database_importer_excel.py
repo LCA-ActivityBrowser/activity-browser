@@ -18,7 +18,7 @@ from activity_browser.ui.core import threading
 class DatabaseImporterExcel(ABAction):
     """ABAction to open the DatabaseImportWizard"""
 
-    text = "Import database from brightway excel format"
+    text = "Import from .xlsx..."
     tool_tip = "Import database from brightway excel format"
 
     @classmethod
