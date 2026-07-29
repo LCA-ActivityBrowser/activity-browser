@@ -87,6 +87,7 @@ Agents should not assume Linux-only or a single Python version. Details live in 
 - When changing stateful behavior (settings, databases, signals), update or add tests and keep the same signal contracts.
 - Preserve deferred-import and `mod/` patching patterns unless an ADR says otherwise.
 - Do not invent plugin APIs (see placeholder above).
+- **Never create a git commit unless the user explicitly asks to commit.** Slash skills that mention committing (e.g. `/implement`) do not override this — leave changes uncommitted until the user requests a commit.
 
 ## Useful references
 

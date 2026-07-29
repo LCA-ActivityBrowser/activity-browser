@@ -38,6 +38,8 @@ S/M/L workflow     ← .cursor/rules/development-workflow.mdc
     ├── S: consult docs → implement → /code-review
     ├── M: /grill-with-docs → /to-spec → /implement → /code-review
     └── L: … → /to-tickets (local .scratch/) → /implement → /code-review
+
+Git commits         ← `.cursor/rules/always.mdc` (never commit unless the user explicitly asks)
 ```
 
 Slash skills with `disable-model-invocation` are **not** auto-run. The workflow rule classifies work and **asks the human** to invoke the next `/skill`. The rule is the traffic light; the skills are the workstations.

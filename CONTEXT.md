@@ -74,6 +74,10 @@ Analysis of how uncertain inputs drive output variance (e.g. SALib-based), based
 
 An LCA calculation that also considers multiple scenarios for inventory data (based on the superstructure approach). See `activity_browser/bwutils/superstructure/`.
 
+### Scenario name
+
+The string identifier of a scenario column in a scenario difference file (or in a combined scenario table). Always a string — file importers coerce numeric-looking headers (e.g. Excel `2025`) with `str(...)`. When scenarios from multiple files are combined (product), the combined scenario name is the file-order join of the parts with ` | ` (e.g. `A` and `X` → `A | X`). _Avoid_: scenario header (as a typed value), scenario label when meaning the column identity.
+
 ### Metadata store
 
 Cached tabular metadata for fast UI search and display (`app.metadata` / `activity_browser.bwutils.metadata`). Synced via `app.signals.metadata` and related meta signals; tests often wait for the metadata loader.
