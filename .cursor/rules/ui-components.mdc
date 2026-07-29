@@ -1,0 +1,13 @@
+---
+description: Conventions for activity_browser/ui — app-agnostic Qt components
+globs: activity_browser/ui/**
+alwaysApply: false
+---
+
+# ui/ conventions
+
+- Keep widgets reusable and **decoupled from `app` singletons** (no `app.signals` / `app.settings` / `app.metadata` dependencies here).
+- Import Qt via `qtpy` (`QtWidgets`, `QtCore`, `QtGui`, `Signal`, `Slot`).
+- Prefer abstract bases in `ui/widgets/` (`AbstractPage`, `AbstractPane`, etc.) when adding page/pane-shaped widgets.
+- Emit signals for state changes rather than reaching into application orchestration.
+- Application-specific wiring belongs in `activity_browser/app/`, not here.

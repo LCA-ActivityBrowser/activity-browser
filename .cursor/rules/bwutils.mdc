@@ -1,0 +1,13 @@
+---
+description: Conventions for activity_browser/bwutils — Brightway logic without Qt UI
+globs: activity_browser/bwutils/**
+alwaysApply: false
+---
+
+# bwutils/ conventions
+
+- Keep utilities **independent of Qt UI** and of `app` page/pane widgets; operate on Brightway data structures.
+- Prefer generic, reusable helpers; put UI orchestration in `app/`.
+- Follow existing submodule boundaries (`superstructure/`, `parameters/`, `metadata/`, etc.) and their READMEs.
+- Remain testable without a GUI where practical (pure logic tests in `tests/`).
+- Use glossary terms from `CONTEXT.md` (calculation setup, Monte Carlo, GSA, superstructure, …).

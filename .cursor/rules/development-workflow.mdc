@@ -1,0 +1,24 @@
+---
+description: S/M/L development workflow — classify work, gate M/L behind slash skills, keep agent docs map in sync
+alwaysApply: true
+---
+
+# Development workflow (S / M / L)
+
+Before implementing non-trivial work, classify the change. **If unsure, ask the user** whether it is S, M, or L.
+
+## Tiers
+
+| Tier | When | Process |
+|---|---|---|
+| **S** | Bugfix, small polish, obvious one-file (or similarly tiny) change | Consult `AGENTS.md`, `CONTEXT.md`, and relevant ADRs/module READMEs. Grill only if real tradeoffs appear. Then implement. Suggest `/code-review` when done. |
+| **M** | New behavior in a limited area, requirements need a written spec | Do **not** implement yet. Ask the user to run `/grill-with-docs`, then `/to-spec`, then `/implement`, then `/code-review`. |
+| **L** | Cross-cutting work, `bwutils/` + `mod/` + signals, or new architecture | Same as M, plus `/to-tickets` (local `.scratch/`) after the spec and before `/implement`. |
+
+## Skill invocation
+
+Skills such as `/grill-with-docs`, `/to-spec`, `/to-tickets`, `/implement`, and `/code-review` are often `disable-model-invocation` — **do not improvise their full procedures**. Pause and ask the user to invoke the next skill. Local tickets/specs: see `docs/agents/issue-tracker.md`.
+
+## Agent docs map maintenance
+
+If you change how agent documentation is organized (`.cursor/rules`, `CONTEXT.md`, `docs/adr`, `docs/agents`, issue tracker choice, or this S/M/L workflow), **update `docs/agents/README.md` in the same change**.

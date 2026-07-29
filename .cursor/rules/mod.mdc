@@ -1,0 +1,14 @@
+---
+description: Safety rules for activity_browser/mod monkey-patches
+globs: activity_browser/mod/**
+alwaysApply: false
+---
+
+# mod/ conventions
+
+- Patches are **minimally invasive**; document why each patch exists (`ADR-0004`).
+- Prefer upstream contributions when practical; do not grow silent forks without need.
+- When touching a patch, **check whether a newer Brightway (or related) dependency already provides the behavior** and remove or shrink the monkey-patch if so; note the check in the patch comment or nearby README.
+- Keep patches compatible with upstream version ranges declared in `pyproject.toml` / conda recipe.
+- Test thoroughly — these change third-party behavior at import time.
+- Do not relocate unrelated AB features into `mod/`; this package is for third-party adaptation only.
