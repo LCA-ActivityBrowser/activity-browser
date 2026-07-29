@@ -154,6 +154,16 @@ def scenario_columns(df: pd.DataFrame) -> pd.Index:
     return df.columns.difference(SUPERSTRUCTURE, sort=False)
 
 
+def ensure_string_scenario_names(df: pd.DataFrame) -> pd.DataFrame:
+    """Coerce scenario column names to strings (Excel/CSV may yield ints)."""
+    scen = scenario_columns(df)
+    if scen.empty:
+        return df
+    return df.rename(
+        columns={c: str(c).replace("\n", " ").replace("\r", "") for c in scen}
+    )
+
+
 def scenario_names_from_df(df: pd.DataFrame) -> List[str]:
     """Returns the list of scenario names from a given superstructure.
 

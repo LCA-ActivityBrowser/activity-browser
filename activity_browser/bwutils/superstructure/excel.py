@@ -8,6 +8,7 @@ import openpyxl
 import pandas as pd
 
 from .utils import SUPERSTRUCTURE
+from .dataframe import ensure_string_scenario_names
 
 
 
@@ -99,6 +100,8 @@ def import_from_excel(
         # Convert specific columns that may have tuples as strings
         columns = ["from categories", "from key", "to categories", "to key"]
         data.loc[:, columns] = data[columns].map(convert_tuple_str)
+        # Scenario headers typed as numbers in Excel (e.g. 2025) must be strings.
+        data = ensure_string_scenario_names(data)
     except:
         # skip the error checks here, these now occur in the calling layout.tabs.LCA_setup module
         pass
