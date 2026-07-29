@@ -1,4 +1,5 @@
 from loguru import logger
+import copy
 
 from qtpy import QtWidgets
 
@@ -44,6 +45,6 @@ class CSDuplicate(ABAction):
             )
             return
 
-        bd.calculation_setups[new_name] = bd.calculation_setups[cs_name].copy()
+        bd.calculation_setups[new_name] = copy.deepcopy(bd.calculation_setups[cs_name])
         logger.info(f"Copied calculation setup {cs_name} as {new_name}")
         CSOpen.run(new_name)

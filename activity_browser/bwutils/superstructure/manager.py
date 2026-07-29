@@ -18,9 +18,7 @@ from ..errors import (CriticalScenarioExtensionError, ImportCanceledError,
 from .activities import fill_df_keys_with_fields, get_activities_from_keys
 from .dataframe import scenario_columns, ensure_string_scenario_names
 from .file_dialogs import ABPopup
-from .utils import SUPERSTRUCTURE, _time_it_, guess_flow_type
-
-SCENARIO_NAME_JOIN = " | "
+from .utils import SUPERSTRUCTURE, SCENARIO_NAME_JOIN, _time_it_, guess_flow_type
 
 
 
@@ -562,12 +560,16 @@ class SuperstructureManager(object):
             # and we are always checking the last file
             # So only comparisons with the last file are required
             count = 1
-            df = data[-count].copy()
+            last = data[-count]
             duplicated = {}
             while count < len(data):
                 count += 1
-                popped = data[-count].copy()
-                duplicates = SuperstructureManager._check_duplicates(df, popped, count)
+                # Fresh copies each pass: _check_duplicates inserts a "file"
+                # column; reusing the same frame on the 3rd+ file would create
+                # duplicate column labels and break pd.concat.
+                duplicates = SuperstructureManager._check_duplicates(
+                    last.copy(), data[-count].copy(), count
+                )
                 if not duplicates.empty:
                     duplicated[count] = duplicates
 
@@ -604,12 +606,16 @@ class SuperstructureManager(object):
         # TODO fix variable names 'dfp' & 'pdf' to something undearstandeable
         # TODO create useful docstring, already clear this is a private method from '_' prefix
         """NOT TO BE USED OUTSIDE OF CALLING METHOD check_duplicates"""
+        # Work on copies so callers can safely pass the same frame again
+        # (e.g. last file vs each earlier file when combining 3+ scenarios).
+        dfp = dfp.copy()
+        pdf = pdf.copy()
         # First save the original index and create a new one that can help the user identify duplicates in their files
         d_idx = dfp.index
-        dfp.insert(0, "file", "1", allow_duplicates=True)  # add the file number
+        dfp.insert(0, "file", "1")  # add the file number
         dfp.index = pd.Index([str(i) for i in range(dfp.shape[0])])
         p_idx = pdf.index
-        pdf.insert(0, "file", str(count), allow_duplicates=True)  # add the file number
+        pdf.insert(0, "file", str(count))  # add the file number
         pdf.index = pd.Index([str(i) for i in range(pdf.shape[0])])
         df = pd.concat([dfp, pdf], ignore_index=True)
         dfp.index = d_idx

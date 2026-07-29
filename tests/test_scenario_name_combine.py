@@ -59,3 +59,29 @@ def test_product_combine_with_numeric_scenario_names():
     assert combined.at[row2, "A | 2026"] == 4.0
     assert combined.at[row2, "B | 2025"] == 3.0
     assert combined.at[row2, "B | 2026"] == 4.0
+
+
+def test_check_duplicates_three_frames_no_cross_file_dups():
+    """Regression: 3+ frames must not leave a duplicate 'file' column between passes."""
+    frames = [
+        _minimal_sdf("a", "b", {"A": 1.0}),
+        _minimal_sdf("c", "d", {"X": 2.0}),
+        _minimal_sdf("e", "f", {"P": 3.0}),
+    ]
+    result = SuperstructureManager.check_duplicates(frames)
+    assert len(result) == 3
+
+
+def test_product_combine_three_files():
+    df1 = _minimal_sdf("a", "b", {"A": 10.0})
+    df2 = _minimal_sdf("c", "d", {"X": 3.0})
+    df3 = _minimal_sdf("e", "f", {"P": 7.0})
+
+    combined = SuperstructureManager(df1, df2, df3).combined_data(
+        kind="product", skip_checks=False
+    )
+
+    assert list(combined.columns) == ["A | X | P"]
+    assert combined.at[(("db", "a"), ("db", "b"), "technosphere"), "A | X | P"] == 10.0
+    assert combined.at[(("db", "c"), ("db", "d"), "technosphere"), "A | X | P"] == 3.0
+    assert combined.at[(("db", "e"), ("db", "f"), "technosphere"), "A | X | P"] == 7.0

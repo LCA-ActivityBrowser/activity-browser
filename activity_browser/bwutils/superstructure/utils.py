@@ -29,6 +29,9 @@ SUPERSTRUCTURE = pd.Index(
     ]
 )
 
+# Join separator for product-combined scenario names (file-order parts).
+SCENARIO_NAME_JOIN = " | "
+
 
 def edit_superstructure_for_string(
     superstructure=SUPERSTRUCTURE, sep="<br>", fhighlight=""

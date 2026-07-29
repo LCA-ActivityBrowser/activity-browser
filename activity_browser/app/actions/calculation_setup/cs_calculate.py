@@ -49,6 +49,13 @@ class CSCalculate(ABAction):
                 f"Calculation setup '{cs_name}' has no active impact categories."
             )
 
+        if scenario_data is not None and (
+            scenario_data.empty or len(scenario_data.columns) == 0
+        ):
+            raise Exception(
+                f"Calculation setup '{cs_name}' has no active scenarios selected."
+            )
+
         dialog = CalculationDialog(cs_name, app.main_window)
         dialog.show()
         app.application.thread().eventDispatcher().processEvents(QtCore.QEventLoop.ProcessEventsFlag.AllEvents)

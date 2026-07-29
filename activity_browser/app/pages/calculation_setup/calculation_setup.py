@@ -87,6 +87,7 @@ class CalculationSetupPage(widgets.ABAbstractPage):
             self.scenario_section.hide()
         elif calculation_type == "Scenario":
             self.scenario_section.show()
+            self.scenario_section.load_persisted_scenarios()
         else:
             raise ValueError(f"Unknown calculation type: {calculation_type}")
 
