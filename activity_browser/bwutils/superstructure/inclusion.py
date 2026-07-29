@@ -98,15 +98,11 @@ def uncheck_name(
 def check_name(
     included: Sequence[str], axes: Axes, file_index: int, name: str, mode: str
 ) -> list[str]:
-    universe = set(full_universe(axes, mode))
     if mode == MODE_ADDITION:
-        if name not in universe:
-            return order_included(included, axes, mode)
-        if name in included:
-            return order_included(included, axes, mode)
-        return order_included(list(included) + [name], axes, mode)
+        if name in full_universe(axes, mode) and name not in included:
+            return order_included(list(included) + [name], axes, mode)
+        return order_included(included, axes, mode)
 
-    n = len(axes)
     if name not in axes[file_index]:
         return order_included(included, axes, mode)
 
@@ -115,16 +111,16 @@ def check_name(
     for i, names in enumerate(axes):
         if i == file_index:
             other_axes.append([name])
-        else:
-            on_names = [nm for nm, on in zip(names, flags[i]) if on]
-            if not on_names:
-                return order_included(included, axes, mode)
-            other_axes.append(on_names)
+            continue
+        on_names = [nm for nm, on in zip(names, flags[i]) if on]
+        if not on_names:
+            return order_included(included, axes, mode)
+        other_axes.append(on_names)
 
-    additions = [join_parts(parts) for parts in itertools.product(*other_axes)]
+    universe = set(full_universe(axes, mode))
     seen = set(included)
     result = list(included)
-    for combo in additions:
+    for combo in (join_parts(parts) for parts in itertools.product(*other_axes)):
         if combo in universe and combo not in seen:
             result.append(combo)
             seen.add(combo)

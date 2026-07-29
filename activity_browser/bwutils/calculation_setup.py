@@ -10,6 +10,7 @@ import pandas as pd
 from activity_browser.bwutils.superstructure.inclusion import (
     MODE_ADDITION,
     MODE_PRODUCT,
+    ReconcileResult,
     all_included,
     reconcile_included,
 )
@@ -144,10 +145,8 @@ def filter_scenario_dataframe(
 
 def reconcile_scenario_persistence(
     cs: dict, current_axes: Sequence[Sequence[str]], mode: str
-):
+) -> ReconcileResult:
     """Reconcile saved S with current axes; returns ReconcileResult."""
-    from activity_browser.bwutils.superstructure.inclusion import ReconcileResult
-
     saved = get_scenario_persistence(cs)
     if saved is None:
         return ReconcileResult(all_included(current_axes, mode), mismatched=False)

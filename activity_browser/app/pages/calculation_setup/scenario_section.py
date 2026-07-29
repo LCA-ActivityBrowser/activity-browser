@@ -28,6 +28,7 @@ class ScenarioSection(QtWidgets.QWidget):
         self._included: list[str] = []
         self._axes: list[list[str]] = []
         self._mode: str | None = None
+        self._last_inclusion_mismatch = False
 
         # set up the control buttons
         self.get_template_btn = app.actions.SaveParametersToExcel.get_QButton()
@@ -125,44 +126,58 @@ class ScenarioSection(QtWidgets.QWidget):
         self.stats_widget.setText(stats)
 
     def toggle_combine_type(self) -> None:
-        """Called by signal when the combine type is switched by the user"""
+        """Rebuild after Combine/Extend switch; restore prior mode on failure."""
+        # Radio already shows the new mode; _mode still holds the previous one.
+        previous = self._mode
         try:
-            # try to update the combined dataframe
             self.combined_dataframe()
-        except:
-            # revert when an exception occurs
-            type = self.get_combine_type()
-            if type == "product":
-                self.addition_choice.setChecked(True)
-            if type == "addition":
+        except Exception:
+            logger.exception("Failed to switch scenario combine mode")
+            if previous is None:
+                previous = (
+                    scen_inc.MODE_ADDITION
+                    if self.get_combine_type() == scen_inc.MODE_PRODUCT
+                    else scen_inc.MODE_PRODUCT
+                )
+            self._restore_combine_mode(previous)
+
+    def _restore_combine_mode(self, mode: str) -> None:
+        """Put radios back without re-entering toggle_combine_type."""
+        self.combine_group.blockSignals(True)
+        try:
+            if mode == scen_inc.MODE_PRODUCT:
                 self.product_choice.setChecked(True)
+            else:
+                self.addition_choice.setChecked(True)
+        finally:
+            self.combine_group.blockSignals(False)
 
     def get_combine_type(self) -> str:
         """Return the type of combination the user wants to do"""
         if self.product_choice.isChecked():
-            return "product"
-        elif self.addition_choice.isChecked():
-            return "addition"
+            return scen_inc.MODE_PRODUCT
+        return scen_inc.MODE_ADDITION
 
     def scenario_dataframe(self) -> pd.DataFrame:
         return cs_helpers.filter_scenario_dataframe(
             self._scenario_dataframe, self._included
         )
 
-    def included_scenarios(self) -> list[str]:
-        return list(self._included)
-
     def cs_name(self) -> str | None:
         parent = self.parent()
         return getattr(parent, "calculation_setup_name", None)
 
     def current_axes(self) -> list[list[str]]:
-        axes = []
-        for table in self.tables:
-            if table.dataframe.empty:
-                continue
-            axes.append(ss.scenario_names_from_df(table.dataframe))
-        return axes
+        return [
+            ss.scenario_names_from_df(table.dataframe)
+            for table in self.tables
+            if not table.dataframe.empty
+        ]
+
+    def _set_included(self, included: list[str]) -> None:
+        self._included = list(included)
+        self.refresh_inclusion_ui()
+        self.persist_inclusion()
 
     def refresh_inclusion_ui(self) -> None:
         mode = self.get_combine_type()
@@ -181,49 +196,37 @@ class ScenarioSection(QtWidgets.QWidget):
         )
         self.combinations_panel.setVisible(show)
         if show:
-            universe = scen_inc.product_universe(self._axes)
             included = set(self._included)
             self.combinations_panel.set_combinations(
-                [(name, name in included) for name in universe]
+                [
+                    (name, name in included)
+                    for name in scen_inc.product_universe(self._axes)
+                ]
             )
 
     def set_combination_included(self, name: str, active: bool) -> None:
-        currently = name in self._included
-        if active == currently:
+        if active == (name in self._included):
             return
-        mode = self.get_combine_type()
-        self._included = scen_inc.toggle_combination(
-            self._included, name, self._axes, mode
+        self._set_included(
+            scen_inc.toggle_combination(
+                self._included, name, self._axes, self.get_combine_type()
+            )
         )
-        self.refresh_inclusion_ui()
-        self.persist_inclusion()
 
     def select_all_combinations(self) -> None:
         if self.get_combine_type() != scen_inc.MODE_PRODUCT or len(self._axes) < 2:
             return
-        self._included = scen_inc.all_included(self._axes, scen_inc.MODE_PRODUCT)
-        self.refresh_inclusion_ui()
-        self.persist_inclusion()
+        self._set_included(scen_inc.all_included(self._axes, scen_inc.MODE_PRODUCT))
 
     def select_none_combinations(self) -> None:
         if self.get_combine_type() != scen_inc.MODE_PRODUCT or len(self._axes) < 2:
             return
-        self._included = []
-        self.refresh_inclusion_ui()
-        self.persist_inclusion()
+        self._set_included([])
 
     def set_name_included(self, file_index: int, name: str, active: bool) -> None:
         mode = self.get_combine_type()
-        if active:
-            self._included = scen_inc.check_name(
-                self._included, self._axes, file_index, name, mode
-            )
-        else:
-            self._included = scen_inc.uncheck_name(
-                self._included, self._axes, file_index, name, mode
-            )
-        self.refresh_inclusion_ui()
-        self.persist_inclusion()
+        op = scen_inc.check_name if active else scen_inc.uncheck_name
+        self._set_included(op(self._included, self._axes, file_index, name, mode))
 
     def persist_inclusion(self) -> None:
         name = self.cs_name()
@@ -252,18 +255,17 @@ class ScenarioSection(QtWidgets.QWidget):
         mode_changed = self._mode is not None and self._mode != mode
         mismatched = False
         if mode_changed or not self._axes:
-            self._included = scen_inc.all_included(new_axes, mode)
+            included = scen_inc.all_included(new_axes, mode)
         else:
             result = scen_inc.reconcile_included(
                 self._included, self._axes, new_axes, mode
             )
-            self._included = result.included
+            included = result.included
             mismatched = result.mismatched
         self._axes = [list(a) for a in new_axes]
         self._mode = mode
         self._last_inclusion_mismatch = mismatched
-        self.refresh_inclusion_ui()
-        self.persist_inclusion()
+        self._set_included(included)
         return mismatched
 
     def load_persisted_scenarios(self) -> None:
@@ -289,6 +291,7 @@ class ScenarioSection(QtWidgets.QWidget):
                 + "\n\nLoad scenario files from scratch.",
             )
             cs_helpers.clear_scenario_persistence(name)
+            self.clear_tables()
             return
 
         progress = QtWidgets.QProgressDialog(
@@ -359,40 +362,25 @@ class ScenarioSection(QtWidgets.QWidget):
         finally:
             progress.close()
 
+    def _clear_combined_scenarios(self) -> None:
+        self._scenario_dataframe = pd.DataFrame()
+        self._included = []
+        self._axes = []
+        self._mode = None
+        self.sync_combinations_panel()
+        self.update_stats()
+
     def combined_dataframe(self, skip_checks: bool = False) -> None:
         """Updates scenario dataframe to contain the combined scenarios of multiple tables."""
-        # if there are no tables currently, set the dataframe to be empty
-        if not self.tables:
-            self._scenario_dataframe = pd.DataFrame()
-            self._included = []
-            self._axes = []
-            self._mode = None
-            self.sync_combinations_panel()
-            self.update_stats()
-            return
-
-        # if the tables are empty, set the dataframe to be empty
         data = [df for df in (t.dataframe for t in self.tables) if not df.empty]
         if not data:
-            self._scenario_dataframe = pd.DataFrame()
-            self._included = []
-            self._axes = []
-            self._mode = None
-            self.sync_combinations_panel()
-            self.update_stats()
+            self._clear_combined_scenarios()
             return
 
-        # check what kind of combination the user wants to do
         kind = self.get_combine_type()
-
-        # combine the data using SuperstructureManager and update the dataframe
         manager = ss.SuperstructureManager(*data)
         self._scenario_dataframe = manager.combined_data(kind, skip_checks)
-
         self.reconcile_inclusion_after_combine()
-
-        # update the stats at the bottom of the widget
-        self.update_stats()
 
     def add_table(self) -> None:
         """Add a new table widget to the widget and add to the list of tables"""
@@ -727,11 +715,7 @@ class ScenarioImportWidget(QtWidgets.QWidget):
                 return
             self.scenario_df = df
             cols = ss.scenario_names_from_df(self.scenario_df)
-            self.model.set_dataframe(
-                pd.DataFrame(
-                    {"Scenarios": cols, "_active": [True] * len(cols)}
-                )
-            )
+            self._set_scenario_name_rows(cols, [True] * len(cols))
             if combine:
                 self._parent.combined_dataframe()
         finally:
@@ -739,15 +723,20 @@ class ScenarioImportWidget(QtWidgets.QWidget):
             while QtWidgets.QApplication.overrideCursor() is not None:
                 QtWidgets.QApplication.restoreOverrideCursor()
 
+    def _set_scenario_name_rows(
+        self, cols: list[str], flags: list[bool]
+    ) -> None:
+        self.model.set_dataframe(
+            pd.DataFrame({"Scenarios": cols, "_active": list(flags)})
+        )
+
     def sync_inclusion_flags(self, flags: list[bool]) -> None:
         if self.scenario_df.empty:
             return
         cols = ss.scenario_names_from_df(self.scenario_df)
         if len(flags) != len(cols):
             flags = [True] * len(cols)
-        self.model.set_dataframe(
-            pd.DataFrame({"Scenarios": cols, "_active": list(flags)})
-        )
+        self._set_scenario_name_rows(cols, flags)
 
     def scenario_db_check(self, df: pd.DataFrame) -> pd.DataFrame:
         dbs = set(df.loc[:, "from database"]).union(set(df.loc[:, "to database"]))
