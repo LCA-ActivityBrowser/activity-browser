@@ -6,7 +6,6 @@ on:
       - major
   push:
     branches:
-      - beta
       - major
 
 jobs:

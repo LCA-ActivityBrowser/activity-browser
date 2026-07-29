@@ -27,3 +27,4 @@ uv.lock
 /local_testing/
 /scripts/
 /.ci-test-venv/
+.scratch/

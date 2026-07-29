@@ -1,0 +1,14 @@
+---
+description: Testing patterns for Activity Browser pytest suite
+globs: tests/**
+alwaysApply: false
+---
+
+# tests/ conventions
+
+- Prefer the two patterns in `AGENTS.md`: pure logic tests vs UI/integration with `pytest-qt`.
+- Reuse fixtures from `tests/conftest.py` and data helpers under `tests/fixtures/`.
+- For Brightway isolation use `@bw2test` as existing fixtures do.
+- UI tests: use `qtbot`, avoid blocking dialogs (see `no_exception_dialogs`), wait for metadata loaders when needed, keep tests non-blocking.
+- Preserve env var patterns set in `conftest.py` (`AB_SKIP_SETTINGS_ON_STARTUP`, `AB_NO_SEARCHER`, …).
+- CI runs headless with `QT_QPA_PLATFORM=offscreen` (see `.github/workflows/testing.yaml`).
