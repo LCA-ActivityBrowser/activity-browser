@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import itertools
 from typing import List, Optional, Union
 from loguru import logger
 
@@ -17,9 +16,9 @@ from ..errors import (CriticalScenarioExtensionError, ImportCanceledError,
                       ScenarioExchangeNotFoundError,
                       UnalignableScenarioColumnsWarning)
 from .activities import fill_df_keys_with_fields, get_activities_from_keys
-from .dataframe import scenario_columns
+from .dataframe import scenario_columns, ensure_string_scenario_names
 from .file_dialogs import ABPopup
-from .utils import SUPERSTRUCTURE, _time_it_, guess_flow_type
+from .utils import SUPERSTRUCTURE, SCENARIO_NAME_JOIN, _time_it_, guess_flow_type
 
 
 
@@ -79,8 +78,15 @@ class SuperstructureManager(object):
             df = SuperstructureManager.product_combine_frames(
                 self.frames, combo_idx, combo_cols, skip_checks
             )
-            # Flatten the columns again for later processing.
-            df.columns = df.columns.to_flat_index()
+            # Flatten product MultiIndex to "A | X" scenario names.
+            df.columns = [
+                (
+                    SCENARIO_NAME_JOIN.join(str(part) for part in col)
+                    if isinstance(col, tuple)
+                    else col
+                )
+                for col in df.columns
+            ]
         elif kind == "addition":
             # Find the intersection subset of scenarios.
             cols = self._combine_columns_intersect()
@@ -99,17 +105,12 @@ class SuperstructureManager(object):
         Combines the scenario columns from the objects self.frames variable following combinatoric
         principles.
 
-        Raises
-        ------
-        CriticalScenarioExtensionError if multiple dataframes in the self.frames variable contain the
-        same scenario names
-
         Returns
         -------
         A pandas multi-index with the separate dataframes in self.frames contributing to the index levels
         """
         cols = [scenario_columns(df).to_list() for df in self.frames]
-        return pd.Index([str(c) for c in list(itertools.product(*cols))])
+        return pd.MultiIndex.from_product(cols)
 
     def _combine_columns_intersect(self) -> pd.Index:
         iterable = iter(self.frames)
@@ -179,13 +180,11 @@ class SuperstructureManager(object):
         A pandas dataframe constructed from the combined inputs to the class self.frames variable
         """
 
-        def combine(one, two):
-            """Should hopefully provide a failsafe approach to combining the different scenario combinations,
-            by using a simple vector - vector assignment approach.
-            """
-            for col_two in SUPERSTRUCTURE.symmetric_difference(two.columns):
+        def combine(one, two, level: int):
+            """Assign scenario amounts into product columns for this file's level."""
+            for col_two in scenario_columns(two):
                 for idx in one.columns:
-                    if col_two in idx:
+                    if idx[level] == col_two:
                         one.loc[two.index, idx] = two.loc[:, col_two]
 
         base_scenario_data = pd.DataFrame([], index=index, columns=SUPERSTRUCTURE)
@@ -196,12 +195,12 @@ class SuperstructureManager(object):
                 SuperstructureManager.check_scenario_exchange_values(
                     f, scenario_columns(f)
                 )
-                combine(scenarios_data, f)
+                combine(scenarios_data, f, idx)
                 base_scenario_data.loc[f.index, :] = f.loc[:, SUPERSTRUCTURE]
         else:
             for idx, f in enumerate(data):
                 f = SuperstructureManager.remove_duplicates(f)
-                combine(scenarios_data, f)
+                combine(scenarios_data, f, idx)
                 base_scenario_data.loc[f.index, :] = f.loc[:, SUPERSTRUCTURE]
 
         scenarios_data.columns = cols.to_flat_index()
@@ -255,6 +254,7 @@ class SuperstructureManager(object):
         """
         if not isinstance(df.index, pd.MultiIndex):
             df.index = SuperstructureManager.build_index(df)
+        df = ensure_string_scenario_names(df)
         # all import checks should take place before merge_flows_to_self
         #        df = SuperstructureManager.check_duplicates(df)
         #        df = SuperstructureManager.merge_flows_to_self(df)
@@ -560,12 +560,16 @@ class SuperstructureManager(object):
             # and we are always checking the last file
             # So only comparisons with the last file are required
             count = 1
-            df = data[-count].copy()
+            last = data[-count]
             duplicated = {}
             while count < len(data):
                 count += 1
-                popped = data[-count].copy()
-                duplicates = SuperstructureManager._check_duplicates(df, popped, count)
+                # Fresh copies each pass: _check_duplicates inserts a "file"
+                # column; reusing the same frame on the 3rd+ file would create
+                # duplicate column labels and break pd.concat.
+                duplicates = SuperstructureManager._check_duplicates(
+                    last.copy(), data[-count].copy(), count
+                )
                 if not duplicates.empty:
                     duplicated[count] = duplicates
 
@@ -602,12 +606,16 @@ class SuperstructureManager(object):
         # TODO fix variable names 'dfp' & 'pdf' to something undearstandeable
         # TODO create useful docstring, already clear this is a private method from '_' prefix
         """NOT TO BE USED OUTSIDE OF CALLING METHOD check_duplicates"""
+        # Work on copies so callers can safely pass the same frame again
+        # (e.g. last file vs each earlier file when combining 3+ scenarios).
+        dfp = dfp.copy()
+        pdf = pdf.copy()
         # First save the original index and create a new one that can help the user identify duplicates in their files
         d_idx = dfp.index
-        dfp.insert(0, "file", "1", allow_duplicates=True)  # add the file number
+        dfp.insert(0, "file", "1")  # add the file number
         dfp.index = pd.Index([str(i) for i in range(dfp.shape[0])])
         p_idx = pdf.index
-        pdf.insert(0, "file", str(count), allow_duplicates=True)  # add the file number
+        pdf.insert(0, "file", str(count))  # add the file number
         pdf.index = pd.Index([str(i) for i in range(pdf.shape[0])])
         df = pd.concat([dfp, pdf], ignore_index=True)
         dfp.index = d_idx

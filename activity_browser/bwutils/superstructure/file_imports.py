@@ -7,6 +7,7 @@ from loguru import logger
 import pandas as pd
 
 from ..errors import *
+from .dataframe import ensure_string_scenario_names
 
 
 
@@ -207,7 +208,7 @@ class ABFeatherImporter(ABFileImporter):
         # ... execute code
         df.loc[:, "from key"] = df.loc[:, "from key"].apply(tuple)
         df.loc[:, "to key"] = df.loc[:, "to key"].apply(tuple)
-        return df
+        return ensure_string_scenario_names(df)
 
 
 class ABCSVImporter(ABFileImporter):
@@ -228,5 +229,5 @@ class ABCSVImporter(ABFileImporter):
                 index_col=False,
                 converters={"from key": ast.literal_eval, "to key": ast.literal_eval},
             )
-        # ... execute code
-        return df
+        # Scenario headers typed as numbers (e.g. 2025) must be strings.
+        return ensure_string_scenario_names(df)

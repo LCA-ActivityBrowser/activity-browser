@@ -49,6 +49,18 @@ class CSCalculate(ABAction):
                 f"Calculation setup '{cs_name}' has no active impact categories."
             )
 
+        if scenario_data is not None and (
+            scenario_data.empty or len(scenario_data.columns) == 0
+        ):
+            QtWidgets.QMessageBox.warning(
+                app.main_window,
+                "No scenarios selected",
+                "Select at least one scenario before calculating.\n\n"
+                "Use the checkboxes on the scenario files, or the combinations "
+                "list when combining multiple files.",
+            )
+            return
+
         dialog = CalculationDialog(cs_name, app.main_window)
         dialog.show()
         app.application.thread().eventDispatcher().processEvents(QtCore.QEventLoop.ProcessEventsFlag.AllEvents)

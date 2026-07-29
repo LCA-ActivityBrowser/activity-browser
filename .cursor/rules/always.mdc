@@ -11,3 +11,4 @@ alwaysApply: true
 - Preserve deferred-import patterns on hot paths (`ADR-0002`).
 - Do not invent or harden a plugin API (placeholder in `AGENTS.md` until redesigned).
 - Prefer small, localized diffs; add/update tests for stateful behavior.
+- **Never create a git commit unless the user explicitly asks to commit in that message.** Skills that say “commit when done” (e.g. `/implement`) do **not** override this — finish the work, leave changes uncommitted, and wait for an explicit commit request. Do not stage-and-commit “to finish the task,” “because the skill says so,” or “so code-review has a SHA.”

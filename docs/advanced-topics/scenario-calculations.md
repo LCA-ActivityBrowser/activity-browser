@@ -35,8 +35,8 @@ When adding multiple scenarios to a calculation setup, you can choose to either 
 
 ### Combining scenarios
 The option `Combine scenarios` will calculate every combination between scenarios, it adds more scenarios. 
-This yields all possible scenario combinations, e.g. file 1: <i>A, B</i> and file 2: <i>X, Y</i> yields <i>A-X, A-Y, 
-B-X and B-Y</i>, as shown in the figure below. 
+This yields all possible scenario combinations, e.g. file 1: <i>A, B</i> and file 2: <i>X, Y</i> yields <i>A | X, A | Y, 
+B | X and B | Y</i>, as shown in the figure below. 
 
 ![SDF product combination](../assets/scenario-combining.png)
 

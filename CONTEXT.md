@@ -40,7 +40,7 @@ The quantified output (or input in case of a waste treatment system) of the prod
 
 ### Calculation setup (CS)
 
-A named set of functional unit(s) and LCIA method(s) used to run LCA / multi-LCA / Monte Carlo. Managed under calculation-setup UI and `app` actions. It can also additionaly include scenarios as a third element in the "Scenario" LCA mode. 
+A named set of functional unit(s) and LCIA method(s) used to run LCA / multi-LCA / Monte Carlo. Managed under calculation-setup UI and `app` actions. It can also additionaly include scenarios as a third element in the "Scenario" LCA mode. The CS page always opens in **Standard** mode; switching to **Scenario** mode may reload persisted scenario files (with a loading indication). Scenario file paths, combine mode, and the included scenario-combinations set may be stored on the CS.
 
 ### LCIA method / impact category
 
@@ -73,6 +73,14 @@ Analysis of how uncertain inputs drive output variance (e.g. SALib-based), based
 ### Scenario LCA
 
 An LCA calculation that also considers multiple scenarios for inventory data (based on the superstructure approach). See `activity_browser/bwutils/superstructure/`.
+
+### Scenario name
+
+The string identifier of a scenario column in a scenario difference file (or in a combined scenario table). Always a string — file importers coerce numeric-looking headers (e.g. Excel `2025`) with `str(...)`. When scenarios from multiple files are combined (product), the combined scenario name is the file-order join of the parts with ` | ` (e.g. `A` and `X` → `A | X`). _Avoid_: scenario header (as a typed value), scenario label when meaning the column identity.
+
+### Scenario-combinations list
+
+The list of product-combined scenario names from two or more loaded scenario difference files (e.g. `A | X`), each with an include checkbox. Shown beside the per-file scenario lists in the calculation setup when 2+ files are loaded under Combine. Together with per-file scenario checkboxes it supports coarse (row/column/slice) and fine (cell) inclusion. Under **Extend**, there is no combinations list: inclusion is by shared scenario name, and checkboxes for the same name stay in sync across files. _Avoid_: scenario-selection-matrix (deferred 2D editor), SS-matrix, combiner matrix.
 
 ### Metadata store
 
