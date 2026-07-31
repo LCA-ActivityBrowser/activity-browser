@@ -287,7 +287,7 @@ class ProductView(ui.widgets.ABTreeView):
                                ),
             lambda m, p: m.add(app.actions.ActivityDuplicateToDB, p.selected_activities,
                                text="Duplicate process to database" if len(p.selected_activities) == 1 else "Duplicate processes to database",
-                               enable=len(p.selected_activities) > 0 and not database_is_locked(p.db_name),
+                               enable=len(p.selected_activities) > 0,
                                ),
             lambda m: m.addSeparator(),
             lambda m, p: m.add(app.actions.EditElementaryFlow, p.selected_elementary_flows,

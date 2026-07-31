@@ -5,7 +5,6 @@ LCIA scores, contributions, Sankey, Monte Carlo, and GSA. Shared tab chrome live
 :mod:`style`; tables and plots in sibling modules; data builders in ``bwutils``.
 """
 
-import os
 from collections import namedtuple
 from copy import deepcopy
 from typing import List, Optional
@@ -20,7 +19,6 @@ from qtpy import QtCore, QtGui, QtWidgets
 from stats_arrays.errors import InvalidParamsError
 
 from activity_browser import app
-from activity_browser.bwutils import filesystem
 from activity_browser.bwutils.commontasks import get_LCIA_method_name_dict
 from activity_browser.bwutils.contribution_labels import contribution_axis_unit
 from activity_browser.bwutils.export_names import (
@@ -77,8 +75,8 @@ FULL_LABELS_TOOLTIP = (
     "Show full reference-flow, process, and contributor names on axes and titles "
     "(wrapped where space is limited). Legend entries are always wrapped."
 )
-ExportTable = namedtuple("export_table", ("label", "copy", "csv", "excel"))
-ExportPlot = namedtuple("export_plot", ("label", "png", "svg"))
+ExportTable = namedtuple("export_table", ("label", "copy", "csv", "xlsx"))
+ExportPlot = namedtuple("export_plot", ("label", "copy", "png", "svg"))
 PlotTableCheck = namedtuple("plot_table_space", ("plot", "table", "invert"))
 Combobox = namedtuple(
     "combobox_menu",
@@ -182,46 +180,6 @@ class LCAResultsPage(QtWidgets.QTabWidget):
         #         logger.info("Generating First Tier results")
         #         self.tabs.ft.has_been_opened = True
         #         self.tabs.ft.update_tab()
-
-    def _scenario_export_filepath(self, default_name: str, file_filter: str):
-        safe_name = bd.utils.safe_filename(default_name, add_hash=False)
-        filepath, _ = QtWidgets.QFileDialog.getSaveFileName(
-            parent=self,
-            caption="Choose location to save lca results",
-            dir=str(os.path.join(filesystem.get_project_path(), safe_name)),
-            filter=file_filter,
-        )
-        return str(filepath) if filepath else filepath
-
-    @QtCore.Slot(name="lciaScenarioExport")
-    def generate_lcia_scenario_csv(self):
-        """Create a dataframe of the impact category results for all reference flows,
-        impact categories and scenarios, then call the 'export to csv'
-        """
-        df = self.mlca.lca_scores_to_dataframe()
-        default_name = lca_export_basename(self.cs_name, "LCIA results_all")
-        filepath = self._scenario_export_filepath(
-            default_name, "Comma Separated Values (*.csv);; All Files (*.*)"
-        )
-        if filepath:
-            if not filepath.endswith(".csv"):
-                filepath += ".csv"
-            df.to_csv(filepath)
-
-    @QtCore.Slot(name="lciaScenarioExport")
-    def generate_lcia_scenario_excel(self):
-        """Create a dataframe of the impact category results for all reference flows,
-        impact categories and scenarios, then call the 'export to excel'
-        """
-        df = self.mlca.lca_scores_to_dataframe()
-        default_name = lca_export_basename(self.cs_name, "LCIA results_all")
-        filepath = self._scenario_export_filepath(
-            default_name, "Excel (*.xlsx);; All Files (*.*)"
-        )
-        if filepath:
-            if not filepath.endswith(".xlsx"):
-                filepath += ".xlsx"
-            df.to_excel(filepath)
 
 
 class NewAnalysisTab(QtWidgets.QWidget):
@@ -494,6 +452,10 @@ class NewAnalysisTab(QtWidgets.QWidget):
         """Update the plot."""
         self.plot.plot(*args, **kwargs)
 
+    def _export_plot_copy(self) -> None:
+        if self.plot is not None:
+            self.plot.to_clipboard_png()
+
     def _export_plot_png(self) -> None:
         if self.plot is not None:
             self.plot.to_png()
@@ -510,57 +472,51 @@ class NewAnalysisTab(QtWidgets.QWidget):
         if self.table is not None:
             self.table.to_csv()
 
-    def _export_table_excel(self) -> None:
+    def _export_table_xlsx(self) -> None:
         if self.table is not None:
             self.table.to_excel()
 
     def build_export(
         self, has_table: bool = True, has_plot: bool = True
     ) -> QtWidgets.QHBoxLayout:
-        """Construct a custom export button layout.
+        """Construct the shared plot/table export footer.
 
-        Produces layout with buttons for export of relevant sections (plot, table).
-        Options for figure are:
-            .png (image format useful for computer generated graphics)
-            .svg (scalable vector graphic, image is not pixels but data on where lines are,
-                useful in reports)
-        Options for Table are:
-            copy (copies the table to clipboard)
-            .csv (a comma separated values file of the table, useful for data storage)
-            Excel (an excel file, useful for exchanging with people and making visualizations)
+        Plot: Copy (PNG clipboard), .png, .svg (disk).
+        Table: Copy (TSV clipboard), .csv, .xlsx (disk).
         """
         export_menu = QtWidgets.QHBoxLayout()
 
-        # Export Plot
         if has_plot:
             plot_layout = QtWidgets.QHBoxLayout()
             self.export_plot = ExportPlot(
-                QtWidgets.QLabel("Export plot:"),
+                QtWidgets.QLabel("Plot:"),
+                QtWidgets.QPushButton("Copy"),
                 QtWidgets.QPushButton(".png"),
                 QtWidgets.QPushButton(".svg"),
             )
+            self.export_plot.copy.setToolTip("Copy the plot to the clipboard as an image")
+            self.export_plot.copy.clicked.connect(self._export_plot_copy)
             self.export_plot.png.clicked.connect(self._export_plot_png)
             self.export_plot.svg.clicked.connect(self._export_plot_svg)
             for obj in self.export_plot:
                 plot_layout.addWidget(obj)
             export_menu.addLayout(plot_layout)
 
-        # Add seperator if both table and plot exist
         if has_table and has_plot:
             export_menu.addWidget(vertical_line())
 
-        # Export Table
         if has_table:
             table_layout = QtWidgets.QHBoxLayout()
             self.export_table = ExportTable(
-                QtWidgets.QLabel("Export table:"),
+                QtWidgets.QLabel("Table:"),
                 QtWidgets.QPushButton("Copy"),
                 QtWidgets.QPushButton(".csv"),
-                QtWidgets.QPushButton("Excel"),
+                QtWidgets.QPushButton(".xlsx"),
             )
+            self.export_table.copy.setToolTip("Copy the table to the clipboard as text")
             self.export_table.copy.clicked.connect(self._export_table_copy)
             self.export_table.csv.clicked.connect(self._export_table_csv)
-            self.export_table.excel.clicked.connect(self._export_table_excel)
+            self.export_table.xlsx.clicked.connect(self._export_table_xlsx)
             for obj in self.export_table:
                 table_layout.addWidget(obj)
             export_menu.addLayout(table_layout)
@@ -1020,25 +976,6 @@ class LCAResultsTab(NewAnalysisTab):
     def configure_scenario(self):
         super().configure_scenario()
         self._update_selector_visibility()
-
-    def build_export(
-        self, has_table: bool = True, has_plot: bool = True
-    ) -> QtWidgets.QHBoxLayout:
-        layout = super().build_export(has_table, has_plot)
-        if self.has_scenarios:
-            stretch = layout.takeAt(layout.count() - 1)
-            exp_layout = QtWidgets.QHBoxLayout()
-            exp_layout.addWidget(QtWidgets.QLabel("Export all data"))
-            csv_btn = QtWidgets.QPushButton(".csv")
-            csv_btn.clicked.connect(self.parent.generate_lcia_scenario_csv)
-            excel_btn = QtWidgets.QPushButton("Excel")
-            excel_btn.clicked.connect(self.parent.generate_lcia_scenario_excel)
-            exp_layout.addWidget(csv_btn)
-            exp_layout.addWidget(excel_btn)
-            layout.addWidget(vertical_line())
-            layout.addLayout(exp_layout)
-            layout.addSpacerItem(stretch)
-        return layout
 
     def update_tab(self):
         self.update_combobox(
@@ -2422,7 +2359,7 @@ class GSATab(NewAnalysisTab):
             caption = "Export GSA data (CSV)"
         else:
             file_filter = self.table.EXCEL_FILTER
-            caption = "Export GSA data (Excel)"
+            caption = "Export GSA data (.xlsx)"
         filepath = self.table.savefilepath(
             default_name,
             caption=caption,
@@ -2458,33 +2395,27 @@ class GSATab(NewAnalysisTab):
     def build_export(
         self, has_table: bool = True, has_plot: bool = True
     ) -> QtWidgets.QHBoxLayout:
-        """Plot export, copy-results, and full GSA data export (inputs + outputs)."""
+        """Plot export plus GSA input/output data export (no standard table group)."""
         export_layout = super().build_export(has_table=False, has_plot=has_plot)
         stretch = export_layout.takeAt(export_layout.count() - 1)
 
         if has_plot:
             export_layout.addWidget(vertical_line())
 
-        copy_btn = QtWidgets.QPushButton("Copy")
-        copy_btn.setToolTip("Copy the GSA results table shown in the UI to the clipboard.")
-        copy_btn.clicked.connect(self._export_table_copy)
-        export_layout.addWidget(copy_btn)
-
-        export_layout.addWidget(vertical_line())
         gsa_data_layout = QtWidgets.QHBoxLayout()
-        gsa_data_layout.addWidget(QtWidgets.QLabel("Export GSA data:"))
-        export_gsa_csv_btn = QtWidgets.QPushButton(".csv")
-        export_gsa_csv_btn.setToolTip(
+        gsa_data_layout.addWidget(QtWidgets.QLabel("GSA data:"))
+        self.export_gsa_csv_btn = QtWidgets.QPushButton(".csv")
+        self.export_gsa_csv_btn.setToolTip(
             "Save GSA results and MC inputs as two CSV files (*_output.csv and *_input.csv)"
         )
-        export_gsa_csv_btn.clicked.connect(lambda: self.export_gsa_data(as_csv=True))
-        gsa_data_layout.addWidget(export_gsa_csv_btn)
-        export_gsa_excel_btn = QtWidgets.QPushButton("Excel")
-        export_gsa_excel_btn.setToolTip(
-            "Save GSA results and MC inputs to one Excel file (GSA output and GSA input sheets)."
+        self.export_gsa_csv_btn.clicked.connect(lambda: self.export_gsa_data(as_csv=True))
+        gsa_data_layout.addWidget(self.export_gsa_csv_btn)
+        self.export_gsa_xlsx_btn = QtWidgets.QPushButton(".xlsx")
+        self.export_gsa_xlsx_btn.setToolTip(
+            "Save GSA results and MC inputs to one .xlsx file (GSA output and GSA input sheets)."
         )
-        export_gsa_excel_btn.clicked.connect(self.export_gsa_data)
-        gsa_data_layout.addWidget(export_gsa_excel_btn)
+        self.export_gsa_xlsx_btn.clicked.connect(self.export_gsa_data)
+        gsa_data_layout.addWidget(self.export_gsa_xlsx_btn)
         export_layout.addLayout(gsa_data_layout)
 
         if stretch is not None:

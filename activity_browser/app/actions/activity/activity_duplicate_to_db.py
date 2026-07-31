@@ -37,6 +37,8 @@ class ActivityDuplicateToDB(ABAction):
                 return
         else:
             to_db_name = cls.request_db(from_db_name)
+            if not to_db_name:
+                return
 
         to_db_backend = bd.databases[to_db_name]["backend"]
 

@@ -33,7 +33,7 @@ class CSNew(ABAction):
     """
 
     icon = qicons.add
-    text = "New calculation setup..."
+    text = "New setup..."
 
     @staticmethod
     @exception_dialogs

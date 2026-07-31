@@ -40,7 +40,7 @@ class ProjectDelete(ABAction):
     """
 
     icon = qicons.delete
-    text = "Delete this project"
+    text = "Delete"
     tool_tip = "Delete the project"
 
     @staticmethod

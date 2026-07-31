@@ -16,7 +16,7 @@ class DatabaseExportBW2Package(ABAction):
     """
 
     # icon = icons.qicons.export_db
-    text = "Export to .bw2package"
+    text = "Export to .bw2package..."
     tool_tip = "Export database(s) to BW2Package format"
 
     @classmethod

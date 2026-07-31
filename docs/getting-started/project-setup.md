@@ -23,16 +23,16 @@ For example, on Windows:
 How to create a new project in the Activity Browser depends on how you want to set up the base data (e.g. elementary flows and impact categories). You can either start from scratch and import the data you need yourself, or you can use a Brightway template project, that will come pre-loaded with a specific database and impact categories.
 
 ### Create a new empty project
-To create a new empty project, open the **Project** menu in the top left corner of the application window and select **New project > Empty project**.
+To create a new empty project, open the **Project** menu in the top left corner of the application window and select **New > Empty project...**.
 
 You will be prompted to enter a name for your new project. Choose a descriptive name that will help you identify the project later. After entering the name, click **Ok**. The new project will be created and set as the active project in Activity Browser.
 
 ### Create a new project from a Brightway template
-To create a new project from a Brightway template, open the **Project** menu in the top left corner of the application window and select **New project > From template**. This will show a list of available Brightway templates. Choose the template that best fits your needs.
+To create a new project from a Brightway template, open the **Project** menu in the top left corner of the application window and select **New > Import from template**. This will show a list of available Brightway templates. Choose the template that best fits your needs.
 
 You will be prompted to enter a name for your new project. Choose a descriptive name that will help you identify the project later. After entering the name, click **Ok**. The new project will be downloaded, created, and set as the active project in Activity Browser.
 
 ## Importing an existing project or backup
 Brightway projects can be easily shared and transferred between different computers. If you have received a Brightway project folder from someone else, or if you have a backup of your own project, you can import it into Activity Browser.
 
-To import an existing project or backup, open the **Project** menu in the top left corner of the application window and select **Import a project...**. You will be prompted to select the .7z file containing the Brightway project you want to import. You will be prompted to enter a name for the project after which it will be imported and set as the active project in Activity Browser.
+To import an existing project or backup, open the **Project** menu in the top left corner of the application window and select **New > Import from tar.gz file...**. You will be prompted to select the archive containing the Brightway project you want to import. You will be prompted to enter a name for the project after which it will be imported and set as the active project in Activity Browser.
