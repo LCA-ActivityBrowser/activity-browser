@@ -548,6 +548,11 @@ class ExchangesView(widgets.ABTreeView):
 
     class ContextMenu(widgets.ABMenu):
         menuSetup = [
+            lambda m: m.add(app.actions.ActivityOpen, [x.input for x in m.exchanges],
+                            enable=bool(m.exchanges),
+                            text="Open process" if len(m.exchanges) == 1 else "Open processes",
+                            ),
+            lambda m: m.addSeparator(),
             lambda m: m.add(app.actions.ActivityNewProduct, [m.activity.key],
                             enable=not m.locked and not database_is_legacy(m.activity["database"])
                             ),
@@ -556,11 +561,14 @@ class ExchangesView(widgets.ABTreeView):
                             text="Create waste"
                             ),
             lambda m: m.addSeparator(),
-            lambda m: m.add(app.actions.ExchangeDelete, m.exchanges, enable=bool(m.exchanges) and not m.locked),
-            lambda m: m.add(app.actions.ExchangeSDFToClipboard, m.exchanges, enable=bool(m.exchanges)),
-            lambda m: m.add(app.actions.ActivityOpen, [x.input for x in m.exchanges],
+            lambda m: m.add(app.actions.ExchangeDelete, m.exchanges,
+                            enable=bool(m.exchanges) and not m.locked,
+                            text="Delete flow" if len(m.exchanges) == 1 else "Delete flows",
+                            ),
+            lambda m: m.addSeparator(),
+            lambda m: m.add(app.actions.ExchangeSDFToClipboard, m.exchanges,
                             enable=bool(m.exchanges),
-                            text="Open processs" if len(m.exchanges) == 1 else "Open processes",
+                            text="Copy for scenario file",
                             ),
         ]
 

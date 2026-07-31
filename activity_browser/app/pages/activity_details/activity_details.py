@@ -52,9 +52,9 @@ class ActivityDetailsPage(widgets.ABAbstractPage):
         # Initialize tab widget to hold various detail tabs
         self.tabs = QtWidgets.QTabWidget(self)
 
-        # Initialize and add the Exchanges tab
+        # Initialize and add the Flows tab
         self.exchanges_tab = ExchangesTab(activity, self)
-        self.tabs.addTab(self.exchanges_tab, "Exchanges")
+        self.tabs.addTab(self.exchanges_tab, "Flows")
 
         # Initialize and add the Description tab
         self.description_tab = DescriptionTab(activity, self)
