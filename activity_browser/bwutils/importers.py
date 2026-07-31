@@ -13,7 +13,6 @@ from bw2io.strategies import (convert_activity_parameters_to_list,
                               csv_restore_booleans, csv_restore_tuples,
                               drop_falsey_uncertainty_fields_but_keep_zeros,
                               link_iterable_by_fields,
-                              link_technosphere_by_activity_hash,
                               normalize_biosphere_categories,
                               normalize_biosphere_names, normalize_units,
                               set_code_by_activity_hash,
@@ -24,7 +23,8 @@ from bw2data.serialization import JsonSanitizer, JsonWrapper
 from .errors import LinkingFailed
 from .strategies import (alter_database_name, csv_rewrite_product_key,
                          hash_parameter_group, link_exchanges_without_db,
-                         link_functional_processors, relink_exchanges_bw2package,
+                         link_functional_processors, link_technosphere_same_database,
+                         relink_exchanges_bw2package,
                          relink_exchanges_with_db, rename_db_bw2package,
                          parse_JSON_fields, metadatastore_link,
                          alter_exchange_database_name)
@@ -57,7 +57,7 @@ def _excel_link_strategies(relink: dict | None = None):
             other=bd.Database(bd.config.biosphere),
             kind="biosphere",
         ),
-        link_technosphere_by_activity_hash,
+        link_technosphere_same_database,
     ]
     if relink is not None:
         strategies.extend([
