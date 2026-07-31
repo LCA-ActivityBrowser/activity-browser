@@ -227,6 +227,7 @@ class ABCSVImporter(ABFileImporter):
                 compression="infer",
                 sep=separator,
                 index_col=False,
+                comment="#",
                 converters={"from key": ast.literal_eval, "to key": ast.literal_eval},
             )
         # Scenario headers typed as numbers (e.g. 2025) must be strings.

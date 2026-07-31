@@ -67,10 +67,9 @@ def import_from_excel(
     The default index chosen represents the second sheet (first after the
     'information' sheet).
 
-    Any '*' character used at the start of a row or will cause that row
-    to be excluded from the import.
-    A '#' character at the start of a column will cause that column to be
-    excluded from the import.
+    A '#' character at the start of a row causes that row to be excluded from
+    the import. A '#' character at the start of a column name causes that
+    column to be excluded from the import.
 
     'usecols' is used to exclude specific columns from the excel document.
     'comment' is used to exclude specific rows from the excel document.
@@ -84,7 +83,7 @@ def import_from_excel(
                 sheet_name=import_sheet,
                 header=header_idx,
                 usecols=valid_cols,
-                comment="*",
+                comment="#",
                 na_values="",
                 keep_default_na=False,
                 engine="openpyxl",
