@@ -7,12 +7,13 @@ from qtpy.QtCore import Qt
 import pandas as pd
 import bw2data as bd
 from activity_browser.bwutils import superstructure as ss
+from activity_browser.bwutils.superstructure import scenario_templates as scen_tpl
 
 from activity_browser import app
 from activity_browser.bwutils import calculation_setup as cs_helpers
 from activity_browser.bwutils.superstructure import inclusion as scen_inc
 from activity_browser.ui import icons, widgets, core, delegates
-
+from activity_browser.ui.icons import qicons
 
 
 class ScenarioSection(QtWidgets.QWidget):
@@ -31,22 +32,37 @@ class ScenarioSection(QtWidgets.QWidget):
         self._last_inclusion_mismatch = False
 
         # set up the control buttons
-        self.get_template_btn = app.actions.SaveParametersToExcel.get_QButton()
-        self.get_template_btn.setText("Parameter template...")
-
         self.table_btn = QtWidgets.QPushButton("Add scenarios...", self)
-
-        self.save_scenario = QtWidgets.QPushButton("Save to file...", self)
+        self.get_template_btn = QtWidgets.QPushButton("Template...", self)
+        self.get_template_btn.setToolTip(
+            "Download a parameter- or flow-scenario starter file (.xlsx or .csv)"
+        )
+        self.save_scenario = QtWidgets.QPushButton("Save...", self)
+        self.save_scenario.setToolTip(
+            "Save the loaded scenarios to a flow-scenarios file"
+        )
         self.save_scenario.setDisabled(True)
+
+        self.help_btn = QtWidgets.QToolButton(self)
+        self.help_btn.setIcon(qicons.question)
+        self.help_btn.setAutoRaise(True)
+        self.help_btn.setToolButtonStyle(Qt.ToolButtonIconOnly)
+        self.help_btn.setToolTip("Help: scenario modeling in Activity Browser")
 
         # set up the combination buttons
 
         # initiate the combine scenarios button
         self.product_choice = QtWidgets.QRadioButton("Combine scenarios", self)
         self.product_choice.setChecked(True)
+        self.product_choice.setToolTip(
+            "Build all or selected combinations of scenarios from the loaded files"
+        )
 
         # initiate the extend scenarios button
         self.addition_choice = QtWidgets.QRadioButton("Extend scenarios", self)
+        self.addition_choice.setToolTip(
+            "Extend files on shared scenario names (only works for matching scenario names across files)"
+        )
 
         # group them and make them exclusive
         self.combine_group = QtWidgets.QButtonGroup(self)
@@ -72,10 +88,11 @@ class ScenarioSection(QtWidgets.QWidget):
 
         tool_row.addWidget(widgets.ABLabel.demiBold("  Scenarios:", self))
         tool_row.addStretch()
-        tool_row.addWidget(self.get_template_btn)
         tool_row.addWidget(self.table_btn)
+        tool_row.addWidget(self.get_template_btn)
         tool_row.addWidget(self.save_scenario)
         tool_row.addWidget(self.group_box)
+        tool_row.addWidget(self.help_btn)
 
         # layout for the different scenario tables that can be added
         self.scenario_tables = QtWidgets.QHBoxLayout()
@@ -111,8 +128,50 @@ class ScenarioSection(QtWidgets.QWidget):
 
         self.table_btn.clicked.connect(self.add_table)
         self.table_btn.clicked.connect(self.can_add_table)
+        self.get_template_btn.clicked.connect(self.get_template_action)
         self.save_scenario.clicked.connect(self.save_action)
+        self.help_btn.clicked.connect(self.show_scenarios_help)
         self.combine_group.buttonClicked.connect(self.toggle_combine_type)
+
+    def get_template_action(self) -> None:
+        """Save a parameter- or flow-scenario starter template chosen by the user."""
+        dialog = GetScenarioTemplateDialog(self)
+        if dialog.exec_() != QtWidgets.QDialog.Accepted:
+            return
+        kind, fmt = dialog.selection()
+        default_name = (
+            f"parameter-scenarios.{fmt}" if kind == "parameter" else f"flow-scenarios.{fmt}"
+        )
+        if fmt == "xlsx":
+            file_filter = "Excel (*.xlsx)"
+        else:
+            file_filter = "CSV (*.csv)"
+        path, _ = QtWidgets.QFileDialog.getSaveFileName(
+            parent=self,
+            caption="Save scenario template",
+            dir=str(Path.home() / default_name),
+            filter=file_filter,
+        )
+        if not path:
+            return
+        dest = Path(path)
+        try:
+            if kind == "flow" or not scen_tpl.project_has_parameters():
+                scen_tpl.copy_scenario_template(kind, fmt, dest)
+            else:
+                if dest.suffix.lower() not in {".xlsx", ".xls", ".csv"}:
+                    dest = dest.with_suffix(f".{fmt}")
+                scen_tpl.write_parameter_template(dest)
+        except Exception:
+            logger.exception("Failed to write scenario template to {}", dest)
+            QtWidgets.QMessageBox.critical(
+                self,
+                "Could not save template",
+                f"Failed to save the scenario template to:\n{dest}",
+            )
+
+    def show_scenarios_help(self) -> None:
+        ScenariosHelpDialog(self).exec_()
 
     def update_stats(self) -> None:
         """Update the statistics at the bottom of the widget"""
@@ -369,6 +428,7 @@ class ScenarioSection(QtWidgets.QWidget):
         self._mode = None
         self.sync_combinations_panel()
         self.update_stats()
+        self.refresh_save_button()
 
     def combined_dataframe(self, skip_checks: bool = False) -> None:
         """Updates scenario dataframe to contain the combined scenarios of multiple tables."""
@@ -381,6 +441,7 @@ class ScenarioSection(QtWidgets.QWidget):
         manager = ss.SuperstructureManager(*data)
         self._scenario_dataframe = manager.combined_data(kind, skip_checks)
         self.reconcile_inclusion_after_combine()
+        self.refresh_save_button()
 
     def add_table(self) -> None:
         """Add a new table widget to the widget and add to the list of tables"""
@@ -406,10 +467,7 @@ class ScenarioSection(QtWidgets.QWidget):
 
         # free up the memory
         table_widget.deleteLater()
-
-        # update save_scenario button
-        if not self.tables:
-            self.save_scenario.setDisabled(True)
+        self.refresh_save_button()
         self.updateGeometry()
 
     def clear_tables(self) -> None:
@@ -418,7 +476,6 @@ class ScenarioSection(QtWidgets.QWidget):
             self.scenario_tables.removeWidget(w)
             w.deleteLater()
         self.tables = []
-        self.save_scenario.setDisabled(True)
         self.updateGeometry()
         self.combined_dataframe()
 
@@ -436,6 +493,10 @@ class ScenarioSection(QtWidgets.QWidget):
         a user can add.
         """
         self.table_btn.setEnabled(len(self.tables) < self.max_tables)
+
+    def refresh_save_button(self) -> None:
+        """Enable Save when a merged flow-scenario table is available."""
+        self.save_scenario.setEnabled(not self._scenario_dataframe.empty)
 
     def save_action(self) -> None:
         """Creates and saves to file (.xlsx, or .csv) the scenario dataframe after the loaded scenarios have been
@@ -473,9 +534,8 @@ class ScenarioSection(QtWidgets.QWidget):
         savedf.to_csv(filepath, index=False, sep=";")
 
     def save_button(self, visible: bool):
-        self.save_scenario.setDisabled(not visible)
-        self.show()
-        self.updateGeometry()
+        """Compatibility hook after manual file load; state follows the combined table."""
+        self.refresh_save_button()
 
 
 class ScenarioCombinationsPanel(QtWidgets.QWidget):
@@ -1005,4 +1065,106 @@ class ScenarioDatabaseDialog(QtWidgets.QDialog):
             obj.grid.addWidget(combo, i, 2, 1, 2)
         obj.updateGeometry()
         return obj
+
+
+class GetScenarioTemplateDialog(QtWidgets.QDialog):
+    """Choose parameter vs flow starter template and csv/xlsx format."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Get scenario template")
+        self.setWindowIcon(qicons.question)
+
+        self.kind_group = QtWidgets.QButtonGroup(self)
+        self.parameter_radio = QtWidgets.QRadioButton("Parameter scenarios", self)
+        self.flow_radio = QtWidgets.QRadioButton("Flow scenarios", self)
+        self.parameter_radio.setChecked(True)
+        self.kind_group.addButton(self.parameter_radio)
+        self.kind_group.addButton(self.flow_radio)
+
+        kind_box = QtWidgets.QGroupBox("Template type", self)
+        kind_layout = QtWidgets.QVBoxLayout(kind_box)
+        kind_layout.addWidget(self.parameter_radio)
+        kind_layout.addWidget(self.flow_radio)
+
+        self.format_group = QtWidgets.QButtonGroup(self)
+        self.xlsx_radio = QtWidgets.QRadioButton("Excel (.xlsx)", self)
+        self.csv_radio = QtWidgets.QRadioButton("CSV (.csv)", self)
+        self.xlsx_radio.setChecked(True)
+        self.format_group.addButton(self.xlsx_radio)
+        self.format_group.addButton(self.csv_radio)
+
+        format_box = QtWidgets.QGroupBox("File format", self)
+        format_layout = QtWidgets.QVBoxLayout(format_box)
+        format_layout.addWidget(self.xlsx_radio)
+        format_layout.addWidget(self.csv_radio)
+
+        buttons = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel,
+            parent=self,
+        )
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+
+        layout = QtWidgets.QVBoxLayout(self)
+        layout.addWidget(kind_box)
+        layout.addWidget(format_box)
+        layout.addWidget(buttons)
+
+    def selection(self) -> tuple[str, str]:
+        kind = "parameter" if self.parameter_radio.isChecked() else "flow"
+        fmt = "xlsx" if self.xlsx_radio.isChecked() else "csv"
+        return kind, fmt
+
+
+class ScenariosHelpDialog(QtWidgets.QDialog):
+    """Compact explanation of scenario modeling in the calculation setup."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Scenario modeling")
+        self.setWindowIcon(qicons.question)
+        self.resize(520, 420)
+
+        text = QtWidgets.QLabel(self)
+        text.setWordWrap(True)
+        text.setTextFormat(Qt.RichText)
+        text.setText(
+            "<h3>Scenario modeling in Activity Browser</h3>"
+            "<p>In <b>Scenario</b> mode, alternative values for flows or parameters can "
+            "can be defined. Each scenario can thus consider different flow or parameter values defined in two types of scenario files.</p>"
+            "<h4>Flow scenarios</h4>"
+            "<p>A <b>flow-scenario</b> file (scenario difference file) identifies flows (left-side part)"
+            "(e.g. inputs from one to another activity) and contains scenario values for each flow (right-side part). "
+            "In an empty file, you can start by adding rows via <b>Copy for scenario file</b> on processes or flows, then paste "
+            "into a template from <b>Template...</b>.</p>"
+            "<h4>Parameter scenarios</h4>"
+            "<p>A <b>parameter-scenario</b> file varies Brightway parameters across scenarios."
+            "The columns are Name and Group (mandatory to identify parameters), then optional default values (as in the database), plus scenario columns. "
+            "When you load it, AB converts it into flow scenarios for calculation.</p>"
+            "<h4>Several scenario files</h4>"
+            "<p>Use <b>Add scenarios...</b> more than once. "
+            "<b>Combine scenarios</b> builds the product of scenario names across files (parameter and flow scenarios can be mixed); "
+            "<b>Extend scenarios</b> aligns files on shared scenario names.</p>"
+            "<h4>Template...</h4>"
+            "<p>Download an empty flow or parameter starter (.xlsx or .csv). "
+            "If the project has parameters, the parameter template is filled with "
+            "Name / Group / default and empty example scenario columns. "
+            "Lines or columns starting with <code>#</code> are ignored on import "
+            "(useful for your notes).</p>"
+            "<h4>Save...</h4>"
+            "<p>Writes the currently loaded, merged flow-scenario table to a file.</p>"
+        )
+        text.setOpenExternalLinks(False)
+
+        scroll = QtWidgets.QScrollArea(self)
+        scroll.setWidgetResizable(True)
+        scroll.setWidget(text)
+
+        buttons = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok, parent=self)
+        buttons.accepted.connect(self.accept)
+
+        layout = QtWidgets.QVBoxLayout(self)
+        layout.addWidget(scroll)
+        layout.addWidget(buttons)
 

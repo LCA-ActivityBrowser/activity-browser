@@ -183,34 +183,74 @@ def recalculate_activity_parameters(
     return StaticParameters.prune_result_data(data)
 
 
+def _exchange_formula(exc: ExchangeDataset) -> str:
+    """Return a stripped formula from exchange data, if any."""
+    formula = ""
+    if isinstance(getattr(exc, "data", None), dict):
+        formula = str((exc.data or {}).get("formula") or "").strip()
+    if not formula:
+        formula = str(getattr(exc, "formula", "") or "").strip()
+    return formula
+
+
 def exchange_formula_rows_for_selected_groups(
     selected_groups: set[str],
 ) -> list[tuple[str, int, str, str | None]]:
-    """Collect formula-bearing exchanges for selected output databases/groups."""
+    """Collect formula-bearing exchanges for selected parameter groups.
+
+    ``selected_groups`` comes from the parameter-scenario ``Group`` column and may
+    contain activity-parameter group ids, database names, and/or ``project``.
+
+    Activity groups are resolved via ``ParameterizedExchange`` (same source as
+    ``ParameterManager``). Database-named groups still scan formula exchanges
+    whose ``output_database`` matches.
+    """
+    from bw2data.parameters import ActivityParameter, ParameterizedExchange
+
     rows = []
+    seen: set[int] = set()
     activity_groups = activity_group_by_output_key()
-    query = ExchangeDataset.select().where(
-        ExchangeDataset.output_database << list(selected_groups)
-    )
-    for exc in query:
-        formula = ""
-        if isinstance(getattr(exc, "data", None), dict):
-            formula = str((exc.data or {}).get("formula") or "").strip()
-        if not formula:
-            formula = str(getattr(exc, "formula", "") or "").strip()
-        if formula:
+    known_act_groups = {
+        str(ap.group)
+        for ap in ActivityParameter.select(ActivityParameter.group).distinct()
+    }
+    selected_act_groups = selected_groups & known_act_groups
+    selected_db_groups = selected_groups - known_act_groups - {"project"}
+
+    def _append(exc: ExchangeDataset, formula: str, activity_group: str | None) -> None:
+        eid = int(exc.id)
+        if eid in seen or not formula:
+            return
+        seen.add(eid)
+        rows.append(
+            (
+                str(exc.output_database),
+                eid,
+                formula,
+                activity_group,
+                0 if str(exc.input_database) == str(exc.output_database) else 1,
+            )
+        )
+
+    if selected_act_groups:
+        for pe in ParameterizedExchange.select().where(
+            ParameterizedExchange.group << list(selected_act_groups)
+        ):
+            exc = ExchangeDataset.get_by_id(pe.exchange)
+            formula = str(pe.formula or "").strip() or _exchange_formula(exc)
+            _append(exc, formula, str(pe.group))
+
+    if selected_db_groups:
+        query = ExchangeDataset.select().where(
+            ExchangeDataset.output_database << list(selected_db_groups)
+        )
+        for exc in query:
+            formula = _exchange_formula(exc)
             activity_group = activity_groups.get(
                 (str(exc.output_database), str(exc.output_code))
             )
-            rows.append(
-                (
-                    str(exc.output_database),
-                    int(exc.id),
-                    formula,
-                    activity_group,
-                    0 if str(exc.input_database) == str(exc.output_database) else 1,
-                )
-            )
+            _append(exc, formula, activity_group)
+
     rows.sort(key=lambda x: (x[0], x[4], x[2], x[1]))
     return [(g, eid, f, act_group) for g, eid, f, act_group, _prio in rows]
 
