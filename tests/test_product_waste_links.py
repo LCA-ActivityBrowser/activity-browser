@@ -14,6 +14,7 @@ import pytest
 from bw2data.tests import bw2test
 
 from activity_browser.bwutils.commontasks import (
+    classify_dragged_nodes,
     get_exchange_type,
     is_node_product,
     is_node_waste,
@@ -189,6 +190,10 @@ def test_functional_product_waste_links():
     assert is_node_product((DB, "p")) and not is_node_waste((DB, "p"))
     assert is_node_waste((DB, "w")) and not is_node_product((DB, "w"))
     _assert_drop_cases(FUNCTIONAL_DROP_CASES)
+
+    # ProductModel.mimeData attaches product/waste key + processor process
+    assert classify_dragged_nodes([(DB, "p"), (DB, "P")]) == "product"
+    assert classify_dragged_nodes([(DB, "w"), (DB, "W")]) == "waste"
 
     for host, dragged, on_output in LINK_SPECS:
         _add_drop_link((DB, host), (DB, dragged.lower()), on_output)

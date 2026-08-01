@@ -347,6 +347,38 @@ def get_exchange_type(activity_key: tuple, output: bool = False) -> str | None:
     return None
 
 
+def classify_dragged_nodes(keys: list) -> str:
+    """
+    Overlay / drop action for a set of dragged node keys.
+
+    ``ProductModel.mimeData`` includes both product/waste keys and their processor
+    process keys; process nodes are ignored so a product+processor drag stays
+    ``product`` (same idea as discarding process types from metadata).
+    """
+    actions: set[str] = set()
+    for key in keys:
+        if is_node_waste(key):
+            actions.add("waste")
+        elif is_node_product(key):
+            actions.add("product")
+        elif is_node_biosphere(key):
+            node_type = refresh_node(key)._document.type
+            if node_type == "natural resource":
+                actions.add("resource")
+            elif node_type == "emission":
+                actions.add("emission")
+            else:
+                actions.add("generic")
+        elif is_node_process(key):
+            continue
+        else:
+            actions.add("generic")
+
+    if len(actions) != 1:
+        return "generic"
+    return actions.pop()
+
+
 def is_node_process(node: tuple | int | bd.Node) -> bool:
     node = refresh_node(node)
     raw_type = node._document.type
