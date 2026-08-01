@@ -24,7 +24,7 @@ class ProjectImport(ABAction):
     imported project.
     """
     icon = qicons.import_db
-    text = "&Import a project..."
+    text = "Import from tar.gz file..."
     tool_tip = "Import project from a file"
 
     @classmethod

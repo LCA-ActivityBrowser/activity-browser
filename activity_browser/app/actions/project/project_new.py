@@ -22,7 +22,7 @@ class ProjectNew(ABAction):
     """
 
     icon = qicons.add
-    text = "New project"
+    text = "Empty project..."
     tool_tip = "Make a new project"
 
     @staticmethod

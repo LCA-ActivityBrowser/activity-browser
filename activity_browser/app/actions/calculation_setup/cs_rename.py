@@ -1,4 +1,5 @@
 from loguru import logger
+import copy
 
 from qtpy import QtWidgets
 
@@ -44,6 +45,6 @@ class CSRename(ABAction):
             return
 
         # instruct the CalculationSetupController to rename the CS to the new name
-        bd.calculation_setups[new_name] = bd.calculation_setups[cs_name].copy()
+        bd.calculation_setups[new_name] = copy.deepcopy(bd.calculation_setups[cs_name])
         del bd.calculation_setups[cs_name]
         logger.info(f"Renamed calculation setup from {cs_name} to {new_name}")

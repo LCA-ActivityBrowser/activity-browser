@@ -12,6 +12,7 @@ from loguru import logger
 from bw2io.errors import StrategyError
 from bw2io.strategies.generic import (format_nonunique_key_error,
                                       link_iterable_by_fields)
+from bw2io.strategies import link_technosphere_by_activity_hash
 from bw2io.utils import DEFAULT_FIELDS, activity_hash
 
 import bw2data as bd
@@ -61,6 +62,36 @@ def _relink_exchange_input(exc: dict, relink: dict) -> None:
             "Cannot relink exchange '{}', key '{}' not found.".format(exc, new_key)
         ).with_traceback(e.__traceback__)
     exc["input"] = new_key
+
+
+_SKIP_INTERNAL_LINK = ("__ab_skip_internal_link__", "")
+
+
+def link_technosphere_same_database(data: list) -> list:
+    """Link technosphere exchanges internally, respecting exchange ``database``.
+
+    ``bw2io``'s ``link_technosphere_by_activity_hash`` matches on name/location/unit
+    fields only. That wrongly self-links exchanges that already name another
+    database (e.g. a local market activity that also imports the same-named market
+    from an external DB). Leave those unlinked for later external linking.
+    """
+    protected = []
+    for ds in data:
+        db = ds.get("database")
+        for exc in ds.get("exchanges", []):
+            if exc.get("input") or exc.get("type") not in TECHNOSPHERE_TYPES:
+                continue
+            exc_db = exc.get("database")
+            if exc_db and db and exc_db != db:
+                exc["input"] = _SKIP_INTERNAL_LINK
+                protected.append(exc)
+
+    link_technosphere_by_activity_hash(data)
+
+    for exc in protected:
+        if exc.get("input") == _SKIP_INTERNAL_LINK:
+            del exc["input"]
+    return data
 
 
 def link_functional_processors(data: list) -> list:

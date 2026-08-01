@@ -13,7 +13,7 @@ import bw_functional as bf
 from activity_browser import app
 from activity_browser.bwutils.commontasks import (refresh_node, database_is_locked, database_is_legacy,
                                                   is_node_product_or_waste, is_node_biosphere, parameters_in_scope,
-                                                  is_node_product, is_node_waste)
+                                                  is_node_product, is_node_waste, get_exchange_type)
 from activity_browser.bwutils.uncertainty import uncertainty_cell_summary
 from activity_browser.ui import widgets, icons, delegates, core
 
@@ -261,8 +261,8 @@ class ExchangesTab(QtWidgets.QWidget):
             return
 
         if action == "waste":
-            self.output_view.overlay.setText("Drop to produce waste")
-            self.input_view.overlay.setText("Drop to substitute waste consumption")
+            self.output_view.overlay.setText("Drop to add waste treatment")
+            self.input_view.overlay.setText("Drop to substitute waste treatment")
             return
 
         if action == "resource":
@@ -356,35 +356,26 @@ class ExchangesTab(QtWidgets.QWidget):
 
         """
         keys = mime.retrievePickleData("application/bw-nodekeylist")
-        data = app.metadata.get_metadata(keys, ["type"])
-        data = set(data["type"].unique())
-        data.discard("process")
-        data.discard("multifunctional")
-        data.discard("nonfunctional")
+        actions: set[str] = set()
+        for key in keys:
+            if is_node_waste(key):
+                actions.add("waste")
+            elif is_node_product(key):
+                actions.add("product")
+            elif is_node_biosphere(key):
+                node_type = refresh_node(key)._document.type
+                if node_type == "natural resource":
+                    actions.add("resource")
+                elif node_type == "emission":
+                    actions.add("emission")
+                else:
+                    actions.add("generic")
+            else:
+                actions.add("generic")
 
-        if len(data) != 1:
+        if len(actions) != 1:
             return "generic"
-
-        node_type = data.pop()
-        if node_type in ["product", "processwithreferenceproduct"]:
-            return "product"
-        if node_type == "waste":
-            return "waste"
-        if node_type == "natural resource":
-            return "resource"
-        if node_type == "emission":
-            return "emission"
-        else:
-            return "generic"
-
-def get_exchange_type(activity_key: tuple, output=False) -> str | None:
-    if is_node_product(activity_key):
-        return "substitution" if output else "technosphere"
-    if is_node_waste(activity_key):
-        return "-technosphere" if output else "-substitution"
-    elif is_node_biosphere(activity_key):
-        return "biosphere"
-    return None
+        return actions.pop()  # type: ignore[return-value]
 
 
 class RelinkDelegate(delegates.StringDelegate):
@@ -548,6 +539,11 @@ class ExchangesView(widgets.ABTreeView):
 
     class ContextMenu(widgets.ABMenu):
         menuSetup = [
+            lambda m: m.add(app.actions.ActivityOpen, [x.input for x in m.exchanges],
+                            enable=bool(m.exchanges),
+                            text="Open process" if len(m.exchanges) == 1 else "Open processes",
+                            ),
+            lambda m: m.addSeparator(),
             lambda m: m.add(app.actions.ActivityNewProduct, [m.activity.key],
                             enable=not m.locked and not database_is_legacy(m.activity["database"])
                             ),
@@ -556,11 +552,14 @@ class ExchangesView(widgets.ABTreeView):
                             text="Create waste"
                             ),
             lambda m: m.addSeparator(),
-            lambda m: m.add(app.actions.ExchangeDelete, m.exchanges, enable=bool(m.exchanges) and not m.locked),
-            lambda m: m.add(app.actions.ExchangeSDFToClipboard, m.exchanges, enable=bool(m.exchanges)),
-            lambda m: m.add(app.actions.ActivityOpen, [x.input for x in m.exchanges],
+            lambda m: m.add(app.actions.ExchangeDelete, m.exchanges,
+                            enable=bool(m.exchanges) and not m.locked,
+                            text="Delete flow" if len(m.exchanges) == 1 else "Delete flows",
+                            ),
+            lambda m: m.addSeparator(),
+            lambda m: m.add(app.actions.ExchangeSDFToClipboard, m.exchanges,
                             enable=bool(m.exchanges),
-                            text="Open processs" if len(m.exchanges) == 1 else "Open processes",
+                            text="Copy for scenario file",
                             ),
         ]
 

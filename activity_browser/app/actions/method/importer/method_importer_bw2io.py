@@ -18,7 +18,7 @@ class MethodImporterBW2IO(MethodImporterEcoinvent):
     """ABAction to import ecoinvent methods shipped with BW2IO"""
 
     icon = icons.qicons.import_db
-    text = "Import methods from BW2IO"
+    text = "Import from bw2io..."
     tool_tip = "Import methods that come shipped with BW2IO"
 
     @classmethod

@@ -147,8 +147,8 @@ class ActivityName(QtWidgets.QLineEdit):
         font.setBold(True)
         font.setPointSize(font.pointSize() + 3)
         self.setFont(font)
+        # Avoid stylesheets here — QSS colors do not track theme changes.
         self.setFrame(False)
-        self.setStyleSheet("QLineEdit { padding: 0px; }")
         fm = QtGui.QFontMetrics(self.font())
         self.setFixedHeight(fm.height() + 4)
         self.setSizePolicy(QtWidgets.QSizePolicy.Policy.Fixed, QtWidgets.QSizePolicy.Policy.Fixed)
@@ -260,7 +260,6 @@ class ActivityLocation(QtWidgets.QLineEdit):
         font.setBold(False)
         self.setFont(font)
         self.setFrame(False)
-        self.setStyleSheet("QLineEdit { padding: 0px; }")
         fm = QtGui.QFontMetrics(self.font())
         self.setFixedHeight(fm.height() + 4)
         self.setSizePolicy(QtWidgets.QSizePolicy.Policy.Fixed, QtWidgets.QSizePolicy.Policy.Fixed)

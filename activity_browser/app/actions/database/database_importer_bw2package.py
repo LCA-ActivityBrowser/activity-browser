@@ -19,7 +19,7 @@ class DatabaseImporterBW2Package(ABAction):
     """ABAction to open the DatabaseImportWizard"""
 
     icon = icons.qicons.import_db
-    text = "Import database from .bw2package"
+    text = "Import from .bw2package..."
     tool_tip = "Import database from .bw2package"
 
     @classmethod

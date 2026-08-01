@@ -17,7 +17,7 @@ class MethodImporterEcoinvent(ABAction):
     """ABAction to import methods from ecoinvent"""
 
     icon = icons.qicons.import_db
-    text = "Import methods from ecoinvent excel format"
+    text = "Import from ecoinvent excel..."
     tool_tip = "Import methods from ecoinvent excel format"
 
     @classmethod

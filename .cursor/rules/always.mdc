@@ -1,0 +1,14 @@
+---
+description: Always-on Activity Browser invariants for agents
+alwaysApply: true
+---
+
+# Activity Browser — core invariants
+
+- Read `AGENTS.md` and use vocabulary from `CONTEXT.md`.
+- Placement: Brightway-only → `bwutils/`; app-agnostic widgets → `ui/`; app-aware pages/panes/actions → `app/`.
+- Domain updates: user → action → Brightway/bwutils → bw signals → `app.signals` → UI (see `docs/adr/0003-signals-event-bus.md`). UI listens; do not emit domain signals from UI to refresh other UI.
+- Preserve deferred-import patterns on hot paths (`ADR-0002`).
+- Do not invent or harden a plugin API (placeholder in `AGENTS.md` until redesigned).
+- Prefer small, localized diffs; add/update tests for stateful behavior.
+- **Never create a git commit unless the user explicitly asks to commit in that message.** Skills that say “commit when done” (e.g. `/implement`) do **not** override this — finish the work, leave changes uncommitted, and wait for an explicit commit request. Do not stage-and-commit “to finish the task,” “because the skill says so,” or “so code-review has a SHA.”

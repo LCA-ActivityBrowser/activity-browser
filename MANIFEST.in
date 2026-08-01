@@ -9,3 +9,6 @@ recursive-include activity_browser *.css
 recursive-include activity_browser *.txt
 recursive-include activity_browser *.zip
 recursive-include activity_browser *.ttf
+recursive-include activity_browser *.xlsx
+recursive-include activity_browser *.csv
+recursive-include activity_browser *.md

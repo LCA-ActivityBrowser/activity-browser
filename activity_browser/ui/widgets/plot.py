@@ -868,6 +868,17 @@ class ABPlot(QtWidgets.QWidget):
                 filepath += extension
             self.figure.savefig(filepath)
 
+    def to_clipboard_png(self) -> None:
+        """Copy the current figure to the system clipboard as a PNG image."""
+        import io
+
+        buf = io.BytesIO()
+        self.figure.savefig(buf, format="png")
+        image = QtGui.QImage.fromData(buf.getvalue(), "PNG")
+        if image.isNull():
+            return
+        QtWidgets.QApplication.clipboard().setImage(image)
+
     def to_png(self) -> None:
         self._save_figure(".png", self.PNG_FILTER)
 

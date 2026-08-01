@@ -8,6 +8,7 @@ import openpyxl
 import pandas as pd
 
 from .utils import SUPERSTRUCTURE
+from .dataframe import ensure_string_scenario_names
 
 
 
@@ -66,10 +67,9 @@ def import_from_excel(
     The default index chosen represents the second sheet (first after the
     'information' sheet).
 
-    Any '*' character used at the start of a row or will cause that row
-    to be excluded from the import.
-    A '#' character at the start of a column will cause that column to be
-    excluded from the import.
+    A '#' character at the start of a row causes that row to be excluded from
+    the import. A '#' character at the start of a column name causes that
+    column to be excluded from the import.
 
     'usecols' is used to exclude specific columns from the excel document.
     'comment' is used to exclude specific rows from the excel document.
@@ -83,7 +83,7 @@ def import_from_excel(
                 sheet_name=import_sheet,
                 header=header_idx,
                 usecols=valid_cols,
-                comment="*",
+                comment="#",
                 na_values="",
                 keep_default_na=False,
                 engine="openpyxl",
@@ -99,7 +99,9 @@ def import_from_excel(
         # Convert specific columns that may have tuples as strings
         columns = ["from categories", "from key", "to categories", "to key"]
         data.loc[:, columns] = data[columns].map(convert_tuple_str)
-    except:
-        # skip the error checks here, these now occur in the calling layout.tabs.LCA_setup module
-        pass
+        # Scenario headers typed as numbers in Excel (e.g. 2025) must be strings.
+        data = ensure_string_scenario_names(data)
+    except Exception as e:
+        # Caller (UI) decides how to surface failures; empty frame means "not this sheet".
+        logger.debug("Excel scenario import failed for sheet {}: {}", import_sheet, e)
     return data

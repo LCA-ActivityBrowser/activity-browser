@@ -32,7 +32,7 @@ class ProjectDuplicate(ABAction):
     """
 
     icon = qicons.copy
-    text = "Duplicate this project"
+    text = "Duplicate..."
     tool_tip = "Duplicate the project"
 
     @staticmethod

@@ -1,0 +1,13 @@
+---
+description: Conventions for activity_browser/app/actions — Brightway-mutating commands
+globs: activity_browser/app/actions/**
+alwaysApply: false
+---
+
+# app/actions conventions
+
+- Actions encapsulate user commands (menus, toolbars, context menus). **Brightway mutations belong here** more often than in raw widgets.
+- Follow patterns in `activity_browser/app/actions/base.py` and neighboring concrete actions.
+- Use `app.application`, `app.signals`, `app.metadata`, and `app.settings` as existing actions do.
+- After data changes, rely on Brightway → `app.signals` bridging (`docs/adr/0003-signals-event-bus.md`). Emit domain signals from an action only when upstream does not notify yet.
+- Keep actions focused; reusable non-UI Brightway helpers go in `bwutils/`.

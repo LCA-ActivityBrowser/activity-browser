@@ -36,7 +36,7 @@ class DatabaseImportFromEcoinvent(ABAction):
     """
 
     icon = icons.qicons.import_db
-    text = "Import database from ecoinvent"
+    text = "Import from ecoinvent..."
     tool_tip = "Import database from ecoinvent"
 
     @staticmethod

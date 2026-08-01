@@ -59,7 +59,7 @@ class SettingsPage(widgets.ABAbstractPage):
         
         # Select first chapter by default
         self.chapter_list.setCurrentRow(0)
-        
+
         # Buttons
         self.button_layout = QtWidgets.QHBoxLayout()
         self.save_button = QtWidgets.QPushButton("Save")
@@ -103,6 +103,34 @@ class SettingsPage(widgets.ABAbstractPage):
         # Set minimum size for resizability
         self.setMinimumSize(400, 300)
     
+    def show_chapter(self, name: str) -> None:
+        """Select a settings chapter by its sidebar label (e.g. ``Projects``)."""
+        for index, (chapter_name, _) in enumerate(self.chapters):
+            if chapter_name == name:
+                self.chapter_list.setCurrentRow(index)
+                return
+        raise ValueError(f"Unknown settings chapter: {name!r}")
+
+    @classmethod
+    def open_chapter(cls, name: str):
+        """Show the Settings page and select the given chapter."""
+        from activity_browser import app
+
+        central = app.main_window.central_widget
+        page = app.main_window.findChild(cls)
+        if page is None:
+            page = cls(parent=central)
+            central.addPage(page)
+        elif central.indexOf(page) >= 0:
+            central.setCurrentWidget(page)
+        else:
+            # Closed base page: re-add without going through the "already present"
+            # addPage branch (which would deleteLater the live page).
+            page.toggle_view_action.setChecked(True)
+            central.addPage(page)
+
+        page.show_chapter(name)
+
     def connect_signals(self):
         """Connect signals and slots."""
         signals.project.changed.connect(self.reset_all)
@@ -111,7 +139,7 @@ class SettingsPage(widgets.ABAbstractPage):
         self.save_button.clicked.connect(self.save_settings)
         self.cancel_button.clicked.connect(self.cancel_settings)
         self.restore_defaults_button.clicked.connect(self.restore_defaults)
-        
+
         # Connect change signals from each chapter
         for name, chapter in self.chapters:
             if hasattr(chapter, 'changed'):
