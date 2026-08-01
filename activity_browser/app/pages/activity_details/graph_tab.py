@@ -11,7 +11,7 @@ import bw_functional as bf
 from activity_browser import static, app
 from activity_browser.bwutils.commontasks import refresh_node, database_is_locked
 from activity_browser.ui import widgets
-from .exchanges_tab import get_exchange_type
+from activity_browser.bwutils.commontasks import get_exchange_type
 
 
 

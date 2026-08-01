@@ -286,17 +286,32 @@ def biosphere_node_types() -> frozenset[str]:
 def is_node_product_or_waste(node: tuple | int | bd.Node) -> bool:
     return is_node_product(node) or is_node_waste(node)
 
+
+def _sqlite_functional_production_amount(node: bd.Node) -> float | None:
+    """Production amount on a sqlite process+reference-product node, if any."""
+    productions = list(node.production())
+    if not productions:
+        return None
+    return productions[0]["amount"]
+
+
 def is_node_product(node: tuple | int | bd.Node) -> bool:
     node = refresh_node(node)
     raw_type = node._document.type
 
-    if raw_type in ["product", "processwithreferenceproduct"]:
+    if raw_type == "product":
         return True
+
+    if raw_type == "processwithreferenceproduct":
+        amount = _sqlite_functional_production_amount(node)
+        # Missing production → keep legacy product behavior
+        return amount is None or amount >= 0
 
     if raw_type == "process" and len(node.upstream(kinds=["production"])):
         return True
 
     return False
+
 
 def is_node_waste(node: tuple | int | bd.Node) -> bool:
     node = refresh_node(node)
@@ -305,6 +320,10 @@ def is_node_waste(node: tuple | int | bd.Node) -> bool:
     if raw_type == "waste":
         return True
 
+    if raw_type == "processwithreferenceproduct":
+        amount = _sqlite_functional_production_amount(node)
+        return amount is not None and amount < 0
+
     return False
 
 
@@ -312,6 +331,21 @@ def is_node_biosphere(node: tuple | int | bd.Node) -> bool:
     """True if *node* is an elementary flow (biosphere node, not technosphere)."""
     node = refresh_node(node)
     return node._document.type in biosphere_node_types()
+
+
+def get_exchange_type(activity_key: tuple, output: bool = False) -> str | None:
+    """
+    Exchange type (and optional leading ``-`` for negative amount) when dropping
+    *activity_key* onto an activity's Output (*output*=True) or Input table.
+    """
+    if is_node_product(activity_key):
+        return "substitution" if output else "technosphere"
+    if is_node_waste(activity_key):
+        return "-technosphere" if output else "-substitution"
+    if is_node_biosphere(activity_key):
+        return "biosphere"
+    return None
+
 
 def is_node_process(node: tuple | int | bd.Node) -> bool:
     node = refresh_node(node)

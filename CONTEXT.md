@@ -22,9 +22,20 @@ A unit process or transforming activity in a database. In the UI this is often o
 
 A flow between activities (processes) (technosphere) or from/to biosphere flows, with an amount and optional uncertainty/parameters. In signals, related updates may appear as **edge**. TBD: AB-wide exchanges should be renamed to flows.
 
+### Functional flow
+
+The exchange that expresses the purpose of a process: either a **product** output or a **waste** input. The reverse combinations (product input, waste output) are non-functional flows. Further concepts (e.g. allocation) are defined in the `bw-functional` / functional_sqlite code and documentation.
+_Avoid_: reference flow (when meaning the process’s function rather than the LCA study’s functional unit)
+
 ### Product / reference product
 
-The output of an activity that can be used as a functional flow in a calculation setup. Multifunctional activities may have multiple products; The functional_sqlite (bw-functional) backend distinguishes products and wastes. Product-outputs and waste-inputs are funcional flows. The revers combinations are non-functional flows. Further concepts (e.g. allocation) are defined in the  `bw-functional` / functional_sqlite code and documentation.
+A functional output of a process; can be used as a functional unit in a calculation setup. Multifunctional activities may have multiple products. On functional_sqlite, products are distinct nodes (`type=product`). On sqlite, a `processwithreferenceproduct` whose production amount is non-negative plays this role.
+_Avoid_: output (alone), good
+
+### Waste
+
+A functional input of a process (waste treatment): the process exists to take in that waste. On functional_sqlite, wastes are distinct nodes (`type=waste`). On sqlite, a `processwithreferenceproduct` whose production amount is negative plays this role.
+_Avoid_: waste treatment (when meaning the flow itself rather than the treating process)
 
 ### Biosphere / elementary flow
 
