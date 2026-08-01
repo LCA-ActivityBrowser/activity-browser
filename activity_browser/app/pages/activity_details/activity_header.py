@@ -308,8 +308,13 @@ class LocationDatabaseRowWidget(QtWidgets.QWidget):
         database_widget = QtWidgets.QLabel(parent.activity.get("database", "unspecified"), self)
         database_widget.setTextInteractionFlags(QtCore.Qt.TextInteractionFlag.TextSelectableByMouse)
 
+        db_icon = (
+            "database_functional_sqlite"
+            if parent._database_backend == "functional_sqlite"
+            else "database"
+        )
         layout.addWidget(location_widget, 0)
-        layout.addWidget(parent._icon_label("database", "Database"))
+        layout.addWidget(parent._icon_label(db_icon, "Database"))
         layout.addWidget(database_widget, 1)
 
 
