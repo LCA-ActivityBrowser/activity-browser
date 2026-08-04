@@ -8,6 +8,7 @@ from PySide2.QtCore import QModelIndex, Qt, Slot
 
 from activity_browser import signals, application
 from activity_browser.bwutils import commontasks as bc
+from activity_browser.i18n import _
 from activity_browser.mod import bw2data as bd
 from activity_browser.mod.bw2data.backends import ActivityDataset
 
@@ -100,6 +101,23 @@ class CSActivityModel(CSGenericModel):
     def get_key(self, proxy: QModelIndex) -> tuple:
         idx = self.proxy_to_source(proxy)
         return self._dataframe.iat[idx.row(), self.key_col]
+
+    def data(self, index, role=Qt.DisplayRole):
+        """Localize only the program-generated missing-activity marker."""
+
+        if (
+            index.isValid()
+            and role in (Qt.DisplayRole, Qt.ToolTipRole)
+            and self._dataframe.columns[index.column()] == "Activity"
+        ):
+            key = self._dataframe.iat[index.row(), self.key_col]
+            try:
+                missing = key not in self._activities
+            except TypeError:
+                missing = True
+            if missing:
+                return _("NOT FOUND: {value}", value=key)
+        return super().data(index, role)
 
     def load(self, cs_name: str = None):
         for act in self._activities.values():
@@ -206,6 +224,20 @@ class CSMethodsModel(CSGenericModel):
         """
         idx = self.proxy_to_source(proxy)
         return self._dataframe["method"][idx.row()]
+
+    def data(self, index, role=Qt.DisplayRole):
+        """Localize only the program-generated missing-method marker."""
+
+        if (
+            index.isValid()
+            and role in (Qt.DisplayRole, Qt.ToolTipRole)
+            and self._dataframe.columns[index.column()] == "Name"
+        ):
+            method_col = self._dataframe.columns.get_loc("method")
+            method = self._dataframe.iat[index.row(), method_col]
+            if method not in self._methods:
+                return _("NOT FOUND: {value}", value=method)
+        return super().data(index, role)
 
     def load(self, cs_name: str = None) -> None:
         """

@@ -1,0 +1,19 @@
+{
+  "Activity Browser - a graphical interface for Brightway2.<br><br>Application version: <b>{application_version}</b><br>bw2data version: <b>{bw2data_version}</b><br>bw2io version: <b>{bw2io_version}</b><br>bw2calc version: <b>{bw2calc_version}</b><br><br>All development happens on <a href=\"https://github.com/LCA-ActivityBrowser/activity-browser\">github</a>.<br><br>For copyright information please see the copyright on <a href=\"https://github.com/LCA-ActivityBrowser/activity-browser/tree/main#copyright\">this page</a>.<br><br>For license information please see the copyright on <a href=\"https://github.com/LCA-ActivityBrowser/activity-browser/blob/main/LICENSE.txt\">this page</a>.<br><br>": "Activity Browser——Brightway2 的图形界面。<br><br>应用程序版本：<b>{application_version}</b><br>bw2data 版本：<b>{bw2data_version}</b><br>bw2io 版本：<b>{bw2io_version}</b><br>bw2calc 版本：<b>{bw2calc_version}</b><br><br>所有开发工作均在 <a href=\"https://github.com/LCA-ActivityBrowser/activity-browser\">github</a> 上进行。<br><br>版权信息请参阅<a href=\"https://github.com/LCA-ActivityBrowser/activity-browser/tree/main#copyright\">此页面</a>。<br><br>许可证信息请参阅<a href=\"https://github.com/LCA-ActivityBrowser/activity-browser/blob/main/LICENSE.txt\">此页面</a>。<br><br>",
+  "Bernoulli uncertainty": "伯努利分布不确定性",
+  "Beta PERT uncertainty": "Beta PERT 分布不确定性",
+  "Beta uncertainty": "Beta 分布不确定性",
+  "Discrete uniform uncertainty": "离散均匀分布不确定性",
+  "Gamma uncertainty": "伽马分布不确定性",
+  "Generalized extreme value uncertainty": "广义极值分布不确定性",
+  "Lognormal uncertainty": "对数正态分布不确定性",
+  "No uncertainty": "无不确定性",
+  "No classification": "未分类",
+  "Normal uncertainty": "正态分布不确定性",
+  "Student's T uncertainty": "学生 t 分布不确定性",
+  "Triangular uncertainty": "三角分布不确定性",
+  "Undefined or unknown uncertainty": "未定义或未知的不确定性",
+  "Undefined uncertainty": "未定义的不确定性",
+  "Uniform uncertainty": "均匀分布不确定性",
+  "Weibull uncertainty": "威布尔分布不确定性"
+}

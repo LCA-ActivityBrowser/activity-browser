@@ -7,7 +7,18 @@ packages = []
 root_dir = os.path.dirname(__file__)
 if root_dir:
     os.chdir(root_dir)
-accepted_filetypes = (".html", ".png", ".svg", ".js", ".css", ".txt", ".zip", ".md")
+accepted_filetypes = (
+    ".html",
+    ".png",
+    ".svg",
+    ".js",
+    ".css",
+    ".txt",
+    ".zip",
+    ".md",
+    ".json",
+    ".qm",
+)
 
 for dirpath, dirnames, filenames in os.walk("activity_browser"):
     # Ignore dirnames that start with '.'
@@ -30,6 +41,9 @@ setup(
     name="activity-browser",
     version=version,
     packages=packages,
+    package_data={
+        "activity_browser.translations": ["*.json", "*.qm", "*/*.json", "*/*.qm"]
+    },
     include_package_data=True,
     author="Bernhard Steubing",
     author_email="b.steubing@cml.leidenuniv.nl",

@@ -3,6 +3,7 @@ from PySide2 import QtWidgets
 from activity_browser import application
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.info import __ei_versions__
+from activity_browser.i18n import _
 from activity_browser.ui.widgets import (BiosphereUpdater,
                                          EcoinventVersionDialog)
 from activity_browser.utils import sort_semantic_versions
@@ -25,10 +26,12 @@ class BiosphereUpdate(ABAction):
         # warn user of consequences of updating
         warn_dialog = QtWidgets.QMessageBox.question(
             application.main_window,
-            "Update biosphere3?",
-            "Newer versions of the biosphere database may not\n"
-            "always be compatible with older ecoinvent versions.\n"
-            "\nUpdating the biosphere3 database cannot be undone!\n",
+            _("Update biosphere3?"),
+            _(
+                "Newer versions of the biosphere database may not always be "
+                "compatible with older ecoinvent versions.\n\nUpdating the "
+                "biosphere3 database cannot be undone!"
+            ),
             QtWidgets.QMessageBox.Ok | QtWidgets.QMessageBox.Abort,
             QtWidgets.QMessageBox.Abort,
         )

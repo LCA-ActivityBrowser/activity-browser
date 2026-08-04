@@ -7,6 +7,7 @@ from stats_arrays import uncertainty_choices as uncertainty
 from stats_arrays.distributions import *
 
 from activity_browser import actions, application
+from activity_browser.i18n import _
 
 from ...bwutils import PedigreeMatrix, get_uncertainty_interface
 from ...bwutils.uncertainty import EMPTY_UNCERTAINTY
@@ -30,6 +31,7 @@ class UncertaintyWizard(QtWidgets.QWizard):
 
     def __init__(self, unc_object: object, parent=None):
         super().__init__(parent)
+        self.setWindowTitle(_("Uncertainty"))
 
         self.obj = get_uncertainty_interface(unc_object)
         self.using_pedigree = False
@@ -144,13 +146,13 @@ class UncertaintyWizard(QtWidgets.QWizard):
         elif uc_type in self.type.mean_is_calculated:
             mean = self.type.calculate_mean
         if not np.isclose(self.obj.amount, mean) and uc_type not in no_change:
-            msg = (
+            msg = _(
                 "Do you want to update the 'amount' field to match mean?"
-                "\nAmount: {}\tMean: {}".format(self.obj.amount, mean)
-            )
+                "\nAmount: {amount}\tMean: {mean}"
+            ).format(amount=self.obj.amount, mean=mean)
             choice = QtWidgets.QMessageBox.question(
                 self,
-                "Amount differs from mean",
+                _("Amount differs from mean"),
                 msg,
                 QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
                 QtWidgets.QMessageBox.Yes,
@@ -165,7 +167,7 @@ class UncertaintyWizard(QtWidgets.QWizard):
                     except Exception as e:
                         QtWidgets.QMessageBox.warning(
                             application.main_window,
-                            "Could not save changes",
+                            _("Could not save changes"),
                             str(e),
                             QtWidgets.QMessageBox.Ok,
                             QtWidgets.QMessageBox.Ok,
@@ -196,22 +198,29 @@ class UncertaintyTypePage(QtWidgets.QWizardPage):
         }
 
         # Selection of uncertainty distribution.
-        box1 = QtWidgets.QGroupBox("Select the uncertainty distribution")
+        box1 = QtWidgets.QGroupBox(_("Select the uncertainty distribution"))
         box1.setStyleSheet(style_group_box.border_title)
         self.distribution = QtWidgets.QComboBox(box1)
-        self.distribution.addItems([ud.description for ud in uncertainty.choices])
+        # Descriptions are fixed UI metadata from stats_arrays.  Translation
+        # changes only the displayed text; the combobox index remains the
+        # distribution ID used by calculations.
+        self.distribution.addItems(
+            [_(ud.description) for ud in uncertainty.choices]
+        )
         self.distribution.currentIndexChanged.connect(self.distribution_selection)
         self.registerField("uncertainty type", self.distribution, "currentIndex")
-        self.pedigree = QtWidgets.QPushButton("Use pedigree")
+        self.pedigree = QtWidgets.QPushButton(_("Use pedigree"))
         self.pedigree.clicked.connect(self.pedigree_page)
         box_layout = QtWidgets.QGridLayout()
-        box_layout.addWidget(QtWidgets.QLabel("Distribution:"), 0, 0, 2, 1)
+        box_layout.addWidget(QtWidgets.QLabel(_("Distribution:")), 0, 0, 2, 1)
         box_layout.addWidget(self.distribution, 0, 1, 2, 2)
         box_layout.addWidget(self.pedigree, 0, 3, 2, 1)
         box1.setLayout(box_layout)
 
         # Set values for selected uncertainty distribution.
-        self.field_box = QtWidgets.QGroupBox("Fill out or change required parameters")
+        self.field_box = QtWidgets.QGroupBox(
+            _("Fill out or change required parameters")
+        )
         self.field_box.setStyleSheet(style_group_box.border_title)
         self.locale = QtCore.QLocale(
             QtCore.QLocale.English, QtCore.QLocale.UnitedStates
@@ -224,32 +233,32 @@ class UncertaintyTypePage(QtWidgets.QWizardPage):
         self.loc.textEdited.connect(self.balance_mean_with_loc)
         self.loc.textEdited.connect(self.check_negative)
         self.loc.textEdited.connect(self.generate_plot)
-        self.loc_label = QtWidgets.QLabel("Loc:")
+        self.loc_label = QtWidgets.QLabel(_("Loc:"))
         self.mean = QtWidgets.QLineEdit()
         self.mean.setValidator(self.validator)
         self.mean.textEdited.connect(self.balance_loc_with_mean)
         self.mean.textEdited.connect(self.check_negative)
         self.mean.textEdited.connect(self.generate_plot)
-        self.mean_label = QtWidgets.QLabel("Mean:")
-        self.blocked_label = QtWidgets.QLabel("Mean:")
+        self.mean_label = QtWidgets.QLabel(_("Mean:"))
+        self.blocked_label = QtWidgets.QLabel(_("Mean:"))
         self.blocked_mean = QtWidgets.QLineEdit("nan")
         self.blocked_mean.setDisabled(True)
         self.scale = QtWidgets.QLineEdit()
         self.scale.setValidator(self.validator)
         self.scale.textEdited.connect(self.generate_plot)
-        self.scale_label = QtWidgets.QLabel("Sigma/scale:")
+        self.scale_label = QtWidgets.QLabel(_("Sigma/scale:"))
         self.shape = QtWidgets.QLineEdit()
         self.shape.setValidator(self.validator)
         self.shape.textEdited.connect(self.generate_plot)
-        self.shape_label = QtWidgets.QLabel("Shape:")
+        self.shape_label = QtWidgets.QLabel(_("Shape:"))
         self.minimum = QtWidgets.QLineEdit()
         self.minimum.setValidator(self.validator)
         self.minimum.textEdited.connect(self.generate_plot)
-        self.min_label = QtWidgets.QLabel("Minimum:")
+        self.min_label = QtWidgets.QLabel(_("Minimum:"))
         self.maximum = QtWidgets.QLineEdit()
         self.maximum.setValidator(self.validator)
         self.maximum.textEdited.connect(self.generate_plot)
-        self.max_label = QtWidgets.QLabel("Maximum:")
+        self.max_label = QtWidgets.QLabel(_("Maximum:"))
         self.negative = QtWidgets.QRadioButton(self)
         self.negative.setChecked(False)
         self.negative.setHidden(True)
@@ -334,15 +343,15 @@ class UncertaintyTypePage(QtWidgets.QWizardPage):
         into the 'loc' field.
         """
         if self.dist.id == LognormalUncertainty.id:
-            return "Loc (ln(mean)):"
+            return _("Loc (ln(mean)):")
         elif self.dist.id == TriangularUncertainty.id:
-            return "Mode:"
+            return _("Mode:")
         elif self.dist.id == BetaUncertainty.id:
-            return "Loc / alpha:"
+            return _("Loc / alpha:")
         elif self.dist.id in {GammaUncertainty.id, WeibullUncertainty.id}:
-            return "Loc / offset:"
+            return _("Loc / offset:")
         else:
-            return "Mean:"
+            return _("Mean:")
 
     @property
     def calculate_mean(self) -> float:
@@ -520,7 +529,9 @@ class PedigreeMatrixPage(QtWidgets.QWizardPage):
         self.setFinalPage(True)
         self.matrix = None
 
-        self.field_box = QtWidgets.QGroupBox("Fill out or change required parameters")
+        self.field_box = QtWidgets.QGroupBox(
+            _("Fill out or change required parameters")
+        )
         self.field_box.setStyleSheet(style_group_box.border_title)
         self.locale = QtCore.QLocale(
             QtCore.QLocale.English, QtCore.QLocale.UnitedStates
@@ -539,63 +550,87 @@ class PedigreeMatrixPage(QtWidgets.QWizardPage):
         self.mean.textEdited.connect(self.check_negative)
         self.mean.textEdited.connect(self.check_complete)
         box_layout = QtWidgets.QGridLayout()
-        box_layout.addWidget(QtWidgets.QLabel("Loc (ln(mean)):"), 0, 0)
+        box_layout.addWidget(QtWidgets.QLabel(_("Loc (ln(mean)):")), 0, 0)
         box_layout.addWidget(self.loc, 0, 1)
-        box_layout.addWidget(QtWidgets.QLabel("Mean:"), 0, 3)
+        box_layout.addWidget(QtWidgets.QLabel(_("Mean:")), 0, 3)
         box_layout.addWidget(self.mean, 0, 4)
         self.field_box.setLayout(box_layout)
 
-        box = QtWidgets.QGroupBox("Select pedigree values")
+        box = QtWidgets.QGroupBox(_("Select pedigree values"))
         box.setStyleSheet(style_group_box.border_title)
 
         self.reliable = QtWidgets.QComboBox(box)
         self.reliable.addItems(
             [
-                "1) Verified data based on measurements",
-                "2) Verified data partly based on assumptions",
-                "3) Non-verified data partly based on qualified measurements",
-                "4) Qualified estimate",
-                "5) Non-qualified estimate",
+                _("1) Verified data based on measurements"),
+                _("2) Verified data partly based on assumptions"),
+                _("3) Non-verified data partly based on qualified estimates"),
+                _("4) Qualified estimate"),
+                _("5) Non-qualified estimate"),
             ]
         )
         self.complete = QtWidgets.QComboBox(box)
         self.complete.addItems(
             [
-                "1) Representative relevant data from all sites, over an adequate period",
-                "2) Representative relevant data from >50% sites, over an adequate period",
-                "3) Representative relevant data from <50% sites OR >50%, but over shorter period",
-                "4) Representative relevant data from one site OR some sites but over shorter period",
-                "5) Representativeness unknown",
+                _(
+                    "1) Representative relevant data from all sites, over an "
+                    "adequate period"
+                ),
+                _(
+                    "2) Representative relevant data from >50% sites, over an "
+                    "adequate period"
+                ),
+                _(
+                    "3) Representative relevant data from <50% sites OR >50%, "
+                    "but over shorter period"
+                ),
+                _(
+                    "4) Representative relevant data from one site OR some sites "
+                    "but over shorter period"
+                ),
+                _("5) Representativeness unknown"),
             ]
         )
         self.temporal = QtWidgets.QComboBox(box)
         self.temporal.addItems(
             [
-                "1) Data less than 3 years old",
-                "2) Data less than 6 years old",
-                "3) Data less than 10 years old",
-                "4) Data less than 15 years old",
-                "5) Data age unknown or more than 15 years old",
+                _("1) Data less than 3 years old"),
+                _("2) Data less than 6 years old"),
+                _("3) Data less than 10 years old"),
+                _("4) Data less than 15 years old"),
+                _("5) Data age unknown or more than 15 years old"),
             ]
         )
         self.geographical = QtWidgets.QComboBox(box)
         self.geographical.addItems(
             [
-                "1) Data from area under study",
-                "2) Average data from larger area in which area under study is included",
-                "3) Data from area with similar production conditions",
-                "4) Data from area with slightly similar production conditions",
-                "5) Data from unknown OR distinctly different area",
+                _("1) Data from area under study"),
+                _(
+                    "2) Average data from larger area in which area under study "
+                    "is included"
+                ),
+                _("3) Data from area with similar production conditions"),
+                _("4) Data from area with slightly similar production conditions"),
+                _("5) Data from unknown OR distinctly different area"),
             ]
         )
         self.technological = QtWidgets.QComboBox(box)
         self.technological.addItems(
             [
-                "1) Data from enterprises, processes and materials under study",
-                "2) Data from processes and materials under study, different enterprise",
-                "3) Data from processes and materials under study from different technology",
-                "4) Data on related processes and materials",
-                "5) Data on related processes on lab scale OR from different technology",
+                _("1) Data from enterprises, processes and materials under study"),
+                _(
+                    "2) Data from processes and materials under study, different "
+                    "enterprise"
+                ),
+                _(
+                    "3) Data from processes and materials under study from "
+                    "different technology"
+                ),
+                _("4) Data on related processes and materials"),
+                _(
+                    "5) Data on related processes on lab scale OR from different "
+                    "technology"
+                ),
             ]
         )
         self.reliable.currentIndexChanged.connect(self.check_complete)
@@ -605,16 +640,20 @@ class PedigreeMatrixPage(QtWidgets.QWizardPage):
         self.technological.currentIndexChanged.connect(self.check_complete)
 
         box_layout = QtWidgets.QGridLayout()
-        box_layout.addWidget(QtWidgets.QLabel("Reliability"), 0, 0, 2, 2)
+        box_layout.addWidget(QtWidgets.QLabel(_("Reliability")), 0, 0, 2, 2)
         box_layout.addWidget(self.reliable, 0, 2, 2, 3)
-        box_layout.addWidget(QtWidgets.QLabel("Completeness"), 2, 0, 2, 2)
+        box_layout.addWidget(QtWidgets.QLabel(_("Completeness")), 2, 0, 2, 2)
         box_layout.addWidget(self.complete, 2, 2, 2, 3)
-        box_layout.addWidget(QtWidgets.QLabel("Temporal correlation"), 4, 0, 2, 2)
+        box_layout.addWidget(
+            QtWidgets.QLabel(_("Temporal correlation")), 4, 0, 2, 2
+        )
         box_layout.addWidget(self.temporal, 4, 2, 2, 3)
-        box_layout.addWidget(QtWidgets.QLabel("Geographical correlation"), 6, 0, 2, 2)
+        box_layout.addWidget(
+            QtWidgets.QLabel(_("Geographical correlation")), 6, 0, 2, 2
+        )
         box_layout.addWidget(self.geographical, 6, 2, 2, 3)
         box_layout.addWidget(
-            QtWidgets.QLabel("Further technological correlation"), 8, 0, 2, 2
+            QtWidgets.QLabel(_("Further technological correlation")), 8, 0, 2, 2
         )
         box_layout.addWidget(self.technological, 8, 2, 2, 3)
         box.setLayout(box_layout)

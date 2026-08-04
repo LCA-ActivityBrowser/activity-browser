@@ -64,9 +64,20 @@ def test_settings_wizard_open(ab_app):
 
     actions.SettingsWizardOpen.run()
 
-    assert application.main_window.findChild(SettingsWizard).isVisible()
+    wizard = application.main_window.findChild(SettingsWizard)
+    assert wizard.isVisible()
+    language_combo = wizard.settings_page.language_combo
+    assert [language_combo.itemData(index) for index in range(language_combo.count())] == [
+        "system",
+        "en_US",
+        "zh_CN",
+    ]
+    assert all(
+        language_combo.itemText(index) != language_combo.itemData(index)
+        for index in range(language_combo.count())
+    )
 
-    application.main_window.findChild(SettingsWizard).destroy()
+    wizard.destroy()
 
 
 def test_migrations_install(ab_app, qtbot):
@@ -80,4 +91,3 @@ def test_migrations_install(ab_app, qtbot):
     actions.MigrationsInstall.run()
 
     assert len(bi.migrations)
-

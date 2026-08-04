@@ -4,6 +4,7 @@ from PySide2 import QtWidgets
 
 from activity_browser import application, signals
 from activity_browser.actions.base import ABAction, exception_dialogs
+from activity_browser.i18n import _
 from activity_browser.mod import bw2data as bd
 from activity_browser.ui.icons import qicons
 
@@ -25,8 +26,8 @@ class CSDelete(ABAction):
         # ask the user whether they are sure to delete the calculation setup
         warning = QtWidgets.QMessageBox.warning(
             application.main_window,
-            f"Deleting Calculation Setup: {cs_name}",
-            "Are you sure you want to delete this calculation setup?",
+            _("Delete calculation setup: {name}", name=cs_name),
+            _("Are you sure you want to delete this calculation setup?"),
             QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
             QtWidgets.QMessageBox.No,
         )
@@ -41,7 +42,7 @@ class CSDelete(ABAction):
 
         QtWidgets.QMessageBox.information(
             application.main_window,
-            f"Deleting Calculation Setup: {cs_name}",
-            "Calculation setup was succesfully deleted.",
+            _("Delete calculation setup: {name}", name=cs_name),
+            _("The calculation setup was successfully deleted."),
             QtWidgets.QMessageBox.Ok,
         )

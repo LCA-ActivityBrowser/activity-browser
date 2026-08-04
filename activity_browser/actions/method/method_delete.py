@@ -5,6 +5,7 @@ from PySide2 import QtWidgets
 
 from activity_browser import application
 from activity_browser.actions.base import ABAction, exception_dialogs
+from activity_browser.i18n import _
 from activity_browser.mod import bw2data as bd
 from activity_browser.ui.icons import qicons
 
@@ -28,14 +29,20 @@ class MethodDelete(ABAction):
         all_methods = [bd.Method(method) for method in methods]
 
         if len(all_methods) == 1:
-            warning_text = f"Are you sure you want to delete this method?\n\n{methods[0]}"
+            warning_text = _(
+                "Are you sure you want to delete this method?\n\n{method}",
+                method=methods[0],
+            )
         else:
-            warning_text = f"Are you sure you want to delete {len(all_methods)} methods?"
+            warning_text = _(
+                "Are you sure you want to delete {count} methods?",
+                count=len(all_methods),
+            )
 
         # warn the user about the pending deletion
         warning = QtWidgets.QMessageBox.warning(
             application.main_window,
-            "Deleting Method",
+            _("Delete method"),
             warning_text,
             QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
             QtWidgets.QMessageBox.No,

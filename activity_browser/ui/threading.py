@@ -63,7 +63,7 @@ class LoggingProgressHandler(logging.Handler):
 
     def emit(self, record: logging.LogRecord):
         try:
-            thread_local.progress_slot(None, record.message)
+            thread_local.progress_slot(None, record.getMessage())
         except AttributeError:
             pass
 

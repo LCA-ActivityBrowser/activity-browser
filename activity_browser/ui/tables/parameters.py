@@ -5,6 +5,7 @@ from PySide2.QtGui import QContextMenuEvent, QDragMoveEvent, QDropEvent
 from PySide2.QtWidgets import QAction, QMenu, QMessageBox
 
 from activity_browser import actions, project_settings, signals
+from activity_browser.i18n import _
 
 from ..icons import qicons
 from .delegates import *
@@ -30,20 +31,20 @@ class BaseParameterTable(ABDataFrameView):
         self.doubleClicked.connect(
             lambda: self.model.handle_double_click(self.currentIndex())
         )
-        self.delete_action = QAction(qicons.delete, "Delete parameter", None)
+        self.delete_action = QAction(qicons.delete, _("Delete parameter"), None)
         self.delete_action.triggered.connect(
             lambda: self.model.delete_parameter(self.currentIndex())
         )
-        self.rename_action = QAction(qicons.edit, "Rename parameter", None)
+        self.rename_action = QAction(qicons.edit, _("Rename parameter"), None)
         self.rename_action.triggered.connect(
             lambda: self.model.handle_parameter_rename(self.currentIndex())
         )
         self.modify_uncertainty_action = QAction(
-            qicons.edit, "Modify uncertainty", None
+            qicons.edit, _("Modify uncertainty"), None
         )
         self.modify_uncertainty_action.triggered.connect(self.modify_uncertainty)
         self.remove_uncertainty_action = QAction(
-            qicons.delete, "Remove uncertainty", None
+            qicons.delete, _("Remove uncertainty"), None
         )
         self.remove_uncertainty_action.triggered.connect(self.remove_uncertainty)
         self.model.updated.connect(self.update_proxy_model)
@@ -196,8 +197,8 @@ class ActivityParameterTable(BaseParameterTable):
         ):
             QMessageBox.warning(
                 self,
-                "Not allowed",
-                "Cannot set activity parameters on read-only databases",
+                _("Not allowed"),
+                _("Cannot set activity parameters on read-only databases"),
                 QMessageBox.Ok,
                 QMessageBox.Ok,
             )
@@ -218,7 +219,7 @@ class ActivityParameterTable(BaseParameterTable):
         if self.indexAt(event.pos()).row() == -1:
             return
         menu = QMenu(self)
-        menu.addAction(qicons.add, "Open activities", self.open_activity_tab)
+        menu.addAction(qicons.add, _("Open activities"), self.open_activity_tab)
         menu.addAction(self.rename_action)
         menu.addAction(self.delete_action)
         menu.addAction(self.modify_uncertainty_action)

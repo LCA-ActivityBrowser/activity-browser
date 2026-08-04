@@ -5,6 +5,7 @@ from PySide2 import QtWidgets
 from PySide2.QtCore import QModelIndex, Slot, Qt
 
 from activity_browser import actions
+from activity_browser.i18n import _
 from activity_browser.mod.bw2data import methods
 
 from ...signals import signals
@@ -36,13 +37,21 @@ class MethodsTable(ABFilterableDataFrameView):
         self.delete_method_action = actions.MethodDelete.get_QAction(self.selected_methods)
 
         self.connect_signals()
+        self.update_proxy_model()
+        self.hide_method_column()
 
     def connect_signals(self):
         self.doubleClicked.connect(
             lambda p: signals.method_selected.emit(self.model.get_method(p))
         )
         self.model.updated.connect(self.update_proxy_model)
+        self.model.updated.connect(self.hide_method_column)
         methods.metadata_changed.connect(self.sync)
+
+    @Slot(name="hideMethodColumn")
+    def hide_method_column(self) -> None:
+        """Keep the internal method tuple out of the visible list view."""
+        self.setColumnHidden(self.model.method_col, True)
 
     def selected_methods(self) -> list:
         """Returns a list of all the currently selected methods."""
@@ -59,7 +68,7 @@ class MethodsTable(ABFilterableDataFrameView):
         menu = QtWidgets.QMenu(self)
         menu.addAction(
             qicons.edit,
-            "Inspect Impact Category",
+            _("Inspect impact category"),
             lambda: signals.method_selected.emit(
                 self.model.get_method(self.currentIndex())
             ),
@@ -167,11 +176,17 @@ class MethodsTree(ABDictTreeView):
         menu = QtWidgets.QMenu(self)
 
         if self.tree_level()[0] == "leaf":
-            menu.addAction(qicons.edit, "Inspect Impact Category", self.method_selected)
-        else:
-            menu.addAction(qicons.forward, "Expand all sub levels", self.expand_branch)
             menu.addAction(
-                qicons.backward, "Collapse all sub levels", self.collapse_branch
+                qicons.edit, _("Inspect impact category"), self.method_selected
+            )
+        else:
+            menu.addAction(
+                qicons.forward, _("Expand all sub levels"), self.expand_branch
+            )
+            menu.addAction(
+                qicons.backward,
+                _("Collapse all sub levels"),
+                self.collapse_branch,
             )
 
         menu.addSeparator()
@@ -292,7 +307,7 @@ class MethodCharacterizationFactorsTable(ABFilterableDataFrameView):
         cell = self.selectedIndexes()[0]
         column = cell.column()
 
-        if self.model.headerData(column, Qt.Horizontal) == 'Amount':
+        if column == self.model.HEADERS.index("Amount"):
             # if the column changed is 2 (Amount) --> This is a list in case of future editable columns
             new_amount = self.model.get_value(cell)
             actions.CFAmountModify.run(self.method_name(), self.selected_cfs(), new_amount)

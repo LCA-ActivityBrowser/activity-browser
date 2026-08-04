@@ -7,15 +7,80 @@ from PySide2.QtCore import QPoint, QRect, QSize, Qt, QTimer, Signal, Slot
 from PySide2.QtWidgets import QApplication, QSizePolicy, QTableView
 
 from activity_browser import ab_settings
+from activity_browser.i18n import _
 from activity_browser.mod import bw2data as bd
 
 from ..icons import qicons
 from ..widgets.dialog import FilterManagerDialog, SimpleFilterDialog
 from .delegates import ViewOnlyDelegate
 from .models import PandasModel
-from .models.base import ABSortProxyModel
+from .models.base import ABSortProxyModel, FilterMode, FilterOperator
 
 log = getLogger(__name__)
+
+
+STRING_FILTERS = (
+    (
+        FilterOperator.CONTAINS,
+        _("contains"),
+        _("values in the column contain"),
+    ),
+    (
+        FilterOperator.NOT_CONTAINS,
+        _("does not contain"),
+        _("values in the column do not contain"),
+    ),
+    (FilterOperator.EQUALS, _("equals"), _("values in the column equal")),
+    (
+        FilterOperator.NOT_EQUALS,
+        _("does not equal"),
+        _("values in the column do not equal"),
+    ),
+    (
+        FilterOperator.STARTS_WITH,
+        _("starts with"),
+        _("values in the column start with"),
+    ),
+    (
+        FilterOperator.NOT_STARTS_WITH,
+        _("does not start with"),
+        _("values in the column do not start with"),
+    ),
+    (
+        FilterOperator.ENDS_WITH,
+        _("ends with"),
+        _("values in the column end with"),
+    ),
+    (
+        FilterOperator.NOT_ENDS_WITH,
+        _("does not end with"),
+        _("values in the column do not end with"),
+    ),
+)
+
+NUMERIC_FILTERS = (
+    (
+        FilterOperator.NUM_EQUALS,
+        "=",
+        _("values in the column equal"),
+    ),
+    (
+        FilterOperator.NUM_NOT_EQUALS,
+        "!=",
+        _("values in the column do not equal"),
+    ),
+    (
+        FilterOperator.GREATER_THAN_OR_EQUAL,
+        ">=",
+        _("values in the column are greater than or equal to"),
+    ),
+    (
+        FilterOperator.LESS_THAN_OR_EQUAL,
+        "<=",
+        _("values in the column are smaller than or equal to"),
+    ),
+    (FilterOperator.BETWEEN, "<= x <=", _("values in the column are between")),
+)
 
 
 class ABDataFrameView(QtWidgets.QTableView):
@@ -79,12 +144,12 @@ class ABDataFrameView(QtWidgets.QTableView):
         Uses the application directory for AB
         """
         safe_name = bd.utils.safe_filename(default_file_name, add_hash=False)
-        caption = caption or "Choose location to save lca results"
-        filepath, _ = QtWidgets.QFileDialog.getSaveFileName(
+        caption = caption or _("Choose location to save LCA results")
+        filepath, _selected_filter = QtWidgets.QFileDialog.getSaveFileName(
             parent=self,
             caption=caption,
             dir=os.path.join(ab_settings.data_dir, safe_name),
-            filter=file_filter or self.ALL_FILTER,
+            filter=_(file_filter or self.ALL_FILTER),
         )
         # getSaveFileName can now weirdly return Path objects.
         return str(filepath) if filepath else filepath
@@ -150,34 +215,16 @@ class ABFilterableDataFrameView(ABDataFrameView):
     """
 
     FILTER_TYPES = {
-        "str": [
-            "contains",
-            "does not contain",
-            "equals",
-            "does not equal",
-            "starts with",
-            "does not start with",
-            "ends with",
-            "does not end with",
-        ],
-        "str_tt": [
-            "values in the column contain",
-            "values in the column do not contain",
-            "values in the column equal",
-            "values in the column do not equal",
-            "values in the column start with",
-            "values in the column do not start with",
-            "values in the column end with",
-            "values in the column do not end with",
-        ],
-        "num": ["=", "!=", ">=", "<=", "<= x <="],
-        "num_tt": [
-            "values in the column equal",
-            "values in the column do not equal",
-            "values in the column are greater than or equal to",
-            "values in the column are smaller than or equal to",
-            "values in the column are between",
-        ],
+        "str": [label for _, label, _tooltip in STRING_FILTERS],
+        "str_ids": [operator for operator, _label, _tooltip in STRING_FILTERS],
+        "str_tt": [tooltip for _operator, _label, tooltip in STRING_FILTERS],
+        "num": [label for _, label, _tooltip in NUMERIC_FILTERS],
+        "num_ids": [operator for operator, _label, _tooltip in NUMERIC_FILTERS],
+        "num_tt": [tooltip for _operator, _label, tooltip in NUMERIC_FILTERS],
+    }
+    FILTER_LABELS = {
+        operator: label
+        for operator, label, _tooltip in STRING_FILTERS + NUMERIC_FILTERS
     }
 
     def __init__(self, parent=None):
@@ -229,14 +276,16 @@ class ABFilterableDataFrameView(ABDataFrameView):
         quick_filter_widget = QtWidgets.QWidget()
         quick_filter_widget.setLayout(quick_filter_layout)
         quick_filter_widget.setToolTip(
-            "Filter this column on the input,\n"
-            "press 'enter' or the search button to filter"
+            _(
+                "Filter this column on the input,\n"
+                "press 'enter' or the search button to filter"
+            )
         )
         # write previous filter to the quick-filter input if we have one
         if prev_filter := self.prev_quick_filter.get(self.selected_column, False):
             self.input_line.setText(prev_filter[1])
         else:
-            self.input_line.setPlaceholderText("Quick filter ...")
+            self.input_line.setPlaceholderText(_("Quick filter ..."))
         self.input_line.textChanged.connect(self.debounce_quick_filter.start)
         self.input_line.returnPressed.connect(menu.close)
         QAline = QtWidgets.QWidgetAction(self)
@@ -247,10 +296,11 @@ class ABFilterableDataFrameView(ABDataFrameView):
         mf_menu = QtWidgets.QMenu(menu)
         mf_menu.setToolTipsVisible(True)
         mf_menu.setIcon(qicons.filter)
-        mf_menu.setTitle("More filters")
+        mf_menu.setTitle(_("More filters"))
         filter_actions = []
-        for i, f in enumerate(self.FILTER_TYPES[col_type]):
-            fa = QtWidgets.QAction(text=f)
+        for i, filter_id in enumerate(self.FILTER_TYPES[col_type + "_ids"]):
+            fa = QtWidgets.QAction(text=self.FILTER_TYPES[col_type][i])
+            fa.setData(filter_id)
             fa.setToolTip(self.FILTER_TYPES[col_type + "_tt"][i])
             fa.triggered.connect(self.simple_filter_dialog)
             filter_actions.append(fa)
@@ -258,14 +308,14 @@ class ABFilterableDataFrameView(ABDataFrameView):
             mf_menu.addAction(fa)
         menu.addMenu(mf_menu)
         # edit filters main menu
-        filter_man = QtWidgets.QAction(qicons.edit, "Manage filters")
+        filter_man = QtWidgets.QAction(qicons.edit, _("Manage filters"))
         filter_man.triggered.connect(self.filter_manager_dialog)
-        filter_man.setToolTip("Open the filter management menu")
+        filter_man.setToolTip(_("Open the filter management menu"))
         menu.addAction(filter_man)
         # delete column filters option
-        col_del = QtWidgets.QAction(qicons.delete, "Remove column filters")
+        col_del = QtWidgets.QAction(qicons.delete, _("Remove column filters"))
         col_del.triggered.connect(self.reset_column_filters)
-        col_del.setToolTip("Remove all filters on this column")
+        col_del.setToolTip(_("Remove all filters on this column"))
         menu.addAction(col_del)
         col_del.setEnabled(False)
         if isinstance(self.filters, dict) and self.filters.get(
@@ -273,9 +323,9 @@ class ABFilterableDataFrameView(ABDataFrameView):
         ):
             col_del.setEnabled(True)
         # delete all filters option
-        all_del = QtWidgets.QAction(qicons.delete, "Remove all filters")
+        all_del = QtWidgets.QAction(qicons.delete, _("Remove all filters"))
         all_del.triggered.connect(self.reset_filters)
-        all_del.setToolTip("Remove all filters in this table")
+        all_del.setToolTip(_("Remove all filters in this table"))
         menu.addAction(all_del)
         all_del.setEnabled(False)
         if isinstance(self.filters, dict):
@@ -287,17 +337,19 @@ class ABFilterableDataFrameView(ABDataFrameView):
         ):
             menu.addSeparator()
             active_filters_label = QtWidgets.QAction(
-                qicons.filter, "Active column filters:"
+                qicons.filter, _("Active column filters:")
             )
             active_filters_label.setEnabled(False)
             menu.addAction(active_filters_label)
             active_filters = []
             for filter_data in self.filters[self.selected_column]["filters"]:
-                if filter_data[0] == "<= x <=":
-                    q = " and ".join(filter_data[1])
+                if filter_data[0] == FilterOperator.BETWEEN:
+                    q = _(" and ").join(filter_data[1])
                 else:
                     q = filter_data[1]
-                filter_str = ": ".join([filter_data[0], q])
+                filter_str = ": ".join(
+                    [self.FILTER_LABELS.get(filter_data[0], filter_data[0]), q]
+                )
                 f = QtWidgets.QAction(text=filter_str)
                 f.setEnabled(False)
                 active_filters.append(f)
@@ -327,10 +379,10 @@ class ABFilterableDataFrameView(ABDataFrameView):
         ]
         if self.model.different_column_types.get(col_name):
             # column is type 'num'
-            filt = ("=", query)
+            filt = (FilterOperator.NUM_EQUALS, query)
         else:
             # column is type 'str'
-            filt = ("contains", query, False)
+            filt = (FilterOperator.CONTAINS, query, False)
         # check if quick filter exists for this col, if so; remove from self.filters
         if prev_filter := self.prev_quick_filter.get(self.selected_column, False):
             self.filters[self.selected_column]["filters"].remove(prev_filter)
@@ -353,6 +405,10 @@ class ABFilterableDataFrameView(ABDataFrameView):
     def filter_manager_dialog(self) -> None:
         # get right data
         column_names = self.model.filterable_columns
+        column_labels = {
+            col_id: self.model.headerData(col_id, Qt.Horizontal, Qt.DisplayRole)
+            for col_id in column_names.values()
+        }
 
         # show dialog
         dialog = FilterManagerDialog(
@@ -361,6 +417,7 @@ class ABFilterableDataFrameView(ABDataFrameView):
             filter_types=self.FILTER_TYPES,
             selected_column=self.selected_column,
             column_types=self.model.different_column_types,
+            column_labels=column_labels,
         )
         if dialog.exec_() == FilterManagerDialog.Accepted:
             # set the filters
@@ -380,14 +437,17 @@ class ABFilterableDataFrameView(ABDataFrameView):
                 self.apply_filters()
 
     def simple_filter_dialog(self, preset_type: str = None) -> None:
-        if not preset_type:
-            preset_type = self.sender().text()
+        if not preset_type or isinstance(preset_type, bool):
+            preset_type = self.sender().data()
 
         # get right data
         column_name = {v: k for k, v in self.model.filterable_columns.items()}[
             self.selected_column
         ]
         col_type = self.model.different_column_types.get(column_name, "str")
+        column_label = self.model.headerData(
+            self.selected_column, Qt.Horizontal, Qt.DisplayRole
+        )
 
         # show dialog
         dialog = SimpleFilterDialog(
@@ -395,6 +455,7 @@ class ABFilterableDataFrameView(ABDataFrameView):
             filter_types=self.FILTER_TYPES,
             column_type=col_type,
             preset_type=preset_type,
+            column_label=column_label,
         )
         if dialog.exec_() == SimpleFilterDialog.Accepted:
             new_filter = dialog.get_filter
@@ -416,7 +477,7 @@ class ABFilterableDataFrameView(ABDataFrameView):
                     and len(all_filters[self.selected_column]["filters"]) > 1
                 ):
                     # a mode does not exist, but there are multiple filters
-                    all_filters[self.selected_column]["mode"] = "OR"
+                    all_filters[self.selected_column]["mode"] = FilterMode.OR
             else:
                 # filters don't yet exist for this column:
                 all_filters[self.selected_column] = {"filters": [new_filter]}
@@ -424,7 +485,7 @@ class ABFilterableDataFrameView(ABDataFrameView):
             # no filters exist
             all_filters = {
                 self.selected_column: {"filters": [new_filter]},
-                "mode": "AND",
+                "mode": FilterMode.AND,
             }
 
         self.write_filters(all_filters)

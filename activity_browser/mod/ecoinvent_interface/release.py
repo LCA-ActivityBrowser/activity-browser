@@ -3,6 +3,8 @@ from ecoinvent_interface.core import *
 
 import pyprind
 
+from activity_browser.i18n import _
+
 
 class ABEcoinventRelease(EcoinventRelease):
 
@@ -30,7 +32,7 @@ class ABEcoinventRelease(EcoinventRelease):
             chunk = 128 * 1024
 
             size = int(response.headers["Content-Length"])
-            dl_bar = pyprind.ProgBar(size, title="Downloading from ecoinvent")
+            dl_bar = pyprind.ProgBar(size, title=_("Downloading from ecoinvent"))
 
             while True:
                 segment = download.read(chunk)
@@ -50,7 +52,7 @@ class ABEcoinventRelease(EcoinventRelease):
         """
         logger.debug(message)
 
-        logger.info("Unzipping download")
+        logger.info(_("Unzipping download"))
 
         if zipped:
             with open(out_filepath, "rb") as source, open(
@@ -95,7 +97,11 @@ class ABEcoinventRelease(EcoinventRelease):
             )[0]
             if possible[0] <= 3:
                 logger.info(
-                    f"Using close match {possible[1]} for predicted filename {filename}"
+                    _(
+                        "Using close match {match} for predicted filename {filename}",
+                        match=possible[1],
+                        filename=filename,
+                    )
                 )
                 filename = possible[1]
             else:
@@ -124,19 +130,23 @@ class ABEcoinventRelease(EcoinventRelease):
         if fix_version and release_type in SPOLD_FILES and not cached:
             major, minor = major_minor_from_string(version)
             if (result_path / "datasets").is_dir():
-                logger.info("Fixing versions in unit process datasets")
+                logger.info(_("Fixing versions in unit process datasets"))
 
-                for filepath in pyprind.prog_bar(list((result_path / "datasets").iterdir()),
-                                                 title="Fixing versions in unit process data"):
+                for filepath in pyprind.prog_bar(
+                    list((result_path / "datasets").iterdir()),
+                    title=_("Fixing versions in unit process data"),
+                ):
                     if not filepath.suffix.lower() == ".spold":
                         continue
                     fix_version_upr(
                         filepath=filepath, major_version=major, minor_version=minor
                     )
             if (result_path / "MasterData").is_dir():
-                logger.info("Fixing versions in master data")
-                for filepath in pyprind.prog_bar(list((result_path / "MasterData").iterdir()),
-                                                 title="Fixing versions in master data"):
+                logger.info(_("Fixing versions in master data"))
+                for filepath in pyprind.prog_bar(
+                    list((result_path / "MasterData").iterdir()),
+                    title=_("Fixing versions in master data"),
+                ):
                     if not filepath.suffix.lower() == ".xml":
                         continue
                     fix_version_meta(

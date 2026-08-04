@@ -6,6 +6,7 @@ from PySide2 import QtWidgets
 from PySide2.QtCore import Qt, Slot
 
 from activity_browser import actions, signals
+from activity_browser.i18n import _
 from activity_browser.mod import bw2data as bd
 
 from ...bwutils.errors import *
@@ -117,12 +118,12 @@ class LCASetupTab(QtWidgets.QWidget):
             self.list_widget.currentText
         )
 
-        self.calculate_button = QtWidgets.QPushButton(qicons.calculate, "Calculate")
+        self.calculate_button = QtWidgets.QPushButton(qicons.calculate, _("Calculate"))
         self.calculation_type = QtWidgets.QComboBox()
-        self.calculation_type.addItems(["Standard LCA", "Scenario LCA"])
+        self.calculation_type.addItems([_("Standard LCA"), _("Scenario LCA")])
 
         name_row = QtWidgets.QHBoxLayout()
-        name_row.addWidget(header("Calculation Setup:"))
+        name_row.addWidget(header(_("Calculation setup:")))
         name_row.addWidget(self.list_widget)
         name_row.addWidget(self.new_cs_button)
         name_row.addWidget(self.duplicate_cs_button)
@@ -143,14 +144,14 @@ class LCASetupTab(QtWidgets.QWidget):
         # widget for the reference flows
         self.reference_flow_widget = QtWidgets.QWidget()
         reference_flow_layout = QtWidgets.QVBoxLayout()
-        reference_flow_layout.addWidget(header("Reference flows:"))
+        reference_flow_layout.addWidget(header(_("Reference flows:")))
         reference_flow_layout.addWidget(self.activities_table)
         self.reference_flow_widget.setLayout(reference_flow_layout)
 
         # widget for the impact categories
         self.impact_categories_widget = QtWidgets.QWidget()
         impact_categories_layout = QtWidgets.QVBoxLayout()
-        impact_categories_layout.addWidget(header("Impact categories:"))
+        impact_categories_layout.addWidget(header(_("Impact categories:")))
         impact_categories_layout.addWidget(self.methods_table)
         self.impact_categories_widget.setLayout(impact_categories_layout)
 
@@ -160,7 +161,7 @@ class LCASetupTab(QtWidgets.QWidget):
         self.splitter.addWidget(self.impact_categories_widget)
 
         self.no_setup_label = QtWidgets.QLabel(
-            "To do an LCA, create a new calculation setup first by pressing 'New'."
+            _("Create a calculation setup with New before running an LCA.")
         )
         cs_panel_layout.addWidget(self.no_setup_label)
         cs_panel_layout.addWidget(self.splitter)
@@ -270,53 +271,39 @@ class ScenarioImportPanel(BaseRightTab):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        self.explain_text = """
-        <p>You can import <b>two types of scenario files</b> here:</h4>
-        <p>1. <b>Flow-scenarios</b>: alternative values for exchanges (technosphere/biosphere flows) 
-        (<i>scenario difference files</i>)</p>
-        <p>2. <b>Parameter-scenarios</b>: alternative values for parameters <i>(parameter scenarios files)</i></p>
-
-        Further information is provided on this wiki page for  
-        <a href="https://github.com/LCA-ActivityBrowser/activity-browser/wiki/Flow-Scenarios">Flow Scenarios</a> and 
-        <a href="https://github.com/LCA-ActivityBrowser/activity-browser/wiki/Parameters">Parameter Scenarios</a>. 
-
-        <p>If you need a template for these files, you can go to the <i>Parameters > Scenarios tab</i>. 
-        Then click <i>Export parameter-scenarios</i> to obtain a parameter-scenarios file or   
-        <i>Export as flow-scenarios</i> to obtain a flow-scenarios file 
-        (you need at least one parameterized activity for the latter).</p> 
-
-        <br> <p> You can also work with <b>multiple scenario files</b> for which there are with two options:</p>
-        <p>1. <b>Combine scenarios</b>: this yields all possible scenario combinations 
-        (e.g. file 1: <i>S1, S2</i> and file 2: <i>A, B</i> yields <i>S1-A, S1-B, S2-A, S2-B</i>) 
-        Click <a href="https://github.com/LCA-ActivityBrowser/activity-browser/wiki/Flow-Scenarios#Product-combinations"> here </a>
-        for an example</p>
-        <p>2. <b>Extend scenarios</b>: scenarios from file 2 extend scenarios of file 1 
-        (only possible if scenario names are identical in all files, e.g. everywhere <i>S1, S2</i>).
-        Click <a href="https://github.com/LCA-ActivityBrowser/activity-browser/wiki/Flow-Scenarios#Extend-combinations"> here
-        </a> for an example</p> 
-        """
+        self.explain_text = _(
+            "<p>You can import two types of scenario files:</p>"
+            "<p>1. <b>Flow scenarios</b>: alternative exchange values for "
+            "technosphere or biosphere flows (scenario difference files).</p>"
+            "<p>2. <b>Parameter scenarios</b>: alternative parameter values.</p>"
+            "<p>Templates can be exported from <i>Parameters &gt; Scenarios</i>. "
+            "See the Activity Browser wiki for details.</p>"
+            "<p>With multiple files, <b>Combine scenarios</b> creates every "
+            "combination; <b>Extend scenarios</b> joins values for identically "
+            "named scenarios across files.</p>"
+        )
 
         self.tables = []
         self._scenario_dataframe = pd.DataFrame()
 
         # set-up the header
-        panel_header = header("Scenarios:  ")
-        panel_header.setToolTip("Left click on the question mark for help")
+        panel_header = header(_("Scenarios:"))
+        panel_header.setToolTip(_("Click the question mark for help."))
 
         # set-up the control buttons
-        self.table_btn = QtWidgets.QPushButton("Add scenarios", self)
+        self.table_btn = QtWidgets.QPushButton(_("Add scenarios"), self)
 
-        self.save_scenario = QtWidgets.QPushButton("Save to file...", self)
+        self.save_scenario = QtWidgets.QPushButton(_("Save to file..."), self)
         self.save_scenario.setDisabled(True)
 
         # set-up the combination buttons
 
         # initiate the combine scenarios button
-        self.product_choice = QtWidgets.QRadioButton("Combine scenarios", self)
+        self.product_choice = QtWidgets.QRadioButton(_("Combine scenarios"), self)
         self.product_choice.setChecked(True)
 
         # initiate the extend scenarios button
-        self.addition_choice = QtWidgets.QRadioButton("Extend scenarios", self)
+        self.addition_choice = QtWidgets.QRadioButton(_("Extend scenarios"), self)
 
         # group them and make them exclusive
         self.combine_group = QtWidgets.QButtonGroup(self)
@@ -338,7 +325,7 @@ class ScenarioImportPanel(BaseRightTab):
         # set-up the help button
         help_button = QtWidgets.QToolBar(self)
         help_button.addAction(
-            qicons.question, "Left click for help on Scenarios", self.explanation
+            qicons.question, _("Help for scenarios"), self.explanation
         )
 
         # combining all into the tool row
@@ -349,7 +336,7 @@ class ScenarioImportPanel(BaseRightTab):
         tool_row.addWidget(self.save_scenario)
         tool_row.addWidget(self.group_box)
         tool_row.addStretch(1)
-        tool_row.addWidget(QtWidgets.QLabel("More info on scenarios: "))
+        tool_row.addWidget(QtWidgets.QLabel(_("More information:")))
         tool_row.addWidget(help_button)
 
         # layout for the different scenario tables that can be added
@@ -386,7 +373,12 @@ class ScenarioImportPanel(BaseRightTab):
         n_scenarios = len(self._scenario_dataframe.columns)
         n_flows = len(self._scenario_dataframe)
 
-        stats = f"Total number of scenarios: <b>{n_scenarios}</b>  |  Total number of variable flows: <b>{n_flows}</b>"
+        stats = _(
+            "Total scenarios: <b>{scenario_count}</b> | Variable flows: "
+            "<b>{flow_count}</b>",
+            scenario_count=n_scenarios,
+            flow_count=n_flows,
+        )
         self.stats_widget.setText(stats)
 
     def toggle_combine_type(self) -> None:
@@ -513,10 +505,10 @@ class ScenarioImportPanel(BaseRightTab):
 
         Triggered by a signal from ScenarioImportPanel save button, uses a dummy input argument.
         """
-        filepath, _ = QtWidgets.QFileDialog.getSaveFileName(
+        filepath, _selected_filter = QtWidgets.QFileDialog.getSaveFileName(
             parent=self,
-            caption="Choose location to save the scenario file",
-            filter="Excel (*.xlsx *.xls);; CSV (*.csv)",
+            caption=_("Choose where to save the scenario file"),
+            filter=_("Excel (*.xlsx *.xls);;CSV (*.csv)"),
         )
         print("Saving scenario dataframe to file: ", filepath)
         scenarios = self._scenario_dataframe.columns.difference(
@@ -552,11 +544,11 @@ class ScenarioImportWidget(QtWidgets.QWidget):
         super().__init__(parent)
         self._parent = parent
         self.index = index
-        self.scenario_name = QtWidgets.QLabel("<filename>", self)
-        self.load_btn = QtWidgets.QPushButton(qicons.import_db, "Load")
-        self.load_btn.setToolTip("Load (new) data for this scenario table")
-        self.remove_btn = QtWidgets.QPushButton(qicons.delete, "Delete")
-        self.remove_btn.setToolTip("Remove this scenario table")
+        self.scenario_name = QtWidgets.QLabel(_("〈filename〉"), self)
+        self.load_btn = QtWidgets.QPushButton(qicons.import_db, _("Load"))
+        self.load_btn.setToolTip(_("Load new data into this scenario table."))
+        self.remove_btn = QtWidgets.QPushButton(qicons.delete, _("Delete"))
+        self.remove_btn.setToolTip(_("Remove this scenario table."))
         self.table = ScenarioImportTable(self)
         self.scenario_df = pd.DataFrame(columns=SUPERSTRUCTURE)
 
@@ -623,8 +615,8 @@ class ScenarioImportWidget(QtWidgets.QWidget):
                     if "default" not in df.columns:
                         query = QtWidgets.QMessageBox.question(
                             self,
-                            "Default column not found",
-                            "Attempt to load and include the 'default' scenario column?",
+                            _("Default column not found"),
+                            _("Try to load and include the 'default' scenario column?"),
                             QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
                             QtWidgets.QMessageBox.No,
                         )
@@ -636,20 +628,25 @@ class ScenarioImportWidget(QtWidgets.QWidget):
                 else:
                     # this is a wrong file type
                     msg = (
-                        "The Activity-Browser is attempting to import a scenario file.<p>During the attempted import"
-                        " another file type was detected. Please check the file type of the attempted import, if it is"
-                        " a scenario file make sure it contains a valid format.</p>"
-                        "<p>A flow exchange scenario file requires the following headers:<br>"
+                        _(
+                            "Activity Browser expected a scenario file, but detected "
+                            "another file type or an invalid format.<p>A flow scenario "
+                            "file requires these headers:<br>"
+                        )
                         + edit_superstructure_for_string(sep=", ", fhighlight='"')
-                        + "</p>"
-                        "<p>A parameter scenario file requires the following:<br>"
+                        + _(
+                            "</p><p>A parameter scenario file requires these "
+                            "headers:<br>"
+                        )
                         + edit_superstructure_for_string(
                             ["name", "group"], sep=", ", fhighlight='"'
                         )
                         + "</p>"
                     )
                     critical = ABPopup.abCritical(
-                        "Wrong file type", msg, QtWidgets.QPushButton("Cancel")
+                        _("Wrong file type"),
+                        msg,
+                        QtWidgets.QPushButton(_("Cancel")),
                     )
                     QtWidgets.QApplication.restoreOverrideCursor()
                     critical.exec_()

@@ -4,6 +4,8 @@ from logging import getLogger
 from bw2calc.errors import BW2CalcError
 from PySide2.QtWidgets import QApplication
 
+from activity_browser.i18n import _
+
 from ..bwutils import (MLCA, Contributions, MonteCarloLCA,
                        SuperstructureContributions, SuperstructureMLCA)
 from .errors import CriticalCalculationError, ScenarioExchangeNotFoundError
@@ -21,7 +23,9 @@ def do_LCA_calculations(data: dict):
             mlca = MLCA(cs_name)
             contributions = Contributions(mlca)
         except KeyError as e:
-            raise BW2CalcError("LCA Failed", str(e)).with_traceback(e.__traceback__)
+            raise BW2CalcError(_("LCA calculation failed"), str(e)).with_traceback(
+                e.__traceback__
+            )
     elif calculation_type == "scenario":
         try:
             df = data.get("data")
@@ -30,7 +34,7 @@ def do_LCA_calculations(data: dict):
         except AssertionError as e:
             # This occurs if the superstructure itself detects something is wrong.
             QApplication.restoreOverrideCursor()
-            raise BW2CalcError("Scenario LCA failed.", str(e)).with_traceback(
+            raise BW2CalcError(_("Scenario LCA calculation failed"), str(e)).with_traceback(
                 e.__traceback__
             )
         except ValueError as e:
@@ -38,12 +42,17 @@ def do_LCA_calculations(data: dict):
             # exchanges mentioned in the superstructure data.
             QApplication.restoreOverrideCursor()
             raise BW2CalcError(
-                "Scenario LCA failed.",
-                "Constructed LCA matrix does not contain any exchanges from the superstructure",
+                _("Scenario LCA calculation failed"),
+                _(
+                    "The constructed LCA matrix contains none of the exchanges "
+                    "from the scenario data."
+                ),
             ).with_traceback(e.__traceback__)
         except KeyError as e:
             QApplication.restoreOverrideCursor()
-            raise BW2CalcError("LCA Failed", str(e)).with_traceback(e.__traceback__)
+            raise BW2CalcError(_("LCA calculation failed"), str(e)).with_traceback(
+                e.__traceback__
+            )
         except CriticalCalculationError as e:
             QApplication.restoreOverrideCursor()
             raise Exception(e)
