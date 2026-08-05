@@ -2,6 +2,8 @@
 from PySide2.QtCore import Slot
 from PySide2.QtWidgets import QAbstractItemView, QMenu
 
+from activity_browser.i18n import _
+
 from ..icons import qicons
 from .models import ActivitiesHistoryModel
 from .views import ABDataFrameView
@@ -20,7 +22,7 @@ class ActivitiesHistoryTable(ABDataFrameView):
         if self.indexAt(event.pos()).row() == -1:
             return
         menu = QMenu(self)
-        menu.addAction(qicons.right, "Open in new tab", self.open_tab)
+        menu.addAction(qicons.right, _("Open in new tab"), self.open_tab)
         menu.exec_(event.globalPos())
 
     @Slot(name="openTab")

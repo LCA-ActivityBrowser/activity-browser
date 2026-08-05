@@ -5,6 +5,7 @@ from PySide2 import QtWidgets
 from activity_browser import application, project_settings
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.bwutils import commontasks
+from activity_browser.i18n import _
 from activity_browser.mod import bw2data as bd
 from activity_browser.ui.icons import qicons
 
@@ -57,16 +58,19 @@ class ActivityDuplicateToDB(ABAction):
         if not target_dbs:
             QtWidgets.QMessageBox.warning(
                 application.main_window,
-                "No target database",
-                "No valid target databases available. Create a new database or set one to writable (not read-only).",
+                _("No target database"),
+                _(
+                    "No valid target databases are available. Create a new database "
+                    "or make an existing database writable."
+                ),
             )
             return
 
         # construct a dialog where the user can choose a database to duplicate to
         target_db, ok = QtWidgets.QInputDialog.getItem(
             application.main_window,
-            "Copy activity to database",
-            "Target database:",
+            _("Copy activity to database"),
+            _("Target database:"),
             target_dbs,
             0,
             False,
@@ -82,7 +86,7 @@ class ActivityDuplicateToDB(ABAction):
     def confirm_db(to_db: str):
         user_choice = QtWidgets.QMessageBox.question(
             application.main_window,
-            "Duplicate to new database",
-            f"Copy to {to_db} and open as new tab?",
+            _("Duplicate to new database"),
+            _("Copy to {database} and open it in a new tab?", database=to_db),
         )
         return user_choice == user_choice.Yes

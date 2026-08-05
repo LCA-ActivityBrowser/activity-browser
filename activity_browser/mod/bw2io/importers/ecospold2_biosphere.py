@@ -2,6 +2,8 @@ from zipfile import ZipFile
 
 from bw2io.importers.ecospold2_biosphere import *
 import pyprind
+
+from activity_browser.i18n import _
 import logging
 import os
 
@@ -90,7 +92,9 @@ class ABEcospold2BiosphereImporter(Ecospold2BiosphereImporter):
         flow_data = []
 
         # AB implementation: added prog_bar here
-        for ds in pyprind.prog_bar(list(root.iterchildren()), title="Extracting biosphere data"):
+        for ds in pyprind.prog_bar(
+            list(root.iterchildren()), title=_("Extracting biosphere data")
+        ):
             flow_data.append(extract_flow_data(ds))
         return flow_data
 
@@ -107,9 +111,9 @@ class ABEcospold2BiosphereImporter(Ecospold2BiosphereImporter):
 
         """
         func_list = self.strategies if strategies is None else strategies
-        for func in pyprind.prog_bar(func_list, title="Applying strategies"):
+        for func in pyprind.prog_bar(func_list, title=_("Applying strategies")):
             self.apply_strategy(func, verbose)
 
     def write_database(self, *args, **kwargs):
-        logging.getLogger(__name__).info("Writing Biosphere database")
+        logging.getLogger(__name__).info(_("Writing biosphere database"))
         super().write_database(*args, **kwargs)

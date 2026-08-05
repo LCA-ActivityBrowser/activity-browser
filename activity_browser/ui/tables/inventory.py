@@ -4,6 +4,7 @@ from PySide2 import QtCore, QtWidgets
 from PySide2.QtCore import Slot
 
 from activity_browser import actions
+from activity_browser.i18n import _
 
 from ...bwutils import AB_metadata
 from ...settings import project_settings
@@ -130,7 +131,7 @@ class ActivitiesBiosphereTable(ABFilterableDataFrameView):
             self.selected_keys
         )
         self.copy_exchanges_for_SDF_action = QtWidgets.QAction(
-            qicons.superstructure, "Exchanges for scenario difference file", None
+            qicons.superstructure, _("Exchanges for scenario difference file"), None
         )
         self.connect_signals()
 
@@ -146,24 +147,32 @@ class ActivitiesBiosphereTable(ABFilterableDataFrameView):
         if self.indexAt(event.pos()).row() == -1 and len(self.model._dataframe) != 0:
             return
 
-        if len(self.selected_keys()) > 1:
+        multiple = len(self.selected_keys()) > 1
+        if multiple:
             # more than 1 activity is selected
-            act = "activities"
             self.dup_activity_new_loc_action.setEnabled(False)
             self.relink_activity_exch_action.setEnabled(False)
         elif len(self.selected_keys()) == 1 and self.db_read_only:
-            act = "activity"
             self.dup_activity_new_loc_action.setEnabled(False)
             self.relink_activity_exch_action.setEnabled(False)
         else:
-            act = "activity"
             self.dup_activity_new_loc_action.setEnabled(True)
             self.relink_activity_exch_action.setEnabled(True)
 
-        self.open_activity_action.setText(f"Open {act}")
-        self.open_activity_graph_action.setText(f"Open {act} in Graph Explorer")
-        self.dup_activity_action.setText(f"Duplicate {act}")
-        self.delete_activity_action.setText(f"Delete {act}")
+        self.open_activity_action.setText(
+            _("Open activities") if multiple else _("Open activity")
+        )
+        self.open_activity_graph_action.setText(
+            _("Open activities in Graph Explorer")
+            if multiple
+            else _("Open activity in Graph Explorer")
+        )
+        self.dup_activity_action.setText(
+            _("Duplicate activities") if multiple else _("Duplicate activity")
+        )
+        self.delete_activity_action.setText(
+            _("Delete activities") if multiple else _("Delete activity")
+        )
 
         menu = QtWidgets.QMenu()
 
@@ -175,14 +184,16 @@ class ActivitiesBiosphereTable(ABFilterableDataFrameView):
 
         # submenu duplicates
         submenu_dupl = QtWidgets.QMenu(menu)
-        submenu_dupl.setTitle(f"Duplicate {act}")
+        submenu_dupl.setTitle(
+            _("Duplicate activities") if multiple else _("Duplicate activity")
+        )
         submenu_dupl.setIcon(qicons.copy)
         submenu_dupl.addAction(self.dup_activity_action)
         submenu_dupl.addAction(self.dup_activity_new_loc_action)
         submenu_dupl.addAction(self.dup_other_db_action)
         # submenu copy to clipboard
         submenu_copy = QtWidgets.QMenu(menu)
-        submenu_copy.setTitle("Copy to clipboard")
+        submenu_copy.setTitle(_("Copy to clipboard"))
         submenu_copy.setIcon(qicons.copy_to_clipboard)
         submenu_copy.addAction(self.copy_exchanges_for_SDF_action)
 
@@ -317,7 +328,7 @@ class ActivitiesBiosphereTree(ABDictTreeView):
             self.selected_keys
         )
         self.copy_exchanges_for_SDF_action = QtWidgets.QAction(
-            qicons.superstructure, "Exchanges for scenario difference file", None
+            qicons.superstructure, _("Exchanges for scenario difference file"), None
         )
 
         self.connect_signals()
@@ -349,8 +360,8 @@ class ActivitiesBiosphereTree(ABDictTreeView):
             return
 
         # determine enabling of actions based on amount of selected activities
-        if len(self.selected_keys()) > 1:
-            act = "activities"
+        multiple = len(self.selected_keys()) > 1
+        if multiple:
             self.dup_activity_new_loc_action.setEnabled(False)
             self.relink_activity_exch_action.setEnabled(False)
             if len(self.selected_keys()) > 15:
@@ -361,7 +372,6 @@ class ActivitiesBiosphereTree(ABDictTreeView):
             self.open_activity_action.setEnabled(allow_open)
             self.open_activity_graph_action.setEnabled(allow_open)
         else:  # only one activity is selected
-            act = "activity"
             self.open_activity_action.setEnabled(True)
             self.open_activity_graph_action.setEnabled(True)
             self.dup_activity_new_loc_action.setEnabled(not self.db_read_only)
@@ -374,31 +384,51 @@ class ActivitiesBiosphereTree(ABDictTreeView):
         self.relink_activity_exch_action.setEnabled(not self.db_read_only)
 
         # set plural or singular for activity
-        self.open_activity_action.setText(f"Open {act}")
-        self.open_activity_graph_action.setText(f"Open {act} in Graph Explorer")
-        self.dup_activity_action.setText(f"Duplicate {act}")
-        self.delete_activity_action.setText(f"Delete {act}")
-        self.relink_activity_exch_action.setText(f"Relink the {act} exchanges")
+        self.open_activity_action.setText(
+            _("Open activities") if multiple else _("Open activity")
+        )
+        self.open_activity_graph_action.setText(
+            _("Open activities in Graph Explorer")
+            if multiple
+            else _("Open activity in Graph Explorer")
+        )
+        self.dup_activity_action.setText(
+            _("Duplicate activities") if multiple else _("Duplicate activity")
+        )
+        self.delete_activity_action.setText(
+            _("Delete activities") if multiple else _("Delete activity")
+        )
+        self.relink_activity_exch_action.setText(
+            _("Relink the selected activities' exchanges")
+            if multiple
+            else _("Relink the activity's exchanges")
+        )
 
         menu = QtWidgets.QMenu(self)
         # submenu duplicates
         submenu_dupl = QtWidgets.QMenu(menu)
-        submenu_dupl.setTitle(f"Duplicate {act}")
+        submenu_dupl.setTitle(
+            _("Duplicate activities") if multiple else _("Duplicate activity")
+        )
         submenu_dupl.setIcon(qicons.copy)
         submenu_dupl.addAction(self.dup_activity_action)
         submenu_dupl.addAction(self.dup_activity_new_loc_action)
         submenu_dupl.addAction(self.dup_other_db_action)
         # submenu copy to clipboard
         submenu_copy = QtWidgets.QMenu(menu)
-        submenu_copy.setTitle("Copy to clipboard")
+        submenu_copy.setTitle(_("Copy to clipboard"))
         submenu_copy.setIcon(qicons.copy_to_clipboard)
         submenu_copy.addAction(self.copy_exchanges_for_SDF_action)
 
         if self.tree_level()[0] != "leaf":
             # multiple items are selected
-            menu.addAction(qicons.forward, "Expand all sub levels", self.expand_branch)
             menu.addAction(
-                qicons.backward, "Collapse all sub levels", self.collapse_branch
+                qicons.forward, _("Expand all sub levels"), self.expand_branch
+            )
+            menu.addAction(
+                qicons.backward,
+                _("Collapse all sub levels"),
+                self.collapse_branch,
             )
             menu.addSeparator()
 
@@ -488,10 +518,13 @@ class ActivitiesBiosphereTree(ABDictTreeView):
                                   'sweet corn')
         """
         indexes = self.selectedIndexes()
-        if indexes[1].data() != "" or indexes[2].data() != "":
+        if (
+            indexes[1].data(QtCore.Qt.UserRole) != ""
+            or indexes[2].data(QtCore.Qt.UserRole) != ""
+        ):
             return "leaf", self.find_levels()
-        elif indexes[0].parent().data() is None:
-            return "root", indexes[0].data()
+        elif indexes[0].parent().data(QtCore.Qt.UserRole) is None:
+            return "root", indexes[0].data(QtCore.Qt.UserRole)
         else:
             return "branch", self.find_levels()
 
@@ -499,16 +532,16 @@ class ActivitiesBiosphereTree(ABDictTreeView):
         """Find all levels of branch."""
         if not level:
             idx = self.selectedIndexes()
-            if idx[-1].data() != "":
+            if idx[-1].data(QtCore.Qt.UserRole) != "":
                 level = idx[-1]
             else:
                 level = idx[0]
             parent = idx[0].parent()
         else:
             parent = level.parent()
-        levels = [level.data()]
-        while parent.data() is not None:
-            levels.append(parent.data())
+        levels = [level.data(QtCore.Qt.UserRole)]
+        while parent.data(QtCore.Qt.UserRole) is not None:
+            levels.append(parent.data(QtCore.Qt.UserRole))
             parent = parent.parent()
         return levels[::-1]
 

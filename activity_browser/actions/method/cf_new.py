@@ -4,6 +4,7 @@ from PySide2 import QtWidgets
 
 from activity_browser import application
 from activity_browser.actions.base import ABAction, exception_dialogs
+from activity_browser.i18n import _
 from activity_browser.mod import bw2data as bd
 from activity_browser.ui.icons import qicons
 
@@ -29,9 +30,11 @@ class CFNew(ABAction):
         if len(unique_keys) < len(keys):
             QtWidgets.QMessageBox.warning(
                 application.main_window,
-                "Duplicate characterization factors",
-                "One or more of these elementary flows already exist within this method. Duplicate flows will not be "
-                "added",
+                _("Duplicate characterization factors"),
+                _(
+                    "One or more of these elementary flows already exist in this "
+                    "method. Duplicate flows will not be added."
+                ),
             )
 
         # return if there are no new keys

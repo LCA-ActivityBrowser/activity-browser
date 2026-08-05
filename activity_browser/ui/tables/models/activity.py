@@ -23,6 +23,7 @@ log = getLogger(__name__)
 
 class BaseExchangeModel(EditablePandasModel):
     COLUMNS = []
+    TRANSLATABLE_HEADERS = ("pedigree",)
     # Fields accepted by brightway to be stored in exchange objects.
     VALID_FIELDS = {
         "amount",

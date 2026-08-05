@@ -59,6 +59,8 @@ class DatabasesModel(PandasModel):
 
 
 class ActivitiesBiosphereListModel(DragPandasModel):
+    TRANSLATABLE_HEADERS = tuple(bc.AB_names_to_bw_keys)
+
     def __init__(self, parent=None):
         super().__init__(parent=parent)
         self.act_fields = lambda: AB_metadata.get_existing_fields(
@@ -217,6 +219,7 @@ class ActivitiesBiosphereTreeModel(BaseTreeModel):
         "ISIC rev.4 ecoinvent",
         "key",
     ]
+    TRANSLATABLE_VALUES = ("No classification",)
 
     def __init__(self, parent=None, database_name=None):
         super().__init__(parent)
@@ -237,6 +240,16 @@ class ActivitiesBiosphereTreeModel(BaseTreeModel):
     def flags(self, index):
         res = super().flags(index) | Qt.ItemIsDragEnabled
         return res
+
+    def should_translate_value(self, index, value: str) -> bool:
+        # "No classification" is a built-in branch label.  An activity or
+        # product with exactly that name remains untouched at leaf level.
+        item = index.internalPointer()
+        return (
+            index.column() == 0
+            and item.childCount() > 0
+            and value in self.TRANSLATABLE_VALUES
+        )
 
     def get_isic_tree(self) -> Tuple[dict, dict, dict]:
         """Generate an entry for every class of the ISIC and store its path.

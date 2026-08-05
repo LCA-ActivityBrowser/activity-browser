@@ -2,6 +2,8 @@
 from PySide2.QtCore import Qt
 from PySide2.QtWidgets import QMessageBox
 
+from activity_browser.i18n import _
+
 
 def parameter_save_errorbox(parent, error) -> int:
     """Construct a messagebox using the given error
@@ -9,10 +11,10 @@ def parameter_save_errorbox(parent, error) -> int:
     """
     msgbox = QMessageBox(
         QMessageBox.Warning,
-        "Cannot save parameters",
-        (
-            "An error occurred while saving parameters."
-            "\nDiscard changes or cancel and continue editing?"
+        _("Cannot save parameters"),
+        _(
+            "An error occurred while saving parameters.\nDiscard changes or "
+            "cancel and continue editing?"
         ),
         QMessageBox.Discard | QMessageBox.Cancel,
         parent,

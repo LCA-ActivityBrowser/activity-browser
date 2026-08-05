@@ -11,6 +11,10 @@ from activity_browser.mod.bw2data import parameters, projects
 from .base import PandasModel
 
 
+class TooManyParametersError(ValueError):
+    """A scenario file contains more parameter rows than the project."""
+
+
 class ScenarioModel(PandasModel):
     HEADERS = ["Name", "Group", "default"]
     MATCH_COLS = ["Name", "Group"]
@@ -45,9 +49,8 @@ class ScenarioModel(PandasModel):
             else:
                 # Now we're gonna need to ensure that the dataframe is of
                 # the same size
-                assert (
-                    len(data) >= df.shape[0]
-                ), "Too many parameters found, not possible."
+                if len(data) < df.shape[0]:
+                    raise TooManyParametersError
                 missing = len(data) - df.shape[0]
                 if missing != 0:
                     nan_data = pd.DataFrame(

@@ -4,6 +4,7 @@ from PySide2.QtCore import Slot
 from PySide2.QtWidgets import QLabel, QStatusBar
 
 from activity_browser import signals
+from activity_browser.i18n import _
 from activity_browser.mod import bw2data as bd
 
 log = getLogger(__name__)
@@ -12,9 +13,9 @@ log = getLogger(__name__)
 class Statusbar(QStatusBar):
     def __init__(self, window):
         super().__init__(parent=window)
-        self.status_message_left = QLabel("Welcome")
-        self.status_message_right = QLabel("Database")
-        self.status_message_center = QLabel("Project")
+        self.status_message_left = QLabel(_("Welcome"))
+        self.status_message_right = QLabel(_("Database"))
+        self.status_message_center = QLabel(_("Project"))
 
         self.addWidget(self.status_message_left, 1)
         self.addWidget(self.status_message_center, 2)
@@ -43,9 +44,9 @@ class Statusbar(QStatusBar):
 
     @Slot(name="updateProjectStatus")
     def update_project(self):
-        self.center(f"Project: {bd.projects.current}")
-        self.right("Database: None")
+        self.center(_("Project: {project}", project=bd.projects.current))
+        self.right(_("Database: None"))
 
     @Slot(str, name="setDatabaseName")
     def set_database(self, name):
-        self.right("Database: {}".format(name))
+        self.right(_("Database: {database}", database=name))

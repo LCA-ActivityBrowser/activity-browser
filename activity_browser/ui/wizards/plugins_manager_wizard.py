@@ -2,6 +2,7 @@ import pandas
 from PySide2 import QtCore, QtWidgets
 from PySide2.QtCore import Qt, Slot
 
+from ...i18n import _
 from ...signals import signals
 from ...ui.style import header
 from ...ui.tables import PluginsTable
@@ -10,7 +11,7 @@ from ...ui.tables import PluginsTable
 class PluginsManagerWizard(QtWidgets.QWizard):
     def __init__(self, key: tuple, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Plugins manager")
+        self.setWindowTitle(_("Plugins manager"))
         self.manager_page = ManagePluginsPage(self)
         self.pages = [self.manager_page]
 
@@ -37,7 +38,7 @@ class ManagePluginsPage(QtWidgets.QWizardPage):
         self.setFinalPage(True)
 
     def initializePage(self):
-        self.wizard.setButtonText(QtWidgets.QWizard.FinishButton, "Confirm")
+        self.wizard.setButtonText(QtWidgets.QWizard.FinishButton, _("Confirm"))
         self.wizard.button(QtWidgets.QWizard.FinishButton).clicked.connect(
             self.confirm_plugins
         )
@@ -74,7 +75,7 @@ class PluginWidget(QtWidgets.QWidget):
         header_widget = QtWidgets.QWidget()
         header_layout = QtWidgets.QHBoxLayout()
         header_layout.setAlignment(QtCore.Qt.AlignLeft)
-        header_layout.addWidget(header("Available plugins:"))
+        header_layout.addWidget(header(_("Available plugins:")))
         header_widget.setLayout(header_layout)
 
         # Overall Layout

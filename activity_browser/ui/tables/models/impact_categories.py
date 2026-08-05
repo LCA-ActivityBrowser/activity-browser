@@ -44,7 +44,7 @@ class MethodsListModel(DragPandasModel):
         )
         self.method_col = self._dataframe.columns.get_loc("method")
         self.filterable_columns = {
-            col: i for i, col in enumerate(self.HEADERS) if i is not self.method_col
+            col: i for i, col in enumerate(self.HEADERS) if i != self.method_col
         }
         self.updated.emit()
 

@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 import os
+from pathlib import Path
 
 from PySide2 import QtCore, QtGui, QtWebEngineWidgets, QtWidgets
 
 # type "localhost:3999" in Chrome for DevTools of AB web content
+from activity_browser.i18n import current_language
 from activity_browser.utils import get_base_path
 
 os.environ["QTWEBENGINE_REMOTE_DEBUGGING"] = "3999"
@@ -37,6 +39,7 @@ class RestrictedWebViewWidget(QtWidgets.QWidget):
 
         if html_file:
             # print("Loading File:", html_file)
+            html_file = localized_html_path(html_file)
             self.url = QtCore.QUrl.fromLocalFile(html_file)
             self.page.allowed_pages.append(self.url)
             self.page.load(self.url)
@@ -61,3 +64,17 @@ def get_static_js_path(file_name: str = "") -> str:
 
 def get_static_css_path(file_name: str = "") -> str:
     return str(get_base_path().joinpath("static", "css", file_name))
+
+
+def localized_html_path(html_file: str, language: str = None) -> str:
+    """Return a language-specific sibling HTML file when one exists.
+
+    For example, ``welcome.html`` resolves to ``welcome.zh_CN.html`` when the
+    current language is Simplified Chinese.  Missing translations safely fall
+    back to the original file.
+    """
+
+    path = Path(html_file)
+    language = language or current_language()
+    localized = path.with_name(f"{path.stem}.{language}{path.suffix}")
+    return str(localized if localized.is_file() else path)

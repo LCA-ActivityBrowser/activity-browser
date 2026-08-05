@@ -4,6 +4,7 @@ from PySide2 import QtWidgets
 
 from activity_browser import application
 from activity_browser.actions.base import ABAction, exception_dialogs
+from activity_browser.i18n import _
 from activity_browser.mod.bw2data.parameters import (ActivityParameter,
                                                      DatabaseParameter,
                                                      ProjectParameter,
@@ -26,8 +27,8 @@ class ParameterRename(ABAction):
     def run(parameter: Any):
         new_name, ok = QtWidgets.QInputDialog.getText(
             application.main_window,
-            "Rename parameter",
-            f"Rename parameter '{parameter.name}' to:",
+            _("Rename parameter"),
+            _("Rename parameter '{name}' to:", name=parameter.name),
         )
 
         if not ok or not new_name:
@@ -49,7 +50,7 @@ class ParameterRename(ABAction):
         except Exception as e:
             QtWidgets.QMessageBox.warning(
                 application.main_window,
-                "Could not save changes",
+                _("Could not save changes"),
                 str(e),
                 QtWidgets.QMessageBox.Ok,
                 QtWidgets.QMessageBox.Ok,
