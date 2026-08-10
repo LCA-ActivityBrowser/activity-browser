@@ -3,7 +3,7 @@ Name;Group;default;S1 example;S2 example;S3 example
 ;;;;;
 # Parameter scenario template (CSV);;;;;
 ;;;;;
-# Rows or columns whose first cell / header starts with # are ignored when Activity Browser loads the file. Use # to leave notes in the file.;;;;;
 "# Columns: Name and Group must match parameters in your project; default is optional; add scenario columns with numeric values.";;;;;
 "# Prefer ""Get template"" from the calculation setup Scenarios tools to start from your project parameters when available.";;;;;
+# Comment rows: start the row with # (ignored on import). Comment columns: name them with a leading _ (e.g. _notes).;;;;;
 # Load via calculation setup Scenario mode, Add scenarios... (AB converts parameter scenarios to flow scenarios for LCA).;;;;;

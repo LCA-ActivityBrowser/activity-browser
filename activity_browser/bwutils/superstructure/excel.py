@@ -11,8 +11,6 @@ from .utils import SUPERSTRUCTURE
 from .dataframe import ensure_string_scenario_names
 
 
-
-
 def convert_tuple_str(x):
     try:
         return literal_eval(x)
@@ -39,7 +37,8 @@ def get_header_index(document_path: Union[str, Path], import_sheet: int):
             sheet = wb.worksheets[import_sheet]
             for i in range(10):
                 value = sheet.cell(i + 1, 1).value
-                if isinstance(value, str):
+                # Skip SDF comment rows (first cell starts with '#').
+                if isinstance(value, str) and not value.startswith("#"):
                     wb.close()
                     return i
     except IndexError as e:
@@ -54,8 +53,8 @@ def get_header_index(document_path: Union[str, Path], import_sheet: int):
 
 
 def valid_cols(name: str) -> bool:
-    """Callable which evaluates if a specific column should be used."""
-    return False if str(name).startswith("#") else True
+    """True for data columns; names starting with '_' are SDF comment columns (not imported)."""
+    return not str(name).startswith("_")
 
 
 def import_from_excel(
@@ -67,12 +66,8 @@ def import_from_excel(
     The default index chosen represents the second sheet (first after the
     'information' sheet).
 
-    A '#' character at the start of a row causes that row to be excluded from
-    the import. A '#' character at the start of a column name causes that
-    column to be excluded from the import.
-
-    'usecols' is used to exclude specific columns from the excel document.
-    'comment' is used to exclude specific rows from the excel document.
+    Comment rows: a '#' at the start of a row (pandas ``comment='#'``).
+    Comment columns: a column name starting with '_' (``usecols=valid_cols``).
     """
     data = pd.DataFrame({})
     try:

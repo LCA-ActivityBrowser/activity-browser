@@ -8,6 +8,8 @@ import pandas as pd
 
 from ..errors import *
 from .dataframe import ensure_string_scenario_names
+from .excel import valid_cols
+
 
 
 
@@ -228,6 +230,7 @@ class ABCSVImporter(ABFileImporter):
                 sep=separator,
                 index_col=False,
                 comment="#",
+                usecols=valid_cols,
                 converters={"from key": ast.literal_eval, "to key": ast.literal_eval},
             )
         # Scenario headers typed as numbers (e.g. 2025) must be strings.
