@@ -326,6 +326,7 @@ class ABLCIAImporter(LCIAImporter):
                     description=ds.get("description") or "",
                     filename=ds.get("filename") or "",
                     unit=ds.get("unit") or "",
+                    num_cfs=len(cfs),
                 )
                 method.write(cfs)
                 written_names.append(name)

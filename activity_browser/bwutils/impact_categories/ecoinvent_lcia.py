@@ -108,12 +108,14 @@ class EcoinventLCIAImporter(LCIAImporter):
                     )
                 del methods[name]
             method = Method(name)
+            cfs = self._reformat_cfs(ds["exchanges"])
             method.register(
                 description=ds["description"],
                 filename=ds["filename"],
                 unit=ds["unit"],
+                num_cfs=len(cfs),
             )
-            method.write(self._reformat_cfs(ds["exchanges"]))
+            method.write(cfs)
         if verbose:
             print(
                 f"Wrote {num_methods} LCIA methods with {num_cfs} characterization factors"

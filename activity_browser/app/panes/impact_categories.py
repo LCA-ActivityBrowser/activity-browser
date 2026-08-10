@@ -107,16 +107,19 @@ class ImpactCategoriesPane(widgets.ABAbstractPane):
         self.model.set_dataframe(df, group=["_method_name"])
 
     def build_df(self):
-        df = pd.DataFrame(bd.methods.values())
-        df["_method_name"] = bd.methods.keys()
-
-        df["name"] = df["_method_name"].apply(lambda x: x[-1])
-
         cols = ["name", "unit", "num_cfs", "_method_name"]
-
-        if df.empty:
+        if not bd.methods:
             return pd.DataFrame(columns=cols)
 
+        df = pd.DataFrame(list(bd.methods.values()))
+        df["_method_name"] = list(bd.methods.keys())
+        df["name"] = df["_method_name"].apply(lambda x: x[-1] if x else "")
+        if "unit" not in df.columns:
+            df["unit"] = ""
+        if "num_cfs" not in df.columns:
+            df["num_cfs"] = 0
+        else:
+            df["num_cfs"] = df["num_cfs"].fillna(0)
         return df[cols]
 
 
