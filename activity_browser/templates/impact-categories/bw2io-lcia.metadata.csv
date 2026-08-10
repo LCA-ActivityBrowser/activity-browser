@@ -1,0 +1,3 @@
+filename,method,unit,description
+# Shared metadata sidecar for a batch of bw2io CSV CF files
+# filename matches the sibling CF CSV name; method uses :: for Brightway name parts

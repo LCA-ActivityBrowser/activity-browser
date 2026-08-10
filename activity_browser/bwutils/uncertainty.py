@@ -37,6 +37,9 @@ EMPTY_UNCERTAINTY = {
     "negative": False,
 }
 
+# Ordered field names for spreadsheet columns / CF serialization (keys of EMPTY_UNCERTAINTY).
+UNCERTAINTY_FIELDS = tuple(EMPTY_UNCERTAINTY)
+
 # Fields that may be left empty; ``stats_arrays`` supplies defaults or ignores them.
 OPTIONAL_UNCERTAINTY_FIELDS = {
     sa.BetaUncertainty.id: frozenset({"minimum", "maximum"}),

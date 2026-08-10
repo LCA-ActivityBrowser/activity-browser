@@ -20,4 +20,7 @@ The Impact Categories view displays a list of all impact categories in your proj
 
 ## Actions
 ### Open Impact Category
-Open a database in the Database Product Pane by double-clicking the entry.
+Open an impact category details page by double-clicking the entry (or use the context menu).
+
+### Import / export / templates
+Use the **Impact categories** top menu to import, export, or get spreadsheet templates. Formats (AB impact-category file, bw2io impact-category file, ecoinvent) are described in [Impact category import and export](../../advanced-topics/impact-category-interchange.md).

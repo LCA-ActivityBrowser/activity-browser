@@ -1,0 +1,2 @@
+name,categories,amount,uncertainty type,loc,scale,shape,minimum,maximum,negative
+# bw2io one-shot CF table; categories use ::
