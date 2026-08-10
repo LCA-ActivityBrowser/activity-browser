@@ -25,7 +25,10 @@ flow = templates / "scenarios" / "flow-scenarios.xlsx"
 Excel workbooks: **data sheet first**, then **`README`**.  
 CSV files: header row, blank rows, then notes on lines starting with `#` (ignored on import).
 
-Rows or columns whose first cell / header starts with `#` are ignored by scenario import (Excel and CSV).
+Scenario import comments (Excel and CSV):
+
+- **Rows:** start with `#` (ignored via pandas `comment="#"`).
+- **Columns:** name starts with `_` (e.g. `_notes`; dropped via `usecols`).
 
 **Get template → flow-scenarios** always copies the empty starter file (does not generate from project parameters).
 
