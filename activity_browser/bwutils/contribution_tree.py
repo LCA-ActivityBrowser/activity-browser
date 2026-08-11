@@ -10,12 +10,9 @@ from __future__ import annotations
 
 import warnings
 from contextlib import contextmanager
-from typing import TYPE_CHECKING, Callable
+from typing import Callable
 
 import pandas as pd
-
-if TYPE_CHECKING:
-    pass
 
 
 # ---------------------------------------------------------------------------
@@ -120,7 +117,9 @@ def compute_node_tiers(
 # Expand policy / footer stats
 # ---------------------------------------------------------------------------
 
-EXPAND_MODES = ("tier", "path", "cumulative")
+# Modes accepted by :func:`next_expand_candidates` (traversal probing only).
+# Cumulative expand uses :func:`plan_cumulative_expand` instead.
+CANDIDATE_EXPAND_MODES = ("tier", "path")
 
 
 def _visible_contribution_nodes(
@@ -313,15 +312,19 @@ def next_expand_candidates(
     exclude: set | None = None,
     eligible_ids: set | None = None,
 ) -> list[NodeId]:
-    """Return unique_ids that the expand policy should open next.
+    """Return unique_ids still needing ``traverse_from_node`` for tier/path.
+
+    Cumulative impact expand must use :func:`plan_cumulative_expand` (display
+    set + remaining-upstream ranking). Individual path *display* / visual
+    expand uses :func:`path_display_set`; this helper only probes which
+    unvisited nodes to calculate so the display set can be built.
 
     Parameters
     ----------
     mode:
-        ``"tier"``, ``"path"``, or ``"cumulative"``.
+        ``"tier"`` or ``"path"`` only.
     value:
-        For tier: maximum tier (int). For path / cumulative: percent
-        of |total| (0–100 UI scale).
+        For tier: maximum tier (int). For path: percent of |total| (0–100).
     visited:
         ``state.visited_nodes`` — nodes already traversed.
     root_uid:
@@ -330,19 +333,17 @@ def next_expand_candidates(
     exclude:
         Ids to skip (e.g. already failed to expand).
     eligible_ids:
-        If set, only consider these ids (e.g. rows already in the tree model).
-        Important for cumulative mode so we do not pick a globally largest
-        unvisited node that is not yet in the view and cannot be expanded.
+        If set, only consider these ids.
 
     Returns
     -------
-    For ``tier`` / ``path``: all matching unvisited ids (any order).
-    For ``cumulative``: at most one id (largest abs cumulative among
-    unvisited), or ``[]`` when coverage already meets the target or nothing
-    remains to expand.
+    Matching unvisited ids (any order).
     """
-    if mode not in EXPAND_MODES:
-        raise ValueError(f"Unknown expand mode: {mode!r}")
+    if mode not in CANDIDATE_EXPAND_MODES:
+        raise ValueError(
+            f"Unknown expand mode: {mode!r} "
+            f"(use plan_cumulative_expand for cumulative)"
+        )
 
     skip = exclude or set()
     unvisited = [
@@ -367,28 +368,15 @@ def next_expand_candidates(
             if tiers.get(n.unique_id, max_tier + 1) < max_tier
         ]
 
-    if mode == "path":
-        if total_score == 0.0:
-            return []
-        threshold = abs(total_score) * (value / 100.0)
-        return [
-            n.unique_id
-            for n in unvisited
-            if abs(getattr(n, "cumulative_score", 0.0)) >= threshold
-        ]
-
-    # cumulative — one step, largest-first among eligible unvisited
-    coverage = direct_impact_coverage(nodes, total_score, root_uid)
-    if coverage >= (value / 100.0) or not unvisited:
+    # path — calculate nodes at/above threshold; display uses path_display_set
+    if total_score == 0.0:
         return []
-    best = max(
-        unvisited,
-        key=lambda n: (
-            abs(getattr(n, "cumulative_score", 0.0)),
-            -n.unique_id,
-        ),
-    )
-    return [best.unique_id]
+    threshold = abs(total_score) * (value / 100.0)
+    return [
+        n.unique_id
+        for n in unvisited
+        if abs(getattr(n, "cumulative_score", 0.0)) >= threshold
+    ]
 
 
 def path_display_set(

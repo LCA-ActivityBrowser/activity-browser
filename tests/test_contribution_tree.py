@@ -398,82 +398,13 @@ def test_path_does_not_auto_expand_children_below_threshold():
     assert 12 not in cands
 
 
-def test_cumulative_skips_excluded_and_prefers_eligible():
-    """Largest global unvisited is skipped if excluded / not eligible (not in view)."""
-    nodes = {
-        -1: _node(-1, 0, 100.0, 0.0),
-        1: _node(1, 1, 80.0, 1.0),   # largest, but not eligible
-        2: _node(2, 1, 50.0, 1.0),
-    }
-    edges = [_edge(-1, 1), _edge(-1, 2)]
-    cands = next_expand_candidates(
-        nodes,
-        edges,
-        {-1},
-        mode="cumulative",
-        value=90.0,
-        total_score=100.0,
-        eligible_ids={2},
-    )
-    assert cands == [2]
-    cands2 = next_expand_candidates(
-        nodes,
-        edges,
-        {-1},
-        mode="cumulative",
-        value=90.0,
-        total_score=100.0,
-        exclude={1},
-    )
-    assert cands2 == [2]
-
-
-def test_cumulative_tie_break_prefers_lower_unique_id():
-    nodes = {
-        -1: _node(-1, 0, 100.0, 0.0),
-        5: _node(5, 1, 40.0, 1.0),
-        2: _node(2, 1, 40.0, 1.0),
-    }
-    edges = [_edge(-1, 5), _edge(-1, 2)]
-    cands = next_expand_candidates(
-        nodes, edges, {-1}, mode="cumulative", value=50.0, total_score=100.0
-    )
-    assert cands == [2]
-
-
-def test_cumulative_returns_largest_unvisited_until_coverage():
+def test_next_expand_candidates_rejects_cumulative_mode():
+    """Cumulative expand must use plan_cumulative_expand, not this helper."""
     nodes, edges = _visible_nodes()
-    visited = {-1}
-    # coverage of visible directs = 0.35; target 50% → need to expand
-    cands = next_expand_candidates(
-        nodes, edges, visited, mode="cumulative", value=50.0, total_score=100.0
-    )
-    # One step: largest unvisited by abs cumulative = node 1 (50)
-    assert cands == [1]
-
-
-def test_cumulative_stops_when_coverage_met():
-    nodes = {
-        -1: _node(-1, 0, 100.0, 0.0),
-        1: _node(1, 1, 50.0, 80.0),
-        2: _node(2, 1, 30.0, 10.0),
-    }
-    edges = [_edge(-1, 1), _edge(-1, 2)]
-    visited = {-1}
-    cands = next_expand_candidates(
-        nodes, edges, visited, mode="cumulative", value=80.0, total_score=100.0
-    )
-    # visible directs already 90 >= 80%
-    assert cands == []
-
-
-def test_cumulative_empty_when_nothing_left():
-    nodes, edges = _visible_nodes()
-    visited = set(nodes)
-    cands = next_expand_candidates(
-        nodes, edges, visited, mode="cumulative", value=99.0, total_score=100.0
-    )
-    assert cands == []
+    with pytest.raises(ValueError, match="plan_cumulative_expand"):
+        next_expand_candidates(
+            nodes, edges, {-1}, mode="cumulative", value=50.0, total_score=100.0
+        )
 
 
 def test_plan_cumulative_stops_near_target_not_all_nodes():

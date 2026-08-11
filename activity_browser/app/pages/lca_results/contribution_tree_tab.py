@@ -2,15 +2,13 @@
 
 Shows the contribution tree as a hierarchical QTreeView (one row per
 traversed upstream supplier) with a sunburst plot above it.
-
-Tickets implemented here: 03, 04, 05, 06, 07, 08, 09, 10–13.
 """
 
 from __future__ import annotations
 
 import time
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Optional
+from typing import Optional
 
 import bw2data as bd
 import bw2calc as bc
@@ -25,67 +23,34 @@ from bw_graph_tools.graph_traversal import (
 
 from activity_browser import app
 from activity_browser.bwutils.contribution_tree import (
-    build_parent_child_map,
     compute_node_tiers,
     cumulative_percent,
     direct_impact_coverage,
-    direct_percent,
     plan_cumulative_expand,
     path_display_set,
-    build_sunburst_rings,
-    flatten_to_dataframe,
     next_expand_candidates,
     suppress_graph_traversal_warnings,
 )
 from activity_browser.bwutils.export_names import lca_export_basename
-from activity_browser.ui import widgets
 from activity_browser.ui.delegates.impact_background import ImpactBackgroundDelegate
 
 from .combobox_utils import configure_scenario_widgets, scenario_labels, update_combobox
+from .contribution_tree_model import (
+    BAR_COLUMNS,
+    COL_CUMULATIVE,
+    COL_CUMULATIVE_PCT,
+    COL_DIRECT,
+    COL_DIRECT_PCT,
+    COL_PROCESS,
+    EXPAND_MODE_CUMULATIVE,
+    EXPAND_MODE_PATH,
+    EXPAND_MODE_TIER,
+    TIER_ROLE,
+    UID_ROLE,
+    ContributionTreeModel,
+)
+from .contribution_tree_plot import SunburstPlot
 from .style import SmallComboBox, apply_lca_combo_width, lca_header_layout, lca_help_tool_button, lca_tab_control_row
-
-if TYPE_CHECKING:
-    pass
-
-# Column indices — keep in sync with COLUMNS list
-COL_CUMULATIVE_PCT = 0
-COL_DIRECT_PCT = 1
-COL_PRODUCT = 2
-COL_PROCESS = 3
-COL_LOCATION = 4
-COL_DATABASE = 5
-COL_FLOW_AMOUNT = 6
-COL_UNIT = 7
-COL_CUMULATIVE = 8
-COL_DIRECT = 9
-COL_TIER = 10
-
-COLUMNS = [
-    "Cumulative impact (%)",
-    "Direct impact (%)",
-    "Product",
-    "Process",
-    "Location",
-    "Database",
-    "Flow amount",
-    "Unit",
-    "Cumulative impact",
-    "Direct impact",
-    "Tier",
-]
-
-# Columns that get the impact-background delegate (signed magnitude values)
-BAR_COLUMNS = (COL_CUMULATIVE_PCT, COL_DIRECT_PCT, COL_CUMULATIVE, COL_DIRECT)
-
-EXPAND_MODE_TIER = "tier"
-EXPAND_MODE_PATH = "path"
-EXPAND_MODE_CUMULATIVE = "cumulative"
-
-# Role for contribution-tree node unique_id on the first-column item
-UID_ROLE = QtCore.Qt.UserRole + 1
-PLACEHOLDER_ROLE = QtCore.Qt.UserRole + 2
-TIER_ROLE = QtCore.Qt.UserRole + 3
-
 
 HELP_TEXT = """
 <html><body>
@@ -150,525 +115,7 @@ class ContributionTreeCacheEntry:
 
 
 # ---------------------------------------------------------------------------
-# Tree item model (Ticket 03)
-# ---------------------------------------------------------------------------
-
-class ContributionTreeModel(QtGui.QStandardItemModel):
-    """QStandardItemModel backed by a SameNodeEachVisitGraphTraversal state.
-
-    Populated lazily: call ``load_state`` after initial traversal, then
-    ``expand_node`` from a queued ``expanded`` handler. Empty placeholder
-    children provide expand chevrons without visible ellipsis text.
-    """
-
-    column_max_changed = QtCore.Signal()
-
-    def __init__(self, parent=None):
-        super().__init__(0, len(COLUMNS), parent)
-        self.setHorizontalHeaderLabels(COLUMNS)
-        self._state: Optional[SameNodeEachVisitGraphTraversal] = None
-        self._total_score: float = 0.0
-        self._root_uid: int | None = None
-        self._tiers: dict[int, int] = {}
-        # Maps unique_id → QStandardItem (the first-column item for that row)
-        self._uid_to_item: dict[int, QtGui.QStandardItem] = {}
-        # Column max values for the bar-background delegates
-        self.col_max: dict[int, float] = {c: 1.0 for c in BAR_COLUMNS}
-        self._expanding: bool = False
-        self._meta_cache: dict = {}
-        self._batch_updating: bool = False
-
-    @staticmethod
-    def _has_real_children(item: QtGui.QStandardItem) -> bool:
-        for row in range(item.rowCount()):
-            child = item.child(row, 0)
-            if child is not None and not child.data(PLACEHOLDER_ROLE):
-                return True
-        return False
-
-    def _strip_placeholders(self, parent_item: QtGui.QStandardItem) -> None:
-        for row in range(parent_item.rowCount() - 1, -1, -1):
-            child = parent_item.child(row, 0)
-            if child is not None and child.data(PLACEHOLDER_ROLE):
-                parent_item.removeRow(row)
-
-    def _ensure_placeholder(self, first: QtGui.QStandardItem) -> None:
-        """Empty child so the view shows a chevron (no visible ellipsis text)."""
-        if first.rowCount() > 0:
-            return
-        ph = QtGui.QStandardItem("")
-        ph.setEditable(False)
-        ph.setData(True, PLACEHOLDER_ROLE)
-        ph.setFlags(QtCore.Qt.ItemFlag.NoItemFlags)
-        first.appendRow(
-            [ph] + [QtGui.QStandardItem("") for _ in range(len(COLUMNS) - 1)]
-        )
-
-    def _refresh_tiers(self) -> None:
-        if self._state is None or self._root_uid is None:
-            self._tiers = {}
-            return
-        self._tiers = compute_node_tiers(
-            self._state.nodes, self._state.edges, self._root_uid
-        )
-
-    # ------------------------------------------------------------------
-    # Public API
-    # ------------------------------------------------------------------
-
-    def load_state(
-        self,
-        state: SameNodeEachVisitGraphTraversal,
-        total_score: float,
-    ) -> None:
-        """Rebuild the model from a (possibly cached) traversal state."""
-        self.clear()
-        self.setHorizontalHeaderLabels(COLUMNS)
-        self._state = state
-        self._total_score = total_score
-        self._uid_to_item = {}
-        self.col_max = {c: 1.0 for c in BAR_COLUMNS}
-        self._meta_cache = {}
-        self._root_uid = state._root_node.unique_id
-        self._refresh_tiers()
-
-        pcm = build_parent_child_map(state.nodes, state.edges)
-        root_children = [
-            state.nodes[uid]
-            for uid in pcm.get(self._root_uid, [])
-            if uid in state.nodes
-        ]
-        root_children.sort(key=lambda n: abs(n.cumulative_score), reverse=True)
-        self._batch_updating = True
-        try:
-            for child in root_children:
-                self._add_node(child, self.invisibleRootItem(), pcm)
-        finally:
-            self._batch_updating = False
-
-    def expand_node(
-        self,
-        unique_id: int,
-        min_path_pct: float | None = None,
-    ) -> bool:
-        """Traverse from the given node and add its direct children to the model.
-
-        All children discovered by graph traversal are listed (the engine cutoff
-        already limits which edges exist). ``min_path_pct`` is ignored for
-        listing — it only affects auto-expand policy elsewhere.
-        """
-        if self._state is None or self._expanding:
-            return False
-
-        parent_item = self._uid_to_item.get(unique_id)
-        if parent_item is None:
-            return False
-
-        self._expanding = True
-        try:
-            self._strip_placeholders(parent_item)
-
-            if unique_id not in self._state.visited_nodes:
-                node = self._state.nodes.get(unique_id)
-                if node is None:
-                    parent_item.emitDataChanged()
-                    return False
-                # Brightway computes max_depth from node.depth *before* resetting
-                # depth to 0. Without zeroing here, traverse_from_node(depth=1) on
-                # a mid-tree node walks old_depth+1 levels and marks direct
-                # children as visited — they then get no expand chevrons.
-                node.depth = 0
-                with suppress_graph_traversal_warnings():
-                    if not self._state.traverse_from_node(unique_id, depth=1):
-                        parent_item.emitDataChanged()
-                        return False
-
-            # Avoid full-graph tier BFS on every expand; new rows use parent+1.
-            pcm = build_parent_child_map(self._state.nodes, self._state.edges)
-            child_nodes = [
-                self._state.nodes[uid]
-                for uid in pcm.get(unique_id, [])
-                if uid not in self._uid_to_item and uid in self._state.nodes
-            ]
-            child_nodes.sort(key=lambda n: abs(n.cumulative_score), reverse=True)
-            for child_node in child_nodes:
-                self._add_node(child_node, parent_item, pcm, recurse_known=False)
-
-            if self._has_real_children(parent_item):
-                if not self._batch_updating:
-                    self.column_max_changed.emit()
-                return True
-
-            parent_item.emitDataChanged()
-            return False
-        finally:
-            self._expanding = False
-
-    def prune_below_threshold(self, min_path_pct: float) -> None:
-        """Drop rows whose path (cumulative) impact is below ``min_path_pct``.
-
-        Kept for rare callers; individual path expand no longer uses this —
-        siblings below the expand threshold stay listed under open parents.
-        """
-        if self._state is None:
-            return
-        to_remove = [
-            uid
-            for uid, item in self._uid_to_item.items()
-            if (node := self._state.nodes.get(uid)) is not None
-            and int(item.data(TIER_ROLE) or 0) > 0
-            and abs(cumulative_percent(node, self._total_score)) < min_path_pct
-        ]
-        to_remove.sort(
-            key=lambda u: int(self._uid_to_item[u].data(TIER_ROLE) or 0),
-            reverse=True,
-        )
-        for uid in to_remove:
-            item = self._uid_to_item.get(uid)
-            if item is None:
-                continue
-            parent = item.parent()
-            if parent is None:
-                parent = self.invisibleRootItem()
-            row = item.row()
-            self._forget_subtree(item)
-            parent.removeRow(row)
-
-        pcm = build_parent_child_map(self._state.nodes, self._state.edges)
-        for uid, item in self._uid_to_item.items():
-            if self._has_real_children(item):
-                continue
-            if self._has_hidden_children(uid, pcm):
-                self._ensure_placeholder(item)
-
-    def restrict_to_uids(self, keep: set[int]) -> None:
-        """Remove rows whose unique_id is not in ``keep`` (deepest first).
-
-        Used when restoring a cached view after path-impact prune (or any
-        other filter that left a subset of the traversal in the model).
-        """
-        if self._state is None:
-            return
-        to_remove = [uid for uid in self._uid_to_item if uid not in keep]
-        to_remove.sort(
-            key=lambda u: int(self._uid_to_item[u].data(TIER_ROLE) or 0),
-            reverse=True,
-        )
-        for uid in to_remove:
-            item = self._uid_to_item.get(uid)
-            if item is None:
-                continue
-            parent = item.parent()
-            if parent is None:
-                parent = self.invisibleRootItem()
-            row = item.row()
-            self._forget_subtree(item)
-            parent.removeRow(row)
-
-        pcm = build_parent_child_map(self._state.nodes, self._state.edges)
-        for uid, item in list(self._uid_to_item.items()):
-            if self._has_real_children(item):
-                continue
-            if self._has_hidden_children(uid, pcm):
-                self._ensure_placeholder(item)
-
-    def _forget_subtree(self, item: QtGui.QStandardItem) -> None:
-        for row in range(item.rowCount()):
-            child = item.child(row, 0)
-            if child is not None and not child.data(PLACEHOLDER_ROLE):
-                self._forget_subtree(child)
-        uid = item.data(UID_ROLE)
-        if uid is not None:
-            self._uid_to_item.pop(uid, None)
-
-    def _has_hidden_children(self, unique_id: int, pcm: dict | None = None) -> bool:
-        if self._state is None:
-            return False
-        if pcm is None:
-            pcm = build_parent_child_map(self._state.nodes, self._state.edges)
-        return any(
-            cid not in self._uid_to_item and cid in self._state.nodes
-            for cid in pcm.get(unique_id, [])
-        )
-
-    def to_dataframe(self, metadata_lookup=None):
-        """Return a flat DataFrame of all traversed nodes."""
-        if self._state is None:
-            import pandas as pd
-            return pd.DataFrame(columns=COLUMNS)
-        return flatten_to_dataframe(
-            self._state.nodes,
-            self._state.edges,
-            self._total_score,
-            metadata_lookup=metadata_lookup,
-        )
-
-    # ------------------------------------------------------------------
-    # Internal helpers
-    # ------------------------------------------------------------------
-
-    def _add_node(
-        self,
-        node,
-        parent_item: QtGui.QStandardItem,
-        pcm: dict,
-        *,
-        recurse_known: bool = True,
-    ) -> None:
-        """Create a row of QStandardItems for ``node`` under ``parent_item``."""
-        if node.unique_id in self._uid_to_item:
-            return
-
-        meta = self._resolve_meta(node)
-        total = self._total_score
-        # Tier from edge distance to FU — never Brightway node.depth after lazy expand
-        tier = self._tiers.get(node.unique_id)
-        if tier is None:
-            if parent_item is self.invisibleRootItem():
-                tier = 0
-            else:
-                parent_tier = parent_item.data(TIER_ROLE)
-                tier = (int(parent_tier) + 1) if parent_tier is not None else 0
-
-        cum_pct = cumulative_percent(node, total)
-        dir_pct = direct_percent(node, total)
-
-        def _item(text, value=None, numeric=False):
-            it = QtGui.QStandardItem()
-            it.setText(str(text))
-            it.setEditable(False)
-            if value is not None:
-                it.setData(value, ImpactBackgroundDelegate.VALUE_ROLE)
-            if numeric and isinstance(value, float):
-                it.setData(value, QtCore.Qt.UserRole)
-            return it
-
-        row = [
-            _item(f"{cum_pct:.2f}", value=cum_pct, numeric=True),
-            _item(f"{dir_pct:.2f}", value=dir_pct, numeric=True),
-            _item(meta.get("product", "")),
-            _item(meta.get("name", "")),
-            _item(meta.get("location", "")),
-            _item(meta.get("database", "")),
-            _item(f"{node.supply_amount:.4g}"),
-            _item(meta.get("unit", "")),
-            _item(f"{node.cumulative_score:.4g}", value=node.cumulative_score, numeric=True),
-            _item(
-                f"{node.direct_emissions_score:.4g}",
-                value=node.direct_emissions_score,
-                numeric=True,
-            ),
-            _item(str(tier)),
-        ]
-
-        is_visited = node.unique_id in (self._state.visited_nodes if self._state else set())
-        has_children = bool(pcm.get(node.unique_id))
-        is_leaf = is_visited and not has_children
-        if not is_visited and tier > 0:
-            row[COL_PROCESS].setForeground(QtGui.QBrush(QtGui.QColor("#888888")))
-            row[COL_PROCESS].setToolTip("Not yet expanded — click to explore")
-
-        if is_leaf:
-            for item in row:
-                font = item.font()
-                font.setItalic(True)
-                item.setFont(font)
-
-        parent_item.appendRow(row)
-        first = row[COL_CUMULATIVE_PCT]
-        first.setData(node.unique_id, UID_ROLE)
-        first.setData(tier, TIER_ROLE)
-        self._uid_to_item[node.unique_id] = first
-
-        self._update_col_max(COL_CUMULATIVE_PCT, abs(cum_pct))
-        self._update_col_max(COL_DIRECT_PCT, abs(dir_pct))
-        self._update_col_max(COL_CUMULATIVE, abs(node.cumulative_score))
-        self._update_col_max(COL_DIRECT, abs(node.direct_emissions_score))
-
-        if recurse_known:
-            known_children = pcm.get(node.unique_id, [])
-            child_nodes = [
-                self._state.nodes[uid]
-                for uid in known_children
-                if self._state and uid in self._state.nodes and uid not in self._uid_to_item
-            ]
-            child_nodes.sort(key=lambda n: abs(n.cumulative_score), reverse=True)
-            for child_node in child_nodes:
-                self._add_node(child_node, first, pcm, recurse_known=True)
-
-        # Chevron when not yet listing children: unvisited (lazy), or visited with
-        # known edges not shown under this row (e.g. prior over-deep traverse).
-        if not self._has_real_children(first) and (not is_visited or has_children):
-            self._ensure_placeholder(first)
-
-    def _resolve_meta(self, node) -> dict:
-        """Fetch activity metadata from bw2data (cached; empty dict on failure)."""
-        aid = getattr(node, "activity_datapackage_id", None)
-        if aid in self._meta_cache:
-            return self._meta_cache[aid]
-        try:
-            act = bd.get_node(id=aid)
-            meta = {
-                "product": act.get("reference product") or act.get("name", ""),
-                "name": act.get("name", ""),
-                "location": act.get("location", ""),
-                "database": act.get("database", ""),
-                "unit": act.get("unit", ""),
-            }
-        except Exception:
-            meta = {}
-        if aid is not None:
-            self._meta_cache[aid] = meta
-        return meta
-
-    def _update_col_max(self, col: int, value: float) -> None:
-        if value > self.col_max.get(col, 0.0):
-            self.col_max[col] = value
-
-
-# ---------------------------------------------------------------------------
-# Sunburst plot (Ticket 05)
-# ---------------------------------------------------------------------------
-
-class SunburstPlot(widgets.ABPlot):
-    """Layered donut chart showing the contribution tree by tier.
-
-    Ring construction: one ring per tier (depth 1…plot_depth).  Each wedge's
-    angular width = child.cumulative_score / parent.cumulative_score.  An
-    "other" wedge fills the remainder where the traversal was pruned.
-    """
-
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.plot_name = "Contribution Tree"
-        self._state: Optional[SameNodeEachVisitGraphTraversal] = None
-        self._total_score: float = 0.0
-        self._plot_depth: int = 3
-
-    def set_state(
-        self,
-        state: SameNodeEachVisitGraphTraversal,
-        total_score: float,
-        plot_depth: int = 3,
-    ) -> None:
-        self._state = state
-        self._total_score = total_score
-        self._plot_depth = plot_depth
-        self.plot()
-
-    def update_depth(self, plot_depth: int) -> None:
-        self._plot_depth = plot_depth
-        self.plot()
-
-    def plot(self) -> None:
-        if self._state is None or self._total_score == 0.0:
-            self.figure.clear()
-            self.canvas.draw_idle()
-            return
-
-        rings = build_sunburst_rings(
-            self._state.nodes,
-            self._state.edges,
-            self._total_score,
-            max_depth=self._plot_depth,
-        )
-        if not rings:
-            self.figure.clear()
-            self.canvas.draw_idle()
-            return
-
-        self.figure.clear()
-        ax = self.figure.add_subplot(111, polar=True)
-        ax.set_theta_zero_location("N")
-        ax.set_theta_direction(-1)
-        ax.set_axis_off()
-
-        n_rings = len(rings)
-        ring_width = 1.0 / (n_rings + 1)  # leave space for centre label
-
-        import numpy as np
-        import matplotlib
-
-        cmap = matplotlib.colormaps["tab20c"]
-
-        for ring_idx, ring in enumerate(rings):
-            bottom = ring_width * (ring_idx + 1)
-
-            # Track angular position for each parent
-            # We need to lay out wedges respecting parent arc positions.
-            # Build per-parent wedge lists
-            by_parent: dict = {}
-            for w in ring:
-                by_parent.setdefault(w["parent_unique_id"], []).append(w)
-
-            # For tier-1 ring: parent is root, arc starts at 0, full circle
-            # For deeper rings: use parent wedge start angles (stored per uid)
-            if ring_idx == 0:
-                parent_starts = {list(by_parent.keys())[0]: 0.0}
-                parent_spans = {list(by_parent.keys())[0]: 2 * np.pi}
-            else:
-                parent_starts = getattr(self, "_wedge_starts", {})
-                parent_spans = getattr(self, "_wedge_spans", {})
-
-            new_starts: dict = {}
-            new_spans: dict = {}
-
-            for parent_uid, wedges in by_parent.items():
-                p_start = parent_starts.get(parent_uid, 0.0)
-                p_span = parent_spans.get(parent_uid, 2 * np.pi)
-
-                theta = p_start
-                for i, w in enumerate(wedges):
-                    arc = w["share"] * p_span
-                    colour = (
-                        (0.7, 0.7, 0.7, 0.5)
-                        if w["is_other"]
-                        else cmap((ring_idx * 7 + i) % 20 / 20)
-                    )
-                    ax.bar(
-                        x=theta,
-                        width=arc,
-                        bottom=bottom,
-                        height=ring_width * 0.9,
-                        color=colour,
-                        edgecolor="white",
-                        linewidth=0.5,
-                        align="edge",
-                    )
-                    if not w["is_other"] and arc > 0.2:
-                        label = str(w.get("label", ""))[:20]
-                        mid = theta + arc / 2
-                        ax.text(
-                            mid,
-                            bottom + ring_width * 0.45,
-                            label,
-                            ha="center",
-                            va="center",
-                            fontsize=6,
-                            rotation=0,
-                            clip_on=True,
-                        )
-                    new_starts[w["unique_id"]] = theta
-                    new_spans[w["unique_id"]] = arc
-                    theta += arc
-
-            self._wedge_starts = new_starts
-            self._wedge_spans = new_spans
-
-        # Centre label
-        ax.text(
-            0, 0,
-            f"Tier {self._plot_depth}",
-            ha="center", va="center",
-            fontsize=8,
-            transform=ax.transData,
-        )
-
-        self.finish_plot()
-
-
-# ---------------------------------------------------------------------------
-# Main tab widget (Tickets 04, 06, 07, 08, 09)
+# Per-selection cache entry lives above; tab widget below.
 # ---------------------------------------------------------------------------
 
 class ContributionTreeTab(QtWidgets.QWidget):
@@ -972,10 +419,9 @@ class ContributionTreeTab(QtWidgets.QWidget):
                 w.blockSignals(False)
             return
 
-        import bw2data as _bd
-        setup = _bd.calculation_setups.get(cs, {})
+        setup = bd.calculation_setups.get(cs, {})
         fu_acts = [
-            list({_bd.get_activity(k): v for k, v in fu.items()}.keys())[0]
+            list({bd.get_activity(k): v for k, v in fu.items()}.keys())[0]
             for fu in setup.get("inv", [])
         ]
         self.fu_cb.clear()
@@ -1005,14 +451,13 @@ class ContributionTreeTab(QtWidgets.QWidget):
 
     def _selection_inputs(self, key: tuple):
         """Resolve demand dict and method tuple for a cache key."""
-        import bw2data as _bd
 
         fu_idx, method_idx, scenario_idx, _cutoff_pct = key
         cs = self.parent.cs_name
-        setup = _bd.calculation_setups[cs]
+        setup = bd.calculation_setups[cs]
         demand_raw = setup["inv"][fu_idx]
         method = setup["ia"][method_idx]
-        demand = {_bd.get_activity(k).id: v for k, v in demand_raw.items()}
+        demand = {bd.get_activity(k).id: v for k, v in demand_raw.items()}
         return demand, method, scenario_idx
 
     def _ensure_lca(self, demand: dict, method, scenario_idx, method_idx: int | None = None) -> None:
@@ -1022,7 +467,6 @@ class ContributionTreeTab(QtWidgets.QWidget):
         RF without ``redo_lci`` leaves ``state.lca.score`` belonging to another
         demand, which breaks coverage checks and further ``traverse_from_node``.
         """
-        import bw2data as _bd
 
         if self.has_scenarios and scenario_idx is not None:
             mi = method_idx if method_idx is not None else self.method_cb.currentIndex()
@@ -1031,7 +475,7 @@ class ContributionTreeTab(QtWidgets.QWidget):
             )
 
         if self._cached_lca is None:
-            fu_input, data_objs, _ = _bd.prepare_lca_inputs(demand=demand, method=method)
+            fu_input, data_objs, _ = bd.prepare_lca_inputs(demand=demand, method=method)
             self._cached_lca = bc.LCA(demand=fu_input, data_objs=data_objs)
             self._cached_lca.lci(factorize=True)
             self._cached_lca.lcia()
@@ -1104,8 +548,6 @@ class ContributionTreeTab(QtWidgets.QWidget):
         progress = self._busy_dialog("Calculating contribution tree…")
 
         try:
-            import bw2data as _bd
-
             self._busy_tick(progress, "Running LCI / LCIA…")
             self._ensure_lca(demand, method, scenario_idx, method_idx)
 
@@ -1117,7 +559,7 @@ class ContributionTreeTab(QtWidgets.QWidget):
             )
             with suppress_graph_traversal_warnings():
                 state.traverse(depth=2)
-            state.metadata = {"unit": _bd.methods[method].get("unit", "")}
+            state.metadata = {"unit": bd.methods[method].get("unit", "")}
             self._store_total_score(state)
             logger.debug(f"Traversal done in {time.time()-t0:.2f}s")
 
@@ -1169,7 +611,7 @@ class ContributionTreeTab(QtWidgets.QWidget):
     def _collect_expanded_uids(self) -> set[int]:
         """Return unique_ids of rows currently expanded in the tree view."""
         expanded: set[int] = set()
-        for uid, item in self._tree_model._uid_to_item.items():
+        for uid, item in self._tree_model.iter_uid_items():
             idx = self._tree_model.indexFromItem(item)
             if idx.isValid() and self._tree_view.isExpanded(idx):
                 expanded.add(uid)
@@ -1183,8 +625,8 @@ class ContributionTreeTab(QtWidgets.QWidget):
         try:
             to_expand: list[tuple[int, QtGui.QStandardItem]] = []
             for uid in uids:
-                item = self._tree_model._uid_to_item.get(uid)
-                if item is None or not self._tree_model._has_real_children(item):
+                item = self._tree_model.item_for_uid(uid)
+                if item is None or not self._tree_model.has_real_children(item):
                     continue
                 to_expand.append((int(item.data(TIER_ROLE) or 0), item))
             to_expand.sort(key=lambda pair: pair[0])
@@ -1202,7 +644,7 @@ class ContributionTreeTab(QtWidgets.QWidget):
             return
         entry = self._cache[key]
         entry.expanded_uids = self._collect_expanded_uids()
-        entry.model_uids = set(self._tree_model._uid_to_item.keys())
+        entry.model_uids = self._tree_model.model_uids()
 
     # ------------------------------------------------------------------
     # Slot handlers
@@ -1445,8 +887,8 @@ class ContributionTreeTab(QtWidgets.QWidget):
         """Collapse, then open calculated branches according to the expand policy.
 
         * Tier: open rows with real children whose display tier is ``< max_tier``.
-        * Individual path impact: open only nodes whose path impact still meets
-          the threshold (after pruning smaller branches).
+        * Individual path impact: prefer ``path_display_set`` + restore expands
+          on the Expand button path; this helper is mainly for Tier.
         * Cumulative: open visited nodes that have real children.
         """
         state = self._current_state
@@ -1457,8 +899,8 @@ class ContributionTreeTab(QtWidgets.QWidget):
         try:
             self._tree_view.collapseAll()
             to_expand: list[tuple[int, QtGui.QStandardItem]] = []
-            for uid, item in self._tree_model._uid_to_item.items():
-                if not self._tree_model._has_real_children(item):
+            for uid, item in self._tree_model.iter_uid_items():
+                if not self._tree_model.has_real_children(item):
                     continue
                 tier = item.data(TIER_ROLE)
                 tier_i = int(tier) if tier is not None else 0
@@ -1571,7 +1013,7 @@ class ContributionTreeTab(QtWidgets.QWidget):
         # cumulative "only as many siblings as needed" leftovers). Safe when
         # the row already has some children — collapse/re-expand reveals rest.
         added = self._tree_model.expand_node(uid)
-        if added or self._tree_model._has_real_children(first_col_item):
+        if added or self._tree_model.has_real_children(first_col_item):
             self._update_delegate_maxima()
             self._reload_plot()
             self._update_footer_stats()
@@ -1632,12 +1074,12 @@ class ContributionTreeTab(QtWidgets.QWidget):
         if state is None:
             self._stats_label.setText("")
             return
-        root_uid = self._tree_model._root_uid
+        root_uid = self._tree_model.root_uid
         total = self._state_total_score(state)
         shown_cov = self._visible_direct_impact_coverage()
         shown_n = sum(
             1
-            for item in self._tree_model._uid_to_item.values()
+            for _, item in self._tree_model.iter_uid_items() 
             if self._is_row_visible(item)
         )
         calc_cov = direct_impact_coverage(state.nodes, total, root_uid)
@@ -1684,7 +1126,7 @@ class ContributionTreeTab(QtWidgets.QWidget):
         if total == 0.0:
             return 0.0
         direct_sum = 0.0
-        for uid, item in self._tree_model._uid_to_item.items():
+        for uid, item in self._tree_model.iter_uid_items():
             if not self._is_row_visible(item):
                 continue
             node = state.nodes.get(uid)
@@ -1696,7 +1138,7 @@ class ContributionTreeTab(QtWidgets.QWidget):
     def _max_visible_tier(self) -> int:
         """Deepest tier among rows whose ancestor chain is expanded in the view."""
         max_tier = 0
-        for item in self._tree_model._uid_to_item.values():
+        for _, item in self._tree_model.iter_uid_items():
             if self._is_row_visible(item):
                 max_tier = max(max_tier, int(item.data(TIER_ROLE) or 0))
         return max_tier
@@ -1706,7 +1148,7 @@ class ContributionTreeTab(QtWidgets.QWidget):
         state = self._current_state
         if state is None:
             return 0
-        root_uid = self._tree_model._root_uid
+        root_uid = self._tree_model.root_uid
         if root_uid is None:
             return 0
         tiers = compute_node_tiers(state.nodes, state.edges, root_uid)
