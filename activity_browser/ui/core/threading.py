@@ -42,7 +42,10 @@ class ABThread(QThread):
                 raise e
 
         qt_tqdm.updated.disconnect(self._emit_status)
-        self.status.emit(100, "Complete")
+        if not self.isInterruptionRequested() and not getattr(
+            self, "_ab_cancel_requested", False
+        ):
+            self.status.emit(100, "Complete")
 
     def _emit_status(self, progress: int, message: str):
         if progress == 100:
@@ -53,11 +56,26 @@ class ABThread(QThread):
     def run_safely(self, *args, **kwargs):
         raise NotImplementedError
 
+    def request_ab_cancel(self):
+        """Sticky cancel for long-running jobs (survives progress-dialog resets)."""
+        self._ab_cancel_requested = True
+        self.requestInterruption()
+
+    def ab_cancel_requested(self) -> bool:
+        return bool(
+            getattr(self, "_ab_cancel_requested", False)
+            or self.isInterruptionRequested()
+        )
+
     def connect_progress_dialog(self, progress_dialog: QtWidgets.QProgressDialog):
         """
         Connects the status signal to a progress dialog.
         """
         def slot(progress, message):
+            if getattr(progress_dialog, "ab_cancelled", False) or (
+                hasattr(progress_dialog, "wasCanceled") and progress_dialog.wasCanceled()
+            ):
+                return
             if progress == -1:
                 progress_dialog.setLabelText(message)
                 progress_dialog.setRange(0, 0)

@@ -3,7 +3,7 @@ from typing import List
 from qtpy import QtWidgets
 
 from activity_browser import app
-from activity_browser.app.actions.activity.new_elementary_flow import ElementaryFlowDialog
+from activity_browser.app.actions.activity.elementary_flow_new import ElementaryFlowDialog
 from activity_browser.app.actions.base import ABAction, exception_dialogs
 from activity_browser.bwutils.commontasks import (
     get_writable_databases,

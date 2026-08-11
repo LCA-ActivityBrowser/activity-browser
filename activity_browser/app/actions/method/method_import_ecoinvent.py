@@ -7,18 +7,19 @@ from activity_browser import app
 from activity_browser.mod import bw2data as bd
 from activity_browser.app.actions.base import ABAction, exception_dialogs
 from activity_browser.ui import icons, widgets
-from activity_browser.bwutils.io.ecoinvent_lcia_importer import EcoinventLCIAImporter
+from activity_browser.ui.dialogs import ABProgressDialog
+from activity_browser.bwutils.impact_categories import EcoinventLCIAImporter
 from activity_browser.ui.core import threading
 
 
 
 
-class MethodImporterEcoinvent(ABAction):
+class MethodImportEcoinvent(ABAction):
     """ABAction to import methods from ecoinvent"""
 
     icon = icons.qicons.import_db
-    text = "Import from ecoinvent excel..."
-    tool_tip = "Import methods from ecoinvent excel format"
+    text = "From ecoinvent Excel…"
+    tool_tip = "Import impact categories from an ecoinvent LCIA Implementation Excel workbook"
 
     @classmethod
     @exception_dialogs
@@ -38,7 +39,7 @@ class MethodImporterEcoinvent(ABAction):
         extract_thread.loaded.connect(cls.write_database)
 
         # show progress dialog for importing the excel
-        progress_dialog = widgets.ABProgressDialog.get_connected_dialog("Importing Database")
+        progress_dialog = ABProgressDialog.get_connected_dialog("Importing Database")
         extract_thread.finished.connect(progress_dialog.deleteLater)
 
         extract_thread.start()
@@ -57,7 +58,7 @@ class MethodImporterEcoinvent(ABAction):
         importer_thread.prepend = import_dialog.prepend
 
         # setup a progress dialog
-        progress_dialog = widgets.ABProgressDialog.get_connected_dialog("Importing Impact Categories")
+        progress_dialog = ABProgressDialog.get_connected_dialog("Importing Impact Categories")
         importer_thread.finished.connect(progress_dialog.deleteLater)
 
         progress_dialog.show()
@@ -75,7 +76,10 @@ class ImportSetupDialog(QtWidgets.QDialog):
         self.setWindowTitle("Import methods from ecoinvent Excel")
 
         self.db_chooser = widgets.ABComboBox.get_database_combobox(self)
-        self.button_comp = composites.HorizontalButtonsComposite("Cancel", "*OK")
+        self.buttons = QtWidgets.QDialogButtonBox(
+            QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel
+        )
+        self.ok_button = self.buttons.button(QtWidgets.QDialogButtonBox.Ok)
 
         self.info = QtWidgets.QLabel()
         self.info.setWordWrap(True)
@@ -88,8 +92,8 @@ class ImportSetupDialog(QtWidgets.QDialog):
         self.prepend_textbox.textChanged.connect(self.check_overwrite)
 
         # Connect the necessary signals
-        self.button_comp["OK"].clicked.connect(self.accept)
-        self.button_comp["Cancel"].clicked.connect(self.reject)
+        self.buttons.accepted.connect(self.accept)
+        self.buttons.rejected.connect(self.reject)
 
         # Create final layout
         layout = QtWidgets.QVBoxLayout()
@@ -98,7 +102,7 @@ class ImportSetupDialog(QtWidgets.QDialog):
         layout.addWidget(self.prepend_label)
         layout.addWidget(self.prepend_textbox)
         layout.addWidget(self.info)
-        layout.addWidget(self.button_comp)
+        layout.addWidget(self.buttons)
 
         # Set the dialog layout
         self.setLayout(layout)
@@ -127,7 +131,7 @@ class ImportSetupDialog(QtWidgets.QDialog):
     def validate(self):
         """Validate the user input and enable the OK button if all is clear"""
         valid = True
-        self.button_comp["OK"].setEnabled(valid)
+        self.ok_button.setEnabled(valid)
 
     def accept(self):
         """Correctly set the dialog's attributes for further use in the action"""

@@ -6,9 +6,9 @@ from .activity.activity_duplicate_to_db import ActivityDuplicateToDB
 from .activity.activity_modify import ActivityModify
 from .activity.activity_new_process import ActivityNewProcess
 from .activity.activity_new_product import ActivityNewProduct
-from .activity.new_elementary_flow import NewElementaryFlow
-from .activity.edit_elementary_flow import EditElementaryFlow
-from .activity.delete_elementary_flow import DeleteElementaryFlow
+from .activity.elementary_flow_new import NewElementaryFlow
+from .activity.elementary_flow_edit import EditElementaryFlow
+from .activity.elementary_flow_delete import DeleteElementaryFlow
 from .activity.activity_open import ActivityOpen
 from .activity.activity_relink import ActivityRelink
 from .activity.activity_sdf_to_clipboard import ActivitySDFToClipboard
@@ -59,8 +59,12 @@ from .method.method_rename import MethodRename
 from .method.method_meta_modify import MethodMetaModify
 from .method.method_new import MethodNew
 
-from .method.importer.method_importer_ecoinvent import MethodImporterEcoinvent
-from .method.importer.method_importer_bw2io import MethodImporterBW2IO
+from .method.method_import_ecoinvent import MethodImportEcoinvent
+from .method.method_import_ab import MethodImportAB
+from .method.method_import_bw2io import MethodImportBW2IO
+from .method.method_export_ab import MethodExportAB
+from .method.method_export_bw2io import MethodExportBW2IO
+from .method.method_get_template import MethodGetTemplate
 
 from .method.cf_uncertainty_modify import CFUncertaintyModify
 from .method.cf_amount_modify import CFAmountModify

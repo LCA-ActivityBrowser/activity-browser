@@ -89,7 +89,7 @@ class DatabaseMenu(QtWidgets.QMenu):
 
 
 class ImpactCategoriesMenu(QtWidgets.QMenu):
-    """Impact category (LCIA method) import."""
+    """Impact category (LCIA method) import/export."""
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
@@ -97,7 +97,12 @@ class ImpactCategoriesMenu(QtWidgets.QMenu):
         self.setTitle("&Impact categories")
 
         self.import_menu = ImportICMenu(self)
+        self.export_menu = ExportICMenu(self)
+        self.get_template_action = app.actions.MethodGetTemplate.get_QAction(parent=self)
+
         self.addMenu(self.import_menu)
+        self.addMenu(self.export_menu)
+        self.addAction(self.get_template_action)
 
 
 class ProjectNewMenu(QtWidgets.QMenu):
@@ -312,8 +317,21 @@ class ImportICMenu(QtWidgets.QMenu):
         self.setTitle("Import")
         self.setIcon(qicons.import_db)
 
-        self.import_from_ei_excel_action = app.actions.MethodImporterEcoinvent.get_QAction(parent=self)
-        self.import_from_bw2io_action = app.actions.MethodImporterBW2IO.get_QAction(parent=self)
+        self.import_from_ab_action = app.actions.MethodImportAB.get_QAction(parent=self)
+        self.import_from_bw2io_file_action = app.actions.MethodImportBW2IO.get_QAction(parent=self)
+        self.import_from_ei_excel_action = app.actions.MethodImportEcoinvent.get_QAction(parent=self)
 
+        self.addAction(self.import_from_ab_action)
+        self.addAction(self.import_from_bw2io_file_action)
         self.addAction(self.import_from_ei_excel_action)
-        self.addAction(self.import_from_bw2io_action)
+
+
+class ExportICMenu(QtWidgets.QMenu):
+    def __init__(self, parent=None) -> None:
+        super().__init__(parent=parent)
+        self.setTitle("Export")
+
+        self.export_to_ab_action = app.actions.MethodExportAB.get_QAction(parent=self)
+        self.export_to_bw2io_action = app.actions.MethodExportBW2IO.get_QAction(parent=self)
+        self.addAction(self.export_to_ab_action)
+        self.addAction(self.export_to_bw2io_action)

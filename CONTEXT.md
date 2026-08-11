@@ -57,6 +57,16 @@ A named set of functional unit(s) and LCIA method(s) used to run LCA / multi-LCA
 
 A Life Cycle Impact Assessment method (characterization factors for elementary flows). In Brightway, methods are keyed tuples; AB exposes them in impact-category UI.
 
+### AB impact-category file (AB LCIA format)
+
+Activity Browser’s multi–impact-category interchange for import/export: characterization factors plus per–impact-category unit and description. Method keys and elementary-flow identities use `::` (variable-length Brightway tuples / categories). Excel uses sheets `CFs` and `Impact categories`; CSV uses a sibling pair `*.cfs.csv` + `*.metadata.csv`. Distinct from ecoinvent’s LCIA implementation workbook (fixed three-part names; separate name/compartment/subcompartment columns) and from the **bw2io impact-category file**.
+_Avoid_: Indicators sheet (when meaning AB’s impact-category metadata table), AB ecoinvent format
+
+### bw2io impact-category file (bw2io LCIA format)
+
+bw2io’s Excel/CSV LCIA CF template: **one impact category per CF file/sheet** (`name`, `categories` with `::`, `amount`, optional uncertainty). AB may add a `metadata` sheet (xlsx) or `metadata.csv` sidecar for method/unit/description/`filename`; stock bw2io only needs the CF table.
+_Avoid_: one-shot, bw2io native (as a product name), AB impact-category file
+
 ### Characterization factor (CF)
 
 A factor that converts an elementary flow amount into an impact-category score for a given method.
@@ -120,4 +130,6 @@ Extensibility mechanism for third-party AB features. **Architecture TBD** — do
 | “table of processes” | database / activity                                                                      |
 | “flow” without kind | intermediate (technosphere) or elementary (biosphere) flow; exchanges is another synonym |
 | “impact method” only | LCIA method / impact category (as used in UI)                                            |
+| “Indicators” (AB LCIA metadata sheet/file) | Impact categories (Excel sheet) / `.metadata.csv` (AB CSV sidecar) |
+| “one-shot” / “bw2io native” (LCIA file) | bw2io impact-category file |
 | “global app settings file” ad hoc | `app.settings`                                                                           |

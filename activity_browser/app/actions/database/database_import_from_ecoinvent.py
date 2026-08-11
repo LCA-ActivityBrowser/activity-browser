@@ -16,7 +16,7 @@ from activity_browser.app import application, signals
 from activity_browser.ui import widgets, icons
 from activity_browser.app.actions.base import ABAction, exception_dialogs
 from activity_browser.bwutils.io.ecoinvent_importer import Ecoinvent7zImporter
-from activity_browser.bwutils.io.ecoinvent_lcia_importer import EcoinventLCIAImporter
+from activity_browser.bwutils.impact_categories import EcoinventLCIAImporter
 from activity_browser.mod.bw2io.migrations import ab_create_core_migrations
 from activity_browser.ui.core import threading
 

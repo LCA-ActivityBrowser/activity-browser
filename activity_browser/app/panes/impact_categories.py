@@ -4,8 +4,64 @@ from loguru import logger
 import bw2data as bd
 import pandas as pd
 
+from typing import List, Optional
+
 from activity_browser import app, app
 from activity_browser.ui import widgets, core, delegates
+
+
+def live_impact_category_selection() -> Optional[List[tuple]]:
+    """
+    Return selected impact-category names from the Impact categories pane.
+
+    On any failure (no main window, pane missing, etc.) return ``None`` so
+    callers can fall back to the empty-selection / export-all prompt.
+    """
+    try:
+        window = app.main_window
+        if window is None:
+            return None
+        for pane in window.panes():
+            if isinstance(pane, ImpactCategoriesPane):
+                selected = pane.view.selected_impact_categories
+                return list(selected) if selected else None
+        return None
+    except Exception:
+        return None
+
+
+def resolve_methods_for_export(
+    method_names: Optional[List[tuple]] = None,
+) -> Optional[List[tuple]]:
+    """
+    Resolve which impact categories to export.
+
+    If ``method_names`` is None, use the live pane selection. When nothing is
+    selected, ask whether to export all. Returns ``None`` if the user cancels
+    or the project has no methods.
+    """
+    if method_names is None:
+        method_names = live_impact_category_selection()
+    if not method_names:
+        choice = QtWidgets.QMessageBox.question(
+            app.main_window,
+            "Export impact categories",
+            "No impact categories are selected.\n\n"
+            "Export all impact categories in this project?",
+            QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
+            QtWidgets.QMessageBox.No,
+        )
+        if choice != QtWidgets.QMessageBox.Yes:
+            return None
+        method_names = list(bd.methods)
+    if not method_names:
+        QtWidgets.QMessageBox.information(
+            app.main_window,
+            "Export impact categories",
+            "There are no impact categories to export.",
+        )
+        return None
+    return list(method_names)
 
 
 class ImpactCategoriesPane(widgets.ABAbstractPane):
@@ -51,16 +107,19 @@ class ImpactCategoriesPane(widgets.ABAbstractPane):
         self.model.set_dataframe(df, group=["_method_name"])
 
     def build_df(self):
-        df = pd.DataFrame(bd.methods.values())
-        df["_method_name"] = bd.methods.keys()
-
-        df["name"] = df["_method_name"].apply(lambda x: x[-1])
-
         cols = ["name", "unit", "num_cfs", "_method_name"]
-
-        if df.empty:
+        if not bd.methods:
             return pd.DataFrame(columns=cols)
 
+        df = pd.DataFrame(list(bd.methods.values()))
+        df["_method_name"] = list(bd.methods.keys())
+        df["name"] = df["_method_name"].apply(lambda x: x[-1] if x else "")
+        if "unit" not in df.columns:
+            df["unit"] = ""
+        if "num_cfs" not in df.columns:
+            df["num_cfs"] = 0
+        else:
+            df["num_cfs"] = df["num_cfs"].fillna(0)
         return df[cols]
 
 
@@ -90,6 +149,25 @@ class ImpactCategoriesView(widgets.ABTreeView):
                                text="Rename impact category",
                                enable=len(p.selected_impact_categories) == 1
                                ),
+            lambda m: m.addSeparator(),
+            lambda m, p: m.addMenu(ImpactCategoriesView.ExportContextMenu(parent=p)),
+        ]
+
+    class ExportContextMenu(widgets.ABMenu):
+        menuSetup = [
+            lambda m: m.setTitle("Export"),
+            lambda m, p: m.add(
+                app.actions.MethodExportAB,
+                p.selected_impact_categories,
+                text="To AB LCIA file (.xlsx/.csv)…",
+                enable=len(p.selected_impact_categories) > 0,
+            ),
+            lambda m, p: m.add(
+                app.actions.MethodExportBW2IO,
+                p.selected_impact_categories,
+                text="To bw2io LCIA file (.xlsx/.csv)…",
+                enable=len(p.selected_impact_categories) > 0,
+            ),
         ]
 
     @property
