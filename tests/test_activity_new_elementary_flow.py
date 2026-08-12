@@ -3,7 +3,7 @@
 from qtpy import QtWidgets
 
 from activity_browser import app
-from activity_browser.app.actions.activity import new_elementary_flow as mod
+from activity_browser.app.actions.activity import elementary_flow_new as mod
 from activity_browser.bwutils.commontasks import is_node_biosphere
 
 

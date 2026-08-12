@@ -800,6 +800,8 @@ class ScenarioImportWidget(QtWidgets.QWidget):
 
     def scenario_db_check(self, df: pd.DataFrame) -> pd.DataFrame:
         dbs = set(df.loc[:, "from database"]).union(set(df.loc[:, "to database"]))
+        # Ignore missing / non-string cells (e.g. NaN) — they are not DB names.
+        dbs = {db for db in dbs if isinstance(db, str) and db.strip()}
         unlinkable = dbs.difference(bd.databases)
         db_lst = list(bd.databases)
         relink = []
@@ -1149,11 +1151,12 @@ class ScenariosHelpDialog(QtWidgets.QDialog):
             "<h4>Template...</h4>"
             "<p>Download an empty flow or parameter starter (.xlsx or .csv). "
             "If the project has parameters, the parameter template is filled with "
-            "Name / Group / default and empty example scenario columns. "
-            "Lines or columns starting with <code>#</code> are ignored on import "
-            "(useful for your notes).</p>"
+            "Name / Group / default and empty example scenario columns.</p>"
             "<h4>Save...</h4>"
             "<p>Writes the currently loaded, merged flow-scenario table to a file.</p>"
+            "<h4>Notes</h4> "
+            "<p>Lines starting with <b>#</b> and columns starting with <b>_</b> are ignored on import "
+            "(useful for your notes).</p>"
         )
         text.setOpenExternalLinks(False)
 

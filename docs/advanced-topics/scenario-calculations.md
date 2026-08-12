@@ -28,6 +28,15 @@ Flow scenarios allow you to directly change the values of flows in the technosph
 
 When you import a flow scenario into a calculation setup, the Activity Browser will directly substitute the values in the technosphere matrix with the ones defined in the scenario file during calculation.
 
+### Comments in scenario files
+
+Flow scenario (SDF) files may include comments that are ignored on import:
+
+- **Comment rows:** start the row with `#` (first cell, or a full CSV line). Handled by pandas `comment="#"`.
+- **Comment columns:** give the column a name that starts with `_` (for example `_notes`). These are dropped via `usecols`.
+
+Do not start comment **column** names with `#` — that conflicts with pandas row comments and can corrupt the header.
+
 ## Combining or extending scenarios
 You can add multiple scenarios to a calculation setup. This allows you to easily compare different versions of your model and see how changes in one scenario affect the results of another.
 

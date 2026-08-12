@@ -3,8 +3,8 @@ from activity name;from reference product;from location;from categories;from dat
 ;;;;;;;;;;;;;;;
 # Flow scenario template (CSV);;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;
-# Rows or columns whose first cell / header starts with # are ignored when Activity Browser loads the file. Use # to leave notes in the file.;;;;;;;;;;;;;;;
 "# How to fill: in Activity Browser, select flows/products, right-click ""Copy for scenario file"", paste under the header row, then enter scenario amounts.";;;;;;;;;;;;;;;
 "# Empty scenario cells mean ""use the default inventory amount"".";;;;;;;;;;;;;;;
 # Rename S1/S2/S3 example headers to your scenario names as needed.;;;;;;;;;;;;;;;
+# Comment rows: start the row with # (ignored on import). Comment columns: name them with a leading _ (e.g. _notes).;;;;;;;;;;;;;;;
 # Load via calculation setup Scenario mode, Add scenarios...;;;;;;;;;;;;;;;

@@ -57,6 +57,16 @@ A named set of functional unit(s) and LCIA method(s) used to run LCA / multi-LCA
 
 A Life Cycle Impact Assessment method (characterization factors for elementary flows). In Brightway, methods are keyed tuples; AB exposes them in impact-category UI.
 
+### AB impact-category file (AB LCIA format)
+
+Activity Browser’s multi–impact-category interchange for import/export: characterization factors plus per–impact-category unit and description. Method keys and elementary-flow identities use `::` (variable-length Brightway tuples / categories). Excel uses sheets `CFs` and `Impact categories`; CSV uses a sibling pair `*.cfs.csv` + `*.metadata.csv`. Distinct from ecoinvent’s LCIA implementation workbook (fixed three-part names; separate name/compartment/subcompartment columns) and from the **bw2io impact-category file**.
+_Avoid_: Indicators sheet (when meaning AB’s impact-category metadata table), AB ecoinvent format
+
+### bw2io impact-category file (bw2io LCIA format)
+
+bw2io’s Excel/CSV LCIA CF template: **one impact category per CF file/sheet** (`name`, `categories` with `::`, `amount`, optional uncertainty). AB may add a `metadata` sheet (xlsx) or `metadata.csv` sidecar for method/unit/description/`filename`; stock bw2io only needs the CF table.
+_Avoid_: one-shot, bw2io native (as a product name), AB impact-category file
+
 ### Characterization factor (CF)
 
 A factor that converts an elementary flow amount into an impact-category score for a given method.
@@ -113,6 +123,62 @@ Command-style operation under `activity_browser/app/actions/` (menus, toolbars, 
 
 Extensibility mechanism for third-party AB features. **Architecture TBD** — do not invent API contracts; document here when redesigned.
 
+### Contribution tree
+
+A hierarchical, acyclic breakdown of LCA impact by upstream supplier, produced by priority-first graph traversal (`SameNodeEachVisitGraphTraversal`). Each node carries a **cumulative impact** (its own direct emissions plus all upstream) and a **direct impact** (its own biosphere flows only). The root is the functional unit; children are direct technosphere suppliers, recursed up the supply chain. Shown in AB as a `QTreeView` with one row per traversed node, in the **Tree** tab of the LCA Results page. Nodes are calculated lazily on expand; the **adjust policy** controls how far the Adjust control walks the tree.
+_Avoid_: supply-chain tree, upstream tree (use contribution tree in AB UI; "upstream tree" is the OpenLCA term for the same concept)
+
+### Tier (contribution-tree depth)
+
+The distance from the functional unit in the contribution tree. The functional unit is tier 0; its direct suppliers are tier 1; their suppliers are tier 2; and so on. Not to be confused with the sequential first-tier substitution approach used in the (disabled) `FirstTierContributionsTab`.
+_Avoid_: level, depth (fine internally but use "tier" in UI labels and the Tier column)
+
+### Cumulative impact
+
+The absolute LCA score attributable to a contribution-tree node, including all its upstream suppliers (`node.cumulative_score`). Shown as a column in the contribution tree table and as wedge size in the sunburst plot. The **Cumulative impact (%)** column expresses this as a fraction of the total LCA score.
+_Avoid_: upstream total, total result, cumulative score (use cumulative impact in UI labels)
+
+### Direct impact
+
+The absolute LCA score from a node's own biosphere flows only, excluding its upstream (`node.direct_emissions_score`). Shown as a separate column in the contribution tree table.
+_Avoid_: direct contribution, direct emissions score (use direct impact in UI labels)
+
+### Direct-impact coverage
+
+Two related ratios, both Σ(direct impact) / |total score| (equivalent to summing the **Direct impact (%)** column):
+
+- **Shown (footer):** only rows currently visible in the tree (ancestors expanded). Updates on expand/collapse.
+- **Calculated (footer):** all nodes discovered by graph traversal (excluding the virtual demand root). The Cumulative expand “(target X% — not reached)” note uses this when even the full calculated graph stays below the target.
+- **Cumulative expand display set:** largest-first by remaining upstream (|cumulative| − |direct|). Nodes that are already almost entirely direct are not auto-opened. When a node is opened, children are added largest-first and stop once Σ(direct of included) reaches the target %. Leftover siblings stay out of the model (manual expand can still reveal them).
+
+Footer format: `Shown: N nodes, Y% of direct impacts, max tier T | Calculated: Z nodes, A% of direct impacts, max tier U`.
+_Avoid_: traversal coverage, score coverage (unless clearly meaning this ratio)
+
+### Path impact
+
+The cumulative impact of a contribution-tree node as a share of the total LCA score — i.e. how much of the result flows through that supply-chain path. Shown as **Cumulative impact (%)**. The **Individual path impact** adjust policy auto-opens nodes at/above a chosen path % only while a child at/above that % remains (terminal high-path nodes stay collapsed); under opened nodes it lists all discovered siblings. Only the engine traversal **cutoff** omits smaller branches from calculation.
+_Avoid_: individual impact (alone), branch score
+
+### Adjust policy
+
+How far the **Adjust to** control calculates and visually opens the contribution tree. Modes: **Tier** (open down to a given tier), **Individual path impact** (keep expanding while path impact ≥ X% continues into a child; list all discovered children under opened nodes; leave terminal ≥ X% rows collapsed), **Cumulative impact** (largest-first from the reference flow until the **display set**’s direct-impact coverage reaches a target %, capped below 100% — does not open every previously calculated node). Distinct from a later optional **display filter** that only hides already-calculated rows. Open branches and which rows are in the tree are remembered per RF / impact category / scenario / cutoff when switching selections in the Tree tab.
+_Avoid_: cutoff (alone — ambiguous with Process Contributions and engine traversal cutoff); expand policy (legacy UI label — use adjust policy)
+
+### Plot–tree linking
+
+Clicking a segment in a contribution-tree plot selects the corresponding row and expands or collapses that branch in the tree (or the parent row when the segment is an aggregate band). **Terminal** segments (no downstream suppliers after traversal) are **expand-only** from the plot — one expand attempt if collapsed, otherwise no-op. Non-terminal segments toggle expand/collapse. The plot refreshes to match the visible tree.
+_Avoid_: interactive chart (alone — specify plot–tree linking)
+
+### Plot aggregation
+
+Plot-only rollup of **sibling** segments under the same parent by a metadata field (Product, Process, Location, Unit, Database). Band width and direct-impact tint use summed impacts; the tree table is unchanged.
+_Avoid_: aggregate the contribution tree (alone — plot aggregation is plot-only in v1)
+
+### Flow amount
+
+The scaled technosphere demand for a contribution-tree node (`node.supply_amount`), expressed in the reference product's unit. Shown in the "Flow amount" and "Unit" columns of the contribution tree table.
+_Avoid_: required amount, supply amount (use flow amount in UI labels)
+
 ## Synonyms to avoid (prefer glossary term)
 
 | Avoid drifting to… | Prefer                                                                                   |
@@ -120,4 +186,6 @@ Extensibility mechanism for third-party AB features. **Architecture TBD** — do
 | “table of processes” | database / activity                                                                      |
 | “flow” without kind | intermediate (technosphere) or elementary (biosphere) flow; exchanges is another synonym |
 | “impact method” only | LCIA method / impact category (as used in UI)                                            |
+| “Indicators” (AB LCIA metadata sheet/file) | Impact categories (Excel sheet) / `.metadata.csv` (AB CSV sidecar) |
+| “one-shot” / “bw2io native” (LCIA file) | bw2io impact-category file |
 | “global app settings file” ad hoc | `app.settings`                                                                           |

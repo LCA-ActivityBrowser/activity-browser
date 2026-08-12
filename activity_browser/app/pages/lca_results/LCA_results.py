@@ -61,13 +61,14 @@ from .plots import (
     GSAPlot,
 )
 from .sankey_navigator import SankeyNavigatorWidget
+from .contribution_tree_tab import ContributionTreeTab
 
 ca = ABContributionAnalysis()
 
 
 # Special namedtuple for the LCAResults TabWidget.
 Tabs = namedtuple(
-    "tabs", ("inventory", "results", "ef", "process", "sankey", "tree", "mc", "gsa")
+    "tabs", ("inventory", "results", "ef", "process", "contribution_tree", "sankey", "mc", "gsa")
 )
 Relativity = namedtuple("relativity", ("relative", "absolute"))
 TotalMenu = namedtuple("total_menu", ("score", "range"))
@@ -132,9 +133,8 @@ class LCAResultsPage(QtWidgets.QTabWidget):
             results=LCAResultsTab(self),
             ef=ElementaryFlowContributionTab(self),
             process=ProcessContributionsTab(self),
-            # ft=FirstTierContributionsTab(self.cs_name, parent=self),
+            contribution_tree=ContributionTreeTab(self),
             sankey=SankeyNavigatorWidget(self.cs_name, parent=self),
-            tree=None,
             mc=MonteCarloTab(self),  # mc=None if self.mc is None else MonteCarloTab(self),
             gsa=GSATab(self),
         )
@@ -143,9 +143,8 @@ class LCAResultsPage(QtWidgets.QTabWidget):
             results="LCA scores",
             ef="EF Contributions",
             process="Process Contributions",
-            # ft="FT Contributions",
+            contribution_tree="Tree",
             sankey="Sankey",
-            tree=None,
             mc="Monte Carlo",
             gsa="Sensitivity Analysis",
         )
@@ -175,11 +174,11 @@ class LCAResultsPage(QtWidgets.QTabWidget):
             if not self.tabs.sankey.has_sankey:
                 logger.info("Generating Sankey Tab")
                 self.tabs.sankey.new_sankey()
-        # elif index == self.indexOf(self.tabs.ft):
-        #     if not self.tabs.ft.has_been_opened:
-        #         logger.info("Generating First Tier results")
-        #         self.tabs.ft.has_been_opened = True
-        #         self.tabs.ft.update_tab()
+        elif index == self.indexOf(self.tabs.contribution_tree):
+            if not self.tabs.contribution_tree.has_been_opened:
+                logger.info("Generating Contribution Tree Tab")
+                self.tabs.contribution_tree.has_been_opened = True
+                self.tabs.contribution_tree.update_tab()
 
 
 class NewAnalysisTab(QtWidgets.QWidget):

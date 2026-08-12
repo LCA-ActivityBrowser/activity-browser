@@ -1,0 +1,3 @@
+method,flow,amount,uncertainty type,loc,scale,shape,minimum,maximum,negative
+# method uses :: for Brightway name parts; flow is name::category::...
+# Optional uncertainty columns: uncertainty type, loc, scale, shape, minimum, maximum, negative

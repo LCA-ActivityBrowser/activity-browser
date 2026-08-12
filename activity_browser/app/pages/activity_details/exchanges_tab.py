@@ -13,7 +13,8 @@ import bw_functional as bf
 from activity_browser import app
 from activity_browser.bwutils.commontasks import (refresh_node, database_is_locked, database_is_legacy,
                                                   is_node_product_or_waste, is_node_biosphere, parameters_in_scope,
-                                                  is_node_product, is_node_waste, get_exchange_type)
+                                                  is_node_product, is_node_waste, get_exchange_type,
+                                                  classify_dragged_nodes)
 from activity_browser.bwutils.uncertainty import uncertainty_cell_summary
 from activity_browser.ui import widgets, icons, delegates, core
 
@@ -356,26 +357,7 @@ class ExchangesTab(QtWidgets.QWidget):
 
         """
         keys = mime.retrievePickleData("application/bw-nodekeylist")
-        actions: set[str] = set()
-        for key in keys:
-            if is_node_waste(key):
-                actions.add("waste")
-            elif is_node_product(key):
-                actions.add("product")
-            elif is_node_biosphere(key):
-                node_type = refresh_node(key)._document.type
-                if node_type == "natural resource":
-                    actions.add("resource")
-                elif node_type == "emission":
-                    actions.add("emission")
-                else:
-                    actions.add("generic")
-            else:
-                actions.add("generic")
-
-        if len(actions) != 1:
-            return "generic"
-        return actions.pop()  # type: ignore[return-value]
+        return classify_dragged_nodes(keys)  # type: ignore[return-value]
 
 
 class RelinkDelegate(delegates.StringDelegate):

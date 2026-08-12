@@ -44,7 +44,7 @@ class CalculationSetupPage(widgets.ABAbstractPage):
 
         top_layout = QtWidgets.QHBoxLayout()
         top_layout.setContentsMargins(0, 0, 10, 0)
-        top_layout.addWidget(widgets.ABLabel.demiBold("    Functional Units:", self))
+        top_layout.addWidget(widgets.ABLabel.demiBold("    Reference flows:", self))
         top_layout.addStretch()
         top_layout.addWidget(self.type_dropdown)
         top_layout.addWidget(self.run_button)
