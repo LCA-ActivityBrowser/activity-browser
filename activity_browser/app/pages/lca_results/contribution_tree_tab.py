@@ -24,11 +24,8 @@ from bw_graph_tools.graph_traversal import (
 from activity_browser import app
 from activity_browser.bwutils.contribution_tree import (
     compute_node_tiers,
-    cumulative_percent,
     direct_impact_coverage,
-    plan_cumulative_expand,
-    path_display_set,
-    next_expand_candidates,
+    run_expand_policy,
     suppress_graph_traversal_warnings,
 )
 from activity_browser.bwutils.export_names import lca_export_basename
@@ -719,55 +716,37 @@ class ContributionTreeTab(QtWidgets.QWidget):
         self._ensure_lca(demand, method, scenario_idx, key[1])
         self._store_total_score(state)
         total = self._state_total_score(state)
-        root_uid = state._root_node.unique_id
 
         progress = self._busy_dialog("Expanding contribution tree…")
         self._last_expand_target_pct = (
             value if mode in (EXPAND_MODE_PATH, EXPAND_MODE_CUMULATIVE) else None
         )
         try:
-            cumulative_included: set[int] | None = None
-            cumulative_expand: set[int] | None = None
-            path_included: set[int] | None = None
-            path_expand: set[int] | None = None
-
-            if mode == EXPAND_MODE_CUMULATIVE:
-                self._busy_tick(progress, "Traversing supply chain…")
-                cumulative_included, cumulative_expand = (
-                    self._expand_cumulative_brightway(value, progress)
+            def _tick(step, n_nodes):
+                self._busy_tick(
+                    progress, f"Traversing supply chain… ({n_nodes} nodes)"
                 )
-            else:
-                self._busy_tick(progress, "Traversing supply chain…")
-                self._expand_policy_brightway(mode, value, progress)
-                if mode == EXPAND_MODE_PATH:
-                    path_included, path_expand = path_display_set(
-                        state.nodes,
-                        state.edges,
-                        root_uid,
-                        total,
-                        value,
-                        state.visited_nodes,
-                    )
 
-            # Rebuild tree once from traversal state (already-known nodes are free)
+            self._busy_tick(progress, "Traversing supply chain…")
+            included, to_expand = run_expand_policy(
+                state,
+                mode=mode,
+                value=value,
+                total_score=total,
+                on_progress=_tick,
+            )
+
             self._busy_tick(progress, "Building tree…")
             self._tree_model.load_state(state, total)
-            if mode == EXPAND_MODE_PATH and path_included is not None:
-                # Keep high-path nodes + all their siblings; drop unrelated deep cache
-                self._tree_model.restrict_to_uids(path_included)
-            elif mode == EXPAND_MODE_CUMULATIVE and cumulative_included is not None:
-                # Show only the largest-first set that meets the target — not
-                # every node ever calculated in this RF's cached graph.
-                self._tree_model.restrict_to_uids(cumulative_included)
+            if included is not None:
+                self._tree_model.restrict_to_uids(included)
 
             self._busy_tick(progress, "Updating tree view…")
             self._update_delegate_maxima()
             if mode == EXPAND_MODE_TIER:
                 self._apply_expand_view_state(max_tier=int(value))
-            elif mode == EXPAND_MODE_PATH and path_expand is not None:
-                self._restore_expanded_uids(path_expand)
-            elif cumulative_expand is not None:
-                self._restore_expanded_uids(cumulative_expand)
+            elif to_expand is not None:
+                self._restore_expanded_uids(to_expand)
             if self.show_plot_cb.isChecked():
                 self._busy_tick(progress, "Updating plot…")
                 self._reload_plot()
@@ -778,123 +757,8 @@ class ContributionTreeTab(QtWidgets.QWidget):
             progress.close()
             progress.deleteLater()
 
-    def _expand_cumulative_brightway(
-        self,
-        target_pct: float,
-        progress: QtWidgets.QProgressDialog,
-    ) -> tuple[set[int], set[int]]:
-        """Largest-first from RFs until display-set coverage meets ``target_pct``.
-
-        Reuses already-calculated edges when possible; only calls
-        ``traverse_from_node`` when the next node to open is still unvisited.
-        Returns ``(included_uids, visually_expanded_uids)``.
-        """
-        state = self._current_state
-        assert state is not None
-        total = self._state_total_score(state)
-        root_uid = state._root_node.unique_id
-        failed: set[int] = set()
-        included: set[int] = set()
-        to_expand: set[int] = set()
-
-        for step in range(10_000):
-            included, to_expand, need = plan_cumulative_expand(
-                state.nodes,
-                state.edges,
-                root_uid,
-                total,
-                target_pct,
-                state.visited_nodes,
-                exclude=failed,
-            )
-            if need is None:
-                break
-            if step % 10 == 0:
-                self._busy_tick(
-                    progress,
-                    f"Traversing supply chain… ({len(state.nodes)} nodes)",
-                )
-            node = state.nodes.get(need)
-            if node is None or need in state.visited_nodes:
-                failed.add(need)
-                continue
-            node.depth = 0
-            with suppress_graph_traversal_warnings():
-                if not state.traverse_from_node(need, depth=1):
-                    failed.add(need)
-
-        return included, to_expand
-
-    def _expand_policy_brightway(
-        self,
-        mode: str,
-        value: float,
-        progress: QtWidgets.QProgressDialog,
-    ) -> None:
-        """Run tier/path expand policy against Brightway state only.
-
-        Cumulative mode uses :meth:`_expand_cumulative_brightway` instead.
-        """
-        state = self._current_state
-        if state is None:
-            return
-        total = self._state_total_score(state)
-        root_uid = state._root_node.unique_id
-        failed: set[int] = set()
-
-        for step in range(10_000):
-            candidates = next_expand_candidates(
-                state.nodes,
-                state.edges,
-                state.visited_nodes,
-                mode=mode,
-                value=value,
-                total_score=total,
-                root_uid=root_uid,
-                exclude=failed,
-            )
-            if not candidates:
-                break
-
-            if step % 10 == 0:
-                self._busy_tick(
-                    progress,
-                    f"Traversing supply chain… ({len(state.nodes)} nodes)",
-                )
-
-            made_progress = False
-            for uid in candidates:
-                node = state.nodes.get(uid)
-                if node is None or uid in state.visited_nodes:
-                    failed.add(uid)
-                    continue
-                node.depth = 0
-                with suppress_graph_traversal_warnings():
-                    if state.traverse_from_node(uid, depth=1):
-                        made_progress = True
-                    else:
-                        failed.add(uid)
-            if not made_progress:
-                break
-
-    def _apply_expand_view_state(
-        self,
-        max_tier: int | None = None,
-        *,
-        min_path_pct: float | None = None,
-        only_visited: bool = False,
-    ) -> None:
-        """Collapse, then open calculated branches according to the expand policy.
-
-        * Tier: open rows with real children whose display tier is ``< max_tier``.
-        * Individual path impact: prefer ``path_display_set`` + restore expands
-          on the Expand button path; this helper is mainly for Tier.
-        * Cumulative: open visited nodes that have real children.
-        """
-        state = self._current_state
-        total = self._state_total_score(state) if state is not None else 0.0
-        visited = state.visited_nodes if state is not None else set()
-
+    def _apply_expand_view_state(self, max_tier: int) -> None:
+        """Collapse, then open rows with real children whose display tier is ``< max_tier``."""
         self._suppress_expand_handler = True
         try:
             self._tree_view.collapseAll()
@@ -902,18 +766,9 @@ class ContributionTreeTab(QtWidgets.QWidget):
             for uid, item in self._tree_model.iter_uid_items():
                 if not self._tree_model.has_real_children(item):
                     continue
-                tier = item.data(TIER_ROLE)
-                tier_i = int(tier) if tier is not None else 0
-                if max_tier is not None and tier_i >= max_tier:
+                tier_i = int(item.data(TIER_ROLE) or 0)
+                if tier_i >= max_tier:
                     continue
-                if only_visited and uid not in visited:
-                    continue
-                if min_path_pct is not None and state is not None:
-                    node = state.nodes.get(uid)
-                    if node is None:
-                        continue
-                    if abs(cumulative_percent(node, total)) < min_path_pct:
-                        continue
                 to_expand.append((tier_i, item))
             to_expand.sort(key=lambda pair: pair[0])
             for _, item in to_expand:

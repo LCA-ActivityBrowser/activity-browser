@@ -50,6 +50,7 @@ class SunburstPlot(widgets.ABPlot):
             self._state.edges,
             self._total_score,
             max_depth=self._plot_depth,
+            root_uid=self._state._root_node.unique_id,
         )
         if not rings:
             self.figure.clear()

@@ -379,6 +379,101 @@ def next_expand_candidates(
     ]
 
 
+def safe_traverse_from_node(state, unique_id: NodeId, depth: int = 1) -> bool:
+    """Zero ``node.depth``, suppress coverage warnings, then ``traverse_from_node``.
+
+    Brightway derives relative max depth from the current ``node.depth`` before
+    resetting it; mid-tree expands must start at depth 0 so ``depth=1`` means
+    one edge.
+    """
+    if unique_id in state.visited_nodes:
+        return False
+    node = state.nodes.get(unique_id)
+    if node is None:
+        return False
+    node.depth = 0
+    with suppress_graph_traversal_warnings():
+        return bool(state.traverse_from_node(unique_id, depth=depth))
+
+
+def run_expand_policy(
+    state,
+    *,
+    mode: str,
+    value: float,
+    total_score: float,
+    on_progress=None,
+) -> tuple[set[NodeId] | None, set[NodeId] | None]:
+    """Traverse for an expand policy; return display-set ``(included, to_expand)``.
+
+    For ``tier`` / ``path``: traverse via :func:`next_expand_candidates`.
+    For ``path``: also return :func:`path_display_set`.
+    For ``cumulative``: loop :func:`plan_cumulative_expand` until done.
+
+    ``on_progress(step, n_nodes)`` is optional (e.g. UI busy tick).
+    Returns ``(None, None)`` for tier (caller opens view by max tier).
+    """
+    root_uid = state._root_node.unique_id
+    failed: set[NodeId] = set()
+
+    if mode == "cumulative":
+        included: set[NodeId] = set()
+        to_expand: set[NodeId] = set()
+        for step in range(10_000):
+            included, to_expand, need = plan_cumulative_expand(
+                state.nodes,
+                state.edges,
+                root_uid,
+                total_score,
+                value,
+                state.visited_nodes,
+                exclude=failed,
+            )
+            if need is None:
+                break
+            if on_progress and step % 10 == 0:
+                on_progress(step, len(state.nodes))
+            if not safe_traverse_from_node(state, need):
+                failed.add(need)
+        return included, to_expand
+
+    # tier / path — calculate first
+    for step in range(10_000):
+        candidates = next_expand_candidates(
+            state.nodes,
+            state.edges,
+            state.visited_nodes,
+            mode=mode,
+            value=value,
+            total_score=total_score,
+            root_uid=root_uid,
+            exclude=failed,
+        )
+        if not candidates:
+            break
+        if on_progress and step % 10 == 0:
+            on_progress(step, len(state.nodes))
+        made_progress = False
+        for uid in candidates:
+            if safe_traverse_from_node(state, uid):
+                made_progress = True
+            else:
+                failed.add(uid)
+        if not made_progress:
+            break
+
+    if mode == "path":
+        return path_display_set(
+            state.nodes,
+            state.edges,
+            root_uid,
+            total_score,
+            value,
+            state.visited_nodes,
+        )
+    return None, None
+
+
 def path_display_set(
     nodes: dict,
     edges: list,
@@ -443,57 +538,42 @@ def build_sunburst_rings(
     edges: list,
     total_score: float,
     max_depth: int,
+    root_uid: NodeId | None = None,
 ) -> list[list[dict]]:
-    """Build per-depth ring data for a sunburst (layered donut) chart.
+    """Build per-tier ring data for a sunburst (layered donut) chart.
 
-    Returns a list of rings, one per depth level from 1 to ``max_depth``.
-    Each ring is a list of wedge dicts::
+    Rings use **display tiers** (RF = 0), not Brightway's mutable ``node.depth``.
+    ``max_depth`` is the number of rings (tiers ``0 .. max_depth-1``).
 
-        {
-            "unique_id": int,
-            "label": str,           # activity name or "other"
-            "share": float,         # fraction of *parent* arc (0–1)
-            "cumulative_score": float,
-            "is_other": bool,
-        }
-
-    Wedge ``share`` is ``node.cumulative_score / parent.cumulative_score``.
-    An ``"other"`` wedge is appended when the children's shares don't sum to 1.
-
-    Parameters
-    ----------
-    nodes:
-        ``state.nodes`` dict.
-    edges:
-        ``state.edges`` list.
-    total_score:
-        ``lca.score`` — used only to guard against zero; not used for ring math.
-    max_depth:
-        Maximum tier depth to include (inclusive).
+    Each ring is a list of wedge dicts with ``unique_id``, ``label``, ``share``,
+    ``cumulative_score``, ``parent_unique_id``, ``is_other``.
     """
     if not nodes or total_score == 0.0:
         return []
 
-    parent_child = build_parent_child_map(nodes, edges)
+    if root_uid is None:
+        roots = [n for n in nodes.values() if getattr(n, "depth", None) == 0]
+        if len(roots) != 1:
+            return []
+        root_uid = roots[0].unique_id
 
-    # Collect nodes by depth
-    by_depth: dict[int, list] = {}
+    tiers = compute_node_tiers(nodes, edges, root_uid)
+    by_tier: dict[int, list] = {}
     for node in nodes.values():
-        d = node.depth
-        if 1 <= d <= max_depth:
-            by_depth.setdefault(d, []).append(node)
+        if node.unique_id == root_uid:
+            continue
+        t = tiers.get(node.unique_id)
+        if t is not None and 0 <= t < max_depth:
+            by_tier.setdefault(t, []).append(node)
 
     rings: list[list[dict]] = []
-
-    for depth in range(1, max_depth + 1):
-        depth_nodes = by_depth.get(depth, [])
+    for tier in range(0, max_depth):
+        depth_nodes = by_tier.get(tier, [])
         if not depth_nodes:
             break
 
-        # Group by parent to compute "other" wedge per parent
         by_parent: dict[NodeId, list] = {}
         for node in depth_nodes:
-            # Find this node's parent via edges
             parent_id = _find_parent(node.unique_id, edges)
             by_parent.setdefault(parent_id, []).append(node)
 
@@ -518,7 +598,6 @@ def build_sunburst_rings(
                     "is_other": False,
                 })
 
-            # "other" wedge for the remainder
             remainder = parent_score - children_score_sum
             if abs(remainder) > abs(parent_score) * 1e-9:
                 ring.append({

@@ -15,7 +15,7 @@ from activity_browser.bwutils.contribution_tree import (
     cumulative_percent,
     direct_percent,
     flatten_to_dataframe,
-    suppress_graph_traversal_warnings,
+    safe_traverse_from_node,
 )
 from activity_browser.ui.delegates.impact_background import ImpactBackgroundDelegate
 
@@ -171,16 +171,11 @@ class ContributionTreeModel(QtGui.QStandardItemModel):
         finally:
             self._batch_updating = False
 
-    def expand_node(
-        self,
-        unique_id: int,
-        min_path_pct: float | None = None,
-    ) -> bool:
+    def expand_node(self, unique_id: int) -> bool:
         """Traverse from the given node and add its direct children to the model.
 
         All children discovered by graph traversal are listed (the engine cutoff
-        already limits which edges exist). ``min_path_pct`` is ignored for
-        listing — it only affects auto-expand policy elsewhere.
+        already limits which edges exist).
         """
         if self._state is None or self._expanding:
             return False
@@ -194,21 +189,10 @@ class ContributionTreeModel(QtGui.QStandardItemModel):
             self._strip_placeholders(parent_item)
 
             if unique_id not in self._state.visited_nodes:
-                node = self._state.nodes.get(unique_id)
-                if node is None:
+                if not safe_traverse_from_node(self._state, unique_id):
                     parent_item.emitDataChanged()
                     return False
-                # Brightway computes max_depth from node.depth *before* resetting
-                # depth to 0. Without zeroing here, traverse_from_node(depth=1) on
-                # a mid-tree node walks old_depth+1 levels and marks direct
-                # children as visited — they then get no expand chevrons.
-                node.depth = 0
-                with suppress_graph_traversal_warnings():
-                    if not self._state.traverse_from_node(unique_id, depth=1):
-                        parent_item.emitDataChanged()
-                        return False
 
-            # Avoid full-graph tier BFS on every expand; new rows use parent+1.
             pcm = build_parent_child_map(self._state.nodes, self._state.edges)
             child_nodes = [
                 self._state.nodes[uid]
