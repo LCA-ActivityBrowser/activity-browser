@@ -1,9 +1,11 @@
 """Tests for Contribution Tree plot label helpers (no Qt)."""
 
 import numpy as np
+import pytest
 
 from activity_browser.app.pages.lca_results.contribution_tree_plot import (
     ContributionTreePlot,
+    direct_impact_rgba,
 )
 
 
@@ -68,3 +70,12 @@ def test_fit_label_chars_breaks_mid_word():
 def test_icicle_column_fontsize():
     assert ContributionTreePlot._icicle_column_fontsize(0.25, 6.0) == 6.0
     assert ContributionTreePlot._icicle_column_fontsize(0.1, 6.0) == 5.0
+
+
+def test_direct_impact_rgba_burden_and_credit():
+    r, g, b, a = direct_impact_rgba(50.0, 100.0)
+    assert r == pytest.approx(70 / 255)
+    assert a > 0.5
+    cr, cg, cb, ca = direct_impact_rgba(-50.0, 100.0)
+    assert cg > cr
+    assert ca > 0.5

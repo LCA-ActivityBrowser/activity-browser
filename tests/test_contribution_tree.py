@@ -18,7 +18,6 @@ from activity_browser.bwutils.contribution_tree import (
     build_sunburst_rings,
     coverage_of_uids,
     cumulative_percent,
-    direct_impact_rgba,
     direct_impact_intensity,
     direct_impact_coverage,
     direct_percent,
@@ -295,8 +294,6 @@ def test_chain_layout_negative_impact_has_positive_span():
     assert burden["x1"] - burden["x0"] == pytest.approx(0.8)
     assert credit["cumulative_score"] == pytest.approx(-2.0)
     assert credit["direct_pct"] == pytest.approx(-20.0)
-    r, g, b, a = direct_impact_rgba(credit["direct_pct"], 20.0)
-    assert g > r  # green credit tint
 
 
 def test_chain_layout_credit_when_parent_direct_exceeds_cumulative():
@@ -348,6 +345,8 @@ def test_aggregate_plot_segments_merges_siblings_by_location():
     assert tier1[0]["toggle_uid"] == 0
     assert set(tier1[0]["constituent_uids"]) == {1, 2}
     assert tier1[0]["cumulative_score"] == pytest.approx(9.0)
+    assert tier1[0]["direct_emissions_score"] == pytest.approx(2.0)
+    assert tier1[0]["direct_pct"] == pytest.approx(20.0)
     assert tier1[0]["x0"] == pytest.approx(0.0)
     assert tier1[0]["x1"] == pytest.approx(0.7)
 
@@ -380,12 +379,6 @@ def test_aggregate_plot_segments_none_preserves_segments():
     assert len(out) == len(segments)
     assert all(not s.get("is_aggregate") for s in out)
     assert all(s["toggle_uid"] == s["unique_id"] for s in out)
-
-
-def test_direct_impact_rgba_positive():
-    r, g, b, a = direct_impact_rgba(50.0, 100.0)
-    assert r == pytest.approx(70 / 255)
-    assert a > 0.5
 
 
 def test_direct_impact_intensity_log_scale():

@@ -1,4 +1,4 @@
-"""Contribution Tree plots — tier-stacked bars and icicle (sunburst retained, not in UI)."""
+"""Contribution Tree plots — Vertical / Horizontal tiers (sunburst retained, not in UI)."""
 
 from __future__ import annotations
 
@@ -15,7 +15,6 @@ from activity_browser.bwutils.contribution_tree import (
     PLOT_AGGREGATE_LABELS,
     build_plot_segments,
     direct_impact_intensity,
-    direct_impact_rgba,
 )
 from activity_browser.ui import widgets
 
@@ -26,18 +25,33 @@ PLOT_ICICLE = "icicle"
 # Sunburst kept in code but hidden from the UI for now.
 PLOT_MODES_ALL = (
     (PLOT_SUNBURST, "Sunburst"),
-    (PLOT_TIER_BARS, "Tier-stacked bars"),
-    (PLOT_ICICLE, "Icicle"),
+    (PLOT_TIER_BARS, "Vertical tiers"),
+    (PLOT_ICICLE, "Horizontal tiers"),
 )
 
 PLOT_MODES = (
-    (PLOT_TIER_BARS, "Tier-stacked bars"),
-    (PLOT_ICICLE, "Icicle"),
+    (PLOT_TIER_BARS, "Vertical tiers"),
+    (PLOT_ICICLE, "Horizontal tiers"),
 )
 
 # Re-applied after theme sync (ABPlot otherwise sets edges to axes facecolor).
 SEGMENT_EDGE_COLOR = "white"
 SEGMENT_EDGE_WIDTH = 0.25
+
+# Match Contribution Tree direct-impact column tint (blue burden / green credit).
+_BURDEN_RGB = (70 / 255, 130 / 255, 210 / 255)
+_CREDIT_RGB = (85 / 255, 170 / 255, 95 / 255)
+
+
+def direct_impact_rgba(
+    direct_pct: float,
+    max_direct_pct: float,
+) -> tuple[float, float, float, float]:
+    """RGBA for plot segments — blue burdens, green credits."""
+    frac = direct_impact_intensity(direct_pct, max_direct_pct)
+    alpha = 0.12 + 0.82 * frac
+    r, g, b = _CREDIT_RGB if direct_pct < 0 else _BURDEN_RGB
+    return (r, g, b, alpha)
 
 
 class ContributionTreePlot(widgets.ABPlot):
@@ -167,20 +181,6 @@ class ContributionTreePlot(widgets.ABPlot):
         else:
             self._max_direct_pct = 100.0
         self.plot()
-
-    def update_depth(self, plot_depth: int) -> None:
-        """Refresh segments when tree depth changes (no separate UI control)."""
-        self._plot_depth = max(1, plot_depth)
-        if self._state is not None:
-            self.set_state(
-                self._state,
-                self._total_score,
-                self._plot_depth,
-                metadata_lookup=None,
-                unit=self._unit,
-                included_uids=self._included_uids,
-                aggregate_by=self._aggregate_by,
-            )
 
     @staticmethod
     def _segment_label(seg: dict) -> str:
@@ -822,4 +822,8 @@ class ContributionTreePlot(widgets.ABPlot):
         lower = path.lower()
         if not lower.endswith((".png", ".svg")):
             path += ".svg" if "SVG" in selected_filter else ".png"
-        self.figure.savefig(path, bbox_inches="tight")
+        # Screen figures are often ~100 dpi; export PNG at print-quality dpi.
+        kwargs = {"bbox_inches": "tight"}
+        if path.lower().endswith(".png"):
+            kwargs["dpi"] = 300
+        self.figure.savefig(path, **kwargs)

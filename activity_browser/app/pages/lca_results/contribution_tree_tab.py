@@ -82,7 +82,7 @@ it.<br>
 impact of visible rows reaches the target.</p>
 
 <p><b>Plot</b><br>
-Tier-stacked bars or icicle — mirrors the visible tree. Click a segment to
+Vertical tiers or Horizontal tiers — mirrors the visible tree. Click a segment to
 expand or collapse that branch (merged bands toggle the parent row).
 <b>Aggregate by</b> rolls up sibling segments in the plot only. Hover for
 product, process, path and direct impact.</p>
@@ -1004,10 +1004,6 @@ class ContributionTreeTab(QtWidgets.QWidget):
         coverage = direct_sum / abs(total) if total else 0.0
         return shown_n, coverage, max_tier, visible_uids
 
-    def _visible_tree_uids(self) -> set[int]:
-        """Unique ids of rows currently shown in the tree view."""
-        return self._visible_row_stats()[3]
-
     def _reload_plot(
         self,
         row_stats: tuple[int, float, int, set[int]] | None = None,
@@ -1121,7 +1117,7 @@ class ContributionTreeTab(QtWidgets.QWidget):
     def _export_table(self) -> None:
         if self._current_state is None:
             return
-        df = self._tree_model.to_dataframe(metadata_lookup=None)
+        df = self._tree_model.to_dataframe()
         if df.empty:
             return
         default_name = (

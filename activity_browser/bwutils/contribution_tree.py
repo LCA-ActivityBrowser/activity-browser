@@ -553,18 +553,6 @@ def direct_impact_intensity(
     return (math.log10(v) - math.log10(lo)) / (math.log10(hi) - math.log10(lo))
 
 
-def direct_impact_rgba(
-    direct_pct: float,
-    max_direct_pct: float,
-) -> tuple[float, float, float, float]:
-    """RGBA for plot segments — blue burdens, green credits."""
-    frac = direct_impact_intensity(direct_pct, max_direct_pct)
-    alpha = 0.12 + 0.82 * frac
-    if direct_pct < 0:
-        return (85 / 255, 170 / 255, 95 / 255, alpha)
-    return (70 / 255, 130 / 255, 210 / 255, alpha)
-
-
 def _parent_uid(child_uid: NodeId, edges: list, root_uid: NodeId) -> NodeId:
     parent = _find_parent(child_uid, edges)
     return root_uid if parent is None else parent
@@ -587,7 +575,7 @@ def _upstream_layout_span(
 
 
 # ---------------------------------------------------------------------------
-# Supply-chain layout (sunburst / tier bars / icicle)
+# Supply-chain layout (sunburst / vertical tiers / horizontal tiers)
 # ---------------------------------------------------------------------------
 
 def build_chain_layout(

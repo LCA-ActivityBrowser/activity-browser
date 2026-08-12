@@ -244,46 +244,6 @@ class ContributionTreeModel(QtGui.QStandardItemModel):
         finally:
             self._expanding = False
 
-    def restrict_to_uids(self, keep: set[int]) -> None:
-        """Remove rows whose unique_id is not in ``keep`` (deepest first).
-
-        Used when restoring a cached view after path/cumulative display-set
-        restrict (or any filter that left a subset of the traversal in the model).
-        """
-        if self._state is None:
-            return
-        to_remove = [uid for uid in self._uid_to_item if uid not in keep]
-        to_remove.sort(
-            key=lambda u: int(self._uid_to_item[u].data(TIER_ROLE) or 0),
-            reverse=True,
-        )
-        for uid in to_remove:
-            item = self._uid_to_item.get(uid)
-            if item is None:
-                continue
-            parent = item.parent()
-            if parent is None:
-                parent = self.invisibleRootItem()
-            row = item.row()
-            self._forget_subtree(item)
-            parent.removeRow(row)
-
-        pcm = self._parent_child_map()
-        for uid, item in list(self._uid_to_item.items()):
-            if self.has_real_children(item):
-                continue
-            if self._has_hidden_children(uid, pcm):
-                self._ensure_placeholder(item)
-
-    def _forget_subtree(self, item: QtGui.QStandardItem) -> None:
-        for row in range(item.rowCount()):
-            child = item.child(row, 0)
-            if child is not None and not child.data(PLACEHOLDER_ROLE):
-                self._forget_subtree(child)
-        uid = item.data(UID_ROLE)
-        if uid is not None:
-            self._uid_to_item.pop(uid, None)
-
     def _has_hidden_children(self, unique_id: int, pcm: dict | None = None) -> bool:
         if self._state is None:
             return False
@@ -299,6 +259,8 @@ class ContributionTreeModel(QtGui.QStandardItemModel):
         if self._state is None:
             import pandas as pd
             return pd.DataFrame(columns=COLUMNS)
+        if metadata_lookup is None:
+            metadata_lookup = self.lookup_activity_meta
         return flatten_to_dataframe(
             self._state.nodes,
             self._state.edges,
