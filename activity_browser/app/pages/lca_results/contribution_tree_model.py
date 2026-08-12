@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from types import SimpleNamespace
 from typing import Optional
 
 import bw2data as bd
@@ -83,6 +84,8 @@ class ContributionTreeModel(QtGui.QStandardItemModel):
         self._expanding: bool = False
         self._meta_cache: dict = {}
         self._batch_updating: bool = False
+        self._pcm_cache: dict | None = None
+        self._pcm_node_count: int = 0
 
     @staticmethod
     def has_real_children(item: QtGui.QStandardItem) -> bool:
@@ -145,31 +148,58 @@ class ContributionTreeModel(QtGui.QStandardItemModel):
         self,
         state: SameNodeEachVisitGraphTraversal,
         total_score: float,
+        included_uids: set[int] | None = None,
     ) -> None:
-        """Rebuild the model from a (possibly cached) traversal state."""
+        """Rebuild the model from a (possibly cached) traversal state.
+
+        When ``included_uids`` is set, only those nodes are materialized
+        (avoids building the full tree then pruning).
+        """
         self.clear()
         self.setHorizontalHeaderLabels(COLUMNS)
         self._state = state
         self._total_score = total_score
         self._uid_to_item = {}
         self.col_max = {c: 1.0 for c in BAR_COLUMNS}
-        self._meta_cache = {}
         self._root_uid = state._root_node.unique_id
+        self._invalidate_pcm_cache()
         self._refresh_tiers()
 
-        pcm = build_parent_child_map(state.nodes, state.edges)
+        pcm = self._parent_child_map()
         root_children = [
             state.nodes[uid]
             for uid in pcm.get(self._root_uid, [])
             if uid in state.nodes
+            and (included_uids is None or uid in included_uids)
         ]
         root_children.sort(key=lambda n: abs(n.cumulative_score), reverse=True)
+        self._prefetch_meta_for_uids(included_uids, state.nodes)
         self._batch_updating = True
         try:
             for child in root_children:
-                self._add_node(child, self.invisibleRootItem(), pcm)
+                self._add_node(
+                    child,
+                    self.invisibleRootItem(),
+                    pcm,
+                    included_uids=included_uids,
+                )
         finally:
             self._batch_updating = False
+
+    def _parent_child_map(self) -> dict:
+        if self._state is None:
+            return {}
+        n = len(self._state.nodes)
+        if self._pcm_cache is not None and self._pcm_node_count == n:
+            return self._pcm_cache
+        pcm = build_parent_child_map(self._state.nodes, self._state.edges)
+        self._pcm_cache = pcm
+        self._pcm_node_count = n
+        return pcm
+
+    def _invalidate_pcm_cache(self) -> None:
+        self._pcm_cache = None
+        self._pcm_node_count = 0
 
     def expand_node(self, unique_id: int) -> bool:
         """Traverse from the given node and add its direct children to the model.
@@ -192,8 +222,9 @@ class ContributionTreeModel(QtGui.QStandardItemModel):
                 if not safe_traverse_from_node(self._state, unique_id):
                     parent_item.emitDataChanged()
                     return False
+                self._invalidate_pcm_cache()
 
-            pcm = build_parent_child_map(self._state.nodes, self._state.edges)
+            pcm = self._parent_child_map()
             child_nodes = [
                 self._state.nodes[uid]
                 for uid in pcm.get(unique_id, [])
@@ -237,7 +268,7 @@ class ContributionTreeModel(QtGui.QStandardItemModel):
             self._forget_subtree(item)
             parent.removeRow(row)
 
-        pcm = build_parent_child_map(self._state.nodes, self._state.edges)
+        pcm = self._parent_child_map()
         for uid, item in list(self._uid_to_item.items()):
             if self.has_real_children(item):
                 continue
@@ -286,9 +317,12 @@ class ContributionTreeModel(QtGui.QStandardItemModel):
         pcm: dict,
         *,
         recurse_known: bool = True,
+        included_uids: set[int] | None = None,
     ) -> None:
         """Create a row of QStandardItems for ``node`` under ``parent_item``."""
         if node.unique_id in self._uid_to_item:
+            return
+        if included_uids is not None and node.unique_id not in included_uids:
             return
 
         meta = self._resolve_meta(node)
@@ -335,16 +369,9 @@ class ContributionTreeModel(QtGui.QStandardItemModel):
 
         is_visited = node.unique_id in (self._state.visited_nodes if self._state else set())
         has_children = bool(pcm.get(node.unique_id))
-        is_leaf = is_visited and not has_children
         if not is_visited and tier > 0:
             row[COL_PROCESS].setForeground(QtGui.QBrush(QtGui.QColor("#888888")))
             row[COL_PROCESS].setToolTip("Not yet expanded — click to explore")
-
-        if is_leaf:
-            for item in row:
-                font = item.font()
-                font.setItalic(True)
-                item.setFont(font)
 
         parent_item.appendRow(row)
         first = row[COL_CUMULATIVE_PCT]
@@ -366,12 +393,44 @@ class ContributionTreeModel(QtGui.QStandardItemModel):
             ]
             child_nodes.sort(key=lambda n: abs(n.cumulative_score), reverse=True)
             for child_node in child_nodes:
-                self._add_node(child_node, first, pcm, recurse_known=True)
+                if included_uids is not None and child_node.unique_id not in included_uids:
+                    continue
+                self._add_node(
+                    child_node,
+                    first,
+                    pcm,
+                    recurse_known=True,
+                    included_uids=included_uids,
+                )
 
         # Chevron when not yet listing children: unvisited (lazy), or visited with
         # known edges not shown under this row (e.g. prior over-deep traverse).
         if not self.has_real_children(first) and (not is_visited or has_children):
             self._ensure_placeholder(first)
+
+    def _prefetch_meta_for_uids(
+        self,
+        uids: set[int] | None,
+        nodes: dict,
+    ) -> None:
+        """Warm metadata cache for a filtered display set before building rows."""
+        if uids is None:
+            return
+        for uid in uids:
+            node = nodes.get(uid)
+            if node is None:
+                continue
+            aid = getattr(node, "activity_datapackage_id", None)
+            if aid is not None and aid not in self._meta_cache:
+                self._resolve_meta(node)
+
+    def lookup_activity_meta(self, activity_datapackage_id) -> dict:
+        """Public metadata lookup for plot tooltips (by activity id)."""
+        if activity_datapackage_id is None:
+            return {}
+        return self._resolve_meta(
+            SimpleNamespace(activity_datapackage_id=activity_datapackage_id)
+        )
 
     def _resolve_meta(self, node) -> dict:
         """Fetch activity metadata from bw2data (cached; empty dict on failure)."""

@@ -143,7 +143,7 @@ class LCAResultsPage(QtWidgets.QTabWidget):
             results="LCA scores",
             ef="EF Contributions",
             process="Process Contributions",
-            contribution_tree="Contribution Tree",
+            contribution_tree="Tree",
             sankey="Sankey",
             mc="Monte Carlo",
             gsa="Sensitivity Analysis",

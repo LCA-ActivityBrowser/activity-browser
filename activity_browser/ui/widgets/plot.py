@@ -249,6 +249,7 @@ class ABPlot(QtWidgets.QWidget):
         self.ax = self.figure.add_subplot(111)
         self.plot_name = "Figure"
         self._hover_cid = None
+        self._click_cid = None
         self._tooltip_y: list[str] = []
         self._tooltip_x: list[str] = []
         self._tooltip_legend: list[str] = []
@@ -700,6 +701,24 @@ class ABPlot(QtWidgets.QWidget):
                 return full_title
         return None
 
+    def clear_click_handler(self) -> None:
+        if self._click_cid is not None:
+            self.canvas.mpl_disconnect(self._click_cid)
+            self._click_cid = None
+
+    def set_click_handler(self, on_click) -> None:
+        """Wire left-click on the canvas (``on_click(event)``)."""
+        self.clear_click_handler()
+        if on_click is None:
+            return
+
+        def on_press(event):
+            if event.button != 1:
+                return
+            on_click(event)
+
+        self._click_cid = self.canvas.mpl_connect("button_press_event", on_press)
+
     def set_motion_tooltip(
         self,
         on_hover=None,
@@ -842,6 +861,7 @@ class ABPlot(QtWidgets.QWidget):
         self,
         *,
         on_hover=None,
+        on_click=None,
         tooltip_y: list[str] | None = None,
         tooltip_x: list[str] | None = None,
         tooltip_legend: list[str] | None = None,
@@ -855,6 +875,7 @@ class ABPlot(QtWidgets.QWidget):
         self.set_motion_tooltip(
             on_hover, y=tooltip_y, x=tooltip_x, legend=tooltip_legend
         )
+        self.set_click_handler(on_click)
         self._schedule_figure_sync()
 
     def _save_figure(self, extension: str, file_filter: str) -> None:

@@ -1,7 +1,6 @@
 """Contribution Tree tab for the LCA Results page.
 
-Shows the contribution tree as a hierarchical QTreeView (one row per
-traversed upstream supplier) with a sunburst plot above it.
+Shows the contribution tree as a hierarchical table with an optional supply-chain plot.
 """
 
 from __future__ import annotations
@@ -23,8 +22,12 @@ from bw_graph_tools.graph_traversal import (
 
 from activity_browser import app
 from activity_browser.bwutils.contribution_tree import (
+    PLOT_AGGREGATE_FIELDS,
+    PLOT_AGGREGATE_LABELS,
     compute_node_tiers,
     direct_impact_coverage,
+    is_terminal_node,
+    plot_click_target_uid,
     run_expand_policy,
     suppress_graph_traversal_warnings,
 )
@@ -46,50 +49,47 @@ from .contribution_tree_model import (
     UID_ROLE,
     ContributionTreeModel,
 )
-from .contribution_tree_plot import SunburstPlot
+from .contribution_tree_plot import (
+    PLOT_ICICLE,
+    PLOT_MODES,
+    ContributionTreePlot,
+)
 from .style import SmallComboBox, apply_lca_combo_width, lca_header_layout, lca_help_tool_button, lca_tab_control_row
 
 HELP_TEXT = """
 <html><body>
-<p><b>Contribution Tree</b> shows how impact accumulates along the supply chain
-of one reference flow and impact category (and scenario, when present).</p>
+<p><b>Tree</b> shows how impact accumulates along the supply chain for one
+reference flow, impact category, and scenario.</p>
 
-<p><b>Tree table</b><br>
-Each row is a process on a supply path. <i>Cumulative impact (%)</i> is the share
-of the total score that flows through that path (path impact).
-<i>Direct impact (%)</i> is only the characterised emissions of that process itself.
-The reference flow is <b>tier 0</b>; its suppliers are tier 1, and so on.
-Expand a row manually to calculate and list all of its suppliers.</p>
+<p><b>Table</b><br>
+Each row is a process on a supply path. <i>Cumulative impact (%)</i> is
+path impact (that process plus all upstream). <i>Direct impact (%)</i> is
+only characterised emissions at that process. Tier&nbsp;0 is the reference
+flow; tier&nbsp;1 its direct suppliers, and so on. Expand a row to calculate
+and list its suppliers.</p>
 
 <p><b>Cutoff</b><br>
-Engine threshold for Brightway graph traversal: branches whose path impact is
-below this percent of the total score are not followed further during calculation.</p>
+During calculation, branches below this share of the total score are not
+followed further.</p>
 
-<p><b>Expand to</b><br>
-• <b>Tier</b> — calculate and open the tree down to the chosen tier.<br>
-• <b>Individual path impact</b> — calculate and open every node whose
-path (cumulative) impact is at least X% of the total <i>and</i> that still
-has a child ≥ X% (the high-impact path continues). Under those opened nodes
-list all discovered siblings (including below X%). A terminal ≥ X% node
-stays collapsed until you expand it manually. Only the engine <b>Cutoff</b>
-omits smaller branches from calculation.<br>
-• <b>Cumulative impact</b> — from the reference flow, open the
-<i>largest</i> paths first until Σ(direct impact) of the rows in that tree
-reaches X% of the total. Children of an opened node are added largest-first
-and stop once the target is met (collapse and re-expand a row to list every
-child). Further Brightway traversal runs only when the next node to open
-is not yet calculated. If the engine cutoff stops discovery early, the
-footer shows that the target was not reached.</p>
+<p><b>Adjust to</b><br>
+• <b>Tier</b> — open the tree to a chosen tier.<br>
+• <b>Individual path impact</b> — open nodes whose path impact meets the
+threshold and still have a qualifying child; list siblings under opened
+nodes. A terminal node above the threshold stays collapsed until you expand
+it.<br>
+• <b>Cumulative impact</b> — open the largest paths first until the direct
+impact of visible rows reaches the target.</p>
 
-<p><b>Sunburst</b><br>
-Layers match tiers. <i>Plot tiers</i> controls how many rings are drawn; it does
-not change the table.</p>
+<p><b>Plot</b><br>
+Tier-stacked bars or icicle — mirrors the visible tree. Click a segment to
+expand or collapse that branch (merged bands toggle the parent row).
+<b>Aggregate by</b> rolls up sibling segments in the plot only. Hover for
+product, process, path and direct impact.</p>
 
 <p><b>Footer</b><br>
-<b>Shown</b> = visible rows, their direct-impact share, and deepest visible
-tier (updates on expand/collapse). <b>Calculated</b> = all nodes discovered
-by graph traversal, their direct-impact coverage, and deepest calculated
-tier. </p>
+<b>Shown</b> — visible rows, their direct-impact share, deepest visible tier.
+<b>Calculated</b> — all nodes found by traversal, coverage, deepest tier.</p>
 </body></html>
 """
 
@@ -118,7 +118,7 @@ class ContributionTreeCacheEntry:
 class ContributionTreeTab(QtWidgets.QWidget):
     """Contribution Tree tab for the LCA Results page.
 
-    Shows a QTreeView (lazy, expandable by tier) with a sunburst plot above.
+    Shows a QTreeView (lazy, expandable by tier) with an optional supply-chain plot.
     Cache key: (fu_index, method_index, scenario_index, cutoff_percent).
     Each entry stores the Brightway traversal and the set of expanded row uids
     so switching RF / IC / scenario restores both calculation and open branches.
@@ -158,24 +158,36 @@ class ContributionTreeTab(QtWidgets.QWidget):
             "is below this percent of the total LCA score"
         )
 
-        self.plot_depth_sb = QtWidgets.QSpinBox()
-        self.plot_depth_sb.setRange(1, 20)
-        self.plot_depth_sb.setValue(3)
-        self.plot_depth_sb.setToolTip("Number of tiers shown in the sunburst plot")
+        self.plot_type_cb = SmallComboBox()
+        for mode_id, label in PLOT_MODES:
+            self.plot_type_cb.addItem(label, mode_id)
+        for i in range(self.plot_type_cb.count()):
+            if self.plot_type_cb.itemData(i) == PLOT_ICICLE:
+                self.plot_type_cb.setCurrentIndex(i)
+                break
+        self.plot_type_cb.setToolTip("Contribution tree visualization type")
+
+        self.aggregate_by_cb = SmallComboBox()
+        self.aggregate_by_cb.addItem("None", None)
+        for field in PLOT_AGGREGATE_FIELDS:
+            self.aggregate_by_cb.addItem(PLOT_AGGREGATE_LABELS[field], field)
+        self.aggregate_by_cb.setToolTip(
+            "Roll up sibling plot segments by metadata (plot only; table unchanged)"
+        )
 
         self.expand_mode_cb = SmallComboBox()
         self.expand_mode_cb.addItem("Tier", EXPAND_MODE_TIER)
         self.expand_mode_cb.addItem("Individual path impact", EXPAND_MODE_PATH)
         self.expand_mode_cb.addItem("Cumulative impact", EXPAND_MODE_CUMULATIVE)
-        self.expand_mode_cb.setToolTip("How far auto-expand calculates and opens the tree")
+        self.expand_mode_cb.setToolTip("How far Adjust calculates and opens the tree")
 
         self.expand_value_sb = QtWidgets.QDoubleSpinBox()
         self.expand_value_sb.setKeyboardTracking(False)
-        self.expand_btn = QtWidgets.QPushButton("Expand")
-        self.expand_btn.setToolTip("Calculate and open branches according to the expand policy")
+        self.expand_btn = QtWidgets.QPushButton("Adjust")
+        self.expand_btn.setToolTip("Calculate and open branches according to the adjust policy")
 
         self.show_plot_cb = QtWidgets.QCheckBox("Show plot")
-        self.show_plot_cb.setChecked(False)
+        self.show_plot_cb.setChecked(True)
         self.show_table_cb = QtWidgets.QCheckBox("Show table")
         self.show_table_cb.setChecked(True)
         self._last_expand_target_pct: float | None = None
@@ -234,8 +246,8 @@ class ContributionTreeTab(QtWidgets.QWidget):
         for col, d in self._delegates.items():
             self._tree_view.setItemDelegateForColumn(col, d)
 
-        # --- Sunburst plot ---
-        self._plot = SunburstPlot(self)
+        # --- Contribution tree plot ---
+        self._plot = ContributionTreePlot(self)
         self._plot.setMinimumHeight(180)
 
         self._tree_view.setMinimumHeight(120)
@@ -267,8 +279,11 @@ class ContributionTreeTab(QtWidgets.QWidget):
         """Show or hide plot/table and redistribute splitter space."""
         show_plot = self.show_plot_cb.isChecked()
         show_table = self.show_table_cb.isChecked()
+        was_hidden = not self._plot.isVisible()
         self._plot.setVisible(show_plot)
         self._tree_view.setVisible(show_table)
+        if show_plot and was_hidden and self._current_state is not None:
+            self._reload_plot()
         QtCore.QTimer.singleShot(0, self._apply_splitter_sizes)
 
     def _apply_splitter_sizes(self) -> None:
@@ -298,10 +313,10 @@ class ContributionTreeTab(QtWidgets.QWidget):
         # Header + help
         help_btn = lca_help_tool_button(
             self,
-            "Left click for help on the Contribution Tree",
+            "Left click for help on the Tree tab",
             self._show_help,
         )
-        main.addLayout(lca_header_layout("Contribution Tree", help_btn))
+        main.addLayout(lca_header_layout("Tree", help_btn))
 
         # Control row 1: FU / method / scenario (left-aligned like other LCA tabs)
         row1 = lca_tab_control_row()
@@ -314,21 +329,24 @@ class ContributionTreeTab(QtWidgets.QWidget):
         row1.addStretch()
         main.addLayout(row1)
 
-        # Control row 2: cutoff / plot tiers / expand policy
+        # Control row 2: plot/table, cutoff, expand, plot type
         row2 = lca_tab_control_row()
+        row2.addWidget(self.show_plot_cb)
+        row2.addWidget(self.show_table_cb)
+        row2.addSpacing(12)
         row2.addWidget(QtWidgets.QLabel("Cutoff:"))
         row2.addWidget(self.cutoff_sb)
         row2.addSpacing(12)
-        row2.addWidget(QtWidgets.QLabel("Plot tiers:"))
-        row2.addWidget(self.plot_depth_sb)
-        row2.addSpacing(12)
-        row2.addWidget(QtWidgets.QLabel("Expand to:"))
+        row2.addWidget(QtWidgets.QLabel("Adjust to:"))
         row2.addWidget(self.expand_mode_cb)
         row2.addWidget(self.expand_value_sb)
         row2.addWidget(self.expand_btn)
         row2.addSpacing(12)
-        row2.addWidget(self.show_plot_cb)
-        row2.addWidget(self.show_table_cb)
+        row2.addWidget(QtWidgets.QLabel("Plot:"))
+        row2.addWidget(self.plot_type_cb)
+        row2.addSpacing(12)
+        row2.addWidget(QtWidgets.QLabel("Aggregate by:"))
+        row2.addWidget(self.aggregate_by_cb)
         row2.addStretch()
         main.addLayout(row2)
 
@@ -352,9 +370,11 @@ class ContributionTreeTab(QtWidgets.QWidget):
         self.method_cb.currentIndexChanged.connect(self._on_selection_changed)
         self.scenario_cb.currentIndexChanged.connect(self._on_selection_changed)
         self.cutoff_sb.valueChanged.connect(self._on_cutoff_changed)
-        self.plot_depth_sb.valueChanged.connect(self._on_plot_depth_changed)
+        self.plot_type_cb.currentIndexChanged.connect(self._on_plot_type_changed)
+        self.aggregate_by_cb.currentIndexChanged.connect(self._on_aggregate_by_changed)
         self.expand_mode_cb.currentIndexChanged.connect(self._on_expand_mode_changed)
         self.expand_btn.clicked.connect(self._on_expand_clicked)
+        self._plot.set_segment_click_handler(self._on_plot_segment_clicked)
         self.show_plot_cb.toggled.connect(self._update_view_visibility)
         self.show_table_cb.toggled.connect(self._update_view_visibility)
         # Queued so model mutations do not run inside QTreeView's expand stack
@@ -538,7 +558,6 @@ class ContributionTreeTab(QtWidgets.QWidget):
                 expanded_uids=entry.expanded_uids,
                 model_uids=entry.model_uids,
             )
-            self._fit_cumulative_column()
             return
 
         logger.debug(f"Contribution tree traversal start: {key}")
@@ -567,7 +586,6 @@ class ContributionTreeTab(QtWidgets.QWidget):
             self._busy_tick(progress, "Building tree…")
             self._reload_from_state(expanded_uids=None, model_uids=None)
             self._save_view_snapshot()
-            self._fit_cumulative_column()
 
         except Exception as exc:
             logger.exception("Contribution tree traversal failed")
@@ -594,16 +612,21 @@ class ContributionTreeTab(QtWidgets.QWidget):
         if state is None:
             return
         total = self._state_total_score(state)
-        self._tree_model.load_state(state, total)
-        if model_uids is not None:
-            self._tree_model.restrict_to_uids(model_uids)
-        self._update_delegate_maxima()
-        self._tree_view.collapseAll()
-        if expanded_uids:
-            self._restore_expanded_uids(expanded_uids)
-        self._reload_plot()
-        self._update_footer_stats()
+        self._tree_view.setUpdatesEnabled(False)
+        try:
+            self._tree_model.load_state(state, total, included_uids=model_uids)
+            self._update_delegate_maxima()
+            self._tree_view.collapseAll()
+            if expanded_uids:
+                self._restore_expanded_uids(expanded_uids)
+            if self.show_plot_cb.isChecked():
+                self._reload_plot()
+            self._update_footer_stats()
+        finally:
+            self._tree_view.setUpdatesEnabled(True)
+            self._tree_view.viewport().update()
         QtCore.QTimer.singleShot(0, self._apply_splitter_sizes)
+        QtCore.QTimer.singleShot(0, self._fit_cumulative_column)
 
     def _collect_expanded_uids(self) -> set[int]:
         """Return unique_ids of rows currently expanded in the tree view."""
@@ -661,9 +684,64 @@ class ContributionTreeTab(QtWidgets.QWidget):
         self._active_cache_key = None
         self._run_traversal()
 
-    @Slot(int)
-    def _on_plot_depth_changed(self, depth: int) -> None:
+    @Slot()
+    def _on_plot_type_changed(self) -> None:
+        mode = self.plot_type_cb.currentData()
+        if mode:
+            self._plot.set_mode(mode)
+
+    @Slot()
+    def _on_aggregate_by_changed(self) -> None:
         self._reload_plot()
+
+    @Slot()
+    def _on_plot_segment_clicked(self, segment: dict) -> None:
+        """Expand/collapse tree branch from plot click; select matching row."""
+        if self._current_state is None:
+            return
+        uid = plot_click_target_uid(segment)
+        state = self._current_state
+        if is_terminal_node(state.nodes, state.edges, state.visited_nodes, uid):
+            self._expand_tree_node_only(uid)
+        else:
+            self._toggle_tree_node(uid)
+
+    def _select_tree_row(self, uid: int) -> QtCore.QModelIndex | None:
+        item = self._tree_model.item_for_uid(uid)
+        if item is None:
+            return None
+        idx = self._tree_model.indexFromItem(item)
+        if not idx.isValid():
+            return None
+        sm = self._tree_view.selectionModel()
+        if sm is not None:
+            sm.select(
+                idx,
+                QtCore.QItemSelectionModel.SelectionFlag.ClearAndSelect
+                | QtCore.QItemSelectionModel.SelectionFlag.Rows,
+            )
+        self._tree_view.scrollTo(
+            idx,
+            QtWidgets.QAbstractItemView.ScrollHint.PositionAtCenter,
+        )
+        return idx
+
+    def _expand_tree_node_only(self, uid: int) -> None:
+        """Expand-only (terminal segments): traverse once; never collapse from plot."""
+        idx = self._select_tree_row(uid)
+        if idx is None or not idx.isValid():
+            return
+        if not self._tree_view.isExpanded(idx):
+            self._tree_view.expand(idx)
+
+    def _toggle_tree_node(self, uid: int) -> None:
+        idx = self._select_tree_row(uid)
+        if idx is None or not idx.isValid():
+            return
+        if self._tree_view.isExpanded(idx):
+            self._tree_view.collapse(idx)
+        else:
+            self._tree_view.expand(idx)
 
     @Slot()
     def _on_expand_mode_changed(self) -> None:
@@ -717,7 +795,7 @@ class ContributionTreeTab(QtWidgets.QWidget):
         self._store_total_score(state)
         total = self._state_total_score(state)
 
-        progress = self._busy_dialog("Expanding contribution tree…")
+        progress = self._busy_dialog("Adjusting contribution tree…")
         self._last_expand_target_pct = (
             value if mode in (EXPAND_MODE_PATH, EXPAND_MODE_CUMULATIVE) else None
         )
@@ -737,21 +815,24 @@ class ContributionTreeTab(QtWidgets.QWidget):
             )
 
             self._busy_tick(progress, "Building tree…")
-            self._tree_model.load_state(state, total)
-            if included is not None:
-                self._tree_model.restrict_to_uids(included)
+            self._tree_view.setUpdatesEnabled(False)
+            try:
+                self._tree_model.load_state(state, total, included_uids=included)
 
-            self._busy_tick(progress, "Updating tree view…")
-            self._update_delegate_maxima()
-            if mode == EXPAND_MODE_TIER:
-                self._apply_expand_view_state(max_tier=int(value))
-            elif to_expand is not None:
-                self._restore_expanded_uids(to_expand)
-            if self.show_plot_cb.isChecked():
-                self._busy_tick(progress, "Updating plot…")
-                self._reload_plot()
-            self._update_footer_stats()
-            self._fit_cumulative_column()
+                self._busy_tick(progress, "Updating tree view…")
+                self._update_delegate_maxima()
+                if mode == EXPAND_MODE_TIER:
+                    self._apply_expand_view_state(max_tier=int(value))
+                elif to_expand is not None:
+                    self._restore_expanded_uids(to_expand)
+                if self.show_plot_cb.isChecked():
+                    self._busy_tick(progress, "Updating plot…")
+                    self._reload_plot()
+                self._update_footer_stats()
+            finally:
+                self._tree_view.setUpdatesEnabled(True)
+                self._tree_view.viewport().update()
+            QtCore.QTimer.singleShot(0, self._fit_cumulative_column)
             self._save_view_snapshot()
         finally:
             progress.close()
@@ -760,6 +841,7 @@ class ContributionTreeTab(QtWidgets.QWidget):
     def _apply_expand_view_state(self, max_tier: int) -> None:
         """Collapse, then open rows with real children whose display tier is ``< max_tier``."""
         self._suppress_expand_handler = True
+        self._tree_view.setUpdatesEnabled(False)
         try:
             self._tree_view.collapseAll()
             to_expand: list[tuple[int, QtGui.QStandardItem]] = []
@@ -776,6 +858,7 @@ class ContributionTreeTab(QtWidgets.QWidget):
                 if idx.isValid():
                     self._tree_view.expand(idx)
         finally:
+            self._tree_view.setUpdatesEnabled(True)
             self._suppress_expand_handler = False
 
     @Slot()
@@ -870,10 +953,7 @@ class ContributionTreeTab(QtWidgets.QWidget):
         added = self._tree_model.expand_node(uid)
         if added or self._tree_model.has_real_children(first_col_item):
             self._update_delegate_maxima()
-            self._reload_plot()
-            self._update_footer_stats()
-            self._fit_cumulative_column()
-            self._save_view_snapshot()
+            self._refresh_view_from_tree()
             return
 
         # Leaf: collapse after the current event finishes
@@ -890,22 +970,64 @@ class ContributionTreeTab(QtWidgets.QWidget):
         """Footer coverage is view-scoped; refresh when branches hide."""
         if self._suppress_expand_handler:
             return
-        self._update_footer_stats()
-        self._save_view_snapshot()
+        self._refresh_view_from_tree()
 
     # ------------------------------------------------------------------
     # Plot helpers
     # ------------------------------------------------------------------
 
-    def _reload_plot(self) -> None:
+    def _refresh_view_from_tree(self) -> None:
+        row_stats = self._visible_row_stats()
+        if self.show_plot_cb.isChecked():
+            self._reload_plot(row_stats)
+        self._update_footer_stats(row_stats)
+
+    def _visible_row_stats(self) -> tuple[int, float, int, set[int]]:
+        """Single pass: shown count, direct coverage, max tier, visible uids."""
+        state = self._current_state
+        if state is None:
+            return 0, 0.0, 0, set()
+        total = self._state_total_score(state)
+        shown_n = 0
+        direct_sum = 0.0
+        max_tier = 0
+        visible_uids: set[int] = set()
+        for uid, item in self._tree_model.iter_uid_items():
+            if not self._is_row_visible(item):
+                continue
+            shown_n += 1
+            visible_uids.add(uid)
+            max_tier = max(max_tier, int(item.data(TIER_ROLE) or 0))
+            node = state.nodes.get(uid)
+            if node is not None:
+                direct_sum += getattr(node, "direct_emissions_score", 0.0)
+        coverage = direct_sum / abs(total) if total else 0.0
+        return shown_n, coverage, max_tier, visible_uids
+
+    def _visible_tree_uids(self) -> set[int]:
+        """Unique ids of rows currently shown in the tree view."""
+        return self._visible_row_stats()[3]
+
+    def _reload_plot(
+        self,
+        row_stats: tuple[int, float, int, set[int]] | None = None,
+    ) -> None:
         if self._current_state is None:
+            self._plot.show_empty()
             return
-        if not self.show_plot_cb.isChecked():
-            return
+        state = self._current_state
+        meta = state.metadata or {}
+        if row_stats is None:
+            row_stats = self._visible_row_stats()
+        _, _, max_tier, visible_uids = row_stats
         self._plot.set_state(
-            self._current_state,
-            self._state_total_score(self._current_state),
-            self.plot_depth_sb.value(),
+            state,
+            self._state_total_score(state),
+            max(1, max_tier + 1),
+            metadata_lookup=self._tree_model.lookup_activity_meta,
+            unit=meta.get("unit", ""),
+            included_uids=visible_uids,
+            aggregate_by=self.aggregate_by_cb.currentData(),
         )
 
     # ------------------------------------------------------------------
@@ -924,22 +1046,21 @@ class ContributionTreeTab(QtWidgets.QWidget):
     # Footer stats
     # ------------------------------------------------------------------
 
-    def _update_footer_stats(self) -> None:
+    def _update_footer_stats(
+        self,
+        row_stats: tuple[int, float, int, set[int]] | None = None,
+    ) -> None:
         state = self._current_state
         if state is None:
             self._stats_label.setText("")
             return
         root_uid = self._tree_model.root_uid
         total = self._state_total_score(state)
-        shown_cov = self._visible_direct_impact_coverage()
-        shown_n = sum(
-            1
-            for _, item in self._tree_model.iter_uid_items() 
-            if self._is_row_visible(item)
-        )
+        if row_stats is None:
+            row_stats = self._visible_row_stats()
+        shown_n, shown_cov, shown_tier, _ = row_stats
         calc_cov = direct_impact_coverage(state.nodes, total, root_uid)
         calc_n = sum(1 for uid in state.nodes if uid != root_uid)
-        shown_tier = self._max_visible_tier()
         calc_tier = self._max_calculated_tier()
 
         calc_part = (
@@ -972,32 +1093,6 @@ class ContributionTreeTab(QtWidgets.QWidget):
             parent = parent.parent()
         return True
 
-    def _visible_direct_impact_coverage(self) -> float:
-        """Σ(direct impact of visible rows) / |total| — same as summing the column."""
-        state = self._current_state
-        if state is None:
-            return 0.0
-        total = self._state_total_score(state)
-        if total == 0.0:
-            return 0.0
-        direct_sum = 0.0
-        for uid, item in self._tree_model.iter_uid_items():
-            if not self._is_row_visible(item):
-                continue
-            node = state.nodes.get(uid)
-            if node is None:
-                continue
-            direct_sum += getattr(node, "direct_emissions_score", 0.0)
-        return direct_sum / abs(total)
-
-    def _max_visible_tier(self) -> int:
-        """Deepest tier among rows whose ancestor chain is expanded in the view."""
-        max_tier = 0
-        for _, item in self._tree_model.iter_uid_items():
-            if self._is_row_visible(item):
-                max_tier = max(max_tier, int(item.data(TIER_ROLE) or 0))
-        return max_tier
-
     def _max_calculated_tier(self) -> int:
         """Deepest edge-based display tier among all discovered traversal nodes."""
         state = self._current_state
@@ -1006,8 +1101,17 @@ class ContributionTreeTab(QtWidgets.QWidget):
         root_uid = self._tree_model.root_uid
         if root_uid is None:
             return 0
+        meta = state.metadata
+        if meta is not None:
+            cached_n = meta.get("_max_tier_node_count")
+            if cached_n == len(state.nodes) and "max_tier" in meta:
+                return int(meta["max_tier"])
         tiers = compute_node_tiers(state.nodes, state.edges, root_uid)
-        return max(tiers.values(), default=0)
+        result = max(tiers.values(), default=0)
+        if meta is not None:
+            meta["max_tier"] = result
+            meta["_max_tier_node_count"] = len(state.nodes)
+        return result
 
     # ------------------------------------------------------------------
     # Export (Ticket 06)
@@ -1051,16 +1155,17 @@ class ContributionTreeTab(QtWidgets.QWidget):
             if self.parent
             else "contribution_tree_plot"
         )
-        path, _ = QtWidgets.QFileDialog.getSaveFileName(
+        file_filter = "SVG (*.svg);;PNG (*.png)"
+        path, selected_filter = QtWidgets.QFileDialog.getSaveFileName(
             self,
-            "Export Sunburst Plot",
+            "Export Contribution Tree Plot",
             default_name,
-            "SVG (*.svg);;PNG (*.png)",
+            file_filter,
         )
         if not path:
             return
         try:
-            self._plot.figure.savefig(path, bbox_inches="tight")
+            self._plot.export_figure(path, selected_filter)
             logger.info(f"Contribution tree plot exported to {path}")
         except Exception as exc:
             QtWidgets.QMessageBox.warning(self, "Export failed", str(exc))

@@ -125,7 +125,7 @@ Extensibility mechanism for third-party AB features. **Architecture TBD** — do
 
 ### Contribution tree
 
-A hierarchical, acyclic breakdown of LCA impact by upstream supplier, produced by priority-first graph traversal (`SameNodeEachVisitGraphTraversal`). Each node carries a **cumulative impact** (its own direct emissions plus all upstream) and a **direct impact** (its own biosphere flows only). The root is the functional unit; children are direct technosphere suppliers, recursed up the supply chain. Shown in AB as a `QTreeView` with one row per traversed node, in the "Contribution Tree" tab of the LCA Results page. Nodes are calculated lazily on expand; an **expand policy** controls how far auto-expand walks.
+A hierarchical, acyclic breakdown of LCA impact by upstream supplier, produced by priority-first graph traversal (`SameNodeEachVisitGraphTraversal`). Each node carries a **cumulative impact** (its own direct emissions plus all upstream) and a **direct impact** (its own biosphere flows only). The root is the functional unit; children are direct technosphere suppliers, recursed up the supply chain. Shown in AB as a `QTreeView` with one row per traversed node, in the "Contribution Tree" tab of the LCA Results page. Nodes are calculated lazily on expand; the **adjust policy** controls how far the Adjust control walks the tree.
 _Avoid_: supply-chain tree, upstream tree (use contribution tree in AB UI; "upstream tree" is the OpenLCA term for the same concept)
 
 ### Tier (contribution-tree depth)
@@ -156,13 +156,23 @@ _Avoid_: traversal coverage, score coverage (unless clearly meaning this ratio)
 
 ### Path impact
 
-The cumulative impact of a contribution-tree node as a share of the total LCA score — i.e. how much of the result flows through that supply-chain path. Shown as **Cumulative impact (%)**. The **Individual path impact** expand policy auto-opens nodes at/above a chosen path % only while a child at/above that % remains (terminal high-path nodes stay collapsed); under opened nodes it lists all discovered siblings. Only the engine traversal **cutoff** omits smaller branches from calculation.
+The cumulative impact of a contribution-tree node as a share of the total LCA score — i.e. how much of the result flows through that supply-chain path. Shown as **Cumulative impact (%)**. The **Individual path impact** adjust policy auto-opens nodes at/above a chosen path % only while a child at/above that % remains (terminal high-path nodes stay collapsed); under opened nodes it lists all discovered siblings. Only the engine traversal **cutoff** omits smaller branches from calculation.
 _Avoid_: individual impact (alone), branch score
 
-### Expand policy
+### Adjust policy
 
-How far auto-expand calculates and visually opens the contribution tree. Modes: **Tier** (open down to a given tier), **Individual path impact** (keep expanding while path impact ≥ X% continues into a child; list all discovered children under opened nodes; leave terminal ≥ X% rows collapsed), **Cumulative impact** (largest-first from the reference flow until the **display set**’s direct-impact coverage reaches a target %, capped below 100% — does not open every previously calculated node). Distinct from a later optional **display filter** that only hides already-calculated rows. Open branches and which rows are in the tree are remembered per RF / impact category / scenario / cutoff when switching selections in the Contribution Tree tab.
-_Avoid_: cutoff (alone — ambiguous with Process Contributions and engine traversal cutoff)
+How far the **Adjust to** control calculates and visually opens the contribution tree. Modes: **Tier** (open down to a given tier), **Individual path impact** (keep expanding while path impact ≥ X% continues into a child; list all discovered children under opened nodes; leave terminal ≥ X% rows collapsed), **Cumulative impact** (largest-first from the reference flow until the **display set**’s direct-impact coverage reaches a target %, capped below 100% — does not open every previously calculated node). Distinct from a later optional **display filter** that only hides already-calculated rows. Open branches and which rows are in the tree are remembered per RF / impact category / scenario / cutoff when switching selections in the Contribution Tree tab.
+_Avoid_: cutoff (alone — ambiguous with Process Contributions and engine traversal cutoff); expand policy (legacy UI label — use adjust policy)
+
+### Plot–tree linking
+
+Clicking a segment in a contribution-tree plot selects the corresponding row and expands or collapses that branch in the tree (or the parent row when the segment is an aggregate band). **Terminal** segments (no downstream suppliers after traversal) are **expand-only** from the plot — one expand attempt if collapsed, otherwise no-op. Non-terminal segments toggle expand/collapse. The plot refreshes to match the visible tree.
+_Avoid_: interactive chart (alone — specify plot–tree linking)
+
+### Plot aggregation
+
+Plot-only rollup of **sibling** segments under the same parent by a metadata field (Product, Process, Location, Unit, Database). Band width and direct-impact tint use summed impacts; the tree table is unchanged.
+_Avoid_: aggregate the contribution tree (alone — plot aggregation is plot-only in v1)
 
 ### Flow amount
 
