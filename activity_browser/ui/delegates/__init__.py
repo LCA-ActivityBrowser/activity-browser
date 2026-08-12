@@ -13,9 +13,12 @@ from .new_formula import NewFormulaDelegate
 from .date_time import DateTimeDelegate
 from .property import PropertyDelegate
 from .amount import AmountDelegate, AbsoluteAmountDelegate
+from .impact_background import ImpactBackgroundDelegate, impact_intensity_fraction
 from .card import CardDelegate
 
 __all__ = [
+    "ImpactBackgroundDelegate",
+    "impact_intensity_fraction",
     "AmountDelegate",
     "AbsoluteAmountDelegate",
     "CheckboxDelegate",
