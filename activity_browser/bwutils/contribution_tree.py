@@ -11,7 +11,7 @@ from __future__ import annotations
 import warnings
 from collections import defaultdict
 from contextlib import contextmanager
-from typing import Callable
+from typing import Callable, Iterable
 
 import pandas as pd
 
@@ -33,6 +33,33 @@ def suppress_graph_traversal_warnings():
             category=UserWarning,
         )
         yield
+
+
+def activity_metadata_for_ids(
+    ids: Iterable[int],
+    dataframe: pd.DataFrame | None = None,
+) -> dict[int, dict]:
+    """Map datapackage ids to labels from a MetaDataStore dataframe."""
+    wanted = {i for i in ids if isinstance(i, int) and i >= 0}
+    if not wanted or dataframe is None or "id" not in getattr(dataframe, "columns", []):
+        return {}
+    cols = [c for c in ("id", "name", "product", "location", "database", "unit") if c in dataframe.columns]
+    sub = dataframe.loc[dataframe["id"].isin(wanted), cols].dropna(subset=["id"])
+    text = [c for c in sub.columns if c != "id"]
+    sub = sub.copy()
+    sub[text] = sub[text].fillna("")
+    out: dict[int, dict] = {}
+    for rec in sub.fillna("").to_dict("records"):
+        aid = int(rec["id"])
+        name = rec.get("name") or ""
+        out[aid] = {
+            "product": rec.get("product") or name,
+            "name": name,
+            "location": rec.get("location") or "",
+            "database": rec.get("database") or "",
+            "unit": rec.get("unit") or "",
+        }
+    return out
 
 
 # ---------------------------------------------------------------------------
@@ -411,11 +438,15 @@ def run_expand_policy(
     For ``path``: also return :func:`path_display_set`.
     For ``cumulative``: loop :func:`plan_cumulative_expand` until done.
 
-    ``on_progress(step, n_nodes)`` is optional (e.g. UI busy tick).
+    ``on_progress(step, n_nodes)`` is optional (e.g. UI busy tick). If it
+    returns ``False``, stop and return the display set for the graph so far.
     Returns ``(None, None)`` for tier (caller opens view by max tier).
     """
     root_uid = state._root_node.unique_id
     failed: set[NodeId] = set()
+
+    def _stop(step: int) -> bool:
+        return on_progress is not None and on_progress(step, len(state.nodes)) is False
 
     if mode == "cumulative":
         included: set[NodeId] = set()
@@ -432,13 +463,14 @@ def run_expand_policy(
             )
             if need is None:
                 break
-            if on_progress and step % 10 == 0:
-                on_progress(step, len(state.nodes))
+            if _stop(step):
+                break
             if not safe_traverse_from_node(state, need):
                 failed.add(need)
         return included, to_expand
 
     # tier / path — calculate first
+    stopped = False
     for step in range(10_000):
         candidates = next_expand_candidates(
             state.nodes,
@@ -452,15 +484,16 @@ def run_expand_policy(
         )
         if not candidates:
             break
-        if on_progress and step % 10 == 0:
-            on_progress(step, len(state.nodes))
         made_progress = False
         for uid in candidates:
+            if _stop(step):
+                stopped = True
+                break
             if safe_traverse_from_node(state, uid):
                 made_progress = True
             else:
                 failed.add(uid)
-        if not made_progress:
+        if stopped or not made_progress:
             break
 
     if mode == "path":

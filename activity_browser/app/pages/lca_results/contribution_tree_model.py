@@ -11,6 +11,7 @@ from qtpy import QtCore, QtGui
 from bw_graph_tools.graph_traversal import SameNodeEachVisitGraphTraversal
 
 from activity_browser.bwutils.contribution_tree import (
+    activity_metadata_for_ids,
     build_parent_child_map,
     compute_node_tiers,
     cumulative_percent,
@@ -370,21 +371,22 @@ class ContributionTreeModel(QtGui.QStandardItemModel):
         if not self.has_real_children(first) and (not is_visited or has_children):
             self._ensure_placeholder(first)
 
-    def _prefetch_meta_for_uids(
-        self,
-        uids: set[int] | None,
-        nodes: dict,
-    ) -> None:
-        """Warm metadata cache for a filtered display set before building rows."""
-        if uids is None:
-            return
-        for uid in uids:
-            node = nodes.get(uid)
-            if node is None:
-                continue
-            aid = getattr(node, "activity_datapackage_id", None)
-            if aid is not None and aid not in self._meta_cache:
-                self._resolve_meta(node)
+    def _prefetch_meta_for_uids(self, uids: set[int] | None, nodes: dict) -> None:
+        """Warm metadata cache from the MetaDataStore."""
+        from activity_browser import app
+
+        src = nodes.values() if uids is None else (nodes[u] for u in uids if u in nodes)
+        missing = {
+            aid
+            for n in src
+            if (aid := getattr(n, "activity_datapackage_id", None)) is not None
+            and aid >= 0
+            and aid not in self._meta_cache
+        }
+        if missing:
+            self._meta_cache.update(
+                activity_metadata_for_ids(missing, app.metadata.dataframe)
+            )
 
     def lookup_activity_meta(self, activity_datapackage_id) -> dict:
         """Public metadata lookup for plot tooltips (by activity id)."""
@@ -395,10 +397,17 @@ class ContributionTreeModel(QtGui.QStandardItemModel):
         )
 
     def _resolve_meta(self, node) -> dict:
-        """Fetch activity metadata from bw2data (cached; empty dict on failure)."""
+        """Labels from the MetaDataStore (cached); ``bd.get_node`` if missing."""
+        from activity_browser import app
+
         aid = getattr(node, "activity_datapackage_id", None)
         if aid in self._meta_cache:
             return self._meta_cache[aid]
+        if aid is not None and aid >= 0:
+            found = activity_metadata_for_ids([aid], app.metadata.dataframe)
+            if aid in found:
+                self._meta_cache[aid] = found[aid]
+                return found[aid]
         try:
             act = bd.get_node(id=aid)
             meta = {

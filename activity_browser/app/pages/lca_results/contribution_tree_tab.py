@@ -79,7 +79,8 @@ threshold and still have a qualifying child; list siblings under opened
 nodes. A terminal node above the threshold stays collapsed until you expand
 it.<br>
 • <b>Cumulative impact</b> — open the largest paths first until the direct
-impact of visible rows reaches the target.</p>
+impact of visible rows reaches the target.<br>
+Stop a long calculation to keep the tree calculated so far.</p>
 
 <p><b>Plot</b><br>
 Vertical tiers or Horizontal tiers — mirrors the visible tree. Click a segment to
@@ -519,13 +520,14 @@ class ContributionTreeTab(QtWidgets.QWidget):
     # ------------------------------------------------------------------
 
     def _busy_dialog(self, label: str) -> QtWidgets.QProgressDialog:
-        """Indeterminate busy spinner (QProgressDialog with range 0–0)."""
-        progress = QtWidgets.QProgressDialog(label, None, 0, 0, self)
+        """Indeterminate busy spinner with a Stop button (range 0–0)."""
+        progress = QtWidgets.QProgressDialog(label, "Stop", 0, 0, self)
         progress.setWindowTitle("Contribution Tree")
-        # Non-modal so tree expand/collapse still applies while it is visible.
-        progress.setWindowModality(QtCore.Qt.WindowModality.NonModal)
+        # Window-modal: Stop stays clickable; the rest of the app is blocked.
+        progress.setWindowModality(QtCore.Qt.WindowModality.WindowModal)
         progress.setMinimumDuration(0)
-        progress.setCancelButton(None)
+        progress.setAutoClose(False)
+        progress.setAutoReset(False)
         progress.setAttribute(QtCore.Qt.WidgetAttribute.WA_DeleteOnClose, False)
         progress.show()
         progress.raise_()
@@ -533,12 +535,20 @@ class ContributionTreeTab(QtWidgets.QWidget):
         return progress
 
     @staticmethod
-    def _busy_tick(progress: QtWidgets.QProgressDialog, label: str | None = None) -> None:
+    def _busy_tick(progress: QtWidgets.QProgressDialog, label: str | None = None) -> bool:
+        """Pump the event loop so Stop can be clicked. Return False if stopped."""
         if label is not None:
             progress.setLabelText(label)
-        QtWidgets.QApplication.processEvents(
-            QtCore.QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents
-        )
+        QtWidgets.QApplication.processEvents()
+        return not progress.wasCanceled()
+
+    def _busy_rebuild(self, progress: QtWidgets.QProgressDialog) -> None:
+        """Hide Stop and keep the dialog while the table and plot are built."""
+        if progress.wasCanceled():
+            progress.reset()
+            progress.setRange(0, 0)
+        progress.setCancelButton(None)
+        self._busy_tick(progress, "Building table and plot…")
 
     def _run_traversal(self) -> None:
         key = self._cache_key()
@@ -566,6 +576,8 @@ class ContributionTreeTab(QtWidgets.QWidget):
         try:
             self._busy_tick(progress, "Running LCI / LCIA…")
             self._ensure_lca(demand, method, scenario_idx, method_idx)
+            if progress.wasCanceled():
+                return
 
             self._busy_tick(progress, "Traversing supply chain…")
             t0 = time.time()
@@ -583,7 +595,7 @@ class ContributionTreeTab(QtWidgets.QWidget):
             self._active_cache_key = key
             self._current_state = state
             self._last_expand_target_pct = None
-            self._busy_tick(progress, "Building tree…")
+            self._busy_rebuild(progress)
             self._reload_from_state(expanded_uids=None, model_uids=None)
             self._save_view_snapshot()
 
@@ -801,9 +813,12 @@ class ContributionTreeTab(QtWidgets.QWidget):
         )
         try:
             def _tick(step, n_nodes):
-                self._busy_tick(
-                    progress, f"Traversing supply chain… ({n_nodes} nodes)"
+                label = (
+                    f"Traversing supply chain… ({n_nodes} nodes)"
+                    if step % 10 == 0
+                    else None
                 )
+                return self._busy_tick(progress, label)
 
             self._busy_tick(progress, "Traversing supply chain…")
             included, to_expand = run_expand_policy(
@@ -813,20 +828,17 @@ class ContributionTreeTab(QtWidgets.QWidget):
                 total_score=total,
                 on_progress=_tick,
             )
+            self._busy_rebuild(progress)
 
-            self._busy_tick(progress, "Building tree…")
             self._tree_view.setUpdatesEnabled(False)
             try:
                 self._tree_model.load_state(state, total, included_uids=included)
-
-                self._busy_tick(progress, "Updating tree view…")
                 self._update_delegate_maxima()
                 if mode == EXPAND_MODE_TIER:
                     self._apply_expand_view_state(max_tier=int(value))
                 elif to_expand is not None:
                     self._restore_expanded_uids(to_expand)
                 if self.show_plot_cb.isChecked():
-                    self._busy_tick(progress, "Updating plot…")
                     self._reload_plot()
                 self._update_footer_stats()
             finally:

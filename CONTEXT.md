@@ -105,7 +105,10 @@ The list of product-combined scenario names from two or more loaded scenario dif
 
 ### Metadata store
 
-Cached tabular metadata for fast UI search and display (`app.metadata` / `activity_browser.bwutils.metadata`). Synced via `app.signals.metadata` and related meta signals; tests often wait for the metadata loader.
+Cached in-memory table of activity/process fields for fast UI search and display (`app.metadata` / `activity_browser.bwutils.metadata`). Index is `(database, code)`; column `id` is the Brightway datapackage id. Synced via `app.signals.metadata` and related meta signals; tests often wait for the metadata loader.
+
+**Read path:** prefer the store for names, products, locations, units, databases, and other stored fields. Do not query `ActivityDataset` or `bd.get_node` per row when the store already has the id or key. **Write path:** mutate via Brightway APIs (actions); the store updates from bw signals. Fallback to Brightway only for missing rows, fields the store does not keep, or when a live activity proxy is required.
+_Avoid_: fetching display metadata from SQLite when the MetaDataStore is available
 
 ### Signals (event bus)
 

@@ -31,6 +31,7 @@ New work is sized **S / M / L**. See `.cursor/rules/development-workflow.mdc`. I
 - **App singletons:** `from activity_browser import app` then `app.application`, `app.signals`, `app.settings`, `app.metadata`, `app.main_window`.
 - **Signals:** `app.signals` (`ABSignals`) mainly bridges bw2data blinker events to Qt. Preferred path: action → Brightway/bwutils → bw signals → UI. See `docs/adr/0003-signals-event-bus.md`.
 - **Settings:** `app.settings` (`activity_browser.bwutils.settings.Settings`); prefer this over ad-hoc config files.
+- **Metadata:** Prefer `app.metadata` (MetaDataStore) for activity/process labels and tabular lookups. Do not query SQLite (`ActivityDataset`) or `bd.get_node` for display metadata the store already has. Index is `(database, code)`; the `id` column is the Brightway datapackage id. Fallback to Brightway only for writes, missing rows, fields the store does not keep, or a live activity proxy. `bwutils/` helpers should take a dataframe (or lookup callback), not import `app`. See `activity_browser/bwutils/metadata/README.md` and `docs/adr/0005-metadata-from-metadatastore.md`.
 - **Brightway:** heavy use of `bw2data`, `bw2calc`, `bw2analyzer`, `bw2io`, etc. Data mutations go through Brightway APIs and must keep signal expectations intact.
 
 ## Architecture and placement

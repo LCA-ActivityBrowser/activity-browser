@@ -12,6 +12,7 @@ import pandas as pd
 import pytest
 
 from activity_browser.bwutils.contribution_tree import (
+    activity_metadata_for_ids,
     aggregate_plot_segments,
     build_chain_layout,
     build_parent_child_map,
@@ -27,6 +28,7 @@ from activity_browser.bwutils.contribution_tree import (
     is_terminal_node,
     path_display_set,
     plan_cumulative_expand,
+    run_expand_policy,
     tree_stats,
 )
 
@@ -766,3 +768,71 @@ def test_path_display_set_terminal_high_path_not_opened():
     assert 2 not in to_expand
     assert 3 not in included and 4 not in included
     assert to_expand == {1}
+
+
+# ---------------------------------------------------------------------------
+# run_expand_policy — Stop / on_progress False
+# ---------------------------------------------------------------------------
+
+class _FakeTraversalState:
+    """Minimal stand-in for SameNodeEachVisitGraphTraversal."""
+
+    def __init__(self, nodes, edges, visited):
+        self.nodes = nodes
+        self.edges = list(edges)
+        self.visited_nodes = set(visited)
+        self._root_node = nodes[-1]
+        self.traversed: list[int] = []
+
+    def traverse_from_node(self, unique_id, depth=1):
+        self.traversed.append(unique_id)
+        self.visited_nodes.add(unique_id)
+        return True
+
+
+def _expand_chain_state(*, visited=None):
+    nodes = {
+        -1: _node(-1, 0, 100.0, 0.0),
+        1: _node(1, 1, 90.0, 5.0),
+        2: _node(2, 2, 80.0, 10.0),
+        3: _node(3, 3, 60.0, 40.0),
+    }
+    edges = [_edge(-1, 1), _edge(1, 2), _edge(2, 3)]
+    return _FakeTraversalState(nodes, edges, visited or {-1})
+
+
+def test_run_expand_policy_stops_when_on_progress_returns_false():
+    """on_progress False keeps the current graph; omit it to traverse as before."""
+    stopped = _expand_chain_state()
+    run_expand_policy(
+        stopped,
+        mode="cumulative",
+        value=60.0,
+        total_score=100.0,
+        on_progress=lambda step, n: False,
+    )
+    assert stopped.traversed == []
+
+    finished = _expand_chain_state()
+    run_expand_policy(finished, mode="cumulative", value=60.0, total_score=100.0)
+    assert 1 in finished.traversed
+    assert 2 in finished.traversed
+
+
+def test_activity_metadata_for_ids_from_metadatastore_frame():
+    df = pd.DataFrame(
+        {
+            "id": pd.array([10, 20], dtype="Int64"),
+            "name": ["Steel production", "Aluminium production"],
+            "product": ["steel", None],
+            "location": ["RER", "GLO"],
+            "database": ["db", "db"],
+            "unit": ["kg", "kg"],
+        }
+    )
+    assert activity_metadata_for_ids([]) == {}
+    out = activity_metadata_for_ids([10, 20, 99], df)
+    assert out[10]["product"] == "steel"
+    assert out[10]["name"] == "Steel production"
+    assert out[20]["product"] == "Aluminium production"
+    assert 99 not in out

@@ -7,6 +7,7 @@ from typing import Callable, Optional
 
 import matplotlib.pyplot as plt
 from matplotlib import colors as mcolors
+from matplotlib.collections import PatchCollection
 import numpy as np
 from bw_graph_tools.graph_traversal import SameNodeEachVisitGraphTraversal
 from matplotlib.patches import Rectangle
@@ -75,6 +76,8 @@ class ContributionTreePlot(widgets.ABPlot):
         self._included_uids: set[int] | None = None
         self._aggregate_by: str | None = None
         self._on_segment_clicked: Callable[[dict], None] | None = None
+        # Hundreds of patches + labels make constrained_layout very slow.
+        self.figure.set_layout_engine(None)
         self.show_empty()
 
     @staticmethod
@@ -111,6 +114,10 @@ class ContributionTreePlot(widgets.ABPlot):
             for patch in ax.patches:
                 patch.set_edgecolor(SEGMENT_EDGE_COLOR)
                 patch.set_linewidth(SEGMENT_EDGE_WIDTH)
+            for coll in ax.collections:
+                if isinstance(coll, PatchCollection):
+                    coll.set_edgecolor(SEGMENT_EDGE_COLOR)
+                    coll.set_linewidth(SEGMENT_EDGE_WIDTH)
 
     def _sync_plot_to_theme(self) -> None:
         super()._sync_plot_to_theme()
@@ -493,17 +500,22 @@ class ContributionTreePlot(widgets.ABPlot):
 
 
     def _segment_at(self, event) -> dict | None:
-        if event.inaxes is None:
+        if event.inaxes is None or event.xdata is None or event.ydata is None:
             return None
         if self._mode == PLOT_SUNBURST:
             return self._sunburst_segment_at(event)
-        for artist, seg in reversed(self._hover_targets):
-            try:
-                inside, _ = artist.contains(event)
-            except Exception:
-                continue
-            if inside:
-                return seg
+        x, y = float(event.xdata), float(event.ydata)
+        depth = max(1, self._plot_depth)
+        for seg in reversed(self._segments):
+            lo, hi = seg["x0"], seg["x1"]
+            if lo > hi:
+                lo, hi = hi, lo
+            if self._mode == PLOT_TIER_BARS:
+                if abs(y - seg["tier"]) <= 0.45 and lo <= x <= max(hi, lo + 0.003):
+                    return seg
+            elif 0 <= x <= 1 and 0 <= y <= 1:
+                if seg["tier"] == min(int(x / (1.0 / depth)), depth - 1) and lo <= y <= hi:
+                    return seg
         return None
 
     def _click_callback(self, event) -> None:
@@ -601,6 +613,7 @@ class ContributionTreePlot(widgets.ABPlot):
     def _plot_sunburst(self) -> None:
         self.figure.clear()
         ax = self.figure.add_subplot(111, polar=True)
+        self.figure.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.05)
         ax.set_theta_zero_location("N")
         ax.set_theta_direction(-1)
         ax.set_axis_off()
@@ -672,8 +685,10 @@ class ContributionTreePlot(widgets.ABPlot):
     def _plot_tier_bars(self) -> None:
         self.figure.clear()
         ax = self.figure.add_subplot(111)
+        self.figure.subplots_adjust(left=0.12, right=0.99, top=0.98, bottom=0.04)
         row_h = 1.0
         bar_height_frac = 0.85
+        bar_h = row_h * bar_height_frac
         max_depth = self._plot_depth
         scale = self._label_scale()
         min_frac = 0.025 / scale
@@ -692,6 +707,7 @@ class ContributionTreePlot(widgets.ABPlot):
                 color=self._theme_text_color(),
             )
 
+        rects: list[Rectangle] = []
         for seg in self._segments:
             tier = seg["tier"]
             x0, x1 = seg["x0"], seg["x1"]
@@ -699,23 +715,18 @@ class ContributionTreePlot(widgets.ABPlot):
             if x1 - x0 < 0.003:
                 x0 = (seg["x0"] + seg["x1"]) / 2 - width / 2
             colour = self._segment_color(seg["direct_pct"])
-            rect = ax.barh(
-                tier,
+            rect = Rectangle(
+                (x0, tier - bar_h / 2),
                 width,
-                left=x0,
-                height=row_h * bar_height_frac,
-                color=colour,
+                bar_h,
+                facecolor=colour,
                 edgecolor=SEGMENT_EDGE_COLOR,
                 linewidth=SEGMENT_EDGE_WIDTH,
-                align="center",
             )
-            bar_patches = list(rect.patches)
-            for patch in bar_patches:
-                self._register_hover(patch, seg)
+            rects.append(rect)
             label = self._segment_label(seg)
-            if not label or width <= min_frac or not bar_patches:
+            if not label or width <= min_frac:
                 continue
-            patch = bar_patches[0]
             fontsize = self._tier_bar_fontsize(width, base_fontsize)
             chars_per_line = self._tier_bar_chars_per_line(width, fontsize)
             if chars_per_line < 3:
@@ -723,7 +734,7 @@ class ContributionTreePlot(widgets.ABPlot):
             display = self._fit_label_chars(label, chars_per_line, max_lines=max_lines)
             if not self._label_worth_showing(display):
                 continue
-            txt = ax.text(
+            ax.text(
                 x0 + width / 2,
                 tier,
                 display,
@@ -733,8 +744,9 @@ class ContributionTreePlot(widgets.ABPlot):
                 color=self._theme_text_color(),
                 clip_on=True,
             )
-            self._clip_text_to_patch(txt, patch)
 
+        if rects:
+            ax.add_collection(PatchCollection(rects, match_original=True))
         ax.set_xlim(0, 1)
         ax.set_ylim(max_depth - 0.5, -0.5)
         ax.set_yticks([])
@@ -745,7 +757,8 @@ class ContributionTreePlot(widgets.ABPlot):
     def _plot_icicle(self) -> None:
         self.figure.clear()
         ax = self.figure.add_subplot(111)
-        max_depth = self._plot_depth
+        self.figure.subplots_adjust(left=0.02, right=0.99, top=0.90, bottom=0.04)
+        max_depth = max(1, self._plot_depth)
         col_w = 1.0 / max_depth
         scale = self._label_scale()
         min_height = 0.02 / scale
@@ -767,38 +780,38 @@ class ContributionTreePlot(widgets.ABPlot):
                 transform=ax.get_xaxis_transform(),
             )
 
+        rects: list[Rectangle] = []
         for seg in self._segments:
             tier = seg["tier"]
             x0 = tier * col_w
             y0 = seg["x0"]
             height = seg["x1"] - seg["x0"]
             colour = self._segment_color(seg["direct_pct"])
-            rect = Rectangle(
-                (x0, y0),
-                cell_w,
-                height,
-                facecolor=colour,
-                edgecolor=SEGMENT_EDGE_COLOR,
-                linewidth=SEGMENT_EDGE_WIDTH,
+            rects.append(
+                Rectangle(
+                    (x0, y0),
+                    cell_w,
+                    height,
+                    facecolor=colour,
+                    edgecolor=SEGMENT_EDGE_COLOR,
+                    linewidth=SEGMENT_EDGE_WIDTH,
+                )
             )
-            rect.set_transform(ax.transData)
-            ax.add_patch(rect)
-            self._register_hover(rect, seg)
             label = self._segment_label(seg)
-            if not label or height <= min_height:
+            if not label or abs(height) <= min_height:
                 continue
             fontsize = col_fontsize
-            if height < 0.04:
+            if abs(height) < 0.04:
                 fontsize = min(fontsize, 4.5)
-            elif height < 0.07:
+            elif abs(height) < 0.07:
                 fontsize = min(fontsize, 5.0)
-            max_lines = self._icicle_max_lines(height * 0.95, fontsize)
+            max_lines = self._icicle_max_lines(abs(height) * 0.95, fontsize)
             if len(label) > chars_per_line and max_lines < 2:
                 max_lines = 2
             display = self._fit_label_chars(label, chars_per_line, max_lines=max_lines)
             if not self._label_worth_showing(display):
                 continue
-            txt = ax.text(
+            ax.text(
                 x0 + cell_w / 2,
                 y0 + height / 2,
                 display,
@@ -808,8 +821,9 @@ class ContributionTreePlot(widgets.ABPlot):
                 color=self._theme_text_color(),
                 clip_on=True,
             )
-            self._clip_text_to_patch(txt, rect)
 
+        if rects:
+            ax.add_collection(PatchCollection(rects, match_original=True))
         ax.set_xlim(0, 1)
         ax.set_ylim(1, 0)
         ax.set_xticks([])
