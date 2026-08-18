@@ -29,6 +29,7 @@ class MDSLoader(QObject):
 
         self.mds = mds
         self.thread: QThread | None = None
+        self._result_slot = None
         self._pending_database_loads: list[str] = []
         self.connect_signals()
 
@@ -183,6 +184,7 @@ class MDSLoader(QObject):
             parent=self,
         )
         self.thread.result.connect(result_slot)
+        self._result_slot = result_slot
         self.thread.finished.connect(self._on_load_thread_finished)
         self.thread.start()
 
@@ -194,11 +196,12 @@ class MDSLoader(QObject):
     def _disconnect_thread_results(self):
         if self.thread is None or self.thread.isRunning():
             return
-        for slot in (self.secondary_load_project, self.secondary_load_database):
+        if self._result_slot is not None:
             try:
-                self.thread.result.disconnect(slot)
+                self.thread.result.disconnect(self._result_slot)
             except (TypeError, RuntimeError):
                 pass
+            self._result_slot = None
         try:
             self.thread.finished.disconnect(self._on_load_thread_finished)
         except (TypeError, RuntimeError):

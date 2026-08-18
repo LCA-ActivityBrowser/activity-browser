@@ -1,8 +1,11 @@
+import gc
 import shutil
+from pathlib import Path
 
 from qtpy import QtWidgets
 
 import bw2data as bd
+from bw2data import config
 from bw2data.project import ProjectDataset
 from bw2data.utils import safe_filename
 
@@ -69,6 +72,10 @@ class ProjectDelete(ABAction):
 
         # try to delete the project, delete directory if user specified so
         if bd.projects.current in project_names:
+            if delete_dialog.deletion_warning_checked():
+                current = bd.projects.current
+                ds = ProjectDataset.get(ProjectDataset.name == current)
+                _close_sqlite_databases_in(_project_directory(current, ds))
             ProjectSwitch.run(app.settings["startup"]["startup_project"])
 
         for project in project_names:
@@ -85,14 +92,31 @@ class ProjectDelete(ABAction):
         ds = ProjectDataset.get(ProjectDataset.name == name)
 
         if delete_dir:
-            dir_path = bd.projects._base_data_dir / safe_filename(name, full=ds.full_hash)
+            dir_path = _project_directory(name, ds)
             assert dir_path.is_dir(), "Can't find project directory"
+            _close_sqlite_databases_in(dir_path)
             shutil.rmtree(dir_path)
 
         ds.delete_instance()
 
         # THIS SHOULD NOT HAPPEN HERE BUT bw2data HAS NO SIGNALS FOR PROJECT DELETION
         app.signals.project.deleted.emit(name)
+
+
+def _project_directory(name: str, ds: ProjectDataset) -> Path:
+    return bd.projects._base_data_dir / safe_filename(name, full=ds.full_hash)
+
+
+def _close_sqlite_databases_in(dir_path: Path) -> None:
+    """Release peewee SQLite handles so Windows can delete the project directory."""
+    for _, substitutable_db in config.sqlite3_databases:
+        try:
+            if Path(substitutable_db._filepath).is_relative_to(dir_path):
+                if not substitutable_db.db.is_closed():
+                    substitutable_db.db.close()
+        except Exception:
+            pass
+    gc.collect()
 
 
 class ProjectDeletionDialog(QtWidgets.QDialog):

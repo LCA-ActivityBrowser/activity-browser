@@ -20,8 +20,8 @@ This directory contains all static assets used by Activity Browser including HTM
 - **`activity_graph.html`** - Template for activity relationship graph visualization
 - **`navigator.html`** - Base navigator template
 - **`sankey_navigator.html`** - Sankey diagram visualization template
+- **`contribution_tree_plot.html`** - Contribution Tree D3 plot host
 - **`spinner.html`** - Loading spinner template
-- **`tree_navigator.html`** - Tree structure navigator template
 
 ## Purpose
 
@@ -39,7 +39,7 @@ Activity Browser embeds web views (Qt WebEngine) for rich interactive visualizat
 
 - Force-directed graphs showing activity relationships
 - Sankey diagrams for flow visualization
-- Tree navigators for hierarchical data exploration
+- Contribution-tree D3 plots (icicle, sunburst, treemap, tree plot)
 - Interactive charts and plots
 
 ## Resource Loading

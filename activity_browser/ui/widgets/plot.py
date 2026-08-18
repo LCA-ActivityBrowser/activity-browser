@@ -31,6 +31,7 @@ from activity_browser.bwutils.contribution_labels import is_rest_row
 
 _GOLDEN_RATIO = 0.618033988749895
 DEFAULT_PLOT_PALETTE = "tab20"
+_MIN_CANVAS_PX = 64  # skip constrained_layout while Qt still resizes through 0×0
 PLOT_PALETTES: tuple[str, ...] = (  # qualitative colormaps from https://matplotlib.org/stable/gallery/color/colormap_reference.html
     "Pastel1",
     "Pastel2",
@@ -93,6 +94,16 @@ class ABFigureCanvas(FigureCanvasQTAgg):
 
     def minimumSizeHint(self) -> QtCore.QSize:  # noqa: N802
         return self.sizeHint()
+
+    def resizeEvent(self, event: QtGui.QResizeEvent) -> None:  # noqa: N802
+        if (
+            self.figure is None
+            or event.size().width() < _MIN_CANVAS_PX
+            or event.size().height() < _MIN_CANVAS_PX
+        ):
+            QtWidgets.QWidget.resizeEvent(self, event)
+            return
+        super().resizeEvent(event)
 
 
 class ABPlot(QtWidgets.QWidget):
@@ -302,9 +313,9 @@ class ABPlot(QtWidgets.QWidget):
         return float(self.canvas.devicePixelRatio())
 
     def _canvas_has_size(self) -> bool:
-        return max(self.canvas.width(), self.width()) > 0 and max(
+        return max(self.canvas.width(), self.width()) >= _MIN_CANVAS_PX and max(
             self.canvas.height(), self.height()
-        ) > 0
+        ) >= _MIN_CANVAS_PX
 
     def _qt_physical_pixel_size(self) -> tuple[float, float]:
         dpr = self._device_pixel_ratio()
@@ -835,7 +846,7 @@ class ABPlot(QtWidgets.QWidget):
 
     def _on_theme_changed(self) -> None:
         self._sync_plot_to_theme()
-        if self.figure.axes:
+        if self.figure.axes and self._canvas_has_size():
             self.canvas.draw_idle()
 
     def reset_plot(self) -> None:

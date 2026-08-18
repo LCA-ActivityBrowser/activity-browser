@@ -4,15 +4,16 @@ Cascading Style Sheets for Activity Browser's HTML views.
 
 ## Overview
 
-This directory contains CSS files that style the HTML-based visualizations and web views in Activity Browser. These stylesheets control the appearance of graphs, Sankey diagrams, tree navigators, and other interactive visualizations.
+This directory contains CSS files that style the HTML-based visualizations and web views in Activity Browser. These stylesheets control the appearance of graphs, Sankey diagrams, contribution-tree plots, and other interactive visualizations.
 
 ## Files
 
 - **`navigator.common.css`** - Common styles shared across navigators
 - **`navigator.css`** - Base navigator styles
 - **`activity_graph.css`** - Activity relationship graph styles
+- **`graph_theme.css`** - Shared light/dark tokens for Tree plot and Sankey
 - **`sankey_navigator.css`** - Sankey diagram visualization styles
-- **`tree_navigator.css`** - Tree structure navigator styles
+- **`contribution_tree_plot.css`** - Contribution Tree D3 plot (icicle/tree graph)
 
 ## Purpose
 
@@ -96,14 +97,10 @@ Styles for Sankey diagrams:
 - Tooltips showing values
 - Legend and scale
 
-## tree_navigator.css
+## contribution_tree_plot.css
 
-Styles for tree structures:
-- Tree nodes (collapsible)
-- Branches/connections
-- Expand/collapse icons
-- Indentation levels
-- Selection highlighting
+Styles for the Contribution Tree D3 host: icicle/sunburst/treemap plus the
+tree-plot graph, which shares Sankey's box/ribbon visual grammar.
 
 ## Color Schemes
 

@@ -19,7 +19,7 @@
 } */ /*
 
 svg {
-  border: 1px solid #999;
+  border: 1px solid var(--ab-graph-stroke, #999);
   /*overflow: hidden;*/ /*
 } */
 
@@ -27,19 +27,19 @@ svg {
   overflow: visible;
 }
 .canvas .wrapper.outer > .background {
-  fill: #FFFFFF;
-  stroke: #333333;
+  fill: var(--ab-graph-canvas, #FFFFFF);
+  stroke: var(--ab-graph-stroke, #333333);
 }
 .canvas .wrapper.inner > .background {
-  fill: #FFFFFF;
-  cursor: move;
+  fill: var(--ab-graph-canvas, #FFFFFF);
+  cursor: default;
 }
 .canvas .background {
-  fill: #FFFFFF;
-  cursor: move;
+  fill: var(--ab-graph-canvas, #FFFFFF);
+  cursor: default;
 }
 .canvas .panCanvas {
-  cursor: click;
+  cursor: default;
 }
 
 .canvas .minimap {
@@ -76,7 +76,7 @@ svg {
 }*/
 
 h1, h2 {
-  color: #333;
+  color: var(--ab-graph-text, #333);
 }
 
 /*textarea {
@@ -85,7 +85,7 @@ h1, h2 {
 
 text {
   font-family: sans-serif;
-  font-size: 14px;
+  font-size: 12px;
   /* no effect:
   text-align: center;
   word-wrap: break-word;
@@ -109,15 +109,15 @@ text {
 }
 
 .node {
-    fill: black;  /* text color of nodes*/
+    fill: var(--ab-graph-text, black);  /* text color of nodes*/
     /* no effect:
     white-space: nowrap;
     */
 }
 
 .node rect {
-  stroke: #333;
-  fill: #fff;
+  stroke: var(--ab-graph-stroke, #333);
+  fill: var(--ab-graph-node-fill, #fff);
   stroke-width: 3px;
 }
 
@@ -127,8 +127,8 @@ text {
 }
 
 .node.demand rect {
-  stroke: darkblue;
-  fill: #fff;
+  stroke: var(--ab-graph-demand, darkblue);
+  fill: var(--ab-graph-node-fill, #fff);
   stroke-width: 4px;
 }
 
@@ -158,12 +158,12 @@ text {
 /*}*/
 
 .edgePath.impact path.path {
-  stroke: red;
+  stroke: var(--ab-graph-impact, red);
   opacity: 0.7;
 }
 
 .edgePath.benefit path.path {
-  stroke: green;
+  stroke: var(--ab-graph-benefit, green);
   opacity: 0.7;
 }
 
@@ -188,7 +188,7 @@ body.ab-sankey-tab g.edgeLabel {
 }*/
 
 .edgeLabel {
-    fill: darkblue;  /* text color of edges*/
+    fill: var(--ab-graph-edge-label, darkblue);  /* text color of edges*/
 }
 
 /* Slightly smaller edge labels + tighter line height reduce overlap between neighboring links */
@@ -237,11 +237,25 @@ div.tooltip {
     height: auto;
     padding: 2px;
     font: 12px sans-serif;
-    background: #fffce2;
+    background: var(--ab-graph-tooltip-bg, #fffce2);
+    color: var(--ab-graph-tooltip-text, #222);
     border: 0px;
     border-radius: 8px;
     pointer-events: none;
     /*color: red;*/
+}
+
+body.ab-sankey-tab div.tooltip {
+    max-width: min(320px, calc(100vw - 16px));
+    padding: 7px 9px;
+    border-radius: 4px;
+    font: 11px/1.4 sans-serif;
+    z-index: 4;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+}
+
+body.ab-sankey-tab div.tooltip[hidden] {
+    display: none !important;
 }
 
 /* Fill the webview: flex gives #canvasqPWKOg the height Qt leaves below the controls. */
@@ -251,6 +265,8 @@ body.ab-sankey-tab {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  background: var(--ab-graph-bg, #ffffff);
+  color: var(--ab-graph-text, #222222);
 }
 
 html.ab-sankey-root {
@@ -268,6 +284,10 @@ body.ab-sankey-tab #canvasqPWKOg.canvas {
   width: 100%;
 }
 
+body.ab-sankey-tab .canvas .wrapper.outer > .background {
+  stroke: none;
+}
+
 body.ab-sankey-tab .ab-sankey-controls {
   display: flex;
   flex-direction: row;
@@ -277,6 +297,7 @@ body.ab-sankey-tab .ab-sankey-controls {
   margin: 0.35em 0.35em 0.45em 0.35em;
   flex-shrink: 0;
   overflow-x: auto;
+  color: var(--ab-graph-text, inherit);
 }
 
 body.ab-sankey-tab .ab-sankey-controls select#nodeSelectPWK0g {
@@ -285,10 +306,21 @@ body.ab-sankey-tab .ab-sankey-controls select#nodeSelectPWK0g {
   max-width: min(28em, 45vw);
 }
 
+body.ab-sankey-tab .ab-sankey-layout-label {
+  white-space: nowrap;
+}
+
+body.ab-sankey-tab .ab-sankey-layout-label select {
+  font-size: inherit;
+  color: inherit;
+  background: var(--ab-graph-canvas, #fff);
+  border: 1px solid var(--ab-graph-stroke, #ccc);
+  border-radius: 3px;
+}
+
 body.ab-sankey-tab .ab-sankey-minimap-label,
 body.ab-sankey-tab .ab-sankey-flows-label {
   margin-left: 0;
-  font-size: 0.95em;
   white-space: nowrap;
 }
 
@@ -297,7 +329,6 @@ body.ab-sankey-tab .ab-sankey-impact-toggles {
   align-items: center;
   flex-wrap: nowrap;
   gap: 0.25em 0.55em;
-  font-size: 0.95em;
   white-space: nowrap;
 }
 
@@ -306,12 +337,17 @@ body.ab-sankey-tab svg g.ab-sankey-pan-minimap {
 }
 
 /* Plain-text Sankey node labels (SVG text + tspans) */
-body.ab-sankey-tab g.node text {
+body.ab-sankey-tab g.node text,
+body.ab-sankey-tab g.node text tspan {
   font-size: 12px;
 }
 
 /* Geography line (second last tspan) in Sankey node labels */
 body.ab-sankey-tab g.node text tspan:nth-last-child(2) {
-  fill: #666;
-   font-size: 11px;
+  fill: var(--ab-graph-muted, #666);
+}
+
+body.ab-sankey-tab g.node .triangle {
+  fill: var(--ab-graph-triangle, #9e9e9e);
+  pointer-events: none;
 }

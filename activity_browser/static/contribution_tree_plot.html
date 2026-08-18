@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html class="ab-light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>Contribution Tree</title>
+<link href="css/graph_theme.css?v=2" rel="stylesheet" type="text/css" />
+<link href="css/contribution_tree_plot.css?v=11" rel="stylesheet" type="text/css" />
+</head>
+<body>
+    <div id="empty" hidden></div>
+    <svg id="plot"></svg>
+    <div id="tooltip" hidden></div>
+    <section id="graph-controls" hidden aria-label="Tree plot">
+        <label>Layout
+            <select id="graphRankdir" aria-label="Flow direction">
+                <option value="BT" selected>Top to bottom</option>
+                <option value="RL">Left to right</option>
+            </select>
+        </label>
+        <label><input type="checkbox" id="graphMinimap" /> Minimap</label>
+        <label><input type="checkbox" id="graphFlows" checked /> Flows</label>
+        <label><input type="checkbox" id="graphAbs" checked /> absolute</label>
+        <label><input type="checkbox" id="graphRel" checked /> relative</label>
+    </section>
+    <script src="javascript/d3.js"></script>
+    <script src="javascript/dagre.js"></script>
+    <script src="javascript/dagre-d3.js"></script>
+    <script src="javascript/sankey_graph_style.js?v=13"></script>
+    <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
+    <script src="javascript/contribution_tree_graph.js?v=23"></script>
+    <script src="javascript/contribution_tree_plot.js?v=27"></script>
+</body>
+</html>

@@ -1,0 +1,201 @@
+html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    font-family: sans-serif;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    background: var(--ab-graph-bg, #ffffff);
+    color: var(--ab-graph-text, #222222);
+}
+
+#plot {
+    display: block;
+    width: 100%;
+    flex: 1 1 auto;
+    min-height: 0;
+    height: auto;
+}
+
+#plot text,
+.ct-label,
+.ct-arc-label text,
+.ct-tier-label {
+    font-family: sans-serif;
+    font-size: 10px;
+}
+
+#empty {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    pointer-events: none;
+}
+
+#empty[hidden] {
+    display: none !important;
+}
+
+#tooltip {
+    position: absolute;
+    pointer-events: none;
+    max-width: min(320px, calc(100vw - 16px));
+    padding: 7px 9px;
+    border-radius: 4px;
+    font-size: 11px;
+    line-height: 1.4;
+    white-space: normal;
+    z-index: 4;
+    background: var(--ab-graph-tooltip-bg, #fff);
+    color: var(--ab-graph-tooltip-text, #222);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+}
+
+#tooltip b {
+    font-weight: 700;
+}
+
+#tooltip[hidden] {
+    display: none !important;
+}
+
+.ct-label {
+    pointer-events: none;
+}
+
+.ct-seg rect,
+.ct-seg path,
+.ct-seg circle {
+    vector-effect: non-scaling-stroke;
+}
+
+#plot.ct-tiers .ct-seg rect {
+    stroke: #d0d0d0;
+}
+
+html.ab-dark #plot.ct-tiers .ct-seg rect {
+    stroke: #6e6e6e;
+}
+
+#graph-controls {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 0.5em 0.75em;
+    margin: 0.35em 0.35em 0.45em 0.35em;
+    flex-shrink: 0;
+    overflow-x: auto;
+    z-index: 3;
+}
+
+#graph-controls select {
+    font-size: inherit;
+    color: inherit;
+    background: var(--ab-graph-canvas, #fff);
+    border: 1px solid var(--ab-graph-stroke, #ccc);
+    border-radius: 3px;
+}
+
+#graph-controls[hidden] {
+    display: none !important;
+}
+
+/* Sankey visual grammar: boxes, ribbons, labels */
+body.ab-tree-graph text {
+    font-family: sans-serif;
+    font-size: 12px;
+}
+
+body.ab-tree-graph .node {
+    fill: var(--ab-graph-text, black);
+    cursor: pointer;
+}
+
+body.ab-tree-graph .node rect {
+    stroke: var(--ab-graph-stroke, #333);
+    fill: var(--ab-graph-node-fill, #fff);
+    stroke-width: 3px;
+}
+
+body.ab-tree-graph .node.demand {
+    font-weight: bold;
+}
+
+body.ab-tree-graph .node.demand rect {
+    stroke: var(--ab-graph-demand, darkblue);
+    fill: var(--ab-graph-node-fill, #fff);
+    stroke-width: 4px;
+}
+
+body.ab-tree-graph .node.market rect {
+    stroke: #ed9736;
+    fill: #fff;
+    stroke-width: 3px;
+}
+
+body.ab-tree-graph .node.marketgroup rect {
+    stroke: #ffc34c;
+    fill: #fff;
+    stroke-width: 3px;
+}
+
+body.ab-tree-graph .node.treatment rect {
+    stroke: #f4425c;
+    fill: #fff;
+    stroke-width: 3px;
+}
+
+body.ab-tree-graph .edgePath.impact path.path {
+    stroke: var(--ab-graph-impact, red);
+    opacity: 0.7;
+}
+
+body.ab-tree-graph .edgePath.benefit path.path {
+    stroke: var(--ab-graph-benefit, green);
+    opacity: 0.7;
+}
+
+body.ab-tree-graph .edgePath path {
+    stroke: none;
+    opacity: 0.3;
+}
+
+body.ab-tree-graph g.edgePath path.path {
+    pointer-events: stroke;
+}
+
+body.ab-tree-graph g.edgeLabel {
+    pointer-events: all;
+    fill: var(--ab-graph-edge-label, darkblue);
+}
+
+body.ab-tree-graph g.node text,
+body.ab-tree-graph g.node text tspan {
+    font-size: 12px;
+}
+
+body.ab-tree-graph g.node text tspan:nth-last-child(2) {
+    fill: var(--ab-graph-muted, #666);
+}
+
+body.ab-tree-graph g.edgeLabel text,
+body.ab-tree-graph g.edgeLabel tspan {
+    font-size: 11px;
+}
+
+body.ab-tree-graph svg g.ab-sankey-pan-minimap {
+    filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.22));
+}
+
+.triangle,
+.ct-triangle {
+    fill: var(--ab-graph-triangle, #9e9e9e);
+    pointer-events: none;
+}

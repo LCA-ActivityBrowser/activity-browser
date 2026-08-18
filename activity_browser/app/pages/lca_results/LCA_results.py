@@ -60,7 +60,7 @@ from .plots import (
     MonteCarloPlot,
     GSAPlot,
 )
-from .sankey_navigator import SankeyNavigatorWidget
+from .sankey_navigator_tab import SankeyNavigatorWidget
 from .contribution_tree_tab import ContributionTreeTab
 
 ca = ABContributionAnalysis()

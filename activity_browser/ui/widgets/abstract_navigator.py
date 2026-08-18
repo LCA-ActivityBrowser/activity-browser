@@ -136,7 +136,7 @@ def savefilepath(default_file_name: str, file_filter: str = ALL_FILTER):
     default = default_file_name or "Graph SVG Export"
     safe_name = bd.utils.safe_filename(default, add_hash=False)
     filepath, _ = QtWidgets.QFileDialog.getSaveFileName(
-        caption="Choose location to save svg",
+        caption="Choose location to save",
         dir=os.path.join(filesystem.get_project_path(), safe_name),
         filter=file_filter,
     )
@@ -173,8 +173,8 @@ class Bridge(QObject):
         """
         click_dict = json.loads(click_text)
         click_dict["key"] = (
-            click_dict["database"],
-            click_dict["id"],
+            click_dict.get("database"),
+            click_dict.get("id"),
         )  # since JSON does not know tuples
         logger.info(f"Click information: {click_dict}")  # TODO click_dict needs correcting
         self.update_graph.emit(click_dict)
