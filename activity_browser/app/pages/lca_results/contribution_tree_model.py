@@ -10,15 +10,15 @@ from qtpy import QtCore, QtGui
 
 from bw_graph_tools.graph_traversal import SameNodeEachVisitGraphTraversal
 
-from activity_browser.bwutils.contribution_tree import (
+from activity_browser.bwutils.graph_traversal.engine import (
     activity_metadata_for_ids,
     build_parent_child_map,
     compute_node_tiers,
     cumulative_percent,
     direct_percent,
-    flatten_to_dataframe,
     safe_traverse_from_node,
 )
+from activity_browser.bwutils.graph_traversal.tree import flatten_to_dataframe
 from activity_browser.ui.delegates.impact_background import ImpactBackgroundDelegate
 
 COL_CUMULATIVE_PCT = 0

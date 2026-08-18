@@ -13,11 +13,11 @@ from bw_graph_tools.graph_traversal import (
     SameNodeEachVisitGraphTraversal,
 )
 
-from activity_browser.bwutils.contribution_tree import (
+from activity_browser.bwutils.graph_traversal.engine import suppress_graph_traversal_warnings
+from activity_browser.bwutils.graph_traversal.sankey import (
     d3_graph_payload,
     keep_best_visit_per_activity,
     overlay_inventory_directs,
-    suppress_graph_traversal_warnings,
 )
 from activity_browser.bwutils.lca_inputs import prepared_lca_inputs
 from fixtures.bw_helpers import write_functional_database, write_method
@@ -143,7 +143,6 @@ def test_circular_functional_sqlite_tree_and_sankey_calculate():
         float(lca.score),
         root_uid=root,
         included_uids=set(data["nodes"]),
-        unique_activities=True,
         visited=set(data["nodes"]),
     )
     overlay_inventory_directs(payload, lca, float(lca.score))

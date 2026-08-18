@@ -10,15 +10,15 @@ import json
 
 import pytest
 
-from activity_browser.bwutils.contribution_tree import (
+from activity_browser.bwutils.graph_traversal.engine import build_parent_child_map
+from activity_browser.bwutils.graph_traversal.partition_plots import (
     aggregate_plot_segments,
     build_chain_layout,
-    build_parent_child_map,
     d3_plot_payload,
     plot_click_target_uid,
 )
 
-from tests.test_contribution_tree import _edge, _node, _rf_supplier_tree
+from tests.graph_traversal_fakes import _rf_supplier_tree
 
 
 def test_d3_plot_payload_keeps_layout_and_is_json_serializable():

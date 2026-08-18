@@ -9,6 +9,7 @@ This module provides a collection of generic methods and utilities that wrap and
 ## Directory Structure
 
 - **`ecoinvent_biosphere_versions/`** - Ecoinvent biosphere database version mappings
+- **`graph_traversal/`** - Tree and Sankey graph helpers (visit engine, tree flatten, unique-process Sankey, partition plots). See `graph_traversal/README.md` and ADR-0008.
 - **`io/`** - Import/export operations for data interchange
 - **`metadata/`** - Metadata loading and caching for quick access
 - **`searchengine/`** - Fuzzy search functionality for dataframes
@@ -16,7 +17,6 @@ This module provides a collection of generic methods and utilities that wrap and
 
 ## Key Files
 
-- **`contribution_tree.py`** - Contribution tree and Sankey graph helpers (display sets, payloads)
 - **`lca_inputs.py`** - Process→product demand mapping for `functional_sqlite` (Tree/Sankey). Stopgap until this lives in bw_functional (see ADR-0001 Future work)
 - **`commontasks.py`** - Common Brightway2 operations (database management, activity operations)
 - **`errors.py`** - Custom exception classes for Brightway2 operations

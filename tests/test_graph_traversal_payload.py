@@ -1,7 +1,7 @@
 """JSON payload for the contribution-tree / Sankey node-link renderer (no Qt).
 
-Seam: ``d3_graph_payload`` builds boxes and ribbons from a visit graph and
-display set. JavaScript must not recompute adjust policy or click targets.
+Seam: engine ``d3_graph_payload`` is visit-based; ``sankey.d3_graph_payload``
+collapses to one box per process. JavaScript must not recompute adjust policy.
 """
 
 from __future__ import annotations
@@ -10,16 +10,19 @@ import json
 
 import pytest
 
-from activity_browser.bwutils.contribution_tree import (
+from activity_browser.bwutils.graph_traversal.engine import (
     d3_graph_payload,
     format_graph_edge_tooltip,
     format_impact_abs,
-    merge_graph_edges,
     open_process_activity_id,
     open_process_refs,
 )
+from activity_browser.bwutils.graph_traversal.sankey import (
+    d3_graph_payload as sankey_graph_payload,
+    merge_graph_edges,
+)
 
-from tests.test_contribution_tree import _circular_ab_visits, _edge, _node, _rf_supplier_tree
+from tests.graph_traversal_fakes import _edge, _node, _rf_supplier_tree
 
 
 def _lookup(activity_id):
@@ -234,7 +237,7 @@ def _circular_ab_visits():
 
 def test_graph_payload_unique_activities_keeps_two_cycle_boxes():
     nodes, edges = _circular_ab_visits()
-    payload = d3_graph_payload(
+    payload = sankey_graph_payload(
         nodes,
         edges,
         10.0,
@@ -242,7 +245,6 @@ def test_graph_payload_unique_activities_keeps_two_cycle_boxes():
         included_uids={0, 1, 2, 3},
         metadata_lookup=_lookup,
         visited=set(nodes),
-        unique_activities=True,
     )
     ids = {n["id"] for n in payload["nodes"]}
     assert ids == {0, 1}
@@ -260,7 +262,7 @@ def test_graph_payload_unique_activities_keeps_two_cycle_boxes():
 
 def test_graph_payload_unopened_visit_is_not_terminal():
     nodes, edges = _circular_ab_visits()
-    payload = d3_graph_payload(
+    payload = sankey_graph_payload(
         nodes,
         edges,
         10.0,
@@ -268,7 +270,6 @@ def test_graph_payload_unopened_visit_is_not_terminal():
         included_uids={0, 1},
         metadata_lookup=_lookup,
         visited=set(nodes),
-        unique_activities=True,
         opened_uids={-1, 0},
     )
     by_id = {n["id"]: n for n in payload["nodes"]}
@@ -286,7 +287,7 @@ def test_graph_payload_hidden_uses_other_visit_suppliers():
         4: _node(4, 2, 30.0, 1.0, activity_id=30),
     }
     edges = [_edge(-1, 1), _edge(-1, 2), _edge(1, 3), _edge(2, 4)]
-    payload = d3_graph_payload(
+    payload = sankey_graph_payload(
         nodes,
         edges,
         100.0,
@@ -294,7 +295,6 @@ def test_graph_payload_hidden_uses_other_visit_suppliers():
         included_uids={2, 4},
         metadata_lookup=_lookup,
         visited=set(nodes),
-        unique_activities=True,
         opened_uids={-1, 1, 2},
     )
     by_id = {n["id"]: n for n in payload["nodes"]}

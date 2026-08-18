@@ -13,7 +13,7 @@ from qtpy import QtCore, QtGui, QtWebChannel, QtWebEngineWidgets, QtWidgets
 from qtpy.QtCore import QObject, QUrl, Signal, Slot
 
 from activity_browser import app
-from activity_browser.bwutils.contribution_tree import d3_plot_payload
+from activity_browser.bwutils.graph_traversal.partition_plots import d3_plot_payload
 from activity_browser.bwutils.filesystem import get_package_path
 from activity_browser.ui.widgets.web_engine_page import ABWebEnginePage
 

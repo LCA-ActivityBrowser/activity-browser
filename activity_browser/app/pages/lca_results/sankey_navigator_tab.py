@@ -14,11 +14,16 @@ from qtpy.QtCore import Slot
 from activity_browser.mod import bw2data as bd
 
 from activity_browser import app
-from activity_browser.bwutils.contribution_tree import (
+from activity_browser.bwutils.graph_traversal.engine import (
     PLOT_AGGREGATE_FIELDS,
     PLOT_AGGREGATE_LABELS,
     activity_metadata_for_ids,
     activities_from_open_refs,
+    open_process_refs,
+    safe_traverse_from_node,
+    suppress_graph_traversal_warnings,
+)
+from activity_browser.bwutils.graph_traversal.sankey import (
     apply_graph_display_click,
     d3_graph_payload,
     graph_display_set,
@@ -26,11 +31,8 @@ from activity_browser.bwutils.contribution_tree import (
     inventory_direct_lookup,
     keep_best_visit_per_activity,
     mapped_edge_amounts,
-    open_process_refs,
     overlay_inventory_directs,
     run_expand_policy,
-    safe_traverse_from_node,
-    suppress_graph_traversal_warnings,
     unique_process_stats,
     unopened_same_activity_hops,
 )
@@ -647,7 +649,6 @@ class SankeyNavigatorWidget(widgets.ABAbstractNavigator):
                 value=value,
                 total_score=float(lca.score),
                 on_progress=_tick,
-                unique_activities=True,
                 direct_lookup=lookup,
             )
         trav._should_continue = None
@@ -775,7 +776,6 @@ class SankeyNavigatorWidget(widgets.ABAbstractNavigator):
             total_score=score,
             root_uid=root,
             visited=data.get("opened") or set(data["nodes"]),
-            unique_activities=True,
             direct_lookup=self._sankey_direct_lookup(data),
         )
         return included
@@ -1035,7 +1035,6 @@ class SankeyNavigatorWidget(widgets.ABAbstractNavigator):
             self._full_data["nodes"],
             self._full_data["edges"],
             uid,
-            unique_activities=True,
             opened=opened,
             root_uid=root,
         )
@@ -1149,7 +1148,6 @@ class Graph(widgets.ABAbstractGraph):
             color_by=color_by or "direct",
             unit=lcia_unit,
             visited=set(data["nodes"]),
-            unique_activities=True,
             opened_uids=data.get("opened"),
         )
         overlay_inventory_directs(payload, data["metadata"]["lca"], float(lca_score))

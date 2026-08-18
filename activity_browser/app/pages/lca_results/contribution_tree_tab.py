@@ -21,21 +21,23 @@ from bw_graph_tools.graph_traversal import (
 )
 
 from activity_browser import app
-from activity_browser.bwutils.contribution_tree import (
+from activity_browser.bwutils.graph_traversal.engine import (
     PLOT_AGGREGATE_FIELDS,
     PLOT_AGGREGATE_LABELS,
     activity_metadata_for_ids,
     activities_from_open_refs,
-    build_plot_segments,
     compute_node_tiers,
     d3_graph_payload,
-    d3_plot_payload,
     direct_impact_coverage,
     is_terminal_node,
     open_process_refs,
-    plot_click_target_uid,
     run_expand_policy,
     suppress_graph_traversal_warnings,
+)
+from activity_browser.bwutils.graph_traversal.partition_plots import (
+    build_plot_segments,
+    d3_plot_payload,
+    plot_click_target_uid,
 )
 from activity_browser.bwutils.lca_inputs import demand_database_names, prepared_lca_inputs
 from activity_browser.bwutils.export_names import lca_export_basename
