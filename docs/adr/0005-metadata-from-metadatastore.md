@@ -1,0 +1,3 @@
+# Prefer MetaDataStore for activity metadata reads
+
+Activity Browser keeps an in-memory MetaDataStore (`app.metadata`) so UI and results code can look up process labels without per-row SQLite. Prefer that store for reads (names, products, locations, units, and other stored fields). Do not query `ActivityDataset` or `bd.get_node` for display metadata the store already has. Mutations still go through Brightway APIs; fall back to Brightway only for missing rows, fields the store does not keep, or a live activity proxy. Helpers in `bwutils/` should take a dataframe or lookup callback rather than importing `app`.

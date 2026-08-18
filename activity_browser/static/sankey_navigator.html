@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html class="ab-sankey-root">
+<html class="ab-sankey-root ab-light">
 <meta  name="viewport" content="user-scalable=no, initial-scale=1, maximum-scale=1"><meta charset="utf-8">
 <!-- http-equiv="content-type" content="user-scalable=no, intial-scale=1"-->
 
@@ -13,23 +13,28 @@
 <script src="javascript/d3.js"></script>
 <script src="javascript/dagre.js"></script>
 <script src="javascript/dagre-d3.js"></script>
+<script src="javascript/sankey_graph_style.js?v=13"></script>
 <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
 <!--<script type="text/javascript_libs" src="jquery.tipsy.js"></script>-->
 <link href="css/navigator.common.css" rel="stylesheet" type="text/css" />
-<link href="css/sankey_navigator.css" rel="stylesheet" type="text/css" />
+<link href="css/graph_theme.css?v=2" rel="stylesheet" type="text/css" />
+<link href="css/sankey_navigator.css?v=5" rel="stylesheet" type="text/css" />
 <div id="canvasqPWKOg" class="canvas"></div>
 <section class="ab-sankey-controls" aria-label="Sankey actions">
-    <button type="button" id="downloadSVGtButtonqPWKOg">Download SVG</button>
-    <select id="nodeSelectPWK0g" aria-label="Process"></select>
-    <button type="button" id="nodeSelectPWK0gExecute">Goto Process</button>
-    <label class="ab-sankey-minimap-label"><input type="checkbox" id="sankeyMinimapVisible" checked /> Minimap</label>
+    <label class="ab-sankey-layout-label">Layout
+        <select id="sankeyRankdir" aria-label="Flow direction">
+            <option value="BT" selected>Top to bottom</option>
+            <option value="RL">Left to right</option>
+        </select>
+    </label>
+    <label class="ab-sankey-minimap-label"><input type="checkbox" id="sankeyMinimapVisible" /> Minimap</label>
     <label class="ab-sankey-flows-label"><input type="checkbox" id="sankeyFlowsVisible" checked /> Flows</label>
     <span class="ab-sankey-impact-toggles" aria-label="Impact lines on flows">
         <label><input type="checkbox" id="sankeyImpactAbsoluteVisible" checked /> absolute</label>
         <label><input type="checkbox" id="sankeyImpactRelativeVisible" checked /> relative</label>
     </span>
 </section>
-<script type="text/javascript" src="javascript/navigator.js"></script>
+<script type="text/javascript" src="javascript/navigator.js?v=18"></script>
 
 </body>
 </html>

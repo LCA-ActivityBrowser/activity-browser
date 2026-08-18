@@ -6,6 +6,7 @@ alwaysApply: true
 # Activity Browser — core invariants
 
 - Read `AGENTS.md` and use vocabulary from `CONTEXT.md`.
+- Prefer `app.metadata` (MetaDataStore) for activity metadata reads; do not hit SQLite / `bd.get_node` for labels the store already has (`docs/adr/0005-metadata-from-metadatastore.md`).
 - Placement: Brightway-only → `bwutils/`; app-agnostic widgets → `ui/`; app-aware pages/panes/actions → `app/`.
 - Domain updates: user → action → Brightway/bwutils → bw signals → `app.signals` → UI (see `docs/adr/0003-signals-event-bus.md`). UI listens; do not emit domain signals from UI to refresh other UI.
 - Preserve deferred-import patterns on hot paths (`ADR-0002`).

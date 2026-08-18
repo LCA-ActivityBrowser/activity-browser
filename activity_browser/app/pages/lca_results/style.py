@@ -4,6 +4,8 @@ Provides consistent margins, control rows, headers, run buttons, and compact
 combo boxes used across matplotlib tabs and web navigators (Sankey/Tree).
 """
 
+import json
+
 from qtpy import QtWidgets, QtGui, QtCore
 
 from activity_browser.ui.icons import qicons
@@ -19,7 +21,6 @@ def configure_lca_tab_layout(layout: QtWidgets.QVBoxLayout) -> None:
     """Shared vertical spacing and edge padding for LCA Results sub-tabs."""
     layout.setSpacing(LCA_TAB_LAYOUT_SPACING)
     layout.setContentsMargins(*LCA_TAB_CONTENT_MARGINS)
-    layout.setAlignment(QtCore.Qt.AlignTop)
 
 
 def lca_tab_control_row() -> QtWidgets.QHBoxLayout:
@@ -108,3 +109,72 @@ def lca_header_layout(
     section.setContentsMargins(0, 0, 0, 0)
     section.addWidget(bar)
     return section
+
+
+def qt_ui_font_css() -> str:
+    """Match WebEngine chrome (Layout row) to the Qt application font."""
+    instance = QtWidgets.QApplication.instance()
+    font = instance.font() if instance is not None else QtGui.QFont()
+    family = font.family() or "sans-serif"
+    if font.pointSizeF() > 0:
+        size = f"{font.pointSizeF():g}pt"
+    elif font.pixelSize() > 0:
+        size = f"{font.pixelSize()}px"
+    else:
+        size = "9pt"
+    family_css = family.replace("\\", "\\\\").replace("'", "\\'")
+    return (
+        ".ab-sankey-controls,#graph-controls{"
+        f"font-family:'{family_css}',sans-serif;"
+        f"font-size:{size};"
+        "}"
+    )
+
+
+def app_is_dark() -> bool:
+    """Whether the Qt application color scheme is dark."""
+    instance = QtWidgets.QApplication.instance()
+    if instance is None:
+        return False
+    try:
+        scheme = instance.styleHints().colorScheme()
+        if scheme == QtCore.Qt.ColorScheme.Dark:
+            return True
+        if scheme == QtCore.Qt.ColorScheme.Light:
+            return False
+    except Exception:
+        pass
+    bg = instance.palette().color(QtGui.QPalette.ColorRole.Window)
+    lum = 0.299 * bg.redF() + 0.587 * bg.greenF() + 0.114 * bg.blueF()
+    return lum < 0.45
+
+
+def inject_qt_ui_font(page) -> None:
+    """Apply :func:`qt_ui_font_css` to a WebEngine page."""
+    if page is None:
+        return
+    css = json.dumps(qt_ui_font_css())
+    page.runJavaScript(
+        "(function(){var s=document.getElementById('ab-ui-font');"
+        "if(!s){s=document.createElement('style');s.id='ab-ui-font';"
+        "document.head.appendChild(s);}"
+        "s.textContent=" + css + ";})();"
+    )
+
+
+def show_open_process_menu(parent, activities, global_pos=None) -> None:
+    """One-item Open process menu. Greyed out when there is no single process."""
+    from activity_browser import app
+
+    menu = QtWidgets.QMenu(parent)
+    n = len(activities or [])
+    menu.addAction(
+        app.actions.ActivityOpen.get_QAction(
+            activities,
+            parent=menu,
+            text="Open process" if n <= 1 else "Open processes",
+            enabled=bool(activities),
+        )
+    )
+    pos = global_pos if global_pos is not None else QtGui.QCursor.pos()
+    menu.exec_(pos)

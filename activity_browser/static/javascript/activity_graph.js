@@ -55,8 +55,8 @@ class Cartographer {
 
         const zoom = d3.zoom()
             .scaleExtent([0.5, 5])
-            .on("zoom", function() {
-                panGroup.attr("transform", d3.event.transform);
+            .on("zoom", function(event) {
+                panGroup.attr("transform", event.transform);
             });
 
         canvas.call(zoom)
@@ -184,8 +184,8 @@ class Cartographer {
             })
         })
 
-        elem.on("contextmenu", ()=>{
-            d3.event.preventDefault()
+        elem.on("contextmenu", (event)=>{
+            event.preventDefault()
             window.backend.collapse_node(node.id.slice(2))
         })
     }

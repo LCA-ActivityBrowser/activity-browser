@@ -2,6 +2,41 @@ let is_sankey_mode = window.ab_sankey_mode || false;
 let interactive = window.ab_interactive || false;
 let graph_direction = window.ab_graph_direction || "BT";
 let mode = is_sankey_mode ? "Sankey" : "Navigator";
+if (is_sankey_mode) {
+    window.ab_show_sankey_minimap = false;
+}
+
+var sankeyColorBy = "direct";
+var sankeyOrdinal = null;
+
+function resetSankeyColorScale(payload) {
+    sankeyColorBy = (payload && payload.color_by) ? payload.color_by : "direct";
+    sankeyOrdinal = null;
+    if (sankeyColorBy === "direct" || !payload || !payload.nodes) {
+        return;
+    }
+    var keys = payload.nodes.map(function (n) { return n.color_key; }).filter(Boolean);
+    if (typeof abOrdinalScale === "function") {
+        sankeyOrdinal = abOrdinalScale(keys);
+    } else if (typeof d3.scaleOrdinal === "function" && d3.schemeTableau10) {
+        sankeyOrdinal = d3.scaleOrdinal(d3.schemeTableau10).domain(Array.from(new Set(keys)));
+    }
+}
+
+function sankeyNodeFill(n) {
+    if (sankeyColorBy && sankeyColorBy !== "direct" && n && n.color_key && sankeyOrdinal) {
+        return sankeyOrdinal(n.color_key);
+    }
+    var v = n && n.direct_emissions_score_normalized;
+    if (typeof abSankeyDirectFill === "function") {
+        return abSankeyDirectFill(v);
+    }
+    return color(v);
+}
+
+function sankeyShowTriangle(n) {
+    return n && !n.is_aggregate && (n.has_hidden_suppliers || n.can_collapse);
+}
 
 console.log(`Starting ${mode}, interactive: ${interactive}`);
 
@@ -17,8 +52,8 @@ const getGraphConfig = function () {
         rankdir: graph_direction,
     };
     if (is_sankey_mode) {
-        // Reduce inter-rank spacing for denser Sankey node stacking.
-        cfg.ranksep = 26;
+        cfg.ranksep = (graph_direction === "LR" || graph_direction === "RL") ? 36 : 26;
+        cfg.ranker = "tight-tree";
     }
     return cfg;
 };
@@ -67,183 +102,7 @@ function getWindowSize() {
  * Sankey-only: fixed overview of the full graph; a red-outlined viewport shows main zoom/pan.
  * Drag the viewport or wheel on the minimap to change only the main Sankey transform.
  */
-function abCreateSankeyPanMinimap(opts) {
-    var innerWrapper = opts.innerWrapper;
-    var panCanvas = opts.panCanvas;
-    var zoomMain = opts.zoomMain;
-    var getVpW = opts.getVpW;
-    var getVpH = opts.getVpH;
-
-    var MM_W = 200;
-    var MM_H = 130;
-    var INSET = 5;
-    var clipId = "abSankeyPmClip_qwpyza";
-
-    var lastMain = d3.zoomIdentity;
-    var overviewOx = INSET + 2;
-    var overviewOy = INSET + 2;
-    var overviewSc = 0.12;
-
-    var root = opts.svg.append("g").attr("class", "ab-sankey-pan-minimap");
-
-    var defs = root.append("defs");
-    defs.append("clipPath")
-        .attr("id", clipId)
-        .append("rect")
-        .attr("x", INSET)
-        .attr("y", INSET)
-        .attr("width", MM_W - 2 * INSET)
-        .attr("height", MM_H - 2 * INSET);
-
-    root.append("rect")
-        .attr("class", "ab-sankey-pm-chrome")
-        .attr("rx", 5)
-        .attr("ry", 5)
-        .attr("fill", "rgba(255,255,255,0.96)")
-        .attr("stroke", "#333")
-        .attr("stroke-width", 2)
-        .attr("pointer-events", "none")
-        .attr("x", 0)
-        .attr("y", 0)
-        .attr("width", MM_W)
-        .attr("height", MM_H);
-
-    var layer = root.append("g")
-        .attr("clip-path", "url(#" + clipId + ")");
-
-    var graphWrap = layer.append("g")
-        .attr("class", "ab-sankey-pm-graph")
-        .attr("pointer-events", "none");
-
-    var viewport = layer.append("rect")
-        .attr("class", "ab-sankey-pm-viewport")
-        .attr("fill", "rgba(245, 245, 245, 0.1)")
-        .attr("stroke", "#c62828")
-        .attr("stroke-width", 2)
-        .attr("pointer-events", "all")
-        .attr("rx", 2)
-        .attr("ry", 2);
-
-    function toTr(t) {
-        if (!t || typeof t.k !== "number") {
-            return d3.zoomIdentity;
-        }
-        return d3.zoomIdentity.translate(t.x, t.y).scale(t.k);
-    }
-
-    function zoomMainTo(t) {
-        zoomMain.transform(panCanvas, t);
-        innerWrapper.property("__zoom", t);
-        lastMain = t;
-        updateViewportRect(t);
-        if (opts.onHostTransform) {
-            opts.onHostTransform(t);
-        }
-    }
-
-    function graphToMm(gx, gy) {
-        return [overviewOx + gx * overviewSc, overviewOy + gy * overviewSc];
-    }
-
-    function mmToGraph(mx, my) {
-        return [(mx - overviewOx) / overviewSc, (my - overviewOy) / overviewSc];
-    }
-
-    function updateViewportRect(T) {
-        lastMain = T;
-        var tr = toTr(T);
-        var W = getVpW();
-        var H = getVpH();
-        var corners = [[0, 0], [W, 0], [W, H], [0, H]];
-        var mmPts = corners.map(function (c) {
-            var g = tr.invert(c);
-            return graphToMm(g[0], g[1]);
-        });
-        var xs = mmPts.map(function (p) {
-            return p[0];
-        });
-        var ys = mmPts.map(function (p) {
-            return p[1];
-        });
-        var x0 = Math.min.apply(null, xs);
-        var x1 = Math.max.apply(null, xs);
-        var y0 = Math.min.apply(null, ys);
-        var y1 = Math.max.apply(null, ys);
-        viewport
-            .attr("x", x0)
-            .attr("y", y0)
-            .attr("width", Math.max(4, x1 - x0))
-            .attr("height", Math.max(4, y1 - y0));
-    }
-
-    var drag = d3.drag()
-        .on("drag", function () {
-            var dgx = d3.event.dx / overviewSc;
-            var dgy = d3.event.dy / overviewSc;
-            var tr = toTr(lastMain);
-            var Tn = d3.zoomIdentity.translate(tr.x - dgx * tr.k, tr.y - dgy * tr.k).scale(tr.k);
-            zoomMainTo(Tn);
-        });
-
-    viewport.call(drag);
-
-    function wheelHandler(ev) {
-        ev.preventDefault();
-        ev.stopPropagation();
-        var tr = toTr(lastMain);
-        var pt = d3.mouse(layer.node());
-        var gxy = mmToGraph(pt[0], pt[1]);
-        var focal = tr.apply(gxy);
-        var factor = ev.deltaY > 0 ? 0.92 : 1.08;
-        var kNew = clamp(tr.k * factor, 0.25, 5);
-        if (Math.abs(kNew - tr.k) < 1e-6) {
-            return;
-        }
-        var fk = kNew / tr.k;
-        var Tn = d3.zoomIdentity.translate(
-            focal[0] + (tr.x - focal[0]) * fk,
-            focal[1] + (tr.y - focal[1]) * fk
-        ).scale(kNew);
-        zoomMainTo(Tn);
-    }
-
-    layer.node().addEventListener("wheel", wheelHandler, { passive: false });
-
-    function positionRoot(vh) {
-        root.attr("transform", "translate(" + INSET + "," + (vh - MM_H - INSET) + ")");
-    }
-
-    function refreshGraphClone() {
-        graphWrap.selectAll(".ab-sankey-pm-clone").remove();
-        var node = panCanvas.node().cloneNode(true);
-        node.removeAttribute("id");
-        graphWrap.node().appendChild(node);
-        d3.select(node).attr("class", "ab-sankey-pm-clone panCanvas").attr("transform", null);
-        var bb = graphWrap.node().getBBox();
-        var innerW = MM_W - 2 * INSET - 4;
-        var innerH = MM_H - 2 * INSET - 4;
-        var sx = innerW / Math.max(bb.width, 80);
-        var sy = innerH / Math.max(bb.height, 60);
-        overviewSc = Math.min(sx, sy, 0.28);
-        overviewOx = INSET + 2 - bb.x * overviewSc;
-        overviewOy = INSET + 2 - bb.y * overviewSc;
-        graphWrap.attr("transform", "translate(" + overviewOx + "," + overviewOy + ") scale(" + overviewSc + ")");
-        updateViewportRect(lastMain);
-    }
-
-    return {
-        resize: function (vh) {
-            positionRoot(vh);
-        },
-        onMainZoom: function (t) {
-            updateViewportRect(t || d3.zoomIdentity);
-        },
-        refresh: refreshGraphClone,
-        setVisible: function (on) {
-            root.style("display", on ? null : "none");
-        }
-    };
-}
+/** Sankey minimap + label helpers live in sankey_graph_style.js. */
 
 var max_string_length = 20;
 var max_edge_width = 40;
@@ -382,8 +241,8 @@ d3.demo.canvas = function () {
             //]);
         };
 
-        var zoomHandler = function () {
-            var t = d3.event.transform;
+        var zoomHandler = function (event) {
+            var t = event.transform;
             panCanvas.attr("transform", t);
             lastMainTransform = t;
             innerWrapper.property("__zoom", t);
@@ -417,8 +276,18 @@ d3.demo.canvas = function () {
 
         canvas.applySankeyMinimapVisibility = function () {
             if (sankeyPanMinimap) {
-                sankeyPanMinimap.setVisible(window.ab_show_sankey_minimap !== false);
+                sankeyPanMinimap.setVisible(window.ab_show_sankey_minimap === true);
             }
+        };
+
+        canvas.refreshThemeFills = function () {
+            if (!is_sankey_mode) {
+                return;
+            }
+            panCanvas.selectAll("g .node rect")
+                .style("fill", function (d) {
+                    return sankeyNodeFill(graph.node(d));
+                });
         };
 
         /** ADD SHAPE **/
@@ -487,7 +356,7 @@ d3.demo.canvas = function () {
         };
 
         canvas.update = function (minimapZoomTransform) {
-            zoom.transform(panCanvas, minimapZoomTransform);
+            innerWrapper.call(zoom.transform, minimapZoomTransform);
             innerWrapper.property("__zoom", minimapZoomTransform);
             lastMainTransform = minimapZoomTransform;
             if (sankeyPanMinimap) {
@@ -498,6 +367,22 @@ d3.demo.canvas = function () {
 
         canvas.zoomTo = function (zoomTo) {
             canvas.update(zoomTo);
+        };
+
+        canvas.getMainTransform = function () {
+            try {
+                var innerT = d3.zoomTransform(innerWrapper.node());
+                if (innerT && (innerT.k !== 1 || innerT.x !== 0 || innerT.y !== 0)) {
+                    return innerT;
+                }
+                var panT = d3.zoomTransform(panCanvas.node());
+                if (panT && (panT.k !== 1 || panT.x !== 0 || panT.y !== 0)) {
+                    return panT;
+                }
+            } catch (err) {
+                /* fall through */
+            }
+            return lastMainTransform;
         };
 
         canvas.zoomToNode = function (nodeId, options = {}) {
@@ -539,332 +424,13 @@ d3.demo.canvas = function () {
  * Word-wrap for dagre plain-text edge labels: dagre-d3 splits on "\\n" into tspans.
  * maxLen approximates "not wider than the node" when chosen from node label widths.
  */
-function wrapWordsToMaxLineLength(str, maxLen) {
-    if (!str) {
-        return "";
-    }
-    str = String(str).replace(/\s+/g, " ").trim();
-    if (maxLen < 6 || str.length <= maxLen) {
-        return str;
-    }
-    var lines = [];
-    var pos = 0;
-    while (pos < str.length) {
-        var end = Math.min(pos + maxLen, str.length);
-        if (end >= str.length) {
-            lines.push(str.slice(pos).trim());
-            break;
-        }
-        var chunk = str.slice(pos, end);
-        var lastSpace = chunk.lastIndexOf(" ");
-        var cut = lastSpace > 0 ? lastSpace : maxLen;
-        lines.push(str.slice(pos, pos + cut).trim());
-        pos += cut;
-        while (pos < str.length && str[pos] === " ") {
-            pos++;
-        }
-    }
-    return lines.join("\n");
-}
-
-function wrapSankeyEdgeLabelMultiline(text, maxLen) {
-    if (!text) {
-        return "";
-    }
-    var parts = text.split("\n");
-    var flow = (parts[0] || "").trim();
-    var rest = parts.slice(1);
-
-    function wrapFlowMaxTwoRows(str, cols) {
-        var cleaned = String(str || "").replace(/\s+/g, " ").trim();
-        if (!cleaned) {
-            return "";
-        }
-        if (cleaned.length <= cols) {
-            return cleaned;
-        }
-        var c1 = cleaned.lastIndexOf(" ", cols);
-        var line1 = (c1 > 0 ? cleaned.slice(0, c1) : cleaned.slice(0, cols)).trim();
-        var tail = (c1 > 0 ? cleaned.slice(c1 + 1) : cleaned.slice(cols)).trim();
-        if (!tail) {
-            return line1;
-        }
-        if (tail.length <= cols) {
-            return line1 + "\n" + tail;
-        }
-        var c2 = tail.lastIndexOf(" ", Math.max(1, cols - 3));
-        var line2 = (c2 > 0 ? tail.slice(0, c2) : tail.slice(0, Math.max(1, cols - 3))).trim();
-        return line1 + "\n" + line2.replace(/[. ]+$/, "") + "...";
-    }
-
-    var out = [];
-    if (flow) {
-        out.push(wrapFlowMaxTwoRows(flow, maxLen));
-    }
-    rest.forEach(function (ln) {
-        var w = wrapWordsToMaxLineLength(ln, maxLen);
-        if (w) {
-            out.push(w);
-        }
-    });
-    return out.join("\n");
-}
-
-/**
- * Edge label from toggles: Flows (product name), impacts absolute / relative (any subset).
- */
-function formatSankeyTwoLineEdgeLabel(e) {
-    /* Default on when unset (before wire runs or old HTML without toggles). */
-    var showFlows = window.ab_sankey_show_flows !== false;
-    var showAbs = window.ab_sankey_impact_absolute !== false;
-    var showRel = window.ab_sankey_impact_relative !== false;
-    var flow = (e.product || "").trim();
-    var lines = [];
-    if (showFlows && flow) {
-        lines.push(flow);
-    }
-    var impactLines = [];
-    if (e.impact_cumulative != null && e.impact_unit != null) {
-        if (showAbs) {
-            var x = Number(e.impact_cumulative);
-            impactLines.push((Math.round(x * 1000) / 1000) + " " + e.impact_unit);
-        }
-        if (showRel) {
-            var pctRaw = e.impact_pct_total != null ? Number(e.impact_pct_total) : 0;
-            if (!isFinite(pctRaw)) {
-                pctRaw = 0;
-            }
-            impactLines.push((Math.round(pctRaw * 10) / 10) + "%");
-        }
-    } else if (showAbs || showRel) {
-        if (e._sankeyScoreLabel == null && typeof e.label === "string") {
-            e._sankeyScoreLabel = e.label;
-        }
-        var fb = e._sankeyScoreLabel || "";
-        if (fb) {
-            impactLines.push(fb);
-        }
-    }
-    var impactBlock = impactLines.join("\n");
-    if (lines.length && impactBlock) {
-        return lines[0] + "\n" + impactBlock;
-    }
-    if (lines.length) {
-        return lines[0];
-    }
-    if (impactBlock) {
-        return impactBlock;
-    }
-    return " ";
-}
-
-function escapeHtmlForSankeyTooltip(s) {
-    if (s == null) {
-        return "";
-    }
-    return String(s)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;");
-}
-
-/** Edge hover HTML for Sankey: built in JS from JSON fields (Python only passes data). */
-function buildSankeyEdgeTooltipHtml(e) {
-    if (!e) {
-        return "";
-    }
-    var parts = [];
-    var flow = (e.product || "").trim();
-    if (flow) {
-        parts.push("<b>" + escapeHtmlForSankeyTooltip(flow) + "</b>");
-    }
-    if (e.amount != null && isFinite(Number(e.amount))) {
-        var amt = Number(e.amount);
-        var amtStr = amt === 0 ? "0" : amt.toPrecision(2);
-        var u = (e.amount_unit != null && String(e.amount_unit).trim()) || "";
-        parts.push(escapeHtmlForSankeyTooltip(amtStr) + (u ? " " + escapeHtmlForSankeyTooltip(u) : ""));
-    }
-    if (e.impact_cumulative != null && e.impact_unit != null) {
-        var x = Number(e.impact_cumulative);
-        var pctRaw = e.impact_pct_total != null ? Number(e.impact_pct_total) : 0;
-        if (!isFinite(pctRaw)) {
-            pctRaw = 0;
-        }
-        parts.push(
-            "<b>" +
-                (Math.round(x * 1000) / 1000) +
-                " " +
-                escapeHtmlForSankeyTooltip(String(e.impact_unit)) +
-                "</b> (" +
-                (Math.round(pctRaw * 10) / 10) +
-                "%)"
-        );
-    }
-    if (!parts.length) {
-        return e.tooltip ? String(e.tooltip) : "";
-    }
-    return parts.join("<br>");
-}
-
-function inferSankeyEdgeLabelMaxCols(parsed) {
-    if (!parsed || !parsed.nodes || !parsed.nodes.length) {
-        return 12;
-    }
-    var maxFirst = 10;
-    parsed.nodes.forEach(function (nd) {
-        var lab = nd.label != null ? String(nd.label) : "";
-        var nm = nd.name != null ? String(nd.name) : "";
-        var first = lab.split("\n")[0] || "";
-        var halfName = Math.ceil(nm.length / 2) || 0;
-        maxFirst = Math.max(maxFirst, first.length, Math.min(30, halfName));
-    });
-    return Math.max(8, Math.min(22, maxFirst + 2));
-}
-
-/** Sankey node process name is capped to this many wrapped rows. */
-var AB_SANKEY_NODE_NAME_MAX_ROWS = 2;
-/** Sankey process node inner rectangle height is fixed; width adapts and is clamped to 1:1..3:1. */
-var AB_SANKEY_NODE_MIN_ASPECT = 1;
-var AB_SANKEY_NODE_MAX_ASPECT = 3;
-/** Inner height (px) before padding. */
-var AB_SANKEY_NODE_INNER_HEIGHT_PX = 50;
-var AB_SANKEY_NODE_INNER_MIN_WIDTH_PX = Math.round(AB_SANKEY_NODE_INNER_HEIGHT_PX * AB_SANKEY_NODE_MIN_ASPECT);
-var AB_SANKEY_NODE_INNER_MAX_WIDTH_PX = Math.round(AB_SANKEY_NODE_INNER_HEIGHT_PX * AB_SANKEY_NODE_MAX_ASPECT);
-/** Approximate glyph width for node labels; used for width and wrap heuristics. */
-var AB_SANKEY_NODE_CHAR_PX = 5;
-/** Keep text 6px from node boundaries. */
-var AB_SANKEY_NODE_PADDING_X = 6;
-var AB_SANKEY_NODE_PADDING_Y = 6;
-
-function inferSankeyNodeInnerWidthPx(n) {
-    var nameLines = buildSankeyProcessNameLines(String(n.name != null ? n.name : "(unnamed)"));
-    var maxLineLen = nameLines.reduce(function (mx, ln) {
-        return Math.max(mx, ln.length);
-    }, 8);
-    var targetCols = Math.max(8, maxLineLen);
-    var desired = Math.round(targetCols * AB_SANKEY_NODE_CHAR_PX + 12);
-    return clamp(desired, AB_SANKEY_NODE_INNER_MIN_WIDTH_PX, AB_SANKEY_NODE_INNER_MAX_WIDTH_PX);
-}
-
-function inferSankeyNodeWrapColsFromWidth(innerWidthPx) {
-    var usable = Math.max(8, innerWidthPx - 12);
-    return clamp(Math.floor(usable / AB_SANKEY_NODE_CHAR_PX), 8, 36);
-}
-
-function sankeyNameMaxColsAt3to1() {
-    return inferSankeyNodeWrapColsFromWidth(AB_SANKEY_NODE_INNER_MAX_WIDTH_PX);
-}
-
-function truncateSankeyNameToTwoRowsBudget(text, maxCols) {
-    var maxChars = Math.max(8, maxCols * AB_SANKEY_NODE_NAME_MAX_ROWS);
-    if (text.length <= maxChars) {
-        return text;
-    }
-    return text.slice(0, Math.max(1, maxChars - 3)).replace(/[. ]+$/, "") + "...";
-}
-
-/** Whole-word split into up to two rows, balanced as evenly as possible. */
-function splitSankeyNameEvenlyTwoRows(text, maxCols) {
-    var words = text.split(" ").filter(function (w) { return w.length > 0; });
-    if (!words.length) {
-        return ["(unnamed)"];
-    }
-    if (words.length === 1) {
-        if (words[0].length <= maxCols) {
-            return [words[0]];
-        }
-        return [words[0].slice(0, Math.max(1, maxCols - 3)) + "..."];
-    }
-
-    var bestIdx = 1;
-    var bestScore = Number.POSITIVE_INFINITY;
-    for (var i = 1; i < words.length; i++) {
-        var l1 = words.slice(0, i).join(" ");
-        var l2 = words.slice(i).join(" ");
-        var overflow = Math.max(0, l1.length - maxCols) + Math.max(0, l2.length - maxCols);
-        var balance = Math.abs(l1.length - l2.length);
-        var score = overflow * 1000 + balance;
-        if (score < bestScore) {
-            bestScore = score;
-            bestIdx = i;
-        }
-    }
-
-    var line1 = words.slice(0, bestIdx).join(" ").trim();
-    var line2 = words.slice(bestIdx).join(" ").trim();
-
-    if (line1.length > maxCols) {
-        var c1 = line1.lastIndexOf(" ", maxCols);
-        var head1;
-        var tailFromL1;
-        if (c1 > 0) {
-            head1 = line1.slice(0, c1).trim();
-            tailFromL1 = line1.slice(c1 + 1).trim();
-        } else {
-            head1 = line1.slice(0, maxCols).trim();
-            tailFromL1 = line1.slice(maxCols).trim();
-        }
-        line1 = head1;
-        if (tailFromL1) {
-            line2 = (tailFromL1 + (line2 ? " " + line2 : "")).trim();
-        }
-    }
-    if (line2.length > maxCols) {
-        var c2 = line2.lastIndexOf(" ", Math.max(1, maxCols - 3));
-        if (c2 > 0) {
-            line2 = line2.slice(0, c2).trim().replace(/[. ]+$/, "") + "...";
-        } else {
-            line2 = line2.slice(0, Math.max(1, maxCols - 3)).replace(/[. ]+$/, "") + "...";
-        }
-    }
-    return line2 ? [line1, line2] : [line1];
-}
-
-/** Build process-name lines from a strict 2-row budget at 3:1 max ratio. */
-function buildSankeyProcessNameLines(rawName) {
-    var text = String(rawName || "").replace(/\s+/g, " ").trim();
-    if (!text) {
-        return ["(unnamed)"];
-    }
-    var maxCols = sankeyNameMaxColsAt3to1();
-    var trimmed = truncateSankeyNameToTwoRowsBudget(text, maxCols);
-    return splitSankeyNameEvenlyTwoRows(trimmed, maxCols);
-}
-
-/** Sankey node label as plain text (SVG tspans). */
-function formatSankeyNodePlainTextLabel(n, wrapCols) {
-    var rawName = String(n.name != null ? n.name : "(unnamed)");
-    var nameLines = buildSankeyProcessNameLines(rawName)
-        .map(function (x) { return x.trim(); })
-        .filter(function (x) { return x.length > 0; });
-    if (!nameLines.length) {
-        nameLines = ["(unnamed)"];
-    }
-
-    var loc = String(n.location != null ? n.location : "").trim();
-    var lines = nameLines.slice();
-    if (loc) {
-        lines.push(loc);
-    }
-
-    var pctStr = "";
-    if (n.direct_emissions_score_normalized != null) {
-        var p = Number(n.direct_emissions_score_normalized);
-        if (isFinite(p)) {
-            pctStr = String(Math.round(p * 10000) / 100) + "%";
-        }
-    }
-    if (pctStr) {
-        lines.push(pctStr);
-    }
-    return lines.join("\n");
-}
+/** Sankey wrap/label helpers live in sankey_graph_style.js. */
 
 
 /** GRAPH **/
 const cartographer = function () {
     let data;
+    var sankeyDemandIds = {};
     // call to render to ensure sizing is correct.
     canvas.render();
 
@@ -879,46 +445,60 @@ const cartographer = function () {
         //draws graph into canvas
         canvas.addItem();
 
-        // add node selection items
-        const nodeSelectionOptions = nodeSelection.selectAll("option")
-            .data(graph.nodes());
-        nodeSelectionOptions
-            .enter()
-            .append("option")
-            .merge(nodeSelectionOptions)
-            .attr("value", function (d) {
-                return d;
-            })
-            .text(function (d) {
-                const node = graph.node(d);
-                return node.name;
-            });
-        nodeSelectionOptions.exit().remove();
+        // add node selection items (graph explorer; Sankey dropped this chrome)
+        if (!nodeSelection.empty()) {
+            const nodeSelectionOptions = nodeSelection.selectAll("option")
+                .data(graph.nodes());
+            nodeSelectionOptions
+                .enter()
+                .append("option")
+                .merge(nodeSelectionOptions)
+                .attr("value", function (d) {
+                    return d;
+                })
+                .text(function (d) {
+                    const node = graph.node(d);
+                    return node.name;
+                });
+            nodeSelectionOptions.exit().remove();
+        }
 
-        // Adds click listener, calling handleMouseClick func
-        var nodes = panCanvas.selectAll("g .node").data(graph.nodes());
-        nodes.on("click", handleMouseClick)
+        // Attach listeners to dagre's node elements. Do not rebind .data() by
+        // index — that swaps visit ids onto the wrong boxes (labels stay
+        // correct, clicks/hovers/Open process do not).
+        var nodes = panCanvas.selectAll("g.node");
+        nodes.on("click", handleMouseClick);
+        if (is_sankey_mode) {
+            nodes.on("contextmenu", handleContextMenu);
+        }
 
         if (is_sankey_mode) {
-            nodes.on("mouseover", handleMouseOverNode)
-            nodes.on("mouseout", handleMouseOutNode);
+            nodes.on("mousemove", handleMouseOverNode)
+                .on("mouseleave", handleMouseOutNode);
 
             // change node fill based on impact
-            panCanvas.selectAll("g .node rect")
-                .style("fill", function (d) {
-                    // console.log(color(graph.node(d).direct_emissions_score_normalized));
-                    return color(graph.node(d).direct_emissions_score_normalized);
-                });
+            if (canvas.refreshThemeFills) {
+                canvas.refreshThemeFills();
+            }
         }
 
         // listener for mouse-hovers
-        var edges = panCanvas.selectAll("g .edgePath")
-            .on("mouseover", handleMouseOverEdge)
-            .on("mouseout", handleMouseOutEdge);
+        var edges = panCanvas.selectAll("g .edgePath");
+        if (is_sankey_mode) {
+            edges.on("mousemove", handleMouseOverEdge)
+                .on("mouseleave", handleMouseOutEdge);
+            panCanvas.selectAll("g.edgeLabel")
+                .on("mousemove", handleMouseOverEdge)
+                .on("mouseleave", handleMouseOutEdge);
+        } else {
+            edges.on("mouseover", handleMouseOverEdge)
+                .on("mouseout", handleMouseOutEdge);
+        }
 
         if (is_sankey_mode) {
             edges.attr("stroke-width", function (d) {
-                return (graph.edge(d) || {weight: 1}).weight;
+                var ed = graph.edge(d) || {};
+                return ed._strokeWidth || ed.weight || 1;
             })
 
             // re-scale arrowheads to fit into edge (they become really big otherwise)
@@ -930,10 +510,26 @@ const cartographer = function () {
                 if (!this.attributes["marker-end"]) return null;
                 else return "url(" + /url\(.*?(#.*?)\)/.exec(this.attributes["marker-end"].textContent)[1] + ")";
             });
+        }
 
-            panCanvas.selectAll("g.edgeLabel")
-                .on("mouseover", handleMouseOverEdge)
-                .on("mouseout", handleMouseOutEdge);
+        if (is_sankey_mode) {
+            nodes.each(function (d) {
+                var n = graph.node(d);
+                if (!sankeyShowTriangle(n)) {
+                    d3.select(this).selectAll(".triangle").remove();
+                    return;
+                }
+                var triangles = d3.select(this).selectAll(".triangle").data([d]);
+                var tri = "translate(0, 35) rotate(180)";
+                if (typeof abSankeyTriangleTransform === "function") {
+                    tri = abSankeyTriangleTransform(graph_direction, n.width, n.height);
+                }
+                triangles.enter().append("path").merge(triangles)
+                    .attr("class", "triangle")
+                    .attr("d", d3.symbol().type(d3.symbolTriangle).size(36))
+                    .attr("transform", tri)
+                    .style("pointer-events", "none");
+            });
         }
 
         if (interactive) {
@@ -976,7 +572,9 @@ const cartographer = function () {
             )
         }
 
-        if (renderOptions.center) {
+        if (renderOptions.restoreTransform) {
+            canvas.zoomTo(renderOptions.restoreTransform);
+        } else if (renderOptions.center) {
             const {width: graphWidth, height: graphHeight} = graph.graph();
             const canvasWidth = new Number(panCanvas.attr("width")) || globalWidth;
             const canvasHeight = new Number(panCanvas.attr("height")) || (globalHeight || 600);
@@ -1016,7 +614,11 @@ const cartographer = function () {
     // Allow update of graph by parsing a JSON document.
     cartographer.update_graph = function (json_data) {
         console.log("Updating Graph");
+        var savedTransform = (is_sankey_mode && canvas.getMainTransform)
+            ? canvas.getMainTransform()
+            : null;
         data = JSON.parse(json_data);
+        resetSankeyColorScale(data);
         if (is_sankey_mode && data.nodes) {
             data._sankeyEdgeWrapCols = inferSankeyEdgeLabelMaxCols(data);
         }
@@ -1032,10 +634,17 @@ const cartographer = function () {
         data.nodes.forEach(buildGraphNode);
         console.log("Nodes successfully loaded...");
 
-        // edges --> graph
+        sankeyDemandIds = (typeof abDemandIdSet === "function")
+            ? abDemandIdSet(data.nodes)
+            : {};
         data.edges.forEach(buildGraphEdge);
         console.log("Edges successfully loaded...")
-        cartographer.renderGraph({center: true});
+        var preserve = is_sankey_mode && data.preserve_view && savedTransform
+            && (savedTransform.k !== 1 || savedTransform.x !== 0 || savedTransform.y !== 0);
+        cartographer.renderGraph({
+            center: !preserve,
+            restoreTransform: preserve ? savedTransform : null,
+        });
     };
 
     cartographer.applySankeyEdgeLabels = function () {
@@ -1046,7 +655,27 @@ const cartographer = function () {
         cartographer.renderGraph({ center: false });
     };
 
+    cartographer.setRankdir = function (dir) {
+        graph_direction = (typeof abNormalizeRankdir === "function")
+            ? abNormalizeRankdir(dir)
+            : ((dir === "LR" || dir === "RL") ? "RL" : "BT");
+        window.ab_graph_direction = graph_direction;
+        if (typeof data === "undefined" || !data) {
+            return;
+        }
+        graph.setGraph(getGraphConfig());
+        sankeyDemandIds = (typeof abDemandIdSet === "function")
+            ? abDemandIdSet(data.nodes)
+            : {};
+        data.nodes.forEach(buildGraphNode);
+        data.edges.forEach(buildGraphEdge);
+        cartographer.renderGraph({center: true});
+    };
+
     const buildGraphNode = function (n) {
+        if (n.is_aggregate && n.aggregate_key) {
+            n.name = n.aggregate_key;
+        }
         if (!is_sankey_mode) {
             n.label = formatNodeTextPlain(n['name'], n['location']);
             delete n.labelType;
@@ -1062,6 +691,9 @@ const cartographer = function () {
             n.paddingTop = AB_SANKEY_NODE_PADDING_Y;
             n.paddingBottom = AB_SANKEY_NODE_PADDING_Y;
         }
+        if (n.visit_id == null || n.visit_id === "") {
+            n.visit_id = n.id;
+        }
         if (interactive) {
             n.expanded = n['expanded']
             n.collapsed = false;
@@ -1070,22 +702,28 @@ const cartographer = function () {
     };
 
     const buildGraphEdge = function (e) {
-        e.curve = d3.curveBasis;
+        var rec = Object.assign({}, e);
+        rec.curve = d3.curveBasis;
+        rec._strokeWidth = (typeof abEdgeStrokeWidth === "function")
+            ? abEdgeStrokeWidth(e.weight)
+            : Math.max(1, Number(e.weight) || 0);
 
         if (!is_sankey_mode) {
-            e.label = formatEdgeTextPlain(e['product'], max_string_length);
-            delete e.labelType;
-            e.arrowhead = "vee";
+            rec.label = formatEdgeTextPlain(e['product'], max_string_length);
+            delete rec.labelType;
+            rec.arrowhead = "vee";
         } else {
-            /* Sankey: plain-text labels only (see formatSankeyTwoLineEdgeLabel). */
             var joinLabel = formatSankeyTwoLineEdgeLabel(e);
             var wrapCols = (data && data._sankeyEdgeWrapCols) ? data._sankeyEdgeWrapCols : 12;
-            e.label = wrapSankeyEdgeLabelMultiline(joinLabel, wrapCols);
-            delete e.labelType;
-            delete e.arrowhead;
+            rec.label = wrapSankeyEdgeLabelMultiline(joinLabel, wrapCols);
+            delete rec.labelType;
+            delete rec.arrowhead;
+            if (typeof abLayoutEdgeWeight === "function") {
+                rec.weight = abLayoutEdgeWeight(e, sankeyDemandIds);
+            }
         }
 
-        graph.setEdge(e['source_id'], e['target_id'], e);
+        graph.setEdge(rec.source_id, rec.target_id, rec);
     };
 
     function toggleCollapse(nodeId, collapse = false) {
@@ -1121,13 +759,16 @@ const cartographer = function () {
     }
 
     // Function called on click
-    const handleMouseClick = function (node) {
+    const handleMouseClick = function (event, node) {
         // make dictionary containing the node key and how the user clicked on it
         // see also mouse events: https://www.w3schools.com/jsref/obj_mouseevent.asp
         let gNode = graph.node(node)
+        let click_id = (gNode.click_uid != null && gNode.click_uid !== "")
+            ? gNode.click_uid
+            : gNode.id;
         let click_dict = {
             "database": gNode.database,
-            "id": gNode.id,
+            "id": click_id,
             "mouse": event.button,
             "keyboard": {
                 "shift": event.shiftKey,
@@ -1143,43 +784,84 @@ const cartographer = function () {
         window.bridge.node_clicked(JSON.stringify(click_dict))
     };
 
-    const handleMouseOverNode = function (n) {
+    const handleContextMenu = function (event, node) {
+        event.preventDefault();
+        event.stopPropagation();
+        hideNavigatorTip();
+        let gNode = graph.node(node);
+        if (!gNode) {
+            return;
+        }
+        let click_dict = (typeof abOpenProcessPayload === "function")
+            ? abOpenProcessPayload(gNode)
+            : {
+                visit_id: gNode.visit_id != null ? gNode.visit_id : gNode.id,
+                unique_id: gNode.visit_id != null ? gNode.visit_id : gNode.id,
+                activity_id: gNode.activity_id != null ? gNode.activity_id : null,
+                database: gNode.database || "",
+                code: gNode.code || "",
+                is_aggregate: !!gNode.is_aggregate,
+                constituent_uids: gNode.constituent_uids || [],
+                mouse: 2
+            };
+        click_dict.id = click_dict.visit_id;
+        click_dict.keyboard = {
+            shift: event.shiftKey,
+            alt: event.altKey
+        };
+        window.bridge.node_clicked(JSON.stringify(click_dict));
+    };
+
+    const showNavigatorTip = function (event, html, fallbackTop) {
+        if (is_sankey_mode && typeof abPlaceHtmlTooltip === "function") {
+            div.style("opacity", 1);
+            abPlaceHtmlTooltip(div, event, html);
+            return;
+        }
+        div.transition()
+            .duration(200)
+            .style("opacity", .9);
+        div.html(html)
+            .style("left", (event.pageX) + "px")
+            .style("top", (event.pageY - fallbackTop) + "px");
+    };
+
+    const hideNavigatorTip = function () {
+        if (is_sankey_mode) {
+            div.attr("hidden", "hidden").style("opacity", 0);
+            return;
+        }
+        div.transition()
+            .duration(500)
+            .style("opacity", 0);
+    };
+
+    const handleMouseOverNode = function (event, n) {
         node = graph.node(n);
         d3.select(node.elem)
             .style("opacity", .4);
-        div.transition()
-            .duration(200)
-            .style("opacity", .9);
-        div.html(node.tooltip)
-            .style("left", (d3.event.pageX) + "px")
-            .style("top", (d3.event.pageY - 28) + "px");
+        var unit = (data && data.unit) ? data.unit : "";
+        var tipHtml = (typeof abContributionTooltipHtml === "function")
+            ? abContributionTooltipHtml(node, unit)
+            : String(node.tooltip || "").replace(/\n/g, "<br>");
+        showNavigatorTip(event, tipHtml, 28);
     };
 
-    const handleMouseOutNode = function (n) {
+    const handleMouseOutNode = function (event, n) {
         node = graph.node(n);
         d3.select(node.elem)
             .style("opacity", 1);
-        div.transition()
-            .duration(500)
-            .style("opacity", 0);
+        hideNavigatorTip();
     }
 
     const handleMouseOutEdge = function () {
-        div.transition()
-            .duration(500)
-            .style("opacity", 0);
+        hideNavigatorTip();
     };
 
-    const handleMouseOverEdge = function (e) {
+    const handleMouseOverEdge = function (event, e) {
         edge = graph.edge(e);
-        div.transition()
-            .duration(200)
-            .style("opacity", .9);
         var tipHtml = is_sankey_mode ? buildSankeyEdgeTooltipHtml(edge) : (edge.tooltip || "");
-        /* Multi-line edge tooltips: sit above + slightly right of cursor so the pointer does not cover text. */
-        div.html(tipHtml)
-            .style("left", (d3.event.pageX + 12) + "px")
-            .style("top", (d3.event.pageY - 56) + "px");
+        showNavigatorTip(event, tipHtml, 56);
     };
 };
 
@@ -1189,6 +871,11 @@ const cartographer = function () {
 //instantiation of canvas container+reset button
 var canvas = d3.demo.canvas();
 d3.select("#canvasqPWKOg").call(canvas);
+window.abOnGraphThemeChanged = function () {
+    if (canvas && canvas.refreshThemeFills) {
+        canvas.refreshThemeFills();
+    }
+};
 
 (function wireSankeyMinimapToggle() {
     if (!is_sankey_mode) {
@@ -1216,12 +903,18 @@ d3.select("#canvasqPWKOg").call(canvas);
     }
 })();
 
-d3.select("#downloadSVGtButtonqPWKOg").on("click", function () {
-    var svgMarkup = buildNavigatorSvgExport();
-    if (svgMarkup) {
-        window.bridge.download_triggered(svgMarkup);
+(function wireDownloadSvg() {
+    var btn = d3.select("#downloadSVGtButtonqPWKOg");
+    if (btn.empty()) {
+        return;
     }
-});
+    btn.on("click", function () {
+        var svgMarkup = buildNavigatorSvgExport();
+        if (svgMarkup) {
+            window.bridge.download_triggered(svgMarkup);
+        }
+    });
+})();
 
 // Construct 'render' object and initialize cartographer.
 var render = dagreD3.render();
@@ -1248,6 +941,18 @@ cartographer();
     bindCheckbox("sankeyFlowsVisible", "ab_sankey_show_flows");
     bindCheckbox("sankeyImpactAbsoluteVisible", "ab_sankey_impact_absolute");
     bindCheckbox("sankeyImpactRelativeVisible", "ab_sankey_impact_relative");
+    var rankSel = document.getElementById("sankeyRankdir");
+    if (rankSel) {
+        graph_direction = (typeof abNormalizeRankdir === "function")
+            ? abNormalizeRankdir(rankSel.value)
+            : ((rankSel.value === "LR" || rankSel.value === "RL") ? "RL" : "BT");
+        window.ab_graph_direction = graph_direction;
+        rankSel.addEventListener("change", function () {
+            if (cartographer.setRankdir) {
+                cartographer.setRankdir(rankSel.value);
+            }
+        });
+    }
 })();
 
 /* END OF ADAPTED DEMO SCRIPT*/
@@ -1261,10 +966,13 @@ cartographer();
 var div = d3.select("#canvasqPWKOg").append("div")
     .attr("class", "tooltip")
     .style("opacity", 0);
+if (is_sankey_mode) {
+    div.attr("hidden", "hidden");
+}
 
 var color = d3.scaleLinear()
     .domain([-99999999, -1, 0, 1, 99999999])
-    .range(["green", "green", "white", "red", "red"]);
+    .range(["green", "green", "white", "#4682d2", "#4682d2"]);
 
 var nodeSelection = d3.select("select#nodeSelectPWK0g")
 
@@ -1303,10 +1011,11 @@ function formatEdgeTextPlain(product) {
  */
 function navigatorSvgExportStyles() {
     var base = window.style_element_text || "";
+    var locFill = (typeof abGraphIsDark === "function" && abGraphIsDark()) ? "#b0b0b0" : "#666";
     var sankeySvgRules = is_sankey_mode
         ? "<style>" +
-            "g.node text{font-size:12px;}" +
-            "g.node text tspan:nth-last-child(2){fill:#666;font-size:11px;}" +
+            "g.node text,g.node text tspan{font-size:12px;}" +
+            "g.node text tspan:nth-last-child(2){fill:" + locFill + ";}" +
             "g.edgeLabel text,g.edgeLabel tspan{font-size:11px;}" +
             "</style>"
         : "";

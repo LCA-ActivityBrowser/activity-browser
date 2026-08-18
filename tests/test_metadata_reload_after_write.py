@@ -51,3 +51,22 @@ def test_metadata_loads_after_worker_thread_duplicate(main_window, basic_databas
         qtbot.wait(50)
 
     assert count_database_records(target) == source_count
+
+
+def test_secondary_load_reconnect_does_not_warn(qapp, basic_database):
+    """Reloading metadata must not warn about disconnecting an unconnected slot."""
+    import warnings
+
+    from activity_browser.app import metadata
+
+    loader = metadata.loader
+    assert loader.secondary_status == "done"
+
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always", RuntimeWarning)
+        loader._begin_secondary_load(
+            [basic_database.name], loader.secondary_load_database
+        )
+        qapp.processEvents()
+
+    assert not any("Failed to disconnect" in str(w.message) for w in caught)
