@@ -10,7 +10,7 @@ from activity_browser.bwutils.graph_traversal.tree import (
     tree_stats,
 )
 
-from tests.graph_traversal_fakes import (
+from graph_traversal_fakes import (
     _edge,
     _meta,
     _node,

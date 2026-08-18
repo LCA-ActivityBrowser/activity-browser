@@ -12,7 +12,7 @@ from activity_browser.bwutils.graph_traversal.partition_plots import (
     plot_click_target_uid,
 )
 
-from tests.graph_traversal_fakes import (
+from graph_traversal_fakes import (
     _FakeTraversalState,
     _circular_ab_visits,
     _edge,

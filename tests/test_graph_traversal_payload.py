@@ -22,7 +22,7 @@ from activity_browser.bwutils.graph_traversal.sankey import (
     merge_graph_edges,
 )
 
-from tests.graph_traversal_fakes import _edge, _node, _rf_supplier_tree
+from graph_traversal_fakes import _edge, _node, _rf_supplier_tree
 
 
 def _lookup(activity_id):

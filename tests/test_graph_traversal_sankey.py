@@ -17,7 +17,7 @@ from activity_browser.bwutils.graph_traversal.sankey import (
     unopened_same_activity_hops,
 )
 
-from tests.graph_traversal_fakes import (
+from graph_traversal_fakes import (
     _FakeTraversalState,
     _circular_ab_visits,
     _edge,

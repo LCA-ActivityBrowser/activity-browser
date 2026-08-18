@@ -18,7 +18,7 @@ from activity_browser.bwutils.graph_traversal.partition_plots import (
     plot_click_target_uid,
 )
 
-from tests.graph_traversal_fakes import _rf_supplier_tree
+from graph_traversal_fakes import _rf_supplier_tree
 
 
 def test_d3_plot_payload_keeps_layout_and_is_json_serializable():

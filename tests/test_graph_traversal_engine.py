@@ -22,7 +22,7 @@ from activity_browser.bwutils.graph_traversal.engine import (
     toggle_graph_display_node,
 )
 
-from tests.graph_traversal_fakes import (
+from graph_traversal_fakes import (
     _FakeTraversalState,
     _circular_ab_visits,
     _edge,
