@@ -16,6 +16,8 @@ This module provides a collection of generic methods and utilities that wrap and
 
 ## Key Files
 
+- **`contribution_tree.py`** - Contribution tree and Sankey graph helpers (display sets, payloads)
+- **`lca_inputs.py`** - Process→product demand mapping for `functional_sqlite` (Tree/Sankey). Stopgap until this lives in bw_functional (see ADR-0001 Future work)
 - **`commontasks.py`** - Common Brightway2 operations (database management, activity operations)
 - **`errors.py`** - Custom exception classes for Brightway2 operations
 - **`exporters.py`** - Export functionality for databases and activities

@@ -25,7 +25,10 @@ A flow between activities (processes) (technosphere) or from/to biosphere flows,
 ### Functional flow
 
 The exchange that expresses the purpose of a process: either a **product** output or a **waste** input. The reverse combinations (product input, waste output) are non-functional flows. Further concepts (e.g. allocation) are defined in the `bw-functional` / functional_sqlite code and documentation.
-_Avoid_: reference flow (when meaning the process’s function rather than the LCA study’s functional unit)
+_Avoid_: the functional flow refers to one or several flows in the context of a specific process; it is not the same as the reference flow or functional unit 
+
+### Reference flow
+This is the flow for which an LCA calculation is done in the Calculation Setup (upper section). It defines the output of a product system (or input to in case of waste treatment). It can be largely seen as a synonym for functional unit. We prefer the term reference flow in the Calculation Setup as not every flow listed there always needs to be the functional unit of the LCA a practitioner is conducting.
 
 ### Product / reference product
 
@@ -47,11 +50,11 @@ Flows (exchanges) between processes (activities) in the technosphere (man-made s
 
 ### Functional unit
 
-The quantified output (or input in case of a waste treatment system) of the product system used as the reference for an LCA (the flow fullfilling the functional unit is also called reference flow). TBD: It is currently unclear if the best naming in the Calculation Setup should be functional unit or reference flow. 
+The quantified output (or input in case of a waste treatment system) of the product system used as the reference for an LCA (the flow fullfilling the functional unit is also called reference flow). For the calculation setup, it is better to use reference flows as not all flows listed there have to be functional units.
 
 ### Calculation setup (CS)
 
-A named set of functional unit(s) and LCIA method(s) used to run LCA / multi-LCA / Monte Carlo. Managed under calculation-setup UI and `app` actions. It can also additionaly include scenarios as a third element in the "Scenario" LCA mode. The CS page always opens in **Standard** mode; switching to **Scenario** mode may reload persisted scenario files (with a loading indication). Scenario file paths, combine mode, and the included scenario-combinations set may be stored on the CS.
+A named set of reference flow(s) and impact categories used to run LCA / multi-LCA / Monte Carlo. Managed under calculation-setup UI and `app` actions. It can also additionaly include scenarios as a third element in the "Scenario" LCA mode. The CS page always opens in **Standard** mode; switching to **Scenario** mode may reload persisted scenario files (with a loading indication). Scenario file paths, combine mode, and the included scenario-combinations set may be stored on the CS.
 
 ### LCIA method / impact category
 
@@ -73,7 +76,7 @@ A factor that converts an elementary flow amount into an impact-category score f
 
 ### LCA / Multi-LCA
 
-Life Cycle Assessment calculation (inventory + impact). Multi-LCA runs multiple functional units and/or methods; see `activity_browser/bwutils/multilca.py` and LCA results pages.
+Life Cycle Assessment calculation (inventory + impact). Multi-LCA runs multiple reference flows and/or impact categories; see `activity_browser/bwutils/multilca.py` and LCA results pages.
 
 ### Parameter
 
@@ -128,12 +131,12 @@ Extensibility mechanism for third-party AB features. **Architecture TBD** — do
 
 ### Contribution tree
 
-A hierarchical, acyclic breakdown of LCA impact by upstream supplier, produced by priority-first graph traversal (`SameNodeEachVisitGraphTraversal`). Each node carries a **cumulative impact** (its own direct emissions plus all upstream) and a **direct impact** (its own biosphere flows only). The root is the functional unit; children are direct technosphere suppliers, recursed up the supply chain. Shown in AB as a `QTreeView` with one row per traversed node, in the **Tree** tab of the LCA Results page. Nodes are calculated lazily on expand; the **adjust policy** controls how far the Adjust control walks the tree.
-_Avoid_: supply-chain tree, upstream tree (use contribution tree in AB UI; "upstream tree" is the OpenLCA term for the same concept)
+A hierarchical, acyclic breakdown of LCA impact by upstream supplier, produced by priority-first graph traversal (`SameNodeEachVisitGraphTraversal`). Each node carries a **cumulative impact** (its own direct emissions plus all upstream) and a **direct impact** (its own biosphere flows only). The root is the reference flow; children are direct technosphere suppliers, recursed up the supply chain. Shown in AB as a table (`QTreeView`) plus plots on the **Tree** tab of the LCA Results page. Nodes are calculated lazily on expand; the **adjust policy** controls how far the Adjust control walks the tree.
+_Avoid_: supply-chain tree, upstream tree (use contribution tree in AB UI; "upstream tree" is the OpenLCA term for the same concept); calling the Tree-tab node-link plot “Sankey”
 
 ### Tier (contribution-tree depth)
 
-The distance from the functional unit in the contribution tree. The functional unit is tier 0; its direct suppliers are tier 1; their suppliers are tier 2; and so on. Not to be confused with the sequential first-tier substitution approach used in the (disabled) `FirstTierContributionsTab`.
+The distance from the reference flow in the contribution tree. The reference flow is tier 0; its direct suppliers are tier 1; their suppliers are tier 2; and so on. Not to be confused with the sequential first-tier substitution approach used in the (disabled) `FirstTierContributionsTab`.
 _Avoid_: level, depth (fine internally but use "tier" in UI labels and the Tier column)
 
 ### Cumulative impact
@@ -150,36 +153,51 @@ _Avoid_: direct contribution, direct emissions score (use direct impact in UI la
 
 Two related ratios, both Σ(direct impact) / |total score| (equivalent to summing the **Direct impact (%)** column):
 
-- **Shown (footer):** only rows currently visible in the tree (ancestors expanded). Updates on expand/collapse.
-- **Calculated (footer):** all nodes discovered by graph traversal (excluding the virtual demand root). The Cumulative expand “(target X% — not reached)” note uses this when even the full calculated graph stays below the target.
-- **Cumulative expand display set:** largest-first by remaining upstream (|cumulative| − |direct|). Nodes that are already almost entirely direct are not auto-opened. When a node is opened, children are added largest-first and stop once Σ(direct of included) reaches the target %. Leftover siblings stay out of the model (manual expand can still reveal them).
+- **Shown (footer):** only rows currently visible in the tree (ancestors expanded), or unique processes in the Sankey **display set**. Updates on expand/collapse.
+- **Calculated (footer):** all nodes discovered by graph traversal (excluding the virtual demand root). On the Sankey, count **unique processes** in the calculated graph, not extra NNEV visits of the same process. The Cumulative expand “(target X% — not reached)” note uses this when even the full calculated graph stays below the target.
+- **Cumulative expand display set:** largest-first by remaining upstream (|cumulative| − |direct|). When a node is opened, children that raise coverage are added largest-direct first until Σ(direct of included) reaches the target %. Zero-direct siblings are not listed just because coverage is stuck — only the next remaining-upstream hop (then that hop is opened before leftover siblings). A leftover 0-direct market beside a sibling that already adds direct impact (and still has more remaining upstream) stays hidden; a parent that already has a direct-impact child plus one remaining-upstream hop does not list extra 0-direct siblings. Leftover siblings stay out of the model (manual expand or **Show all** can still reveal them). Do not skip “mostly direct” nodes with a separate remaining-upstream ratio; Cumulative Adjust stops at the coverage target or the engine **cutoff**. On the Sankey, coverage and remaining use solved-inventory directs per unique process (same values as the boxes), not NNEV visit-level directs.
 
-Footer format: `Shown: N nodes, Y% of direct impacts, max tier T | Calculated: Z nodes, A% of direct impacts, max tier U`.
+Footer format: `Shown: N nodes, Y% of direct impacts, max tier T | Calculated: Z nodes, A% of direct impacts, max tier U`. On the Sankey, “nodes” are unique processes.
 _Avoid_: traversal coverage, score coverage (unless clearly meaning this ratio)
 
 ### Path impact
 
-The cumulative impact of a contribution-tree node as a share of the total LCA score — i.e. how much of the result flows through that supply-chain path. Shown as **Cumulative impact (%)**. The **Individual path impact** adjust policy auto-opens nodes at/above a chosen path % only while a child at/above that % remains (terminal high-path nodes stay collapsed); under opened nodes it lists all discovered siblings. Only the engine traversal **cutoff** omits smaller branches from calculation.
+The cumulative impact of a contribution-tree node as a share of the total LCA score — i.e. how much of the result flows through that supply-chain path. Shown as **Cumulative impact (%)**. The **Individual path impact** adjust policy auto-opens nodes at/above a chosen path % only while a child at/above that % remains (terminal high-path nodes stay collapsed); siblings below that % are hidden. **Show all** (footer) draws every calculated node. Only the engine traversal **cutoff** omits smaller branches from calculation.
 _Avoid_: individual impact (alone), branch score
 
 ### Adjust policy
 
-How far the **Adjust to** control calculates and visually opens the contribution tree. Modes: **Tier** (open down to a given tier), **Individual path impact** (keep expanding while path impact ≥ X% continues into a child; list all discovered children under opened nodes; leave terminal ≥ X% rows collapsed), **Cumulative impact** (largest-first from the reference flow until the **display set**’s direct-impact coverage reaches a target %, capped below 100% — does not open every previously calculated node). Distinct from a later optional **display filter** that only hides already-calculated rows. Open branches and which rows are in the tree are remembered per RF / impact category / scenario / cutoff when switching selections in the Tree tab.
+How far the **Adjust to** control calculates and visually opens the **contribution tree** or **Sankey plot**. Modes: **Tier** (open down to a given tier), **Individual path impact** (keep expanding while path impact ≥ X% continues into a child; hide siblings below X%; leave terminal ≥ X% rows collapsed), **Cumulative impact** (largest-first from the reference flow until the **display set**’s direct-impact coverage reaches a target %, capped below 100% — does not open every previously calculated node). The calculated graph only grows; a tighter Adjust rebuilds the display set and may hide processes that stay calculated. **Show all** (footer, next to Calculated) draws the full calculated graph and is disabled when nothing is hidden. Adjust continues that graph. Switching reference flow, impact category, scenario, or cutoff starts a new calculated graph at the reference flow (tier 1); click **Adjust** to apply the current policy — do not inherit the previous selection’s Adjust walk. The engine cutoff is baked into which edges exist: lowering it (more branches) requires a new traversal; raising it currently also starts a new graph, even though a tighter cutoff could in principle filter the existing one. If the calculated graph already satisfies the policy, only the display set is rebuilt. Distinct from a later optional **display filter** that only hides already-calculated rows. Open branches and which rows are in the tree are remembered per RF / impact category / scenario / cutoff when switching selections in the Tree tab. The Sankey remembers its calculated graph the same way.
 _Avoid_: cutoff (alone — ambiguous with Process Contributions and engine traversal cutoff); expand policy (legacy UI label — use adjust policy)
 
 ### Plot–tree linking
 
-Clicking a segment in a contribution-tree plot selects the corresponding row and expands or collapses that branch in the tree (or the parent row when the segment is an aggregate band). **Terminal** segments (no downstream suppliers after traversal) are **expand-only** from the plot — one expand attempt if collapsed, otherwise no-op. Non-terminal segments toggle expand/collapse. The plot refreshes to match the visible tree.
+Clicking a segment or node in a contribution-tree plot selects the corresponding row and expands or collapses that branch in the table (or the parent row when the target is an aggregate). **Terminal** nodes (no further suppliers **after that visit has been traversed**) are **expand-only** from the plot — one expand attempt if collapsed, otherwise no-op. An untraversed visit is not terminal. Non-terminal nodes toggle expand/collapse. The plot refreshes to match the visible table. On the **tree plot** and **Sankey plot**, a triangle means a click would change what is shown (expand hidden or not-yet-traversed unique-process suppliers, or collapse currently shown ones). Right-click **Open process** opens **Activity Details** for that process (same command as the contribution-tree table); plot aggregates have no process to open.
 _Avoid_: interactive chart (alone — specify plot–tree linking)
+
+### Tree plot
+
+Node-link plot of the **contribution tree**: process boxes and path-impact ribbons, optically the same as the **Sankey plot**, but drawn from SNEV visits and the Tree tab’s visible table. Plot-type label on the Tree tab is **Tree** (not Flow).
+_Avoid_: Flow (rejected plot-type label); Sankey (when meaning this SNEV plot); tree (alone — that is the contribution tree / Tree tab)
+
+### Sankey plot
+
+Node-link plot of an NNEV graph traversal: the same visual grammar as the **tree plot** (boxes, ribbons, triangles). Calculated as new-node-each-visit; the **display set** keeps **one box per process** — the visit with the largest **path impact**, not the first visit Brightway happened to create. A process with a small path to the reference flow and a large path later must follow the large path (Individual path impact hops that visit). Circular supply (A consumes B, B consumes A) still shows two process boxes, not an unfolded A→B→A path. That path unfolding belongs on the **contribution tree**. Shown on the LCA Results **Sankey** tab (no contribution-tree table). The **calculated graph** is the NNEV visits so far (grows only); the drawn boxes are the unique-process display set, which **Adjust policy** can shrink without discarding calculation. Clicking a process grows or shrinks that display set (like expanding a contribution-tree row): if **any NNEV visit of this process** is not yet traversed, calculate **one hop** per unopened visit (Stoppable like **Adjust**; Stop leaves the graph as before that click), then show **every** unique-process supplier of those visits (engine **cutoff** only — not the Adjust path/cumulative filters). Already-shown processes stay one box. If some cutoff suppliers are already calculated but hidden by Adjust, the next click reveals them; a further click collapses exclusive suppliers. Coverage and path targets stay on **Adjust**. Collapsing a process hides unique-process suppliers that are not also **ancestors** in the current display set (circular-supply partners that remain on a path from the reference flow stay drawn); calculation is not discarded. Right-click **Open process** opens **Activity Details** for that unique process (plot aggregates have no process to open).
+_Avoid_: calling the Tree-tab node-link plot Sankey; unfolding the same process twice on the Sankey
+
+### Color by
+
+Plot-only recoding of node or segment **fill**. **Direct impact** (default): sequential log-intensity fill of |direct % of total| — blue if > 0, green if < 0, white if 0 (same hues as the Tree table’s Direct impact column). **Product**, **Process**, **Location**, **Database**: categorical. On the tree/Sankey plots, ribbons stay red/green by **path impact** sign; **Color by** recodes boxes only. Distinct from **plot aggregation** (which merges siblings).
+_Avoid_: aggregate by (when meaning tint)
 
 ### Plot aggregation
 
-Plot-only rollup of **sibling** segments under the same parent by a metadata field (Product, Process, Location, Unit, Database). Band width and direct-impact tint use summed impacts; the tree table is unchanged.
-_Avoid_: aggregate the contribution tree (alone — plot aggregation is plot-only in v1)
+Plot-only rollup of **sibling** nodes under the same parent by a metadata field (Product, Process, Location, Unit, Database). Band or ribbon width and direct-impact fill use summed impacts; the tree table is unchanged. On the **tree plot** and **Sankey plot**, an aggregate is a **leaf**: upstream of the merged visits is not drawn; click toggles the parent, not a synthetic node.
+_Avoid_: aggregate the contribution tree (alone — plot aggregation is plot-only)
 
 ### Flow amount
 
-The scaled technosphere demand for a contribution-tree node (`node.supply_amount`), expressed in the reference product's unit. Shown in the "Flow amount" and "Unit" columns of the contribution tree table.
+The scaled technosphere demand for a contribution-tree node (`node.supply_amount`), expressed in the reference product's unit. Shown in the "Flow amount" and "Unit" columns of the contribution tree table, and on tree/Sankey **flow** hovers.
 _Avoid_: required amount, supply amount (use flow amount in UI labels)
 
 ## Synonyms to avoid (prefer glossary term)

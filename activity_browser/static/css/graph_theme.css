@@ -1,0 +1,77 @@
+/* Shared light/dark tokens for Tree plot and Sankey (boxes, ribbons, minimap).
+ * html.ab-dark is set by sankey_graph_style.js from prefers-color-scheme or Qt.
+ * color-scheme tells Chromium not to invert a page that is already themed.
+ */
+html.ab-light {
+    color-scheme: only light;
+}
+
+:root {
+    --ab-graph-bg: #ffffff;
+    --ab-graph-canvas: #ffffff;
+    --ab-graph-text: #222222;
+    --ab-graph-muted: #666666;
+    --ab-graph-stroke: #333333;
+    --ab-graph-node-fill: #ffffff;
+    --ab-graph-demand: #00008b;
+    --ab-graph-edge-label: #00008b;
+    --ab-graph-triangle: #9e9e9e;
+    --ab-graph-impact: #e53935;
+    --ab-graph-benefit: #43a047;
+    --ab-graph-minimap-fill: rgba(255, 255, 255, 0.96);
+    --ab-graph-minimap-stroke: #333333;
+    --ab-graph-minimap-viewport: #c62828;
+    --ab-graph-tooltip-bg: #fffce2;
+    --ab-graph-tooltip-text: #222222;
+    --ab-graph-zero-fill: #ffffff;
+}
+
+html.ab-dark {
+    color-scheme: only dark;
+    --ab-graph-bg: #2b2b2b;
+    --ab-graph-canvas: #2b2b2b;
+    --ab-graph-text: #ececec;
+    --ab-graph-muted: #b0b0b0;
+    --ab-graph-stroke: #c5c5c5;
+    --ab-graph-node-fill: #3a3a3a;
+    --ab-graph-demand: #8ab4f8;
+    --ab-graph-edge-label: #aecbfa;
+    --ab-graph-triangle: #9aa0a6;
+    --ab-graph-impact: #ef5350;
+    --ab-graph-benefit: #66bb6a;
+    --ab-graph-minimap-fill: rgba(45, 45, 45, 0.96);
+    --ab-graph-minimap-stroke: #b0b0b0;
+    --ab-graph-minimap-viewport: #ef5350;
+    --ab-graph-tooltip-bg: #3d3d3d;
+    --ab-graph-tooltip-text: #ececec;
+    --ab-graph-zero-fill: #3a3a3a;
+}
+
+html.ab-dark,
+html.ab-dark body {
+    background: var(--ab-graph-bg);
+    color: var(--ab-graph-text);
+}
+
+.ab-sankey-pm-chrome {
+    fill: var(--ab-graph-minimap-fill);
+    stroke: var(--ab-graph-minimap-stroke);
+    stroke-width: 2px;
+}
+
+.ab-sankey-pm-viewport {
+    fill: rgba(245, 245, 245, 0.1);
+    stroke: var(--ab-graph-minimap-viewport);
+    stroke-width: 2px;
+}
+
+html.ab-dark .ab-sankey-pm-viewport {
+    fill: rgba(0, 0, 0, 0.18);
+}
+
+g.node .triangle,
+.triangle,
+.ct-triangle {
+    fill: var(--ab-graph-triangle);
+    pointer-events: none;
+}

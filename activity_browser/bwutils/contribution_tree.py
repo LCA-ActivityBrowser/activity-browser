@@ -8,6 +8,7 @@ table export.  No Qt dependency — fully testable with plain fake objects.
 
 from __future__ import annotations
 
+import math
 import warnings
 from collections import defaultdict
 from contextlib import contextmanager
@@ -32,7 +33,28 @@ def suppress_graph_traversal_warnings():
             message=r"Graph traversal covered only.*",
             category=UserWarning,
         )
+        warnings.filterwarnings(
+            "ignore",
+            message=r"Stopping traversal due to calculation count\.",
+            category=UserWarning,
+        )
         yield
+
+
+def _metadata_codes(frame: pd.DataFrame) -> pd.Series | None:
+    """Activity ``code`` from a column, MultiIndex, or ``key`` tuples."""
+    if "code" in frame.columns:
+        return frame["code"]
+    names = list(getattr(frame.index, "names", None) or [])
+    if isinstance(frame.index, pd.MultiIndex) and "code" in names:
+        return pd.Series(frame.index.get_level_values("code"), index=frame.index)
+    if "key" in frame.columns:
+        def _code(key) -> str:
+            if isinstance(key, (tuple, list)) and len(key) >= 2:
+                return "" if key[1] is None else str(key[1])
+            return ""
+        return frame["key"].map(_code)
+    return None
 
 
 def activity_metadata_for_ids(
@@ -40,13 +62,29 @@ def activity_metadata_for_ids(
     dataframe: pd.DataFrame | None = None,
 ) -> dict[int, dict]:
     """Map datapackage ids to labels from a MetaDataStore dataframe."""
-    wanted = {i for i in ids if isinstance(i, int) and i >= 0}
+    wanted = set()
+    for i in ids:
+        try:
+            n = int(i)
+        except (TypeError, ValueError):
+            continue
+        if n >= 0:
+            wanted.add(n)
     if not wanted or dataframe is None or "id" not in getattr(dataframe, "columns", []):
         return {}
-    cols = [c for c in ("id", "name", "product", "location", "database", "unit") if c in dataframe.columns]
-    sub = dataframe.loc[dataframe["id"].isin(wanted), cols].dropna(subset=["id"])
+    mask = dataframe["id"].isin(wanted)
+    sub = dataframe.loc[mask].copy()
+    if sub.empty:
+        return {}
+    codes = _metadata_codes(sub)
+    if codes is not None and "code" not in sub.columns:
+        sub["code"] = codes
+    cols = [
+        c for c in ("id", "name", "product", "location", "database", "unit", "code")
+        if c in sub.columns
+    ]
+    sub = sub[cols]
     text = [c for c in sub.columns if c != "id"]
-    sub = sub.copy()
     sub[text] = sub[text].fillna("")
     out: dict[int, dict] = {}
     for rec in sub.fillna("").to_dict("records"):
@@ -58,6 +96,7 @@ def activity_metadata_for_ids(
             "location": rec.get("location") or "",
             "database": rec.get("database") or "",
             "unit": rec.get("unit") or "",
+            "code": rec.get("code") or "",
         }
     return out
 
@@ -142,12 +181,12 @@ def compute_node_tiers(
 
 
 # ---------------------------------------------------------------------------
-# Expand policy / footer stats
+# Adjust policy / footer stats
 # ---------------------------------------------------------------------------
 
 # Modes accepted by :func:`next_expand_candidates` (traversal probing only).
-# Cumulative expand uses :func:`plan_cumulative_expand` instead.
-CANDIDATE_EXPAND_MODES = ("tier", "path")
+# Cumulative adjust uses :func:`plan_cumulative_expand` instead.
+CANDIDATE_ADJUST_MODES = ("tier", "path")
 
 
 def _visible_contribution_nodes(
@@ -182,16 +221,27 @@ def direct_impact_coverage(
     return direct_sum / abs(total_score)
 
 
+def _node_direct_score(node, direct_lookup: Callable[[NodeId], float] | None = None) -> float:
+    """Visit-level direct, or ``direct_lookup(unique_id)`` when provided."""
+    if node is None:
+        return 0.0
+    if direct_lookup is not None:
+        return float(direct_lookup(node.unique_id) or 0.0)
+    return float(getattr(node, "direct_emissions_score", 0.0) or 0.0)
+
+
 def coverage_of_uids(
     nodes: dict,
     uids: set[NodeId],
     total_score: float,
+    *,
+    direct_lookup: Callable[[NodeId], float] | None = None,
 ) -> float:
     """Σ(direct impact of ``uids``) / |total score|."""
     if not uids or total_score == 0.0:
         return 0.0
     direct_sum = sum(
-        getattr(nodes[uid], "direct_emissions_score", 0.0)
+        _node_direct_score(nodes[uid], direct_lookup)
         for uid in uids
         if uid in nodes
     )
@@ -207,14 +257,24 @@ def plan_cumulative_expand(
     visited: set,
     *,
     exclude: set | None = None,
+    eligible_ids: set | None = None,
+    direct_lookup: Callable[[NodeId], float] | None = None,
 ) -> tuple[set[NodeId], set[NodeId], NodeId | None]:
     """Largest-first cumulative expand plan starting from reference flows.
 
     Opens included nodes with the largest **remaining upstream** impact
-    (|cumulative| − |direct|). A node that is already almost entirely direct
-    (little upstream left) is not auto-opened — its tiny children stay hidden
-    until manual expand. When a node is opened, children are added
-    largest-first until Σ(direct of included) / |total| reaches ``target_pct``.
+    (|cumulative| − |direct|). When a node is opened, children that raise
+    coverage are added largest-direct first until Σ(direct of included) /
+    |total| reaches ``target_pct``. Zero-direct siblings are not dumped into
+    the display set: only the next remaining-upstream hop is added, then that
+    hop is opened before leftover siblings of the parent. A 0-direct child is
+    skipped when an already-included sibling still carries more remaining
+    upstream (follow that plant, not leftover markets), and a parent that
+    already has a direct-impact child plus one 0-direct hop does not gain
+    extra 0-direct siblings. A node with no remaining upstream is not opened.
+    Cumulative Adjust does not skip “mostly direct” nodes with a
+    remaining-upstream ratio. ``direct_lookup`` (Sankey) uses solved-inventory
+    directs per unique process so coverage matches the boxes on screen.
 
     Returns
     -------
@@ -228,32 +288,65 @@ def plan_cumulative_expand(
     """
     failed = exclude or set()
     pcm = build_parent_child_map(nodes, edges)
+
+    def _ok(uid: NodeId) -> bool:
+        return eligible_ids is None or uid in eligible_ids
+
     included: set[NodeId] = {
-        uid for uid in pcm.get(root_uid, []) if uid in nodes
+        uid for uid in pcm.get(root_uid, []) if uid in nodes and _ok(uid)
     }
     walk_expanded: set[NodeId] = set()
     target = target_pct / 100.0
     abs_total = abs(total_score)
 
     def _coverage() -> float:
-        return coverage_of_uids(nodes, included, total_score)
+        return coverage_of_uids(
+            nodes, included, total_score, direct_lookup=direct_lookup
+        )
+
+    def _direct(n) -> float:
+        return abs(_node_direct_score(n, direct_lookup))
 
     def _remaining(n) -> float:
         cum = abs(getattr(n, "cumulative_score", 0.0))
-        direct = abs(getattr(n, "direct_emissions_score", 0.0))
-        return max(cum - direct, 0.0)
+        return max(cum - _direct(n), 0.0)
 
     def _worth_opening(n) -> bool:
-        """Skip nodes whose impact is already almost all direct (dust upstream)."""
         rem = _remaining(n)
         if rem <= 0:
-            return False
-        cum = abs(getattr(n, "cumulative_score", 0.0))
-        if cum > 0 and rem / cum < 0.05:
             return False
         if abs_total > 0 and rem / abs_total < 1e-9:
             return False
         return True
+
+    def _contributes(n) -> bool:
+        direct = _direct(n)
+        return direct > 0 and (abs_total <= 0 or direct / abs_total >= 1e-9)
+
+    def _skip_zero_direct_sibling(parent_uid: NodeId, child) -> bool:
+        """Hide leftover 0-direct markets beside plants that already add impact."""
+        kids = [
+            cid
+            for cid in pcm.get(parent_uid, [])
+            if cid in included and cid in nodes and cid != child.unique_id
+        ]
+        contributing = [cid for cid in kids if _contributes(nodes[cid])]
+        zero_hops = [cid for cid in kids if not _contributes(nodes[cid])]
+        if not contributing:
+            return False
+        if zero_hops:
+            return True
+        return any(_remaining(nodes[cid]) > _remaining(child) for cid in contributing)
+
+    def _useful_child(cid: NodeId, parent_uid: NodeId) -> bool:
+        if cid not in nodes or cid in included or not _ok(cid):
+            return False
+        child = nodes[cid]
+        if _contributes(child):
+            return True
+        if not _worth_opening(child):
+            return False
+        return not _skip_zero_direct_sibling(parent_uid, child)
 
     def _can_open(uid: NodeId) -> bool:
         if uid in failed:
@@ -263,42 +356,64 @@ def plan_cumulative_expand(
             return False
         if uid not in visited:
             return True
-        return any(cid not in included for cid in pcm.get(uid, []))
+        return any(_useful_child(cid, uid) for cid in pcm.get(uid, []))
 
     def _add_children_until_target(parent_uid: NodeId) -> None:
-        """Add parent children largest-first; stop once coverage meets target."""
+        """Add coverage-raising children; at most one 0-direct hop per call."""
         children = [
             nodes[cid]
             for cid in pcm.get(parent_uid, [])
-            if cid in nodes and cid not in included
+            if cid in nodes and cid not in included and _ok(cid)
         ]
         children.sort(
-            key=lambda n: (_remaining(n), abs(getattr(n, "cumulative_score", 0.0)), -n.unique_id),
+            key=lambda n: (
+                _direct(n),
+                _remaining(n),
+                abs(getattr(n, "cumulative_score", 0.0)),
+                -n.unique_id,
+            ),
             reverse=True,
         )
         for child in children:
-            included.add(child.unique_id)
             if _coverage() >= target:
                 return
+            if _contributes(child):
+                included.add(child.unique_id)
+                continue
+            if _worth_opening(child):
+                if _skip_zero_direct_sibling(parent_uid, child):
+                    continue
+                included.add(child.unique_id)
+                return
+
+    def _rank(n) -> tuple:
+        return (_remaining(n), abs(getattr(n, "cumulative_score", 0.0)), -n.unique_id)
 
     while _coverage() < target:
-        candidates = [
+        hops = [
             nodes[uid]
             for uid in included
             if uid in nodes and uid not in walk_expanded and _can_open(uid)
         ]
-        if not candidates:
+        if hops:
+            pick = max(hops, key=_rank)
+            uid = pick.unique_id
+            if uid not in visited:
+                return included, walk_expanded, uid
+            walk_expanded.add(uid)
+            _add_children_until_target(uid)
+            continue
+        more = [
+            nodes[uid]
+            for uid in walk_expanded
+            if uid in nodes and _can_open(uid)
+        ]
+        if not more:
             break
-        pick = max(
-            candidates,
-            key=lambda n: (_remaining(n), abs(getattr(n, "cumulative_score", 0.0)), -n.unique_id),
-        )
-        uid = pick.unique_id
-        if uid not in visited:
-            return included, walk_expanded, uid
-
-        walk_expanded.add(uid)
-        _add_children_until_target(uid)
+        before = len(included)
+        _add_children_until_target(max(more, key=_rank).unique_id)
+        if len(included) == before:
+            break
 
     return included, walk_expanded, None
 
@@ -367,9 +482,9 @@ def next_expand_candidates(
     -------
     Matching unvisited ids (any order).
     """
-    if mode not in CANDIDATE_EXPAND_MODES:
+    if mode not in CANDIDATE_ADJUST_MODES:
         raise ValueError(
-            f"Unknown expand mode: {mode!r} "
+            f"Unknown adjust mode: {mode!r} "
             f"(use plan_cumulative_expand for cumulative)"
         )
 
@@ -431,12 +546,17 @@ def run_expand_policy(
     value: float,
     total_score: float,
     on_progress=None,
+    unique_activities: bool = False,
+    direct_lookup: Callable[[NodeId], float] | None = None,
 ) -> tuple[set[NodeId] | None, set[NodeId] | None]:
-    """Traverse for an expand policy; return display-set ``(included, to_expand)``.
+    """Traverse for an adjust policy; return display-set ``(included, to_expand)``.
 
     For ``tier`` / ``path``: traverse via :func:`next_expand_candidates`.
     For ``path``: also return :func:`path_display_set`.
     For ``cumulative``: loop :func:`plan_cumulative_expand` until done.
+    ``unique_activities`` (Sankey) only opens the **highest-path** visit of
+    each process (one box; a small first NNEV visit must not hide a later
+    large path).
 
     ``on_progress(step, n_nodes)`` is optional (e.g. UI busy tick). If it
     returns ``False``, stop and return the display set for the graph so far.
@@ -447,6 +567,16 @@ def run_expand_policy(
 
     def _stop(step: int) -> bool:
         return on_progress is not None and on_progress(step, len(state.nodes)) is False
+
+    def _eligible() -> set[NodeId] | None:
+        if not unique_activities:
+            return None
+        return keep_best_visit_per_activity(
+            state.nodes,
+            state.edges,
+            {uid for uid in state.nodes if uid != root_uid},
+            root_uid,
+        )
 
     if mode == "cumulative":
         included: set[NodeId] = set()
@@ -460,6 +590,8 @@ def run_expand_policy(
                 value,
                 state.visited_nodes,
                 exclude=failed,
+                eligible_ids=_eligible(),
+                direct_lookup=direct_lookup,
             )
             if need is None:
                 break
@@ -467,6 +599,10 @@ def run_expand_policy(
                 break
             if not safe_traverse_from_node(state, need):
                 failed.add(need)
+        if unique_activities:
+            included = keep_best_visit_per_activity(
+                state.nodes, state.edges, included, root_uid
+            )
         return included, to_expand
 
     # tier / path — calculate first
@@ -481,6 +617,7 @@ def run_expand_policy(
             total_score=total_score,
             root_uid=root_uid,
             exclude=failed,
+            eligible_ids=_eligible(),
         )
         if not candidates:
             break
@@ -497,7 +634,7 @@ def run_expand_policy(
             break
 
     if mode == "path":
-        return path_display_set(
+        included, to_expand = path_display_set(
             state.nodes,
             state.edges,
             root_uid,
@@ -505,6 +642,11 @@ def run_expand_policy(
             value,
             state.visited_nodes,
         )
+        if unique_activities:
+            included = keep_best_visit_per_activity(
+                state.nodes, state.edges, included, root_uid
+            )
+        return included, to_expand
     return None, None
 
 
@@ -521,9 +663,8 @@ def path_display_set(
     * Auto-expand a node only if its path impact is ≥ ``min_path_pct`` **and**
       it has at least one child that is also ≥ ``min_path_pct`` (the high-impact
       path continues). Terminal high-impact nodes stay collapsed.
-    * Under each auto-expanded node, list **all** discovered children (including
-      below-threshold siblings). The engine cutoff already limits which children
-      exist in ``edges``.
+    * Hide siblings that are not themselves on a ≥ ``min_path_pct`` path.
+      Show all (footer) reveals the rest of the calculated graph.
 
     Returns ``(included_uids, visually_expanded_uids)``.
     """
@@ -552,15 +693,560 @@ def path_display_set(
     }
 
     included: set[NodeId] = {
-        uid for uid in pcm.get(root_uid, []) if uid in nodes
+        uid for uid in pcm.get(root_uid, []) if uid in nodes and _above(uid)
     }
     included.update(high_path)
     for uid in to_expand:
         for cid in pcm.get(uid, []):
-            if cid in nodes:
+            if cid in nodes and _above(cid):
                 included.add(cid)
 
     return included, to_expand
+
+
+def graph_display_set(
+    nodes: dict,
+    edges: list,
+    *,
+    mode: str,
+    value: float,
+    total_score: float,
+    root_uid: NodeId,
+    visited: set | None = None,
+    unique_activities: bool = False,
+    direct_lookup: Callable[[NodeId], float] | None = None,
+) -> tuple[set[NodeId], set[NodeId]]:
+    """Display set for a calculated graph (Tree plot or Sankey) from Adjust policy.
+
+    Does not traverse. ``tier`` uses :func:`compute_node_tiers`; ``path`` and
+    ``cumulative`` reuse the Tree policies on the nodes already in ``nodes``.
+    ``unique_activities`` (Sankey) plans on the **highest-path** visit of each
+    process so Individual path impact follows the large path, not a small
+    first NNEV visit of the same process.
+    """
+    visited_set = set(visited) if visited is not None else set(nodes)
+    eligible = None
+    if unique_activities and mode == "cumulative":
+        eligible = keep_best_visit_per_activity(
+            nodes,
+            edges,
+            {uid for uid in nodes if uid != root_uid},
+            root_uid,
+        )
+    if mode == "tier":
+        max_tier = max(0, int(value))
+        tiers = compute_node_tiers(nodes, edges, root_uid)
+        included = {uid for uid, tier in tiers.items() if 0 <= tier <= max_tier}
+        pcm = build_parent_child_map(nodes, edges)
+        to_expand = {
+            uid
+            for uid in included
+            if any(cid in included for cid in pcm.get(uid, []))
+        }
+    elif mode == "path":
+        included, to_expand = path_display_set(
+            nodes, edges, root_uid, total_score, value, visited_set
+        )
+    else:
+        included, to_expand, _need = plan_cumulative_expand(
+            nodes,
+            edges,
+            root_uid,
+            total_score,
+            value,
+            visited_set,
+            eligible_ids=eligible,
+            direct_lookup=direct_lookup,
+        )
+    if unique_activities:
+        included = keep_best_visit_per_activity(nodes, edges, included, root_uid)
+    return included, to_expand
+
+
+def _activity_id(node) -> int | None:
+    """Process datapackage id, or ``None`` for the virtual demand root."""
+    if node is None:
+        return None
+    uid = getattr(node, "unique_id", None)
+    if uid is not None and uid < 0:
+        return None
+    aid = getattr(node, "activity_datapackage_id", None)
+    return aid
+
+
+def _int_or_none(value) -> int | None:
+    if value is None:
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _nonneg_int(value) -> int | None:
+    n = _int_or_none(value)
+    if n is None or n < 0:
+        return None
+    return n
+
+
+def _node_by_uid(nodes: dict | None, uid) -> object | None:
+    """Traversal node for a visit id, accepting int or digit-string keys."""
+    if not nodes or uid is None:
+        return None
+    key = _int_or_none(uid)
+    if key is None:
+        return None
+    node = nodes.get(key)
+    if node is not None:
+        return node
+    node = nodes.get(uid)
+    if node is not None:
+        return node
+    for k, v in nodes.items():
+        if _int_or_none(k) == key:
+            return v
+    return None
+
+
+def _payload_open_ref(
+    activity_id=None,
+    database: str | None = None,
+    code: str | None = None,
+) -> dict:
+    ref: dict = {}
+    aid = _nonneg_int(activity_id)
+    if aid is not None:
+        ref["activity_id"] = aid
+    db = str(database or "").strip()
+    cd = str(code or "").strip()
+    if db:
+        ref["database"] = db
+    if cd:
+        ref["code"] = cd
+    return ref
+
+
+def open_process_refs(
+    *,
+    is_aggregate: bool = False,
+    activity_id=None,
+    database: str | None = None,
+    code: str | None = None,
+    nodes: dict | None = None,
+    uid: NodeId | None = None,
+    constituent_uids: list | None = None,
+) -> list[dict]:
+    """Identity refs for **Open process** on a shown Tree or Sankey box.
+
+    The traversal visit is the source of truth (not a JS datapackage id that
+    may be a visit uid). Aggregates are a group of processes — Open process
+    is disabled. Payload ``database`` / ``code`` are fallbacks when Brightway
+    ``get_node(id=)`` cannot resolve the visit.
+    """
+    if is_aggregate:
+        return []
+    payload = _payload_open_ref(activity_id, database, code)
+    visit = _node_by_uid(nodes, uid)
+    if visit is not None:
+        uid_i = _int_or_none(getattr(visit, "unique_id", None))
+        aid = _nonneg_int(getattr(visit, "activity_datapackage_id", None))
+        if uid_i is not None and uid_i < 0 and aid is None:
+            return [payload] if payload else []
+        ref = dict(payload)
+        if aid is not None:
+            ref["activity_id"] = aid
+        return [ref] if ref else []
+    return [payload] if payload else []
+
+
+def activities_from_open_refs(refs: list[dict]) -> list:
+    """Brightway nodes for Open process refs (product/waste → processor)."""
+    import bw2data as bd
+    import bw_functional as bf
+
+    from activity_browser.bwutils.commontasks import refresh_node
+
+    out = []
+    seen: set = set()
+    for ref in refs or []:
+        node = None
+        aid = ref.get("activity_id")
+        if aid is not None:
+            try:
+                node = bd.get_node(id=int(aid))
+            except Exception:
+                node = None
+        if node is None:
+            db = str(ref.get("database") or "").strip()
+            code = str(ref.get("code") or "").strip()
+            if db and code:
+                try:
+                    node = bd.get_activity((db, code))
+                except Exception:
+                    node = None
+        if node is None:
+            continue
+        try:
+            node = refresh_node(node)
+        except Exception:
+            pass
+        try:
+            if isinstance(node, bf.Product):
+                node = refresh_node(node["processor"])
+            else:
+                waste_cls = getattr(bf, "Waste", None)
+                if waste_cls is not None and isinstance(node, waste_cls):
+                    node = refresh_node(node["processor"])
+        except Exception:
+            continue
+        key = getattr(node, "key", None) or id(node)
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(node)
+    return out
+
+
+def open_process_activity_id(
+    *,
+    is_aggregate: bool = False,
+    activity_id=None,
+    nodes: dict | None = None,
+    uid: NodeId | None = None,
+    constituent_uids: list | None = None,
+) -> int | None:
+    """Datapackage id for **Open process**, or ``None`` when there is no process.
+
+    Prefer the traversal visit over a JS ``activity_id``. Aggregates have no
+    single process to open.
+    """
+    refs = open_process_refs(
+        is_aggregate=is_aggregate,
+        activity_id=activity_id,
+        nodes=nodes,
+        uid=uid,
+        constituent_uids=constituent_uids,
+    )
+    if not refs:
+        return None
+    return refs[0].get("activity_id")
+
+
+def visits_of_same_activity(nodes: dict, uid: NodeId) -> list[NodeId]:
+    """NNEV visit ids of the same process as ``uid`` (clicked visit first).
+
+    Unique-process Sankey draws one box; other visits of that process can still
+    hold cutoff suppliers the representative visit never listed.
+    """
+    if uid not in nodes:
+        return []
+    aid = _activity_id(nodes.get(uid))
+    if aid is None:
+        return [uid]
+    out = [u for u, node in nodes.items() if _activity_id(node) == aid]
+    if uid in out:
+        out.remove(uid)
+        out.insert(0, uid)
+    return out
+
+
+def supplier_visit_ids(
+    pcm: dict[NodeId, list[NodeId]],
+    nodes: dict,
+    uid: NodeId,
+    *,
+    unique_activities: bool = False,
+) -> list[NodeId]:
+    """Supplier visit ids of ``uid``, or of every visit of that process."""
+    if not unique_activities:
+        return [cid for cid in pcm.get(uid, []) if cid in nodes]
+    seen: set[NodeId] = set()
+    out: list[NodeId] = []
+    for visit in visits_of_same_activity(nodes, uid):
+        for cid in pcm.get(visit, []):
+            if cid in nodes and cid not in seen:
+                seen.add(cid)
+                out.append(cid)
+    return out
+
+
+def unopened_same_activity_hops(
+    nodes: dict,
+    uid: NodeId,
+    opened: set[NodeId] | None,
+) -> list[NodeId]:
+    """Unopened same-process visits that still have remaining upstream."""
+    opened_set = set(opened) if opened is not None else set(nodes)
+    hops: list[NodeId] = []
+    for visit in visits_of_same_activity(nodes, uid):
+        if visit in opened_set:
+            continue
+        node = nodes.get(visit)
+        if node is None:
+            continue
+        rem = max(
+            abs(getattr(node, "cumulative_score", 0.0))
+            - abs(getattr(node, "direct_emissions_score", 0.0)),
+            0.0,
+        )
+        if rem > 0:
+            hops.append(visit)
+    return hops
+
+
+def keep_best_visit_per_activity(
+    nodes: dict,
+    edges: list,
+    included: set[NodeId],
+    root_uid: NodeId,
+) -> set[NodeId]:
+    """Keep one visit per process: the included visit with largest |path impact|.
+
+    NNEV may discover a process first via a small path (e.g. a minor exchange
+    to the reference flow) and later via a large path. Unique-process Sankey
+    must draw and hop the large path, or Individual path impact stops on a box
+    whose only calculated suppliers are the small visit's. Circular supply
+    (A→B→A) still yields two boxes: the later visit of A has a smaller path
+    impact than the first, so it is dropped.
+
+    ``edges`` is unused (call-site stability). Selection is by |path impact|
+    among ``included``, not first-visit / BFS order from ``root_uid``.
+    """
+    best: dict[int, NodeId] = {}
+    extra: set[NodeId] = set()
+    for uid in included:
+        if uid == root_uid or uid not in nodes:
+            continue
+        node = nodes[uid]
+        aid = _activity_id(node)
+        if aid is None:
+            extra.add(uid)
+            continue
+        prev = best.get(aid)
+        if prev is None or _visit_path_rank(node) > _visit_path_rank(nodes[prev]):
+            best[aid] = uid
+    return extra | set(best.values())
+
+
+def _visit_path_rank(node) -> tuple:
+    """Higher is a better unique-process representative."""
+    return (abs(getattr(node, "cumulative_score", 0.0)), -int(node.unique_id))
+
+
+def unique_process_stats(
+    nodes: dict,
+    edges: list,
+    root_uid: NodeId,
+    total_score: float,
+    included: set[NodeId] | None = None,
+    *,
+    direct_lookup: Callable[[NodeId], float] | None = None,
+) -> dict:
+    """Shown vs calculated unique-process counts, coverage, and max tier."""
+    universe = {uid for uid in nodes if uid != root_uid}
+    calculated = keep_best_visit_per_activity(nodes, edges, universe, root_uid)
+    shown = keep_best_visit_per_activity(
+        nodes, edges, set(included) if included is not None else calculated, root_uid
+    )
+    tiers = compute_node_tiers(nodes, edges, root_uid)
+    return {
+        "shown_n": len(shown),
+        "shown_cov": coverage_of_uids(
+            nodes, shown, total_score, direct_lookup=direct_lookup
+        ),
+        "shown_tier": max((tiers.get(uid, 0) for uid in shown), default=0),
+        "calc_n": len(calculated),
+        "calc_cov": coverage_of_uids(
+            nodes, calculated, total_score, direct_lookup=direct_lookup
+        ),
+        "calc_tier": max((tiers.get(uid, 0) for uid in calculated), default=0),
+    }
+
+
+def _display_ancestors(
+    pcm: dict[NodeId, list[NodeId]],
+    root_uid: NodeId,
+    uid: NodeId,
+    drawn: set[NodeId],
+) -> set[NodeId]:
+    """Drawn nodes on a path from ``root_uid`` to ``uid`` (excluding ``uid``)."""
+    parent: dict[NodeId, NodeId] = {}
+    seen = {root_uid}
+    queue = [root_uid]
+    found = False
+    while queue:
+        cur = queue.pop(0)
+        for child in pcm.get(cur, []):
+            if child not in drawn or child in seen:
+                continue
+            seen.add(child)
+            parent[child] = cur
+            if child == uid:
+                found = True
+                queue = []
+                break
+            queue.append(child)
+    if not found:
+        return set()
+    out: set[NodeId] = set()
+    cur = uid
+    while cur in parent:
+        cur = parent[cur]
+        if cur in drawn:
+            out.add(cur)
+    return out
+
+
+def toggle_graph_display_node(
+    included: set[NodeId],
+    nodes: dict,
+    edges: list,
+    uid: NodeId,
+    *,
+    unique_activities: bool = False,
+    root_uid: NodeId | None = None,
+) -> set[NodeId]:
+    """Expand or collapse one visit in a calculated graph display set.
+
+    Manual expand shows every unique-process supplier already in the calculated
+    graph (engine cutoff). Adjust-hidden siblings come back on expand.
+    Collapse runs only when those suppliers are already shown. Already-drawn
+    processes stay one box (no cycle unroll).
+    """
+    pcm = build_parent_child_map(nodes, edges)
+    children = supplier_visit_ids(
+        pcm, nodes, uid, unique_activities=unique_activities
+    )
+    if not children:
+        return set(included)
+    if unique_activities:
+        root = root_uid if root_uid is not None else next(
+            (i for i in nodes if i < 0), -1
+        )
+        drawn = keep_best_visit_per_activity(nodes, edges, set(included), root)
+        drawn_acts = {
+            _activity_id(nodes[u])
+            for u in drawn
+            if u in nodes and _activity_id(nodes[u]) is not None
+        }
+        shown_unique = []
+        to_add = []
+        for cid in children:
+            aid = _activity_id(nodes.get(cid))
+            if aid is not None and aid in drawn_acts:
+                first = next(
+                    (u for u in drawn if _activity_id(nodes.get(u)) == aid),
+                    None,
+                )
+                if first is not None and first not in shown_unique:
+                    shown_unique.append(first)
+            elif cid not in drawn:
+                to_add.append(cid)
+        ancestors = _display_ancestors(pcm, root, uid, drawn)
+        exclusive = [s for s in shown_unique if s not in ancestors and s != uid]
+        if to_add:
+            return set(included) | set(to_add)
+        if exclusive:
+            hide: set[NodeId] = set()
+            stack = list(exclusive)
+            while stack:
+                cur = stack.pop()
+                if cur in hide or cur in ancestors or cur == uid:
+                    continue
+                hide.add(cur)
+                for child in pcm.get(cur, []):
+                    mapped = child
+                    aid = _activity_id(nodes.get(child))
+                    if aid is not None:
+                        mapped = next(
+                            (u for u in drawn if _activity_id(nodes.get(u)) == aid),
+                            child,
+                        )
+                    if mapped not in hide:
+                        stack.append(mapped)
+            return set(included) - hide
+        return set(included)
+    shown_children = [cid for cid in children if cid in included]
+    if shown_children:
+        return set(included) - _descendant_uids(pcm, uid)
+    return set(included) | set(children)
+
+
+def apply_graph_display_click(
+    included: set[NodeId],
+    nodes: dict,
+    edges: list,
+    uid: NodeId,
+    *,
+    unique_activities: bool = False,
+    opened: set[NodeId] | None = None,
+    root_uid: NodeId | None = None,
+) -> tuple[set[NodeId], NodeId | None]:
+    """Toggle the display set, or request a one-hop traverse of ``uid``.
+
+    Returns ``(included, hop_uid)``. ``hop_uid`` is set when this process still
+    has an unopened visit with remaining upstream (the clicked visit if that
+    one is unopened). The caller hops every
+    :func:`unopened_same_activity_hops` visit, then
+    :func:`include_new_unique_suppliers`.
+    """
+    opened_set = set(opened) if opened is not None else set(nodes)
+    if unique_activities:
+        hops = unopened_same_activity_hops(nodes, uid, opened_set)
+        if hops:
+            return set(included), hops[0]
+    else:
+        node = nodes.get(uid)
+        rem = 0.0
+        if node is not None:
+            rem = max(
+                abs(getattr(node, "cumulative_score", 0.0))
+                - abs(getattr(node, "direct_emissions_score", 0.0)),
+                0.0,
+            )
+        if uid not in opened_set and rem > 0:
+            return set(included), uid
+    return (
+        toggle_graph_display_node(
+            included,
+            nodes,
+            edges,
+            uid,
+            unique_activities=unique_activities,
+            root_uid=root_uid,
+        ),
+        None,
+    )
+
+
+def include_new_unique_suppliers(
+    included: set[NodeId],
+    nodes: dict,
+    edges: list,
+    uid: NodeId,
+    *,
+    root_uid: NodeId,
+) -> set[NodeId]:
+    """Add unique-process suppliers of ``uid`` discovered after a hop.
+
+    Engine cutoff already limits which children exist. Does not apply Adjust
+    path/cumulative filters. Unions suppliers of every NNEV visit of this
+    process so a small first visit cannot hide another visit's suppliers.
+    """
+    pcm = build_parent_child_map(nodes, edges)
+    drawn = keep_best_visit_per_activity(nodes, edges, set(included), root_uid)
+    drawn_acts = {
+        _activity_id(nodes[u])
+        for u in drawn
+        if u in nodes and _activity_id(nodes[u]) is not None
+    }
+    to_add = [
+        cid
+        for cid in supplier_visit_ids(pcm, nodes, uid, unique_activities=True)
+        if _activity_id(nodes.get(cid)) not in drawn_acts
+    ]
+    return set(included) | set(to_add)
 
 
 # ---------------------------------------------------------------------------
@@ -658,7 +1344,8 @@ def build_chain_layout(
             return
         act_meta = meta_for(node)
         product = act_meta.get("product") or getattr(node, "_label", str(node.unique_id))
-        segments.append({
+        aid = getattr(node, "activity_datapackage_id", None)
+        rec = {
             "unique_id": node.unique_id,
             "tier": tier,
             "x0": x0,
@@ -667,12 +1354,16 @@ def build_chain_layout(
             "process": act_meta.get("name", ""),
             "location": act_meta.get("location", ""),
             "database": act_meta.get("database", ""),
+            "code": act_meta.get("code", ""),
             "unit": act_meta.get("unit", ""),
             "cumulative_score": node.cumulative_score,
             "direct_emissions_score": node.direct_emissions_score,
             "cumulative_pct": cumulative_percent(node, total_score),
             "direct_pct": direct_percent(node, total_score),
-        })
+        }
+        if aid is not None and aid >= 0:
+            rec["activity_id"] = int(aid)
+        segments.append(rec)
 
     def walk_children(parent_node, x0: float, x1: float, tier: int) -> None:
         child_tier = tier + 1
@@ -755,6 +1446,686 @@ PLOT_AGGREGATE_LABELS = {
 def plot_click_target_uid(segment: dict) -> int:
     """Tree ``unique_id`` to toggle when a plot segment is clicked."""
     return int(segment.get("toggle_uid", segment["unique_id"]))
+
+
+D3_PLOT_MODES = ("icicle", "tier_bars", "sunburst", "treemap")
+
+_D3_SEGMENT_FIELDS = (
+    "unique_id",
+    "toggle_uid",
+    "tier",
+    "x0",
+    "x1",
+    "product",
+    "process",
+    "location",
+    "database",
+    "code",
+    "unit",
+    "cumulative_score",
+    "direct_emissions_score",
+    "cumulative_pct",
+    "direct_pct",
+    "is_aggregate",
+    "aggregate_key",
+    "aggregate_by",
+    "constituent_uids",
+    "constituent_products",
+    "activity_id",
+)
+
+
+def format_impact_abs(value: float) -> str:
+    """Compact absolute score for plot tooltips."""
+    a = abs(value)
+    if a >= 100:
+        return f"{value:.2f}"
+    if a >= 1:
+        return f"{value:.3f}"
+    if a >= 0.01:
+        return f"{value:.4f}"
+    return f"{value:.2e}"
+
+
+def format_plot_segment_tooltip(seg: dict, unit: str = "") -> str:
+    """Hover text for a contribution-tree plot segment."""
+    unit = unit or seg.get("unit") or ""
+    lines = []
+    if seg.get("is_aggregate"):
+        field = seg.get("aggregate_by", "")
+        label = PLOT_AGGREGATE_LABELS.get(field, field)
+        if label and seg.get("aggregate_key"):
+            lines.append(f"{label}: {seg['aggregate_key']}")
+        n = len(seg.get("constituent_uids") or [])
+        if n:
+            lines.append(f"Processes: {n}")
+        products = seg.get("constituent_products") or []
+        for name in products[:5]:
+            lines.append(f"• {name}")
+        if len(products) > 5:
+            lines.append(f"… and {len(products) - 5} more")
+    else:
+        if seg.get("product"):
+            lines.append(f"Product: {seg['product']}")
+        if seg.get("process"):
+            lines.append(f"Process: {seg['process']}")
+        if seg.get("location"):
+            lines.append(f"Location: {seg['location']}")
+        if seg.get("database"):
+            lines.append(f"Database: {seg['database']}")
+    lines.append(f"Tier: {seg['tier']}")
+    lines.append(
+        f"Path impact: {seg['cumulative_pct']:.2f}% "
+        f"({format_impact_abs(seg['cumulative_score'])} {unit})".rstrip()
+    )
+    lines.append(
+        f"Direct impact: {seg['direct_pct']:.2f}% "
+        f"({format_impact_abs(seg['direct_emissions_score'])} {unit})".rstrip()
+    )
+    return "\n".join(lines)
+
+
+def _json_safe(value):
+    """Convert numpy/pandas scalars and nested containers to JSON types."""
+    if value is None or isinstance(value, (str, bool)):
+        return value
+    if isinstance(value, dict):
+        return {str(k): _json_safe(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_json_safe(v) for v in value]
+    item = getattr(value, "item", None)
+    if callable(item):
+        try:
+            return _json_safe(item())
+        except (TypeError, ValueError):
+            pass
+    if isinstance(value, int):
+        return int(value)
+    if isinstance(value, float):
+        if math.isnan(value) or math.isinf(value):
+            return 0.0
+        return float(value)
+    return value
+
+
+def _segment_label(seg: dict) -> str:
+    if seg.get("is_aggregate") and seg.get("aggregate_key"):
+        return str(seg["aggregate_key"])
+    return str(seg.get("product") or "").strip()
+
+
+def d3_plot_payload(
+    segments: list[dict],
+    mode: str,
+    unit: str = "",
+    *,
+    empty_message: str = "",
+    style: dict | None = None,
+    plot_depth: int | None = None,
+    color_by: str = "direct",
+) -> dict:
+    """JSON-ready plot payload: partition geometry plus click ids.
+
+    Geometry (``tier``, ``x0``, ``x1``) is copied, not recomputed. Partition
+    plots map those spans onto SVG. Treemap nests the same segments by span
+    containment and sizes cells by path-impact span.
+    """
+    if mode not in D3_PLOT_MODES:
+        mode = "icicle"
+    if color_by not in GRAPH_COLOR_BY:
+        color_by = "direct"
+    out_segments: list[dict] = []
+    max_tier = 0
+    for seg in segments:
+        item = {}
+        for field in _D3_SEGMENT_FIELDS:
+            if field in seg:
+                item[field] = _json_safe(seg[field])
+        item.setdefault("toggle_uid", item["unique_id"])
+        item["click_uid"] = plot_click_target_uid(item)
+        item["label"] = _segment_label(seg)
+        item["tooltip"] = format_plot_segment_tooltip(seg, unit)
+        direct_pct = float(item.get("direct_pct") or 0.0)
+        item["direct_sign"] = _impact_sign(direct_pct)
+        item["color_key"] = _graph_color_key(
+            {
+                "product": item.get("product") or "",
+                "name": item.get("process") or "",
+                "location": item.get("location") or "",
+                "database": item.get("database") or "",
+            },
+            color_by,
+        )
+        max_tier = max(max_tier, int(item.get("tier") or 0))
+        out_segments.append(item)
+    computed_depth = max(1, max_tier + 1) if out_segments else 1
+    return {
+        "mode": mode,
+        "kind": "partition",
+        "unit": unit or "",
+        "empty_message": empty_message,
+        "style": dict(style or {}),
+        "plot_depth": int(plot_depth) if plot_depth is not None else computed_depth,
+        # D3 log-scale high is always 100% of the total score (not the visible max).
+        "max_direct_pct": 100.0,
+        "color_by": color_by,
+        "segments": out_segments,
+    }
+
+
+GRAPH_COLOR_BY = ("direct", "product", "process", "location", "database")
+GRAPH_EDGE_MAX_WIDTH = 40
+_GRAPH_AGGREGATE_ID_BASE = 10_000
+
+
+def _graph_node_css_class(name: str, *, is_demand: bool) -> str:
+    """Sankey box stroke class from the process name (no Brightway lookup)."""
+    if is_demand:
+        return "demand"
+    lowered = (name or "").lower()
+    if "treatment of" in lowered:
+        return "treatment"
+    if "market for" in lowered:
+        return "market"
+    if "market group" in lowered:
+        return "marketgroup"
+    return "production"
+
+
+def _impact_sign(value: float) -> int:
+    if value > 0:
+        return 1
+    if value < 0:
+        return -1
+    return 0
+
+
+def _graph_color_key(meta: dict, color_by: str) -> str:
+    if color_by == "product":
+        return str(meta.get("product") or "").strip()
+    if color_by == "process":
+        return str(meta.get("name") or "").strip()
+    if color_by == "location":
+        return str(meta.get("location") or "").strip()
+    if color_by == "database":
+        return str(meta.get("database") or "").strip()
+    return ""
+
+
+def _graph_meta(node, metadata_lookup: Callable[[int], dict] | None) -> dict:
+    if metadata_lookup is None:
+        return {}
+    return metadata_lookup(getattr(node, "activity_datapackage_id", None)) or {}
+
+
+def _descendant_uids(pcm: dict[NodeId, list[NodeId]], start: NodeId) -> set[NodeId]:
+    out: set[NodeId] = set()
+    queue = list(pcm.get(start, []))
+    while queue:
+        uid = queue.pop()
+        if uid in out:
+            continue
+        out.add(uid)
+        queue.extend(pcm.get(uid, []))
+    return out
+
+
+def format_graph_node_tooltip(node: dict, unit: str = "") -> str:
+    """Hover text for a tree-plot / Sankey-plot process box."""
+    lines = []
+    if node.get("is_aggregate") and node.get("aggregate_key"):
+        field = node.get("aggregate_by", "")
+        label = PLOT_AGGREGATE_LABELS.get(field, field)
+        if label:
+            lines.append(f"{label}: {node['aggregate_key']}")
+        n = len(node.get("constituent_uids") or [])
+        if n:
+            lines.append(f"Processes: {n}")
+    else:
+        if node.get("product"):
+            lines.append(f"Product: {node['product']}")
+        if node.get("name"):
+            lines.append(f"Process: {node['name']}")
+        loc = str(node.get("location") or "").strip()
+        if loc:
+            lines.append(f"Location: {loc}")
+        if node.get("database"):
+            lines.append(f"Database: {node['database']}")
+    lines.append(
+        f"Path impact: {node['path_pct']:.2f}% "
+        f"({format_impact_abs(node['cumulative_score'])} {unit})".rstrip()
+    )
+    lines.append(
+        f"Direct impact: {node['direct_pct']:.2f}% "
+        f"({format_impact_abs(node['direct_emissions_score'])} {unit})".rstrip()
+    )
+    return "\n".join(lines)
+
+
+def format_graph_edge_tooltip(edge: dict) -> str:
+    """Hover text for a tree-plot / Sankey-plot ribbon (fallback if JS is absent)."""
+    lines = []
+    product = str(edge.get("product") or "").strip()
+    if product:
+        lines.append(f"Product: {product}")
+    amount = edge.get("amount")
+    if amount is not None:
+        try:
+            amt = float(amount)
+        except (TypeError, ValueError):
+            amt = None
+        if amt is not None:
+            flow_unit = str(edge.get("amount_unit") or "").strip()
+            lines.append(
+                f"Flow amount: {format_impact_abs(amt)}"
+                + (f" {flow_unit}" if flow_unit else "")
+            )
+    path_pct = edge.get("impact_pct_total")
+    cum = edge.get("impact_cumulative")
+    if path_pct is not None and cum is not None:
+        iunit = str(edge.get("impact_unit") or "").strip()
+        lines.append(
+            f"Path impact: {float(path_pct):.2f}% "
+            f"({format_impact_abs(float(cum))}"
+            f"{(' ' + iunit) if iunit else ''})".rstrip()
+        )
+    return "\n".join(lines)
+
+
+def sankey_traversal_max_depth(mode: str | None, value: float | int) -> int | None:
+    """NNEV ``max_depth`` for a Sankey Adjust policy.
+
+    ``None`` means unlimited (path / cumulative). Tier mode adds two hops
+    past the displayed tier: NNEV counts the virtual root as depth 0, and
+    the extra hop lets a two-process cycle remap both flows onto unique
+    process boxes. Startup at tier 1 therefore uses depth 3, not 1000 visits.
+    """
+    if (mode or "tier") != "tier":
+        return None
+    return max(1, int(value) + 2)
+
+
+def merge_graph_edges(edges: list[dict]) -> list[dict]:
+    """One ribbon per process pair: keep the largest path impact, drop cutoff tails."""
+    best: dict[tuple[int, int], dict] = {}
+    for rec in edges:
+        pair = (int(rec["source_id"]), int(rec["target_id"]))
+        prev = best.get(pair)
+        if prev is None:
+            best[pair] = rec
+            continue
+        if abs(float(rec.get("impact_cumulative") or 0.0)) > abs(
+            float(prev.get("impact_cumulative") or 0.0)
+        ):
+            best[pair] = rec
+    return list(best.values())
+
+
+def overlay_inventory_directs(payload: dict, lca, total_score: float) -> None:
+    """Replace visit-level directs with solved-inventory directs (unique-process Sankey)."""
+    from activity_browser.bwutils.lca_inputs import activity_direct_impacts
+
+    directs = activity_direct_impacts(lca)
+    if not directs:
+        return
+    unit = payload.get("unit") or ""
+    for rec in payload.get("nodes") or []:
+        if rec.get("is_aggregate"):
+            continue
+        aid = rec.get("activity_id")
+        if aid not in directs:
+            continue
+        direct = float(directs[aid])
+        rec["direct_emissions_score"] = direct
+        rec["direct_pct"] = (direct / total_score) * 100.0 if total_score else 0.0
+        rec["direct_emissions_score_normalized"] = (
+            direct / total_score if total_score else 0.0
+        )
+        rec["direct_sign"] = _impact_sign(direct)
+        rec["tooltip"] = format_graph_node_tooltip(rec, unit)
+
+
+def inventory_direct_lookup(
+    nodes: dict,
+    directs: dict[int, float],
+) -> Callable[[NodeId], float]:
+    """Map a visit uid to the solved-inventory direct of its unique process."""
+
+    def lookup(uid: NodeId) -> float:
+        node = nodes.get(uid)
+        aid = _activity_id(node)
+        if aid is not None and aid in directs:
+            return float(directs[aid])
+        if node is None:
+            return 0.0
+        return float(getattr(node, "direct_emissions_score", 0.0) or 0.0)
+
+    return lookup
+
+
+def mapped_edge_amounts(nodes: dict, edges: list, payload_nodes: list[dict]) -> dict[tuple[int, int], float]:
+    """Sum NNEV exchange amounts onto unique-process (source, target) pairs."""
+    uid_by_act: dict[int, int] = {}
+    drawn = {int(n["id"]) for n in payload_nodes if not n.get("is_aggregate")}
+    for rec in payload_nodes:
+        aid = rec.get("activity_id")
+        if aid is not None and not rec.get("is_aggregate"):
+            uid_by_act[int(aid)] = int(rec["id"])
+
+    def mapped(uid: int) -> int:
+        if uid in drawn:
+            return uid
+        node = nodes.get(uid)
+        aid = _activity_id(node)
+        if aid is not None and aid in uid_by_act:
+            return uid_by_act[aid]
+        return uid
+
+    amounts: dict[tuple[int, int], float] = defaultdict(float)
+    for edge in edges:
+        src = mapped(int(edge.producer_unique_id))
+        tgt = mapped(int(edge.consumer_unique_id))
+        if src == tgt or src not in drawn or tgt not in drawn:
+            continue
+        amounts[(src, tgt)] += float(getattr(edge, "amount", 0.0) or 0.0)
+    return amounts
+
+
+def d3_graph_payload(
+    nodes: dict,
+    edges: list,
+    total_score: float,
+    *,
+    root_uid: NodeId,
+    included_uids: set[NodeId] | None = None,
+    metadata_lookup: Callable[[int], dict] | None = None,
+    aggregate_by: str | None = None,
+    color_by: str = "direct",
+    unit: str = "",
+    empty_message: str = "",
+    style: dict | None = None,
+    visited: set | None = None,
+    unique_activities: bool = False,
+    opened_uids: set | None = None,
+) -> dict:
+    """JSON-ready node-link payload for the shared tree/Sankey renderer.
+
+    Only ``included_uids`` (the display set) become boxes. The virtual demand
+    root is omitted. JS must not recompute adjust policy or click targets.
+    ``unique_activities`` (Sankey) keeps one box per process (the highest-path
+    visit) and remaps later-visit edges onto that box so circular supply stays
+    two processes.
+    """
+    if color_by not in GRAPH_COLOR_BY:
+        color_by = "direct"
+    visited_set = set(visited) if visited is not None else set(nodes)
+    opened_set = set(opened_uids) if opened_uids is not None else visited_set
+    pcm = build_parent_child_map(nodes, edges)
+
+    def is_included(uid: NodeId) -> bool:
+        if uid == root_uid:
+            return False
+        if included_uids is None:
+            return uid in nodes
+        return uid in included_uids and uid in nodes
+
+    drawn: set[NodeId] = {uid for uid in nodes if is_included(uid)}
+    if unique_activities:
+        drawn = keep_best_visit_per_activity(nodes, edges, drawn, root_uid)
+    skip: set[NodeId] = set()
+    aggregate_nodes: list[dict] = []
+    demand_uids = set(pcm.get(root_uid, []))
+
+    if aggregate_by and drawn:
+        parents = {root_uid} | drawn
+        agg_index = 0
+        for parent_uid in parents:
+            kids = [
+                uid
+                for uid in pcm.get(parent_uid, [])
+                if uid in drawn and uid not in skip
+            ]
+            groups: dict[str, list[NodeId]] = defaultdict(list)
+            for uid in kids:
+                meta = _graph_meta(nodes[uid], metadata_lookup)
+                meta_row = {
+                    "product": meta.get("product", ""),
+                    "process": meta.get("name", ""),
+                    "location": meta.get("location", ""),
+                    "unit": meta.get("unit", ""),
+                    "database": meta.get("database", ""),
+                }
+                groups[_aggregate_field_value(meta_row, aggregate_by)].append(uid)
+            for key, group in groups.items():
+                if len(group) <= 1:
+                    continue
+                agg_id = -(_GRAPH_AGGREGATE_ID_BASE + agg_index)
+                agg_index += 1
+                group_nodes = [nodes[uid] for uid in group]
+                cum = sum(n.cumulative_score for n in group_nodes)
+                direct = sum(n.direct_emissions_score for n in group_nodes)
+                path_pct = (cum / total_score) * 100.0 if total_score else 0.0
+                direct_pct = (direct / total_score) * 100.0 if total_score else 0.0
+                rec = {
+                    "id": agg_id,
+                    "visit_id": agg_id,
+                    "click_uid": parent_uid,
+                    "toggle_uid": parent_uid,
+                    "is_aggregate": True,
+                    "is_terminal": True,
+                    "has_hidden_suppliers": False,
+                    "can_collapse": False,
+                    "name": key,
+                    "location": "",
+                    "product": "",
+                    "database": "",
+                    "class": "production",
+                    "direct_sign": _impact_sign(direct),
+                    "direct_pct": float(direct_pct),
+                    "direct_emissions_score_normalized": (
+                        float(direct / total_score) if total_score else 0.0
+                    ),
+                    "path_pct": float(path_pct),
+                    "cumulative_score": float(cum),
+                    "direct_emissions_score": float(direct),
+                    "color_key": key if color_by != "direct" else "",
+                    "aggregate_key": key,
+                    "aggregate_by": aggregate_by,
+                    "constituent_uids": list(group),
+                    "parent_id": parent_uid,
+                }
+                rec["tooltip"] = format_graph_node_tooltip(rec, unit)
+                aggregate_nodes.append(rec)
+                for uid in group:
+                    skip.add(uid)
+                    skip |= _descendant_uids(pcm, uid)
+
+    drawn -= skip
+    drawn_acts = {
+        _activity_id(nodes[uid])
+        for uid in drawn
+        if _activity_id(nodes.get(uid)) is not None
+    }
+
+    def _represents_drawn_activity(child: NodeId) -> bool:
+        if not unique_activities:
+            return False
+        aid = _activity_id(nodes.get(child))
+        return aid is not None and aid in drawn_acts
+
+    out_nodes: list[dict] = []
+    for uid in sorted(drawn):
+        node = nodes[uid]
+        meta = _graph_meta(node, metadata_lookup)
+        loc = str(meta.get("location") or "").strip()
+        name = str(meta.get("name") or "").strip()
+        product = str(meta.get("product") or "").strip()
+        database = str(meta.get("database") or "").strip()
+        cum = float(node.cumulative_score)
+        direct = float(node.direct_emissions_score)
+        path_pct = (cum / total_score) * 100.0 if total_score else 0.0
+        direct_pct = (direct / total_score) * 100.0 if total_score else 0.0
+        rem = max(abs(cum) - abs(direct), 0.0)
+        child_ids = supplier_visit_ids(
+            pcm, nodes, uid, unique_activities=unique_activities
+        )
+        opened = uid in opened_set
+        hidden = any(
+            child not in drawn
+            and child not in skip
+            and not _represents_drawn_activity(child)
+            for child in child_ids
+        )
+        unopened_expand = (not opened) and rem > 0
+        if unique_activities and unopened_same_activity_hops(nodes, uid, opened_set):
+            unopened_expand = True
+        ancestors = (
+            _display_ancestors(pcm, root_uid, uid, drawn) if unique_activities else set()
+        )
+        exclusive_shown: list[NodeId] = []
+        for cid in child_ids:
+            if unique_activities:
+                if cid not in drawn and not _represents_drawn_activity(cid):
+                    continue
+                aid = _activity_id(nodes.get(cid))
+                first = cid if cid in drawn else next(
+                    (u for u in drawn if _activity_id(nodes.get(u)) == aid),
+                    None,
+                )
+                if (
+                    first is not None
+                    and first not in ancestors
+                    and first != uid
+                    and first not in exclusive_shown
+                ):
+                    exclusive_shown.append(first)
+            elif cid in drawn:
+                exclusive_shown.append(cid)
+        can_collapse = bool(exclusive_shown)
+        expand = hidden or unopened_expand
+        terminal = opened and not expand and not can_collapse
+        rec = {
+            "id": int(uid),
+            "visit_id": int(uid),
+            "click_uid": int(uid),
+            "toggle_uid": int(uid),
+            "is_aggregate": False,
+            "is_terminal": bool(terminal),
+            "has_hidden_suppliers": bool(expand),
+            "can_collapse": can_collapse,
+            "name": name,
+            "location": loc,
+            "product": product,
+            "database": database,
+            "code": str(meta.get("code") or "").strip(),
+            "class": _graph_node_css_class(name, is_demand=uid in demand_uids),
+            "direct_sign": _impact_sign(direct),
+            "direct_pct": float(direct_pct),
+            "direct_emissions_score_normalized": (
+                float(direct / total_score) if total_score else 0.0
+            ),
+            "path_pct": float(path_pct),
+            "cumulative_score": cum,
+            "direct_emissions_score": direct,
+            "color_key": _graph_color_key(
+                {"product": product, "name": name, "location": loc, "database": database},
+                color_by,
+            ),
+        }
+        aid = _activity_id(node)
+        if aid is not None:
+            rec["activity_id"] = int(aid)
+        rec["tooltip"] = format_graph_node_tooltip(rec, unit)
+        out_nodes.append(rec)
+
+    out_nodes.extend(aggregate_nodes)
+    drawn_ids = {n["id"] for n in out_nodes}
+    aid_to_uid: dict[int, NodeId] = {}
+    if unique_activities:
+        for uid in sorted(drawn):
+            aid = _activity_id(nodes.get(uid))
+            if aid is not None and aid not in aid_to_uid:
+                aid_to_uid[aid] = uid
+
+    def _map_visit(uid: NodeId) -> NodeId:
+        if uid in drawn:
+            return uid
+        aid = _activity_id(nodes.get(uid))
+        if unique_activities and aid is not None and aid in aid_to_uid:
+            return aid_to_uid[aid]
+        return uid
+
+    out_edges: list[dict] = []
+    for edge in edges:
+        orig_src = edge.producer_unique_id
+        orig_tgt = edge.consumer_unique_id
+        if orig_src in skip or orig_tgt in skip:
+            continue
+        src, tgt = orig_src, orig_tgt
+        if unique_activities:
+            src = _map_visit(orig_src)
+            tgt = _map_visit(orig_tgt)
+            if src == tgt:
+                continue
+        if src not in drawn_ids or tgt not in drawn_ids:
+            continue
+        producer = nodes.get(orig_src)
+        if producer is None:
+            continue
+        cum = float(producer.cumulative_score)
+        path_pct = (cum / total_score) * 100.0 if total_score else 0.0
+        meta = _graph_meta(producer, metadata_lookup)
+        product = str(meta.get("product") or "").strip()
+        rec = {
+            "source_id": int(src),
+            "target_id": int(tgt),
+            "producer_unique_id": int(orig_src),
+            "consumer_unique_id": int(orig_tgt),
+            "weight": abs(cum / total_score) * GRAPH_EDGE_MAX_WIDTH if total_score else 0.0,
+            "path_sign": _impact_sign(cum),
+            "class": "benefit" if _impact_sign(cum) < 0 else "impact",
+            "product": product,
+            "impact_cumulative": cum,
+            "impact_pct_total": float(path_pct),
+            "impact_unit": unit or "",
+            "amount": float(getattr(producer, "supply_amount", 0.0) or 0.0),
+            "amount_unit": str(meta.get("unit") or "").strip(),
+        }
+        rec["tooltip"] = format_graph_edge_tooltip(rec)
+        out_edges.append(rec)
+
+    for agg in aggregate_nodes:
+        parent_uid = agg["parent_id"]
+        if parent_uid == root_uid or parent_uid not in drawn_ids:
+            continue
+        cum = float(agg["cumulative_score"])
+        path_pct = float(agg["path_pct"])
+        rec = {
+            "source_id": int(agg["id"]),
+            "target_id": int(parent_uid),
+            "weight": abs(cum / total_score) * GRAPH_EDGE_MAX_WIDTH if total_score else 0.0,
+            "path_sign": _impact_sign(cum),
+            "class": "benefit" if _impact_sign(cum) < 0 else "impact",
+            "product": str(agg.get("aggregate_key") or ""),
+            "impact_cumulative": cum,
+            "impact_pct_total": path_pct,
+            "impact_unit": unit or "",
+        }
+        rec["tooltip"] = format_graph_edge_tooltip(rec)
+        out_edges.append(rec)
+
+    payload = {
+        "kind": "graph",
+        "unit": unit or "",
+        "empty_message": empty_message if not out_nodes else "",
+        "style": dict(style or {}),
+        "color_by": color_by,
+        "nodes": [_json_safe(n) for n in out_nodes],
+        "edges": [_json_safe(e) for e in (
+            merge_graph_edges(out_edges) if unique_activities else out_edges
+        )],
+    }
+    return payload
 
 
 def is_terminal_node(
