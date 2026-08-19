@@ -3,6 +3,7 @@ from typing import Iterable, Optional
 
 import numpy as np
 import pandas as pd
+import bw2calc as bc
 import bw2data as bd
 from qtpy.QtWidgets import QPushButton
 
@@ -263,7 +264,10 @@ class SuperstructureMLCA(MLCA):
             self.lca.redo_lci({bd.get_activity(key).id: func_unit[key]})
         self.lca.characterization_matrix = self.method_matrices[method_index]
         self.lca.lcia_calculation()
-        self.lca.decompose_technosphere()
+        # PARDISO does not use LU factorization; decompose_technosphere() is a
+        # no-op that warns on every Tree/Sankey scenario switch.
+        if not bc.PYPARDISO:
+            self.lca.decompose_technosphere()
 
     def get_results_for_method(self, index: int = 0) -> pd.DataFrame:
         """Overrides the parent and returns a dataframe with the scenarios
