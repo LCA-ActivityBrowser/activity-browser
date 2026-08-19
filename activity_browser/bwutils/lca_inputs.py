@@ -69,6 +69,45 @@ def prepared_lca_inputs(demand: dict, method: tuple | None = None, **kwargs: Any
     )
 
 
+def lca_for_tree_selection(
+    *,
+    has_scenarios: bool,
+    mlca: Any,
+    demand: dict,
+    method,
+    scenario_idx: int | None,
+    method_idx: int,
+    cached_lca: Any = None,
+    cached_scope: frozenset[str] | None = None,
+) -> tuple[Any, frozenset[str] | None]:
+    """LCA object for the Tree tab's current reference flow / method / scenario.
+
+    With scenarios, reuse ``mlca.lca`` after ``update_lca_calculation_for_sankey``
+    (same as Sankey). Without scenarios, solve a private ``bc.LCA`` via
+    ``prepared_lca_inputs`` (rebuild when demand databases change).
+    """
+    if has_scenarios:
+        if mlca is None:
+            raise ValueError("Scenario Tree LCA requires SuperstructureMLCA")
+        idx = 0 if scenario_idx is None else scenario_idx
+        mlca.update_lca_calculation_for_sankey(idx, demand, method_idx)
+        return mlca.lca, None
+
+    import bw2calc as bc
+
+    fu_input, data_objs, _ = prepared_lca_inputs(demand, method)
+    scope = demand_database_names(demand)
+    if cached_lca is None or cached_scope != scope:
+        lca = bc.LCA(demand=fu_input, data_objs=data_objs)
+        lca.lci(factorize=True)
+        lca.lcia()
+        return lca, scope
+    cached_lca.redo_lci(fu_input)
+    cached_lca.switch_method(method)
+    cached_lca.lcia()
+    return cached_lca, scope
+
+
 def activity_direct_impacts(lca) -> dict[int, float]:
     """Solved-inventory direct LCIA per activity datapackage id."""
     import numpy as np
