@@ -9,6 +9,7 @@ This module provides a collection of generic methods and utilities that wrap and
 ## Directory Structure
 
 - **`ecoinvent_biosphere_versions/`** - Ecoinvent biosphere database version mappings
+- **`graph_explorer/`** - Activity Details Graph explorer (technosphere expand/collapse). See `graph_explorer/README.md` and ADR-0009. Distinct from `graph_traversal/` (Tree/Sankey impact).
 - **`graph_traversal/`** - Tree and Sankey graph helpers (visit engine, tree flatten, unique-process Sankey, partition plots). See `graph_traversal/README.md` and ADR-0008.
 - **`io/`** - Import/export operations for data interchange
 - **`metadata/`** - Metadata loading and caching for quick access

@@ -17,7 +17,7 @@ This directory contains all static assets used by Activity Browser including HTM
 
 ## HTML Templates
 
-- **`activity_graph.html`** - Template for activity relationship graph visualization
+- **`graph_explorer.html`** - Activity Details Graph explorer
 - **`navigator.html`** - Base navigator template
 - **`sankey_navigator.html`** - Sankey diagram visualization template
 - **`contribution_tree_plot.html`** - Contribution Tree D3 plot host
