@@ -43,8 +43,10 @@ def _load_cs(obj, inv: list, ia: list) -> None:
 
 def setup_index(key) -> int | None:
     """Parse a contribution setup key (reference flow / method / scenario) to an int index."""
-    if isinstance(key, int):
-        return key
+    if isinstance(key, bool):
+        return None
+    if isinstance(key, (int, np.integer)):
+        return int(key)
     if isinstance(key, str) and key.strip().isdigit():
         return int(key.strip())
     return None
