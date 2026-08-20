@@ -106,6 +106,21 @@ def test_build_flows_x_methods_default_orientation(stub_method_units):
     assert data.values.shape == (2, 2)
     assert data.group_labels == ["m0", "m1"]
     assert data.series_labels[0].startswith("product ")
+    for col in ("amount", "unit", "product", "process", "location", "database"):
+        assert col in data.table_df.columns
+    assert "score unit" in data.table_df.columns
+    assert "relative" in data.table_df.columns
+    assert "value" not in data.table_df.columns
+    assert list(data.table_df.columns[:5]) == [
+        "index", "series", "absolute", "relative", "score unit",
+    ]
+    assert list(data.table_df.columns[-6:]) == [
+        "amount", "unit", "product", "process", "location", "database",
+    ]
+    assert data.table_df["database"].tolist() == ["db"] * 4
+    assert list(data.table_df["amount"]) == [1, 1, 1, 1]
+    np.testing.assert_allclose(data.table_df["absolute"], [10.0, 5.0, 20.0, 15.0])
+    np.testing.assert_allclose(data.table_df["relative"], [100.0, 50.0, 100.0, 75.0])
 
 
 def test_build_flows_x_methods_flip_is_transpose_of_column_normalization(stub_method_units):
@@ -168,6 +183,11 @@ def test_build_flows_x_scenarios_x_methods_panels(stub_method_units):
     )
     assert len(data.panels) == 2
     assert "impact category" in data.table_df.columns
+    for col in ("amount", "unit", "product", "process", "location", "database"):
+        assert col in data.table_df.columns
+    assert list(data.table_df.columns[-6:]) == [
+        "amount", "unit", "product", "process", "location", "database",
+    ]
 
 
 def test_available_compare_modes_order():
@@ -244,6 +264,67 @@ def test_lcia_overview_plot_smoke(lcia_overview_project):
     plot = LCIAResultsOverviewPlot()
     plot.plot(data)
     assert len(plot.ax.patches) > 0
+
+
+def test_lcia_scores_table_reference_flow_columns(lcia_overview_project):
+    from activity_browser.bwutils.multilca import MLCA, Contributions
+    from tests.fixtures.lcia_overview import DATABASE_NAME
+
+    mlca = MLCA("lcia_3x3")
+    mlca.calculate()
+    data = build_lcia_overview(
+        mlca,
+        Contributions(mlca),
+        compare=LCIACompareMode.REFERENCE_FLOWS,
+        relative=False,
+        method_index=0,
+    )
+    df = data.table_df
+    assert list(df["product"]) == [f"product {i}" for i in range(3)]
+    assert list(df["process"]) == [f"main process {i}" for i in range(3)]
+    assert list(df["location"]) == ["GLO"] * 3
+    assert list(df["database"]) == [DATABASE_NAME] * 3
+    assert list(df["amount"]) == [1.0, 1.0, 1.0]
+    assert list(df["unit"]) == ["kg"] * 3
+    assert "value" not in df.columns
+    assert df["score unit"].nunique() == 1
+    assert list(df.columns[-6:]) == [
+        "amount", "unit", "product", "process", "location", "database",
+    ]
+    np.testing.assert_allclose(df["absolute"], df["relative"] * df["absolute"].abs().max() / 100.0)
+
+
+def test_lcia_scores_table_fu_columns_follow_series_when_not_flipped(stub_method_units):
+    scores = np.array([[10.0, 20.0], [5.0, 15.0]])
+    mlca = _FakeMLCA(
+        scores,
+        func_units=[{("db", "a"): 1}, {("db", "b"): 2}],
+        methods=[("m0",), ("m1",)],
+    )
+    data = build_lcia_overview(
+        mlca,
+        _FakeContributions(),
+        compare=LCIACompareMode.FLOWS_X_METHODS,
+        relative=False,
+        flip_groups=False,
+    )
+    # groups = methods, series = FUs: (m0,a), (m0,b), (m1,a), (m1,b)
+    assert list(data.table_df["amount"]) == [1, 2, 1, 2]
+    assert list(data.table_df["database"]) == ["db", "db", "db", "db"]
+    np.testing.assert_allclose(data.table_df["absolute"], [10.0, 5.0, 20.0, 15.0])
+    np.testing.assert_allclose(data.table_df["relative"], [100.0, 50.0, 100.0, 75.0])
+
+    flipped = build_lcia_overview(
+        mlca,
+        _FakeContributions(),
+        compare=LCIACompareMode.FLOWS_X_METHODS,
+        relative=False,
+        flip_groups=True,
+    )
+    # groups = FUs, series = methods: (a,m0), (a,m1), (b,m0), (b,m1)
+    assert list(flipped.table_df["amount"]) == [1, 1, 2, 2]
+    np.testing.assert_allclose(flipped.table_df["absolute"], [10.0, 20.0, 5.0, 15.0])
+    np.testing.assert_allclose(flipped.table_df["relative"], [100.0, 100.0, 50.0, 75.0])
 
 
 def test_lcia_compare_label_helpers_round_trip():
