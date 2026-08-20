@@ -1,4 +1,5 @@
 import os
+import sys
 from pathlib import Path
 from loguru import logger
 
@@ -10,6 +11,24 @@ from activity_browser.static import fonts, icons
 
 
 _OFFSCREEN_FLAGS = ("--disable-gpu", "--disable-gpu-compositing", "--no-sandbox")
+# Qt WebEngine on Wayland can fail with blank Graph/Tree/Sankey panes
+# ("Backend texture is not a Vulkan texture" / "Compositor returned null texture").
+# Confirmed workaround: disable Chromium GPU compositing while staying on Wayland.
+_WAYLAND_FLAGS = ("--disable-gpu", "--disable-gpu-compositing")
+
+
+def _is_linux_wayland() -> bool:
+    """True when running on Linux under a Wayland session (not forced xcb/offscreen)."""
+    if not sys.platform.startswith("linux"):
+        return False
+    qpa = os.environ.get("QT_QPA_PLATFORM", "").split(":")[0].lower()
+    if qpa in ("xcb", "offscreen", "minimal", "vnc"):
+        return False
+    if qpa.startswith("wayland"):
+        return True
+    if os.environ.get("XDG_SESSION_TYPE", "").lower() == "wayland":
+        return True
+    return bool(os.environ.get("WAYLAND_DISPLAY"))
 
 
 def _webengine_flags(*add: str, drop: tuple[str, ...] = ()) -> None:
@@ -17,6 +36,7 @@ def _webengine_flags(*add: str, drop: tuple[str, ...] = ()) -> None:
     skip = set(drop)
     order = (
         *(_OFFSCREEN_FLAGS if os.environ.get("QT_QPA_PLATFORM") == "offscreen" else ()),
+        *(_WAYLAND_FLAGS if _is_linux_wayland() else ()),
         *os.environ.get("QTWEBENGINE_CHROMIUM_FLAGS", "").split(),
         *add,
     )
@@ -69,6 +89,11 @@ class ABApplication(QtWidgets.QApplication):
     def pyside6_setup(self):
         from qtpy.QtWebEngineQuick import QtWebEngineQuick
 
+        if _is_linux_wayland():
+            logger.info(
+                "Linux Wayland detected: disabling Qt WebEngine GPU compositing "
+                "so Graph / Tree / Sankey can render"
+            )
         _webengine_flags()
         QtWebEngineQuick.initialize()
 
