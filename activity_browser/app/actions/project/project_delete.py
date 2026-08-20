@@ -1,5 +1,6 @@
 import gc
 import shutil
+import sqlite3
 from pathlib import Path
 
 from qtpy import QtWidgets
@@ -95,7 +96,13 @@ class ProjectDelete(ABAction):
             dir_path = _project_directory(name, ds)
             assert dir_path.is_dir(), "Can't find project directory"
             _close_sqlite_databases_in(dir_path)
-            shutil.rmtree(dir_path)
+            try:
+                shutil.rmtree(dir_path)
+            except PermissionError:
+                # Orphan sqlite handles are often released only after GC on Windows.
+                gc.collect()
+                _close_sqlite_databases_in(dir_path)
+                shutil.rmtree(dir_path)
 
         ds.delete_instance()
 
@@ -108,13 +115,31 @@ def _project_directory(name: str, ds: ProjectDataset) -> Path:
 
 
 def _close_sqlite_databases_in(dir_path: Path) -> None:
-    """Release peewee SQLite handles so Windows can delete the project directory."""
+    """Release SQLite handles so Windows can delete the project directory.
+
+    Peewee ``db.close()`` only closes the *current* thread's connection
+    (``thread_safe=True``). Raw ``sqlite3.connect`` and leftovers after a
+    worker thread exits are closed via a connection scan.
+    """
+    directory = Path(dir_path)
     for _, substitutable_db in config.sqlite3_databases:
         try:
-            if Path(substitutable_db._filepath).is_relative_to(dir_path):
+            if Path(substitutable_db._filepath).is_relative_to(directory):
                 if not substitutable_db.db.is_closed():
                     substitutable_db.db.close()
         except Exception:
+            pass
+
+    for obj in gc.get_objects():
+        if not isinstance(obj, sqlite3.Connection):
+            continue
+        try:
+            for _, _, filename in obj.execute("PRAGMA database_list"):
+                if filename and Path(filename).is_relative_to(directory):
+                    obj.close()
+                    break
+        except Exception:
+            # Other-thread connections raise ProgrammingError; ignore.
             pass
     gc.collect()
 
