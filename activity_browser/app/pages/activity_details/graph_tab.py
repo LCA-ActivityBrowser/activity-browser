@@ -1,56 +1,113 @@
 import json
 import os
+import time
 from loguru import logger
 
 from qtpy import QtWebChannel, QtWebEngineWidgets, QtWidgets
 from qtpy.QtCore import QObject, Qt, QUrl, Signal, SignalInstance, Slot
 
 import bw2data as bd
-import bw_functional as bf
 
 from activity_browser import static, app
-from activity_browser.bwutils.commontasks import refresh_node, database_is_locked
+from activity_browser.app.pages.lca_results.style import show_open_process_menu
+from activity_browser.bwutils.commontasks import (
+    database_is_locked,
+    get_exchange_type,
+    refresh_node,
+)
+from activity_browser.bwutils.graph_explorer.inventory import BrightwayInventory
+from activity_browser.bwutils.graph_explorer.explorer import FlowKey, GraphExplorer
 from activity_browser.ui import widgets
-from activity_browser.bwutils.commontasks import get_exchange_type
+from activity_browser.ui.icons import qicons
+
+GRAPH_HELP = """
+Graph explorer
+
+Scroll to zoom; drag the background to pan.
+
+The first view is the opened process plus counterparts listed on its
+inputs and outputs (at most 10 per side). Functional flows of the opened
+process are drawn in red (thicker) to a dashed box ("N consumers" or
+"N suppliers"). Click that flow, box, or the matching triangle to show
+those processes (10 at a time). Listed leftovers are a dashed
+"N more processes" box.
+
+"Show only direct up-/downstream flows" (on by default) draws only
+the flows you expanded along. Uncheck it to also draw every other
+technosphere flow among the processes already on the canvas.
+
+Click a triangle to expand consumers of the opened process (same as
+clicking its functional flow). For other processes, the triangle expands
+a side that has no processes shown yet.
+If listed inputs/outputs remain, a dashed box ("N more processes") pages
+the rest (10 at a time). Collapse is the inward triangle.
+
+Left-click a process box to select it.
+Right-click a box for Open process.
+Alt+click or Delete: remove a process from the graph.
+
+Product flows are solid; waste flows (and production inputs) are dashed.
+Substitution flows are green (substituting process toward the avoided process).
+A filled black circle marks the functional end of a flow.
+Amounts on labels are physical quantities (always positive).
+
+Reset returns to the opened process and its direct upstream and downstream.
+Fit fits the current graph in the window.
+""".strip()
 
 
+def _metadata_cell(row, name: str) -> str:
+    if name not in getattr(row, "index", []):
+        return ""
+    val = row[name]
+    if val is None:
+        return ""
+    try:
+        if val != val:
+            return ""
+    except (TypeError, ValueError):
+        pass
+    return str(val)
+
+
+def process_card_from_metadata(process_id: int) -> dict | None:
+    """Display fields from MetaDataStore; BrightwayInventory falls back if this is None."""
+    df = app.metadata.dataframe
+    if df is None or df.empty or "id" not in df.columns:
+        return None
+    hit = df.loc[df["id"] == int(process_id)]
+    if hit.empty:
+        return None
+    row = hit.iloc[0]
+    database = _metadata_cell(row, "database")
+    key = hit.index[0]
+    if not database and isinstance(key, tuple) and key:
+        database = str(key[0])
+    node_type = _metadata_cell(row, "type")
+    return {
+        "name": _metadata_cell(row, "name"),
+        "location": _metadata_cell(row, "location"),
+        "database": database,
+        "product": _metadata_cell(row, "product") or _metadata_cell(row, "reference product"),
+        "type": node_type or None,
+    }
 
 
 class GraphTab(QtWidgets.QWidget):
-    """
-    A widget that displays a graph related to a specific activity.
+    """Activity Details Graph explorer (built on first Graph-tab show)."""
 
-    Attributes:
-        activity (tuple | int | bd.Node): The activity to display the graph for.
-        expanded_nodes (set): A set of node IDs that are expanded in the graph.
-        button (QtWidgets.QPushButton): A button to trigger synchronization.
-        bridge (Bridge): A bridge object for communication between Python and JavaScript.
-        backend (GraphBackend): A backend object for communication between Python and JavaScript.
-        url (QUrl): The URL of the HTML file to display.
-        channel (QtWebChannel.QWebChannel): A web channel for communication between Python and JavaScript.
-        page (Page): A web engine page to display the HTML content.
-        view (QtWebEngineWidgets.QWebEngineView): A web engine view to display the HTML content.
-    """
     def __init__(self, activity, parent=None):
-        """
-        Initializes the GraphTab widget.
-
-        Args:
-            activity (tuple | int | bd.Node): The activity to display the graph for.
-            parent (QtWidgets.QWidget, optional): The parent widget. Defaults to None.
-        """
         super().__init__(parent)
         self.setAcceptDrops(True)
 
         self.activity = refresh_node(activity)
-        self.expanded_nodes = {self.activity.id}
-
-        self.button = QtWidgets.QPushButton("CLICK ME")
-        self.button.clicked.connect(self.sync)
+        self._shown = False
+        self._js_ready = False
+        self.explorer: GraphExplorer | None = None
 
         self.bridge = Bridge(self)
         self.backend = GraphBackend(self)
-        self.url = QUrl.fromLocalFile(os.path.join(static.__path__[0], "activity_graph.html"))
+        self.url = QUrl.fromLocalFile(os.path.join(static.__path__[0], "graph_explorer.html"))
 
         self.channel = QtWebChannel.QWebChannel(self)
         self.channel.registerObject("bridge", self.bridge)
@@ -61,136 +118,119 @@ class GraphTab(QtWidgets.QWidget):
 
         self.view = GraphView(self)
         self.view.setPage(self.page)
-        self.view.setUrl(self.url)
+
+        self.reset_btn = QtWidgets.QPushButton("Reset")
+        self.reset_btn.setToolTip("Reset graph and view")
+        self.reset_btn.clicked.connect(self.backend.reset_graph)
+
+        self.fit_btn = QtWidgets.QPushButton("Fit")
+        self.fit_btn.setToolTip("Fit the current graph in the window")
+        self.fit_btn.clicked.connect(self._fit_view)
+
+        self.help_btn = QtWidgets.QToolButton(self)
+        self.help_btn.setIcon(qicons.question)
+        self.help_btn.setAutoRaise(True)
+        self.help_btn.setToolButtonStyle(Qt.ToolButtonIconOnly)
+        self.help_btn.setToolTip("Left click for help on the Graph explorer")
+        self.help_btn.clicked.connect(self._show_help)
+
+        self.direct_only_cb = QtWidgets.QCheckBox("Show only direct up-/downstream flows")
+        self.direct_only_cb.setChecked(True)
+        self.direct_only_cb.setToolTip(
+            "When adding processes, show only the expanded up-/downstream flows "
+            "(cleaner). Uncheck to also show every technosphere flow among the "
+            "processes already in the graph."
+        )
+        self.direct_only_cb.stateChanged.connect(self._on_direct_only)
+
+        bar = QtWidgets.QHBoxLayout()
+        bar.setContentsMargins(8, 6, 8, 6)
+        bar.setSpacing(8)
+        bar.addWidget(self.reset_btn)
+        bar.addWidget(self.fit_btn)
+        bar.addSpacing(16)
+        bar.addWidget(self.direct_only_cb)
+        bar.addStretch(1)
+        bar.addWidget(self.help_btn)
 
         layout = QtWidgets.QVBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+        layout.addLayout(bar)
         layout.addWidget(self.view)
         self.setLayout(layout)
 
-        self.bridge.ready.connect(self.sync)
+        self.bridge.ready.connect(self._on_js_ready)
+
+    @property
+    def has_been_shown(self) -> bool:
+        return self._shown
+
+    def ensure_loaded(self):
+        self._shown = True
+        if not self.view.url().isValid() or self.view.url().isEmpty():
+            self.view.setUrl(self.url)
+        if self._js_ready:
+            self.sync()
+
+    def _on_js_ready(self):
+        self._js_ready = True
+        if self._shown:
+            self.sync()
 
     def sync(self):
-        """
-        Synchronizes the widget with the current state of the activity.
-        """
-        logger.log("SYNC", f"{self.__class__.__name__}: {id(self)}")
-
-        self.activity = refresh_node(self.activity)
-        json = self.build_json()
-        self.bridge.update_graph.emit(json)
-
-    def build_json(self):
-        """
-        Builds a JSON representation of the graph.
-
-        Returns:
-            str: The JSON representation of the graph.
-        """
-        nodes = []
-        edges = []
-
-        collapsed_functions = set()
-        for node_id in self.expanded_nodes:
-            node = bd.get_node(id=node_id)
-            excs = list(node.exchanges())
-            function_nodes = [exc.input for exc in excs if exc["type"] == "production"]
-            functions = []
-
-            for fn_node in function_nodes:
-                functions.append({
-                    "id": f"bw{fn_node.id}",
-                    "name": fn_node._document.product if fn_node._document.product else fn_node["name"]
-                })
-                excs.extend(fn_node.upstream())
-
-            nodes.append({
-                "id": f"bw{node.id}",
-                "name": node["name"],
-                "functions": functions,
-                "type": "expanded_node"
-            })
-
-            for exc in excs:
-                if exc["type"] in ["production", "biosphere"]:
-                    continue
-                processor = get_processor_from_exchange(exc)
-
-                source_id = processor.id
-                target_id = exc.output.id
-
-                if source_id not in self.expanded_nodes:
-                    source_id = exc.input.id
-                    collapsed_functions.add(source_id)
-
-                if target_id not in self.expanded_nodes:
-                    collapsed_functions.add(target_id)
-
-                edges.append({
-                    "source_id": f"bw{source_id}",
-                    "target_id": f"bw{exc.output.id}",
-                    "function_id": f"bw{exc.input.id}",
-                })
-
-        for node_id in collapsed_functions:
-            fn_node = bd.get_node(id=node_id)
-            nodes.append({
-                "id": f"bw{node_id}",
-                "name": fn_node._document.product if fn_node._document.product else fn_node["name"],
-                "functions": [],
-                "type": "collapsed_function"
-            })
-
-        full = {
-            "nodes": nodes,
-            "edges": edges,
-        }
-
-        return json.dumps(full)
-
-    def expand_node(self, node_id: str):
-        """
-        Expands a node in the graph.
-
-        Args:
-            node_id (str): The ID of the node to expand.
-        """
-        node_id = int(node_id)  # JS shenanigans can't deal with 64 bit strings
-        node = bd.get_node(id=node_id)
-        if isinstance(node, bf.Product):
-            node = bd.get_node(key=node["processor"])
-        self.expanded_nodes.add(node.id)
-        self.sync()
-
-    def collapse_node(self, node_id: str):
-        """
-        Collapses a node in the graph.
-
-        Args:
-            node_id (str): The ID of the node to collapse.
-        """
-        node_id = int(node_id)  # JS shenanigans can't deal with 64 bit strings
-        if self.activity.id == node_id:
+        if not self._shown:
             return
-        self.expanded_nodes.remove(int(node_id))
-        self.sync()
+        logger.log("SYNC", f"{self.__class__.__name__}: {id(self)}")
+        self.activity = refresh_node(self.activity)
+        if self.explorer is None or self.explorer.center_id != self.activity.id:
+            t0 = time.perf_counter()
+            self.explorer = GraphExplorer(
+                self.activity.id, BrightwayInventory(process_card_from_metadata)
+            )
+            self.explorer.direct_only = self.direct_only_cb.isChecked()
+            logger.debug(
+                f"Graph explorer first paint {(time.perf_counter() - t0) * 1000:.0f} ms"
+            )
+        else:
+            self.explorer.refresh_listed_exchanges()
+        self._emit()
 
+    def _emit(self):
+        if self.explorer is None or not self._js_ready:
+            return
+        t0 = time.perf_counter()
+        payload = self.explorer.payload()
+        t1 = time.perf_counter()
+        blob = json.dumps(payload)
+        t2 = time.perf_counter()
+        n_proc = sum(1 for n in payload["nodes"] if n.get("kind") == "process")
+        logger.debug(
+            f"Graph explorer payload {(t1 - t0) * 1000:.0f} ms, "
+            f"json {(t2 - t1) * 1000:.0f} ms, {n_proc} processes, "
+            f"{len(payload['edges'])} edges"
+        )
+        self.bridge.update_graph.emit(blob)
 
-def get_processor_from_exchange(exchange):
-    """
-    Gets the processor from an exchange.
+    def _on_direct_only(self):
+        if self.explorer is None:
+            return
+        self.explorer.direct_only = self.direct_only_cb.isChecked()
+        self._emit()
 
-    Args:
-        exchange: The exchange to get the processor from.
+    def _fit_view(self):
+        self.view.page().runJavaScript(
+            "if (typeof abFitGraphExplorer === 'function') { abFitGraphExplorer(); }"
+        )
 
-    Returns:
-        The processor of the exchange.
-    """
-    source = exchange.input
-    processors = list(source.upstream(kinds=["production"]))
-    if len(processors) > 1:
-        logger.warning("Multiple processors, only taking first one")
-    processor = processors[0]
-    return processor.output
+    def _show_help(self):
+        QtWidgets.QMessageBox.question(
+            self,
+            "Graph explorer",
+            GRAPH_HELP,
+            QtWidgets.QMessageBox.Ok,
+            QtWidgets.QMessageBox.Ok,
+        )
 
 
 class GraphView(QtWebEngineWidgets.QWebEngineView):
@@ -202,127 +242,125 @@ class GraphView(QtWebEngineWidgets.QWebEngineView):
         self.overlay = None
 
     def dragEnterEvent(self, event):
-        """
-        Handles the drag enter event.
-
-        Args:
-            event: The drag enter event.
-        """
         if database_is_locked(self.parent().activity["database"]):
             return
-
         if event.mimeData().hasFormat("application/bw-nodekeylist"):
             self.overlay = widgets.ABDropOverlay(self)
             self.overlay.show()
             event.accept()
 
     def dragLeaveEvent(self, event):
-        """
-        Handles the drag leave event.
-
-        Args:
-            event: The drag leave event.
-        """
-        # Reset the palette on drag leave
-        self.overlay.deleteLater()
+        if self.overlay is not None:
+            self.overlay.deleteLater()
+            self.overlay = None
 
     def dropEvent(self, event):
-        """
-        Handles the drop event.
-
-        Args:
-            event: The drop event.
-        """
         logger.debug(f"Dropevent from: {type(event.source()).__name__} to: {self.__class__.__name__}")
-        # Reset the palette on drop
-        self.overlay.deleteLater()
-
+        if self.overlay is not None:
+            self.overlay.deleteLater()
+            self.overlay = None
         keys: list = event.mimeData().retrievePickleData("application/bw-nodekeylist")
         exchanges = {"technosphere": set(), "biosphere": set()}
-
         for key in keys:
             if exc_type := get_exchange_type(key):
                 exchanges[exc_type].add(key)
-
-        # Run the action for new exchanges
-        for exc_type, keys in exchanges.items():
-            app.actions.ExchangeNew.run(keys, self.parent().activity.key, exc_type)
+        for exc_type, node_keys in exchanges.items():
+            app.actions.ExchangeNew.run(node_keys, self.parent().activity.key, exc_type)
 
 
 class GraphBackend(QObject):
-    """
-    A backend object for communication between Python and JavaScript.
-    This object is exposed to the JavaScript side and provides methods
-    that can be called from JavaScript to control the graph.
-    """
     def __init__(self, graph_tab: GraphTab, parent=None):
-        """
-        Initializes the GraphBackend object.
-
-        Args:
-            graph_tab (GraphTab): The GraphTab widget this backend is associated with.
-            parent (QObject, optional): The parent object. Defaults to None.
-        """
         super().__init__(parent)
         self.graph_tab = graph_tab
 
+    def _explorer(self) -> GraphExplorer | None:
+        return self.graph_tab.explorer
+
+    @Slot(str, str)
+    def expand_flow(self, host_id: str, flow_json: str):
+        explorer = self._explorer()
+        if explorer is None:
+            return
+        explorer.expand_flow(int(host_id), FlowKey.from_dict(json.loads(flow_json)))
+        self.graph_tab._emit()
+
+    @Slot(str, str)
+    def expand_listed_side(self, process_id: str, side: str):
+        explorer = self._explorer()
+        if explorer is None:
+            return
+        explorer.expand_listed_side(int(process_id), side)
+        self.graph_tab._emit()
+
+    @Slot(str, str)
+    def expand_side(self, process_id: str, side: str):
+        explorer = self._explorer()
+        if explorer is None:
+            return
+        explorer.expand_side(int(process_id), side)
+        self.graph_tab._emit()
+
+    @Slot(str, str)
+    def collapse_side(self, process_id: str, side: str):
+        explorer = self._explorer()
+        if explorer is None:
+            return
+        explorer.collapse_side(int(process_id), side)
+        self.graph_tab._emit()
+
     @Slot(str)
-    def expand_node(self, node_id: str):
-        """
-        Expands a node in the graph.
-
-        Args:
-            node_id (str): The ID of the node to expand.
-        """
-        self.graph_tab.expand_node(node_id)
+    def remove_process(self, process_id: str):
+        explorer = self._explorer()
+        if explorer is None:
+            return
+        explorer.remove_process(int(process_id))
+        self.graph_tab._emit()
 
     @Slot(str)
-    def collapse_node(self, node_id: str):
-        """
-        Collapses a node in the graph.
+    def select_process(self, process_id: str):
+        explorer = self._explorer()
+        if explorer is None:
+            return
+        explorer.select(int(process_id))
+        self.graph_tab._emit()
 
-        Args:
-            node_id (str): The ID of the node to collapse.
-        """
-        self.graph_tab.collapse_node(node_id)
+    @Slot()
+    def reset_graph(self):
+        tab = self.graph_tab
+        if tab.explorer is None:
+            return
+        center = tab.explorer.center_id
+        inv = tab.explorer.inventory
+        invalidate = getattr(inv, "invalidate", None)
+        if callable(invalidate):
+            invalidate()
+        tab.explorer = GraphExplorer(center, inv)
+        tab.explorer.direct_only = tab.direct_only_cb.isChecked()
+        tab._emit()
+
+    @Slot(str)
+    def open_process(self, process_id: str):
+        explorer = self._explorer()
+        if explorer is None:
+            return
+        try:
+            node = bd.get_node(id=int(process_id))
+        except Exception:
+            node = None
+        show_open_process_menu(self.graph_tab, [node] if node is not None else [])
 
 
 class Bridge(QObject):
-    """
-    A bridge for communication between Python and JavaScript.
-
-    Attributes:
-        update_graph (SignalInstance): A signal to update the graph.
-        ready (SignalInstance): A signal indicating that the bridge is ready.
-    """
     update_graph: SignalInstance = Signal(str)
     ready: SignalInstance = Signal()
 
     @Slot()
     def is_ready(self):
-        """
-        Emits the ready signal.
-        """
         self.ready.emit()
 
 
 class Page(QtWebEngineWidgets.QWebEnginePage):
-    """
-    A web engine page to display the HTML content.
-
-    Methods:
-        javaScriptConsoleMessage: Logs JavaScript console messages.
-    """
-    def javaScriptConsoleMessage(self, level: QtWebEngineWidgets.QWebEnginePage.JavaScriptConsoleMessageLevel, message: str, line: str, _: str):
-        """
-        Logs JavaScript console messages.
-
-        Args:
-            level (QtWebEngineWidgets.QWebEnginePage.JavaScriptConsoleMessageLevel): The message level.
-            message (str): The message content.
-            line (str): The line number.
-            _ (str): Unused parameter.
-        """
+    def javaScriptConsoleMessage(self, level, message: str, line: str, _: str):
         if level == QtWebEngineWidgets.QWebEnginePage.InfoMessageLevel:
             logger.info(f"JS Info (Line {line}): {message}")
         elif level == QtWebEngineWidgets.QWebEnginePage.WarningMessageLevel:

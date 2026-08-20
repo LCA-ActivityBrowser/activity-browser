@@ -233,7 +233,11 @@ PARAMETER_SETUP = {
 
 
 def build_scenario_dataframe():
-    """Flow scenario varying technosphere amount on main_0 → supplier."""
+    """Flow scenario varying technosphere amount on main_0 → supplier.
+
+    ``to key`` is the product node (``prod_0``): functional_sqlite matrices are
+    keyed by product ids, not process ids.
+    """
     import pandas as pd
 
     from activity_browser.bwutils.superstructure import SUPERSTRUCTURE
@@ -241,7 +245,7 @@ def build_scenario_dataframe():
 
     index = (
         (DATABASE_NAME, "supplier_product"),
-        (DATABASE_NAME, "main_0"),
+        (DATABASE_NAME, "prod_0"),
     )
     row = data_from_index(index)
     row["flow type"] = "technosphere"

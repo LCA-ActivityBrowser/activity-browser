@@ -39,7 +39,7 @@ from activity_browser.bwutils.graph_traversal.partition_plots import (
     d3_plot_payload,
     plot_click_target_uid,
 )
-from activity_browser.bwutils.lca_inputs import demand_database_names, prepared_lca_inputs
+from activity_browser.bwutils.lca_inputs import lca_for_tree_selection
 from activity_browser.bwutils.export_names import lca_export_basename
 from activity_browser.ui.delegates.impact_background import ImpactBackgroundDelegate
 from activity_browser.ui.icons import qicons
@@ -551,6 +551,10 @@ class ContributionTreeTab(QtWidgets.QWidget):
     ) -> None:
         """Keep the shared LCA object in sync with the current RF/method/scenario.
 
+        With scenarios, reuse ``parent.mlca.lca`` after
+        ``update_lca_calculation_for_sankey`` (same as Sankey). Without
+        scenarios, solve a private ``bc.LCA`` via ``prepared_lca_inputs``.
+
         Demand is mapped to product keys (``functional_sqlite`` process ids are
         not in the product dictionary). Switching RF without ``redo_lci``
         leaves ``state.lca.score`` belonging to another demand. If the demand
@@ -570,23 +574,18 @@ class ContributionTreeTab(QtWidgets.QWidget):
         ):
             return
 
-        if self.has_scenarios and scenario_idx is not None:
-            mi = method_idx if method_idx is not None else self.method_cb.currentIndex()
-            self.parent.mlca.update_lca_calculation_for_sankey(
-                scenario_idx, demand, mi
-            )
-
-        fu_input, data_objs, _ = prepared_lca_inputs(demand, method)
-        scope = demand_database_names(demand)
-        if self._cached_lca is None or self._cached_lca_scope != scope:
-            self._cached_lca = bc.LCA(demand=fu_input, data_objs=data_objs)
-            self._cached_lca.lci(factorize=True)
-            self._cached_lca.lcia()
-            self._cached_lca_scope = scope
-        else:
-            self._cached_lca.redo_lci(fu_input)
-            self._cached_lca.switch_method(method)
-            self._cached_lca.lcia()
+        mi = method_idx if method_idx is not None else self.method_cb.currentIndex()
+        mlca = getattr(self.parent, "mlca", None) if self.parent else None
+        self._cached_lca, self._cached_lca_scope = lca_for_tree_selection(
+            has_scenarios=self.has_scenarios,
+            mlca=mlca,
+            demand=demand,
+            method=method,
+            scenario_idx=scenario_idx,
+            method_idx=mi,
+            cached_lca=self._cached_lca,
+            cached_scope=self._cached_lca_scope,
+        )
         self._lca_selection_key = selection_key
 
     def _sync_lca_to_current_selection(self) -> None:

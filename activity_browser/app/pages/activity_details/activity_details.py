@@ -108,7 +108,9 @@ class ActivityDetailsPage(widgets.ABAbstractPage):
         app.signals.parameter.recalculated.connect(self.syncLater)
         app.signals.node.changed.connect(self.syncLater)
         app.signals.edge.changed.connect(self.syncLater)
+        app.signals.edge.deleted.connect(self.syncLater)
         app.signals.metadata.synced.connect(self.syncLater)
+        self.tabs.currentChanged.connect(self._on_tab_changed)
 
     def on_node_deleted(self, node):
         """
@@ -156,4 +158,9 @@ class ActivityDetailsPage(widgets.ABAbstractPage):
         self.consumer_tab.sync()
         self.data_tab.sync()
         self.parameters_tab.sync()
-        self.graph_explorer.sync()
+        if self.graph_explorer.has_been_shown:
+            self.graph_explorer.sync()
+
+    def _on_tab_changed(self, index: int):
+        if self.tabs.widget(index) is self.graph_explorer:
+            self.graph_explorer.ensure_loaded()
