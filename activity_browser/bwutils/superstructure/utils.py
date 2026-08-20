@@ -33,6 +33,23 @@ SUPERSTRUCTURE = pd.Index(
 SCENARIO_NAME_JOIN = " | "
 
 
+def missing_superstructure_columns(columns) -> list[str]:
+    """Return required SDF header names absent from ``columns`` (stable order)."""
+    return SUPERSTRUCTURE.difference(pd.Index(columns)).tolist()
+
+
+def is_flow_sdf_headers(columns) -> bool:
+    """True when all SUPERSTRUCTURE columns are present (extra scenario cols OK)."""
+    return not missing_superstructure_columns(columns)
+
+
+def is_partial_flow_sdf_headers(columns, *, min_matches: int = 8) -> bool:
+    """True when headers look like an SDF attempt but are incomplete/misspelled."""
+    cols = pd.Index(columns)
+    n = len(cols.intersection(SUPERSTRUCTURE))
+    return n >= min_matches and not is_flow_sdf_headers(cols)
+
+
 def edit_superstructure_for_string(
     superstructure=SUPERSTRUCTURE, sep="<br>", fhighlight=""
 ):
