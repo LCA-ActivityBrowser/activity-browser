@@ -602,9 +602,17 @@ class ScenarioImportWidget(QtWidgets.QWidget):
         self.index = index
         self.file_path = None
         self.sheet_index = None
+        self.csv_separator = ";"
         self.scenario_name = QtWidgets.QLabel("<filename>", self)
         self.load_btn = QtWidgets.QPushButton(icons.qicons.import_db, "Load")
         self.load_btn.setToolTip("Load (new) data for this scenario table")
+        refresh_icon = self.style().standardIcon(
+            QtWidgets.QStyle.StandardPixmap.SP_BrowserReload
+        )
+        self.reload_btn = QtWidgets.QToolButton(self)
+        self.reload_btn.setIcon(refresh_icon)
+        self.reload_btn.setToolTip("Reload the same scenario file from disk")
+        self.reload_btn.setEnabled(False)
         self.remove_btn = QtWidgets.QPushButton(icons.qicons.delete, "Delete")
         self.remove_btn.setToolTip("Remove this scenario table")
         self.view = ScenarioImportView(self)
@@ -617,6 +625,7 @@ class ScenarioImportWidget(QtWidgets.QWidget):
         row = QtWidgets.QHBoxLayout()
         row.addWidget(self.scenario_name)
         row.addWidget(self.load_btn)
+        row.addWidget(self.reload_btn)
         row.addStretch(1)
         row.addWidget(self.remove_btn)
 
@@ -628,6 +637,7 @@ class ScenarioImportWidget(QtWidgets.QWidget):
 
     def connect_signals(self):
         self.load_btn.clicked.connect(self.load_action)
+        self.reload_btn.clicked.connect(self.reload_action)
         parent = self.parent()
         if parent and isinstance(parent, ScenarioSection):
             self.remove_btn.clicked.connect(lambda: parent.remove_table(self.index))
@@ -649,6 +659,30 @@ class ScenarioImportWidget(QtWidgets.QWidget):
             if not ok:
                 return
             self._parent.save_button(True)
+        finally:
+            while QtWidgets.QApplication.overrideCursor() is not None:
+                QtWidgets.QApplication.restoreOverrideCursor()
+
+    def reload_action(self) -> None:
+        if not self.file_path:
+            return
+        QtWidgets.QApplication.setOverrideCursor(Qt.WaitCursor)
+        try:
+            ok = self.load_from_path(
+                self.file_path,
+                sheet_index=self.sheet_index,
+                separator=self.csv_separator,
+            )
+            if ok:
+                self._parent.save_button(True)
+            else:
+                QtWidgets.QMessageBox.warning(
+                    self,
+                    "Reload failed",
+                    f"Could not reload scenario file:\n{self.file_path}\n\n"
+                    "If Excel has the file open, save it and try again, "
+                    "or close Excel so Activity Browser can read it.",
+                )
         finally:
             while QtWidgets.QApplication.overrideCursor() is not None:
                 QtWidgets.QApplication.restoreOverrideCursor()
@@ -709,6 +743,7 @@ class ScenarioImportWidget(QtWidgets.QWidget):
         file_type_suffix = path.suffix.lower()
         logger.info("Loading Scenario file. This may take a while for large files")
         self.file_path = path
+        self.csv_separator = separator
 
         if file_type_suffix == ".feather":
             df = ss.ABFeatherImporter.read_file(path)
@@ -722,6 +757,7 @@ class ScenarioImportWidget(QtWidgets.QWidget):
         if df is None or getattr(df, "empty", False):
             if not quiet:
                 logger.warning("Scenario file read returned no usable data: {}", path)
+            self.reload_btn.setEnabled(self.file_path is not None and Path(self.file_path).is_file())
             return False
 
         if self._looks_like_flow_sdf(df):
@@ -757,6 +793,7 @@ class ScenarioImportWidget(QtWidgets.QWidget):
 
         self.scenario_name.setText(path.name)
         self.scenario_name.setToolTip(path.name)
+        self.reload_btn.setEnabled(True)
         return not self.scenario_df.empty
 
     def sync_superstructure(self, df: pd.DataFrame, combine: bool = True) -> None:
