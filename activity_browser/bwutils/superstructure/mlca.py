@@ -34,6 +34,7 @@ class SuperstructureMLCA(MLCA):
         "biosphere": "biosphere_matrix",
         "technosphere": "technosphere_matrix",
         "production": "technosphere_matrix",
+        "substitution": "technosphere_matrix",
     }
 
     def __init__(self, cs_name: str, df: pd.DataFrame, cs: dict | None = None):
@@ -56,6 +57,7 @@ class SuperstructureMLCA(MLCA):
         self.defaults = {
             "technosphere": "default_technosphere_matrix",
             "production": "default_technosphere_matrix",
+            "substitution": "default_technosphere_matrix",
             "biosphere": "default_biosphere_matrix",
         }
 
