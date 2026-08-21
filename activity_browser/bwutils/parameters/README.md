@@ -26,6 +26,7 @@ LCI / LCIA → scores
 |--------|------|
 | `manager.py` | `ParameterManager`, `MonteCarloParameterManager` — formula evaluation order (project → database → activity → exchanges) |
 | `parameter_montecarlo.py` | Map recalculated amounts to `bw2calc` matrix indices; `functional_sqlite` process ↔ product via `bw_functional` |
+| `formula_exchanges.py` | Rebuild the parameterized-flow index on database write (`INDEX_FLOW_CAP` = 1,000 outgoing flows); Parameterized Flows reads that index |
 | `utils.py` (parent `bwutils`) | `Parameter`, `Parameters`, `StaticParameters`, `Index`, `Indices` |
 
 `montecarlo.MonteCarloLCA` wires the hook and sets `keep_first_iteration_flag = False` (every iteration is sampled).
@@ -52,6 +53,8 @@ Parameter **scenarios** (`convert_parameter_to_flow_scenarios.py`) use `activity
 
 - `commontasks.parameters_in_scope` — UI parameter scope
 - `superstructure/convert_parameter_to_flow_scenarios.py` — scenario conversion (separate from MC hook)
+- `rebuild_parameterized_flow_index` — fill Brightway’s `ParameterizedExchange` index after a database write (ADR-0010)
+- `indexed_parameterized_flows` — list index rows for the Parameterized Flows table
 
 ## Future work
 

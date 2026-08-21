@@ -140,7 +140,7 @@ class MigrateThread(ABThread):
                 ds["type"] = "processwithreferenceproduct"
 
         if write:
-            database.write(raw)
+            database.write(raw, signal=True)
 
     @staticmethod
     def activity_is_processwithreferenceproduct(ds: dict) -> bool:

@@ -100,5 +100,5 @@ class DuplicateDatabaseThread(ABThread):
         elif database.backend == "functional_sqlite" and backend == "sqlite":
             data = bf.convert_functional_sqlite_to_sqlite(data)
 
-        new_database.write(data, searchable=metadata.get("searchable"))
+        new_database.write(data, searchable=metadata.get("searchable"), signal=True)
         return new_database

@@ -80,11 +80,27 @@ Life Cycle Assessment calculation (inventory + impact). Multi-LCA runs multiple 
 
 ### Parameter
 
-A named value or formula used to drive exchange amounts or scenarios. Parameter recalculation and Monte Carlo hooks live under `activity_browser/bwutils/parameters/`.
+A named value or formula used to drive flow amounts or scenarios. Parameter recalculation and Monte Carlo hooks live under `activity_browser/bwutils/parameters/`.
+
+### Parameterized flow
+
+A flow whose amount is given by a formula (optionally using parameters). The Parameters page lists them under **Parameterized Flows**. Recalculation and Monte Carlo use Brightway’s `ParameterizedExchange` index, which is keyed by activity-parameter group.
+_Avoid_: parameterized exchange (when meaning this concept or the UI section)
 
 ### Uncertainty
 
-Statistical description of exchange (or parameter or CF) variability (`stats_arrays` types). UI preview helpers live under `activity_browser/bwutils/uncertainty.py` and related dialogs.
+Statistical description of flow, parameter, or characterization-factor variability. Monte Carlo samples this description. A lognormal uncertainty on a flow may be derived from an applied pedigree.
+_Avoid_: treating stored pedigree scores as the sampled input
+
+### Pedigree
+
+Five 1–5 data-quality scores on a flow (reliability, completeness, temporal correlation, geographical correlation, further technological correlation). Together with basic uncertainty they are a stored recipe for the **spread** of a lognormal uncertainty (not its central value). The recipe is not applying when the uncertainty edit opens; applying it — when the user chooses to and confirms — sets that lognormal from the recipe; inspecting scores or cancelling does not. Switching to another uncertainty, or removing uncertainty, leaves the recipe stored so it can be applied again. The recipe can be cleared in that same edit (confirmed on OK) without changing the current uncertainty unless pedigree is also being applied. When present, the scores are shown with the flow’s uncertainty (not as a separate table column). Not used on parameters or characterization factors.
+_Avoid_: pedigree matrix (when meaning these scores — that name is the factor table); data quality indicators (when meaning this pedigree); treating an unapplied pedigree as the current uncertainty
+
+### Basic uncertainty
+
+The extra lognormal spread assumed even when all pedigree scores are 1. Part of the pedigree recipe; not sampled on its own. Default is 1 when unset. When the current uncertainty is lognormal and scores exist, it is inferred from that scale and the scores so the recipe matches; if the scale is tighter than the scores alone, inference is not used (default 1). An inferred value is not stored until the user saves the pedigree recipe.
+_Avoid_: sample size (the unused sixth ecoinvent pedigree number); treating this as a sixth 1–5 score
 
 ### Monte Carlo
 
@@ -216,3 +232,4 @@ _Avoid_: required amount, supply amount (use flow amount in UI labels)
 | “one-shot” / “bw2io native” (LCIA file) | bw2io impact-category file |
 | “global app settings file” ad hoc | `app.settings`                                                                           |
 | “activity graph” / Graph tab (the view) / neighbourhood | Graph explorer                                                                           |
+| “parameterized exchanges” (the concept or Parameters page section) | parameterized flows                                                                      |

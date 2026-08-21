@@ -90,6 +90,25 @@ def test_exchange_modify(basic_database):
     assert exchange[0].amount == 200.0
 
 
+def test_exchange_modify_formula_indexes_process(basic_database):
+    from bw2data.parameters import ParameterizedExchange
+
+    process = basic_database.get("process")
+    elementary = basic_database.get("elementary")
+    exchange = next(
+        exc for exc in process.exchanges() if exc.input == elementary
+    )
+
+    app.actions.ExchangeModify.run(exchange, {"formula": "6+6"})
+
+    from activity_browser.bwutils.commontasks import refresh_edge
+
+    exchange = refresh_edge(exchange)
+    assert exchange["formula"] == "6+6"
+    assert exchange["amount"] == 12
+    assert ParameterizedExchange.select().count() == 1
+
+
 def test_exchange_new(basic_database):
     basic_database.new_node("other", type="processwithreferenceproduct", name="other_process").save()
 
