@@ -34,8 +34,15 @@ class UncertaintyDelegate(QtWidgets.QStyledItemDelegate):
         ro_getter = getattr(model, "uncertainty_editor_read_only", None)
         if callable(ro_getter):
             read_only = bool(ro_getter(index))
+        enable_pedigree = False
+        pe_getter = getattr(model, "uncertainty_editor_enable_pedigree", None)
+        if callable(pe_getter):
+            enable_pedigree = bool(pe_getter(index))
         return UncertaintyDialog(
-            parent=app.main_window, initial=initial, read_only=read_only
+            parent=app.main_window,
+            initial=initial,
+            read_only=read_only,
+            enable_pedigree=enable_pedigree,
         )
 
     def setEditorData(self, editor, index: QtCore.QModelIndex):

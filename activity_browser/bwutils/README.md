@@ -27,7 +27,7 @@ This module provides a collection of generic methods and utilities that wrap and
 - **`parameters/`** - Parameter recalculation, Monte Carlo matrix hook, functional_sqlite identity (see `parameters/README.md`)
 - **`montecarlo.py`** - Monte Carlo simulation; stores per-iteration matrix snapshots for GSA
 - **`multilca.py`** - Multi-functional LCA calculation utilities
-- **`pedigree.py`** - Pedigree matrix uncertainty handling
+- **`pedigree.py`** - Pedigree matrix conversion; infer basic uncertainty; in-dialog pedigree session; resolve pedigree edits on a flow
 - **`sensitivity_analysis.py`** - SALib delta GSA on ``MonteCarloLCA``; ``df_final`` columns in ``GSA_COLUMNS``; runnable via ``if __name__ == "__main__"``
 - **`settings.py`** - Settings specific to bwutils operations
 - **`strategies.py`** - Import strategies and data transformation functions

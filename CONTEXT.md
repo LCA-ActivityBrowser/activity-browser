@@ -94,7 +94,7 @@ _Avoid_: treating stored pedigree scores as the sampled input
 
 ### Pedigree
 
-Five 1–5 data-quality scores on a flow (reliability, completeness, temporal correlation, geographical correlation, further technological correlation). Together with basic uncertainty they are a stored recipe for the **spread** of a lognormal uncertainty (not its central value). The recipe is not applying when the uncertainty edit opens; applying it — when the user chooses to and confirms — sets that lognormal from the recipe; inspecting scores or cancelling does not. Switching to another uncertainty, or removing uncertainty, leaves the recipe stored so it can be applied again. The recipe can be cleared in that same edit (confirmed on OK) without changing the current uncertainty unless pedigree is also being applied. When present, the scores are shown with the flow’s uncertainty (not as a separate table column). Not used on parameters or characterization factors.
+Five 1–5 data-quality scores on a flow (reliability, completeness, temporal correlation, geographical correlation, further technological correlation). Together with basic uncertainty they are a stored recipe for the **spread** of a lognormal uncertainty (not its central value). The pedigree editor is hidden until the user chooses to use pedigree in that edit; using pedigree applies the recipe (lognormal spread from the scores) on confirm. Inspecting scores in the table cell, or cancelling, does not apply. Unchecking use pedigree restores the distribution and parameters from just before they checked; in-session score edits are discarded and the stored recipe is unchanged. Switching to another uncertainty (or removing it) while use pedigree is on keeps that new choice, turns use pedigree off, and leaves the stored recipe. Clearing pedigree also turns it off and restores the sampled fields, and deletes the stored recipe on confirm. Checking use pedigree again before confirm restores the stored recipe (Clear is undone). When present, the scores are shown with the flow’s uncertainty (not as a separate table column). Not used on parameters or characterization factors.
 _Avoid_: pedigree matrix (when meaning these scores — that name is the factor table); data quality indicators (when meaning this pedigree); treating an unapplied pedigree as the current uncertainty
 
 ### Basic uncertainty
@@ -104,15 +104,17 @@ _Avoid_: sample size (the unused sixth ecoinvent pedigree number); treating this
 
 ### Monte Carlo
 
-Stochastic sampling of uncertain inputs to produce distributions of LCA results. Uncertainties can related to biosphere and technosphere flows, as well as to parameters and characterization factors. See `activity_browser/bwutils/montecarlo.py` and LCA results Monte Carlo UI.
+Stochastic sampling of uncertain inputs to produce distributions of LCA results. Uncertainties can relate to biosphere and technosphere flows, as well as to parameters and characterization factors. In **Scenario LCA**, a selected scenario may change flow amounts on the A and B matrices before sampling; those amounts do not relocate database uncertainty. When the same cell is affected by more than one of these, precedence is **scenario amount < uncertainty sampling < parameter sampling** (parameters win on overlap). See `activity_browser/bwutils/montecarlo.py` and LCA results Monte Carlo UI.
 
 ### GSA (Global Sensitivity Analysis)
 
-Analysis of how uncertain inputs drive output variance (e.g. SALib-based), based on Monte Carlo snapshots. See `activity_browser/bwutils/sensitivity_analysis.py`.
+Analysis of how uncertain inputs drive output variance (e.g. SALib-based), based on Monte Carlo snapshots. In Scenario LCA it uses the last Monte Carlo run’s scenario (not a separate scenario selector). Figure chrome: header shows the last GSA run’s reference flow and impact category; footer shows cutoffs and that Monte Carlo scenario.
+_Avoid_: giving GSA its own independent scenario dropdown
 
 ### Scenario LCA
 
-An LCA calculation that also considers multiple scenarios for inventory data (based on the superstructure approach). See `activity_browser/bwutils/superstructure/`.
+An LCA calculation that also considers multiple scenarios for inventory data (based on the superstructure approach). A chosen scenario replaces selected technosphere and biosphere flow amounts; it does not define new uncertainty. Monte Carlo in scenario mode still samples database (and parameter) uncertainty with precedence scenario amount < uncertainty sampling < parameter sampling. See `activity_browser/bwutils/superstructure/`.
+_Avoid_: treating a scenario difference file as an uncertainty distribution
 
 ### Scenario name
 

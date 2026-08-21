@@ -11,7 +11,10 @@ from activity_browser.bwutils.commontasks import (
     database_is_locked,
 )
 from activity_browser.bwutils.parameters.formula_exchanges import indexed_parameterized_flows
-from activity_browser.bwutils.uncertainty import uncertainty_cell_summary
+from activity_browser.bwutils.uncertainty import (
+    uncertainty_cell_summary,
+    uncertainty_initial_from_flow,
+)
 from activity_browser.bwutils.utils import Parameter
 
 
@@ -139,7 +142,10 @@ class ParameterizedExchangesSection(QtWidgets.QWidget):
                 "database": database,
                 "formula": flow["formula"],
                 "comment": flow["comment"],
-                "uncertainty": uncertainty_cell_summary(flow["uncertainty"]),
+                "uncertainty": uncertainty_cell_summary(
+                    flow["uncertainty"],
+                    pedigree=(flow["exchange"].get("pedigree") if flow.get("exchange") else None),
+                ),
                 "_exchange_label": f"{product} | {process}{loc_bit} ({database})",
                 "_exchange": flow["exchange"],
                 "_output_key": output_key,
@@ -274,19 +280,16 @@ class ParameterizedExchangesModel(core.ABTreeModel):
         return False
 
     def uncertainty_editor_initial(self, index: QtCore.QModelIndex) -> dict:
-        initial = super().uncertainty_editor_initial(index)
-        if initial:
-            return initial
         row = self.row(index)
         if row is None:
             return {}
         ex = row.get("_exchange")
         if ex is None:
             return {}
-        u = getattr(ex, "uncertainty", None)
-        if isinstance(u, dict):
-            return dict(u)
-        return {}
+        return uncertainty_initial_from_flow(ex)
+
+    def uncertainty_editor_enable_pedigree(self, index: QtCore.QModelIndex) -> bool:
+        return self.column_name(index) == "uncertainty"
 
     def uncertainty_editor_read_only(self, index: QtCore.QModelIndex) -> bool:
         if self.column_name(index) != "uncertainty":
