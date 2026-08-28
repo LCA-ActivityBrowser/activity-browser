@@ -24,24 +24,31 @@ def test_load_database_populates_metadata_for_excel_import(qapp, monkeypatch):
         "activity_browser.bwutils.metadata.updater.MDSUpdater.connect_signals",
         lambda self: None,
     )
-    MetaDataStore._instance = None
-    project_setup()
-    source = "roundtrip_metadata_src"
-    write_source_db(source, "functional")
+    previous_instance = MetaDataStore._instance
+    loader = None
+    try:
+        MetaDataStore._instance = None
+        project_setup()
+        source = "roundtrip_metadata_src"
+        write_source_db(source, "functional")
 
-    mds = MetaDataStore()
-    loader = MDSLoader(mds)
+        mds = MetaDataStore()
+        loader = MDSLoader(mds)
 
-    with tempfile.TemporaryDirectory() as tmp:
-        target = roundtrip_import(source, "excel", tmp)
+        with tempfile.TemporaryDirectory() as tmp:
+            target = roundtrip_import(source, "excel", tmp)
 
-    assert mds.get_database_metadata(target, ["name"]).empty
-    loader.load_database(target)
-    for _ in range(100):
-        if loader.secondary_status == "done":
-            break
-        time.sleep(0.05)
-        qapp.processEvents()
+        assert mds.get_database_metadata(target, ["name"]).empty
+        loader.load_database(target)
+        for _ in range(100):
+            if loader.secondary_status == "done":
+                break
+            time.sleep(0.05)
+            qapp.processEvents()
 
-    assert len(mds.get_database_metadata(target, ["name", "processor", "type"])) == 4
-    assert visible_product_count(target) == 2
+        assert len(mds.get_database_metadata(target, ["name", "processor", "type"])) == 4
+        assert visible_product_count(target) == 2
+    finally:
+        if loader is not None and loader.thread is not None and loader.thread.isRunning():
+            loader.thread.wait(10_000)
+        MetaDataStore._instance = previous_instance

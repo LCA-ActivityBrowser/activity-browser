@@ -73,6 +73,22 @@ def _reset_main_window(qtbot) -> None:
     qtbot.wait(10)
 
 
+@pytest.fixture(autouse=True)
+def _sync_metadata_singleton():
+    """Tests that replace MetaDataStore._instance must not desync app.metadata."""
+    import sys
+
+    yield
+
+    app_module = sys.modules.get("activity_browser.app")
+    if app_module is None:
+        return
+
+    from activity_browser.bwutils.metadata.metadata import MetaDataStore
+
+    MetaDataStore._instance = app_module.metadata
+
+
 @pytest.fixture
 def no_exception_dialogs(monkeypatch):
     """Monkeypatch QMessageBox.critical to do nothing, to avoid blocking tests."""
