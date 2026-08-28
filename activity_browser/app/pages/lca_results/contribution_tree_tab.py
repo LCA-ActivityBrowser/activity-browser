@@ -45,7 +45,7 @@ from activity_browser.ui.delegates.impact_background import ImpactBackgroundDele
 from activity_browser.ui.icons import qicons
 from activity_browser.ui.selection_history import IndexSelectionHistory
 
-from .combobox_utils import configure_scenario_widgets, scenario_labels, update_combobox
+from .combobox_utils import configure_selection_comboboxes
 from .contribution_tree_model import (
     BAR_COLUMNS,
     COL_CUMULATIVE,
@@ -479,36 +479,19 @@ class ContributionTreeTab(QtWidgets.QWidget):
             self._reload_from_state(expanded_uids=uids, model_uids=model_uids)
 
     def configure_scenario(self) -> None:
-        configure_scenario_widgets(
-            has_scenarios=self.has_scenarios,
+        configure_selection_comboboxes(
+            parent=self.parent,
+            fu_box=self.fu_cb,
+            method_box=self.method_cb,
             scenario_box=self.scenario_cb,
             scenario_label=self.scenario_label,
-            parent=self.parent,
+            has_scenarios=self.has_scenarios,
         )
-
-    update_combobox = staticmethod(update_combobox)
 
     def _update_calculation_setup(self, cs_name: str = None) -> None:
         for w in (self.fu_cb, self.method_cb, self.scenario_cb):
             w.blockSignals(True)
-
-        cs = cs_name or (self.parent.cs_name if self.parent else None)
-        if cs is None:
-            for w in (self.fu_cb, self.method_cb, self.scenario_cb):
-                w.blockSignals(False)
-            return
-
-        setup = bd.calculation_setups.get(cs, {})
-        fu_acts = [
-            list({bd.get_activity(k): v for k, v in fu.items()}.keys())[0]
-            for fu in setup.get("inv", [])
-        ]
-        self.fu_cb.clear()
-        self.fu_cb.addItems([f"{repr(a)} | {a._data.get('database')}" for a in fu_acts])
-        self.method_cb.clear()
-        self.method_cb.addItems([repr(m) for m in setup.get("ia", [])])
         self.configure_scenario()
-
         for w in (self.fu_cb, self.method_cb, self.scenario_cb):
             w.blockSignals(False)
         self._seed_selection_history()
@@ -533,10 +516,9 @@ class ContributionTreeTab(QtWidgets.QWidget):
         """Resolve demand dict and method tuple for a cache key."""
 
         fu_idx, method_idx, scenario_idx, _cutoff_pct = key
-        cs = self.parent.cs_name
-        setup = bd.calculation_setups[cs]
-        demand_raw = setup["inv"][fu_idx]
-        method = setup["ia"][method_idx]
+        mlca = self.parent.mlca
+        demand_raw = mlca.func_units[fu_idx]
+        method = mlca.methods[method_idx]
         demand = {bd.get_activity(k).id: v for k, v in demand_raw.items()}
         return demand, method, scenario_idx
 

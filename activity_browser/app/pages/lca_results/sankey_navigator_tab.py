@@ -60,7 +60,7 @@ from .style import (
     SmallComboBox,
 )
 
-from .combobox_utils import configure_scenario_widgets, scenario_labels, update_combobox
+from .combobox_utils import configure_selection_comboboxes, scenario_labels
 
 # Runaway guard per NNEV hop, not the Adjust policy stop.
 SANKEY_MAX_CALC = 1000
@@ -207,9 +207,6 @@ class SankeyNavigatorWidget(widgets.ABAbstractNavigator):
         self.cs = cs_name
         self.plot_name = lca_export_basename(cs_name, "Sankey")
         self.has_sankey = False
-        self.func_units = []
-        self.methods = []
-        self.scenarios = []
         self.graph = Graph()
 
         # Additional Qt objects
@@ -407,39 +404,40 @@ class SankeyNavigatorWidget(widgets.ABAbstractNavigator):
         """Determine if scenario Qt widgets are visible or not and retrieve
         scenario labels for the selection drop-down box.
         """
-        configure_scenario_widgets(
-            has_scenarios=self.has_scenarios,
+        configure_selection_comboboxes(
+            parent=self.parent,
+            fu_box=self.func_unit_cb,
+            method_box=self.method_cb,
             scenario_box=self.scenario_cb,
             scenario_label=self.scenario_label,
-            parent=self.parent,
+            has_scenarios=self.has_scenarios,
         )
         self.scenarios = self.get_scenario_labels()
 
-    update_combobox = staticmethod(update_combobox)
+    @property
+    def func_units(self):
+        mlca = getattr(self.parent, "mlca", None)
+        if mlca is None:
+            return []
+        return [
+            {bd.get_activity(k): v for k, v in fu.items()}
+            for fu in mlca.func_units
+        ]
+
+    @property
+    def methods(self):
+        mlca = getattr(self.parent, "mlca", None)
+        return list(mlca.methods) if mlca else []
 
     def update_calculation_setup(self, cs_name=None) -> None:
         """Update Calculation Setup, reference flows and impact categories, and dropdown menus."""
-        # block signals
         self.func_unit_cb.blockSignals(True)
         self.method_cb.blockSignals(True)
         self.scenario_cb.blockSignals(True)
 
         self.cs = cs_name or self.cs
-        self.func_units = [
-            {bd.get_activity(k): v for k, v in fu.items()}
-            for fu in bd.calculation_setups[self.cs]["inv"]
-        ]
-        self.methods = bd.calculation_setups[self.cs]["ia"]
-        self.func_unit_cb.clear()
-        fu_acts = [list(fu.keys())[0] for fu in self.func_units]
-        self.func_unit_cb.addItems(
-            [f"{repr(a)} | {a._data.get('database')}" for a in fu_acts]
-        )
         self.configure_scenario()
-        self.method_cb.clear()
-        self.method_cb.addItems([repr(m) for m in self.methods])
 
-        # unblock signals
         self.func_unit_cb.blockSignals(False)
         self.method_cb.blockSignals(False)
         self.scenario_cb.blockSignals(False)
