@@ -3,6 +3,14 @@ from qtpy import QtCore, QtWidgets
 from .buttons import ABCloseButton, ABMinimizeButton
 
 
+class ABTabBar(QtWidgets.QTabBar):
+    def minimumTabSizeHint(self, index):
+        # Must be a fixed floor — Qt's default min grows with the label, so
+        # max(super(), N) never kicks in and short names still get crushed.
+        s = super().minimumTabSizeHint(index)
+        return QtCore.QSize(80, s.height())
+
+
 class ABTabWidget(QtWidgets.QTabWidget):
     def __init__(self, *args, **kwargs):
         """
@@ -13,6 +21,7 @@ class ABTabWidget(QtWidgets.QTabWidget):
             *args: Additional positional arguments passed to the parent QTabWidget.
         """
         super().__init__(*args, **kwargs)
+        self.setTabBar(ABTabBar())
         self.setMovable(True)  # Allow tabs to be rearranged.
         self.setTabsClosable(True)  # Allow tabs to be closed.
         self.tabBar().setExpanding(False)
