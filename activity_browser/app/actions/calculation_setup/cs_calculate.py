@@ -76,9 +76,7 @@ class CSCalculate(ABAction):
             mlca.calculate()
             mc = MonteCarloLCA(cs_name, cs=active_cs)
 
-            page = pages.LCAResultsPage(
-                cs_name, mlca, contributions, mc, scenario_df=scenario_data
-            )
+            page = pages.LCAResultsPage(cs_name, mlca, contributions, mc)
             central = app.main_window.centralWidget()
         except:
             dialog.close()

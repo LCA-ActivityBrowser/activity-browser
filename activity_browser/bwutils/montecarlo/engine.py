@@ -10,7 +10,7 @@ global sensitivity analysis (GSA):
 """
 from collections import defaultdict
 from time import time
-from typing import Optional
+from typing import Callable, Optional
 from loguru import logger
 
 import bw2data as bd
@@ -19,17 +19,71 @@ import numpy as np
 import pandas as pd
 
 from activity_browser.bwutils.multilca import _load_cs, databases_for_fu_keys
-from activity_browser.bwutils.montecarlo_matrix_utils_patch import apply_matrix_utils_mc_patch
-from activity_browser.bwutils.montecarlo_scenarios import (
-    apply_scenario_amounts,
-    prepare_scenario_arrays,
-)
+from activity_browser.bwutils.montecarlo.scenarios import build_overlay_from_df
 from activity_browser.bwutils.parameters import (
     MonteCarloParameterManager,
     bind_parameter_hook,
 )
+from activity_browser.bwutils.superstructure.scenario_overlay import (
+    ScenarioOverlay,
+    apply_scenario_overlay,
+)
 
-apply_matrix_utils_mc_patch()  # TODO: remove this patch as soon as bw2data 4.8 is released (it should be fixed there, but test)
+
+def _bind_selective_ab_iteration(
+    lca: bc.MultiLCA,
+    *,
+    sample_technosphere: bool,
+    sample_biosphere: bool,
+    skip_ab_after_scenario_pinned: Callable[[], bool],
+) -> None:
+    """Skip technosphere/biosphere ``next()`` when that layer is not MC-resampled.
+
+    After the scenario overlay is pinned once (first ``after_matrix_iteration``),
+    A/B iterators are skipped so Brightway does not rebuild those matrices from
+    the database datapackage on every iteration.
+    """
+    if sample_technosphere and sample_biosphere:
+        return
+
+    skip_tech = not sample_technosphere
+    skip_bio = not sample_biosphere
+    scenario_pinned = False
+
+    def __next__(self) -> None:
+        nonlocal scenario_pinned
+        skip_first_iteration = getattr(self, "keep_first_iteration_flag", False)
+
+        if not skip_first_iteration:
+            self._delete_solver_state()
+
+            defer_ab = skip_ab_after_scenario_pinned() and scenario_pinned
+            for matrix in self.matrix_labels:
+                if defer_ab and matrix == "technosphere_mm" and skip_tech:
+                    continue
+                if defer_ab and matrix == "biosphere_mm" and skip_bio:
+                    continue
+                if hasattr(self, matrix):
+                    next(getattr(self, matrix))
+
+            for matrix_dict in self.matrix_list_labels:
+                if hasattr(self, matrix_dict):
+                    next(getattr(self, matrix_dict))
+
+            if hasattr(self, "after_matrix_iteration"):
+                self.after_matrix_iteration()
+                if skip_ab_after_scenario_pinned():
+                    scenario_pinned = True
+
+        if bc.PYPARDISO:
+            self.technosphere_matrix = self.technosphere_matrix.tocsr()
+
+        if skip_first_iteration:
+            delattr(self, "keep_first_iteration_flag")
+
+        self._calculation()
+
+    lca.__next__ = __next__.__get__(lca, type(lca))
 
 
 class MonteCarloLCA(object):
@@ -97,6 +151,7 @@ class MonteCarloLCA(object):
         self,
         iterations: int = 10,
         seed: Optional[int] = None,
+        scenario_overlay: Optional[ScenarioOverlay] = None,
         scenario_df: Optional[pd.DataFrame] = None,
         scenario: Optional[str | int] = None,
         **kwargs,
@@ -112,15 +167,8 @@ class MonteCarloLCA(object):
         self.last_run_scenario = None
         self.last_run_includes = None
 
-        scenario_name = None
-        scenario_indices = None
-        scenario_amounts = None
-        if scenario_df is not None:
-            scenario_name, scenario_indices, scenario_amounts = prepare_scenario_arrays(
-                scenario_df,
-                databases_for_fu_keys(self.fu_activity_keys),
-                scenario,
-            )
+        overlay = scenario_overlay
+        scenario_name = overlay.name if overlay is not None else None
 
         # Parameter amounts are applied in after_matrix_iteration (after matrix draws).
         if self.include_parameters:
@@ -135,31 +183,69 @@ class MonteCarloLCA(object):
             seed_override=self.seed,
         )
 
+        self.lca.lci()
+        self.lca.lcia()
+
+        if overlay is None and scenario_df is not None:
+            overlay = build_overlay_from_df(
+                self.lca,
+                scenario_df,
+                databases_for_fu_keys(self.fu_activity_keys),
+                scenario,
+            )
+            if overlay is not None:
+                scenario_name = overlay.name
+
+        before_parameters = None
+        if overlay is not None:
+            scenario_initialized = False
+
+            def apply_scenario(lca: bc.MultiLCA) -> None:
+                nonlocal scenario_initialized
+                if not scenario_initialized:
+                    apply_scenario_overlay(
+                        lca,
+                        overlay,
+                        include_technosphere=self.include_technosphere,
+                        include_biosphere=self.include_biosphere,
+                    )
+                    scenario_initialized = True
+                elif not self.include_technosphere and not self.include_biosphere:
+                    # A/B ``next()`` is skipped after the first iteration; re-pin because
+                    # ``lci_calculation`` can refresh matrices from unchanged mm state.
+                    apply_scenario_overlay(
+                        lca,
+                        overlay,
+                        include_technosphere=False,
+                        include_biosphere=False,
+                    )
+                elif self.include_technosphere or self.include_biosphere:
+                    apply_scenario_overlay(
+                        lca,
+                        overlay,
+                        include_technosphere=self.include_technosphere,
+                        include_biosphere=self.include_biosphere,
+                        repin_only=True,
+                    )
+
+            before_parameters = apply_scenario
+
+        _bind_selective_ab_iteration(
+            self.lca,
+            sample_technosphere=self.include_technosphere,
+            sample_biosphere=self.include_biosphere,
+            skip_ab_after_scenario_pinned=lambda: overlay is not None,
+        )
+
         self.parameter_mc_manager = None
         if self.include_parameters:
             self.parameter_mc_manager = MonteCarloParameterManager(seed=self.seed)
-
-        before_parameters = None
-        if scenario_indices is not None and len(scenario_indices):
-
-            def apply_scenario(lca: bc.MultiLCA) -> None:
-                apply_scenario_amounts(
-                    lca,
-                    scenario_indices,
-                    scenario_amounts,
-                    include_technosphere=self.include_technosphere,
-                    include_biosphere=self.include_biosphere,
-                )
-
-            before_parameters = apply_scenario
 
         if before_parameters is not None or self.include_parameters:
             bind_parameter_hook(
                 self.lca, self, before_parameters=before_parameters
             )
 
-        self.lca.lci()
-        self.lca.lcia()
         # Always sample iteration 0; do not reuse the deterministic baseline matrices.
         self.lca.keep_first_iteration_flag = False
 

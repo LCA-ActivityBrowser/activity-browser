@@ -39,6 +39,7 @@ from activity_browser.bwutils.lcia_overview import (
     lcia_compare_mode_from_label,
 )
 from activity_browser.bwutils.sensitivity_analysis import GlobalSensitivityAnalysis
+from activity_browser.bwutils.superstructure.mlca import SuperstructureMLCA
 from activity_browser.mod.bw2analyzer import ABContributionAnalysis
 from activity_browser.ui import widgets
 
@@ -124,13 +125,12 @@ class LCAResultsPage(QtWidgets.QTabWidget):
         For each calculation setup-tab one array of relevant tabs.
     """
 
-    def __init__(self, cs_name, mlca, contributions, mc, scenario_df=None, parent=None):
+    def __init__(self, cs_name, mlca, contributions, mc, parent=None):
         super().__init__(parent)
         self.setObjectName(f"{cs_name}-{datetime.now().strftime('%H:%M:%S')}")
         self.setWindowTitle(f"{cs_name} [{datetime.now().strftime('%H:%M')}]")
 
         self.cs_name, self.mlca, self.contributions, self.mc = cs_name, mlca, contributions, mc
-        self.scenario_df = scenario_df
         self.cs = bd.calculation_setups[self.cs_name]
         self.has_scenarios: bool = hasattr(mlca, "scenario_names")
         self.method_dict = get_LCIA_method_name_dict(self.mlca.methods)
@@ -2027,7 +2027,7 @@ class MonteCarloTab(NewAnalysisTab):
             seed=seed,
             **includes,
         )
-        if self.has_scenarios and self.parent.scenario_df is not None:
+        if self.has_scenarios and isinstance(self.parent.mlca, SuperstructureMLCA):
             scenario_name = self._selected_scenario_name()
             if scenario_name is None:
                 QtWidgets.QMessageBox.warning(
@@ -2036,8 +2036,9 @@ class MonteCarloTab(NewAnalysisTab):
                     "Select a scenario before running Monte Carlo.",
                 )
                 return
-            calc_kwargs["scenario_df"] = self.parent.scenario_df
-            calc_kwargs["scenario"] = scenario_name
+            calc_kwargs["scenario_overlay"] = self.parent.mlca.scenario_overlay(
+                scenario_name
+            )
 
         QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
         try:
