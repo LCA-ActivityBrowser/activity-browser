@@ -26,6 +26,7 @@ This module provides a collection of generic methods and utilities that wrap and
 - **`filesystem.py`** - File system operations for Brightway2 data directories
 - **`parameters/`** - Parameter recalculation, Monte Carlo matrix hook, functional_sqlite identity (see `parameters/README.md`)
 - **`montecarlo.py`** - Monte Carlo simulation; stores per-iteration matrix snapshots for GSA
+- **`montecarlo_scenarios.py`** - Apply scenario difference amounts during Monte Carlo (after matrix draw, before parameters)
 - **`multilca.py`** - Multi-functional LCA calculation utilities
 - **`pedigree.py`** - Pedigree matrix conversion; infer basic uncertainty; in-dialog pedigree session; resolve pedigree edits on a flow
 - **`sensitivity_analysis.py`** - SALib delta GSA on ``MonteCarloLCA``; ``df_final`` columns in ``GSA_COLUMNS``; runnable via ``if __name__ == "__main__"``

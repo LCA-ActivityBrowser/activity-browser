@@ -12,7 +12,7 @@ startup in ``__main__.py``).
 
 from __future__ import annotations
 
-from typing import Any, List, Optional, Tuple
+from typing import Any, Callable, List, Optional, Tuple
 
 import bw2calc as bc
 import bw2data as bd
@@ -143,6 +143,50 @@ def product_row_in_lca(
     return _matrix_index(lca.dicts.product, database, code, activity_id)
 
 
+def matrix_coords_for_exchange(
+    lca: bc.MultiLCA,
+    *,
+    flow_type: str,
+    input_database: str,
+    input_code: str,
+    output_database: str,
+    output_code: str,
+    input_id: Optional[int] = None,
+    output_id: Optional[int] = None,
+) -> Optional[Tuple[str, int, int]]:
+    """Return ``(matrix_name, row, col)`` for a technosphere or biosphere exchange."""
+    if input_id is None:
+        input_id = activity_id_from_key((input_database, input_code))
+    if output_id is None:
+        output_id = activity_id_from_key((output_database, output_code))
+
+    if flow_type in bd.labels.biosphere_edge_types:
+        bio_row = lca.dicts.biosphere.get(input_id)
+        act_col = activity_col_in_lca(lca, output_database, output_code, output_id)
+        if bio_row is None or act_col is None:
+            return None
+        return ("biosphere_matrix", bio_row, act_col)
+
+    prod_row = product_row_in_lca(lca, input_database, input_code, input_id)
+    if prod_row is None:
+        prod_row = product_row_in_lca(lca, output_database, output_code, output_id)
+    act_col = activity_col_in_lca(lca, output_database, output_code, output_id)
+    if prod_row is None or act_col is None:
+        return None
+    return ("technosphere_matrix", prod_row, act_col)
+
+
+def write_matrix_amount(
+    lca: bc.MultiLCA, matrix_name: str, row: int, col: int, amount: float
+) -> None:
+    if matrix_name == "technosphere_matrix":
+        lca.technosphere_matrix[row, col] = amount
+        if hasattr(lca, "solver"):
+            delattr(lca, "solver")
+    else:
+        lca.biosphere_matrix[row, col] = amount
+
+
 def exchange_from_param_row(row: np.void) -> ExchangeDataset:
     """Load the ``ExchangeDataset`` row described by a parameter MC numpy row."""
     inp, out = row["input"], row["output"]
@@ -170,14 +214,18 @@ def matrix_coords_for_param_row(
 def _biosphere_matrix_coords(
     lca: bc.MultiLCA, row: np.void
 ) -> Optional[Tuple[str, int, int]]:
-    input_id = activity_id_from_key(row["input"])
+    in_db, in_code = activity_key_parts(row["input"])
     out_db, out_code = activity_key_parts(row["output"])
-    output_id = activity_id_from_key(row["output"])
-    bio_row = lca.dicts.biosphere.get(input_id)
-    act_col = activity_col_in_lca(lca, out_db, out_code, output_id)
-    if bio_row is None or act_col is None:
-        return None
-    return ("biosphere_matrix", bio_row, act_col)
+    return matrix_coords_for_exchange(
+        lca,
+        flow_type="biosphere",
+        input_database=in_db,
+        input_code=in_code,
+        output_database=out_db,
+        output_code=out_code,
+        input_id=activity_id_from_key(row["input"]),
+        output_id=activity_id_from_key(row["output"]),
+    )
 
 
 def _technosphere_matrix_coords(
@@ -185,16 +233,16 @@ def _technosphere_matrix_coords(
 ) -> Optional[Tuple[str, int, int]]:
     in_db, in_code = activity_key_parts(row["input"])
     out_db, out_code = activity_key_parts(row["output"])
-    input_id = activity_id_from_key(row["input"])
-    output_id = activity_id_from_key(row["output"])
-
-    prod_row = product_row_in_lca(lca, in_db, in_code, input_id)
-    if prod_row is None:
-        prod_row = product_row_in_lca(lca, out_db, out_code, output_id)
-    act_col = activity_col_in_lca(lca, out_db, out_code, output_id)
-    if prod_row is None or act_col is None:
-        return None
-    return ("technosphere_matrix", prod_row, act_col)
+    return matrix_coords_for_exchange(
+        lca,
+        flow_type="technosphere",
+        input_database=in_db,
+        input_code=in_code,
+        output_database=out_db,
+        output_code=out_code,
+        input_id=activity_id_from_key(row["input"]),
+        output_id=activity_id_from_key(row["output"]),
+    )
 
 
 def signed_exchange_amount(row: np.void) -> float:
@@ -213,28 +261,26 @@ def apply_parameter_exchanges(lca: bc.MultiLCA, param_rows: np.ndarray) -> int:
         if coords is None:
             continue
         matrix_name, i, j = coords
-        amount = signed_exchange_amount(row)
-        if matrix_name == "technosphere_matrix":
-            lca.technosphere_matrix[i, j] = amount
-        else:
-            lca.biosphere_matrix[i, j] = amount
+        write_matrix_amount(lca, matrix_name, i, j, signed_exchange_amount(row))
         updated += 1
     # if updated:
     #     logger.debug("Parameter MC updated {} matrix cells".format(updated))
     return updated
 
 
-def bind_parameter_hook(lca: bc.MultiLCA, monte_carlo_lca: Any) -> None:
-    """
-    Attach ``after_matrix_iteration`` on ``lca`` to apply parameter draws from ``monte_carlo_lca``.
-
-    Expects ``monte_carlo_lca.include_parameters`` and ``monte_carlo_lca.parameter_mc_manager``.
-    """
+def bind_parameter_hook(
+    lca: bc.MultiLCA,
+    monte_carlo_lca: Any,
+    *,
+    before_parameters: Optional[Callable[[bc.MultiLCA], None]] = None,
+) -> None:
+    """Attach ``after_matrix_iteration`` for optional pre-step and parameter draws."""
 
     def after_matrix_iteration() -> None:
+        if before_parameters is not None:
+            before_parameters(lca)
         manager = monte_carlo_lca.parameter_mc_manager
-        if not monte_carlo_lca.include_parameters or manager is None:
-            return
-        apply_parameter_exchanges(lca, manager.next())
+        if monte_carlo_lca.include_parameters and manager is not None:
+            apply_parameter_exchanges(lca, manager.next())
 
     lca.after_matrix_iteration = after_matrix_iteration

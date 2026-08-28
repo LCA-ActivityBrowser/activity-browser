@@ -18,8 +18,12 @@ import bw2calc as bc
 import numpy as np
 import pandas as pd
 
-from activity_browser.bwutils.multilca import _load_cs
+from activity_browser.bwutils.multilca import _load_cs, databases_for_fu_keys
 from activity_browser.bwutils.montecarlo_matrix_utils_patch import apply_matrix_utils_mc_patch
+from activity_browser.bwutils.montecarlo_scenarios import (
+    apply_scenario_amounts,
+    prepare_scenario_arrays,
+)
 from activity_browser.bwutils.parameters import (
     MonteCarloParameterManager,
     bind_parameter_hook,
@@ -43,6 +47,8 @@ class MonteCarloLCA(object):
         self.include_biosphere = True
         self.include_cfs = False
         self.include_parameters = False
+        self.last_run_scenario = None
+        self.last_run_includes = None
 
         _load_cs(self, self.cs["inv"], self.cs["ia"])
         self.method_index = {m: i for i, m in enumerate(self.methods)}
@@ -87,8 +93,15 @@ class MonteCarloLCA(object):
             seed_override=seed_override,
         )
 
-    def calculate(self, iterations: int = 10, seed: Optional[int] = None, **kwargs):
-        """Run Monte Carlo LCA with optional technosphere, biosphere, CF, and parameter uncertainty."""
+    def calculate(
+        self,
+        iterations: int = 10,
+        seed: Optional[int] = None,
+        scenario_df: Optional[pd.DataFrame] = None,
+        scenario: Optional[str | int] = None,
+        **kwargs,
+    ):
+        """Run Monte Carlo LCA with optional technosphere, biosphere, CF, parameter, and scenario amounts."""
         start = time()
         self.iterations = iterations
         self.seed = seed or bc.utils.get_seed()
@@ -96,6 +109,18 @@ class MonteCarloLCA(object):
         self.include_biosphere = kwargs.get("biosphere", True)
         self.include_cfs = kwargs.get("cf", True)
         self.include_parameters = kwargs.get("parameters", False)
+        self.last_run_scenario = None
+        self.last_run_includes = None
+
+        scenario_name = None
+        scenario_indices = None
+        scenario_amounts = None
+        if scenario_df is not None:
+            scenario_name, scenario_indices, scenario_amounts = prepare_scenario_arrays(
+                scenario_df,
+                databases_for_fu_keys(self.fu_activity_keys),
+                scenario,
+            )
 
         # Parameter amounts are applied in after_matrix_iteration (after matrix draws).
         if self.include_parameters:
@@ -113,7 +138,25 @@ class MonteCarloLCA(object):
         self.parameter_mc_manager = None
         if self.include_parameters:
             self.parameter_mc_manager = MonteCarloParameterManager(seed=self.seed)
-            bind_parameter_hook(self.lca, self)
+
+        before_parameters = None
+        if scenario_indices is not None and len(scenario_indices):
+
+            def apply_scenario(lca: bc.MultiLCA) -> None:
+                apply_scenario_amounts(
+                    lca,
+                    scenario_indices,
+                    scenario_amounts,
+                    include_technosphere=self.include_technosphere,
+                    include_biosphere=self.include_biosphere,
+                )
+
+            before_parameters = apply_scenario
+
+        if before_parameters is not None or self.include_parameters:
+            bind_parameter_hook(
+                self.lca, self, before_parameters=before_parameters
+            )
 
         self.lca.lci()
         self.lca.lcia()
@@ -152,6 +195,26 @@ class MonteCarloLCA(object):
             f"Monte Carlo LCA: finished {iterations} iterations for {len(self.func_units)} reference flows and "
             f"{len(self.methods)} methods in {np.round(time() - start, 2)} seconds."
         )
+
+        self.last_run_scenario = scenario_name
+        self.last_run_includes = {
+            "technosphere": self.include_technosphere,
+            "biosphere": self.include_biosphere,
+            "cf": self.include_cfs,
+            "parameters": self.include_parameters,
+        }
+
+    @property
+    def last_run_summary(self) -> Optional[dict]:
+        """Metadata from the last successful ``calculate`` call, or ``None``."""
+        if self.last_run_includes is None:
+            return None
+        return {
+            "scenario": self.last_run_scenario,
+            "iterations": self.iterations,
+            "seed": self.seed,
+            "includes": self.last_run_includes,
+        }
 
     @property
     def func_units_dict(self) -> dict:
