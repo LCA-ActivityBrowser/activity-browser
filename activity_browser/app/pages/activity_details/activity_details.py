@@ -119,7 +119,7 @@ class ActivityDetailsPage(widgets.ABAbstractPage):
         Args:
             node: The node that was deleted.
         """
-        if node.id == self.activity.id:
+        if self.activity is None or node.id == self.activity.id:
             self.deleteLater()
 
     def on_database_deleted(self, name):
@@ -129,7 +129,7 @@ class ActivityDetailsPage(widgets.ABAbstractPage):
         Args:
             name: The name of the database that was deleted.
         """
-        if name == self.activity["database"]:
+        if self.activity is None or name == self.activity["database"]:
             self.deleteLater()
 
     def syncLater(self):

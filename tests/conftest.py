@@ -20,8 +20,6 @@ from fixtures.bw_helpers import (
 
 os.environ["AB_SKIP_SETTINGS_ON_STARTUP"] = "1"
 os.environ["AB_NO_SEARCHER"] = "1"
-# Avoid multiprocessing spawn for MDS secondary loads (very slow on Windows CI).
-os.environ["AB_METADATA_NO_MP"] = "1"
 
 _MAIN_WINDOW_READY = False
 

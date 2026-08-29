@@ -68,6 +68,9 @@ class ParametersTab(QtWidgets.QWidget):
         """
         logger.log("SYNC", f"{self.__class__.__name__}: {id(self)}")
 
+        if self.activity is None:
+            return
+
         df = self.build_df()
         self.model.set_dataframe(df, group=["_param_type", "_scope"])
         self.view.expandAll()
@@ -105,7 +108,7 @@ class ParametersTab(QtWidgets.QWidget):
             row = self._parameter_to_row(param, db_name, db_name)
             translated.append(row)
 
-        if not database_is_locked(db_name):
+        if db_name in bd.databases and not database_is_locked(db_name):
             translated.append({
                 "name": "New parameter...",
                 "_scope": db_name,
@@ -123,7 +126,9 @@ class ParametersTab(QtWidgets.QWidget):
             row = self._parameter_to_row(param, f"Group: {group_name}", param.database)
             translated.append(row)
 
-        if not database_is_locked(self.activity["database"]):
+        if self.activity["database"] in bd.databases and not database_is_locked(
+            self.activity["database"]
+        ):
             translated.append({
                 "name": "New parameter...",
                 "_scope": f"Group: {group_name}",
