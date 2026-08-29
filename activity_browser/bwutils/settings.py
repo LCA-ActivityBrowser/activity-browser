@@ -26,6 +26,7 @@ defaults = {
     },
     "plugins": {
         "enabled_plugins": [],
+        "data": {},
     }
 }
 

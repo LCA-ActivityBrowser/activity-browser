@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ab-plugin-example"
+version = "0.1.0"
+description = "Activity Browser plugin example for developers"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.entry-points."activity_browser.plugins"]
+ab_example = "ab_example:activate"
+
+[tool.setuptools.packages.find]
+include = ["ab_example*"]
