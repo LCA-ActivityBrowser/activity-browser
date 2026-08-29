@@ -8,13 +8,6 @@ from bw2data import projects
 from activity_browser.app import settings, signals
 from activity_browser.ui import widgets
 
-from .startup import StartupSettingsChapter
-from .appearance import AppearanceSettingsChapter
-from .project_manager import ProjectManagerSettingsChapter
-from .metadatastore import MetadataStoreSettingsChapter
-from .plugins import PluginsSettingsChapter
-
-
 class SettingsPage(widgets.ABAbstractPage):
     """Settings page with a sidebar navigation for different settings chapters."""
     basePage = True
@@ -37,22 +30,15 @@ class SettingsPage(widgets.ABAbstractPage):
         # Stacked widget for chapter content
         self.content_stack = QtWidgets.QStackedWidget()
         
-        # Create chapters
-        self.startup_chapter = StartupSettingsChapter(self)
-        self.appearance_chapter = AppearanceSettingsChapter(self)
-        self.project_manager_chapter = ProjectManagerSettingsChapter(self)
-        self.metadatastore_chapter = MetadataStoreSettingsChapter(self)
-        self.plugins_chapter = PluginsSettingsChapter(self)
+        # Build chapters from the contribution registry (base + plugins).
+        from activity_browser.app import contributions
 
-        # Add chapters to the stack
-        self.chapters = [
-            ("Startup", self.startup_chapter),
-            ("Appearance", self.appearance_chapter),
-            ("Projects", self.project_manager_chapter),
-            ("Metadata Store", self.metadatastore_chapter),
-            ("Plugins", self.plugins_chapter),
-        ]
-        
+        self.chapters = []
+        for title, chapter_class in contributions.settings_chapters.items():
+            chapter = chapter_class(self)
+            setattr(self, f"_chapter_{title}", chapter)
+            self.chapters.append((title, chapter))
+
         for name, widget in self.chapters:
             self.chapter_list.addItem(name)
             self.content_stack.addWidget(widget)
