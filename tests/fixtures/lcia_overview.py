@@ -79,10 +79,15 @@ def _main_process_key(index: int) -> tuple[str, str]:
     return (DATABASE_NAME, f"main_{index}")
 
 
-def build_database(*, parameterize_prod_0_biosphere: bool = False) -> dict:
+def build_database(
+    *,
+    n_products: int | None = None,
+    parameterize_prod_0_biosphere: bool = False,
+) -> dict:
     data: dict = {}
+    n_products = N_PRODUCTS if n_products is None else n_products
 
-    for i in range(N_PRODUCTS):
+    for i in range(n_products):
         data[_elementary_key(i)] = {
             "name": f"elementary flow {i}",
             "code": f"elem_{i}",
@@ -120,7 +125,7 @@ def build_database(*, parameterize_prod_0_biosphere: bool = False) -> dict:
         ],
     }
 
-    for i in range(N_PRODUCTS):
+    for i in range(n_products):
         pk = _product_data_key(i)
         mk = _main_process_key(i)
         data[pk] = {
@@ -168,9 +173,10 @@ DATABASE = build_database()
 DATABASE_WITH_PARAMETER_FORMULA = build_database(parameterize_prod_0_biosphere=True)
 
 
-def build_methods() -> dict[str, list]:
+def build_methods(*, n_methods: int | None = None) -> dict[str, list]:
     methods = {}
-    for j in range(N_METHODS):
+    n_methods = N_METHODS if n_methods is None else n_methods
+    for j in range(n_methods):
         methods[method_name(j)] = [
             (
                 _elementary_key(j),

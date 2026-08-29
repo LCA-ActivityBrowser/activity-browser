@@ -22,7 +22,7 @@ def test_duplicate_reference_flow_in_cs_build_df(basic_database):
     assert df["process"].notna().all()
 
 
-def test_duplicate_reference_flow_in_cs_calculate(basic_database):
+def test_duplicate_reference_flow_in_cs_calculate(basic_project):
     cs_name = "basic_calculation_setup"
     key = ("basic", "product_1")
     cs = bd.calculation_setups[cs_name]
@@ -47,7 +47,7 @@ def test_duplicate_reference_flow_in_cs_calculate(basic_database):
     assert overview["amount"].tolist() == [1.0, 2.0]
 
 
-def test_duplicate_reference_flow_same_amount_inventory(basic_database):
+def test_duplicate_reference_flow_same_amount_inventory(basic_project):
     """Same activity and amount twice must not collapse inventory columns."""
     cs_name = "basic_calculation_setup"
     key = ("basic", "product_1")
@@ -68,7 +68,7 @@ def test_duplicate_reference_flow_same_amount_inventory(basic_database):
     contributions.inventory_df(inventory_type="technosphere")
 
 
-def test_setup_fu_labels_exclude_amount(basic_database):
+def test_setup_fu_labels_exclude_amount(basic_project):
     from activity_browser.bwutils.multilca import _load_cs
 
     key = ("basic", "product_1")
@@ -79,7 +79,7 @@ def test_setup_fu_labels_exclude_amount(basic_database):
     assert "1.0" not in obj.fu_labels[0]
 
 
-def test_duplicate_reference_flow_contribution_columns(basic_database):
+def test_duplicate_reference_flow_contribution_columns(basic_project):
     """Compare-by-method must keep one column per inv row, not collapse on label."""
     cs_name = "basic_calculation_setup"
     key = ("basic", "product_1")
@@ -103,7 +103,7 @@ def test_duplicate_reference_flow_contribution_columns(basic_database):
     assert set(numeric_cols) == {0, 1}
 
 
-def test_superstructure_build_inventory_keeps_duplicate_reference_flows(basic_database):
+def test_superstructure_build_inventory_keeps_duplicate_reference_flows(basic_project):
     """Scenario inventory table must have one column per inv row."""
     from activity_browser.bwutils.multilca import MLCA
     from activity_browser.bwutils.superstructure.mlca import (

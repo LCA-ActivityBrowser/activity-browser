@@ -230,6 +230,15 @@ def test_lcia_1x1_calculation(lcia_overview_project):
     assert mlca.lca_scores[0, 0] > 0
 
 
+@pytest.fixture(scope="module")
+def mlca_lcia_3x3(lcia_overview_project):
+    from activity_browser.bwutils.multilca import MLCA
+
+    mlca = MLCA("lcia_3x3")
+    mlca.calculate()
+    return mlca
+
+
 def test_lcia_3x3_all_negative_column_normalization(lcia_overview_project):
     from activity_browser.bwutils.multilca import MLCA
 
@@ -241,22 +250,20 @@ def test_lcia_3x3_all_negative_column_normalization(lcia_overview_project):
     assert np.isclose(normalized.min(), -100.0)
 
 
-def test_lcia_overview_plot_smoke(lcia_overview_project):
+def test_lcia_overview_plot_smoke(mlca_lcia_3x3):
     import matplotlib
 
     matplotlib.use("Agg")
     from qtpy import QtWidgets
 
     from activity_browser.app.pages.lca_results.plots import LCIAResultsOverviewPlot
-    from activity_browser.bwutils.multilca import MLCA, ca
+    from activity_browser.bwutils.multilca import ca
 
     if QtWidgets.QApplication.instance() is None:
         QtWidgets.QApplication([])
 
-    mlca = MLCA("lcia_3x3")
-    mlca.calculate()
     data = build_lcia_overview(
-        mlca,
+        mlca_lcia_3x3,
         ca,
         compare=LCIACompareMode.FLOWS_X_METHODS,
         relative=True,
@@ -266,15 +273,13 @@ def test_lcia_overview_plot_smoke(lcia_overview_project):
     assert len(plot.ax.patches) > 0
 
 
-def test_lcia_scores_table_reference_flow_columns(lcia_overview_project):
-    from activity_browser.bwutils.multilca import MLCA, Contributions
+def test_lcia_scores_table_reference_flow_columns(mlca_lcia_3x3):
+    from activity_browser.bwutils.multilca import Contributions
     from fixtures.lcia_overview import DATABASE_NAME
 
-    mlca = MLCA("lcia_3x3")
-    mlca.calculate()
     data = build_lcia_overview(
-        mlca,
-        Contributions(mlca),
+        mlca_lcia_3x3,
+        Contributions(mlca_lcia_3x3),
         compare=LCIACompareMode.REFERENCE_FLOWS,
         relative=False,
         method_index=0,

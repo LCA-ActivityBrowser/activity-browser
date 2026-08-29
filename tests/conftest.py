@@ -161,23 +161,44 @@ def mc_project():
     yield CALCULATION_SETUP_NAME
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 @bw2test
 def lcia_overview_project():
-    """LCIA overview test database and calculation setups (1×1 … 10×10, MC)."""
+    """LCIA overview DB sized for current consumers (1×1 / 3×3), once per module.
+
+    Full 10×10 fixture data remains available via ``fixtures.lcia_overview`` for
+    local/scripts use; CI tests only need the small setups.
+    """
     from fixtures.lcia_overview import (
         CALCULATION_SETUPS,
         DATABASE_NAME,
-        DATABASE,
-        METHODS,
+        build_database,
+        build_methods,
     )
 
-    write_functional_database(DATABASE_NAME, DATABASE, process=True)
-    for method_key, cfs in METHODS.items():
+    write_functional_database(
+        DATABASE_NAME, build_database(n_products=3), process=True
+    )
+    for method_key, cfs in build_methods(n_methods=3).items():
         write_method(method_key, cfs, process=True)
-    for cs_name, setup in CALCULATION_SETUPS.items():
-        write_calculation_setup(cs_name, setup)
+    for cs_name in ("lcia_1x1", "lcia_3x3", "lcia_3x3_neg"):
+        write_calculation_setup(cs_name, CALCULATION_SETUPS[cs_name])
     yield DATABASE_NAME
+
+
+@pytest.fixture
+@bw2test
+def basic_project():
+    """``basic`` DB + method + CS without main_window / metadata load.
+
+    Prefer this over ``basic_database`` for pure Brightway / MLCA tests.
+    """
+    from fixtures.basic import CALCULATION_SETUP, DATABASE, METHOD
+
+    db = write_functional_database("basic", DATABASE, process=False, mark_dirty=True)
+    write_method("basic_method", METHOD, process=False)
+    write_calculation_setup("basic_calculation_setup", CALCULATION_SETUP)
+    yield db
 
 
 @pytest.fixture

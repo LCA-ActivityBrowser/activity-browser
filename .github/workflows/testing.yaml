@@ -40,4 +40,4 @@ jobs:
           pip install .[testing]
 
       - name: Test with pytest
-        run: pytest -q --no-cov -o log_cli=false
+        run: pytest -q --no-cov -o log_cli=false --durations=25
