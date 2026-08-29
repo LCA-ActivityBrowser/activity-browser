@@ -33,7 +33,7 @@ The **Activity Browser (AB)** is an open-source GUI for Life Cycle Assessment on
 - **Fast LCA calculations**: for multiple reference flows, impact categories, and scenarios
 - **Advanced modeling:** Use parameters, scenarios (including prospective LCI databases from [premise](https://premise.readthedocs.io/en/latest/)), uncertainties and our Graph Explorer
 - **Advanced analyses:** Contribution analyses, Sankey Diagrams, Monte Carlo, and Global Sensitivity Analysis
-- **Plugin support:** Coming soon
+- **Plugins:** Extend Activity Browser with [Plugins](https://lca-activitybrowser.github.io/activity-browser/plugins/)
 
 > [!NOTE]
 > **Activity Browser 3** is the version we recommend for new installs. 
@@ -122,4 +122,5 @@ See [LICENSE.txt](LICENSE.txt).
 Copyright (c) Activity Browser Developers.
 The copyright holders and the years covered by each notice are listed in
 [COPYRIGHT.txt](COPYRIGHT.txt).
+
 
