@@ -20,6 +20,8 @@ from fixtures.bw_helpers import (
 
 os.environ["AB_SKIP_SETTINGS_ON_STARTUP"] = "1"
 os.environ["AB_NO_SEARCHER"] = "1"
+# Avoid multiprocessing spawn for MDS secondary loads (very slow on Windows CI).
+os.environ["AB_METADATA_NO_MP"] = "1"
 
 _MAIN_WINDOW_READY = False
 
@@ -70,7 +72,6 @@ def _reset_main_window(qtbot) -> None:
 
     if qapp is not None:
         qapp.processEvents(QtCore.QEventLoop.ProcessEventsFlag.AllEvents)
-    qtbot.wait(10)
 
 
 @pytest.fixture(autouse=True)
@@ -106,7 +107,9 @@ def main_window(qtbot, monkeypatch, no_exception_dialogs):
 
     _ensure_main_window()
     metadata.dataframe = pd.DataFrame()
-    app.main_window.show()
+    # show() is expensive on Windows offscreen; only raise if not already visible.
+    if not app.main_window.isVisible():
+        app.main_window.show()
 
     yield app.main_window
 

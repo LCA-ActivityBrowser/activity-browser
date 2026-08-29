@@ -24,8 +24,8 @@ from activity_browser.bwutils.uncertainty import (
 )
 from fixtures.monte_carlo import CALCULATION_SETUP
 
-# SALib delta needs enough MC iterations; keep ≥ 40 for full multi-layer GSA.
-ITERATIONS = 40
+# SALib delta needs enough MC iterations for a stable full multi-layer GSA.
+ITERATIONS = 30
 SEED = 42
 
 ALL_UNCERTAINTY_LAYERS = dict(

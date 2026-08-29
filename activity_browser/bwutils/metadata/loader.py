@@ -378,13 +378,21 @@ class SecondaryLoadThread(QThread):
     def run(self):
         """Execute the loading in a background thread."""
         try:
-            if len(self.databases) > 1:
+            # Pool uses spawn on Windows and dominates short test runs; allow opt-out.
+            use_pool = (
+                len(self.databases) > 1
+                and not os.environ.get("AB_METADATA_NO_MP")
+            )
+            if use_pool:
                 logger.debug(f"Loading metadata from {len(self.databases)} databases using multiprocessing Pool")
                 with Pool() as pool:
                     args = [(self.sqlite_db, db, secondary) for db in self.databases]
                     results = pool.starmap(load, args)
             else:
-                logger.debug("Loading metadata from a single database without multiprocessing")
+                logger.debug(
+                    "Loading secondary metadata without multiprocessing Pool "
+                    f"({len(self.databases)} database(s))"
+                )
                 results = [load(self.sqlite_db, db, secondary) for db in self.databases]
 
             full_df = pd.DataFrame()

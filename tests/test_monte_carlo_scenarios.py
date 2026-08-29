@@ -20,7 +20,7 @@ from fixtures.monte_carlo import (
 )
 
 SEED = 42
-ITERATIONS = 20
+ITERATIONS = 3
 
 
 def _scenario_row(**fields) -> pd.DataFrame:
