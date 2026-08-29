@@ -17,6 +17,7 @@ from .dataframe import (arrays_from_indexed_superstructure,
                         filter_databases_indexed_superstructure,
                         scenario_names_from_df)
 from .file_dialogs import ABPopup
+from .scenario_overlay import ScenarioOverlay, uncertainty_flags_for_indices
 
 try:
     from bw2calc.matrices import TechnosphereBiosphereMatrixBuilder as MB
@@ -34,6 +35,7 @@ class SuperstructureMLCA(MLCA):
         "biosphere": "biosphere_matrix",
         "technosphere": "technosphere_matrix",
         "production": "technosphere_matrix",
+        "substitution": "technosphere_matrix",
     }
 
     def __init__(self, cs_name: str, df: pd.DataFrame, cs: dict | None = None):
@@ -56,6 +58,7 @@ class SuperstructureMLCA(MLCA):
         self.defaults = {
             "technosphere": "default_technosphere_matrix",
             "production": "default_technosphere_matrix",
+            "substitution": "default_technosphere_matrix",
             "biosphere": "default_biosphere_matrix",
         }
 
@@ -81,6 +84,7 @@ class SuperstructureMLCA(MLCA):
             ],
         )
         self.indices_to_matrix()
+        self.exchange_uncertain = uncertainty_flags_for_indices(self.indices)
 
         # Construct an index dictionary similar to fu_index and method_index
         self._current_index = 0
@@ -105,6 +109,19 @@ class SuperstructureMLCA(MLCA):
                 self.total,
                 self.lca.technosphere_matrix.shape[0],
             )
+        )
+
+    def scenario_overlay(self, scenario: str | int) -> ScenarioOverlay:
+        """Precomputed matrix overlay for one scenario (reused by Monte Carlo)."""
+        if isinstance(scenario, int):
+            scenario = self.scenario_names[scenario]
+        col = self.scenario_index[scenario]
+        return ScenarioOverlay(
+            name=scenario,
+            indices=self.indices,
+            matrix_indices=self.matrix_indices,
+            amounts=self.values[:, col].copy(),
+            uncertain=self.exchange_uncertain,
         )
 
     @property

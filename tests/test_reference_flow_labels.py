@@ -6,6 +6,7 @@ import bw2data as bd
 
 from activity_browser.bwutils.commontasks import get_fu_label, get_method_label, reference_flow_parts
 from activity_browser.bwutils.contribution_labels import (
+    apply_contribution_column_labels,
     contribution_column_labels,
     contribution_row_labels,
 )
@@ -234,6 +235,74 @@ def test_setup_column_labels_from_mlca_dicts(product_activity, monkeypatch):
     assert contribution_column_labels(tab, [0, 1]) == ["m, a", "long, name"]
 
 
+def test_contribution_table_headers_show_impact_category_names(product_activity, monkeypatch):
+    """EF / process contribution tables must show IC names, not setup indices."""
+    monkeypatch.setattr(
+        "activity_browser.bwutils.multilca.bd.get_activity", lambda key: product_activity
+    )
+    key = ("LCIA_overview_test", "prod_0")
+    mlca = type("MLCA", (), {})()
+    _load_cs(mlca, [{key: 1.0}], [("m", "a"), ("long", "name")])
+
+    class Switches:
+        indexes = type("I", (), {"func": 0, "method": 1, "scenario": 2})()
+        mode = 1
+
+        def currentIndex(self):
+            return self.mode
+
+    tab = type("Tab", (), {"switches": Switches(), "parent": type("P", (), {"mlca": mlca})()})()
+    df = pd.DataFrame(
+        {
+            "index": ["Score", "Rest (+)", "CO2"],
+            "name": ["Score", "Rest (+)", "Carbon dioxide"],
+            "unit": ["", "", "kg CO2-eq"],
+            0: [10.0, 1.0, 9.0],
+            1: [8.0, 0.5, 7.5],
+        }
+    )
+    labelled = apply_contribution_column_labels(df, tab)
+    assert list(labelled.columns[:3]) == ["index", "name", "unit"]
+    assert list(labelled.columns[-2:]) == ["m, a", "long, name"]
+    assert 0 not in list(labelled.columns)
+    assert 1 not in list(labelled.columns)
+
+
+def test_apply_contribution_column_labels_keeps_duplicate_fu_columns(product_activity, monkeypatch):
+    """Same reference-flow label twice must stay two table columns."""
+    import numpy as np
+
+    from activity_browser.bwutils.multilca import setup_index
+
+    monkeypatch.setattr(
+        "activity_browser.bwutils.multilca.bd.get_activity", lambda key: product_activity
+    )
+    key = ("LCIA_overview_test", "prod_0")
+    mlca = type("MLCA", (), {})()
+    _load_cs(mlca, [{key: 1.0}, {key: 2.0}], [("m", "a")])
+    assert mlca.fu_labels[0] == mlca.fu_labels[1]
+    assert setup_index(np.int64(0)) == 0
+
+    class Switches:
+        indexes = type("I", (), {"func": 0, "method": 1, "scenario": 2})()
+        mode = 0
+
+        def currentIndex(self):
+            return self.mode
+
+    tab = type("Tab", (), {"switches": Switches(), "parent": type("P", (), {"mlca": mlca})()})()
+    df = pd.DataFrame(
+        {
+            "index": ["Score"],
+            np.int64(0): [1.0],
+            np.int64(1): [2.0],
+        }
+    )
+    labelled = apply_contribution_column_labels(df, tab)
+    assert list(labelled.columns[1:]) == [mlca.fu_labels[0], mlca.fu_labels[1]]
+    assert labelled.shape[1] == 3
+
+
 def test_join_df_with_metadata_reference_flow_columns(product_activity, monkeypatch):
     from activity_browser.bwutils.multilca import Contributions
 
@@ -348,4 +417,21 @@ def test_top_ef_contributions_compare_impact_categories(lcia_overview_project):
     contributions = Contributions(mlca)
     df = contributions.top_elementary_flow_contributions(functional_unit="0", limit=5)
     assert len(df) > 0
-    assert len(mlca.methods) == len(df.select_dtypes(include="number").columns)
+    numeric = list(df.select_dtypes(include="number").columns)
+    assert numeric == list(range(len(mlca.methods)))
+
+    class Switches:
+        indexes = type("I", (), {"func": 0, "method": 1, "scenario": 2})()
+
+        def currentIndex(self):
+            return self.indexes.method
+
+    tab = type("Tab", (), {"switches": Switches(), "parent": type("P", (), {"mlca": mlca})()})()
+    labelled = apply_contribution_column_labels(df, tab)
+    assert list(labelled.columns[-len(mlca.methods) :]) == list(mlca.method_labels.values())
+
+    process_df = contributions.top_process_contributions(functional_unit="0", limit=5)
+    process_labelled = apply_contribution_column_labels(process_df, tab)
+    assert list(process_labelled.columns[-len(mlca.methods) :]) == list(
+        mlca.method_labels.values()
+    )

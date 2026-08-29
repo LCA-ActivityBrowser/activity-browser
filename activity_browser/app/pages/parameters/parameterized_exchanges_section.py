@@ -4,29 +4,44 @@ from qtpy import QtWidgets, QtCore, QtGui
 from qtpy.QtCore import Qt
 
 import pandas as pd
-import bw2data as bd
-from bw2data.parameters import ParameterizedExchange
-from bw2data.backends import ExchangeDataset
 
 from activity_browser import app
 from activity_browser.ui import widgets, icons, delegates, core
 from activity_browser.bwutils.commontasks import (
     database_is_locked,
-    exchange_consumer_parts,
-    exchange_label,
-    exchange_product_name,
 )
-from activity_browser.bwutils.uncertainty import uncertainty_cell_summary
+from activity_browser.bwutils.parameters.formula_exchanges import indexed_parameterized_flows
+from activity_browser.bwutils.uncertainty import (
+    uncertainty_cell_summary,
+    uncertainty_initial_from_flow,
+)
 from activity_browser.bwutils.utils import Parameter
+
+
+def _meta_row(meta, key):
+    if meta is None:
+        return {}
+    try:
+        row = meta.loc[key]
+        return row.iloc[0] if isinstance(row, pd.DataFrame) else row
+    except Exception:
+        return {}
+
+
+def _cell(meta, field, fallback=None):
+    value = meta.get(field) if hasattr(meta, "get") else None
+    if value is None or (isinstance(value, float) and pd.isna(value)):
+        return fallback
+    return value
 
 
 class ParameterizedExchangesSection(QtWidgets.QWidget):
     """
-    A widget section that displays all parameterized exchanges in the current project.
+    A widget section that displays all parameterized flows in the current project.
 
     Attributes:
-        model (ParameterizedExchangesModel): The model containing the data for the exchanges.
-        view (ParameterizedExchangesView): The view displaying the exchanges.
+        model (ParameterizedExchangesModel): The model containing the data for the flows.
+        view (ParameterizedExchangesView): The view displaying the flows.
     """
 
     def __init__(self, parent=None):
@@ -85,51 +100,57 @@ class ParameterizedExchangesSection(QtWidgets.QWidget):
         self.model.set_dataframe(df)
 
     def build_exchanges_df(self) -> pd.DataFrame:
-        """
-        Builds a DataFrame from all parameterized exchanges in the project.
+        """Build a DataFrame from Brightway's parameterized-flow index."""
+        try:
+            flows = list(indexed_parameterized_flows())
+        except Exception:
+            logger.opt(exception=True).debug("Parameterized flow index unreadable")
+            flows = []
 
-        Returns:
-            pd.DataFrame: The DataFrame containing the parameterized exchanges data.
-        """
+        keys = [k for flow in flows for k in (flow["input_key"], flow["output_key"])]
+        try:
+            meta = (
+                app.metadata.get_metadata(
+                    keys, ["name", "unit", "product", "location", "database"]
+                )
+                if keys
+                else None
+            )
+            if meta is not None and not meta.empty:
+                meta = meta.sort_index()
+        except Exception:
+            logger.opt(exception=True).debug("Metadata lookup failed for parameterized flows")
+            meta = None
+
         translated = []
-
-        # Get all parameterized exchanges
-        for param_exc in ParameterizedExchange.select():
-            try:
-                exchange = bd.Edge(document=ExchangeDataset.get_by_id(param_exc.exchange))
-
-                input_key = exchange.get("input")
-                output_key = exchange.get("output")
-
-                input_meta = app.metadata.get_metadata(
-                    [input_key], ["name", "unit", "location", "database", "product"]
-                ).iloc[0]
-
-                product = exchange_product_name(input_key)
-                process, location, database = exchange_consumer_parts(output_key)
-
-                u = getattr(exchange, "uncertainty", None)
-                if not isinstance(u, dict):
-                    u = {}
-                row = {
-                    "amount": exchange.get("amount"),
-                    "unit": input_meta.get("unit"),
-                    "product": product,
-                    "process": process,
-                    "location": location,
-                    "database": database,
-                    "formula": exchange.get("formula"),
-                    "comment": exchange.get("comment"),
-                    "uncertainty": uncertainty_cell_summary(u),
-                    "_exchange_label": exchange_label(input_key, output_key, include_database=True),
-                    "_exchange": exchange,
-                    "_output_key": output_key,
-                    "_input_key": input_key,
-                }
-                translated.append(row)
-            except Exception:
-                # Skip if exchange can't be loaded
-                continue
+        for flow in flows:
+            input_key = flow["input_key"]
+            output_key = flow["output_key"]
+            in_meta = _meta_row(meta, input_key)
+            out_meta = _meta_row(meta, output_key)
+            product = _cell(in_meta, "product") or _cell(in_meta, "name")
+            process = _cell(out_meta, "name")
+            location = _cell(out_meta, "location")
+            database = _cell(out_meta, "database", output_key[0])
+            loc_bit = f" [{location}]" if location else ""
+            translated.append({
+                "amount": flow["amount"],
+                "unit": _cell(in_meta, "unit"),
+                "product": product,
+                "process": process,
+                "location": location,
+                "database": database,
+                "formula": flow["formula"],
+                "comment": flow["comment"],
+                "uncertainty": uncertainty_cell_summary(
+                    flow["uncertainty"],
+                    pedigree=(flow["exchange"].get("pedigree") if flow.get("exchange") else None),
+                ),
+                "_exchange_label": f"{product} | {process}{loc_bit} ({database})",
+                "_exchange": flow["exchange"],
+                "_output_key": output_key,
+                "_input_key": input_key,
+            })
 
         columns = [
             "amount", "unit", "product", "process", "location", "database",
@@ -259,19 +280,16 @@ class ParameterizedExchangesModel(core.ABTreeModel):
         return False
 
     def uncertainty_editor_initial(self, index: QtCore.QModelIndex) -> dict:
-        initial = super().uncertainty_editor_initial(index)
-        if initial:
-            return initial
         row = self.row(index)
         if row is None:
             return {}
         ex = row.get("_exchange")
         if ex is None:
             return {}
-        u = getattr(ex, "uncertainty", None)
-        if isinstance(u, dict):
-            return dict(u)
-        return {}
+        return uncertainty_initial_from_flow(ex)
+
+    def uncertainty_editor_enable_pedigree(self, index: QtCore.QModelIndex) -> bool:
+        return self.column_name(index) == "uncertainty"
 
     def uncertainty_editor_read_only(self, index: QtCore.QModelIndex) -> bool:
         if self.column_name(index) != "uncertainty":

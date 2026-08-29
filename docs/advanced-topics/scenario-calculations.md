@@ -32,7 +32,7 @@ When you import a flow scenario into a calculation setup, the Activity Browser w
 
 Flow scenario (SDF) files may include comments that are ignored on import:
 
-- **Comment rows:** start the row with `#` (first cell, or a full CSV line). Handled by pandas `comment="#"`.
+- **Comment rows:** start the row with `#` (first cell, or a full CSV line). CSV uses pandas `comment="#"`. Excel uses `skiprows` (pandas `comment="#"` breaks Excel headers under openpyxl).
 - **Comment columns:** give the column a name that starts with `_` (for example `_notes`). These are dropped via `usecols`.
 
 Do not start comment **column** names with `#` — that conflicts with pandas row comments and can corrupt the header.

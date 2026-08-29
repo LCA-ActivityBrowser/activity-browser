@@ -28,7 +28,7 @@ CSV files: header row, then notes on lines starting with `#` (ignored on import)
 
 Scenario import comments (Excel and CSV):
 
-- **Rows:** start with `#` (ignored via pandas `comment="#"`).
+- **Rows:** start with `#` in the first cell (CSV: `comment="#"`; Excel: `skiprows` — not `comment="#"`).
 - **Columns:** name starts with `_` (e.g. `_notes`; dropped via `usecols`).
 
 **Get template → flow-scenarios** always copies the empty starter file (does not generate from project parameters).

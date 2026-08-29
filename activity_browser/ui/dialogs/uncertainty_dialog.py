@@ -8,6 +8,13 @@ import numpy as np
 from qtpy import QtCore, QtGui, QtWidgets
 import stats_arrays as sa
 
+from activity_browser.bwutils.pedigree import (
+	BASIC_UNCERTAINTY_KEY,
+	PedigreeEditSession,
+	SCORE_KEYS,
+	recipe_is_usable,
+	resolve_pedigree_edit,
+)
 from activity_browser.bwutils.uncertainty import (
 	DISTRIBUTIONS_WITH_CALCULATED_MEAN,
 	EMPTY_UNCERTAINTY,
@@ -31,6 +38,74 @@ _MSG_PREVIEW_INCOMPLETE = (
 	"Complete them to preview the distribution and enable OK."
 )
 
+# Preview floor; the dialog opens taller so the plot can grow on first show.
+_PLOT_MIN_HEIGHT = 180
+_DIALOG_OPEN_WIDTH = 540
+_DIALOG_OPEN_HEIGHT = 640
+
+
+def _field_text(val) -> str:
+	if val is None or (isinstance(val, float) and np.isnan(val)):
+		return ""
+	return str(val)
+
+
+def _distribution_index(data: dict) -> int:
+	try:
+		uc_type = int(data.get("uncertainty type") or 0)
+	except (TypeError, ValueError):
+		uc_type = 0
+	if uc_type < 0 or uc_type >= len(sa.uncertainty_choices):
+		return 0
+	return uc_type
+
+
+def _basic_uncertainty_value(value=1.0) -> float:
+	try:
+		basic = float(value)
+	except (TypeError, ValueError):
+		return 1.0
+	return basic if np.isfinite(basic) and basic > 0 else 1.0
+
+
+_PEDIGREE_CHOICES = {
+	"reliability": [
+		"1) Verified data based on measurements",
+		"2) Verified data partly based on assumptions",
+		"3) Non-verified data partly based on qualified measurements",
+		"4) Qualified estimate",
+		"5) Non-qualified estimate",
+	],
+	"completeness": [
+		"1) Representative relevant data from all sites, over an adequate period",
+		"2) Representative relevant data from >50% sites, over an adequate period",
+		"3) Representative relevant data from <50% sites OR >50%, but over shorter period",
+		"4) Representative relevant data from one site OR some sites but over shorter period",
+		"5) Representativeness unknown",
+	],
+	"temporal correlation": [
+		"1) Data less than 3 years old",
+		"2) Data less than 6 years old",
+		"3) Data less than 10 years old",
+		"4) Data less than 15 years old",
+		"5) Data age unknown or more than 15 years old",
+	],
+	"geographical correlation": [
+		"1) Data from area under study",
+		"2) Average data from larger area in which area under study is included",
+		"3) Data from area with similar production conditions",
+		"4) Data from area with slightly similar production conditions",
+		"5) Data from unknown OR distinctly different area",
+	],
+	"further technological correlation": [
+		"1) Data from enterprises, processes and materials under study",
+		"2) Data from processes and materials under study, different enterprise",
+		"3) Data from processes and materials under study from different technology",
+		"4) Data on related processes and materials",
+		"5) Data on related processes on lab scale OR from different technology",
+	],
+}
+
 
 class UncertaintyDialog(QtWidgets.QDialog):
 	"""Single-step dialog for defining a stats_arrays uncertainty.
@@ -44,17 +119,24 @@ class UncertaintyDialog(QtWidgets.QDialog):
 			# array is a numpy structured array compatible with stats_arrays
 	"""
 
-	def __init__(self, parent=None, initial: Optional[dict] = None, *, read_only: bool = False):
+	def __init__(
+		self,
+		parent=None,
+		initial: Optional[dict] = None,
+		*,
+		read_only: bool = False,
+		enable_pedigree: bool = False,
+	):
 		super().__init__(parent)
 		self._read_only = read_only
 		self.setWindowTitle("Set Uncertainty")
 		self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
-
-		# State
 		self.dist = None
-		self.result_array = None  # Filled on accept
-		self.result_dict = None  # Filled on accept
+		self.result_array = None
+		self.result_dict = None
 		self.previous_dist_id: Optional[int] = None
+		self._updating_from_pedigree = False
+		self._session = None
 
 		# Top: distribution selection
 		box1 = QtWidgets.QGroupBox("Select the uncertainty distribution")
@@ -68,6 +150,12 @@ class UncertaintyDialog(QtWidgets.QDialog):
 		header_layout.setVerticalSpacing(4)
 		header_layout.addWidget(QtWidgets.QLabel("Distribution:"), 0, 0)
 		header_layout.addWidget(self.distribution, 0, 1)
+		self.use_pedigree = None
+		if enable_pedigree:
+			self.use_pedigree = QtWidgets.QCheckBox("Use pedigree")
+			self.use_pedigree.setChecked(False)
+			self.use_pedigree.toggled.connect(self._on_use_pedigree_toggled)
+			header_layout.addWidget(self.use_pedigree, 1, 0, 1, 2)
 		box1.setLayout(header_layout)
 
 		# Middle: parameters
@@ -103,6 +191,7 @@ class UncertaintyDialog(QtWidgets.QDialog):
 		self.scale_label = QtWidgets.QLabel("Sigma/scale:")
 		self.scale = QtWidgets.QLineEdit()
 		self.scale.setValidator(self.validator)
+		self.scale.textEdited.connect(self._on_scale_edited)
 		self.scale.textEdited.connect(self._schedule_plot_refresh)
 
 		self.shape_label = QtWidgets.QLabel("Shape:")
@@ -162,6 +251,10 @@ class UncertaintyDialog(QtWidgets.QDialog):
 		params_layout.addWidget(self.neg_samples_cb, row, 0, 1, 2)
 		self.fields_box.setLayout(params_layout)
 
+		self.pedigree_box = self._build_pedigree_box() if enable_pedigree else None
+		if self.pedigree_box is not None:
+			self.pedigree_box.hide()
+
 		# Bottom: plot + status when preview is unavailable
 		self.plot = SimpleDistributionPlot(self)
 		self._plot_message = QtWidgets.QLabel()
@@ -182,17 +275,18 @@ class UncertaintyDialog(QtWidgets.QDialog):
 		self.buttons.accepted.connect(self._on_accept)
 		self.buttons.rejected.connect(self.reject)
 
-		# Layout
 		layout = QtWidgets.QVBoxLayout()
 		layout.setSpacing(6)
 		layout.setContentsMargins(12, 10, 12, 10)
 		layout.addWidget(box1)
 		layout.addWidget(self.fields_box)
-		# Stretch so the preview absorbs all extra height when the dialog is resized.
+		if self.pedigree_box is not None:
+			layout.addWidget(self.pedigree_box)
 		layout.addWidget(self.plot, 1)
 		layout.addWidget(self._plot_message)
 		layout.addWidget(self.buttons)
 		self.setLayout(layout)
+		self.setSizeGripEnabled(True)
 
 		self._plot_refresh_timer = QtCore.QTimer(self)
 		self._plot_refresh_timer.setSingleShot(True)
@@ -201,6 +295,8 @@ class UncertaintyDialog(QtWidgets.QDialog):
 
 		# Initialize values (defaults or provided initial)
 		self._apply_initial(initial or {})
+		if enable_pedigree:
+			self._load_pedigree(initial or {})
 		self._on_distribution_changed(self.distribution.currentIndex())
 		self._sync_mean_from_loc()
 		self._generate_plot()
@@ -210,64 +306,216 @@ class UncertaintyDialog(QtWidgets.QDialog):
 	# ---------- Public API ----------
 	@staticmethod
 	def get_uncertainty_array(
-		parent=None, initial: Optional[dict] = None, *, read_only: bool = False
+		parent=None, initial: Optional[dict] = None, *, read_only: bool = False,
+		enable_pedigree: bool = False,
 	) -> Tuple[bool, Optional[np.ndarray]]:
-		dlg = UncertaintyDialog(parent, initial=initial, read_only=read_only)
+		dlg = UncertaintyDialog(
+			parent, initial=initial, read_only=read_only, enable_pedigree=enable_pedigree
+		)
 		ok = dlg.exec_() == QtWidgets.QDialog.Accepted
 		return ok, dlg.result_array if ok else None
 	
 	@staticmethod
 	def get_uncertainty_dict(
-		parent=None, initial: Optional[dict] = None, *, read_only: bool = False
+		parent=None, initial: Optional[dict] = None, *, read_only: bool = False,
+		enable_pedigree: bool = False,
 	) -> Tuple[bool, Optional[dict]]:
-		dlg = UncertaintyDialog(parent, initial=initial, read_only=read_only)
+		dlg = UncertaintyDialog(
+			parent, initial=initial, read_only=read_only, enable_pedigree=enable_pedigree
+		)
 		ok = dlg.exec_() == QtWidgets.QDialog.Accepted
 		return ok, dlg.result_dict if ok else None
 
 	# ---------- Internal helpers ----------
 	def _apply_initial(self, initial: dict) -> None:
-		# Use EMPTY_UNCERTAINTY defaults, overridden by initial
-		data = {k: v for k, v in EMPTY_UNCERTAINTY.items()}
-		data.update(initial or {})
-		# Do not load numerics that cannot be sampled (e.g. Student's T with df <= 0).
+		data = {**EMPTY_UNCERTAINTY, **(initial or {})}
 		if not uncertainty_dict_is_sampleable(data):
-			try:
-				uc_type = int(data.get("uncertainty type", 0))
-			except Exception:
-				uc_type = 0
-			if uc_type < 0 or uc_type >= len(sa.uncertainty_choices):
-				uc_type = 0
-			data = {k: v for k, v in EMPTY_UNCERTAINTY.items()}
-			data["uncertainty type"] = uc_type
-		# Distribution
-		try:
-			uc_type = int(data.get("uncertainty type", 0))
-		except Exception:
-			uc_type = 0
-		self.distribution.setCurrentIndex(uc_type)
-		# Fields (string form for QLineEdit)
-		def to_str(val):
-			if val is None or (isinstance(val, float) and np.isnan(val)):
-				return ""
-			return str(val)
+			data = {
+				**EMPTY_UNCERTAINTY,
+				"uncertainty type": _distribution_index(data),
+			}
+		self._write_sampled_fields(data)
 
-		self.loc.setText(to_str(data.get("loc", np.nan)))
-		self.scale.setText(to_str(data.get("scale", np.nan)))
-		self.shape.setText(to_str(data.get("shape", np.nan)))
-		self.minimum.setText(to_str(data.get("minimum", np.nan)))
-		self.maximum.setText(to_str(data.get("maximum", np.nan)))
+	def _build_pedigree_box(self) -> QtWidgets.QGroupBox:
+		box = QtWidgets.QGroupBox("Pedigree")
+		self.clear_pedigree = QtWidgets.QPushButton("Clear pedigree")
+		self.clear_pedigree.clicked.connect(self._on_clear_pedigree)
+		self.pedigree_combos = {}
+		grid = QtWidgets.QGridLayout()
+		grid.setContentsMargins(8, 4, 8, 4)
+		grid.setVerticalSpacing(4)
+		for row, key in enumerate(SCORE_KEYS):
+			combo = QtWidgets.QComboBox()
+			combo.addItems(_PEDIGREE_CHOICES[key])
+			combo.currentIndexChanged.connect(self._on_pedigree_recipe_edited)
+			self.pedigree_combos[key] = combo
+			grid.addWidget(QtWidgets.QLabel(key.capitalize()), row, 0)
+			grid.addWidget(combo, row, 1, 1, 2)
+		row = len(SCORE_KEYS)
+		self.basic_uncertainty = QtWidgets.QLineEdit("1")
+		self.basic_uncertainty.setValidator(self.validator)
+		self.basic_uncertainty.textEdited.connect(self._on_pedigree_recipe_edited)
+		grid.addWidget(QtWidgets.QLabel("Basic uncertainty"), row, 0)
+		grid.addWidget(self.basic_uncertainty, row, 1, 1, 2)
+		grid.addWidget(self.clear_pedigree, row + 1, 2)
+		box.setLayout(grid)
+		return box
+
+	def _load_pedigree(self, initial: dict) -> None:
+		stored = initial.get("pedigree")
+		self._session = PedigreeEditSession(
+			initial, stored if isinstance(stored, dict) else None
+		)
+		self._apply_recipe_widgets(self._session.recipe)
+
+	def _apply_recipe_widgets(self, recipe: dict | None) -> None:
+		self._updating_from_pedigree = True
+		scores = recipe or {}
+		for key, combo in self.pedigree_combos.items():
+			try:
+				score = int(scores.get(key, 1))
+			except (TypeError, ValueError):
+				score = 1
+			combo.setCurrentIndex(min(max(score, 1), 5) - 1)
+		self.basic_uncertainty.setText(
+			str(_basic_uncertainty_value(scores.get(BASIC_UNCERTAINTY_KEY, 1.0)))
+		)
+		self._updating_from_pedigree = False
+
+	def _current_recipe(self) -> dict:
+		recipe = {
+			key: combo.currentIndex() + 1
+			for key, combo in self.pedigree_combos.items()
+		}
+		recipe[BASIC_UNCERTAINTY_KEY] = _basic_uncertainty_value(
+			self.basic_uncertainty.text()
+		)
+		return recipe
+
+	def _write_sampled_fields(self, data: dict) -> None:
+		self.distribution.setCurrentIndex(_distribution_index(data))
+		self.loc.setText(_field_text(data.get("loc", np.nan)))
+		self.scale.setText(_field_text(data.get("scale", np.nan)))
+		self.shape.setText(_field_text(data.get("shape", np.nan)))
+		self.minimum.setText(_field_text(data.get("minimum", np.nan)))
+		self.maximum.setText(_field_text(data.get("maximum", np.nan)))
+		self.neg_samples_cb.setChecked(bool(data.get("negative", False)))
 		self._check_negative()
+
+	def _apply_session_sampled_to_widgets(self) -> None:
+		if self._session is None:
+			return
+		self._updating_from_pedigree = True
+		try:
+			self._write_sampled_fields(self._session.sampled)
+			self._sync_mean_from_loc()
+		finally:
+			self._updating_from_pedigree = False
+
+	def _sync_pedigree_ui(self, *, sampled: bool = True) -> None:
+		if sampled:
+			self._apply_session_sampled_to_widgets()
+		self._apply_recipe_widgets(self._session.recipe)
+		using = self._session.use_pedigree
+		if self.use_pedigree is not None:
+			self.use_pedigree.blockSignals(True)
+			self.use_pedigree.setChecked(using)
+			self.use_pedigree.blockSignals(False)
+		if self.pedigree_box is not None:
+			self.pedigree_box.setVisible(using)
+
+	def _on_use_pedigree_toggled(self, checked: bool) -> None:
+		if self._updating_from_pedigree or self._session is None:
+			return
+		if self._read_only:
+			self.pedigree_box.setVisible(checked)
+			return
+		if checked:
+			self._session.set_sampled(self._uncertainty_info)
+			self._session.check_use()
+		else:
+			self._session.uncheck_use()
+		self._sync_pedigree_ui()
+		self._schedule_plot_refresh()
+
+	def _stop_using_pedigree_keep_sampled(self) -> None:
+		if self._session is None or not self._session.use_pedigree:
+			return
+		self._session.set_sampled(self._uncertainty_info)
+		self._session.stop_using_keep_sampled()
+		self._sync_pedigree_ui(sampled=False)
+
+	def _on_pedigree_recipe_edited(self, *_args) -> None:
+		if (
+			self._updating_from_pedigree
+			or self._session is None
+			or not self._session.use_pedigree
+		):
+			return
+		self._session.edit_recipe(self._current_recipe())
+		self._updating_from_pedigree = True
+		self.scale.setText(_field_text(self._session.sampled.get("scale")))
+		self._updating_from_pedigree = False
+		self._schedule_plot_refresh()
+
+	def _on_clear_pedigree(self) -> None:
+		if self._session is None or self._read_only:
+			return
+		self._session.clear()
+		self._sync_pedigree_ui()
+		self._schedule_plot_refresh()
+
+	def _on_scale_edited(self) -> None:
+		if not self._updating_from_pedigree:
+			self._stop_using_pedigree_keep_sampled()
+
+	def _pedigree_outcome(self) -> dict:
+		self._session.set_sampled(self._uncertainty_info)
+		if self._session.use_pedigree:
+			self._session.edit_recipe(self._current_recipe())
+		outcome = self._session.outcome()
+		outcome["uncertainty"] = self._uncertainty_info
+		return outcome
 
 	def _apply_read_only_mode(self) -> None:
 		self.setWindowTitle("View uncertainty")
 		self.distribution.setEnabled(False)
 		self.fields_box.setEnabled(False)
+		if self.pedigree_box is not None:
+			self.pedigree_box.setEnabled(False)
 		ok_btn = self.buttons.button(QtWidgets.QDialogButtonBox.Ok)
 		ok_btn.setVisible(False)
 		ok_btn.setEnabled(False)
 		cancel_btn = self.buttons.button(QtWidgets.QDialogButtonBox.Cancel)
 		cancel_btn.setText("Close")
 		cancel_btn.setDefault(True)
+
+	def _available_dialog_height(self) -> int:
+		screen = self.screen() or QtWidgets.QApplication.primaryScreen()
+		if screen is None:
+			return 720
+		return max(480, int(screen.availableGeometry().height()) - 72)
+
+	def sizeHint(self) -> QtCore.QSize:
+		hint = super().sizeHint()
+		cap = self._available_dialog_height()
+		hint.setWidth(max(hint.width(), _DIALOG_OPEN_WIDTH))
+		plot = getattr(self, "plot", None)
+		if plot is not None and plot.isVisible() and plot.maximumHeight() > 0:
+			hint.setHeight(min(max(hint.height(), _DIALOG_OPEN_HEIGHT), cap))
+		else:
+			hint.setHeight(min(hint.height(), cap))
+		return hint
+
+	def showEvent(self, event: QtGui.QShowEvent) -> None:
+		super().showEvent(event)
+		self._clamp_dialog_to_screen()
+
+	def _clamp_dialog_to_screen(self) -> None:
+		cap = self._available_dialog_height()
+		self.setMaximumHeight(cap)
+		if self.height() > cap:
+			self.resize(self.width(), cap)
 
 	@property
 	def _field_widgets(self) -> dict[str, tuple[QtWidgets.QWidget, QtWidgets.QLineEdit]]:
@@ -324,6 +572,13 @@ class UncertaintyDialog(QtWidgets.QDialog):
 			self.dist.id not in (sa.UndefinedUncertainty.id, sa.NoUncertainty.id)
 		)
 		self.previous_dist_id = self.dist.id
+		if (
+			not self._updating_from_pedigree
+			and self._session is not None
+			and self._session.use_pedigree
+			and self.dist.id != sa.LognormalUncertainty.id
+		):
+			self._stop_using_pedigree_keep_sampled()
 		self._generate_plot()
 
 	def _extract_lognormal_loc_from_mean(self) -> None:
@@ -423,6 +678,12 @@ class UncertaintyDialog(QtWidgets.QDialog):
 	def _ok_enabled(self) -> bool:
 		if self.dist is None:
 			return False
+		if (
+			self._session is not None
+			and self._session.use_pedigree
+			and not recipe_is_usable(self._current_recipe())
+		):
+			return False
 		if self.dist.id in (sa.UndefinedUncertainty.id, sa.NoUncertainty.id):
 			return True
 		array, _ = self._structured_array_if_sampleable()
@@ -453,6 +714,7 @@ class UncertaintyDialog(QtWidgets.QDialog):
 		plot = getattr(self, "plot", None)
 		if plot is None or plot.maximumHeight() <= 0 or not plot.isVisible():
 			self.adjustSize()
+		self._clamp_dialog_to_screen()
 
 	def _hide_plot_preview(self, message: Optional[str]) -> None:
 		"""Hide the matplotlib preview, collapse its layout height, optional status text."""
@@ -530,8 +792,23 @@ class UncertaintyDialog(QtWidgets.QDialog):
 		if not self._ok_enabled():
 			return
 		try:
-			self.result_dict = self._uncertainty_info
-			self.result_array = UncertaintyBase.from_dicts(self._uncertainty_info)
+			info = self._uncertainty_info
+			if self._session is None:
+				self.result_dict = info
+				self.result_array = UncertaintyBase.from_dicts(info)
+			else:
+				result = resolve_pedigree_edit(
+					self._session.stored, self._pedigree_outcome()
+				)
+				self.result_dict = dict(result.write)
+				for key in result.delete:
+					self.result_dict[key] = None
+				sampled = {
+					key: value
+					for key, value in self.result_dict.items()
+					if key != "pedigree"
+				}
+				self.result_array = UncertaintyBase.from_dicts(sampled)
 		except Exception as e:
 			QtWidgets.QMessageBox.warning(
 				self,
@@ -551,7 +828,7 @@ class SimpleDistributionPlot(ABPlot):
 		if hasattr(self.figure, "set_constrained_layout"):
 			self.figure.set_constrained_layout(False)
 		# Fixed floor for the preview strip (logical px); extra height helps x-axis label fit.
-		self.setMinimumHeight(348)
+		self.setMinimumHeight(_PLOT_MIN_HEIGHT)
 		exp = QtWidgets.QSizePolicy.Policy.Expanding
 		self.setSizePolicy(exp, exp)
 		self.canvas.setSizePolicy(exp, exp)
@@ -564,7 +841,7 @@ class SimpleDistributionPlot(ABPlot):
 		self, curve: PreviewDensity, vline_x: float, *, title: str = ""
 	) -> None:
 		"""Plot ``stats_arrays`` / SciPy PDF or PMF (no random sampling)."""
-		self.setMinimumHeight(348)
+		self.setMinimumHeight(_PLOT_MIN_HEIGHT)
 		self.setMaximumHeight(16777215)
 		self.setVisible(True)
 		self.reset_plot()

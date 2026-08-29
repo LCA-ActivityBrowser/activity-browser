@@ -6,11 +6,23 @@ import warnings
 
 import bw2data as bd
 import pytest
+from bw2data.tests import bw2test
 
 from activity_browser.bwutils.lca_inputs import lca_for_tree_selection
 from activity_browser.bwutils.superstructure.manager import SuperstructureManager
 from activity_browser.bwutils.superstructure.mlca import SuperstructureMLCA
-from fixtures.lcia_overview import build_scenario_dataframe
+from fixtures.bw_helpers import (
+    write_calculation_setup,
+    write_functional_database,
+    write_method,
+)
+from fixtures.lcia_overview import (
+    CALCULATION_SETUPS,
+    DATABASE,
+    DATABASE_NAME,
+    METHODS,
+    build_scenario_dataframe,
+)
 
 
 def _tree_demand(func_unit: dict) -> dict:
@@ -18,15 +30,27 @@ def _tree_demand(func_unit: dict) -> dict:
     return {bd.get_activity(k).id: v for k, v in func_unit.items()}
 
 
-def _scenario_mlca() -> SuperstructureMLCA:
+@pytest.fixture(scope="module")
+@bw2test
+def tree_scenario_mlca():
+    """One project + one SuperstructureMLCA.calculate for the whole module.
+
+    Previously each test rebuilt ``lcia_overview_project`` and recalculated MLCA
+    (~7s each × 4 on Ubuntu CI).
+    """
+    write_functional_database(DATABASE_NAME, DATABASE, process=True)
+    # lcia_1x1 only needs method_0; keep writes minimal.
+    write_method("lcia_method_0", METHODS["lcia_method_0"], process=True)
+    write_calculation_setup("lcia_1x1", CALCULATION_SETUPS["lcia_1x1"])
+
     df = SuperstructureManager(build_scenario_dataframe()).combined_data()
     mlca = SuperstructureMLCA("lcia_1x1", df)
     mlca.calculate()
-    return mlca
+    yield mlca
 
 
-def test_tree_lca_scenarios_match_mlca_scores(lcia_overview_project):
-    mlca = _scenario_mlca()
+def test_tree_lca_scenarios_match_mlca_scores(tree_scenario_mlca):
+    mlca = tree_scenario_mlca
     demand = _tree_demand(mlca.func_units[0])
     method = mlca.methods[0]
     names = list(mlca.scenario_names)
@@ -45,9 +69,9 @@ def test_tree_lca_scenarios_match_mlca_scores(lcia_overview_project):
         assert lca.score == pytest.approx(mlca.lca_scores[0, 0, idx])
 
 
-def test_tree_lca_without_scenarios_ignores_scenario_idx(lcia_overview_project):
+def test_tree_lca_without_scenarios_ignores_scenario_idx(tree_scenario_mlca):
     """Regression: Tree used to always rebuild a non-scenario LCA after sankey update."""
-    mlca = _scenario_mlca()
+    mlca = tree_scenario_mlca
     demand = _tree_demand(mlca.func_units[0])
     method = mlca.methods[0]
     names = list(mlca.scenario_names)
@@ -67,8 +91,8 @@ def test_tree_lca_without_scenarios_ignores_scenario_idx(lcia_overview_project):
     assert lca.score != pytest.approx(mlca.lca_scores[0, 0, high_idx])
 
 
-def test_tree_lca_switching_scenarios_updates_score(lcia_overview_project):
-    mlca = _scenario_mlca()
+def test_tree_lca_switching_scenarios_updates_score(tree_scenario_mlca):
+    mlca = tree_scenario_mlca
     demand = _tree_demand(mlca.func_units[0])
     method = mlca.methods[0]
     names = list(mlca.scenario_names)
@@ -97,9 +121,9 @@ def test_tree_lca_switching_scenarios_updates_score(lcia_overview_project):
     assert low.score != pytest.approx(high_score)
 
 
-def test_tree_lca_scenario_switch_does_not_warn_pardiso_noop(lcia_overview_project):
+def test_tree_lca_scenario_switch_does_not_warn_pardiso_noop(tree_scenario_mlca):
     """``decompose_technosphere`` is a PARDISO no-op; do not call it on switch."""
-    mlca = _scenario_mlca()
+    mlca = tree_scenario_mlca
     demand = _tree_demand(mlca.func_units[0])
     method = mlca.methods[0]
     idx = list(mlca.scenario_names).index("high_demand")

@@ -52,12 +52,20 @@ def _ensure_main_window() -> None:
 def _reset_main_window(qtbot) -> None:
     """Close extra tabs opened during a test; keep the main window alive."""
     from activity_browser import app
+    from activity_browser.app.pages.activity_details.activity_details import (
+        ActivityDetailsPage,
+    )
     from activity_browser.ui import core
 
     qapp = QtWidgets.QApplication.instance()
     mw = getattr(app, "main_window", None)
     if mw is None or not core.qt_is_valid(mw):
         return
+
+    # Drop leftover Activity Details pages so delete signals cannot hit stale UI.
+    for page in list(mw.findChildren(ActivityDetailsPage)):
+        if core.qt_is_valid(page):
+            page.deleteLater()
 
     central = mw.centralWidget()
     if central is not None and core.qt_is_valid(central):
@@ -70,7 +78,22 @@ def _reset_main_window(qtbot) -> None:
 
     if qapp is not None:
         qapp.processEvents(QtCore.QEventLoop.ProcessEventsFlag.AllEvents)
-    qtbot.wait(10)
+
+
+@pytest.fixture(autouse=True)
+def _sync_metadata_singleton():
+    """Tests that replace MetaDataStore._instance must not desync app.metadata."""
+    import sys
+
+    yield
+
+    app_module = sys.modules.get("activity_browser.app")
+    if app_module is None:
+        return
+
+    from activity_browser.bwutils.metadata.metadata import MetaDataStore
+
+    MetaDataStore._instance = app_module.metadata
 
 
 @pytest.fixture
@@ -90,7 +113,9 @@ def main_window(qtbot, monkeypatch, no_exception_dialogs):
 
     _ensure_main_window()
     metadata.dataframe = pd.DataFrame()
-    app.main_window.show()
+    # show() is expensive on Windows offscreen; only raise if not already visible.
+    if not app.main_window.isVisible():
+        app.main_window.show()
 
     yield app.main_window
 
@@ -136,23 +161,44 @@ def mc_project():
     yield CALCULATION_SETUP_NAME
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 @bw2test
 def lcia_overview_project():
-    """LCIA overview test database and calculation setups (1×1 … 10×10, MC)."""
+    """LCIA overview DB sized for current consumers (1×1 / 3×3), once per module.
+
+    Full 10×10 fixture data remains available via ``fixtures.lcia_overview`` for
+    local/scripts use; CI tests only need the small setups.
+    """
     from fixtures.lcia_overview import (
         CALCULATION_SETUPS,
         DATABASE_NAME,
-        DATABASE,
-        METHODS,
+        build_database,
+        build_methods,
     )
 
-    write_functional_database(DATABASE_NAME, DATABASE, process=True)
-    for method_key, cfs in METHODS.items():
+    write_functional_database(
+        DATABASE_NAME, build_database(n_products=3), process=True
+    )
+    for method_key, cfs in build_methods(n_methods=3).items():
         write_method(method_key, cfs, process=True)
-    for cs_name, setup in CALCULATION_SETUPS.items():
-        write_calculation_setup(cs_name, setup)
+    for cs_name in ("lcia_1x1", "lcia_3x3", "lcia_3x3_neg"):
+        write_calculation_setup(cs_name, CALCULATION_SETUPS[cs_name])
     yield DATABASE_NAME
+
+
+@pytest.fixture
+@bw2test
+def basic_project():
+    """``basic`` DB + method + CS without main_window / metadata load.
+
+    Prefer this over ``basic_database`` for pure Brightway / MLCA tests.
+    """
+    from fixtures.basic import CALCULATION_SETUP, DATABASE, METHOD
+
+    db = write_functional_database("basic", DATABASE, process=False, mark_dirty=True)
+    write_method("basic_method", METHOD, process=False)
+    write_calculation_setup("basic_calculation_setup", CALCULATION_SETUP)
+    yield db
 
 
 @pytest.fixture

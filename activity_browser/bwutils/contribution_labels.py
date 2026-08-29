@@ -1,4 +1,4 @@
-"""Axis and legend labels for LCA contribution plots."""
+"""Axis, legend, and table labels for LCA contributions."""
 
 from __future__ import annotations
 
@@ -88,6 +88,15 @@ def contribution_column_labels(tab, column_keys: list) -> list[str]:
         label_dict.get(setup_index(col), str(col)) if setup_index(col) is not None else str(col)
         for col in column_keys
     ]
+
+
+def apply_contribution_column_labels(df: pd.DataFrame, tab) -> pd.DataFrame:
+    """Replace setup-index comparison columns (0, 1, …) with MLCA display labels."""
+    keys = [c for c in df.columns if setup_index(c) is not None]
+    if not keys:
+        return df
+    labels = contribution_column_labels(tab, keys)
+    return df.rename(columns=dict(zip(keys, labels)))
 
 
 def _fallback_column_label(col) -> str:

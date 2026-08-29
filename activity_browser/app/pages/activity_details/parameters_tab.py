@@ -9,7 +9,14 @@ from bw2data.parameters import ProjectParameter, DatabaseParameter, ActivityPara
 
 from activity_browser import app
 from activity_browser.ui import widgets, icons, delegates, core
-from activity_browser.bwutils.commontasks import refresh_node, refresh_parameter, parameters_in_scope, database_is_locked, node_group
+from activity_browser.bwutils.commontasks import (
+    refresh_node,
+    refresh_node_or_none,
+    refresh_parameter,
+    parameters_in_scope,
+    database_is_locked,
+    node_group,
+)
 from activity_browser.bwutils.uncertainty import uncertainty_cell_summary
 from activity_browser.bwutils.utils import Parameter
 
@@ -68,6 +75,10 @@ class ParametersTab(QtWidgets.QWidget):
         """
         logger.log("SYNC", f"{self.__class__.__name__}: {id(self)}")
 
+        self.activity = refresh_node_or_none(self.activity)
+        if self.activity is None:
+            return
+
         df = self.build_df()
         self.model.set_dataframe(df, group=["_param_type", "_scope"])
         self.view.expandAll()
@@ -105,7 +116,7 @@ class ParametersTab(QtWidgets.QWidget):
             row = self._parameter_to_row(param, db_name, db_name)
             translated.append(row)
 
-        if not database_is_locked(db_name):
+        if db_name in bd.databases and not database_is_locked(db_name):
             translated.append({
                 "name": "New parameter...",
                 "_scope": db_name,
@@ -123,7 +134,9 @@ class ParametersTab(QtWidgets.QWidget):
             row = self._parameter_to_row(param, f"Group: {group_name}", param.database)
             translated.append(row)
 
-        if not database_is_locked(self.activity["database"]):
+        if self.activity["database"] in bd.databases and not database_is_locked(
+            self.activity["database"]
+        ):
             translated.append({
                 "name": "New parameter...",
                 "_scope": f"Group: {group_name}",

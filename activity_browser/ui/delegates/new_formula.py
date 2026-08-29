@@ -17,47 +17,53 @@ class NewFormulaDelegate(QtWidgets.QStyledItemDelegate):
     def displayText(self, value, locale):
         return f"<b>{value}</b>"
 
+    def _scope_for_index(self, index):
+        if hasattr(index.internalPointer(), "scoped_parameters"):
+            return index.internalPointer().scoped_parameters
+        if hasattr(index.model(), "scoped_parameters"):
+            return index.model().scoped_parameters(index)
+        return {}
+
     def paint(self, painter, option: QtWidgets.QStyleOptionViewItem, index):
         if index.data() is None:
             return super().paint(painter, option, index)
 
+        try:
+            scope = self._scope_for_index(index)
+        except Exception:
+            logger.opt(exception=True).debug("Formula scope lookup failed during paint")
+            return super().paint(painter, option, index)
+
         painter.save()
+        try:
+            if option.state & QtWidgets.QStyle.State_Selected:
+                painter.fillRect(option.rect, option.palette.color(option.palette.ColorRole.Highlight))
+                painter.setPen(option.palette.color(option.palette.ColorRole.HighlightedText))
+            else:
+                painter.setPen(Qt.NoPen)
 
-        if option.state & QtWidgets.QStyle.State_Selected:
-            painter.fillRect(option.rect, option.palette.color(option.palette.ColorRole.Highlight))
-            painter.setPen(option.palette.color(option.palette.ColorRole.HighlightedText))
-        else:
-            painter.setPen(Qt.NoPen)
+            from activity_browser.ui.widgets import ABFormulaEdit
+            viewport = self.parent().findChild(QtWidgets.QWidget, "qt_scrollarea_viewport")
+            formula = ABFormulaEdit(viewport, scope, index.data(), simple=True)
 
-        if hasattr(index.internalPointer(), 'scoped_parameters'):
-            scope = index.internalPointer().scoped_parameters
-        elif hasattr(index.model(), 'scoped_parameters'):
-            scope = index.model().scoped_parameters(index)
-        else:
-            scope = {}
+            painter.setClipRect(option.rect)
+            painter.translate(option.rect.topLeft())
 
-        from activity_browser.ui.widgets import ABFormulaEdit
-        viewport = self.parent().findChild(QtWidgets.QWidget, "qt_scrollarea_viewport")
-        formula = ABFormulaEdit(viewport, scope, index.data(), simple=True)
-
-        painter.setClipRect(option.rect)
-        painter.translate(option.rect.topLeft())
-
-        formula.setGeometry(option.rect)
-        formula.paint_text(painter)
-
-        painter.restore()
+            formula.setGeometry(option.rect)
+            formula.paint_text(painter)
+        except Exception:
+            logger.opt(exception=True).debug("Formula delegate paint failed")
+        finally:
+            painter.restore()
 
     def createEditor(self, parent, option, index):
         from activity_browser.ui.widgets import ABFormulaEdit
-        if hasattr(index.internalPointer(), 'scoped_parameters'):
-            scope = index.internalPointer().scoped_parameters
-        elif hasattr(index.model(), 'scoped_parameters'):
-            scope = index.model().scoped_parameters(index)
-        else:
+        try:
+            scope = self._scope_for_index(index)
+        except Exception:
+            logger.opt(exception=True).debug("Formula scope lookup failed during edit")
             scope = {}
-        editor = ABFormulaEdit(parent, scope)
-        return editor
+        return ABFormulaEdit(parent, scope)
 
     def setEditorData(self, editor, index: QtCore.QModelIndex):
         """Populate the editor with data if editing an existing field."""

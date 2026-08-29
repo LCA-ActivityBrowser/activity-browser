@@ -246,6 +246,8 @@ class ActivityLocation(QtWidgets.QLineEdit):
 
     _WIDTH_PAD_PX = 14
     _MIN_WIDTH_PX = 32
+    _EDIT_MIN_WIDTH_PX = 180
+    _EDIT_MAX_WIDTH_PX = 420
 
     def __init__(self, header: ActivityHeader):
         """
@@ -264,18 +266,53 @@ class ActivityLocation(QtWidgets.QLineEdit):
         self.setFixedHeight(fm.height() + 4)
         self.setSizePolicy(QtWidgets.QSizePolicy.Policy.Fixed, QtWidgets.QSizePolicy.Policy.Fixed)
         self.textChanged.connect(self._adjust_width_to_text)
-        self._adjust_width_to_text()
         self.editingFinished.connect(self.change_location)
 
-        locations = set(app.metadata.dataframe.get("location", ["GLO"]))
-        completer = QtWidgets.QCompleter(locations, self)
+        locations = {str(loc) for loc in set(app.metadata.dataframe.get("location", ["GLO"])) if loc == loc and loc}
+        self._edit_min_width = self._width_for_locations(locations)
+        completer = QtWidgets.QCompleter(sorted(locations), self)
+        completer.setCaseSensitivity(QtCore.Qt.CaseSensitivity.CaseInsensitive)
+        completer.popup().setMinimumWidth(self._edit_min_width)
         self.setCompleter(completer)
+        self._adjust_width_to_text()
+
+    def _width_for_locations(self, locations: set[str]) -> int:
+        fm = QtGui.QFontMetrics(self.font())
+        widest = max((fm.horizontalAdvance(loc) for loc in locations), default=0)
+        return min(
+            max(widest + self._WIDTH_PAD_PX, self._EDIT_MIN_WIDTH_PX),
+            self._EDIT_MAX_WIDTH_PX,
+        )
 
     def _adjust_width_to_text(self) -> None:
         fm = QtGui.QFontMetrics(self.font())
         t = self.text()
         text_w = fm.horizontalAdvance(t) if t else fm.horizontalAdvance(" ")
-        self.setFixedWidth(max(text_w + self._WIDTH_PAD_PX, self._MIN_WIDTH_PX))
+        if self.hasFocus():
+            self.setFixedWidth(max(text_w + self._WIDTH_PAD_PX, self._edit_min_width))
+        else:
+            self.setFixedWidth(max(text_w + self._WIDTH_PAD_PX, self._MIN_WIDTH_PX))
+        if self.hasFocus() and not t.strip():
+            self._popup_all_locations()
+
+    def _popup_all_locations(self) -> None:
+        """Show the full location list when the field is blank."""
+        completer = self.completer()
+        if completer is None:
+            return
+        completer.setCompletionPrefix("")
+        completer.complete()
+
+    def focusInEvent(self, event: QtGui.QFocusEvent) -> None:
+        super().focusInEvent(event)
+        self._adjust_width_to_text()
+        if not self.text().strip():
+            # Defer so the popup opens after focus is fully established.
+            QtCore.QTimer.singleShot(0, self._popup_all_locations)
+
+    def focusOutEvent(self, event: QtGui.QFocusEvent) -> None:
+        super().focusOutEvent(event)
+        self._adjust_width_to_text()
 
     def change_location(self):
         """

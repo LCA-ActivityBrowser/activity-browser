@@ -80,23 +80,41 @@ Life Cycle Assessment calculation (inventory + impact). Multi-LCA runs multiple 
 
 ### Parameter
 
-A named value or formula used to drive exchange amounts or scenarios. Parameter recalculation and Monte Carlo hooks live under `activity_browser/bwutils/parameters/`.
+A named value or formula used to drive flow amounts or scenarios. Parameter recalculation and Monte Carlo hooks live under `activity_browser/bwutils/parameters/`.
+
+### Parameterized flow
+
+A flow whose amount is given by a formula (optionally using parameters). The Parameters page lists them under **Parameterized Flows**. Recalculation and Monte Carlo use Brightway’s `ParameterizedExchange` index, which is keyed by activity-parameter group.
+_Avoid_: parameterized exchange (when meaning this concept or the UI section)
 
 ### Uncertainty
 
-Statistical description of exchange (or parameter or CF) variability (`stats_arrays` types). UI preview helpers live under `activity_browser/bwutils/uncertainty.py` and related dialogs.
+Statistical description of flow, parameter, or characterization-factor variability. Monte Carlo samples this description. A lognormal uncertainty on a flow may be derived from an applied pedigree.
+_Avoid_: treating stored pedigree scores as the sampled input
+
+### Pedigree
+
+Five 1–5 data-quality scores on a flow (reliability, completeness, temporal correlation, geographical correlation, further technological correlation). Together with basic uncertainty they are a stored recipe for the **spread** of a lognormal uncertainty (not its central value). The pedigree editor is hidden until the user chooses to use pedigree in that edit; using pedigree applies the recipe (lognormal spread from the scores) on confirm. Inspecting scores in the table cell, or cancelling, does not apply. Unchecking use pedigree restores the distribution and parameters from just before they checked; in-session score edits are discarded and the stored recipe is unchanged. Switching to another uncertainty (or removing it) while use pedigree is on keeps that new choice, turns use pedigree off, and leaves the stored recipe. Clearing pedigree also turns it off and restores the sampled fields, and deletes the stored recipe on confirm. Checking use pedigree again before confirm restores the stored recipe (Clear is undone). When present, the scores are shown with the flow’s uncertainty (not as a separate table column). Not used on parameters or characterization factors.
+_Avoid_: pedigree matrix (when meaning these scores — that name is the factor table); data quality indicators (when meaning this pedigree); treating an unapplied pedigree as the current uncertainty
+
+### Basic uncertainty
+
+The extra lognormal spread assumed even when all pedigree scores are 1. Part of the pedigree recipe; not sampled on its own. Default is 1 when unset. When the current uncertainty is lognormal and scores exist, it is inferred from that scale and the scores so the recipe matches; if the scale is tighter than the scores alone, inference is not used (default 1). An inferred value is not stored until the user saves the pedigree recipe.
+_Avoid_: sample size (the unused sixth ecoinvent pedigree number); treating this as a sixth 1–5 score
 
 ### Monte Carlo
 
-Stochastic sampling of uncertain inputs to produce distributions of LCA results. Uncertainties can related to biosphere and technosphere flows, as well as to parameters and characterization factors. See `activity_browser/bwutils/montecarlo.py` and LCA results Monte Carlo UI.
+Stochastic sampling of uncertain inputs to produce distributions of LCA results. Uncertainties can relate to biosphere and technosphere flows, as well as to parameters and characterization factors. In **Scenario LCA**, a selected scenario may change flow amounts on the A and B matrices before sampling; those amounts do not relocate database uncertainty. When the same cell is affected by more than one of these, precedence is **scenario amount < uncertainty sampling < parameter sampling** (parameters win on overlap). See `activity_browser/bwutils/montecarlo.py` and LCA results Monte Carlo UI.
 
 ### GSA (Global Sensitivity Analysis)
 
-Analysis of how uncertain inputs drive output variance (e.g. SALib-based), based on Monte Carlo snapshots. See `activity_browser/bwutils/sensitivity_analysis.py`.
+Analysis of how uncertain inputs drive output variance (e.g. SALib-based), based on Monte Carlo snapshots. In Scenario LCA it uses the last Monte Carlo run’s scenario (not a separate scenario selector). Figure chrome: header shows the last GSA run’s reference flow and impact category; footer shows cutoffs and that Monte Carlo scenario.
+_Avoid_: giving GSA its own independent scenario dropdown
 
 ### Scenario LCA
 
-An LCA calculation that also considers multiple scenarios for inventory data (based on the superstructure approach). See `activity_browser/bwutils/superstructure/`.
+An LCA calculation that also considers multiple scenarios for inventory data (based on the superstructure approach). A chosen scenario replaces selected technosphere and biosphere flow amounts; it does not define new uncertainty. Monte Carlo in scenario mode still samples database (and parameter) uncertainty with precedence scenario amount < uncertainty sampling < parameter sampling. See `activity_browser/bwutils/superstructure/`.
+_Avoid_: treating a scenario difference file as an uncertainty distribution
 
 ### Scenario name
 
@@ -216,3 +234,4 @@ _Avoid_: required amount, supply amount (use flow amount in UI labels)
 | “one-shot” / “bw2io native” (LCIA file) | bw2io impact-category file |
 | “global app settings file” ad hoc | `app.settings`                                                                           |
 | “activity graph” / Graph tab (the view) / neighbourhood | Graph explorer                                                                           |
+| “parameterized exchanges” (the concept or Parameters page section) | parameterized flows                                                                      |

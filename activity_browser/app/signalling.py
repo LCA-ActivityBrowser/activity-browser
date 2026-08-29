@@ -241,7 +241,12 @@ class ABSignals(QObject):
 
     def _on_database_write(self, sender, name):
         from bw2data import Database
+        from activity_browser.bwutils.parameters.formula_exchanges import (
+            rebuild_parameterized_flow_index,
+        )
+
         t = time()
+        rebuild_parameterized_flow_index(name)
         self.database.written.emit(Database(name))
         logger.log("SIGNAL", f"Database: written: {time() - t:.2f} seconds")
 
