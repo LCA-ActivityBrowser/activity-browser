@@ -104,8 +104,7 @@ class ABLoader(QtWidgets.QWidget):
             self.text_label.setText("Building main window")
             from activity_browser import app
 
-            load_plugins()
-
+            # Plugins activate during `import activity_browser.app` (before MainWindow).
             app.main_window.show()
             if "--no-checks" not in sys.argv:
                 from activity_browser.app.actions import CheckForUpdates
@@ -228,8 +227,7 @@ def run_activity_browser_no_launcher():
         from .ui.widgets import ABCentralPagesWidget
         from .app import panes, pages, application, metadata
 
-        load_plugins()
-
+        # Plugins activate during `import activity_browser.app` (before MainWindow).
         application.main_window.show()
         if "--no-checks" not in sys.argv:
             from activity_browser.app.actions import CheckForUpdates
@@ -263,17 +261,6 @@ def pre_flight_checks():
     print(version_line, flush=True)
     logger.info(version_line)
 
-
-def load_plugins():
-    from activity_browser.bwutils.settings import Settings
-    settings = Settings()
-    plugins = settings["plugins"].get("enabled_plugins", [])
-    for plugin in plugins:
-        try:
-            __import__(plugin)
-            logger.info(f"Successfully loaded plugin: {plugin}")
-        except ImportError:
-            logger.warning(f"Could not load plugin: {plugin}")
 
 
 if __name__ == "__main__":

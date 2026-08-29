@@ -24,6 +24,7 @@ class MenuBar(QtWidgets.QMenuBar):
         self.impact_categories_menu = ImpactCategoriesMenu(self)
         self.calculate_menu = CalculateMenu(self)
         self.view_menu = ViewMenu(self)
+        self.plugins_menu = PluginsMenu(self)
         self.help_menu = HelpMenu(self)
 
         self.addMenu(self.project_menu)
@@ -31,6 +32,7 @@ class MenuBar(QtWidgets.QMenuBar):
         self.addMenu(self.impact_categories_menu)
         self.addMenu(self.calculate_menu)
         self.addMenu(self.view_menu)
+        self.addMenu(self.plugins_menu)
         self.addMenu(self.help_menu)
 
         self.search_button = QtWidgets.QPushButton(self)
@@ -184,6 +186,62 @@ class CalculateMenu(QtWidgets.QMenu):
             action.setText(cs)
             self.cs_actions.append(action)
             self.addAction(action)
+
+
+class PluginsMenu(QtWidgets.QMenu):
+    """Top-level Plugins menu: per-plugin submenus + Manage plugins…"""
+
+    def __init__(self, parent=None) -> None:
+        super().__init__(parent)
+        self.setTitle("&Plugins")
+
+        from activity_browser.app import contributions
+
+        self._kept_actions = []
+        self._submenus = []
+
+        for plugin_id, items in contributions.plugin_submenu_items.items():
+            if not items:
+                continue
+            title = contributions.plugin_display_names.get(plugin_id, plugin_id)
+            submenu = QtWidgets.QMenu(title, self)
+            self._submenus.append(submenu)
+            for menu_path, action_id in items:
+                action_cls = contributions.action_contributions.get(action_id)
+                if action_cls is None:
+                    logger.warning("Plugins menu: unknown action id {}", action_id)
+                    continue
+                # Support simple nested paths: "Demo/Open" → submenu Demo
+                parts = [p for p in menu_path.split("/") if p]
+                target_menu = submenu
+                for part in parts[:-1]:
+                    child = None
+                    for existing in target_menu.findChildren(QtWidgets.QMenu):
+                        if existing.title() == part and existing.parent() is target_menu:
+                            child = existing
+                            break
+                    if child is None:
+                        child = target_menu.addMenu(part)
+                    target_menu = child
+                label = parts[-1] if parts else menu_path
+                qaction = action_cls.get_QAction(parent=target_menu, text=label)
+                self._kept_actions.append(qaction)
+                target_menu.addAction(qaction)
+            self.addMenu(submenu)
+
+        if contributions.plugin_submenu_items and contributions.plugins_menu_contributions:
+            self.addSeparator()
+
+        for menu_path, action_id in contributions.plugins_menu_contributions:
+            if "/" in menu_path:
+                continue
+            action_cls = contributions.action_contributions.get(action_id)
+            if action_cls is None:
+                logger.warning("Plugins menu: unknown action id {}", action_id)
+                continue
+            qaction = action_cls.get_QAction(parent=self)
+            self._kept_actions.append(qaction)
+            self.addAction(qaction)
 
 
 class HelpMenu(QtWidgets.QMenu):

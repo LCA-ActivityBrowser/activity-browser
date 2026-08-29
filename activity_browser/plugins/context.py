@@ -1,0 +1,151 @@
+# -*- coding: utf-8 -*-
+"""PluginContext — registration object passed to activate(ctx)."""
+from __future__ import annotations
+
+from typing import Any, Optional, Type
+
+
+def _ensure_shown_startup(settings: Any, list_key: str, contribution_id: str) -> None:
+    import copy
+
+    from activity_browser.bwutils.settings import defaults
+
+    if "startup" not in settings.global_config:
+        settings.global_config["startup"] = copy.deepcopy(defaults["startup"])
+    shown = settings.global_config["startup"].setdefault(list_key, [])
+    if contribution_id not in shown:
+        shown.append(contribution_id)
+
+
+class _PluginSettingsView:
+    """Namespaced settings for one plugin under settings['plugins']['data'][plugin_id]."""
+
+    def __init__(self, settings: Any, plugin_id: str):
+        self._settings = settings
+        self._plugin_id = plugin_id
+
+    def _bucket(self) -> dict:
+        plugins = self._settings["plugins"]
+        data = plugins.setdefault("data", {})
+        return data.setdefault(self._plugin_id, {})
+
+    def get(self, key, default=None):
+        return self._bucket().get(key, default)
+
+    def __getitem__(self, key):
+        return self._bucket()[key]
+
+    def __setitem__(self, key, value):
+        self._bucket()[key] = value
+
+    def __contains__(self, key):
+        return key in self._bucket()
+
+
+class PluginContext:
+    """Host-owned registration API for a single plugin activate() call."""
+
+    def __init__(
+        self,
+        plugin_id: str,
+        *,
+        application,
+        signals,
+        settings,
+    ):
+        self.plugin_id = plugin_id
+        self.application = application
+        self.signals = signals
+        self.settings = _PluginSettingsView(settings, plugin_id)
+        self._settings = settings
+
+    def _require_namespaced_id(self, contribution_id: str) -> None:
+        prefix = f"{self.plugin_id}."
+        if not contribution_id.startswith(prefix) or contribution_id == prefix:
+            raise ValueError(
+                f"Contribution id {contribution_id!r} must be namespaced as "
+                f"'{self.plugin_id}.<local>'"
+            )
+
+    def register_page(
+        self,
+        contribution_id: str,
+        page_class: Type,
+        *,
+        title: Optional[str] = None,
+        show_by_default: bool = False,
+    ) -> None:
+        from activity_browser.app import pages
+        from activity_browser.app import contributions as contrib
+
+        self._require_namespaced_id(contribution_id)
+        if contribution_id in pages.base_pages:
+            raise ValueError(f"Page id already registered: {contribution_id!r}")
+        if title is not None:
+            page_class = type(
+                page_class.__name__,
+                (page_class,),
+                {"title": title, "name": contribution_id, "basePage": True},
+            )
+        elif not getattr(page_class, "basePage", False):
+            page_class = type(
+                page_class.__name__,
+                (page_class,),
+                {"basePage": True, "name": getattr(page_class, "name", None) or contribution_id},
+            )
+        pages.base_pages[contribution_id] = page_class
+        contrib.page_show_defaults[contribution_id] = show_by_default
+        if show_by_default:
+            _ensure_shown_startup(self._settings, "shown_pages", contribution_id)
+
+    def register_pane(
+        self,
+        contribution_id: str,
+        pane_class: Type,
+        *,
+        title: Optional[str] = None,
+        show_by_default: bool = False,
+    ) -> None:
+        from activity_browser.app import panes
+        from activity_browser.app import contributions as contrib
+
+        self._require_namespaced_id(contribution_id)
+        if contribution_id in panes.base_panes:
+            raise ValueError(f"Pane id already registered: {contribution_id!r}")
+        if title is not None:
+            pane_class = type(
+                pane_class.__name__,
+                (pane_class,),
+                {"title": title, "name": contribution_id},
+            )
+        panes.base_panes[contribution_id] = pane_class
+        contrib.pane_show_defaults[contribution_id] = show_by_default
+        if show_by_default:
+            _ensure_shown_startup(self._settings, "shown_panes", contribution_id)
+
+    def register_action(self, contribution_id: str, action_class: Type) -> None:
+        from activity_browser.app import contributions as contrib
+
+        self._require_namespaced_id(contribution_id)
+        contrib.register_action(contribution_id, action_class)
+
+    def register_menu_item(self, menu_path: str, action_id: str) -> None:
+        from activity_browser.app import contributions as contrib
+
+        self._require_namespaced_id(action_id)
+        contrib.plugin_submenu_items.setdefault(self.plugin_id, []).append(
+            (menu_path, action_id)
+        )
+
+    def register_settings_chapter(
+        self,
+        contribution_id: str,
+        chapter_class: Type,
+        *,
+        title: Optional[str] = None,
+    ) -> None:
+        from activity_browser.app import contributions as contrib
+
+        self._require_namespaced_id(contribution_id)
+        chapter_title = title or contribution_id
+        contrib.register_settings_chapter(chapter_title, chapter_class)
