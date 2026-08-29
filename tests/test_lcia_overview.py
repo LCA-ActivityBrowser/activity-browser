@@ -214,7 +214,7 @@ def test_reference_flow_label_uses_processor_name(lcia_overview_project):
     import bw2data as bd
 
     from activity_browser.bwutils.commontasks import get_fu_label
-    from tests.fixtures.lcia_overview import DATABASE_NAME
+    from fixtures.lcia_overview import DATABASE_NAME
 
     act = bd.get_activity((DATABASE_NAME, "prod_0"))
     label = get_fu_label(act, 1.0)
@@ -268,7 +268,7 @@ def test_lcia_overview_plot_smoke(lcia_overview_project):
 
 def test_lcia_scores_table_reference_flow_columns(lcia_overview_project):
     from activity_browser.bwutils.multilca import MLCA, Contributions
-    from tests.fixtures.lcia_overview import DATABASE_NAME
+    from fixtures.lcia_overview import DATABASE_NAME
 
     mlca = MLCA("lcia_3x3")
     mlca.calculate()
