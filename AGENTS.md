@@ -56,9 +56,9 @@ See also ADRs under `docs/adr/` and module READMEs under each package directory.
 
 Use terms from [`CONTEXT.md`](CONTEXT.md). Read relevant ADRs in `docs/adr/` before changing architecture-sensitive areas.
 
-## Plugins (placeholder)
+## Plugins
 
-Plugin architecture is being redesigned. Do not harden or invent a plugin API contract here. When the new design is decided, document it in this section, an ADR, and the relevant module README.
+Contribution-based extensibility via entry points and `PluginContext`. See [`docs/adr/0012-plugins-contribution-api.md`](docs/adr/0012-plugins-contribution-api.md), author docs under [`docs/plugins/`](docs/plugins/), and glossary terms in [`CONTEXT.md`](CONTEXT.md). Do not invent alternate plugin APIs outside that facade.
 
 ## Deferred imports
 
@@ -87,7 +87,7 @@ Agents should not assume Linux-only or a single Python version. Details live in 
 - Small, localized changes preferred.
 - When changing stateful behavior (settings, databases, signals), update or add tests and keep the same signal contracts.
 - Preserve deferred-import and `mod/` patching patterns unless an ADR says otherwise.
-- Do not invent plugin APIs (see placeholder above).
+- Do not invent alternate plugin APIs outside `activity_browser.plugins` / ADR-0012.
 - **Never create a git commit unless the user explicitly asks to commit.** Slash skills that mention committing (e.g. `/implement`) do not override this — leave changes uncommitted until the user requests a commit.
 
 ## Useful references

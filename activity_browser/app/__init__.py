@@ -23,6 +23,11 @@ from . import panes
 from . import pages
 from . import dialogs
 
+# Activate enabled plugins before MainWindow so contributions join first paint.
+from activity_browser.plugins.loader import load_and_activate_plugins
+
+load_and_activate_plugins(application=application, signals=signals, settings=settings)
+
 main_window = MainWindow()
 application.main_window = main_window
 
