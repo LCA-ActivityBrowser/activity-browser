@@ -145,8 +145,12 @@ class ActivityDetailsPage(widgets.ABAbstractPage):
         self.activity = refresh_node_or_none(self.activity)
 
         if self.activity is None:
-            # Activity was already deleted
+            # Activity / database already gone — close rather than sync stale tabs
+            self.deleteLater()
             return
+
+        # Keep child tabs aligned with the refreshed proxy
+        self.parameters_tab.activity = self.activity
 
         # Update the tab name to be the activity name
         self.setWindowTitle(self.activity["name"])

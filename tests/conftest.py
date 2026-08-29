@@ -52,12 +52,20 @@ def _ensure_main_window() -> None:
 def _reset_main_window(qtbot) -> None:
     """Close extra tabs opened during a test; keep the main window alive."""
     from activity_browser import app
+    from activity_browser.app.pages.activity_details.activity_details import (
+        ActivityDetailsPage,
+    )
     from activity_browser.ui import core
 
     qapp = QtWidgets.QApplication.instance()
     mw = getattr(app, "main_window", None)
     if mw is None or not core.qt_is_valid(mw):
         return
+
+    # Drop leftover Activity Details pages so delete signals cannot hit stale UI.
+    for page in list(mw.findChildren(ActivityDetailsPage)):
+        if core.qt_is_valid(page):
+            page.deleteLater()
 
     central = mw.centralWidget()
     if central is not None and core.qt_is_valid(central):

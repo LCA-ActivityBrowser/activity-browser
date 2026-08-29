@@ -204,9 +204,13 @@ def get_database_metadata(name):
     return d
 
 def database_is_locked(name: str) -> bool:
-    """Returns True if the database is locked."""
-    if not name in bd.databases:
-        raise KeyError("Not an existing database:", name)
+    """Returns True if the database is locked (or missing / unknown).
+
+    Missing databases are treated as locked so UI sync during delete does not
+    raise when leftover parameter rows still reference a just-removed database.
+    """
+    if not name or name not in bd.databases:
+        return True
     return bd.databases[name].get("read_only", True)
 
 def database_is_legacy(name: str) -> bool:

@@ -9,7 +9,14 @@ from bw2data.parameters import ProjectParameter, DatabaseParameter, ActivityPara
 
 from activity_browser import app
 from activity_browser.ui import widgets, icons, delegates, core
-from activity_browser.bwutils.commontasks import refresh_node, refresh_parameter, parameters_in_scope, database_is_locked, node_group
+from activity_browser.bwutils.commontasks import (
+    refresh_node,
+    refresh_node_or_none,
+    refresh_parameter,
+    parameters_in_scope,
+    database_is_locked,
+    node_group,
+)
 from activity_browser.bwutils.uncertainty import uncertainty_cell_summary
 from activity_browser.bwutils.utils import Parameter
 
@@ -68,6 +75,7 @@ class ParametersTab(QtWidgets.QWidget):
         """
         logger.log("SYNC", f"{self.__class__.__name__}: {id(self)}")
 
+        self.activity = refresh_node_or_none(self.activity)
         if self.activity is None:
             return
 
