@@ -10,7 +10,7 @@ global sensitivity analysis (GSA):
 """
 from collections import defaultdict
 from time import time
-from typing import Optional
+from typing import Callable, Optional
 from loguru import logger
 
 import bw2data as bd
@@ -18,14 +18,72 @@ import bw2calc as bc
 import numpy as np
 import pandas as pd
 
-from activity_browser.bwutils.multilca import _load_cs
-from activity_browser.bwutils.montecarlo_matrix_utils_patch import apply_matrix_utils_mc_patch
+from activity_browser.bwutils.multilca import _load_cs, databases_for_fu_keys
+from activity_browser.bwutils.montecarlo.scenarios import build_overlay_from_df
 from activity_browser.bwutils.parameters import (
     MonteCarloParameterManager,
     bind_parameter_hook,
 )
+from activity_browser.bwutils.superstructure.scenario_overlay import (
+    ScenarioOverlay,
+    apply_scenario_overlay,
+)
 
-apply_matrix_utils_mc_patch()  # TODO: remove this patch as soon as bw2data 4.8 is released (it should be fixed there, but test)
+
+def _bind_selective_ab_iteration(
+    lca: bc.MultiLCA,
+    *,
+    sample_technosphere: bool,
+    sample_biosphere: bool,
+    skip_ab_after_scenario_pinned: Callable[[], bool],
+) -> None:
+    """Skip technosphere/biosphere ``next()`` when that layer is not MC-resampled.
+
+    After the scenario overlay is pinned once (first ``after_matrix_iteration``),
+    A/B iterators are skipped so Brightway does not rebuild those matrices from
+    the database datapackage on every iteration.
+    """
+    if sample_technosphere and sample_biosphere:
+        return
+
+    skip_tech = not sample_technosphere
+    skip_bio = not sample_biosphere
+    scenario_pinned = False
+
+    def __next__(self) -> None:
+        nonlocal scenario_pinned
+        skip_first_iteration = getattr(self, "keep_first_iteration_flag", False)
+
+        if not skip_first_iteration:
+            self._delete_solver_state()
+
+            defer_ab = skip_ab_after_scenario_pinned() and scenario_pinned
+            for matrix in self.matrix_labels:
+                if defer_ab and matrix == "technosphere_mm" and skip_tech:
+                    continue
+                if defer_ab and matrix == "biosphere_mm" and skip_bio:
+                    continue
+                if hasattr(self, matrix):
+                    next(getattr(self, matrix))
+
+            for matrix_dict in self.matrix_list_labels:
+                if hasattr(self, matrix_dict):
+                    next(getattr(self, matrix_dict))
+
+            if hasattr(self, "after_matrix_iteration"):
+                self.after_matrix_iteration()
+                if skip_ab_after_scenario_pinned():
+                    scenario_pinned = True
+
+        if bc.PYPARDISO:
+            self.technosphere_matrix = self.technosphere_matrix.tocsr()
+
+        if skip_first_iteration:
+            delattr(self, "keep_first_iteration_flag")
+
+        self._calculation()
+
+    lca.__next__ = __next__.__get__(lca, type(lca))
 
 
 class MonteCarloLCA(object):
@@ -43,6 +101,8 @@ class MonteCarloLCA(object):
         self.include_biosphere = True
         self.include_cfs = False
         self.include_parameters = False
+        self.last_run_scenario = None
+        self.last_run_includes = None
 
         _load_cs(self, self.cs["inv"], self.cs["ia"])
         self.method_index = {m: i for i, m in enumerate(self.methods)}
@@ -87,8 +147,16 @@ class MonteCarloLCA(object):
             seed_override=seed_override,
         )
 
-    def calculate(self, iterations: int = 10, seed: Optional[int] = None, **kwargs):
-        """Run Monte Carlo LCA with optional technosphere, biosphere, CF, and parameter uncertainty."""
+    def calculate(
+        self,
+        iterations: int = 10,
+        seed: Optional[int] = None,
+        scenario_overlay: Optional[ScenarioOverlay] = None,
+        scenario_df: Optional[pd.DataFrame] = None,
+        scenario: Optional[str | int] = None,
+        **kwargs,
+    ):
+        """Run Monte Carlo LCA with optional technosphere, biosphere, CF, parameter, and scenario amounts."""
         start = time()
         self.iterations = iterations
         self.seed = seed or bc.utils.get_seed()
@@ -96,6 +164,11 @@ class MonteCarloLCA(object):
         self.include_biosphere = kwargs.get("biosphere", True)
         self.include_cfs = kwargs.get("cf", True)
         self.include_parameters = kwargs.get("parameters", False)
+        self.last_run_scenario = None
+        self.last_run_includes = None
+
+        overlay = scenario_overlay
+        scenario_name = overlay.name if overlay is not None else None
 
         # Parameter amounts are applied in after_matrix_iteration (after matrix draws).
         if self.include_parameters:
@@ -110,13 +183,69 @@ class MonteCarloLCA(object):
             seed_override=self.seed,
         )
 
+        self.lca.lci()
+        self.lca.lcia()
+
+        if overlay is None and scenario_df is not None:
+            overlay = build_overlay_from_df(
+                self.lca,
+                scenario_df,
+                databases_for_fu_keys(self.fu_activity_keys),
+                scenario,
+            )
+            if overlay is not None:
+                scenario_name = overlay.name
+
+        before_parameters = None
+        if overlay is not None:
+            scenario_initialized = False
+
+            def apply_scenario(lca: bc.MultiLCA) -> None:
+                nonlocal scenario_initialized
+                if not scenario_initialized:
+                    apply_scenario_overlay(
+                        lca,
+                        overlay,
+                        include_technosphere=self.include_technosphere,
+                        include_biosphere=self.include_biosphere,
+                    )
+                    scenario_initialized = True
+                elif not self.include_technosphere and not self.include_biosphere:
+                    # A/B ``next()`` is skipped after the first iteration; re-pin because
+                    # ``lci_calculation`` can refresh matrices from unchanged mm state.
+                    apply_scenario_overlay(
+                        lca,
+                        overlay,
+                        include_technosphere=False,
+                        include_biosphere=False,
+                    )
+                elif self.include_technosphere or self.include_biosphere:
+                    apply_scenario_overlay(
+                        lca,
+                        overlay,
+                        include_technosphere=self.include_technosphere,
+                        include_biosphere=self.include_biosphere,
+                        repin_only=True,
+                    )
+
+            before_parameters = apply_scenario
+
+        _bind_selective_ab_iteration(
+            self.lca,
+            sample_technosphere=self.include_technosphere,
+            sample_biosphere=self.include_biosphere,
+            skip_ab_after_scenario_pinned=lambda: overlay is not None,
+        )
+
         self.parameter_mc_manager = None
         if self.include_parameters:
             self.parameter_mc_manager = MonteCarloParameterManager(seed=self.seed)
-            bind_parameter_hook(self.lca, self)
 
-        self.lca.lci()
-        self.lca.lcia()
+        if before_parameters is not None or self.include_parameters:
+            bind_parameter_hook(
+                self.lca, self, before_parameters=before_parameters
+            )
+
         # Always sample iteration 0; do not reuse the deterministic baseline matrices.
         self.lca.keep_first_iteration_flag = False
 
@@ -152,6 +281,26 @@ class MonteCarloLCA(object):
             f"Monte Carlo LCA: finished {iterations} iterations for {len(self.func_units)} reference flows and "
             f"{len(self.methods)} methods in {np.round(time() - start, 2)} seconds."
         )
+
+        self.last_run_scenario = scenario_name
+        self.last_run_includes = {
+            "technosphere": self.include_technosphere,
+            "biosphere": self.include_biosphere,
+            "cf": self.include_cfs,
+            "parameters": self.include_parameters,
+        }
+
+    @property
+    def last_run_summary(self) -> Optional[dict]:
+        """Metadata from the last successful ``calculate`` call, or ``None``."""
+        if self.last_run_includes is None:
+            return None
+        return {
+            "scenario": self.last_run_scenario,
+            "iterations": self.iterations,
+            "seed": self.seed,
+            "includes": self.last_run_includes,
+        }
 
     @property
     def func_units_dict(self) -> dict:

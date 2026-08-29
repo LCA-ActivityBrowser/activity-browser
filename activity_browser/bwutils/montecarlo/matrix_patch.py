@@ -10,6 +10,9 @@ characterization matrices.
 Upstream fix: ``contrib/brightway-upstream/matrix_utils-resource_group.patch``
 """
 
+#TODO remove this patch once bw2data 4.8 is released
+# see also: https://github.com/brightway-lca/brightway2-data/pull/272
+
 from __future__ import annotations
 
 import numpy as np

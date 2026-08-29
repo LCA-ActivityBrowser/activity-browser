@@ -8,11 +8,11 @@ from .parameterized_exchanges_section import ParameterizedExchangesSection
 
 class ParametersPage(widgets.ABAbstractPage):
     """
-    A widget that displays all parameters and parameterized exchanges in the current project.
+    A widget that displays all parameters and parameterized flows in the current project.
 
     This page shows:
     - Parameters section: A tree view of parameters organized by scope
-    - Parameterized exchanges section: A table of exchanges with formulas
+    - Parameterized Flows section: A table of flows with formulas in the Brightway index
     """
     basePage = True
     title = "Parameters"
@@ -55,7 +55,7 @@ class ParametersPage(widgets.ABAbstractPage):
         exchanges_widget = QtWidgets.QWidget()
         exchanges_layout = QtWidgets.QVBoxLayout(exchanges_widget)
         exchanges_layout.setContentsMargins(0, 0, 0, 0)
-        exchanges_label = widgets.ABLabel.demiBold("    Parameterized Exchanges")
+        exchanges_label = widgets.ABLabel.demiBold("    Parameterized Flows")
         exchanges_layout.addWidget(exchanges_label)
         exchanges_layout.addWidget(widgets.ABHLine(self))
         exchanges_layout.addWidget(self.parameterized_exchanges_section)

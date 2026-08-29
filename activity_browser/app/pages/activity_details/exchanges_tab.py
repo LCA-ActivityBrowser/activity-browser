@@ -15,7 +15,7 @@ from activity_browser.bwutils.commontasks import (refresh_node, database_is_lock
                                                   is_node_product_or_waste, is_node_biosphere, parameters_in_scope,
                                                   is_node_product, is_node_waste, get_exchange_type,
                                                   classify_dragged_nodes)
-from activity_browser.bwutils.uncertainty import uncertainty_cell_summary
+from activity_browser.bwutils.uncertainty import uncertainty_cell_summary, uncertainty_initial_from_flow
 from activity_browser.ui import widgets, icons, delegates, core
 
 
@@ -185,7 +185,10 @@ class ExchangesTab(QtWidgets.QWidget):
 
         # Create a DataFrame from the exchanges
         exc_df = pd.DataFrame(exchanges, columns=["amount", "input", "formula", "comment", "type"])
-        exc_df["uncertainty"] = [uncertainty_cell_summary(x.uncertainty) for x in exchanges]
+        exc_df["uncertainty"] = [
+            uncertainty_cell_summary(x.uncertainty, pedigree=x.get("pedigree"))
+            for x in exchanges
+        ]
         act_df = app.metadata.get_metadata(exc_df["input"].unique(), cols).rename(columns={"type": "_producer_type"})
 
         # Merge the exchanges DataFrame with the metadata DataFrame
@@ -662,19 +665,16 @@ class ExchangesModel(core.ABTreeModel):
         return data
 
     def uncertainty_editor_initial(self, index: QtCore.QModelIndex) -> dict:
-        initial = super().uncertainty_editor_initial(index)
-        if initial:
-            return initial
         row = self.row(index)
         if row is None:
             return {}
         ex = row.get("_exchange")
         if ex is None:
             return {}
-        u = getattr(ex, "uncertainty", None)  # retrieve the existing uncertainty dict
-        if isinstance(u, dict):
-            return dict(u)
-        return {}
+        return uncertainty_initial_from_flow(ex)
+
+    def uncertainty_editor_enable_pedigree(self, index: QtCore.QModelIndex) -> bool:
+        return self.column_name(index) == "uncertainty"
 
     def uncertainty_editor_read_only(self, index: QtCore.QModelIndex) -> bool:
         if self.column_name(index) != "uncertainty":

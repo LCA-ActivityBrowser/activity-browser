@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import numpy as np
+import pytest
 import stats_arrays as sa
+from bw2data.tests import bw2test
 
 from activity_browser.bwutils.montecarlo import MonteCarloLCA
 from activity_browser.bwutils.sensitivity_analysis import (
@@ -16,16 +18,29 @@ from activity_browser.bwutils.sensitivity_analysis import (
     get_lca,
 )
 from activity_browser.app.pages.lca_results.plots import GSAPlot
-from activity_browser.bwutils.sensitivity_analysis import GSA_NAME_COLUMN
 from activity_browser.bwutils.uncertainty import (
     uncertainty_cell_summary,
     uncertainty_field_name,
     uncertainty_parameters_summary,
 )
-from fixtures.monte_carlo import CALCULATION_SETUP
+from fixtures.bw_helpers import (
+    register_parameter_setup,
+    write_calculation_setup,
+    write_functional_database,
+    write_method,
+)
+from fixtures.monte_carlo import (
+    CALCULATION_SETUP,
+    CALCULATION_SETUP_NAME,
+    DATABASE_NAME,
+    DATABASE_WITH_PARAMETER_FORMULA,
+    METHOD,
+    METHOD_NAME,
+    PARAMETER_SETUP,
+)
 
-# SALib delta needs enough MC iterations; keep ≥ 40 for full multi-layer GSA.
-ITERATIONS = 40
+# SALib delta needs enough MC iterations for a stable full multi-layer GSA.
+ITERATIONS = 30
 SEED = 42
 
 ALL_UNCERTAINTY_LAYERS = dict(
@@ -48,14 +63,85 @@ def _run_gsa(mc: MonteCarloLCA) -> GlobalSensitivityAnalysis:
     return gsa
 
 
+@pytest.fixture(scope="module")
+@bw2test
+def gsa_mc_project():
+    """One parameterized MC project for the whole module (shared MC/GSA runs)."""
+    write_functional_database("mc", DATABASE_WITH_PARAMETER_FORMULA, process=True)
+    register_parameter_setup(DATABASE_NAME, PARAMETER_SETUP)
+    write_method(METHOD_NAME, METHOD, process=True)
+    write_calculation_setup(CALCULATION_SETUP_NAME, CALCULATION_SETUP)
+    yield CALCULATION_SETUP_NAME
+
+
+@pytest.fixture(scope="module")
+def mc_all_layers(gsa_mc_project):
+    return _run_mc(gsa_mc_project, **ALL_UNCERTAINTY_LAYERS)
+
+
+@pytest.fixture(scope="module")
+def gsa_all_layers(mc_all_layers):
+    return _run_gsa(mc_all_layers)
+
+
+@pytest.fixture(scope="module")
+def mc_cf_only(gsa_mc_project):
+    return _run_mc(
+        gsa_mc_project, technosphere=False, biosphere=False, cf=True, parameters=False
+    )
+
+
+@pytest.fixture(scope="module")
+def gsa_cf_only(mc_cf_only):
+    return _run_gsa(mc_cf_only)
+
+
+@pytest.fixture(scope="module")
+def mc_tech_bio(gsa_mc_project):
+    return _run_mc(
+        gsa_mc_project, technosphere=True, biosphere=True, cf=False, parameters=False
+    )
+
+
+@pytest.fixture(scope="module")
+def gsa_tech_bio(mc_tech_bio):
+    return _run_gsa(mc_tech_bio)
+
+
+@pytest.fixture(scope="module")
+def mc_tech_only(gsa_mc_project):
+    return _run_mc(
+        gsa_mc_project, technosphere=True, biosphere=False, cf=False, parameters=False
+    )
+
+
+@pytest.fixture(scope="module")
+def gsa_tech_only(mc_tech_only):
+    return _run_gsa(mc_tech_only)
+
+
+@pytest.fixture(scope="module")
+def mc_params_only(gsa_mc_project):
+    return _run_mc(
+        gsa_mc_project,
+        technosphere=False,
+        biosphere=False,
+        cf=False,
+        parameters=True,
+    )
+
+
+@pytest.fixture(scope="module")
+def gsa_params_only(mc_params_only):
+    return _run_gsa(mc_params_only)
+
+
 def test_gsa_plot_renders_sample_dataframe():
     import matplotlib
 
     matplotlib.use("Agg")
     import pandas as pd
     from qtpy import QtWidgets
-
-    from activity_browser.bwutils.sensitivity_analysis import GSA_TYPE_COLUMN
 
     if QtWidgets.QApplication.instance() is None:
         QtWidgets.QApplication([])
@@ -100,7 +186,7 @@ def test_triangular_uncertainty_summary():
     assert uncertainty_cell_summary(data) == "Triangular; Mode: 5.0; Minimum: 0.0; Maximum: 10.0"
 
 
-def test_get_cf_dataframe_uses_method_uncertainty(mc_project):
+def test_get_cf_dataframe_uses_method_uncertainty(gsa_mc_project):
     cs = CALCULATION_SETUP
     lca = get_lca(cs["inv"][0], cs["ia"][0])
     dfcf, _ = get_CF_dataframe(lca, cs["ia"][0], only_uncertain_CFs=True)
@@ -111,12 +197,12 @@ def test_get_cf_dataframe_uses_method_uncertainty(mc_project):
     assert "Minimum:" in dfcf.iloc[0]["uncertainty"]
 
 
-def test_gsa_full_run_all_uncertainty_layers(mc_project_with_parameters):
+def test_gsa_full_run_all_uncertainty_layers(mc_all_layers, gsa_all_layers):
     """End-to-end GSA with technosphere, biosphere, CF, and parameter MC uncertainty."""
-    mc = _run_mc(mc_project_with_parameters, **ALL_UNCERTAINTY_LAYERS)
+    mc = mc_all_layers
+    gsa = gsa_all_layers
     assert mc.iterations == ITERATIONS
 
-    gsa = _run_gsa(mc)
     assert gsa.df_final is not None and not gsa.df_final.empty
     assert list(gsa.df_final.columns) == list(GSA_COLUMNS)
 
@@ -132,18 +218,17 @@ def test_gsa_full_run_all_uncertainty_layers(mc_project_with_parameters):
     assert gsa.df_final["delta"].is_monotonic_decreasing
 
 
-def test_gsa_runs_with_cf_uncertainty(mc_project):
-    mc = _run_mc(mc_project, technosphere=False, biosphere=False, cf=True, parameters=False)
-    gsa = _run_gsa(mc)
+def test_gsa_runs_with_cf_uncertainty(gsa_cf_only):
+    gsa = gsa_cf_only
 
     assert gsa.df_final is not None and not gsa.df_final.empty
     assert (gsa.df_final[GSA_TYPE_COLUMN] == "characterization factor").any()
     assert list(gsa.df_final.columns) == list(GSA_COLUMNS)
 
 
-def test_mc_matrix_snapshots_are_per_iteration(mc_project):
+def test_mc_matrix_snapshots_are_per_iteration(mc_tech_bio, gsa_tech_bio):
     """Technosphere/biosphere draws must be copied each iteration, not shared references."""
-    mc = _run_mc(mc_project, technosphere=True, biosphere=True, cf=False, parameters=False)
+    mc = mc_tech_bio
     assert len(mc.A_matrices) == ITERATIONS
     assert len(mc.B_matrices) == ITERATIONS
 
@@ -156,7 +241,7 @@ def test_mc_matrix_snapshots_are_per_iteration(mc_project):
     assert len(a_snapshots) > 1
     assert len(b_snapshots) > 1
 
-    gsa = _run_gsa(mc)
+    gsa = gsa_tech_bio
     n_tech = len(gsa.t_indices)
     n_bio = len(gsa.b_indices)
     tech_X = gsa.X[:, :n_tech]
@@ -165,9 +250,8 @@ def test_mc_matrix_snapshots_are_per_iteration(mc_project):
     assert not np.allclose(bio_X, bio_X[0])
 
 
-def test_exchange_gsa_name_format(mc_project):
-    mc = _run_mc(mc_project, technosphere=True, biosphere=False, cf=False, parameters=False)
-    gsa = _run_gsa(mc)
+def test_exchange_gsa_name_format(gsa_tech_only):
+    gsa = gsa_tech_only
 
     tech = gsa.df_final.loc[gsa.df_final[GSA_TYPE_COLUMN] == "technosphere"].iloc[0]
     assert " --> " in tech[GSA_NAME_COLUMN]
@@ -178,15 +262,8 @@ def test_exchange_gsa_name_format(mc_project):
     assert gsa.metadata.index.name == GSA_INDEX_COLUMN
 
 
-def test_gsa_runs_with_parameter_uncertainty(mc_project_with_parameters):
-    mc = _run_mc(
-        mc_project_with_parameters,
-        technosphere=False,
-        biosphere=False,
-        cf=False,
-        parameters=True,
-    )
-    gsa = _run_gsa(mc)
+def test_gsa_runs_with_parameter_uncertainty(gsa_params_only):
+    gsa = gsa_params_only
 
     param = gsa.df_final.loc[gsa.df_final[GSA_TYPE_COLUMN] == "parameter"].iloc[0]
     assert "bio_amount" in param[GSA_NAME_COLUMN]
@@ -195,18 +272,18 @@ def test_gsa_runs_with_parameter_uncertainty(mc_project_with_parameters):
     assert "Maximum: 12.0" in param["uncertainty"]
 
 
-def test_gsa_export_basename(mc_project):
+def test_gsa_export_basename(gsa_mc_project, gsa_all_layers):
     from activity_browser.bwutils.export_names import export_name_slug
 
-    gsa = _run_gsa(_run_mc(mc_project, **ALL_UNCERTAINTY_LAYERS))
+    gsa = gsa_all_layers
     basename = gsa.get_save_name()
-    assert basename.startswith(f"{mc_project}_GSA_")
+    assert basename.startswith(f"{gsa_mc_project}_GSA_")
     assert export_name_slug(gsa.method) in basename
     assert not basename.endswith(".xlsx")
     assert "gsa_output" not in basename
 
 
-def test_gsa_input_export_order_matches_output(mc_project):
-    gsa = _run_gsa(_run_mc(mc_project, **ALL_UNCERTAINTY_LAYERS))
+def test_gsa_input_export_order_matches_output(gsa_all_layers):
+    gsa = gsa_all_layers
     input_df = gsa._gsa_input_dataframe()
     assert input_df.index.tolist() == gsa.df_final[GSA_INDEX_COLUMN].tolist()

@@ -14,7 +14,7 @@ __all__ = [
     "set_combobox_index",
     "update_combobox",
     "scenario_labels",
-    "configure_scenario_widgets",
+    "configure_selection_comboboxes",
 ]
 
 
@@ -58,17 +58,22 @@ def scenario_labels(parent) -> list[str]:
     return list(getattr(mlca, "scenario_names", []) or [])
 
 
-def configure_scenario_widgets(
+def configure_selection_comboboxes(
     *,
-    has_scenarios: bool,
+    parent,
+    fu_box: QtWidgets.QComboBox,
+    method_box: QtWidgets.QComboBox,
     scenario_box: QtWidgets.QComboBox,
     scenario_label: QtWidgets.QLabel,
-    parent,
-) -> list[str]:
-    """Show/hide scenario controls and refresh the scenario combo."""
+    has_scenarios: bool,
+) -> None:
+    """Populate RF / IC / scenario combos from the calculated MLCA (active CS rows)."""
+    mlca = getattr(parent, "mlca", None)
+    fu_labels = list(getattr(mlca, "fu_labels", {}).values()) if mlca else []
+    method_labels = [str(m) for m in getattr(mlca, "methods", [])] if mlca else []
+    update_combobox(fu_box, fu_labels)
+    update_combobox(method_box, method_labels)
     scenario_box.setVisible(has_scenarios)
     scenario_label.setVisible(has_scenarios)
-    labels = scenario_labels(parent) if has_scenarios else []
     if has_scenarios:
-        update_combobox(scenario_box, labels)
-    return labels
+        update_combobox(scenario_box, scenario_labels(parent))

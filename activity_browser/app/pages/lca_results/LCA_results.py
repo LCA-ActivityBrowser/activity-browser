@@ -39,6 +39,7 @@ from activity_browser.bwutils.lcia_overview import (
     lcia_compare_mode_from_label,
 )
 from activity_browser.bwutils.sensitivity_analysis import GlobalSensitivityAnalysis
+from activity_browser.bwutils.superstructure.mlca import SuperstructureMLCA
 from activity_browser.mod.bw2analyzer import ABContributionAnalysis
 from activity_browser.ui import widgets
 
@@ -64,6 +65,28 @@ from .sankey_navigator_tab import SankeyNavigatorWidget
 from .contribution_tree_tab import ContributionTreeTab
 
 ca = ABContributionAnalysis()
+
+
+def _format_mc_run_footer(summary: dict) -> str:
+    parts = []
+    if summary.get("scenario"):
+        parts.append(f"Scenario: {summary['scenario']}")
+    parts.append(f"Iterations: {summary['iterations']}")
+    parts.append(f"Random seed: {summary['seed']}")
+    includes = summary.get("includes") or {}
+    flags = "".join(
+        letter
+        for key, letter in (
+            ("technosphere", "T"),
+            ("biosphere", "B"),
+            ("cf", "C"),
+            ("parameters", "P"),
+        )
+        if includes.get(key)
+    )
+    if flags:
+        parts.append(f"Included: {flags}")
+    return " · ".join(parts)
 
 
 # Special namedtuple for the LCAResults TabWidget.
@@ -1300,7 +1323,7 @@ class ContributionTab(NewAnalysisTab):
         raise NotImplementedError
 
     def update_table(self):
-        super().update_table(self.df, unit=self.unit)
+        super().update_table(self.df, unit=self.unit, tab=self)
 
     def update_plot(self):
         """Update the plot."""
@@ -1803,17 +1826,24 @@ class MonteCarloTab(NewAnalysisTab):
     def __init__(self, parent=None):
         super(MonteCarloTab, self).__init__(parent)
         self.parent: LCAResultsSubTab = parent
+        self.df = None
+        self._results_stale = False
 
         self.explain_text = """
-            <p><b>Monte Carlo Analyses</b></p>
-            <p><b>Monte Carlo</b> simulations generate stochastic data samples using existing data defined parameter 
-            distributions for generating the expected distribution for the reference flows. </p>
-            <p>More <b>simply</b>, within the LCA model the user may define certain uncertainty distributions for some 
-            (or all) parameters. Monte Carlo analysis uses these defined uncertainty distributions with a stochastic 
-            generator to sample from these distributions. This results in a "posterior" (or final) probability 
-            distribution, expressing the expected variance, for the reference flows.</p>
-             <p><a href="https://github.com/LCA-ActivityBrowser/activity-browser/wiki/Monte-Carlo-Simulation">More 
-             information can be found here</a></p>
+            <p><b>Monte Carlo simulation</b> draws random samples from uncertainty
+            distributions defined on technosphere flows, biosphere flows, characterization
+            factors, and/or parameters, then recalculates LCA scores for each iteration.</p>
+            <p><b>Iterations</b> — number of stochastic draws (more iterations give smoother
+            distributions but take longer).</p>
+            <p><b>Random seed</b> — optional integer for reproducible samples. Leave empty
+            to let Brightway choose a seed; the value actually used is shown in the footer
+            after a run.</p>
+            <p><b>Include uncertainty for</b> — which layers resample each iteration:
+            Technosphere, Biosphere, Characterization Factors, Parameters. Uncertainty
+            distributions come from the database (not from the static flow amount).</p>
+            <p>In <b>scenario mode</b>, the selected scenario sets flow amounts first; then
+            the same sampling rules apply. Precedence on a cell: scenario amount, then
+            uncertainty sampling, then parameter sampling (parameters win on overlap).</p>
         """
         self.add_tab_header(
             "Monte Carlo Simulation",
@@ -1839,6 +1869,13 @@ class MonteCarloTab(NewAnalysisTab):
 
         self.add_MC_ui_elements()
 
+        self.stale_label = QtWidgets.QLabel(
+            "Scenario changed — click Run to update Monte Carlo results."
+        )
+        self.stale_label.setWordWrap(True)
+        self.stale_label.hide()
+        self.layout.addWidget(self.stale_label)
+
         self.table = LCAResultsTable()
         mc_basename = lca_export_basename(self.parent.cs_name, "Monte Carlo")
         self.table.table_name = mc_basename
@@ -1846,6 +1883,12 @@ class MonteCarloTab(NewAnalysisTab):
         self.plot.plot_name = mc_basename
 
         self.add_tab_body_with_placeholder()
+
+        self.run_info_label = QtWidgets.QLabel("")
+        self.run_info_label.setWordWrap(True)
+        self.run_info_label.hide()
+        self.layout.addWidget(self.run_info_label)
+
         self.export_widget = self.add_tab_footer(
             has_plot=True, has_table=True, wrapped=True
         )
@@ -1979,9 +2022,29 @@ class MonteCarloTab(NewAnalysisTab):
             "parameters": self.include_parameters.isChecked(),
         }
 
+        calc_kwargs = dict(
+            iterations=iterations,
+            seed=seed,
+            **includes,
+        )
+        if self.has_scenarios and isinstance(self.parent.mlca, SuperstructureMLCA):
+            scenario_name = self._selected_scenario_name()
+            if scenario_name is None:
+                QtWidgets.QMessageBox.warning(
+                    self,
+                    "Warning",
+                    "Select a scenario before running Monte Carlo.",
+                )
+                return
+            calc_kwargs["scenario_overlay"] = self.parent.mlca.scenario_overlay(
+                scenario_name
+            )
+
         QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
         try:
-            self.parent.mc.calculate(iterations=iterations, seed=seed, **includes)
+            self.parent.mc.calculate(**calc_kwargs)
+            self._results_stale = False
+            self.stale_label.hide()
             app.signals.monte_carlo_finished.emit()
             self.update_mc()
         except (
@@ -2052,10 +2115,38 @@ class MonteCarloTab(NewAnalysisTab):
         super().configure_scenario()
         self.scenario_label.setVisible(self.has_scenarios)
 
+    def _selected_scenario_name(self) -> Optional[str]:
+        labels = self.get_scenario_labels()
+        if not labels:
+            return None
+        index = max(self.scenario_box.currentIndex(), 0)
+        if 0 <= index < len(labels):
+            return labels[index]
+        return labels[0]
+
+    def _update_stale_state(self) -> None:
+        if self.df is None or not self.has_scenarios:
+            self._results_stale = False
+            self.stale_label.hide()
+            return
+        last = getattr(self.parent.mc, "last_run_scenario", None)
+        selected = self._selected_scenario_name()
+        self._results_stale = bool(last and selected and last != selected)
+        self.stale_label.setVisible(self._results_stale)
+
+    def _update_run_info_footer(self) -> None:
+        summary = self.parent.mc.last_run_summary
+        if not summary:
+            self.run_info_label.hide()
+            return
+        self.run_info_label.setText(_format_mc_run_footer(summary))
+        self.run_info_label.show()
+
     @QtCore.Slot(int, name="mcScenarioIndexChanged")
     def _on_scenario_index_changed(self, index: int) -> None:
-        """Scenario only affects export names after MC has been run."""
-        if self.df is not None:
+        """Keep prior results until Run; mark stale when selection differs from last run."""
+        self._update_stale_state()
+        if not self._results_stale and self.df is not None:
             self.update_mc()
 
     def update_tab(self):
@@ -2085,13 +2176,13 @@ class MonteCarloTab(NewAnalysisTab):
             self.update_plot(method=method)
         self.space_check()
         fields = [self.parent.cs_name, "Monte Carlo", method]
-        if self.has_scenarios:
-            scenario_index = max(self.scenario_box.currentIndex(), 0)
-            scenario_names = self.get_scenario_labels()
-            if scenario_names and 0 <= scenario_index < len(scenario_names):
-                fields.append(scenario_names[scenario_index])
+        last_scenario = getattr(self.parent.mc, "last_run_scenario", None)
+        if last_scenario:
+            fields.append(last_scenario)
         filename = lca_export_basename(*fields)
         self.plot.plot_name, self.table.table_name = filename, filename
+        self._update_run_info_footer()
+        self._update_stale_state()
 
     def update_plot(self, method):
         super().update_plot(self.df, method=method)
@@ -2238,10 +2329,14 @@ class GSATab(NewAnalysisTab):
         self.label_monte_carlo_first = QtWidgets.QLabel(
             "You need to run a Monte Carlo Simulation first."
         )
+        self.mc_scenario_label = QtWidgets.QLabel("")
+        self.mc_scenario_label.setWordWrap(True)
         self.layout.addWidget(self.label_monte_carlo_first)
+        self.layout.addWidget(self.mc_scenario_label)
         self.layout.addWidget(self.widget_settings)
 
         self.widget_settings.hide()
+        self.mc_scenario_label.hide()
 
     def update_tab(self):
         self.update_combobox(
@@ -2257,6 +2352,14 @@ class GSATab(NewAnalysisTab):
         self.button_run.setEnabled(True)
         self.widget_settings.show()
         self.label_monte_carlo_first.hide()
+        scenario = getattr(self.parent.mc, "last_run_scenario", None)
+        if scenario:
+            self.mc_scenario_label.setText(
+                f"GSA uses the last Monte Carlo run (scenario: {scenario})."
+            )
+            self.mc_scenario_label.show()
+        else:
+            self.mc_scenario_label.hide()
 
     def calculate_gsa(self):
         act_number = self.combobox_fu.currentIndex()

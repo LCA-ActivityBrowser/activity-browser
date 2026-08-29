@@ -297,6 +297,10 @@ class ABTreeModel(QAbstractItemModel):
         """If True, :class:`~activity_browser.ui.dialogs.UncertaintyDialog` opens read-only."""
         return False
 
+    def uncertainty_editor_enable_pedigree(self, index: QModelIndex) -> bool:
+        """If True, the uncertainty dialog shows the pedigree recipe (flows only)."""
+        return False
+
     def isBranchNode(self, index: QModelIndex) -> bool:
         """Check if the given index represents a branch node (non-leaf)."""
         if not index.isValid():

@@ -26,6 +26,19 @@ metadata = MetaDataStore()
 ca = ABContributionAnalysis()
 
 
+def databases_for_fu_keys(fu_activity_keys: Iterable) -> set[str]:
+    """Dependent databases reachable from reference-flow ``(database, code)`` keys."""
+
+    def get_dependents(dbs: set, dependents: list) -> set:
+        for dep in (bd.databases[db].get("depends", []) for db in dependents):
+            if not dbs.issuperset(dep):
+                dbs = get_dependents(dbs.union(dep), dep)
+        return dbs
+
+    dbs = set(f[0] for f in fu_activity_keys)
+    return get_dependents(dbs, list(dbs))
+
+
 def _load_cs(obj, inv: list, ia: list) -> None:
     """Brightway 2.5 inv/ia keys and full label dicts on ``obj``."""
     obj.func_units = list(inv)
@@ -43,8 +56,10 @@ def _load_cs(obj, inv: list, ia: list) -> None:
 
 def setup_index(key) -> int | None:
     """Parse a contribution setup key (reference flow / method / scenario) to an int index."""
-    if isinstance(key, int):
-        return key
+    if isinstance(key, bool):
+        return None
+    if isinstance(key, (int, np.integer)):
+        return int(key)
     if isinstance(key, str) and key.strip().isdigit():
         return int(key.strip())
     return None
@@ -298,20 +313,7 @@ class MLCA(object):
     @property
     def all_databases(self) -> set:
         """Get all databases linked to the reference flows."""
-
-        def get_dependents(dbs: set, dependents: list) -> set:
-            for dep in (bd.databases[db].get("depends", []) for db in dependents):
-                if not dbs.issuperset(dep):
-                    dbs = get_dependents(dbs.union(dep), dep)
-            return dbs
-
-        dbs = set(f[0] for f in self.fu_activity_keys)
-        dbs = get_dependents(dbs, list(dbs))
-        # In rare cases, the default biosphere is not found as a dependency, see:
-        # https://github.com/LCA-ActivityBrowser/activity-browser/issues/298
-        # Always include it.
-        # dbs.add(bd.config.biosphere)  # commented out because biospheres aren't 'biosphere3' by default anymore
-        return dbs
+        return databases_for_fu_keys(self.fu_activity_keys)
 
     def get_results_for_method(self, index: int = 0) -> pd.DataFrame:
         data = self.lca_scores[:, index]

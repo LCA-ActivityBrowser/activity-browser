@@ -1,3 +1,4 @@
+import sqlite3
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -5,6 +6,7 @@ import bw2data as bd
 from bw2data import config
 from bw2data.parameters import ProjectParameter
 from bw2data.project import ProjectDataset
+from bw2data.tests import bw2test
 from bw_processing import safe_filename
 from qtpy import QtWidgets
 
@@ -32,6 +34,20 @@ def _open_sqlite_files_in(dir_path: Path) -> list[str]:
     return open_files
 
 
+def _patch_delete_signals(monkeypatch):
+    import activity_browser.app.actions.project.project_delete as project_delete_mod
+
+    monkeypatch.setattr(
+        project_delete_mod,
+        "app",
+        SimpleNamespace(
+            signals=SimpleNamespace(
+                project=SimpleNamespace(deleted=SimpleNamespace(emit=lambda *a, **k: None))
+            )
+        ),
+    )
+
+
 def test_project_delete_closes_sqlite_before_removing_dir(monkeypatch, basic_database):
     """Windows cannot shutil.rmtree a project while parameters.db is still open."""
     original = bd.projects.current
@@ -54,15 +70,7 @@ def test_project_delete_closes_sqlite_before_removing_dir(monkeypatch, basic_dat
         return real_rmtree(path, *args, **kwargs)
 
     monkeypatch.setattr(project_delete_mod.shutil, "rmtree", checking_rmtree)
-    monkeypatch.setattr(
-        project_delete_mod,
-        "app",
-        SimpleNamespace(
-            signals=SimpleNamespace(
-                project=SimpleNamespace(deleted=SimpleNamespace(emit=lambda *a, **k: None))
-            )
-        ),
-    )
+    _patch_delete_signals(monkeypatch)
 
     try:
         ProjectDelete.delete_project(victim, True)
@@ -73,6 +81,31 @@ def test_project_delete_closes_sqlite_before_removing_dir(monkeypatch, basic_dat
     assert open_at_rmtree == []
     assert victim not in bd.projects
     assert not dir_path.exists()
+
+
+@bw2test
+def test_project_delete_removes_dir_despite_leaked_parameters_connection(monkeypatch):
+    """WinError 32 when parameters.db is held outside peewee's SubstitutableDatabase."""
+    _patch_delete_signals(monkeypatch)
+
+    original = bd.projects.current
+    victim = "victim_leaked_sqlite_conn"
+    bd.projects.create_project(victim)
+    bd.projects.set_current(victim, update=False)
+    list(ProjectParameter.select())
+    dir_path = _project_dir(victim)
+    leaked = sqlite3.connect(str(dir_path / "parameters.db"))
+    try:
+        ProjectDelete.delete_project(victim, True)
+        assert victim not in bd.projects
+        assert not dir_path.exists()
+    finally:
+        try:
+            leaked.close()
+        except Exception:
+            pass
+        if original in bd.projects:
+            bd.projects.set_current(original, update=False)
 
 
 def test_project_delete_run_removes_current_project(monkeypatch, basic_database):

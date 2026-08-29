@@ -26,6 +26,8 @@ from bw2data.parameters import ParameterBase
 from bw2data.proxies import ExchangeProxyBase
 from stats_arrays import UncertaintyBase, UndefinedUncertainty, uncertainty_choices as uc
 
+from activity_browser.bwutils.pedigree import pedigree_scores_suffix
+
 # Cleared uncertainty state for remove-uncertainty actions and dialog defaults.
 EMPTY_UNCERTAINTY = {
     "uncertainty type": UndefinedUncertainty.id,
@@ -287,13 +289,33 @@ def uncertainty_parameters_summary(source) -> str:
     return "; ".join(parts)
 
 
-def uncertainty_cell_summary(source) -> str:
+def uncertainty_cell_summary(source, pedigree=None) -> str:
     """Single-table-cell text: distribution type and parameters (``Type; param: val; …``)."""
     type_name = uncertainty_type_name(source)
     params = uncertainty_parameters_summary(source)
     if type_name and params:
-        return f"{type_name}; {params}"
-    return type_name or params
+        text = f"{type_name}; {params}"
+    else:
+        text = type_name or params
+    recipe = pedigree
+    if recipe is None and isinstance(source, dict):
+        recipe = source.get("pedigree")
+    suffix = pedigree_scores_suffix(recipe)
+    if suffix and text:
+        return f"{text}; {suffix}"
+    return suffix or text
+
+
+def uncertainty_initial_from_flow(exchange) -> dict:
+    """Sampled uncertainty plus stored pedigree recipe for the flow editor."""
+    data = dict(getattr(exchange, "uncertainty", None) or {})
+    try:
+        pedigree = exchange.get("pedigree")
+    except Exception:
+        pedigree = None
+    if pedigree:
+        data["pedigree"] = pedigree
+    return data
 
 
 class BaseUncertaintyInterface(abc.ABC):

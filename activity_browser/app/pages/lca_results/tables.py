@@ -17,6 +17,7 @@ from qtpy.QtWidgets import QSizePolicy, QTableView
 from activity_browser.ui.icons import qicons
 from activity_browser.ui import delegates
 from activity_browser.bwutils import filesystem
+from activity_browser.bwutils.contribution_labels import apply_contribution_column_labels
 
 from .dialogs import FilterManagerDialog, SimpleFilterDialog
 
@@ -998,11 +999,16 @@ class InventoryTable(ABFilterableDataFrameView):
 
 
 class ContributionModel(PandasModel):
-    def sync(self, df, unit="% of range"):
-
+    def sync(self, df, unit="% of range", tab=None):
+        df = df.copy()
         if "unit" in df.columns:
             # overwrite the unit col when showing relative results (except 3 'total' and 'rest' rows)
             df["unit"] = [""] * 3 + [unit] * (len(df) - 3)
+
+        table = self.parent()
+        if tab is None and table is not None:
+            tab = getattr(table, "tab", None)
+        df = apply_contribution_column_labels(df, tab)
 
         # drop any rows where all numbers are 0
         self._dataframe = df.loc[~(df.select_dtypes(include=np.number) == 0).all(axis=1)]
@@ -1012,5 +1018,7 @@ class ContributionModel(PandasModel):
 class ContributionTable(ABDataFrameView):
     def __init__(self, parent=None):
         super().__init__(parent)
+        # QObject parent may later be the plot/table body widget; keep the tab.
+        self.tab = parent
         self.model = ContributionModel(parent=self)
         self.model.updated.connect(self.update_proxy_model)

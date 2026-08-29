@@ -9,7 +9,9 @@ from typing import TYPE_CHECKING
 import numpy as np
 import pandas as pd
 
-from activity_browser.bwutils.commontasks import unit_of_method
+import bw2data as bd
+
+from activity_browser.bwutils.commontasks import reference_flow_parts, unit_of_method
 
 if TYPE_CHECKING:
     from activity_browser.bwutils.multilca import MLCA
@@ -52,6 +54,10 @@ def lcia_compare_labels_for_modes(modes: list[LCIACompareMode]) -> list[str]:
 
 
 RELATIVE_Y_LABEL = "% of max |impact|"
+
+# Trailing identity columns on the LCA scores table (plot still uses labels).
+RF_TABLE_COLUMNS = ("amount", "unit", "product", "process", "location", "database")
+SCORE_TABLE_COLUMNS = ("index", "series", "absolute", "relative", "score unit")
 
 
 @dataclass
@@ -145,7 +151,7 @@ def _grouped_matrix(
     relative: bool,
     group_units: dict[str, str],
     y_label: str,
-) -> tuple[np.ndarray, np.ndarray, list[str], list[str]]:
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, list[str], list[str]]:
     if groups_along_dim0:
         abs_values = absolute.astype(float)
         group_labels = dim0_labels
@@ -155,39 +161,81 @@ def _grouped_matrix(
         group_labels = dim1_labels
         series_labels = dim0_labels
 
-    values = (
-        abs_values
-        if not relative
-        else _normalize_grouped_matrix(abs_values, relative=relative)
-    )
-    return values, abs_values, group_labels, series_labels
+    rel_values = _normalize_grouped_matrix(abs_values, relative=True)
+    values = rel_values if relative else abs_values
+    return values, abs_values, rel_values, group_labels, series_labels
+
+
+def _reference_flow_table_rows(mlca: MLCA | SuperstructureMLCA) -> list[dict]:
+    """One identity row per calculation-setup reference flow (stable FU index)."""
+    rows: list[dict] = []
+    empty = {col: "" for col in RF_TABLE_COLUMNS}
+    for fu in mlca.func_units:
+        if not fu:
+            rows.append(dict(empty))
+            continue
+        key = next(iter(fu))
+        amount = next(iter(fu.values()))
+        product = process = location = unit = database = ""
+        try:
+            act = bd.get_activity(key)
+            product, process, location, database = reference_flow_parts(act)
+            unit = str(act.get("unit") or "")
+        except Exception:
+            if isinstance(key, tuple) and key:
+                database = str(key[0])
+        rows.append(
+            {
+                "amount": amount,
+                "unit": unit,
+                "product": product,
+                "process": process,
+                "location": location,
+                "database": database,
+            }
+        )
+    return rows
 
 
 def _table_from_matrix(
-    values: np.ndarray,
     abs_values: np.ndarray,
+    rel_values: np.ndarray,
     group_labels: list[str],
     series_labels: list[str],
     group_units: dict[str, str],
     *,
     panel: str | None = None,
     series_units: dict[str, str] | None = None,
+    fu_rows: list[dict] | None = None,
+    fu_on: str = "group",
 ) -> pd.DataFrame:
     rows = []
     for g_idx, group in enumerate(group_labels):
         for s_idx, series in enumerate(series_labels):
-            unit = group_units.get(group, "") or (series_units or {}).get(series, "")
+            score_unit = group_units.get(group, "") or (series_units or {}).get(series, "")
             row = {
                 "index": group,
                 "series": series,
-                "value": float(values[g_idx, s_idx]),
                 "absolute": float(abs_values[g_idx, s_idx]),
-                "unit": unit,
+                "relative": float(rel_values[g_idx, s_idx]),
+                "score unit": score_unit,
             }
+            if fu_rows:
+                fu_idx = g_idx if fu_on == "group" else s_idx
+                if 0 <= fu_idx < len(fu_rows):
+                    row.update(fu_rows[fu_idx])
             if panel is not None:
                 row["impact category"] = panel
             rows.append(row)
-    return pd.DataFrame(rows)
+    df = pd.DataFrame(rows)
+    if df.empty:
+        return df
+    leading = [c for c in SCORE_TABLE_COLUMNS if c in df.columns]
+    if "impact category" in df.columns:
+        leading.append("impact category")
+    trailing = [c for c in RF_TABLE_COLUMNS if c in df.columns]
+    rest = [c for c in df.columns if c not in leading and c not in trailing]
+    return df.loc[:, leading + rest + trailing]
 
 
 def _method_group_units(method_labels: list[str], mlca: MLCA) -> dict[str, str]:
@@ -202,30 +250,28 @@ def _flows_x_methods_matrix(
     *,
     relative: bool,
     flip_groups: bool,
-) -> tuple[np.ndarray, np.ndarray, list[str], list[str], dict[str, str], str]:
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, list[str], list[str], dict[str, str], str]:
     """FU × IC matrix; relative scores normalized per impact category."""
     abs_matrix = absolute.astype(float)
-    if relative:
-        cell_values = normalize_lcia_matrix(abs_matrix, relative=relative)
-    else:
-        cell_values = abs_matrix
+    cell_relative = normalize_lcia_matrix(abs_matrix, relative=True)
 
     if flip_groups:
-        values = cell_values
         abs_values = abs_matrix
+        rel_values = cell_relative
         group_labels = fu_labels
         series_labels = method_labels
         group_units = {g: "" for g in fu_labels}
         y_label = RELATIVE_Y_LABEL if relative else "impact"
     else:
-        values = cell_values.T
         abs_values = abs_matrix.T
+        rel_values = cell_relative.T
         group_labels = method_labels
         series_labels = fu_labels
         group_units = method_units
         y_label = RELATIVE_Y_LABEL if relative else "impact"
 
-    return values, abs_values, group_labels, series_labels, group_units, y_label
+    values = rel_values if relative else abs_values
+    return values, abs_values, rel_values, group_labels, series_labels, group_units, y_label
 
 
 def build_lcia_overview(
@@ -242,13 +288,14 @@ def build_lcia_overview(
     fu_labels = list(mlca.fu_labels.values())
     method_labels = list(mlca.method_labels.values())
     method_units = _method_group_units(method_labels, mlca)
+    fu_rows = _reference_flow_table_rows(mlca)
 
     if compare == LCIACompareMode.REFERENCE_FLOWS:
         absolute = lcia_scores_array(mlca, scenario_index)[:, [method_index]]
         unit = unit_of_method(mlca.methods[method_index])
         group_units = {g: unit for g in fu_labels}
         y_label = unit if not relative else RELATIVE_Y_LABEL
-        values, abs_values, group_labels, series_labels = _grouped_matrix(
+        values, abs_values, rel_values, group_labels, series_labels = _grouped_matrix(
             absolute,
             fu_labels,
             [method_labels[method_index]],
@@ -263,6 +310,7 @@ def build_lcia_overview(
         (
             values,
             abs_values,
+            rel_values,
             group_labels,
             series_labels,
             group_units,
@@ -288,7 +336,7 @@ def build_lcia_overview(
             else {g: unit for g in scenario_labels}
         )
         y_label = unit if not relative else RELATIVE_Y_LABEL
-        values, abs_values, group_labels, series_labels = _grouped_matrix(
+        values, abs_values, rel_values, group_labels, series_labels = _grouped_matrix(
             absolute,
             fu_labels,
             scenario_labels,
@@ -313,7 +361,7 @@ def build_lcia_overview(
                 else {g: unit for g in scenario_labels}
             )
             y_label = unit if not relative else RELATIVE_Y_LABEL
-            p_values, p_abs, p_groups, p_series = _grouped_matrix(
+            p_values, p_abs, p_rel, p_groups, p_series = _grouped_matrix(
                 absolute,
                 fu_labels,
                 scenario_labels,
@@ -335,12 +383,14 @@ def build_lcia_overview(
             )
             table_parts.append(
                 _table_from_matrix(
-                    p_values,
                     p_abs,
+                    p_rel,
                     p_groups,
                     p_series,
                     group_units,
                     panel=method_label,
+                    fu_rows=fu_rows,
+                    fu_on="group" if not flip_groups else "series",
                 )
             )
         return LCIAOverviewData(
@@ -358,18 +408,27 @@ def build_lcia_overview(
     else:
         raise ValueError(f"Unknown compare mode: {compare}")
 
+    if compare == LCIACompareMode.REFERENCE_FLOWS:
+        fu_on = "group"
+    elif compare == LCIACompareMode.FLOWS_X_METHODS:
+        fu_on = "group" if flip_groups else "series"
+    else:
+        fu_on = "group" if not flip_groups else "series"
+
     series_units = (
         method_units
         if compare == LCIACompareMode.FLOWS_X_METHODS and flip_groups
         else None
     )
     table_df = _table_from_matrix(
-        values,
         abs_values,
+        rel_values,
         group_labels,
         series_labels,
         group_units,
         series_units=series_units,
+        fu_rows=fu_rows,
+        fu_on=fu_on,
     )
 
     return LCIAOverviewData(

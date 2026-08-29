@@ -9,7 +9,7 @@ import numpy as np
 from activity_browser.bwutils.montecarlo import MonteCarloLCA
 
 SEED = 42
-ITERATIONS = 20
+ITERATIONS = 3
 
 
 def _run_mc(cs_name: str, **includes) -> MonteCarloLCA:

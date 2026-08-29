@@ -12,6 +12,7 @@ import numpy as np
 import bw2data as bd
 from bw2data.parameters import ParameterBase, ProjectParameter, DatabaseParameter, ActivityParameter, Group
 from bw2data.errors import UnknownObject
+from peewee import OperationalError
 
 from functools import lru_cache
 
@@ -203,9 +204,13 @@ def get_database_metadata(name):
     return d
 
 def database_is_locked(name: str) -> bool:
-    """Returns True if the database is locked."""
-    if not name in bd.databases:
-        raise KeyError("Not an existing database:", name)
+    """Returns True if the database is locked (or missing / unknown).
+
+    Missing databases are treated as locked so UI sync during delete does not
+    raise when leftover parameter rows still reference a just-removed database.
+    """
+    if not name or name not in bd.databases:
+        return True
     return bd.databases[name].get("read_only", True)
 
 def database_is_legacy(name: str) -> bool:
@@ -442,39 +447,43 @@ def parameters_in_scope(
 ) -> dict[str, Parameter]:
     if (not node and not parameter) or (node and parameter):
         raise ValueError("Supply either node or parameter")
-    if node:
-        node = refresh_node(node)
-        database = node["database"]
-        group = node_group(node)
-    else:  # if parameter
-        parameter = refresh_parameter(parameter)
-        group = parameter.group
-        if group == "project":
-            database = None
-        elif group in bd.databases:
-            database = group
+    try:
+        if node:
+            node = refresh_node(node)
+            database = node["database"]
+            group = node_group(node)
         else:
-            database = ActivityParameter.get_or_none(group=group).database
+            parameter = refresh_parameter(parameter)
+            group = parameter.group
+            if group == "project":
+                database = None
+            elif group in bd.databases:
+                database = group
+            else:
+                database = ActivityParameter.get_or_none(group=group).database
 
-    data = OrderedDict()
+        data = OrderedDict()
 
-    for name, param in ProjectParameter.load().items():
-        data[name] = Parameter(name, "project", param["amount"], param, "project")
+        for name, param in ProjectParameter.load().items():
+            data[name] = Parameter(name, "project", param["amount"], param, "project")
 
-    for name, param in DatabaseParameter.load(database).items():
-        if name in data:
-            del data[name]  # the variable is overwritten in the scope chain
-        data[name] = Parameter(name, database, param["amount"], param, "database")
-
-    group_deps = Group.get_or_none(name=group).order + [group] if group else []
-
-    for dep in group_deps:
-        for name, param in ActivityParameter.load(dep).items():
+        for name, param in DatabaseParameter.load(database).items():
             if name in data:
-                del data[name]  # the variable is overwritten in the scope chain
-            data[name] = Parameter(name, dep, param.get("amount"), param, "activity")
+                del data[name]
+            data[name] = Parameter(name, database, param["amount"], param, "database")
 
-    return data
+        group_deps = Group.get_or_none(name=group).order + [group] if group else []
+
+        for dep in group_deps:
+            for name, param in ActivityParameter.load(dep).items():
+                if name in data:
+                    del data[name]
+                data[name] = Parameter(name, dep, param.get("amount"), param, "activity")
+
+        return data
+    except OperationalError:
+        logger.debug("Parameter scope unavailable (database locked)")
+        return {}
 
 
 def node_group(node: tuple | int | bd.Node) -> str | None:

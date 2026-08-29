@@ -422,11 +422,16 @@ class MonteCarloPlot(ABPlot):
                 continue
             color = self.series_color(j)
             label = legend_display[j] if j < len(legend_display) else legend_full[j]
-            self.ax.hist(
-                vals, density=True, alpha=0.5,
-                label=label, color=color,
-            )
-            self.ax.axvline(float(np.mean(vals)), color=color)
+            if vals.size == 0:
+                continue
+            if np.allclose(vals, vals[0]):
+                self.ax.axvline(float(vals[0]), color=color, label=label, linewidth=2)
+            else:
+                self.ax.hist(
+                    vals, density=True, alpha=0.5,
+                    label=label, color=color,
+                )
+                self.ax.axvline(float(np.mean(vals)), color=color)
 
         self.ax.set_xlabel(unit)
         self.ax.set_ylabel("Probability")

@@ -119,7 +119,7 @@ class ActivityDetailsPage(widgets.ABAbstractPage):
         Args:
             node: The node that was deleted.
         """
-        if node.id == self.activity.id:
+        if self.activity is None or node.id == self.activity.id:
             self.deleteLater()
 
     def on_database_deleted(self, name):
@@ -129,7 +129,7 @@ class ActivityDetailsPage(widgets.ABAbstractPage):
         Args:
             name: The name of the database that was deleted.
         """
-        if name == self.activity["database"]:
+        if self.activity is None or name == self.activity["database"]:
             self.deleteLater()
 
     def syncLater(self):
@@ -145,8 +145,12 @@ class ActivityDetailsPage(widgets.ABAbstractPage):
         self.activity = refresh_node_or_none(self.activity)
 
         if self.activity is None:
-            # Activity was already deleted
+            # Activity / database already gone — close rather than sync stale tabs
+            self.deleteLater()
             return
+
+        # Keep child tabs aligned with the refreshed proxy
+        self.parameters_tab.activity = self.activity
 
         # Update the tab name to be the activity name
         self.setWindowTitle(self.activity["name"])

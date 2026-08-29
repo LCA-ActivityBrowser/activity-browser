@@ -602,9 +602,17 @@ class ScenarioImportWidget(QtWidgets.QWidget):
         self.index = index
         self.file_path = None
         self.sheet_index = None
+        self.csv_separator = ";"
         self.scenario_name = QtWidgets.QLabel("<filename>", self)
         self.load_btn = QtWidgets.QPushButton(icons.qicons.import_db, "Load")
         self.load_btn.setToolTip("Load (new) data for this scenario table")
+        refresh_icon = self.style().standardIcon(
+            QtWidgets.QStyle.StandardPixmap.SP_BrowserReload
+        )
+        self.reload_btn = QtWidgets.QToolButton(self)
+        self.reload_btn.setIcon(refresh_icon)
+        self.reload_btn.setToolTip("Reload the same scenario file from disk")
+        self.reload_btn.setEnabled(False)
         self.remove_btn = QtWidgets.QPushButton(icons.qicons.delete, "Delete")
         self.remove_btn.setToolTip("Remove this scenario table")
         self.view = ScenarioImportView(self)
@@ -617,6 +625,7 @@ class ScenarioImportWidget(QtWidgets.QWidget):
         row = QtWidgets.QHBoxLayout()
         row.addWidget(self.scenario_name)
         row.addWidget(self.load_btn)
+        row.addWidget(self.reload_btn)
         row.addStretch(1)
         row.addWidget(self.remove_btn)
 
@@ -628,10 +637,41 @@ class ScenarioImportWidget(QtWidgets.QWidget):
 
     def connect_signals(self):
         self.load_btn.clicked.connect(self.load_action)
+        self.reload_btn.clicked.connect(self.reload_action)
         parent = self.parent()
         if parent and isinstance(parent, ScenarioSection):
             self.remove_btn.clicked.connect(lambda: parent.remove_table(self.index))
             self.remove_btn.clicked.connect(parent.can_add_table)
+
+    def _update_filename_label(self, path: Path | None, *, ok: bool) -> None:
+        """Show the scenario file name; style red when the last load failed."""
+        if path is None:
+            self.scenario_name.setText("<filename>")
+            self.scenario_name.setToolTip("")
+            self.scenario_name.setStyleSheet("")
+            return
+        path = Path(path)
+        self.scenario_name.setText(path.name)
+        self.scenario_name.setToolTip(str(path))
+        if ok:
+            self.scenario_name.setStyleSheet("")
+        else:
+            self.scenario_name.setStyleSheet(
+                "color: #c62828; font-weight: bold;"
+            )
+
+    def _warn_load_failed(self, path: Path, *, title: str = "Could not load scenario file") -> None:
+        while QtWidgets.QApplication.overrideCursor() is not None:
+            QtWidgets.QApplication.restoreOverrideCursor()
+        QtWidgets.QMessageBox.warning(
+            self,
+            title,
+            f"Could not load scenario file:\n{path}\n\n"
+            "No usable scenario data was found. If Excel has the file open, "
+            "save it and try again, or close Excel so Activity Browser can "
+            "read it. Otherwise check that the file is a valid flow- or "
+            "parameter-scenario file.",
+        )
 
     def load_action(self) -> None:
         dialog = ExcelReadDialog(self)
@@ -646,9 +686,24 @@ class ScenarioImportWidget(QtWidgets.QWidget):
             ok = self.load_from_path(
                 path, sheet_index=idx, separator=separator or ";"
             )
-            if not ok:
-                return
-            self._parent.save_button(True)
+            if ok:
+                self._parent.save_button(True)
+        finally:
+            while QtWidgets.QApplication.overrideCursor() is not None:
+                QtWidgets.QApplication.restoreOverrideCursor()
+
+    def reload_action(self) -> None:
+        if not self.file_path:
+            return
+        QtWidgets.QApplication.setOverrideCursor(Qt.WaitCursor)
+        try:
+            ok = self.load_from_path(
+                self.file_path,
+                sheet_index=self.sheet_index,
+                separator=self.csv_separator,
+            )
+            if ok:
+                self._parent.save_button(True)
         finally:
             while QtWidgets.QApplication.overrideCursor() is not None:
                 QtWidgets.QApplication.restoreOverrideCursor()
@@ -658,7 +713,15 @@ class ScenarioImportWidget(QtWidgets.QWidget):
         return (
             df is not None
             and not df.empty
-            and len(df.columns.intersection(ss.SUPERSTRUCTURE)) >= 12
+            and ss.is_flow_sdf_headers(df.columns)
+        )
+
+    @staticmethod
+    def _looks_like_broken_flow_sdf(df: pd.DataFrame) -> bool:
+        return (
+            df is not None
+            and not df.empty
+            and ss.is_partial_flow_sdf_headers(df.columns)
         )
 
     @staticmethod
@@ -668,6 +731,24 @@ class ScenarioImportWidget(QtWidgets.QWidget):
             and not df.empty
             and len(df.columns.intersection({"Name", "Group"})) == 2
         )
+
+    def _warn_header_mismatch(self, path: Path, columns) -> None:
+        missing = ss.missing_superstructure_columns(columns)
+        while QtWidgets.QApplication.overrideCursor() is not None:
+            QtWidgets.QApplication.restoreOverrideCursor()
+        missing_html = ", ".join(f'"{m}"' for m in missing)
+        msg = (
+            "<p>The scenario file header does not match the expected flow-scenario "
+            f"columns.</p><p>Missing or misspelled required column(s):<br>{missing_html}"
+            "</p><p>Expected headers:<br>"
+            + ss.edit_superstructure_for_string(sep=", ", fhighlight='"')
+            + "</p>"
+            f"<p>File:<br>{path}</p>"
+        )
+        critical = ss.ABPopup.abCritical(
+            "Invalid scenario file header", msg, QtWidgets.QPushButton("Cancel")
+        )
+        critical.exec_()
 
     def _read_excel_scenario_df(
         self, path: Path, sheet_index: int | None
@@ -688,8 +769,10 @@ class ScenarioImportWidget(QtWidgets.QWidget):
 
         for idx in candidates:
             df = ss.import_from_excel(path, idx)
-            if self._looks_like_flow_sdf(df) or self._looks_like_parameter_scenarios(
-                df
+            if (
+                self._looks_like_flow_sdf(df)
+                or self._looks_like_broken_flow_sdf(df)
+                or self._looks_like_parameter_scenarios(df)
             ):
                 self.sheet_index = idx
                 return df
@@ -709,19 +792,38 @@ class ScenarioImportWidget(QtWidgets.QWidget):
         file_type_suffix = path.suffix.lower()
         logger.info("Loading Scenario file. This may take a while for large files")
         self.file_path = path
+        self.csv_separator = separator
 
-        if file_type_suffix == ".feather":
-            df = ss.ABFeatherImporter.read_file(path)
-            self.sheet_index = None
-        elif file_type_suffix.startswith(".xls"):
-            df = self._read_excel_scenario_df(path, sheet_index)
-        else:
-            df = ss.ABCSVImporter.read_file(path, separator=separator)
-            self.sheet_index = None
+        try:
+            if file_type_suffix == ".feather":
+                df = ss.ABFeatherImporter.read_file(path)
+                self.sheet_index = None
+            elif file_type_suffix.startswith(".xls"):
+                df = self._read_excel_scenario_df(path, sheet_index)
+            else:
+                df = ss.ABCSVImporter.read_file(path, separator=separator)
+                self.sheet_index = None
+        except Exception:
+            logger.exception("Failed to read scenario file: {}", path)
+            df = pd.DataFrame()
 
         if df is None or getattr(df, "empty", False):
+            logger.warning("Scenario file read returned no usable data: {}", path)
+            self._update_filename_label(path, ok=False)
+            self.reload_btn.setEnabled(
+                self.file_path is not None and Path(self.file_path).is_file()
+            )
             if not quiet:
-                logger.warning("Scenario file read returned no usable data: {}", path)
+                self._warn_load_failed(path)
+            return False
+
+        if self._looks_like_broken_flow_sdf(df):
+            self._update_filename_label(path, ok=False)
+            self.reload_btn.setEnabled(
+                self.file_path is not None and Path(self.file_path).is_file()
+            )
+            if not quiet:
+                self._warn_header_mismatch(path, df.columns)
             return False
 
         if self._looks_like_flow_sdf(df):
@@ -734,8 +836,14 @@ class ScenarioImportWidget(QtWidgets.QWidget):
                 df["Group"] = df["Group"].astype(str)
             self.sync_superstructure(ss.parameters_to_sdf(df), combine=combine)
         else:
+            self._update_filename_label(path, ok=False)
+            self.reload_btn.setEnabled(
+                self.file_path is not None and Path(self.file_path).is_file()
+            )
             if quiet:
                 return False
+            while QtWidgets.QApplication.overrideCursor() is not None:
+                QtWidgets.QApplication.restoreOverrideCursor()
             msg = (
                 "The Activity-Browser is attempting to import a scenario file.<p>During the attempted import"
                 " another file type was detected. Please check the file type of the attempted import, if it is"
@@ -755,9 +863,10 @@ class ScenarioImportWidget(QtWidgets.QWidget):
             critical.exec_()
             return False
 
-        self.scenario_name.setText(path.name)
-        self.scenario_name.setToolTip(path.name)
-        return not self.scenario_df.empty
+        ok = not self.scenario_df.empty
+        self._update_filename_label(path, ok=ok)
+        self.reload_btn.setEnabled(True)
+        return ok
 
     def sync_superstructure(self, df: pd.DataFrame, combine: bool = True) -> None:
         """synchronizes the contents of either a single, or multiple scenario files to create a single scenario
