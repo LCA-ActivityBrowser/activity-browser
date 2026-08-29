@@ -145,7 +145,13 @@ Command-style operation under `activity_browser/app/actions/` (menus, toolbars, 
 
 ### Plugin
 
-Extensibility mechanism for third-party AB features. **Architecture TBD** — do not invent API contracts; document here when redesigned.
+A third-party extension that adds Activity Browser features when **enabled**. Plugins are **global** (active or inactive for the whole app, not per project). They **contribute** pages, panes, actions, settings, and signal handling through a host **PluginContext** registration API rather than by modifying core UI directly. Discovery uses package entry points; enablement is explicit in Settings; applying enable/disable requires restarting AB. Plugin menu actions live under a top-level **Plugins** menu (per-plugin submenu), not scattered across core menus. The supported author import surface is **`activity_browser.plugins`** (versioned plugins API); each plugin declares a **plugins API generation** (`PLUGINS_API_VERSION`, e.g. `"1"`) that must match the host — see `docs/plugins/api-reference.md`. Other `activity_browser` modules are unsupported for plugins.
+_Avoid_: treating plugins as per-project; AB2-style mandatory `Plugin` base class / left-right tab injection as the supported model; plugins reaching into MainWindow or replacing core UI; relying on deep `activity_browser.app` / `mod` imports as a public API
+
+### PluginContext
+
+Host-provided registration object passed to a plugin’s `activate` callable. Plugins register contributions (page, pane, action, menu item, settings chapter) and may use namespaced settings and the public signal bus; they do not receive MainWindow or raw registries.
+_Avoid_: treating PluginContext as a general app god-object or MainWindow handle
 
 ### Contribution tree
 

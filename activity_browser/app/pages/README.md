@@ -85,4 +85,8 @@ Application configuration:
 - General preferences
 - Project settings
 - Plugin configuration
-- Import/export settings
+
+Base settings chapters are registered in `settings/base_chapters.py` (like
+`pages.base_pages`). `SettingsPage` composes the sidebar from
+`contributions.settings_chapters`, which includes base chapters plus any
+registered by plugins.

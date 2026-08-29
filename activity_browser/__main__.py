@@ -98,8 +98,6 @@ class ABLoader(QtWidgets.QWidget):
         self.text_label.setText("Building main window")
         from activity_browser import app
 
-        load_plugins()
-
         app.main_window.show()
         self.deleteLater()
 
@@ -137,8 +135,6 @@ def run_activity_browser_no_launcher():
 
     from .ui.widgets import ABCentralPagesWidget
     from .app import panes, pages, application, metadata
-
-    load_plugins()
 
     application.main_window.show()
 
@@ -197,17 +193,6 @@ def check_pypi_update():
               "Complete installation instructions can be found here:\n\n"
               "https://lca-activitybrowser.github.io/activity-browser/getting-started/installation.html#installing-from-pypi\n\n"
               "Press any key to continue without updating...\033[0m")
-
-def load_plugins():
-    from activity_browser.bwutils.settings import Settings
-    settings = Settings()
-    plugins = settings["plugins"].get("enabled_plugins", [])
-    for plugin in plugins:
-        try:
-            __import__(plugin)
-            logger.info(f"Successfully loaded plugin: {plugin}")
-        except ImportError:
-            logger.warning(f"Could not load plugin: {plugin}")
 
 
 if "--no-launcher" in sys.argv:

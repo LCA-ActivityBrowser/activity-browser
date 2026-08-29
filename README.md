@@ -27,8 +27,8 @@ The **Activity Browser (AB)** is an open-source GUI for Life Cycle Assessment on
 - **A productivity tool for Brightway**: model in Brightway (Python) and see the results in the AB or vice versa
 - **Advanced modeling:** Use parameters, scenarios (including prospective LCI databases from [premise](https://premise.readthedocs.io/en/latest/)), uncertainties and our Graph Explorer
 - **Advanced analyses:** Contribution analyses, Sankey Diagrams, Monte Carlo, and Global Sensitivity Analysis
-- **Plugins:** Extend the functionality of Activity Browser with
-[Plugins](https://github.com/LCA-ActivityBrowser/activity-browser/wiki/Plugins)
+- **Plugins:** Extend Activity Browser with
+[Plugins](https://lca-activitybrowser.github.io/activity-browser/plugins/)
 
 # Contents
 - [Installation (recommended: AB3 beta)](#installation-recommended-ab3-beta)

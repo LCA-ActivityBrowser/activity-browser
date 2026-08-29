@@ -1,0 +1,2 @@
+[activity_browser.plugins]
+ab_example = ab_example:activate

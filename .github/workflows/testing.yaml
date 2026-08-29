@@ -38,6 +38,7 @@ jobs:
       - name: Install package and test deps
         run: |
           pip install .[testing]
+          pip install ./plugins/ab-plugin-example
 
       - name: Test with pytest
         run: pytest -q --no-cov -o log_cli=false --durations=25

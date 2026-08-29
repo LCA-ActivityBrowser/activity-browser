@@ -105,3 +105,12 @@ from .metadatastore_open import MetaDataStoreOpen
 from .node_select_open import NodeSelectOpen
 from .save_parameters_to_excel import SaveParametersToExcel
 from .metadatastore_cache_clear import MetaDataStoreCacheClear
+from .manage_plugins_open import ManagePluginsOpen
+
+from activity_browser.app import contributions
+
+# Host action available to the Plugins menu (and later plugin contributions).
+if "ab.manage_plugins" not in contributions.action_contributions:
+    contributions.register_action("ab.manage_plugins", ManagePluginsOpen)
+if not any(a == "ab.manage_plugins" for _, a in contributions.plugins_menu_contributions):
+    contributions.register_plugins_menu_item("Manage plugins…", "ab.manage_plugins")

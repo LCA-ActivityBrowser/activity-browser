@@ -135,7 +135,6 @@ class ABSignals(QObject):
     # show_tab = Signal(str)  # Show this tab | name of tab
     # hide_tab = Signal(str)  # Hide this tab | name of tab
     # hide_when_empty = Signal()  # Show/Hide tab when it has/does not have sub-tabs
-    plugin_selected = Signal(str, bool)  # This plugin was/was not selected | name of plugin, selected state
 
     def __getattribute__(self, item):
         """Delayed loading of connecting to the brighway signals"""
