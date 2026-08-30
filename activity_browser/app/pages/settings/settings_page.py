@@ -34,10 +34,10 @@ class SettingsPage(widgets.ABAbstractPage):
         from activity_browser.app import contributions
 
         self.chapters = []
-        for title, chapter_class in contributions.settings_chapters.items():
-            chapter = chapter_class(self)
-            setattr(self, f"_chapter_{title}", chapter)
-            self.chapters.append((title, chapter))
+        for chapter_id, entry in contributions.settings_chapters.items():
+            chapter = entry.chapter_class(self)
+            setattr(self, f"_chapter_{chapter_id}", chapter)
+            self.chapters.append((entry.title, chapter))
 
         for name, widget in self.chapters:
             self.chapter_list.addItem(name)

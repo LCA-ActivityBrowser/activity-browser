@@ -11,7 +11,7 @@ requires-python = ">=3.10"
 dependencies = []
 
 [project.entry-points."activity_browser.plugins"]
-ab_example = "ab_example:activate"
+ab_example = "ab_example.activate:activate"
 
 [tool.setuptools.packages.find]
 include = ["ab_example*"]

@@ -28,6 +28,7 @@ Start with `activate.py` to see what this plugin adds to Activity Browser.
 
 ## Entry point
 
+- Entry point: `ab_example = "ab_example.activate:activate"`
 - Entry point name / `plugin_id`: `ab_example`
 - Display name: Plugin Example
 - `PLUGINS_API_VERSION = "1"` in `ab_example/__init__.py` — plugins API generation this package targets (see [versioning docs](../../docs/plugins/api-reference.md#plugins-api-version))
