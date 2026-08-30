@@ -1,13 +1,19 @@
 # -*- coding: utf-8 -*-
-"""Discover and activate Activity Browser plugins."""
+"""Discover and activate Activity Browser plugins.
+
+Flow per entry point: read package metadata → version gate → skip if disabled →
+``ep.load()`` + ``activate(ctx)``. Fail-soft: one bad plugin does not stop others.
+"""
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+import importlib
+from dataclasses import dataclass
 from importlib.metadata import PackageNotFoundError, entry_points, metadata
-from typing import Any, Callable, List, Optional
+from typing import List, Optional
 
 from loguru import logger
 
+from activity_browser.plugins.context import global_plugins_settings
 from activity_browser.plugins.version import PLUGINS_API_VERSION
 
 ENTRY_POINT_GROUP = "activity_browser.plugins"
@@ -18,133 +24,81 @@ class PluginRecord:
     plugin_id: str
     display_name: str
     enabled: bool
-    status: str  # disabled | loaded | failed | incompatible
+    status: str  # disabled | enabled | failed | incompatible
     error: Optional[str] = None
     dist_name: Optional[str] = None
     dist_version: Optional[str] = None
     summary: Optional[str] = None
 
 
-# Last load results (for Settings UI)
+# Last load results (for Settings → Plugins)
 plugin_records: List[PluginRecord] = []
 
-# Entry-point ids that were in enabled_plugins when this process loaded plugins
+# Enable-list applied for this process (restart banner compares against this)
 applied_enabled_ids: set = set()
 
 
-def _enabled_plugin_ids(settings) -> set:
-    enabled = settings["plugins"].get("enabled_plugins") or []
-    return set(enabled)
-
-
-def _entry_point_package_names(activate: Callable, plugin_id: str) -> List[str]:
-    names: List[str] = []
-    module_name = getattr(activate, "__module__", None)
-    if module_name and "." in module_name:
-        names.append(module_name.rsplit(".", 1)[0])
-    if plugin_id not in names:
-        names.append(plugin_id)
-    return names
-
-
-def _read_api_version(activate: Callable, module, plugin_id: str) -> Optional[str]:
-    candidates = []
-    if module is not None:
-        candidates.append(module)
-
-    import importlib
-
-    for pkg_name in _entry_point_package_names(activate, plugin_id):
-        try:
-            pkg = importlib.import_module(pkg_name)
-        except ImportError:
-            continue
-        if pkg not in candidates:
-            candidates.append(pkg)
-
-    for candidate in candidates:
-        version = getattr(candidate, "PLUGINS_API_VERSION", None)
+def _read_plugin_metadata(plugin_id: str, dist) -> tuple:
+    """Return ``(api_version, display_name, dist_name, dist_version, summary)``."""
+    api_version = None
+    display_name = None
+    try:
+        mod = importlib.import_module(plugin_id)
+    except ImportError:
+        mod = None
+    if mod is not None:
+        version = getattr(mod, "PLUGINS_API_VERSION", None)
         if version is not None:
-            return str(version)
+            api_version = str(version)
+        name = getattr(mod, "PLUGIN_DISPLAY_NAME", None)
+        if name:
+            display_name = str(name)
 
-    version = getattr(activate, "plugins_api_version", None)
-    if version is None:
-        return None
-    return str(version)
-
-
-def _display_name(activate: Callable, module, plugin_id: str, dist) -> str:
-    name = getattr(module, "PLUGIN_DISPLAY_NAME", None)
-    if name:
-        return str(name)
+    dist_name = dist_version = summary = None
     if dist is not None:
         try:
             meta = metadata(dist.name)
-            summary_name = meta.get("Name")
-            if summary_name:
-                return summary_name
-        except Exception:
-            pass
-    return plugin_id
+            dist_name, dist_version, summary = dist.name, dist.version, meta.get("Summary")
+            if display_name is None and meta.get("Name"):
+                display_name = meta.get("Name")
+        except (PackageNotFoundError, Exception):
+            dist_name = getattr(dist, "name", None)
+            dist_version = getattr(dist, "version", None)
 
-
-def _dist_info(ep) -> tuple:
-    dist = getattr(ep, "dist", None)
-    if dist is None:
-        return None, None, None
-    try:
-        meta = metadata(dist.name)
-        return dist.name, dist.version, meta.get("Summary")
-    except (PackageNotFoundError, Exception):
-        return getattr(dist, "name", None), getattr(dist, "version", None), None
+    return api_version, display_name or plugin_id, dist_name, dist_version, summary
 
 
 def discover_entry_points():
+    """Installed entry points in ``activity_browser.plugins`` (monkeypatched in tests)."""
     return list(entry_points(group=ENTRY_POINT_GROUP))
 
 
-def load_and_activate_plugins(*, application, signals, settings, pages=None, panes=None) -> List[PluginRecord]:
+def load_and_activate_plugins(*, application, signals, settings) -> List[PluginRecord]:
     """Discover, filter, and activate enabled compatible plugins. Fail-soft per plugin."""
     global plugin_records, applied_enabled_ids
     from activity_browser.app import contributions as contrib
+    from activity_browser.plugins.context import PluginContext
 
     records: List[PluginRecord] = []
-    enabled_ids = _enabled_plugin_ids(settings)
+    enabled_ids = set(global_plugins_settings(settings).get("enabled_plugins") or [])
     applied_enabled_ids = set(enabled_ids)
 
     for ep in discover_entry_points():
         plugin_id = ep.name
-        dist_name, dist_version, summary = _dist_info(ep)
         enabled = plugin_id in enabled_ids
+        api_version, display_name, dist_name, dist_version, summary = _read_plugin_metadata(
+            plugin_id, getattr(ep, "dist", None)
+        )
 
         record = PluginRecord(
             plugin_id=plugin_id,
-            display_name=plugin_id,
+            display_name=display_name,
             enabled=enabled,
             status="disabled",
             dist_name=dist_name,
             dist_version=dist_version,
             summary=summary,
         )
-
-        try:
-            activate = ep.load()
-        except Exception as exc:
-            logger.exception("Failed to load plugin entry point {}", plugin_id)
-            record.status = "failed"
-            record.error = str(exc)
-            records.append(record)
-            continue
-
-        module = getattr(activate, "__module__", None)
-        mod = None
-        if module:
-            import importlib
-
-            mod = importlib.import_module(module)
-
-        record.display_name = _display_name(activate, mod, plugin_id, getattr(ep, "dist", None))
-        api_version = _read_api_version(activate, mod, plugin_id)
 
         if api_version != PLUGINS_API_VERSION:
             record.status = "incompatible"
@@ -158,7 +112,15 @@ def load_and_activate_plugins(*, application, signals, settings, pages=None, pan
             continue
 
         if not enabled:
-            record.status = "disabled"
+            records.append(record)
+            continue
+
+        try:
+            activate = ep.load()
+        except Exception as exc:
+            logger.exception("Failed to load plugin entry point {}", plugin_id)
+            record.status = "failed"
+            record.error = str(exc)
             records.append(record)
             continue
 
@@ -169,8 +131,6 @@ def load_and_activate_plugins(*, application, signals, settings, pages=None, pan
             continue
 
         try:
-            from activity_browser.plugins.context import PluginContext
-
             ctx = PluginContext(
                 plugin_id,
                 application=application,
@@ -179,8 +139,8 @@ def load_and_activate_plugins(*, application, signals, settings, pages=None, pan
             )
             contrib.plugin_display_names[plugin_id] = record.display_name
             activate(ctx)
-            record.status = "loaded"
-            logger.info("Loaded plugin {}", plugin_id)
+            record.status = "enabled"
+            logger.info("Enabled plugin {}", plugin_id)
         except Exception as exc:
             logger.exception("Plugin activate failed for {}", plugin_id)
             record.status = "failed"
