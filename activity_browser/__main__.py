@@ -104,7 +104,7 @@ class ABLoader(QtWidgets.QWidget):
             self.text_label.setText("Building main window")
             from activity_browser import app
 
-            # Plugins activate during `import activity_browser.app` (before MainWindow).
+            app.create_main_window()
             app.main_window.show()
             if "--no-checks" not in sys.argv:
                 from activity_browser.app.actions import CheckForUpdates
@@ -225,17 +225,17 @@ def run_activity_browser_no_launcher():
 
     try:
         from .ui.widgets import ABCentralPagesWidget
-        from .app import panes, pages, application, metadata
+        from activity_browser import app
 
-        # Plugins activate during `import activity_browser.app` (before MainWindow).
-        application.main_window.show()
+        app.create_main_window()
+        app.main_window.show()
         if "--no-checks" not in sys.argv:
             from activity_browser.app.actions import CheckForUpdates
 
             CheckForUpdates.schedule_startup_check()
 
-        application.set_icon()  # setting this here seems to fix the icon not showing sometimes
-        sys.exit(application.exec_())
+        app.application.set_icon()  # setting this here seems to fix the icon not showing sometimes
+        sys.exit(app.application.exec_())
     except Exception as e:
         logger.exception("Failed to build the main window")
         show_startup_failure(e)

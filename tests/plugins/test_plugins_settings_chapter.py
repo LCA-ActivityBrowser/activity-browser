@@ -11,7 +11,7 @@ def test_plugins_chapter_restart_banner_only_when_pending(qtbot, monkeypatch):
             plugin_id="demo",
             display_name="Demo",
             enabled=True,
-            status="loaded",
+            status="enabled",
         )
     ]
     monkeypatch.setattr(

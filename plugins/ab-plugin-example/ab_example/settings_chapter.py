@@ -5,10 +5,9 @@ from qtpy import QtWidgets
 
 
 class ExampleSettingsChapter(BaseSettingsChapter):
-    plugin_settings = None
-
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, *, plugin_settings=None):
         super().__init__(parent)
+        self._plugin_settings = plugin_settings
         self.greeting = QtWidgets.QLineEdit()
         self.greeting.setPlaceholderText("Greeting stored in plugin settings")
         layout = QtWidgets.QVBoxLayout(self)
@@ -22,7 +21,7 @@ class ExampleSettingsChapter(BaseSettingsChapter):
         return {"greeting": self.greeting.text()}
 
     def reset(self):
-        data = ExampleSettingsChapter.plugin_settings
+        data = self._plugin_settings
         text = "Hello from Plugin Example"
         if data is not None:
             text = data.get("greeting", text)
@@ -30,6 +29,6 @@ class ExampleSettingsChapter(BaseSettingsChapter):
         self._initial_state = self.get_current_state()
 
     def set_settings(self):
-        data = ExampleSettingsChapter.plugin_settings
+        data = self._plugin_settings
         if data is not None:
             data["greeting"] = self.greeting.text()

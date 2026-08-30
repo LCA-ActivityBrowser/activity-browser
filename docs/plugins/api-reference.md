@@ -19,20 +19,25 @@ Import only from `activity_browser.plugins` (plus Brightway / stdlib / other thi
 | `ABAbstractPage` | Base for `register_page` |
 | `ABAbstractPane` | Base for `register_pane` |
 | `ABAction` | Base for `register_action` |
+| `BaseSettingsChapter` | Base for `register_settings_chapter` |
 | `reveal_page` / `reveal_pane` | Focus a registered page/pane by contribution id |
 
 ## Declaring a plugin
 
 ```toml
 [project.entry-points."activity_browser.plugins"]
-my_plugin = "my_package:activate"
+my_plugin = "my_plugin.activate:activate"
 ```
 
 ```python
-from activity_browser.plugins import PluginContext
-
+# my_plugin/__init__.py — metadata only
 PLUGINS_API_VERSION = "1"  # required — see [API version](#plugins-api-version)
 PLUGIN_DISPLAY_NAME = "My Plugin"  # optional
+```
+
+```python
+# my_plugin/activate.py
+from activity_browser.plugins import PluginContext
 
 def activate(ctx: PluginContext) -> None:
     ...
@@ -70,13 +75,7 @@ You may **read** the host constant while developing to see what AB ships, but yo
 
 ### Where the loader looks
 
-On the plugin side, the loader reads `PLUGINS_API_VERSION` from:
-
-1. The module where `activate` is defined (e.g. `my_plugin/activate.py`), then
-2. The entry-point package (e.g. `my_plugin/__init__.py`), then
-3. An optional `activate.plugins_api_version` attribute.
-
-Plugin Example keeps the constant on `ab_example/__init__.py`.
+Entry-point **name** must match the plugin’s top-level package (e.g. entry point `ab_example` → package `ab_example`). The loader reads `PLUGINS_API_VERSION` and `PLUGIN_DISPLAY_NAME` from that package (usually `__init__.py`). `activate` may live in a submodule (e.g. `activate.py`); metadata stays on the package.
 
 ### When Activity Browser changes the API
 
@@ -97,13 +96,62 @@ Users see incompatible plugins under **Settings → Plugins** with an error such
 ## PluginContext
 
 - `ctx.plugin_id`, `ctx.signals` (listen), `ctx.settings` (namespaced), `ctx.application`
-- `register_page(id, page_class, *, title=None, show_by_default=False)` — when `True`, adds the page id to startup `shown_pages` so it opens on launch (users can still hide it via Settings → Startup).
-- `register_pane(id, pane_class, *, title=None, show_by_default=False)` — same for startup `shown_panes`.
+- `register_page(id, page_class, *, title=None, show_by_default=True)` — by default adds the page id to startup `shown_pages` so it opens after enable + restart. Pass `False` to hide optional/secondary UI; users can still change visibility via Settings → Startup / View.
+- `register_pane(id, pane_class, *, title=None, show_by_default=True)` — same for startup `shown_panes`.
 - `register_action(id, action_class)`
 - `register_menu_item(menu_path, action_id)` — path relative to **Plugins → \<plugin\>**
 - `register_settings_chapter(id, chapter_class, *, title=None)`
 
 Contribution IDs must be `plugin_id.local`. No `main_window`, raw registries, or `register_signal`.
+
+Pages, panes, and settings chapters are constructed later by the host **without** `ctx`. If a contribution needs `ctx.settings` or `ctx.signals`, bind them in `activate` (thin subclass that closes over those values) so multiple enabled plugins stay isolated. Do not assign `ctx` onto shared class attributes.
+
+## Plugin settings
+
+There are two different “settings” surfaces. Do not confuse them.
+
+### 1. Enable / disable the plugin (host)
+
+Users turn plugins on under **Settings → Plugins**. That writes the global enable list (`enabled_plugins`). Changes apply only after **Save** and **restart**. Your plugin code does not register this — the host discovers entry points and owns that UI.
+
+### 2. Your plugin’s own preferences (`ctx.settings`)
+
+`ctx.settings` is a **namespaced** view of  
+`settings.global_config["plugins"]["data"][<your plugin_id>]`.
+
+Use it for small prefs (strings, flags, numbers). Keys are local to your plugin; you will not see another plugin’s data.
+
+```python
+# In activate, or in UI after binding ctx.settings into the class:
+ctx.settings["greeting"] = "Hello"
+greeting = ctx.settings.get("greeting", "Hello")
+```
+
+Values live in memory on ``settings.global_config["plugins"]["data"][<plugin_id>]`` until the user clicks **Save** on the Settings page (same as other AB settings). After restart they load again with the rest of global settings.
+
+### 3. A Settings chapter for those prefs
+
+Register a chapter so users can edit prefs in the Settings sidebar:
+
+```python
+ctx.register_settings_chapter(
+    f"{ctx.plugin_id}.settings",
+    MyPluginSettingsChapter,  # thin subclass that closes over ctx.settings
+    title="My Plugin",
+)
+```
+
+Subclass `BaseSettingsChapter` and implement:
+
+| Method | Role |
+|--------|------|
+| `get_current_state()` | Current widget values (for dirty detection) |
+| `reset()` | Load widgets from `ctx.settings` (or defaults) |
+| `set_settings()` | Write widgets into `ctx.settings` when the user saves Settings |
+
+Define the UI class (e.g. `MySettingsChapter`) with constructor injection for `plugin_settings`, then in `activate` create a thin subclass (e.g. `MyPluginSettingsChapter`) that closes over `ctx.settings` and register that. Same pattern for pages that need `ctx.signals`. See Plugin Example (`settings_chapter.py` + `PluginExampleSettingsChapter` in `activate.py`).
+
+**Do not** write to `activity_browser.app.settings` or `global_config` from a plugin — only `ctx.settings` and the chapter APIs above.
 
 ## Integration boundaries
 

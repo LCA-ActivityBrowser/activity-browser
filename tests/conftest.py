@@ -53,6 +53,7 @@ def _ensure_main_window() -> None:
     reload(metadata)
     reload(app.main)
     reload(app)
+    app.create_main_window(load_settings=False)
     _MAIN_WINDOW_READY = True
 
 

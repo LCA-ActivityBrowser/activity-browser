@@ -5,6 +5,24 @@ from __future__ import annotations
 from typing import Any, Optional, Type
 
 
+def global_plugins_settings(settings: Any) -> dict:
+    """Return ``settings.global_config["plugins"]``, creating it if missing.
+
+    Use this for the enable list and per-plugin ``data`` so reads/writes hit the
+    dict that Settings Save persists — not ``settings["plugins"]`` (which can
+    resolve to module-level defaults).
+    """
+    if "plugins" not in settings.global_config:
+        settings.global_config["plugins"] = {
+            "enabled_plugins": [],
+            "data": {},
+        }
+    plugins = settings.global_config["plugins"]
+    plugins.setdefault("enabled_plugins", [])
+    plugins.setdefault("data", {})
+    return plugins
+
+
 def _ensure_shown_startup(settings: Any, list_key: str, contribution_id: str) -> None:
     import copy
 
@@ -18,32 +36,32 @@ def _ensure_shown_startup(settings: Any, list_key: str, contribution_id: str) ->
 
 
 class _PluginSettingsView:
-    """Namespaced settings for one plugin under settings['plugins']['data'][plugin_id]."""
+    """Namespaced prefs: ``global_config["plugins"]["data"][plugin_id]``."""
 
     def __init__(self, settings: Any, plugin_id: str):
         self._settings = settings
         self._plugin_id = plugin_id
 
-    def _bucket(self) -> dict:
-        plugins = self._settings["plugins"]
-        data = plugins.setdefault("data", {})
-        return data.setdefault(self._plugin_id, {})
+    def _data(self) -> dict:
+        return global_plugins_settings(self._settings)["data"].setdefault(
+            self._plugin_id, {}
+        )
 
     def get(self, key, default=None):
-        return self._bucket().get(key, default)
+        return self._data().get(key, default)
 
     def __getitem__(self, key):
-        return self._bucket()[key]
+        return self._data()[key]
 
     def __setitem__(self, key, value):
-        self._bucket()[key] = value
+        self._data()[key] = value
 
     def __contains__(self, key):
-        return key in self._bucket()
+        return key in self._data()
 
 
 class PluginContext:
-    """Host-owned registration API for a single plugin activate() call."""
+    """Host-owned registration API for a single plugin ``activate(ctx)`` call."""
 
     def __init__(
         self,
@@ -73,10 +91,9 @@ class PluginContext:
         page_class: Type,
         *,
         title: Optional[str] = None,
-        show_by_default: bool = False,
+        show_by_default: bool = True,
     ) -> None:
         from activity_browser.app import pages
-        from activity_browser.app import contributions as contrib
 
         self._require_namespaced_id(contribution_id)
         if contribution_id in pages.base_pages:
@@ -91,10 +108,12 @@ class PluginContext:
             page_class = type(
                 page_class.__name__,
                 (page_class,),
-                {"basePage": True, "name": getattr(page_class, "name", None) or contribution_id},
+                {
+                    "basePage": True,
+                    "name": getattr(page_class, "name", None) or contribution_id,
+                },
             )
         pages.base_pages[contribution_id] = page_class
-        contrib.page_show_defaults[contribution_id] = show_by_default
         if show_by_default:
             _ensure_shown_startup(self._settings, "shown_pages", contribution_id)
 
@@ -104,10 +123,9 @@ class PluginContext:
         pane_class: Type,
         *,
         title: Optional[str] = None,
-        show_by_default: bool = False,
+        show_by_default: bool = True,
     ) -> None:
         from activity_browser.app import panes
-        from activity_browser.app import contributions as contrib
 
         self._require_namespaced_id(contribution_id)
         if contribution_id in panes.base_panes:
@@ -119,7 +137,6 @@ class PluginContext:
                 {"title": title, "name": contribution_id},
             )
         panes.base_panes[contribution_id] = pane_class
-        contrib.pane_show_defaults[contribution_id] = show_by_default
         if show_by_default:
             _ensure_shown_startup(self._settings, "shown_panes", contribution_id)
 
@@ -147,5 +164,8 @@ class PluginContext:
         from activity_browser.app import contributions as contrib
 
         self._require_namespaced_id(contribution_id)
-        chapter_title = title or contribution_id
-        contrib.register_settings_chapter(chapter_title, chapter_class)
+        contrib.register_settings_chapter(
+            contribution_id,
+            chapter_class,
+            title=title or contribution_id,
+        )

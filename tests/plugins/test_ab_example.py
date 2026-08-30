@@ -38,6 +38,9 @@ def test_ab_example_activate_registers_ids(monkeypatch):
     pages_backup = dict(pages.base_pages)
     panes_backup = dict(panes.base_panes)
     actions_backup = dict(contrib.action_contributions)
+    chapters_backup = contrib.settings_chapters.copy()
+    submenu_backup = {k: list(v) for k, v in contrib.plugin_submenu_items.items()}
+    display_backup = dict(contrib.plugin_display_names)
     try:
         ctx = PluginContext(
             "ab_example",
@@ -50,8 +53,8 @@ def test_ab_example_activate_registers_ids(monkeypatch):
         assert "ab_example.pane" in panes.base_panes
         assert "ab_example.show_page" in contrib.action_contributions
         assert "ab_example.show_pane" in contrib.action_contributions
-        assert "ab_example.settings" not in contrib.settings_chapters  # titled
-        assert "Plugin Example" in contrib.settings_chapters
+        assert "ab_example.settings" in contrib.settings_chapters
+        assert contrib.settings_chapters["ab_example.settings"].title == "Plugin Example"
     finally:
         pages.base_pages.clear()
         pages.base_pages.update(pages_backup)
@@ -59,6 +62,12 @@ def test_ab_example_activate_registers_ids(monkeypatch):
         panes.base_panes.update(panes_backup)
         contrib.action_contributions.clear()
         contrib.action_contributions.update(actions_backup)
+        contrib.settings_chapters.clear()
+        contrib.settings_chapters.update(chapters_backup)
+        contrib.plugin_submenu_items.clear()
+        contrib.plugin_submenu_items.update(submenu_backup)
+        contrib.plugin_display_names.clear()
+        contrib.plugin_display_names.update(display_backup)
 
 
 class _settings_stub(dict):
