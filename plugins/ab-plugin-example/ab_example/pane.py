@@ -3,6 +3,8 @@
 from activity_browser.plugins import ABAbstractPane
 from qtpy import QtWidgets
 
+from . import project_status
+
 
 class ExamplePane(ABAbstractPane):
     title = "Plugin Example"
@@ -21,7 +23,4 @@ class ExamplePane(ABAbstractPane):
         layout.addStretch()
 
     def sync(self):
-        import bw2data as bd
-
-        project = bd.projects.current or "(none)"
-        self.status.setText(f"Current project: {project}")
+        self.status.setText(f"Current project: {project_status.current_project_label()}")

@@ -1,4 +1,5 @@
 """Host plugin loader seam tests (fake entry points)."""
+import sys
 from types import SimpleNamespace
 
 import pytest
@@ -15,6 +16,7 @@ class _FakeSettings:
                 "data": {},
             }
         }
+        self.global_config = {"plugins": self._data["plugins"]}
 
     def __getitem__(self, key):
         return self._data[key]
@@ -22,6 +24,14 @@ class _FakeSettings:
 
 def _ep(name, activate, *, dist=None):
     return SimpleNamespace(name=name, load=lambda: activate, dist=dist)
+
+
+def _register_pkg(name, *, api_version=PLUGINS_API_VERSION, display_name=None):
+    """Fake entry-point package — name must match ``_ep(..., name)``."""
+    attrs = {"PLUGINS_API_VERSION": api_version}
+    if display_name is not None:
+        attrs["PLUGIN_DISPLAY_NAME"] = display_name
+    sys.modules[name] = type("Pkg", (), attrs)
 
 
 @pytest.fixture(autouse=True)
@@ -37,8 +47,6 @@ def _reset_plugin_side_effects(monkeypatch):
     chapters_backup = contrib.settings_chapters.copy()
     submenu_backup = {k: list(v) for k, v in contrib.plugin_submenu_items.items()}
     display_backup = dict(contrib.plugin_display_names)
-    page_def_backup = dict(contrib.page_show_defaults)
-    pane_def_backup = dict(contrib.pane_show_defaults)
     records_backup = list(loader.plugin_records)
 
     yield
@@ -55,49 +63,43 @@ def _reset_plugin_side_effects(monkeypatch):
     contrib.plugin_submenu_items.update(submenu_backup)
     contrib.plugin_display_names.clear()
     contrib.plugin_display_names.update(display_backup)
-    contrib.page_show_defaults.clear()
-    contrib.page_show_defaults.update(page_def_backup)
-    contrib.pane_show_defaults.clear()
-    contrib.pane_show_defaults.update(pane_def_backup)
     loader.plugin_records = records_backup
 
 
 def test_skips_disabled_plugins(monkeypatch):
+    pkg = "tests.fake_plugin_disabled"
+
     def activate(ctx):
         raise AssertionError("should not activate disabled plugin")
 
+    _register_pkg(pkg)
     monkeypatch.setattr(
         loader,
         "discover_entry_points",
-        lambda: [_ep("demo", activate)],
+        lambda: [_ep(pkg, activate)],
     )
     records = loader.load_and_activate_plugins(
         application=None, signals=None, settings=_FakeSettings(enabled=[])
     )
     assert len(records) == 1
     assert records[0].status == "disabled"
-    assert records[0].plugin_id == "demo"
+    assert records[0].plugin_id == pkg
 
 
 def test_skips_incompatible_api_version(monkeypatch):
+    pkg = "tests.fake_plugin_mod"
+
     def activate(ctx):
         raise AssertionError("should not activate incompatible plugin")
 
-    activate.__module__ = "tests.fake_plugin_mod"
-
-    class Mod:
-        PLUGINS_API_VERSION = "0"
-
-    import sys
-
-    sys.modules["tests.fake_plugin_mod"] = Mod
+    _register_pkg(pkg, api_version="0")
     monkeypatch.setattr(
         loader,
         "discover_entry_points",
-        lambda: [_ep("old", activate)],
+        lambda: [_ep(pkg, activate)],
     )
     records = loader.load_and_activate_plugins(
-        application=None, signals=None, settings=_FakeSettings(enabled=["old"])
+        application=None, signals=None, settings=_FakeSettings(enabled=[pkg])
     )
     assert records[0].status == "incompatible"
     assert "incompatible" in (records[0].error or "").lower() or "0" in (records[0].error or "")
@@ -107,38 +109,34 @@ def test_activates_and_registers_page(monkeypatch):
     from activity_browser.app import pages
     from activity_browser.ui.widgets.abstract_page import ABAbstractPage
 
+    pkg = "tests.fake_plugin_ok"
+
     class DemoPage(ABAbstractPage):
         title = "Demo"
 
     def activate(ctx):
         ctx.register_page(f"{ctx.plugin_id}.page", DemoPage, title="Demo Page")
 
-    activate.__module__ = "tests.fake_plugin_ok"
-
-    class Mod:
-        PLUGINS_API_VERSION = PLUGINS_API_VERSION
-        PLUGIN_DISPLAY_NAME = "Demo Plugin"
-
-    import sys
-
-    sys.modules["tests.fake_plugin_ok"] = Mod
+    _register_pkg(pkg, display_name="Demo Plugin")
     monkeypatch.setattr(
         loader,
         "discover_entry_points",
-        lambda: [_ep("demo", activate)],
+        lambda: [_ep(pkg, activate)],
     )
     records = loader.load_and_activate_plugins(
         application=object(),
         signals=object(),
-        settings=_FakeSettings(enabled=["demo"]),
+        settings=_FakeSettings(enabled=[pkg]),
     )
-    assert records[0].status == "loaded"
-    assert "demo.page" in pages.base_pages
+    assert records[0].status == "enabled"
+    assert f"{pkg}.page" in pages.base_pages
 
 
 def test_show_by_default_adds_startup_lists(monkeypatch):
     from activity_browser.ui.widgets.abstract_page import ABAbstractPage
     from activity_browser.ui.widgets.abstract_pane import ABAbstractPane
+
+    pkg = "tests.fake_plugin_startup"
 
     class DemoPage(ABAbstractPage):
         title = "Demo"
@@ -151,106 +149,104 @@ def test_show_by_default_adds_startup_lists(monkeypatch):
             f"{ctx.plugin_id}.page",
             DemoPage,
             title="Demo Page",
-            show_by_default=True,
         )
         ctx.register_pane(
             f"{ctx.plugin_id}.pane",
             DemoPane,
             title="Demo Pane",
-            show_by_default=True,
+        )
+        ctx.register_page(
+            f"{ctx.plugin_id}.hidden",
+            DemoPage,
+            title="Hidden Page",
+            show_by_default=False,
         )
 
-    activate.__module__ = "tests.fake_plugin_startup"
-
-    class Mod:
-        PLUGINS_API_VERSION = PLUGINS_API_VERSION
-
-    import sys
-
-    sys.modules["tests.fake_plugin_startup"] = Mod
+    _register_pkg(pkg)
     monkeypatch.setattr(
         loader,
         "discover_entry_points",
-        lambda: [_ep("demo", activate)],
+        lambda: [_ep(pkg, activate)],
     )
-    settings = _FakeSettings(enabled=["demo"])
+    settings = _FakeSettings(enabled=[pkg])
     settings.global_config = {"plugins": settings._data["plugins"]}
     loader.load_and_activate_plugins(
         application=object(),
         signals=object(),
         settings=settings,
     )
-    assert "demo.page" in settings.global_config["startup"]["shown_pages"]
-    assert "demo.pane" in settings.global_config["startup"]["shown_panes"]
+    assert f"{pkg}.page" in settings.global_config["startup"]["shown_pages"]
+    assert f"{pkg}.pane" in settings.global_config["startup"]["shown_panes"]
+    assert f"{pkg}.hidden" not in settings.global_config["startup"]["shown_pages"]
 
 
 def test_reads_api_version_from_entry_point_package(monkeypatch):
-    """PLUGINS_API_VERSION on the package __init__ works when activate is a submodule."""
-    from activity_browser.ui.widgets.abstract_page import ABAbstractPage
-
-    class DemoPage(ABAbstractPage):
-        title = "Demo"
+    """PLUGINS_API_VERSION on the entry-point package works with activate in a submodule."""
+    pkg = "fake_plugin_submod"
 
     def activate(ctx):
-        ctx.register_page(f"{ctx.plugin_id}.page", DemoPage, title="Demo Page")
-
-    activate.__module__ = "tests.fake_plugin_submod.activate"
-
-    class Pkg:
-        PLUGINS_API_VERSION = PLUGINS_API_VERSION
-
-    class SubMod:
         pass
 
-    import sys
-
-    sys.modules["tests.fake_plugin_submod"] = Pkg
-    sys.modules["tests.fake_plugin_submod.activate"] = SubMod
+    activate.__module__ = f"{pkg}.activate"
+    _register_pkg(pkg)
     monkeypatch.setattr(
         loader,
         "discover_entry_points",
-        lambda: [_ep("demo", activate)],
+        lambda: [_ep(pkg, activate)],
     )
     records = loader.load_and_activate_plugins(
         application=object(),
         signals=object(),
-        settings=_FakeSettings(enabled=["demo"]),
+        settings=_FakeSettings(enabled=[pkg]),
     )
-    assert records[0].status == "loaded"
+    assert records[0].status == "enabled"
+
+
+def test_reads_display_name_from_entry_point_package(monkeypatch):
+    pkg = "tests.fake_plugin_name"
+
+    def activate(ctx):
+        pass
+
+    activate.__module__ = f"{pkg}.activate"
+    _register_pkg(pkg, display_name="Friendly Plugin")
+    monkeypatch.setattr(
+        loader,
+        "discover_entry_points",
+        lambda: [_ep(pkg, activate)],
+    )
+    records = loader.load_and_activate_plugins(
+        application=object(),
+        signals=object(),
+        settings=_FakeSettings(enabled=[]),
+    )
+    assert records[0].display_name == "Friendly Plugin"
 
 
 def test_fail_soft_continues_to_next_plugin(monkeypatch):
+    bad_pkg = "tests.fake_plugin_bad"
+    good_pkg = "tests.fake_plugin_good"
+
     def bad(ctx):
         raise RuntimeError("boom")
 
     def good(ctx):
         ctx.register_action(f"{ctx.plugin_id}.act", type("A", (), {}))
 
-    bad.__module__ = "tests.fake_plugin_bad"
-    good.__module__ = "tests.fake_plugin_good"
-
-    class ModBad:
-        PLUGINS_API_VERSION = PLUGINS_API_VERSION
-
-    class ModGood:
-        PLUGINS_API_VERSION = PLUGINS_API_VERSION
-
-    import sys
-
-    sys.modules["tests.fake_plugin_bad"] = ModBad
-    sys.modules["tests.fake_plugin_good"] = ModGood
+    _register_pkg(bad_pkg)
+    _register_pkg(good_pkg)
     monkeypatch.setattr(
         loader,
         "discover_entry_points",
-        lambda: [_ep("bad", bad), _ep("good", good)],
+        lambda: [_ep(bad_pkg, bad), _ep(good_pkg, good)],
     )
     from activity_browser.app import contributions as contrib
 
     records = loader.load_and_activate_plugins(
         application=object(),
         signals=object(),
-        settings=_FakeSettings(enabled=["bad", "good"]),
+        settings=_FakeSettings(enabled=[bad_pkg, good_pkg]),
     )
     assert records[0].status == "failed"
-    assert records[1].status == "loaded"
-    assert "good.act" in contrib.action_contributions
+    assert records[1].status == "enabled"
+    assert f"{good_pkg}.act" in contrib.action_contributions
