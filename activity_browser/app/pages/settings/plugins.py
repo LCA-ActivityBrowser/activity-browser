@@ -6,11 +6,12 @@ from qtpy import QtCore, QtWidgets
 from activity_browser.app import settings
 from activity_browser.app.pages.settings.base import BaseSettingsChapter
 from activity_browser.plugins import loader as plugin_loader
+from activity_browser.plugins.context import global_plugins_settings
 
 
 _STATUS_LABELS = {
     "disabled": "Disabled",
-    "loaded": "Loaded",
+    "enabled": "Enabled",
     "failed": "Failed",
     "incompatible": "Incompatible",
 }
@@ -161,7 +162,7 @@ class PluginsSettingsChapter(BaseSettingsChapter):
         return sorted(self._enabled)
 
     def reset(self):
-        saved = set(settings["plugins"].get("enabled_plugins") or [])
+        saved = set(global_plugins_settings(settings).get("enabled_plugins") or [])
         self._enabled = set(saved)
         # Prefer last load records; if empty, synthesize from discovery metadata only.
         self._records = list(plugin_loader.plugin_records)
@@ -182,22 +183,11 @@ class PluginsSettingsChapter(BaseSettingsChapter):
         self._initial_state = self.get_current_state()
 
     def has_changes(self):
-        saved = sorted(settings["plugins"].get("enabled_plugins") or [])
+        saved = sorted(global_plugins_settings(settings).get("enabled_plugins") or [])
         return sorted(self._enabled) != saved
 
     def set_settings(self):
-        if "plugins" not in settings.global_config:
-            settings.global_config["plugins"] = {
-                "enabled_plugins": [],
-                "data": {},
-            }
-        settings.global_config["plugins"]["enabled_plugins"] = sorted(self._enabled)
-        # Preserve any existing namespaced plugin data
-        settings.global_config["plugins"].setdefault("data", {})
-        if "data" in settings["plugins"]:
-            settings.global_config["plugins"]["data"] = settings["plugins"]["data"]
-        logger.info(
-            "Saved enabled plugins: {}",
-            settings.global_config["plugins"]["enabled_plugins"],
-        )
+        plugins = global_plugins_settings(settings)
+        plugins["enabled_plugins"] = sorted(self._enabled)
+        logger.info("Saved enabled plugins: {}", plugins["enabled_plugins"])
         self._update_restart_banners()

@@ -26,11 +26,13 @@ Under **Plugins → Plugin Example** you can **Show example page** and **Show ex
 
 ## Preferences
 
-Settings also gains a **Plugin Example** chapter for the greeting preference (saved with Settings Save).
+Settings also gains a **Plugin Example** chapter for the greeting preference (saved with Settings Save). That preference is stored under `ctx.settings` (namespaced plugin data), not the host enable list. See [Plugin settings](api-reference.md#plugin-settings) for how to register and load your own prefs.
 
 ## Read the code
 
 Open `plugins/ab-plugin-example/ab_example/activate.py` — each `register_*` call maps to what you saw in the UI. UI classes live in sibling modules (`page.py`, `pane.py`, …); contribution ids are in `ids.py`.
+
+When a page or settings chapter needs `ctx.settings` or `ctx.signals`, wire them in `activate` with a thin subclass (see `PluginExamplePage` / `PluginExampleSettingsChapter`). That keeps each plugin isolated when several are enabled — do not stash `ctx` on shared class attributes.
 
 ### Suggested layout for your own plugin
 
@@ -38,14 +40,16 @@ For a small plugin, use flat modules like Plugin Example. For a larger plugin, m
 
 ```text
 my_plugin/
-  __init__.py           # metadata; re-export activate
-  activate.py           # wiring only
+  __init__.py           # metadata only (PLUGINS_API_VERSION, PLUGIN_DISPLAY_NAME)
+  activate.py           # wiring only — entry point targets this module
   ids.py
   page.py / pages/
   pane.py / panes/
   actions.py / actions/
   settings_chapter.py / settings/
 ```
+
+Entry point value should be `my_plugin.activate:activate` (not a re-export from `__init__.py`), so importing the package for Settings metadata stays cheap. See [How discovery works](index.md#how-discovery-works).
 
 ## API version
 
