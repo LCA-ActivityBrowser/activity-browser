@@ -96,6 +96,7 @@ class ABLoader(QtWidgets.QWidget):
     def load_finished(self):
         from activity_browser import app
 
+        app.create_main_window()
         app.main_window.show()
         self.deleteLater()
 
@@ -131,12 +132,13 @@ def run_activity_browser_no_launcher():
     modules.run()
 
     from .ui.widgets import ABCentralPagesWidget
-    from .app import panes, pages, application, metadata
+    from activity_browser import app
 
-    application.main_window.show()
+    app.create_main_window()
+    app.main_window.show()
 
-    application.set_icon()  # setting this here seems to fix the icon not showing sometimes
-    sys.exit(application.exec_())
+    app.application.set_icon()  # setting this here seems to fix the icon not showing sometimes
+    sys.exit(app.application.exec_())
 
 
 def pre_flight_checks():

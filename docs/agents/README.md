@@ -63,6 +63,22 @@ Package-level notes remain useful and are not replaced by this tree:
 - `activity_browser/mod/README.md`
 - `tests/README.md`
 
+## Plugins (AB3 extension system)
+
+Author-facing docs: [`docs/plugins/`](../plugins/index.md) (getting started, API reference, [integration boundaries](../plugins/api-reference.md#integration-boundaries)).
+
+| Area | Path |
+|---|---|
+| Public facade | `activity_browser/plugins/` (`PluginContext`, loader, version) |
+| Plugin loader / main window | `activity_browser/plugins/loader.py`; `activity_browser.app.create_main_window()` after deferred imports |
+| Contribution registries | `activity_browser/app/contributions.py` |
+| Settings → Plugins UI | `activity_browser/app/pages/settings/plugins.py` |
+| Example package (dev/CI) | `plugins/ab-plugin-example/` — `pip install -e ./plugins/ab-plugin-example` |
+| ADR | [`docs/adr/0012-plugins-contribution-api.md`](../adr/0012-plugins-contribution-api.md) |
+| Local spec / tickets | `.scratch/plugin-system/` (gitignored) |
+
+Plugin tests: `tests/plugins/`. Loader unit tests import `activity_browser.plugins.loader` directly; example tests skip if the package is not installed.
+
 ## Switching to GitHub Issues later
 
 Issue tracker is **local by choice** while the workflow is proven. To move to GitHub Issues for collaborative agent tickets, update `issue-tracker.md` (and the `## Agent skills` blurb in `AGENTS.md`) and refresh this README in the same change. Re-running `/setup-matt-pocock-skills` is optional if you prefer to edit the files directly.

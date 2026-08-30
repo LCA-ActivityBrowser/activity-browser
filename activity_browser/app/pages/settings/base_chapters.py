@@ -30,6 +30,6 @@ def register_base_settings_chapters(
     chapters: Iterable[Tuple[str, Type]] = BASE_SETTINGS_CHAPTERS,
 ) -> None:
     """Register base chapters; safe to call more than once."""
-    for title, chapter_class in chapters:
-        if title not in contributions.settings_chapters:
-            contributions.register_settings_chapter(title, chapter_class)
+    for chapter_id, chapter_class in chapters:
+        if chapter_id not in contributions.settings_chapters:
+            contributions.register_settings_chapter(chapter_id, chapter_class)
