@@ -1,5 +1,11 @@
+from activity_browser import app
 from activity_browser.app.actions.base import ABAction, exception_dialogs
+from activity_browser.plugins.database_protection import (
+    format_protection_block_message,
+    is_database_protected,
+)
 from activity_browser.mod import bw2data as bd
+from qtpy import QtWidgets
 
 
 class DatabaseSetReadonly(ABAction):
@@ -29,5 +35,12 @@ class DatabaseSetReadonly(ABAction):
             db_name (str): The name of the database to update.
             read_only (bool, optional): The desired read-only status. Defaults to True.
         """
+        if is_database_protected(db_name):
+            QtWidgets.QMessageBox.information(
+                app.main_window,
+                "Database protected",
+                format_protection_block_message([db_name]),
+            )
+            return
         bd.databases[db_name]["read_only"] = read_only
         bd.databases.flush()

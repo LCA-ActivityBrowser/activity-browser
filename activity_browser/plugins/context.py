@@ -2,7 +2,8 @@
 """PluginContext — registration object passed to activate(ctx)."""
 from __future__ import annotations
 
-from typing import Any, Optional, Type
+from contextlib import contextmanager
+from typing import Any, Callable, Iterator, Iterable, Optional, Type
 
 
 def global_plugins_settings(settings: Any) -> dict:
@@ -169,3 +170,42 @@ class PluginContext:
             chapter_class,
             title=title or contribution_id,
         )
+
+    @contextmanager
+    def protect_databases(
+        self,
+        names: Iterable[str],
+        *,
+        reason: str = "",
+    ) -> Iterator[None]:
+        """Temporarily block user edit/delete on the named databases."""
+        from .database_protection import protect_databases as _protect
+
+        with _protect(names, plugin_id=self.plugin_id, reason=reason):
+            yield
+
+    def after_database_write(self, db_name: str, *, notify: bool = True) -> None:
+        """Refresh AB metadata (and optionally Brightway write signals) after a DB write."""
+        from activity_browser.bwutils.metadata.loader import schedule_database_metadata_reload
+
+        schedule_database_metadata_reload(db_name)
+        if notify:
+            from bw2data import signals
+
+            signals.on_database_write.send(name=db_name)
+
+    def run_blocking_operation(
+        self,
+        title: str,
+        func: Callable[[], Any],
+        *,
+        cancellable: bool = False,
+    ) -> Any:
+        """Run ``func`` on a worker thread with modal progress (database-write style)."""
+        from activity_browser import app
+        from .blocking_operation import run_blocking_operation as _run
+
+        parent = getattr(app, "main_window", None)
+        if parent is None:
+            raise RuntimeError("run_blocking_operation requires Activity Browser main window")
+        return _run(parent, title, func, cancellable=cancellable)
