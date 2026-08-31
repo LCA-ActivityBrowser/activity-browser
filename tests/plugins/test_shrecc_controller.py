@@ -157,6 +157,72 @@ def test_write_lifecycle_complete_and_fail():
     assert workflow.partial_written_names == {2021: "out"}
 
 
+def test_job_status_text_reflects_global_job():
+    ctrl = ShreccPluginController(project_name_provider=lambda: "proj-a")
+    workflow = ctrl.new_workflow()
+    assert ctrl.job_status_text() == "App job: idle"
+
+    ctrl.begin_create(workflow)
+    assert "create" in ctrl.job_status_text()
+    assert "Workflow 1" in ctrl.job_status_text()
+
+    ctrl.complete_create(workflow, object(), {})
+    ctrl.begin_write(workflow)
+    assert "write" in ctrl.job_status_text()
+
+
+def test_one_job_lock_blocks_write_on_other_workflow():
+    ctrl = ShreccPluginController(project_name_provider=lambda: "proj-a")
+    w1 = ctrl.new_workflow()
+    w2 = ctrl.new_workflow()
+    _fill_complete_config(ctrl, w1)
+    _fill_complete_config(ctrl, w2)
+    ctrl.complete_create(w1, object(), {"years": [2021]})
+    ctrl.complete_create(w2, object(), {"years": [2021]})
+
+    ctrl.begin_write(w1)
+    assert not ctrl.can_start_write(w2)
+
+
+def test_mark_inspect_stale_clears_create_handle():
+    ctrl = ShreccPluginController(project_name_provider=lambda: "proj-a")
+    workflow = ctrl.new_workflow()
+    _fill_complete_config(ctrl, workflow)
+    ctrl.complete_create(workflow, object(), {"years": [2021]})
+    assert workflow.create_handle is not None
+
+    ctrl.mark_inspect_stale(workflow)
+    assert workflow.create_status == "stale"
+    assert workflow.create_handle is None
+    assert not ctrl.can_start_write(workflow)
+
+
+def test_remove_workflow_clears_global_job():
+    ctrl = ShreccPluginController(project_name_provider=lambda: "proj-a")
+    workflow = ctrl.new_workflow()
+    ctrl.begin_create(workflow)
+    ctrl.remove_workflow(workflow.id)
+    assert ctrl.global_job is None
+
+
+def test_should_confirm_close_false_after_write():
+    ctrl = ShreccPluginController(project_name_provider=lambda: "proj-a")
+    workflow = ctrl.new_workflow()
+    _fill_complete_config(ctrl, workflow)
+    ctrl.complete_create(workflow, object(), {"years": [2021]})
+    ctrl.complete_write(workflow, {2021: "out"})
+    workflow.dirty = False
+    assert not ctrl.should_confirm_close(workflow)
+
+
+def test_config_change_before_create_does_not_mark_stale():
+    ctrl = ShreccPluginController(project_name_provider=lambda: "proj-a")
+    workflow = ctrl.new_workflow()
+    _fill_complete_config(ctrl, workflow)
+    ctrl.update_config(workflow, {"my_db_name": "other"})
+    assert workflow.create_status == "idle"
+
+
 def _fill_complete_config(ctrl, workflow):
     ctrl.update_config(
         workflow,
