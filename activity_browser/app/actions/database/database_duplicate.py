@@ -7,6 +7,10 @@ import bw_functional as bf
 
 from activity_browser.app import application
 from activity_browser.app.actions.base import ABAction, exception_dialogs
+from activity_browser.plugins.database_protection import (
+    format_protection_block_message,
+    is_database_protected,
+)
 from activity_browser.ui.icons import qicons
 from activity_browser.ui.core.threading import ABThread
 
@@ -29,6 +33,13 @@ class DatabaseDuplicate(ABAction):
     @exception_dialogs
     def run(db_name: str):
         assert db_name in bd.databases
+        if is_database_protected(db_name):
+            QtWidgets.QMessageBox.information(
+                application.main_window,
+                "Database protected",
+                format_protection_block_message([db_name]),
+            )
+            return
         backend = bd.databases[db_name].get("backend", "undefined")
 
         if backend not in ["sqlite", "functional_sqlite"]:
