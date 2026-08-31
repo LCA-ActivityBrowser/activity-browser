@@ -2,6 +2,8 @@
 import pytest
 from importlib.metadata import entry_points
 
+from activity_browser import app  # noqa: F401 — ABApplication before pytest-qt's QApplication
+
 
 def _shrecc_installed():
     return any(
@@ -25,6 +27,10 @@ def test_shrecc_page_starts_with_one_workflow_tab(qtbot):
 
     assert page.workflow_tabs.count() == 1
     assert page.controller.workflows[0].label == "Workflow 1"
+
+    panel = page.workflow_tabs.currentWidget()
+    assert panel is not None
+    assert not panel.create_btn.isEnabled()
 
     page.close_btn.click()
     assert page.workflow_tabs.count() == 1

@@ -7,6 +7,14 @@ import uuid
 from dataclasses import dataclass, field
 from typing import Any, Literal, Optional
 
+from .configure_model import (
+    build_new_database_kwargs,
+    default_config,
+    is_config_complete,
+    merge_config_update,
+    normalize_config,
+)
+
 CreateStatus = Literal["idle", "running", "done", "failed", "stale"]
 WriteStatus = Literal["idle", "running", "done", "failed"]
 GlobalJob = Literal["create", "write"]
@@ -92,6 +100,31 @@ class ShreccPluginController:
         workflow = self.get_workflow(self.global_job_workflow_id or "")
         name = workflow.label if workflow else "?"
         return f"App job: {self.global_job} in {name}…"
+
+    def get_config(self, workflow: WorkflowState) -> dict[str, Any]:
+        if workflow.config:
+            return normalize_config(workflow.config)
+        return default_config()
+
+    def update_config(self, workflow: WorkflowState, update: dict[str, Any]) -> None:
+        workflow.config = merge_config_update(workflow.config, update)
+        workflow.dirty = True
+
+    def is_config_complete(self, workflow: WorkflowState) -> bool:
+        return is_config_complete(self.get_config(workflow))
+
+    def can_start_create(self, workflow: WorkflowState) -> bool:
+        if self.is_project_stale(workflow):
+            return False
+        if self.global_job is not None:
+            return False
+        return self.is_config_complete(workflow)
+
+    def build_new_database_kwargs(self, workflow: WorkflowState) -> dict[str, Any]:
+        return build_new_database_kwargs(
+            self.get_config(workflow),
+            project_name=workflow.project_name,
+        )
 
 
 def _default_project_name() -> str:

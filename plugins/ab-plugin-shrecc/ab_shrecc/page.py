@@ -60,7 +60,11 @@ class ShreccPluginPage(ABAbstractPage):
             self._add_workflow_tab(self.controller.new_workflow())
 
     def _add_workflow_tab(self, workflow: WorkflowState) -> None:
-        panel = WorkflowPanel(workflow)
+        panel = WorkflowPanel(
+            workflow,
+            self.controller,
+            signals=self._host_signals,
+        )
         self._panels[workflow.id] = panel
         index = self.workflow_tabs.addTab(panel, workflow.label)
         self.workflow_tabs.setCurrentIndex(index)
