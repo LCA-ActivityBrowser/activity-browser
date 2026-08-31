@@ -9,6 +9,7 @@ from typing import Any, Literal, Optional
 
 from .configure_model import (
     build_new_database_kwargs,
+    config_fingerprint,
     default_config,
     is_config_complete,
     merge_config_update,
@@ -31,6 +32,9 @@ class WorkflowState:
     inspect_artifacts: dict[str, Any] = field(default_factory=dict)
     dirty: bool = False
     create_succeeded_unwritten: bool = False
+    config_fingerprint_at_create: Optional[str] = None
+    create_handle: Any = None
+    create_error: str = ""
 
 
 class ShreccPluginController:
@@ -109,6 +113,23 @@ class ShreccPluginController:
     def update_config(self, workflow: WorkflowState, update: dict[str, Any]) -> None:
         workflow.config = merge_config_update(workflow.config, update)
         workflow.dirty = True
+        self._maybe_mark_inspect_stale(workflow)
+
+    def _maybe_mark_inspect_stale(self, workflow: WorkflowState) -> None:
+        if workflow.create_status not in ("done", "stale"):
+            return
+        if workflow.config_fingerprint_at_create is None:
+            return
+        current = config_fingerprint(self.get_config(workflow))
+        if current != workflow.config_fingerprint_at_create:
+            self.mark_inspect_stale(workflow)
+
+    def mark_inspect_stale(self, workflow: WorkflowState) -> None:
+        workflow.create_status = "stale"
+        workflow.create_succeeded_unwritten = False
+        workflow.inspect_artifacts = {}
+        workflow.create_handle = None
+        workflow.create_error = ""
 
     def is_config_complete(self, workflow: WorkflowState) -> bool:
         return is_config_complete(self.get_config(workflow))
@@ -118,13 +139,83 @@ class ShreccPluginController:
             return False
         if self.global_job is not None:
             return False
+        if workflow.create_status == "running":
+            return False
         return self.is_config_complete(workflow)
 
-    def build_new_database_kwargs(self, workflow: WorkflowState) -> dict[str, Any]:
-        return build_new_database_kwargs(
+    def can_start_write(self, workflow: WorkflowState) -> bool:
+        if self.is_project_stale(workflow):
+            return False
+        if self.global_job is not None:
+            return False
+        return (
+            workflow.create_status == "done"
+            and workflow.create_succeeded_unwritten
+            and workflow.create_handle is not None
+        )
+
+    def begin_create(self, workflow: WorkflowState) -> None:
+        workflow.create_status = "running"
+        workflow.create_error = ""
+        workflow.inspect_artifacts = {}
+        workflow.create_handle = None
+        workflow.create_succeeded_unwritten = False
+        workflow.config_fingerprint_at_create = None
+        self.global_job = "create"
+        self.global_job_workflow_id = workflow.id
+
+    def complete_create(
+        self,
+        workflow: WorkflowState,
+        create_handle: Any,
+        artifacts: dict[str, Any],
+    ) -> None:
+        workflow.create_handle = create_handle
+        workflow.inspect_artifacts = artifacts
+        workflow.config_fingerprint_at_create = config_fingerprint(
+            self.get_config(workflow)
+        )
+        workflow.create_status = "done"
+        workflow.create_succeeded_unwritten = True
+        workflow.dirty = False
+        workflow.create_error = ""
+        self.global_job = None
+        self.global_job_workflow_id = None
+
+    def fail_create(self, workflow: WorkflowState, message: str) -> None:
+        workflow.create_status = "failed"
+        workflow.create_error = message
+        workflow.inspect_artifacts = {}
+        workflow.create_handle = None
+        workflow.create_succeeded_unwritten = False
+        workflow.config_fingerprint_at_create = None
+        self.global_job = None
+        self.global_job_workflow_id = None
+
+    def abandon_create(self, workflow: WorkflowState) -> None:
+        workflow.create_status = "idle"
+        workflow.create_error = ""
+        workflow.inspect_artifacts = {}
+        workflow.create_handle = None
+        workflow.create_succeeded_unwritten = False
+        workflow.config_fingerprint_at_create = None
+        if self.global_job_workflow_id == workflow.id:
+            self.global_job = None
+            self.global_job_workflow_id = None
+
+    def build_new_database_kwargs(
+        self,
+        workflow: WorkflowState,
+        *,
+        data_dir: str | None = None,
+    ) -> dict[str, Any]:
+        kwargs = build_new_database_kwargs(
             self.get_config(workflow),
             project_name=workflow.project_name,
         )
+        if data_dir:
+            kwargs["data_dir"] = data_dir
+        return kwargs
 
 
 def _default_project_name() -> str:
