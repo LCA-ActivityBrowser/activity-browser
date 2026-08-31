@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
-"""Inspect panels A–D on the Create & inspect stage."""
+"""Inspect stage: Create results in collapsible sections."""
 from __future__ import annotations
 
 from qtpy import QtCore, QtWidgets
+
+from .configure_section import ConfigureSection
 
 
 class _TablePayloadModel(QtCore.QAbstractTableModel):
@@ -56,10 +58,11 @@ class InspectPanel(QtWidgets.QWidget):
         super().__init__(parent)
 
         layout = QtWidgets.QVBoxLayout(self)
-        self.stale_banner = QtWidgets.QLabel()
-        self.stale_banner.setWordWrap(True)
-        self.stale_banner.hide()
-        layout.addWidget(self.stale_banner)
+        self.mismatch_banner = QtWidgets.QLabel()
+        self.mismatch_banner.setWordWrap(True)
+        self.mismatch_banner.setStyleSheet("color: #d32f2f;")
+        self.mismatch_banner.hide()
+        layout.addWidget(self.mismatch_banner)
 
         self.ready_label = QtWidgets.QLabel()
         self.ready_label.hide()
@@ -69,8 +72,10 @@ class InspectPanel(QtWidgets.QWidget):
         self.year_combo.currentIndexChanged.connect(self._on_year_changed)
         layout.addWidget(self.year_combo)
 
-        summary_group = QtWidgets.QGroupBox("A. Resolved config summary")
-        summary_layout = QtWidgets.QVBoxLayout(summary_group)
+        self._sections: dict[str, ConfigureSection] = {}
+
+        summary_content = QtWidgets.QWidget()
+        summary_layout = QtWidgets.QVBoxLayout(summary_content)
         self.summary_table = QtWidgets.QTableWidget(0, 4)
         self.summary_table.setHorizontalHeaderLabels(
             ["Year", "Source", "Background DB", "Output DB"]
@@ -78,10 +83,10 @@ class InspectPanel(QtWidgets.QWidget):
         self.summary_table.horizontalHeader().setStretchLastSection(True)
         self.summary_table.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
         summary_layout.addWidget(self.summary_table)
-        layout.addWidget(summary_group)
+        self._add_section(layout, "summary", "Resolved config", summary_content)
 
-        gaps_group = QtWidgets.QGroupBox("B. Mapping gaps")
-        gaps_layout = QtWidgets.QVBoxLayout(gaps_group)
+        gaps_content = QtWidgets.QWidget()
+        gaps_layout = QtWidgets.QVBoxLayout(gaps_content)
         self.gap_banner = QtWidgets.QLabel()
         self.gap_banner.setWordWrap(True)
         gaps_layout.addWidget(self.gap_banner)
@@ -89,10 +94,10 @@ class InspectPanel(QtWidgets.QWidget):
         self.mapping_model = _TablePayloadModel()
         self.mapping_table.setModel(self.mapping_model)
         gaps_layout.addWidget(self.mapping_table)
-        layout.addWidget(gaps_group)
+        self._add_section(layout, "mapping", "Mapping gaps", gaps_content)
 
-        preview_group = QtWidgets.QGroupBox("C. Inventory preview")
-        preview_layout = QtWidgets.QVBoxLayout(preview_group)
+        preview_content = QtWidgets.QWidget()
+        preview_layout = QtWidgets.QVBoxLayout(preview_content)
         self.column_sum_label = QtWidgets.QLabel()
         self.column_sum_label.setWordWrap(True)
         preview_layout.addWidget(self.column_sum_label)
@@ -100,19 +105,32 @@ class InspectPanel(QtWidgets.QWidget):
         self.preview_model = _TablePayloadModel()
         self.preview_table.setModel(self.preview_model)
         preview_layout.addWidget(self.preview_table)
-        layout.addWidget(preview_group)
+        self._add_section(layout, "preview", "Inventory preview", preview_content)
 
-        log_group = QtWidgets.QGroupBox("D. Create log")
-        log_layout = QtWidgets.QVBoxLayout(log_group)
+        log_content = QtWidgets.QWidget()
+        log_layout = QtWidgets.QVBoxLayout(log_content)
         self.log_view = QtWidgets.QPlainTextEdit()
         self.log_view.setReadOnly(True)
         self.log_view.setMaximumHeight(120)
         log_layout.addWidget(self.log_view)
-        layout.addWidget(log_group)
+        self._add_section(layout, "log", "Create log", log_content)
+
+        layout.addStretch()
 
         self._artifacts: dict = {}
         self._enabled = False
         self.set_enabled(False)
+
+    def _add_section(
+        self,
+        layout: QtWidgets.QVBoxLayout,
+        section_id: str,
+        title: str,
+        content: QtWidgets.QWidget,
+    ) -> None:
+        section = ConfigureSection(title, content, expanded=False)
+        self._sections[section_id] = section
+        layout.addWidget(section)
 
     def set_enabled(self, enabled: bool) -> None:
         self._enabled = enabled
@@ -126,25 +144,40 @@ class InspectPanel(QtWidgets.QWidget):
             self.year_combo,
         ):
             widget.setEnabled(enabled)
+        for section in self._sections.values():
+            section.setEnabled(enabled)
 
-    def show_stale(self, message: str) -> None:
-        self.stale_banner.setText(message)
-        self.stale_banner.show()
+    def show_configuration_mismatch(self, message: str | None = None) -> None:
+        self.mismatch_banner.setText(
+            message
+            or (
+                "Configuration changed after Create. Create again before Write. "
+                "The results below are from the last Create."
+            )
+        )
+        self.mismatch_banner.show()
         self.ready_label.hide()
-        self.set_enabled(False)
-        self._clear_tables()
+        # Keep last artifacts visible for review.
+        if self._artifacts:
+            self.set_enabled(True)
 
     def show_ready(self) -> None:
         self.ready_label.setText("Ready to write.")
         self.ready_label.show()
+        self.mismatch_banner.hide()
 
     def hide_banners(self) -> None:
-        self.stale_banner.hide()
+        self.mismatch_banner.hide()
         self.ready_label.hide()
 
+    def show_stale(self, message: str) -> None:
+        """Backward-compatible alias for configuration mismatch."""
+        self.show_configuration_mismatch(message)
+
     def set_artifacts(self, artifacts: dict | None) -> None:
-        self._artifacts = artifacts or {}
-        self.hide_banners()
+        new_artifacts = artifacts or {}
+        changed = new_artifacts != self._artifacts
+        self._artifacts = new_artifacts
         if not self._artifacts:
             self.set_enabled(False)
             self._clear_tables()
@@ -153,6 +186,12 @@ class InspectPanel(QtWidgets.QWidget):
         self._populate_summary()
         self._populate_year_selector()
         self._populate_log()
+        if changed:
+            self._collapse_all_sections()
+
+    def _collapse_all_sections(self) -> None:
+        for section in self._sections.values():
+            section.set_expanded(False)
 
     def _clear_tables(self) -> None:
         self.summary_table.setRowCount(0)
@@ -179,6 +218,9 @@ class InspectPanel(QtWidgets.QWidget):
                     column_index,
                     QtWidgets.QTableWidgetItem(value),
                 )
+        section = self._sections.get("summary")
+        if section is not None:
+            section.set_summary(f"{len(rows)} year(s)" if rows else "No rows")
 
     def _populate_year_selector(self) -> None:
         years = self._artifacts.get("years") or []
@@ -198,30 +240,46 @@ class InspectPanel(QtWidgets.QWidget):
             lines.append("Warnings:")
             lines.extend(f"- {warning}" for warning in warnings)
         self.log_view.setPlainText("\n".join(lines))
+        section = self._sections.get("log")
+        if section is not None:
+            section.set_summary(f"{len(lines)} line(s)" if lines else "Empty")
 
     def _on_year_changed(self) -> None:
         year = self.year_combo.currentData()
         if year is None:
             return
         mapping = (self._artifacts.get("mapping_reports") or {}).get(year)
+        mapping_section = self._sections.get("mapping")
         if mapping:
             self.gap_banner.setText(
                 "Mapping gaps detected for this year. Write is still allowed; "
                 "strict mode may fail if background activities are missing."
             )
             self.mapping_model.set_payload(mapping)
+            if mapping_section is not None:
+                rows = mapping.get("rows") or []
+                mapping_section.set_summary(f"{len(rows)} gap row(s)")
+                mapping_section.set_status("Gaps", level="warn")
         else:
             self.gap_banner.setText("No mapping gap report for this year.")
             self.mapping_model.set_payload(None)
+            if mapping_section is not None:
+                mapping_section.set_summary("None")
+                mapping_section.set_status("OK", level="ok")
 
         preview = (self._artifacts.get("table_previews") or {}).get(year)
         self.preview_model.set_payload(preview)
         sums = (self._artifacts.get("column_sums") or {}).get(year) or {}
+        preview_section = self._sections.get("preview")
         if sums:
             parts = []
             for country, total in sorted(sums.items()):
                 status = "ok" if abs(total - 1.0) <= 0.01 else "check"
                 parts.append(f"{country}: {total:.4f} ({status})")
             self.column_sum_label.setText("Column sums: " + "; ".join(parts))
+            if preview_section is not None:
+                preview_section.set_summary(f"{len(sums)} country sum(s)")
         else:
             self.column_sum_label.setText("No inventory preview for this year.")
+            if preview_section is not None:
+                preview_section.set_summary("None")

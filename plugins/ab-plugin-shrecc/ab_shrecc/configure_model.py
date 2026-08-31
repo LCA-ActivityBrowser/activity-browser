@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 from copy import deepcopy
-from typing import Any
+from dataclasses import dataclass
+from typing import Any, Literal
 
 from .shrecc_choices import (
     consumption_profiles,
@@ -139,6 +140,193 @@ def config_completion_errors(config: dict[str, Any]) -> list[str]:
 
 def is_config_complete(config: dict[str, Any]) -> bool:
     return not config_completion_errors(config)
+
+
+SectionLevel = Literal["ok", "warn", "error", "neutral"]
+
+
+@dataclass(frozen=True)
+class SectionSummary:
+    summary: str
+    status: str
+    level: SectionLevel
+
+
+def configure_section_summaries(config: dict[str, Any]) -> dict[str, SectionSummary]:
+    config = normalize_config(config)
+    summaries: dict[str, SectionSummary] = {}
+
+    years = config["years"]
+    if years:
+        summaries["years"] = SectionSummary(
+            summary=", ".join(str(year) for year in years),
+            status="Complete",
+            level="ok",
+        )
+    else:
+        summaries["years"] = SectionSummary(
+            summary="No years selected",
+            status="Required",
+            level="warn",
+        )
+
+    countries = config["countries"]
+    if countries:
+        text = ", ".join(countries)
+        if len(text) > 48:
+            text = f"{len(countries)} countries"
+        summaries["countries"] = SectionSummary(
+            summary=text,
+            status="Complete",
+            level="ok",
+        )
+    else:
+        summaries["countries"] = SectionSummary(
+            summary="No countries selected",
+            status="Required",
+            level="warn",
+        )
+
+    time_mode = config.get("time_mode", "range")
+    if time_mode == "times":
+        times = _parse_times_text(config.get("times_text", ""))
+        if times:
+            summaries["time"] = SectionSummary(
+                summary=f"{len(times)} explicit timestamps",
+                status="Complete",
+                level="ok",
+            )
+        else:
+            summaries["time"] = SectionSummary(
+                summary="Explicit timestamps",
+                status="Required",
+                level="warn",
+            )
+    elif time_mode == "hour_range":
+        start = str(config.get("time_range_start") or "").strip()
+        end = str(config.get("time_range_end") or "").strip()
+        hours = f"{config.get('hour_range_start')}-{config.get('hour_range_end')}h"
+        if start and end:
+            summaries["time"] = SectionSummary(
+                summary=f"{start} → {end}, hours {hours}",
+                status="Complete",
+                level="ok",
+            )
+        else:
+            summaries["time"] = SectionSummary(
+                summary=f"Hour range {hours}",
+                status="Required",
+                level="warn",
+            )
+    else:
+        start = str(config.get("time_range_start") or "").strip()
+        end = str(config.get("time_range_end") or "").strip()
+        if start and end:
+            summaries["time"] = SectionSummary(
+                summary=f"{start} → {end}",
+                status="Complete",
+                level="ok",
+            )
+        else:
+            summaries["time"] = SectionSummary(
+                summary="Time range",
+                status="Required",
+                level="warn",
+            )
+
+    source = str(config.get("source", "auto"))
+    summaries["source"] = SectionSummary(
+        summary=f"Source: {source}",
+        status="Complete",
+        level="ok",
+    )
+
+    if needs_tyndp_fields(config):
+        scenario = config.get("tyndp_scenario")
+        climate = config.get("climate_year")
+        iam = config.get("iam")
+        if scenario and climate is not None:
+            summaries["tyndp"] = SectionSummary(
+                summary=f"{scenario}, climate {climate}, {iam}",
+                status="Complete",
+                level="ok",
+            )
+        else:
+            summaries["tyndp"] = SectionSummary(
+                summary="TYNDP scenario and climate year",
+                status="Required",
+                level="warn",
+            )
+    else:
+        summaries["tyndp"] = SectionSummary(
+            summary="Not required for selected years",
+            status="N/A",
+            level="neutral",
+        )
+
+    output_name = str(config.get("my_db_name") or "").strip()
+    if config.get("map_bg_db_by_year"):
+        by_year = config.get("bg_db_by_year") or {}
+        missing = [
+            year
+            for year in years
+            if not str(by_year.get(str(year)) or by_year.get(year) or "").strip()
+        ]
+        if missing:
+            summaries["databases"] = SectionSummary(
+                summary="Per-year background mapping",
+                status="Required",
+                level="warn",
+            )
+        elif output_name:
+            previews = preview_database_names(config)
+            preview = "; ".join(
+                f"{year}→{name}" for year, name in sorted(previews.items())
+            )
+            summaries["databases"] = SectionSummary(
+                summary=f"Mapped by year; output {preview}",
+                status="Complete",
+                level="ok",
+            )
+        else:
+            summaries["databases"] = SectionSummary(
+                summary="Per-year background mapping",
+                status="Required",
+                level="warn",
+            )
+    else:
+        bg_name = str(config.get("bg_db_name") or "").strip()
+        if bg_name and output_name:
+            summaries["databases"] = SectionSummary(
+                summary=f"Background {bg_name}; output {output_name}",
+                status="Complete",
+                level="ok",
+            )
+        else:
+            summaries["databases"] = SectionSummary(
+                summary="Background and output names",
+                status="Required",
+                level="warn",
+            )
+
+    non_defaults = []
+    if not config.get("strict", True):
+        non_defaults.append("non-strict")
+    if not config.get("download", True):
+        non_defaults.append("no download")
+    if config.get("verbose"):
+        non_defaults.append("verbose")
+    if non_defaults:
+        summary = "Custom: " + ", ".join(non_defaults)
+    else:
+        summary = "Defaults (strict on)"
+    summaries["advanced"] = SectionSummary(
+        summary=summary,
+        status="Optional",
+        level="neutral",
+    )
+
+    return summaries
 
 
 def build_new_database_kwargs(

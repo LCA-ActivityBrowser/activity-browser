@@ -7,6 +7,7 @@ from typing import Callable, Optional
 from qtpy import QtWidgets
 
 from .controller import ShreccPluginController, WorkflowState
+from .run_button import style_run_button
 from .write_service import WriteTarget, needs_overwrite_confirm, write_targets
 
 
@@ -49,14 +50,6 @@ class WritePanel(QtWidgets.QWidget):
         self.overwrite_confirm.toggled.connect(self._refresh_write_button)
         layout.addWidget(self.overwrite_confirm)
 
-        self.write_btn = QtWidgets.QPushButton("Write to Brightway")
-        self.write_btn.clicked.connect(self._on_write_clicked)
-        layout.addWidget(self.write_btn)
-
-        self.status_label = QtWidgets.QLabel()
-        self.status_label.setWordWrap(True)
-        layout.addWidget(self.status_label)
-
         self.hint_label = QtWidgets.QLabel(
             "After a successful write, open the Databases pane to browse the new inventories."
         )
@@ -64,7 +57,27 @@ class WritePanel(QtWidgets.QWidget):
         self.hint_label.hide()
         layout.addWidget(self.hint_label)
 
-        layout.addStretch()
+        layout.addStretch(1)
+
+        write_row = QtWidgets.QHBoxLayout()
+        self.status_label = QtWidgets.QLabel(
+            "Write is available after a successful Create when the workflow "
+            "project matches the currently open project."
+        )
+        self.status_label.setWordWrap(True)
+        write_row.addWidget(self.status_label, 1)
+        self.write_progress = QtWidgets.QProgressBar()
+        self.write_progress.setRange(0, 0)
+        self.write_progress.setTextVisible(False)
+        self.write_progress.setFixedWidth(120)
+        self.write_progress.hide()
+        write_row.addWidget(self.write_progress)
+        self.write_btn = QtWidgets.QPushButton("Write")
+        style_run_button(self.write_btn)
+        self.write_btn.clicked.connect(self._on_write_clicked)
+        write_row.addWidget(self.write_btn)
+        layout.addLayout(write_row)
+
         self._targets: list[WriteTarget] = []
         self.refresh()
 
@@ -76,9 +89,12 @@ class WritePanel(QtWidgets.QWidget):
     def refresh(self) -> None:
         workflow = self.workflow
         stale = self.controller.is_project_stale(workflow)
-        project_text = f"Brightway project: {workflow.project_name}"
+        project_text = f"Workflow project: {workflow.project_name}"
         if stale:
-            project_text += " (stale — switch back or start a new workflow)"
+            project_text += (
+                f" — does not match the open project "
+                f"(“{self.controller.current_project_name()}”)"
+            )
         self.project_label.setText(project_text)
 
         self._targets = []
@@ -112,14 +128,17 @@ class WritePanel(QtWidgets.QWidget):
 
     def _refresh_status(self) -> None:
         workflow = self.workflow
+        running = workflow.write_status == "running"
+        self.write_progress.setVisible(running)
+
         if workflow.create_status == "stale":
             self.status_label.setText(
-                "Inspect is stale. Re-create on the Configure / Create tab before writing."
+                "Configuration changed after Create. Create again before Write."
             )
             self.hint_label.hide()
             return
 
-        if workflow.write_status == "running":
+        if running:
             self.status_label.setText("Writing databases…")
             self.hint_label.hide()
             return
@@ -151,7 +170,7 @@ class WritePanel(QtWidgets.QWidget):
             self.status_label.setText("Ready to write.")
         else:
             self.status_label.setText(
-                "Complete create and inspect before writing."
+                "Complete Create and review Inspect before writing."
             )
         self.hint_label.hide()
 
@@ -161,3 +180,4 @@ class WritePanel(QtWidgets.QWidget):
         if can_write and needs_overwrite_confirm(self._targets):
             can_write = self.overwrite_confirm.isChecked()
         self.write_btn.setEnabled(can_write and bool(self._targets))
+        self.write_btn.setText(self.controller.write_action_label(workflow))
