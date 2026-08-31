@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ab-plugin-shrecc"
+version = "0.1.0"
+description = "SHRECC workflow plugin for Activity Browser"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.entry-points."activity_browser.plugins"]
+ab_shrecc = "ab_shrecc.activate:activate"
+
+[tool.setuptools.packages.find]
+include = ["ab_shrecc*"]
