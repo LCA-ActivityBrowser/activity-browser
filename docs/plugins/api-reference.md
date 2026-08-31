@@ -21,6 +21,7 @@ Import only from `activity_browser.plugins` (plus Brightway / stdlib / other thi
 | `ABAction` | Base for `register_action` |
 | `BaseSettingsChapter` | Base for `register_settings_chapter` |
 | `reveal_page` / `reveal_pane` | Focus a registered page/pane by contribution id |
+| `safe_bw_connection` | Context manager; close Brightway/peewee connections for the current thread on exit (worker threads) |
 
 ## Declaring a plugin
 
@@ -107,6 +108,7 @@ Users see incompatible plugins under **Settings → Plugins** with an error such
 - `protect_databases(names, *, reason="")` — context manager; host blocks user edit/delete on named databases until the block exits (separate from user `read_only`). Use during background reads (e.g. SHRECC `create()`).
 - `after_database_write(db_name, *, notify=True)` — after writing a Brightway database outside AB **Action**s, reload **Metadata store** for `db_name` and optionally send Brightway `on_database_write`.
 - `run_blocking_operation(title, func, *, cancellable=False)` — run `func` on a worker thread with modal progress (database-write style). Raises on failure after showing the error message.
+- `safe_bw_connection()` — context manager; close Brightway/peewee SQLite connections for the current thread on exit. Use in long-running plugin worker threads that touch Brightway (also exported as `activity_browser.plugins.safe_bw_connection`).
 
 Contribution IDs must be `plugin_id.local`. No `main_window`, raw registries, or `register_signal`.
 
