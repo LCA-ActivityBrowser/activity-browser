@@ -56,6 +56,9 @@ def test_shrecc_page_has_three_stage_tabs(qtbot):
     assert not panel.stage_tabs.isTabEnabled(panel._write_index)
     assert panel.create_btn is panel.configure_form.create_btn
     assert panel.create_btn.text() == "Create"
+    assert not hasattr(panel.configure_form, "my_db_name_edit")
+    assert "summary" not in panel.inspect_panel._sections
+    assert hasattr(panel.write_panel, "output_name_edit")
 
     workflow = page.controller.workflows[0]
     page.controller.complete_create(
@@ -63,7 +66,7 @@ def test_shrecc_page_has_three_stage_tabs(qtbot):
         object(),
         {"years": [2021], "summary": [{"year": 2021}]},
     )
-    page.controller.update_config(workflow, {"my_db_name": "changed-out"})
+    page.controller.update_config(workflow, {"countries": ["FR"]})
     panel.refresh()
     assert panel.create_btn.text() == "Create again"
     assert panel.stage_tabs.isTabEnabled(panel._inspect_index)
@@ -92,11 +95,12 @@ def test_inspect_panel_keeps_artifacts_on_configuration_mismatch(qtbot):
         "column_sums": {},
     }
     panel.set_artifacts(artifacts)
-    assert panel.summary_table.rowCount() == 1
-    assert not panel._sections["summary"].toggle_btn.isChecked()
+    assert "created" in panel.log_view.toPlainText()
+    assert not panel._sections["log"].toggle_btn.isChecked()
+    assert "summary" not in panel._sections
 
     panel.show_configuration_mismatch()
     assert panel.mismatch_banner.isVisible()
     assert "Create again before Write" in panel.mismatch_banner.text()
-    assert panel.summary_table.rowCount() == 1
-    assert panel.summary_table.isEnabled()
+    assert "created" in panel.log_view.toPlainText()
+    assert panel.log_view.isEnabled()

@@ -8,11 +8,5 @@ RUN_BUTTON_STYLE = "background-color: #57965C;"
 
 
 def style_run_button(button: QtWidgets.QPushButton) -> None:
-    """Match calculation-setup Calculate: green fill + forward icon."""
+    """Green fill for Create / Write run actions (no host icon dependency)."""
     button.setStyleSheet(RUN_BUTTON_STYLE)
-    try:
-        from activity_browser.ui.icons import qicons
-
-        button.setIcon(qicons.forward)
-    except ImportError:
-        pass

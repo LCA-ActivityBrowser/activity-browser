@@ -33,11 +33,11 @@ class CreateWorker(QtCore.QThread):
         self._abandon = True
 
     def run(self) -> None:
-        from activity_browser.ui.core.threading import SafeBWConnection
+        from activity_browser.plugins import safe_bw_connection
 
         names = background_database_names_from_kwargs(self._kwargs)
         try:
-            with SafeBWConnection():
+            with safe_bw_connection():
                 with self._host.protect_databases(names):
                     if self._abandon:
                         return

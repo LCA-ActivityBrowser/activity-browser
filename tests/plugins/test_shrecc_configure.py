@@ -18,7 +18,6 @@ def _complete_config(**overrides):
             "time_range_start": "2021-01-01 00:00:00",
             "time_range_end": "2021-12-31 23:00:00",
             "bg_db_name": "ecoinvent-3.11-cutoff",
-            "my_db_name": "shrecc_electricity",
         }
     )
     config.update(overrides)
@@ -51,8 +50,7 @@ def test_tyndp_fields_required_for_prospective_year():
 
 
 def test_preview_database_names_multi_year_suffix():
-    config = _complete_config(years=[2021, 2025], my_db_name="shrecc_mix")
-    assert preview_database_names(config) == {
+    assert preview_database_names(base_name="shrecc_mix", years=[2021, 2025]) == {
         2021: "shrecc_mix_2021",
         2025: "shrecc_mix_2025",
     }
@@ -60,11 +58,14 @@ def test_preview_database_names_multi_year_suffix():
 
 def test_build_new_database_kwargs_historical():
     config = _complete_config()
-    kwargs = build_new_database_kwargs(config, project_name="proj-a")
+    kwargs = build_new_database_kwargs(
+        config, project_name="proj-a", my_db_name="shrecc_electricity"
+    )
     assert kwargs["project_name"] == "proj-a"
     assert kwargs["years"] == [2021]
     assert kwargs["countries"] == ["DE"]
     assert kwargs["bg_db_name"] == "ecoinvent-3.11-cutoff"
+    assert kwargs["my_db_name"] == "shrecc_electricity"
     assert kwargs["strict"] is True
     assert "scenario" not in kwargs
     assert kwargs["time_range"] == [
@@ -79,7 +80,9 @@ def test_build_new_database_kwargs_tyndp():
         tyndp_scenario="NT",
         climate_year=1995,
     )
-    kwargs = build_new_database_kwargs(config, project_name="proj-a")
+    kwargs = build_new_database_kwargs(
+        config, project_name="proj-a", my_db_name="shrecc_electricity"
+    )
     assert kwargs["scenario"] == "NT"
     assert kwargs["climate_year"] == 1995
 
@@ -90,7 +93,9 @@ def test_per_year_background_mapping():
         map_bg_db_by_year=True,
         bg_db_by_year={"2021": "db-a", "2025": "db-b"},
     )
-    kwargs = build_new_database_kwargs(config, project_name="proj-a")
+    kwargs = build_new_database_kwargs(
+        config, project_name="proj-a", my_db_name="shrecc_electricity"
+    )
     assert kwargs["bg_db_name"] == {2021: "db-a", 2025: "db-b"}
 
 

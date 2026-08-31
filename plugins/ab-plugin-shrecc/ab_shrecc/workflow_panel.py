@@ -101,10 +101,10 @@ class WorkflowPanel(QtWidgets.QWidget):
 
     def refresh(self) -> None:
         workflow = self.workflow
-        stale = self.controller.is_project_stale(workflow)
+        project_mismatch = self.controller.is_project_mismatch(workflow)
         self.configure_form.set_project(
             workflow.project_name,
-            stale=stale,
+            project_mismatch=project_mismatch,
             current_project_name=self.controller.current_project_name(),
         )
         self.configure_form.set_database_names(_database_names())
@@ -123,13 +123,13 @@ class WorkflowPanel(QtWidgets.QWidget):
     def _refresh_create_gating(self) -> None:
         workflow = self.workflow
         errors = config_completion_errors(self.controller.get_config(workflow))
-        stale = self.controller.is_project_stale(workflow)
+        project_mismatch = self.controller.is_project_mismatch(workflow)
         can_create = self.controller.can_start_create(workflow)
         running = workflow.create_status == "running"
 
         if running:
             status = "Create running…"
-        elif stale:
+        elif project_mismatch:
             current = self.controller.current_project_name()
             status = (
                 f"Create blocked: this workflow uses project "
@@ -141,7 +141,7 @@ class WorkflowPanel(QtWidgets.QWidget):
             status = "Create blocked while another plugin job is running."
         elif workflow.create_status == "done":
             status = "Create complete. Review Inspect."
-        elif workflow.create_status == "stale":
+        elif workflow.create_status == "config_mismatch":
             status = (
                 "Configuration changed after Create. Create again before Write."
             )
@@ -161,7 +161,7 @@ class WorkflowPanel(QtWidgets.QWidget):
 
     def _refresh_inspect(self) -> None:
         workflow = self.workflow
-        if workflow.create_status == "stale":
+        if workflow.create_status == "config_mismatch":
             self.inspect_panel.set_artifacts(workflow.inspect_artifacts)
             self.inspect_panel.show_configuration_mismatch()
         elif workflow.create_status == "done":

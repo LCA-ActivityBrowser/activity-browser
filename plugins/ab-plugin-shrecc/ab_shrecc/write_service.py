@@ -6,12 +6,16 @@ from contextlib import contextmanager
 from dataclasses import dataclass, field
 from typing import Any, Callable, Iterable, Iterator
 
+from .configure_model import preview_database_names
+
 
 @dataclass
 class WriteTarget:
     year: int
     database_name: str
     will_overwrite: bool
+    source: str = ""
+    background_db: str = ""
 
 
 @dataclass
@@ -24,19 +28,54 @@ class WriteResult:
         return self.error is None
 
 
+def resolve_output_database_names(
+    *,
+    base_name: str,
+    years: Iterable[int],
+) -> dict[int, str]:
+    return preview_database_names(base_name=base_name, years=[int(y) for y in years])
+
+
+def apply_output_database_names(
+    create_handle: Any,
+    names_by_year: dict[int, str],
+) -> None:
+    """Set SHRECC create-handle output names used by ``write()``."""
+    updated = dict(getattr(create_handle, "database_names", {}) or {})
+    for year, name in names_by_year.items():
+        updated[int(year)] = str(name)
+    create_handle.database_names = updated
+
+
 def write_targets(
     create_handle: Any,
     existing_database_names: Iterable[str],
+    *,
+    output_names: dict[int, str] | None = None,
+    summary_rows: Iterable[dict[str, Any]] | None = None,
 ) -> list[WriteTarget]:
     existing = set(existing_database_names)
+    summary_by_year = {
+        int(row["year"]): row for row in (summary_rows or []) if "year" in row
+    }
+    years = [int(year) for year in create_handle.years]
+    names = output_names or {
+        int(year): str(create_handle.database_names[year]) for year in years
+    }
     targets: list[WriteTarget] = []
-    for year in create_handle.years:
-        name = str(create_handle.database_names[year])
+    for year in years:
+        name = str(names.get(year) or create_handle.database_names.get(year) or "")
+        row = summary_by_year.get(year) or {}
         targets.append(
             WriteTarget(
-                year=int(year),
+                year=year,
                 database_name=name,
-                will_overwrite=name in existing,
+                will_overwrite=bool(name) and name in existing,
+                source=str(row.get("source") or getattr(create_handle, "sources", {}).get(year, "")),
+                background_db=str(
+                    row.get("background_db")
+                    or getattr(create_handle, "background_databases", {}).get(year, "")
+                ),
             )
         )
     return targets

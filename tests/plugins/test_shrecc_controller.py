@@ -16,11 +16,13 @@ def test_duplicate_workflow_copies_config_only():
     ctrl = ShreccPluginController(project_name_provider=lambda: "proj-a")
     source = ctrl.new_workflow()
     source.config = {"countries": ["DE"]}
+    source.output_db_base_name = "custom_out"
     source.create_succeeded_unwritten = True
     source.dirty = True
 
     dup = ctrl.duplicate_workflow(source.id)
     assert dup.config == {"countries": ["DE"]}
+    assert dup.output_db_base_name == "custom_out"
     assert not dup.create_succeeded_unwritten
     assert dup.dirty
     assert dup.project_name == "proj-a"
@@ -39,13 +41,13 @@ def test_should_confirm_close_when_dirty_or_unwritten():
     assert ctrl.should_confirm_close(workflow)
 
 
-def test_is_project_stale():
+def test_is_project_mismatch():
     ctrl = ShreccPluginController(project_name_provider=lambda: "current")
     workflow = ctrl.new_workflow()
-    assert not ctrl.is_project_stale(workflow)
+    assert not ctrl.is_project_mismatch(workflow)
 
     workflow.project_name = "other"
-    assert ctrl.is_project_stale(workflow)
+    assert ctrl.is_project_mismatch(workflow)
 
 
 def test_pristine_workflow_auto_syncs_to_current_project():
@@ -58,7 +60,7 @@ def test_pristine_workflow_auto_syncs_to_current_project():
     updated = ctrl.sync_pristine_workflows_to_current()
     assert updated == [workflow.id]
     assert workflow.project_name == "proj-b"
-    assert not ctrl.is_project_stale(workflow)
+    assert not ctrl.is_project_mismatch(workflow)
 
 
 def test_switch_to_current_project_keeps_config_clears_create():
@@ -71,12 +73,11 @@ def test_switch_to_current_project_keeps_config_clears_create():
             "years": [2021],
             "countries": ["DE"],
             "bg_db_name": "bg",
-            "my_db_name": "out",
         },
     )
     ctrl.complete_create(workflow, object(), {"years": [2021]})
     project["name"] = "proj-b"
-    assert ctrl.is_project_stale(workflow)
+    assert ctrl.is_project_mismatch(workflow)
     assert not ctrl.is_pristine(workflow)
 
     assert ctrl.switch_to_current_project(workflow)
@@ -84,7 +85,7 @@ def test_switch_to_current_project_keeps_config_clears_create():
     assert workflow.create_status == "idle"
     assert workflow.create_handle is None
     assert workflow.config["countries"] == ["DE"]
-    assert not ctrl.is_project_stale(workflow)
+    assert not ctrl.is_project_mismatch(workflow)
 
 
 def test_sync_does_not_auto_rebind_workflows_with_results():
@@ -95,7 +96,7 @@ def test_sync_does_not_auto_rebind_workflows_with_results():
     project["name"] = "proj-b"
     assert ctrl.sync_pristine_workflows_to_current() == []
     assert workflow.project_name == "proj-a"
-    assert ctrl.is_project_stale(workflow)
+    assert ctrl.is_project_mismatch(workflow)
 
 
 def test_can_start_create_requires_complete_config_and_current_project():
@@ -109,7 +110,6 @@ def test_can_start_create_requires_complete_config_and_current_project():
             "years": [2021],
             "countries": ["DE"],
             "bg_db_name": "bg",
-            "my_db_name": "out",
         },
     )
     assert ctrl.can_start_create(workflow)
@@ -127,7 +127,6 @@ def test_build_new_database_kwargs_from_controller():
             "years": [2021],
             "countries": ["DE", "FR"],
             "bg_db_name": "bg",
-            "my_db_name": "shrecc_out",
         },
     )
     kwargs = ctrl.build_new_database_kwargs(workflow)
@@ -147,14 +146,14 @@ def test_one_job_lock_blocks_second_create():
     assert ctrl.can_start_create(w2) is False
 
 
-def test_mark_inspect_stale_on_config_change_after_create():
+def test_mark_configuration_mismatch_on_config_change_after_create():
     ctrl = ShreccPluginController(project_name_provider=lambda: "proj-a")
     workflow = ctrl.new_workflow()
     _fill_complete_config(ctrl, workflow)
     ctrl.complete_create(workflow, object(), {"years": [2021]})
 
-    ctrl.update_config(workflow, {"my_db_name": "changed"})
-    assert workflow.create_status == "stale"
+    ctrl.update_config(workflow, {"countries": ["FR"]})
+    assert workflow.create_status == "config_mismatch"
     assert ctrl.can_start_write(workflow) is False
 
 
@@ -234,7 +233,7 @@ def test_one_job_lock_blocks_write_on_other_workflow():
     assert not ctrl.can_start_write(w2)
 
 
-def test_mark_inspect_stale_clears_create_handle_keeps_artifacts():
+def test_mark_configuration_mismatch_clears_create_handle_keeps_artifacts():
     ctrl = ShreccPluginController(project_name_provider=lambda: "proj-a")
     workflow = ctrl.new_workflow()
     _fill_complete_config(ctrl, workflow)
@@ -242,8 +241,8 @@ def test_mark_inspect_stale_clears_create_handle_keeps_artifacts():
     ctrl.complete_create(workflow, object(), artifacts)
     assert workflow.create_handle is not None
 
-    ctrl.mark_inspect_stale(workflow)
-    assert workflow.create_status == "stale"
+    ctrl.mark_configuration_mismatch(workflow)
+    assert workflow.create_status == "config_mismatch"
     assert workflow.create_handle is None
     assert workflow.inspect_artifacts == artifacts
     assert not ctrl.can_start_write(workflow)
@@ -273,8 +272,13 @@ def test_stage_availability_and_create_action_label():
     ctrl.fail_write(workflow, "boom", {})
     assert ctrl.write_action_label(workflow) == "Write again"
 
-    ctrl.update_config(workflow, {"my_db_name": "changed"})
-    assert workflow.create_status == "stale"
+    ctrl.update_output_db_base_name(workflow, "renamed_out")
+    assert workflow.create_status == "done"
+    assert ctrl.is_write_stage_available(workflow)
+    assert ctrl.resolved_output_database_names(workflow)[2021] == "renamed_out"
+
+    ctrl.update_config(workflow, {"countries": ["FR"]})
+    assert workflow.create_status == "config_mismatch"
     assert ctrl.is_inspect_stage_available(workflow)
     assert not ctrl.is_write_stage_available(workflow)
     assert ctrl.create_action_label(workflow) == "Create again"
@@ -313,11 +317,11 @@ def test_should_confirm_close_false_after_write():
     assert not ctrl.should_confirm_close(workflow)
 
 
-def test_config_change_before_create_does_not_mark_stale():
+def test_config_change_before_create_does_not_mark_mismatch():
     ctrl = ShreccPluginController(project_name_provider=lambda: "proj-a")
     workflow = ctrl.new_workflow()
     _fill_complete_config(ctrl, workflow)
-    ctrl.update_config(workflow, {"my_db_name": "other"})
+    ctrl.update_config(workflow, {"countries": ["NL"]})
     assert workflow.create_status == "idle"
 
 
@@ -328,6 +332,5 @@ def _fill_complete_config(ctrl, workflow):
             "years": [2021],
             "countries": ["DE"],
             "bg_db_name": "bg",
-            "my_db_name": "out",
         },
     )

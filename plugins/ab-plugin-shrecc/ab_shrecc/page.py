@@ -132,6 +132,7 @@ class ShreccPluginPage(ABAbstractPage):
         if create_handle is None:
             return
 
+        self.controller.apply_write_output_names(workflow)
         self.controller.begin_write(workflow)
         self._refresh_all_panels()
 
@@ -184,7 +185,7 @@ class ShreccPluginPage(ABAbstractPage):
         workflow = self.controller.get_workflow(workflow_id)
         if workflow is None:
             return
-        if not self.controller.is_project_stale(workflow):
+        if not self.controller.is_project_mismatch(workflow):
             return
         if workflow.create_status == "running" or workflow.write_status == "running":
             QtWidgets.QMessageBox.information(
