@@ -4,6 +4,7 @@ from activity_browser.plugins import PluginContext
 
 from . import ids
 from .actions import OpenShreccPage
+from .host_adapter import ShreccPluginHost
 from .page import ShreccPluginPage
 from .settings_chapter import ShreccSettingsChapter
 
@@ -11,10 +12,17 @@ from .settings_chapter import ShreccSettingsChapter
 def activate(ctx: PluginContext) -> None:
     signals = ctx.signals
     settings = ctx.settings
+    host = ShreccPluginHost(ctx)
 
     class PluginShreccPage(ShreccPluginPage):
         def __init__(self, *args, **kwargs):
-            super().__init__(*args, signals=signals, **kwargs)
+            super().__init__(
+                *args,
+                signals=signals,
+                host=host,
+                plugin_settings=settings,
+                **kwargs,
+            )
 
     class PluginShreccSettingsChapter(ShreccSettingsChapter):
         def __init__(self, parent=None):
