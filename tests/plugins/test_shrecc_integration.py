@@ -111,9 +111,9 @@ def _complete_config(page):
             "time_range_start": "2021-01-01 00:00:00",
             "time_range_end": "2021-12-31 23:00:00",
             "bg_db_name": "bg-db",
-            "my_db_name": "shrecc_out",
         },
     )
+    workflow.output_db_base_name = "shrecc_out"
     page._refresh_all_panels()
     return workflow
 

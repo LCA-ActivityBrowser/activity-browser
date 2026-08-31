@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Write stage summary and controls."""
+"""Write stage: Write options and write-plan table."""
 from __future__ import annotations
 
 from typing import Callable, Optional
@@ -26,22 +26,35 @@ class WritePanel(QtWidgets.QWidget):
         self.controller = controller
         self._start_write = start_write
         self._existing_databases = existing_databases or (lambda: [])
+        self._loading = False
 
         layout = QtWidgets.QVBoxLayout(self)
         self.project_label = QtWidgets.QLabel()
         self.project_label.setWordWrap(True)
         layout.addWidget(self.project_label)
 
-        summary_group = QtWidgets.QGroupBox("Output databases")
-        summary_layout = QtWidgets.QVBoxLayout(summary_group)
-        self.summary_table = QtWidgets.QTableWidget(0, 3)
+        options_row = QtWidgets.QHBoxLayout()
+        options_row.addWidget(QtWidgets.QLabel("Output database base name"))
+        self.output_name_edit = QtWidgets.QLineEdit()
+        self.output_name_edit.setText(workflow.output_db_base_name)
+        self.output_name_edit.textChanged.connect(self._on_output_name_changed)
+        options_row.addWidget(self.output_name_edit, 1)
+        layout.addLayout(options_row)
+
+        self.preview_label = QtWidgets.QLabel()
+        self.preview_label.setWordWrap(True)
+        layout.addWidget(self.preview_label)
+
+        plan_group = QtWidgets.QGroupBox("Write plan")
+        plan_layout = QtWidgets.QVBoxLayout(plan_group)
+        self.summary_table = QtWidgets.QTableWidget(0, 5)
         self.summary_table.setHorizontalHeaderLabels(
-            ["Year", "Database", "Status"]
+            ["Year", "Source", "Background DB", "Output DB", "Status"]
         )
         self.summary_table.horizontalHeader().setStretchLastSection(True)
         self.summary_table.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
-        summary_layout.addWidget(self.summary_table)
-        layout.addWidget(summary_group)
+        plan_layout.addWidget(self.summary_table)
+        layout.addWidget(plan_group)
 
         self.overwrite_confirm = QtWidgets.QCheckBox(
             "I confirm overwriting the existing databases listed above."
@@ -86,22 +99,52 @@ class WritePanel(QtWidgets.QWidget):
             return
         self._start_write(self.workflow.id)
 
+    def _on_output_name_changed(self, text: str) -> None:
+        if self._loading:
+            return
+        self.controller.update_output_db_base_name(self.workflow, text)
+        self._refresh_plan()
+        self._refresh_status()
+        self._refresh_write_button()
+
     def refresh(self) -> None:
         workflow = self.workflow
-        stale = self.controller.is_project_stale(workflow)
+        project_mismatch = self.controller.is_project_mismatch(workflow)
         project_text = f"Workflow project: {workflow.project_name}"
-        if stale:
+        if project_mismatch:
             project_text += (
                 f" — does not match the open project "
                 f"(“{self.controller.current_project_name()}”)"
             )
         self.project_label.setText(project_text)
 
+        self._loading = True
+        if self.output_name_edit.text() != workflow.output_db_base_name:
+            self.output_name_edit.setText(workflow.output_db_base_name)
+        self._loading = False
+
+        self._refresh_plan()
+        self._refresh_status()
+        self._refresh_write_button()
+
+    def _refresh_plan(self) -> None:
+        workflow = self.workflow
+        names = self.controller.resolved_output_database_names(workflow)
+        if names:
+            self.preview_label.setText(
+                "Per-year names: "
+                + "; ".join(f"{year}→{name}" for year, name in sorted(names.items()))
+            )
+        else:
+            self.preview_label.setText("Per-year names: (no years yet)")
+
         self._targets = []
         if workflow.create_handle is not None:
             self._targets = write_targets(
                 workflow.create_handle,
                 self._existing_databases(),
+                output_names=names,
+                summary_rows=(workflow.inspect_artifacts or {}).get("summary") or [],
             )
         self._populate_summary()
 
@@ -110,16 +153,18 @@ class WritePanel(QtWidgets.QWidget):
         if not overwrite_needed:
             self.overwrite_confirm.setChecked(False)
 
-        self._refresh_status()
-        self._refresh_write_button()
-
     def _populate_summary(self) -> None:
         self.summary_table.setRowCount(len(self._targets))
         for row_index, target in enumerate(self._targets):
             status = "Will overwrite" if target.will_overwrite else "New"
-            for column_index, value in enumerate(
-                (str(target.year), target.database_name, status)
-            ):
+            values = (
+                str(target.year),
+                target.source,
+                target.background_db,
+                target.database_name,
+                status,
+            )
+            for column_index, value in enumerate(values):
                 self.summary_table.setItem(
                     row_index,
                     column_index,
@@ -131,7 +176,12 @@ class WritePanel(QtWidgets.QWidget):
         running = workflow.write_status == "running"
         self.write_progress.setVisible(running)
 
-        if workflow.create_status == "stale":
+        if not str(workflow.output_db_base_name or "").strip():
+            self.status_label.setText("Enter an output database base name.")
+            self.hint_label.hide()
+            return
+
+        if workflow.create_status == "config_mismatch":
             self.status_label.setText(
                 "Configuration changed after Create. Create again before Write."
             )

@@ -74,17 +74,6 @@ class InspectPanel(QtWidgets.QWidget):
 
         self._sections: dict[str, ConfigureSection] = {}
 
-        summary_content = QtWidgets.QWidget()
-        summary_layout = QtWidgets.QVBoxLayout(summary_content)
-        self.summary_table = QtWidgets.QTableWidget(0, 4)
-        self.summary_table.setHorizontalHeaderLabels(
-            ["Year", "Source", "Background DB", "Output DB"]
-        )
-        self.summary_table.horizontalHeader().setStretchLastSection(True)
-        self.summary_table.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
-        summary_layout.addWidget(self.summary_table)
-        self._add_section(layout, "summary", "Resolved config", summary_content)
-
         gaps_content = QtWidgets.QWidget()
         gaps_layout = QtWidgets.QVBoxLayout(gaps_content)
         self.gap_banner = QtWidgets.QLabel()
@@ -135,7 +124,6 @@ class InspectPanel(QtWidgets.QWidget):
     def set_enabled(self, enabled: bool) -> None:
         self._enabled = enabled
         for widget in (
-            self.summary_table,
             self.gap_banner,
             self.mapping_table,
             self.column_sum_label,
@@ -157,7 +145,6 @@ class InspectPanel(QtWidgets.QWidget):
         )
         self.mismatch_banner.show()
         self.ready_label.hide()
-        # Keep last artifacts visible for review.
         if self._artifacts:
             self.set_enabled(True)
 
@@ -170,10 +157,6 @@ class InspectPanel(QtWidgets.QWidget):
         self.mismatch_banner.hide()
         self.ready_label.hide()
 
-    def show_stale(self, message: str) -> None:
-        """Backward-compatible alias for configuration mismatch."""
-        self.show_configuration_mismatch(message)
-
     def set_artifacts(self, artifacts: dict | None) -> None:
         new_artifacts = artifacts or {}
         changed = new_artifacts != self._artifacts
@@ -183,7 +166,6 @@ class InspectPanel(QtWidgets.QWidget):
             self._clear_tables()
             return
         self.set_enabled(True)
-        self._populate_summary()
         self._populate_year_selector()
         self._populate_log()
         if changed:
@@ -194,33 +176,12 @@ class InspectPanel(QtWidgets.QWidget):
             section.set_expanded(False)
 
     def _clear_tables(self) -> None:
-        self.summary_table.setRowCount(0)
         self.mapping_model.set_payload(None)
         self.preview_model.set_payload(None)
         self.gap_banner.setText("No mapping gap report.")
         self.column_sum_label.setText("")
         self.log_view.clear()
         self.year_combo.clear()
-
-    def _populate_summary(self) -> None:
-        rows = self._artifacts.get("summary") or []
-        self.summary_table.setRowCount(len(rows))
-        for row_index, row in enumerate(rows):
-            values = [
-                str(row.get("year", "")),
-                str(row.get("source", "")),
-                str(row.get("background_db", "")),
-                str(row.get("output_db", "")),
-            ]
-            for column_index, value in enumerate(values):
-                self.summary_table.setItem(
-                    row_index,
-                    column_index,
-                    QtWidgets.QTableWidgetItem(value),
-                )
-        section = self._sections.get("summary")
-        if section is not None:
-            section.set_summary(f"{len(rows)} year(s)" if rows else "No rows")
 
     def _populate_year_selector(self) -> None:
         years = self._artifacts.get("years") or []
