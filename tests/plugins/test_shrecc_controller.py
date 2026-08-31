@@ -83,3 +83,49 @@ def test_build_new_database_kwargs_from_controller():
     kwargs = ctrl.build_new_database_kwargs(workflow)
     assert kwargs["project_name"] == "proj-a"
     assert kwargs["countries"] == ["DE", "FR"]
+
+
+def test_one_job_lock_blocks_second_create():
+    ctrl = ShreccPluginController(project_name_provider=lambda: "proj-a")
+    w1 = ctrl.new_workflow()
+    w2 = ctrl.new_workflow()
+    _fill_complete_config(ctrl, w1)
+    _fill_complete_config(ctrl, w2)
+
+    ctrl.begin_create(w1)
+    assert ctrl.can_start_create(w1) is False
+    assert ctrl.can_start_create(w2) is False
+
+
+def test_mark_inspect_stale_on_config_change_after_create():
+    ctrl = ShreccPluginController(project_name_provider=lambda: "proj-a")
+    workflow = ctrl.new_workflow()
+    _fill_complete_config(ctrl, workflow)
+    ctrl.complete_create(workflow, object(), {"years": [2021]})
+
+    ctrl.update_config(workflow, {"my_db_name": "changed"})
+    assert workflow.create_status == "stale"
+    assert ctrl.can_start_write(workflow) is False
+
+
+def test_can_start_write_requires_done_create_and_current_project():
+    ctrl = ShreccPluginController(project_name_provider=lambda: "proj-a")
+    workflow = ctrl.new_workflow()
+    _fill_complete_config(ctrl, workflow)
+    ctrl.complete_create(workflow, object(), {"years": [2021]})
+    assert ctrl.can_start_write(workflow)
+
+    workflow.project_name = "other"
+    assert not ctrl.can_start_write(workflow)
+
+
+def _fill_complete_config(ctrl, workflow):
+    ctrl.update_config(
+        workflow,
+        {
+            "years": [2021],
+            "countries": ["DE"],
+            "bg_db_name": "bg",
+            "my_db_name": "out",
+        },
+    )
