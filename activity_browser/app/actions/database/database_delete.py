@@ -11,6 +11,7 @@ from activity_browser.app.actions.base import ABAction, exception_dialogs
 from activity_browser.app.actions.parameter.parameter_modify import ParameterModify
 from activity_browser.bwutils.characterization_factors import remove_characterization_factors_for_database
 from activity_browser.bwutils.calculation_setup import remove_functional_units_from_calculation_setup
+from activity_browser.plugins.database_protection import find_protected_names, format_protection_block_message
 from activity_browser.ui.icons import qicons
 
 
@@ -47,6 +48,15 @@ class DatabaseDelete(ABAction):
     @staticmethod
     @exception_dialogs
     def run(db_names: List[str]):
+        protected = find_protected_names(db_names)
+        if protected:
+            QtWidgets.QMessageBox.information(
+                app.main_window,
+                "Database protected",
+                format_protection_block_message(protected),
+            )
+            return
+
         # gathering data will take time for large databases
         QtWidgets.QApplication.setOverrideCursor(QtCore.Qt.WaitCursor)
 

@@ -14,12 +14,12 @@ from activity_browser import ui, app
 from activity_browser.ui import core, widgets, delegates, icons
 from activity_browser.bwutils.commontasks import (
     biosphere_node_types,
-    database_is_locked,
     database_is_legacy,
     get_writable_databases,
     is_node_biosphere,
     nodes_to_excel,
 )
+from activity_browser.plugins.database_protection import database_is_editing_blocked
 
 
 NODETYPES = {
@@ -275,11 +275,11 @@ class ProductView(ui.widgets.ABTreeView):
                                ),
             lambda m: m.addSeparator(),
             lambda m, p: m.add(app.actions.ActivityNewProcess, p.db_name,
-                               enable=not database_is_locked(p.db_name),
+                               enable=not database_is_editing_blocked(p.db_name),
                                ),
             lambda m, p: m.add(app.actions.ActivityDuplicate, p.selected_activities,
                                text="Duplicate process" if len(p.selected_activities) == 1 else "Duplicate processes",
-                               enable=len(p.selected_activities) > 0 and not database_is_locked(p.db_name),
+                               enable=len(p.selected_activities) > 0 and not database_is_editing_blocked(p.db_name),
                                ),
             lambda m, p: m.add(app.actions.ActivityDuplicateToDB, p.selected_activities,
                                text="Duplicate process to database" if len(p.selected_activities) == 1 else "Duplicate processes to database",
@@ -287,26 +287,31 @@ class ProductView(ui.widgets.ABTreeView):
                                ),
             lambda m, p: m.add(app.actions.ActivityDelete, p.selected_activities,
                                text="Delete process" if len(p.selected_activities) == 1 else "Delete processes",
-                               enable=len(p.selected_activities) > 0 and not database_is_locked(p.db_name),
+                               enable=len(p.selected_activities) > 0 and not database_is_editing_blocked(p.db_name),
                                ),
             lambda m, p: m.add(app.actions.ActivityDelete, p.selected_products,
                                text="Delete product" if len(p.selected_products) == 1 else "Delete products",
                                enable=len(p.selected_products) > 0 and not
-                               database_is_locked(p.db_name) and not
+                               database_is_editing_blocked(p.db_name) and not
                                database_is_legacy(p.db_name),
                                ),
             lambda m: m.addSeparator(),
             lambda m, p: m.add(app.actions.NewElementaryFlow, p.db_name,
-                               enable=p.db_name in get_writable_databases(),
+                               enable=not database_is_editing_blocked(p.db_name)
+                               and p.db_name in get_writable_databases(),
                                text="New elementary flow",
                                ),
             lambda m, p: m.add(app.actions.EditElementaryFlow, p.selected_elementary_flows,
                                text="Edit elementary flow",
-                               enable=len(p.selected_elementary_flows) == 1 and p.db_name in get_writable_databases(),
+                               enable=len(p.selected_elementary_flows) == 1
+                               and not database_is_editing_blocked(p.db_name)
+                               and p.db_name in get_writable_databases(),
                                ),
             lambda m, p: m.add(app.actions.DeleteElementaryFlow, p.selected_elementary_flows,
                                text="Delete elementary flow" if len(p.selected_elementary_flows) == 1 else "Delete elementary flows",
-                               enable=len(p.selected_elementary_flows) > 0 and p.db_name in get_writable_databases(),
+                               enable=len(p.selected_elementary_flows) > 0
+                               and not database_is_editing_blocked(p.db_name)
+                               and p.db_name in get_writable_databases(),
                                ),
             lambda m: m.addSeparator(),
             lambda m, p: m.add(app.actions.CSNew,
@@ -393,7 +398,7 @@ class ProductView(ui.widgets.ABTreeView):
                 self.pane.search_bar.setFocus()
                 return
         if event.key() == Qt.Key.Key_Delete:
-            if database_is_locked(self.db_name):
+            if database_is_editing_blocked(self.db_name):
                 return
             if self.selected_elementary_flows():
                 app.actions.DeleteElementaryFlow.run(self.selected_elementary_flows())
@@ -412,7 +417,7 @@ class ProductView(ui.widgets.ABTreeView):
         clipboard.setMimeData(mime_data)
 
     def copy_from_clipboard(self):
-        if database_is_locked(self.db_name):
+        if database_is_editing_blocked(self.db_name):
             return
 
         clipboard = QtWidgets.QApplication.clipboard()
@@ -434,7 +439,7 @@ class ProductView(ui.widgets.ABTreeView):
         if event.source() == self:
             return
 
-        if database_is_locked(self.db_name):
+        if database_is_editing_blocked(self.db_name):
             return
 
         if event.mimeData().hasFormat("application/bw-nodekeylist"):
