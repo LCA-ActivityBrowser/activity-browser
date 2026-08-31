@@ -1,9 +1,8 @@
 """SHRECC write service unit tests."""
-
-
 from ab_shrecc.write_service import (
     WriteTarget,
     needs_overwrite_confirm,
+    refresh_written_databases,
     run_write,
     write_targets,
 )
@@ -35,25 +34,23 @@ def test_write_targets_marks_existing_databases():
     assert needs_overwrite_confirm(targets)
 
 
-def test_run_write_calls_after_database_write_for_each_name():
+def test_run_write_returns_written_names():
     handle = _FakeHandle()
-    refreshed: list[str] = []
-
-    result = run_write(handle, refreshed.append)
-
+    result = run_write(handle)
     assert result.succeeded
     assert result.written == {2021: "shrecc_a"}
-    assert refreshed == ["shrecc_a"]
     assert handle.write_calls == 1
+
+
+def test_refresh_written_databases_calls_host_for_each_name():
+    refreshed: list[str] = []
+    refresh_written_databases({2021: "shrecc_a", 2025: "shrecc_b"}, refreshed.append)
+    assert refreshed == ["shrecc_a", "shrecc_b"]
 
 
 def test_run_write_returns_partial_on_failure():
     handle = _FakeHandle(fail_on_year=2025)
-    refreshed: list[str] = []
-
-    result = run_write(handle, refreshed.append)
-
+    result = run_write(handle)
     assert not result.succeeded
     assert result.written == {2021: "shrecc_a"}
     assert "strict match failed" in (result.error or "")
-    assert refreshed == ["shrecc_a"]

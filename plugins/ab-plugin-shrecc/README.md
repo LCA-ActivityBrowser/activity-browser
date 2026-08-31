@@ -1,6 +1,6 @@
 # SHRECC plugin for Activity Browser
 
-Visual **SHRECC workflow** for Activity Browser: configure → create & inspect → write Brightway databases.
+Visual **SHRECC workflow** for Activity Browser: Configure → Create (action) → Inspect → Write.
 
 Install in development:
 
@@ -16,17 +16,17 @@ Requires host APIs from the `plugins` branch (`protect_databases`, `after_databa
 
 | Term | Summary |
 |------|---------|
-| **SHRECC workflow** | One closable tab: bound Project, configuration, optional create results, optional write |
+| **SHRECC workflow** | One closable tab: workflow project, Configure, Create action, Inspect, Write |
 | **TYNDP scenario** | ENTSO-E storyline code for prospective mixes (not AB Scenario LCA) |
-| **Plugin job** | In-flight `create()` or `write()`; at most one app-wide |
-| **Project stale** | Workflow project ≠ current Brightway project |
-| **Inspect stale** | Configure changed after last successful `create()` |
+| **Plugin job** | In-flight Create or Write; at most one app-wide |
+| **Project mismatch** | Workflow project ≠ currently open Brightway project |
+| **Configuration mismatch** | Configure changed after last successful Create |
 
-Full definitions: `.scratch/shrecc-plugin/spec.md` §Plugin glossary.
+Canonical definitions: [`CONTEXT.md`](CONTEXT.md) in this package (moves with the plugin).
 
 ## Status
 
-Core plugin (tickets 13–16): workflow shell, Configure stage, background create + inspect panels A–D, Write stage with overwrite confirm and metadata refresh.
+Core plugin: workflow shell (Configure → Create action → Inspect → Write), background Create, Write with overwrite confirm and metadata refresh. Stage tabs stay visible and disabled until gated; Inspect/Write enable after Create (Write disables again under configuration mismatch). Future stages (e.g. Analysis) should use the same always-visible, disabled-until-gated pattern.
 
 ## Manual end-to-end demo (real SHRECC)
 
@@ -43,8 +43,8 @@ CI tests use a **mocked** `NewDatabase` and do not download Energy Charts or TYN
 3. **Brightway project:** Open a project with a suitable background database (e.g. ecoinvent cutoff or premise DB for TYNDP years).
 4. **Enable plugin** in Settings → Plugins; restart AB.
 5. **Plugins → Open SHRECC** — one workflow tab opens by default.
-6. **Configure:** years, countries, time range, background DB, output name; set TYNDP scenario/climate year for prospective years.
-7. **Create & inspect:** Create runs in the background; review summary, mapping gaps, inventory preview, log.
+6. **Configure:** years, countries, time range, background DB, output name; set TYNDP scenario/climate year for prospective years. Use **Create** (bottom of Configure).
+7. **Inspect:** opens after Create; review Resolved config, Mapping gaps, Inventory preview, Create log.
 8. **Write:** Confirm overwrite if needed; write runs modally; check Databases pane for new inventories.
 
 Optional: set **Settings → SHRECC → Data directory** for SHRECC cache location.

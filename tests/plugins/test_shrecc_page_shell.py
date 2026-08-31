@@ -40,9 +40,63 @@ def test_shrecc_page_starts_with_one_workflow_tab(qtbot):
 
 
 def test_shrecc_page_has_three_stage_tabs(qtbot):
+    from ab_shrecc import ids
     from ab_shrecc.page import ShreccPluginPage
 
     page = ShreccPluginPage()
     qtbot.addWidget(page)
+    page.show()
     panel = page.workflow_tabs.currentWidget()
+    assert panel is not None
     assert panel.stage_tabs.count() == 3
+    assert panel.stage_tabs.tabText(0) == ids.STAGE_LABELS[ids.STAGE_CONFIGURE]
+    assert panel.stage_tabs.tabText(1) == ids.STAGE_LABELS[ids.STAGE_INSPECT]
+    assert panel.stage_tabs.tabText(2) == ids.STAGE_LABELS[ids.STAGE_WRITE]
+    assert not panel.stage_tabs.isTabEnabled(panel._inspect_index)
+    assert not panel.stage_tabs.isTabEnabled(panel._write_index)
+    assert panel.create_btn is panel.configure_form.create_btn
+    assert panel.create_btn.text() == "Create"
+
+    workflow = page.controller.workflows[0]
+    page.controller.complete_create(
+        workflow,
+        object(),
+        {"years": [2021], "summary": [{"year": 2021}]},
+    )
+    page.controller.update_config(workflow, {"my_db_name": "changed-out"})
+    panel.refresh()
+    assert panel.create_btn.text() == "Create again"
+    assert panel.stage_tabs.isTabEnabled(panel._inspect_index)
+    assert not panel.stage_tabs.isTabEnabled(panel._write_index)
+
+
+def test_inspect_panel_keeps_artifacts_on_configuration_mismatch(qtbot):
+    from ab_shrecc.inspect_panel import InspectPanel
+
+    panel = InspectPanel()
+    qtbot.addWidget(panel)
+    panel.show()
+    artifacts = {
+        "years": [2021],
+        "summary": [
+            {
+                "year": 2021,
+                "source": "energy_charts",
+                "background_db": "bg",
+                "output_db": "out",
+            }
+        ],
+        "log": ["created"],
+        "mapping_reports": {},
+        "table_previews": {},
+        "column_sums": {},
+    }
+    panel.set_artifacts(artifacts)
+    assert panel.summary_table.rowCount() == 1
+    assert not panel._sections["summary"].toggle_btn.isChecked()
+
+    panel.show_configuration_mismatch()
+    assert panel.mismatch_banner.isVisible()
+    assert "Create again before Write" in panel.mismatch_banner.text()
+    assert panel.summary_table.rowCount() == 1
+    assert panel.summary_table.isEnabled()

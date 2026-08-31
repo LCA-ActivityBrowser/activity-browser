@@ -5,11 +5,14 @@ from __future__ import annotations
 from qtpy import QtCore, QtWidgets
 
 from .configure_model import (
+    configure_section_summaries,
     default_config,
     normalize_config,
     preview_database_names,
     resolved_sources,
 )
+from .configure_section import ConfigureSection
+from .run_button import style_run_button
 from .shrecc_choices import (
     consumption_profiles,
     energy_charts_countries,
@@ -27,11 +30,14 @@ class ConfigureForm(QtWidgets.QWidget):
     """Editable SHRECC configuration; emits ``config_changed`` on edits."""
 
     config_changed = QtCore.Signal(dict)
+    switch_project_requested = QtCore.Signal()
+    create_requested = QtCore.Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self._database_names: list[str] = []
         self._loading = False
+        self._sections: dict[str, ConfigureSection] = {}
 
         scroll = QtWidgets.QScrollArea()
         scroll.setWidgetResizable(True)
@@ -39,9 +45,37 @@ class ConfigureForm(QtWidgets.QWidget):
 
         body = QtWidgets.QWidget()
         layout = QtWidgets.QVBoxLayout(body)
+        layout.setSpacing(8)
 
-        years_group = QtWidgets.QGroupBox("Years")
-        years_layout = QtWidgets.QHBoxLayout(years_group)
+        project_content = QtWidgets.QWidget()
+        project_layout = QtWidgets.QVBoxLayout(project_content)
+        self.project_value = QtWidgets.QLabel()
+        self.project_value.setWordWrap(True)
+        self.project_mismatch = QtWidgets.QLabel()
+        self.project_mismatch.setWordWrap(True)
+        self.project_mismatch.setStyleSheet("color: #d32f2f;")
+        self.project_mismatch.hide()
+        self.switch_project_btn = QtWidgets.QPushButton("Switch to current project")
+        self.switch_project_btn.hide()
+        self.switch_project_btn.clicked.connect(self.switch_project_requested.emit)
+        self.project_hint = QtWidgets.QLabel(
+            "This workflow uses a Brightway project for Create and Write. "
+            "Those actions only run when it matches the project currently open "
+            "in Activity Browser."
+        )
+        self.project_hint.setWordWrap(True)
+        self.project_hint.setStyleSheet("color: #616161;")
+        project_layout.addWidget(self.project_value)
+        project_layout.addWidget(self.project_mismatch)
+        project_layout.addWidget(self.switch_project_btn)
+        project_layout.addWidget(self.project_hint)
+        self._add_section(layout, "project", "Project", project_content)
+        self._project_name = ""
+        self._project_stale = False
+        self._current_project_name = ""
+
+        years_content = QtWidgets.QWidget()
+        years_layout = QtWidgets.QHBoxLayout(years_content)
         self.years_list = QtWidgets.QListWidget()
         self.years_list.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
         years_layout.addWidget(self.years_list, 1)
@@ -56,10 +90,10 @@ class ConfigureForm(QtWidgets.QWidget):
         year_buttons.addWidget(self.remove_year_btn)
         year_buttons.addStretch()
         years_layout.addLayout(year_buttons)
-        layout.addWidget(years_group)
+        self._add_section(layout, "years", "Years", years_content)
 
-        countries_group = QtWidgets.QGroupBox("Countries")
-        countries_layout = QtWidgets.QHBoxLayout(countries_group)
+        countries_content = QtWidgets.QWidget()
+        countries_layout = QtWidgets.QHBoxLayout(countries_content)
         self.available_countries = QtWidgets.QListWidget()
         self.available_countries.setSelectionMode(
             QtWidgets.QAbstractItemView.ExtendedSelection
@@ -79,10 +113,10 @@ class ConfigureForm(QtWidgets.QWidget):
         countries_layout.addLayout(country_buttons)
         countries_layout.addWidget(QtWidgets.QLabel("Selected"))
         countries_layout.addWidget(self.selected_countries, 1)
-        layout.addWidget(countries_group)
+        self._add_section(layout, "countries", "Countries", countries_content)
 
-        time_group = QtWidgets.QGroupBox("Time selection")
-        time_layout = QtWidgets.QVBoxLayout(time_group)
+        time_content = QtWidgets.QWidget()
+        time_layout = QtWidgets.QVBoxLayout(time_content)
         self.time_mode_group = QtWidgets.QButtonGroup(self)
         self.time_range_radio = QtWidgets.QRadioButton("Time range")
         self.hour_range_radio = QtWidgets.QRadioButton("Hour range within time range")
@@ -120,18 +154,18 @@ class ConfigureForm(QtWidgets.QWidget):
         )
         self.times_edit.setMaximumHeight(80)
         time_layout.addWidget(self.times_edit)
-        layout.addWidget(time_group)
+        self._add_section(layout, "time", "Time selection", time_content)
 
-        source_group = QtWidgets.QGroupBox("Source")
-        source_layout = QtWidgets.QFormLayout(source_group)
+        source_content = QtWidgets.QWidget()
+        source_layout = QtWidgets.QFormLayout(source_content)
         self.source_combo = QtWidgets.QComboBox()
         for source in valid_sources():
             self.source_combo.addItem(source, source)
         source_layout.addRow("Source", self.source_combo)
-        layout.addWidget(source_group)
+        self._add_section(layout, "source", "Source", source_content)
 
-        self.tyndp_group = QtWidgets.QGroupBox("TYNDP")
-        tyndp_layout = QtWidgets.QFormLayout(self.tyndp_group)
+        tyndp_content = QtWidgets.QWidget()
+        tyndp_layout = QtWidgets.QFormLayout(tyndp_content)
         self.tyndp_scenario_combo = QtWidgets.QComboBox()
         self.tyndp_scenario_combo.addItem("— select —", None)
         for scenario in tyndp_scenarios():
@@ -146,10 +180,10 @@ class ConfigureForm(QtWidgets.QWidget):
         tyndp_layout.addRow("TYNDP scenario", self.tyndp_scenario_combo)
         tyndp_layout.addRow("Climate year", self.climate_year_combo)
         tyndp_layout.addRow("IAM", self.iam_combo)
-        layout.addWidget(self.tyndp_group)
+        self._add_section(layout, "tyndp", "TYNDP", tyndp_content)
 
-        db_group = QtWidgets.QGroupBox("Brightway databases")
-        db_layout = QtWidgets.QVBoxLayout(db_group)
+        db_content = QtWidgets.QWidget()
+        db_layout = QtWidgets.QVBoxLayout(db_content)
         self.map_bg_by_year_check = QtWidgets.QCheckBox(
             "Map background database per year"
         )
@@ -179,18 +213,15 @@ class ConfigureForm(QtWidgets.QWidget):
         resolution_row.addWidget(QtWidgets.QLabel("Inventory resolution"))
         resolution_row.addWidget(self.resolution_combo, 1)
         db_layout.addLayout(resolution_row)
-        layout.addWidget(db_group)
+        self._add_section(
+            layout,
+            "databases",
+            "Background database(s)",
+            db_content,
+        )
 
-        self.advanced_toggle = QtWidgets.QToolButton()
-        self.advanced_toggle.setText("Advanced")
-        self.advanced_toggle.setCheckable(True)
-        self.advanced_toggle.setArrowType(QtCore.Qt.RightArrow)
-        self.advanced_toggle.setToolButtonStyle(QtCore.Qt.ToolButtonTextBesideIcon)
-        layout.addWidget(self.advanced_toggle)
-
-        self.advanced_group = QtWidgets.QGroupBox("Advanced")
-        self.advanced_group.setVisible(False)
-        advanced_layout = QtWidgets.QFormLayout(self.advanced_group)
+        advanced_content = QtWidgets.QWidget()
+        advanced_layout = QtWidgets.QFormLayout(advanced_content)
         self.strict_check = QtWidgets.QCheckBox("Strict activity matching at write")
         self.strict_check.setChecked(True)
         self.cutoff_spin = QtWidgets.QDoubleSpinBox()
@@ -230,26 +261,91 @@ class ConfigureForm(QtWidgets.QWidget):
         advanced_layout.addRow(self.check_check)
         advanced_layout.addRow(self.include_mix_check)
         advanced_layout.addRow(self.retain_hourly_check)
-        layout.addWidget(self.advanced_group)
+        self._add_section(layout, "advanced", "Advanced", advanced_content)
 
-        self.status_label = QtWidgets.QLabel()
-        self.status_label.setWordWrap(True)
-        layout.addWidget(self.status_label)
         layout.addStretch()
 
         scroll.setWidget(body)
         root = QtWidgets.QVBoxLayout(self)
-        root.addWidget(scroll)
+        root.addWidget(scroll, 1)
+
+        self.status_label = QtWidgets.QLabel()
+        self.status_label.setWordWrap(True)
+        root.addWidget(self.status_label)
+
+        create_row = QtWidgets.QHBoxLayout()
+        self.create_status_label = QtWidgets.QLabel(
+            "Create is available when Configure is complete and the workflow "
+            "project matches the currently open project."
+        )
+        self.create_status_label.setWordWrap(True)
+        create_row.addWidget(self.create_status_label, 1)
+        self.create_progress = QtWidgets.QProgressBar()
+        self.create_progress.setRange(0, 0)
+        self.create_progress.setTextVisible(False)
+        self.create_progress.setFixedWidth(120)
+        self.create_progress.hide()
+        create_row.addWidget(self.create_progress)
+        self.create_btn = QtWidgets.QPushButton("Create")
+        style_run_button(self.create_btn)
+        self.create_btn.clicked.connect(self.create_requested.emit)
+        create_row.addWidget(self.create_btn)
+        root.addLayout(create_row)
 
         self._populate_country_lists(set())
         self._wire_signals()
         self.set_config(default_config())
+
+    def _add_section(
+        self,
+        layout: QtWidgets.QVBoxLayout,
+        section_id: str,
+        title: str,
+        content: QtWidgets.QWidget,
+        *,
+        expanded: bool = False,
+    ) -> None:
+        section = ConfigureSection(title, content, expanded=expanded)
+        self._sections[section_id] = section
+        layout.addWidget(section)
+
+    def set_project(
+        self,
+        project_name: str,
+        *,
+        stale: bool = False,
+        current_project_name: str | None = None,
+    ) -> None:
+        self._project_name = project_name
+        self._project_stale = stale
+        self._current_project_name = current_project_name or ""
+        self.project_value.setText(f"Workflow project: {project_name or '(none)'}")
+        section = self._sections.get("project")
+        if section is None:
+            return
+        if stale:
+            current = self._current_project_name or "(unknown)"
+            self.project_mismatch.setText(
+                f"This workflow uses project “{project_name}”. "
+                f"The currently open project is “{current}”. Switch?"
+            )
+            self.project_mismatch.show()
+            self.switch_project_btn.show()
+            section.set_summary(f"{project_name} ≠ {current}")
+            section.set_status("Mismatch", level="error")
+            section.set_expanded(True)
+        else:
+            self.project_mismatch.hide()
+            self.switch_project_btn.hide()
+            section.set_summary(project_name)
+            section.set_status("OK", level="ok")
 
     def set_database_names(self, names: list[str]) -> None:
         self._loading = True
         self._database_names = sorted(names)
         self._refresh_database_combos()
         self._loading = False
+        self._update_section_summaries()
 
     def set_config(self, config: dict) -> None:
         self._loading = True
@@ -321,6 +417,7 @@ class ConfigureForm(QtWidgets.QWidget):
         self._update_tyndp_visibility()
         self._update_bg_db_visibility()
         self._update_output_preview()
+        self._update_section_summaries()
         self._loading = False
 
     def current_config(self) -> dict:
@@ -381,6 +478,20 @@ class ConfigureForm(QtWidgets.QWidget):
 
     def set_status_text(self, text: str) -> None:
         self.status_label.setText(text)
+        if text:
+            self.status_label.setStyleSheet("color: #d32f2f;")
+        else:
+            self.status_label.setStyleSheet("")
+
+    def set_create_status(self, text: str, *, running: bool = False) -> None:
+        self.create_status_label.setText(text)
+        self.create_progress.setVisible(running)
+
+    def set_create_enabled(self, enabled: bool) -> None:
+        self.create_btn.setEnabled(enabled)
+
+    def set_create_label(self, text: str) -> None:
+        self.create_btn.setText(text)
 
     def _wire_signals(self) -> None:
         self.add_year_btn.clicked.connect(self._on_add_year)
@@ -389,7 +500,6 @@ class ConfigureForm(QtWidgets.QWidget):
         self.remove_country_btn.clicked.connect(self._on_remove_countries)
         self.time_mode_group.buttonClicked.connect(self._on_time_mode_changed)
         self.map_bg_by_year_check.toggled.connect(self._on_bg_map_toggled)
-        self.advanced_toggle.toggled.connect(self._on_advanced_toggled)
 
         widgets = [
             self.years_list,
@@ -482,12 +592,6 @@ class ConfigureForm(QtWidgets.QWidget):
             self._rebuild_bg_db_table(self.current_config())
         self._emit_config_changed()
 
-    def _on_advanced_toggled(self, checked: bool) -> None:
-        self.advanced_group.setVisible(checked)
-        self.advanced_toggle.setArrowType(
-            QtCore.Qt.DownArrow if checked else QtCore.Qt.RightArrow
-        )
-
     def _update_time_mode_visibility(self) -> None:
         hour_mode = self.hour_range_radio.isChecked()
         times_mode = self.times_radio.isChecked()
@@ -500,7 +604,7 @@ class ConfigureForm(QtWidgets.QWidget):
 
     def _update_tyndp_visibility(self) -> None:
         visible = needs_tyndp_fields(self.current_config())
-        self.tyndp_group.setVisible(visible)
+        self._sections["tyndp"].setVisible(visible)
 
     def _update_bg_db_visibility(self) -> None:
         by_year = self.map_bg_by_year_check.isChecked()
@@ -519,6 +623,15 @@ class ConfigureForm(QtWidgets.QWidget):
             for year, name in sorted(names.items())
         ]
         self.output_preview.setText("Output preview: " + "; ".join(lines))
+
+    def _update_section_summaries(self) -> None:
+        summaries = configure_section_summaries(self.current_config())
+        for section_id, section in self._sections.items():
+            info = summaries.get(section_id)
+            if info is None:
+                continue
+            section.set_summary(info.summary)
+            section.set_status(info.status, level=info.level)
 
     def _rebuild_bg_db_table(self, config: dict) -> None:
         years = config.get("years") or []
@@ -555,6 +668,7 @@ class ConfigureForm(QtWidgets.QWidget):
             return
         self._update_tyndp_visibility()
         self._update_output_preview()
+        self._update_section_summaries()
         self.config_changed.emit(self.current_config())
 
     @staticmethod

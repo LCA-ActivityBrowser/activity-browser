@@ -48,6 +48,56 @@ def test_is_project_stale():
     assert ctrl.is_project_stale(workflow)
 
 
+def test_pristine_workflow_auto_syncs_to_current_project():
+    project = {"name": "proj-a"}
+    ctrl = ShreccPluginController(project_name_provider=lambda: project["name"])
+    workflow = ctrl.new_workflow()
+    assert workflow.project_name == "proj-a"
+
+    project["name"] = "proj-b"
+    updated = ctrl.sync_pristine_workflows_to_current()
+    assert updated == [workflow.id]
+    assert workflow.project_name == "proj-b"
+    assert not ctrl.is_project_stale(workflow)
+
+
+def test_switch_to_current_project_keeps_config_clears_create():
+    project = {"name": "proj-a"}
+    ctrl = ShreccPluginController(project_name_provider=lambda: project["name"])
+    workflow = ctrl.new_workflow()
+    ctrl.update_config(
+        workflow,
+        {
+            "years": [2021],
+            "countries": ["DE"],
+            "bg_db_name": "bg",
+            "my_db_name": "out",
+        },
+    )
+    ctrl.complete_create(workflow, object(), {"years": [2021]})
+    project["name"] = "proj-b"
+    assert ctrl.is_project_stale(workflow)
+    assert not ctrl.is_pristine(workflow)
+
+    assert ctrl.switch_to_current_project(workflow)
+    assert workflow.project_name == "proj-b"
+    assert workflow.create_status == "idle"
+    assert workflow.create_handle is None
+    assert workflow.config["countries"] == ["DE"]
+    assert not ctrl.is_project_stale(workflow)
+
+
+def test_sync_does_not_auto_rebind_workflows_with_results():
+    project = {"name": "proj-a"}
+    ctrl = ShreccPluginController(project_name_provider=lambda: project["name"])
+    workflow = ctrl.new_workflow()
+    ctrl.complete_create(workflow, object(), {"years": [2021]})
+    project["name"] = "proj-b"
+    assert ctrl.sync_pristine_workflows_to_current() == []
+    assert workflow.project_name == "proj-a"
+    assert ctrl.is_project_stale(workflow)
+
+
 def test_can_start_create_requires_complete_config_and_current_project():
     ctrl = ShreccPluginController(project_name_provider=lambda: "proj-a")
     workflow = ctrl.new_workflow()
@@ -184,17 +234,65 @@ def test_one_job_lock_blocks_write_on_other_workflow():
     assert not ctrl.can_start_write(w2)
 
 
-def test_mark_inspect_stale_clears_create_handle():
+def test_mark_inspect_stale_clears_create_handle_keeps_artifacts():
     ctrl = ShreccPluginController(project_name_provider=lambda: "proj-a")
     workflow = ctrl.new_workflow()
     _fill_complete_config(ctrl, workflow)
-    ctrl.complete_create(workflow, object(), {"years": [2021]})
+    artifacts = {"years": [2021], "summary": [{"year": 2021}]}
+    ctrl.complete_create(workflow, object(), artifacts)
     assert workflow.create_handle is not None
 
     ctrl.mark_inspect_stale(workflow)
     assert workflow.create_status == "stale"
     assert workflow.create_handle is None
+    assert workflow.inspect_artifacts == artifacts
     assert not ctrl.can_start_write(workflow)
+    assert ctrl.is_inspect_stage_available(workflow)
+    assert not ctrl.is_write_stage_available(workflow)
+
+
+def test_stage_availability_and_create_action_label():
+    ctrl = ShreccPluginController(project_name_provider=lambda: "proj-a")
+    workflow = ctrl.new_workflow()
+    assert not ctrl.is_inspect_stage_available(workflow)
+    assert not ctrl.is_write_stage_available(workflow)
+    assert ctrl.create_action_label(workflow) == "Create"
+    assert ctrl.write_action_label(workflow) == "Write"
+
+    _fill_complete_config(ctrl, workflow)
+    artifacts = {"years": [2021], "summary": [{"year": 2021}]}
+    ctrl.complete_create(workflow, object(), artifacts)
+    assert ctrl.is_inspect_stage_available(workflow)
+    assert ctrl.is_write_stage_available(workflow)
+    assert ctrl.create_action_label(workflow) == "Create"
+    assert ctrl.write_action_label(workflow) == "Write"
+
+    ctrl.complete_write(workflow, {2021: "out"})
+    assert ctrl.write_action_label(workflow) == "Write again"
+
+    ctrl.fail_write(workflow, "boom", {})
+    assert ctrl.write_action_label(workflow) == "Write again"
+
+    ctrl.update_config(workflow, {"my_db_name": "changed"})
+    assert workflow.create_status == "stale"
+    assert ctrl.is_inspect_stage_available(workflow)
+    assert not ctrl.is_write_stage_available(workflow)
+    assert ctrl.create_action_label(workflow) == "Create again"
+
+    ctrl.begin_create(workflow)
+    assert workflow.inspect_artifacts == artifacts
+    ctrl.fail_create(workflow, "boom")
+    assert workflow.inspect_artifacts == artifacts
+    assert ctrl.is_inspect_stage_available(workflow)
+    assert not ctrl.is_write_stage_available(workflow)
+    assert ctrl.create_action_label(workflow) == "Create again"
+
+    fresh = ctrl.new_workflow()
+    _fill_complete_config(ctrl, fresh)
+    ctrl.begin_create(fresh)
+    ctrl.fail_create(fresh, "first fail")
+    assert not fresh.inspect_artifacts
+    assert not ctrl.is_inspect_stage_available(fresh)
 
 
 def test_remove_workflow_clears_global_job():

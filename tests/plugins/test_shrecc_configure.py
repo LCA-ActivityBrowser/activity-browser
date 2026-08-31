@@ -103,3 +103,12 @@ def test_background_database_names():
         bg_db_by_year={"2021": "db-a", "2025": "db-b"},
     )
     assert background_database_names(config) == ["db-a", "db-b"]
+
+
+def test_configure_section_summaries_flags_missing_countries():
+    from ab_shrecc.configure_model import configure_section_summaries
+
+    summaries = configure_section_summaries(default_config())
+    assert summaries["countries"].level == "warn"
+    assert summaries["years"].level == "ok"
+    assert summaries["databases"].level == "warn"
