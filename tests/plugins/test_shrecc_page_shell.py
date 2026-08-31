@@ -37,3 +37,12 @@ def test_shrecc_page_starts_with_one_workflow_tab(qtbot):
 
     page.new_btn.click()
     assert page.workflow_tabs.count() == 2
+
+
+def test_shrecc_page_has_three_stage_tabs(qtbot):
+    from ab_shrecc.page import ShreccPluginPage
+
+    page = ShreccPluginPage()
+    qtbot.addWidget(page)
+    panel = page.workflow_tabs.currentWidget()
+    assert panel.stage_tabs.count() == 3
