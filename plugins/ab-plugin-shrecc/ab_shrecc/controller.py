@@ -35,6 +35,9 @@ class WorkflowState:
     config_fingerprint_at_create: Optional[str] = None
     create_handle: Any = None
     create_error: str = ""
+    written_database_names: dict[int, str] = field(default_factory=dict)
+    partial_written_names: dict[int, str] = field(default_factory=dict)
+    write_error: str = ""
 
 
 class ShreccPluginController:
@@ -148,11 +151,42 @@ class ShreccPluginController:
             return False
         if self.global_job is not None:
             return False
+        if workflow.write_status == "running":
+            return False
         return (
             workflow.create_status == "done"
-            and workflow.create_succeeded_unwritten
             and workflow.create_handle is not None
         )
+
+    def begin_write(self, workflow: WorkflowState) -> None:
+        workflow.write_status = "running"
+        workflow.write_error = ""
+        workflow.partial_written_names = {}
+        self.global_job = "write"
+        self.global_job_workflow_id = workflow.id
+
+    def complete_write(self, workflow: WorkflowState, written: dict[int, str]) -> None:
+        workflow.write_status = "done"
+        workflow.written_database_names = dict(written)
+        workflow.partial_written_names = {}
+        workflow.write_error = ""
+        workflow.create_succeeded_unwritten = False
+        self.global_job = None
+        self.global_job_workflow_id = None
+
+    def fail_write(
+        self,
+        workflow: WorkflowState,
+        message: str,
+        partial: dict[int, str],
+    ) -> None:
+        workflow.write_status = "failed"
+        workflow.write_error = message
+        workflow.partial_written_names = dict(partial)
+        if partial:
+            workflow.written_database_names.update(partial)
+        self.global_job = None
+        self.global_job_workflow_id = None
 
     def begin_create(self, workflow: WorkflowState) -> None:
         workflow.create_status = "running"

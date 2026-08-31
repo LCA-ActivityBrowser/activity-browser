@@ -8,6 +8,7 @@ from activity_browser.plugins import ABAbstractPage
 
 from .controller import ShreccPluginController, WorkflowState
 from .create_worker import CreateWorker
+from .write_service import run_write
 from .host_adapter import ShreccPluginHost
 from .workflow_panel import WorkflowPanel
 
@@ -84,6 +85,7 @@ class ShreccPluginPage(ABAbstractPage):
             self.controller,
             signals=self._host_signals,
             start_create=self._start_create,
+            start_write=self._start_write,
         )
         self._panels[workflow.id] = panel
         index = self.workflow_tabs.addTab(panel, workflow.label)
@@ -117,6 +119,42 @@ class ShreccPluginPage(ABAbstractPage):
             lambda wid=workflow_id: self._create_workers.pop(wid, None)
         )
         worker.start()
+
+    def _start_write(self, workflow_id: str) -> None:
+        if self._host is None:
+            return
+        workflow = self.controller.get_workflow(workflow_id)
+        if workflow is None or not self.controller.can_start_write(workflow):
+            return
+        create_handle = workflow.create_handle
+        if create_handle is None:
+            return
+
+        self.controller.begin_write(workflow)
+        self._refresh_all_panels()
+
+        host = self._host
+
+        def do_write():
+            return run_write(create_handle, host.after_database_write)
+
+        result = host.run_blocking_operation(
+            "Writing SHRECC databases",
+            do_write,
+            cancellable=False,
+        )
+        workflow = self.controller.get_workflow(workflow_id)
+        if workflow is None or workflow.write_status != "running":
+            return
+        if result.succeeded:
+            self.controller.complete_write(workflow, result.written)
+        else:
+            self.controller.fail_write(
+                workflow,
+                result.error or "Write failed.",
+                result.written,
+            )
+        self._refresh_all_panels()
 
     def _on_create_completed(
         self,
