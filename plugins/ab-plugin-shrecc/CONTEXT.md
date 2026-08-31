@@ -28,12 +28,12 @@ _Avoid_: inspect stale; stale (alone, in user-facing copy)
 
 ### Configure (stage)
 
-The SHRECC workflow stage where the user edits Create-time settings (years, countries, background databases, TYNDP, time, resolution, and related inventory options). Hosts the **Create** run action. Does not include Write-time output database naming or overwrite confirm.
+The SHRECC workflow stage where the user edits Create-time settings (years, countries, background databases, TYNDP, time, resolution, and related inventory options). Hosts the **Create** run action. Does not include Write-time output database naming or overwrite confirm. Year picking may still allow free entry today; the intended end state is to enable only years for which SHRECC source data is available (prospective years from SHRECC’s TYNDP set; historical years from Energy Charts availability), e.g. a picker built from `suggested_years()` plus prospective styling — deferred follow-up, not current UI.
 _Avoid_: putting output database name on Configure
 
 ### Inspect (stage)
 
-The SHRECC workflow stage that shows Create quality results: mapping gaps, inventory preview, and create log as named collapsible sections (no A–D letter prefixes). Sections start collapsed when Inspect first becomes available. Does not own output naming or the year write-plan table (those live on Write). Enabled after a successful Create; remains available under configuration mismatch; Write does not.
+The SHRECC workflow stage that shows Create quality results: mapping gaps, inventory preview, and create log as named collapsible sections (no A–D letter prefixes). Sections start collapsed when Inspect first becomes available. Does not own output naming or the year write-plan table (those live on Write). Enabled after a successful Create; remains available under configuration mismatch; Write does not. If **Create again** fails after a prior success, Inspect stays available and keeps showing the last successful artifacts (with a failure banner); Write stays blocked until Create succeeds again.
 _Avoid_: Resolved config / output database columns on Inspect
 
 ### Write (stage)
@@ -47,7 +47,7 @@ _Avoid_: treating output database name as Configure / Create input; dual editors
 
 ### Create (action)
 
-Run action on Configure that builds in-memory SHRECC artifacts for Inspect. Not a workflow stage. UI uses a calculation-setup-style run control (forward icon, green button). Label is **Create** on a fresh workflow; **Create again** when retrying after configuration mismatch or a failed Create.
+Run action on Configure that builds in-memory SHRECC artifacts for Inspect. Not a workflow stage. UI uses a green run button (calculation-setup style fill; no forward icon until a plugins-safe icon API exists). Label is **Create** on a fresh workflow; **Create again** when retrying after configuration mismatch or a failed Create.
 _Avoid_: Create stage; Create & inspect
 
 ### TYNDP scenario

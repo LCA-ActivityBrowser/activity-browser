@@ -16,9 +16,11 @@ from .configure_model import (
     normalize_config,
 )
 
-CreateStatus = Literal["idle", "running", "done", "failed", "stale"]
+CreateStatus = Literal["idle", "running", "done", "failed", "config_mismatch"]
 WriteStatus = Literal["idle", "running", "done", "failed"]
 GlobalJob = Literal["create", "write"]
+
+DEFAULT_OUTPUT_DB_BASE_NAME = "shrecc_electricity"
 
 
 @dataclass
@@ -27,6 +29,7 @@ class WorkflowState:
     label: str
     project_name: str
     config: dict[str, Any] = field(default_factory=dict)
+    output_db_base_name: str = DEFAULT_OUTPUT_DB_BASE_NAME
     create_status: CreateStatus = "idle"
     write_status: WriteStatus = "idle"
     inspect_artifacts: dict[str, Any] = field(default_factory=dict)
@@ -75,6 +78,7 @@ class ShreccPluginController:
             label=f"Workflow {self._label_counter}",
             project_name=self.current_project_name(),
             config=copy.deepcopy(source.config),
+            output_db_base_name=source.output_db_base_name,
             dirty=bool(source.config),
         )
         self.workflows.append(workflow)
@@ -98,7 +102,7 @@ class ShreccPluginController:
     def should_confirm_close(self, workflow: WorkflowState) -> bool:
         return workflow.dirty or workflow.create_succeeded_unwritten
 
-    def is_project_stale(self, workflow: WorkflowState) -> bool:
+    def is_project_mismatch(self, workflow: WorkflowState) -> bool:
         return workflow.project_name != self.current_project_name()
 
     def is_pristine(self, workflow: WorkflowState) -> bool:
@@ -107,7 +111,7 @@ class ShreccPluginController:
             return False
         if workflow.create_handle is not None:
             return False
-        if workflow.create_status in ("running", "done", "stale"):
+        if workflow.create_status in ("running", "done", "config_mismatch"):
             return False
         if workflow.write_status in ("running", "done", "failed"):
             return False
@@ -167,27 +171,31 @@ class ShreccPluginController:
     def update_config(self, workflow: WorkflowState, update: dict[str, Any]) -> None:
         workflow.config = merge_config_update(workflow.config, update)
         workflow.dirty = True
-        self._maybe_mark_inspect_stale(workflow)
+        self._maybe_mark_configuration_mismatch(workflow)
 
-    def _maybe_mark_inspect_stale(self, workflow: WorkflowState) -> None:
-        if workflow.create_status not in ("done", "stale"):
+    def update_output_db_base_name(self, workflow: WorkflowState, base_name: str) -> None:
+        """Update Write options naming; does not cause configuration mismatch."""
+        workflow.output_db_base_name = str(base_name or "").strip()
+
+    def _maybe_mark_configuration_mismatch(self, workflow: WorkflowState) -> None:
+        if workflow.create_status not in ("done", "config_mismatch"):
             return
         if workflow.config_fingerprint_at_create is None:
             return
         current = config_fingerprint(self.get_config(workflow))
         if current != workflow.config_fingerprint_at_create:
-            self.mark_inspect_stale(workflow)
+            self.mark_configuration_mismatch(workflow)
 
-    def mark_inspect_stale(self, workflow: WorkflowState) -> None:
+    def mark_configuration_mismatch(self, workflow: WorkflowState) -> None:
         """Mark configuration mismatch; keep last Inspect artifacts for review."""
-        workflow.create_status = "stale"
+        workflow.create_status = "config_mismatch"
         workflow.create_succeeded_unwritten = False
         workflow.create_handle = None
         workflow.create_error = ""
 
     def is_inspect_stage_available(self, workflow: WorkflowState) -> bool:
         """Inspect tab enabled after Create results exist (including mismatch / failed retry)."""
-        if workflow.create_status in ("done", "stale"):
+        if workflow.create_status in ("done", "config_mismatch"):
             return True
         return (
             workflow.create_status == "failed"
@@ -201,7 +209,7 @@ class ShreccPluginController:
         )
 
     def create_action_label(self, workflow: WorkflowState) -> str:
-        if workflow.create_status in ("failed", "stale"):
+        if workflow.create_status in ("failed", "config_mismatch"):
             return "Create again"
         return "Create"
 
@@ -214,7 +222,7 @@ class ShreccPluginController:
         return is_config_complete(self.get_config(workflow))
 
     def can_start_create(self, workflow: WorkflowState) -> bool:
-        if self.is_project_stale(workflow):
+        if self.is_project_mismatch(workflow):
             return False
         if self.global_job is not None:
             return False
@@ -223,11 +231,13 @@ class ShreccPluginController:
         return self.is_config_complete(workflow)
 
     def can_start_write(self, workflow: WorkflowState) -> bool:
-        if self.is_project_stale(workflow):
+        if self.is_project_mismatch(workflow):
             return False
         if self.global_job is not None:
             return False
         if workflow.write_status == "running":
+            return False
+        if not str(workflow.output_db_base_name or "").strip():
             return False
         return (
             workflow.create_status == "done"
@@ -322,10 +332,32 @@ class ShreccPluginController:
         kwargs = build_new_database_kwargs(
             self.get_config(workflow),
             project_name=workflow.project_name,
+            my_db_name=workflow.output_db_base_name,
         )
         if data_dir:
             kwargs["data_dir"] = data_dir
         return kwargs
+
+    def resolved_output_database_names(self, workflow: WorkflowState) -> dict[int, str]:
+        from .write_service import resolve_output_database_names
+
+        years = list(self.get_config(workflow).get("years") or [])
+        handle = workflow.create_handle
+        if handle is not None and getattr(handle, "years", None) is not None:
+            years = [int(year) for year in handle.years]
+        return resolve_output_database_names(
+            base_name=workflow.output_db_base_name,
+            years=years,
+        )
+
+    def apply_write_output_names(self, workflow: WorkflowState) -> dict[int, str]:
+        from .write_service import apply_output_database_names
+
+        if workflow.create_handle is None:
+            raise RuntimeError("Create handle required before Write.")
+        names = self.resolved_output_database_names(workflow)
+        apply_output_database_names(workflow.create_handle, names)
+        return names
 
 
 def _default_project_name() -> str:

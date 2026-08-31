@@ -10,7 +10,7 @@ pip install -e ./plugins/ab-plugin-shrecc
 
 Enable under **Settings → Plugins**, restart AB, then **Plugins → Open SHRECC**.
 
-Requires host APIs from the `plugins` branch (`protect_databases`, `after_database_write`, `run_blocking_operation`).
+Requires host APIs from the `plugins` branch (`protect_databases`, `after_database_write`, `run_blocking_operation`, `safe_bw_connection`).
 
 ## Plugin glossary
 
@@ -43,9 +43,9 @@ CI tests use a **mocked** `NewDatabase` and do not download Energy Charts or TYN
 3. **Brightway project:** Open a project with a suitable background database (e.g. ecoinvent cutoff or premise DB for TYNDP years).
 4. **Enable plugin** in Settings → Plugins; restart AB.
 5. **Plugins → Open SHRECC** — one workflow tab opens by default.
-6. **Configure:** years, countries, time range, background DB, output name; set TYNDP scenario/climate year for prospective years. Use **Create** (bottom of Configure).
-7. **Inspect:** opens after Create; review Resolved config, Mapping gaps, Inventory preview, Create log.
-8. **Write:** Confirm overwrite if needed; write runs modally; check Databases pane for new inventories.
+6. **Configure:** years, countries, time range, background DB; set TYNDP scenario/climate year for prospective years. Use **Create** (bottom of Configure).
+7. **Inspect:** opens after Create; review Mapping gaps, Inventory preview, Create log.
+8. **Write:** set output database base name; review write plan; confirm overwrite if needed; write runs modally; check Databases pane for new inventories.
 
 Optional: set **Settings → SHRECC → Data directory** for SHRECC cache location.
 
