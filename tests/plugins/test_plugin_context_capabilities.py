@@ -140,3 +140,33 @@ def test_run_blocking_operation_raises(main_window, qtbot):
 
     with pytest.raises(ValueError, match="strict mapping failed"):
         ctx.run_blocking_operation("Write databases", boom)
+
+
+def test_safe_bw_connection_exported_and_usable(monkeypatch):
+    """Do not enter the real SafeBWConnection on the test thread (closes peewee)."""
+    from activity_browser.plugins import safe_bw_connection
+
+    calls: list[str] = []
+
+    class _FakeSafeBW:
+        def __enter__(self):
+            calls.append("enter")
+            return self
+
+        def __exit__(self, *args):
+            calls.append("exit")
+            return False
+
+    monkeypatch.setattr(
+        "activity_browser.ui.core.threading.SafeBWConnection",
+        _FakeSafeBW,
+    )
+
+    with safe_bw_connection():
+        pass
+    assert calls == ["enter", "exit"]
+
+    ctx = _ctx()
+    with ctx.safe_bw_connection():
+        pass
+    assert calls == ["enter", "exit", "enter", "exit"]
