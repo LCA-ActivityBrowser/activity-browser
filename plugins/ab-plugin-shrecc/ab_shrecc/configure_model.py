@@ -34,7 +34,6 @@ def default_config() -> dict[str, Any]:
         "map_bg_db_by_year": False,
         "bg_db_name": "",
         "bg_db_by_year": {},
-        "my_db_name": "shrecc_electricity",
         "inventory_resolution": "annual",
         "strict": True,
         "cutoff": 1e-3,
@@ -59,17 +58,21 @@ def normalize_config(config: dict[str, Any] | None) -> dict[str, Any]:
     return merged
 
 
-def preview_database_names(config: dict[str, Any]) -> dict[int, str]:
-    config = normalize_config(config)
-    years = config["years"]
-    base_name = str(config.get("my_db_name") or "").strip()
+def preview_database_names(
+    *,
+    base_name: str,
+    years: list[int],
+) -> dict[int, str]:
+    """Resolve output DB names from a base name and year list."""
+    years = [int(year) for year in years]
+    base = str(base_name or "").strip()
     if not years:
         return {}
     if len(years) == 1:
-        return {years[0]: base_name}
-    if "{year}" in base_name:
-        return {year: base_name.format(year=year) for year in years}
-    return {year: f"{base_name}_{year}" for year in years}
+        return {years[0]: base}
+    if "{year}" in base:
+        return {year: base.format(year=year) for year in years}
+    return {year: f"{base}_{year}" for year in years}
 
 
 def config_completion_errors(config: dict[str, Any]) -> list[str]:
@@ -119,9 +122,6 @@ def config_completion_errors(config: dict[str, Any]) -> list[str]:
     else:
         if not str(config.get("bg_db_name") or "").strip():
             errors.append("Select a background database.")
-
-    if not str(config.get("my_db_name") or "").strip():
-        errors.append("Enter an output database name.")
 
     resolution = str(config.get("inventory_resolution") or "")
     if resolution not in inventory_resolutions():
@@ -264,7 +264,6 @@ def configure_section_summaries(config: dict[str, Any]) -> dict[str, SectionSumm
             level="neutral",
         )
 
-    output_name = str(config.get("my_db_name") or "").strip()
     if config.get("map_bg_db_by_year"):
         by_year = config.get("bg_db_by_year") or {}
         missing = [
@@ -278,33 +277,23 @@ def configure_section_summaries(config: dict[str, Any]) -> dict[str, SectionSumm
                 status="Required",
                 level="warn",
             )
-        elif output_name:
-            previews = preview_database_names(config)
-            preview = "; ".join(
-                f"{year}→{name}" for year, name in sorted(previews.items())
-            )
-            summaries["databases"] = SectionSummary(
-                summary=f"Mapped by year; output {preview}",
-                status="Complete",
-                level="ok",
-            )
         else:
             summaries["databases"] = SectionSummary(
-                summary="Per-year background mapping",
-                status="Required",
-                level="warn",
+                summary="Mapped by year",
+                status="Complete",
+                level="ok",
             )
     else:
         bg_name = str(config.get("bg_db_name") or "").strip()
-        if bg_name and output_name:
+        if bg_name:
             summaries["databases"] = SectionSummary(
-                summary=f"Background {bg_name}; output {output_name}",
+                summary=f"Background {bg_name}",
                 status="Complete",
                 level="ok",
             )
         else:
             summaries["databases"] = SectionSummary(
-                summary="Background and output names",
+                summary="Background database",
                 status="Required",
                 level="warn",
             )
@@ -333,11 +322,16 @@ def build_new_database_kwargs(
     config: dict[str, Any],
     *,
     project_name: str,
+    my_db_name: str | None = None,
 ) -> dict[str, Any]:
     if not is_config_complete(config):
         raise ValueError("Configure form is incomplete.")
 
     config = normalize_config(config)
+    output_name = str(my_db_name or config.get("my_db_name") or "").strip()
+    if not output_name:
+        raise ValueError("Output database base name is required.")
+
     kwargs: dict[str, Any] = {
         "years": config["years"],
         "countries": config["countries"],
@@ -356,7 +350,7 @@ def build_new_database_kwargs(
         "check": bool(config["check"]),
         "include_consumption_mix_volume": bool(config["include_consumption_mix_volume"]),
         "retain_hourly_results": bool(config["retain_hourly_results"]),
-        "my_db_name": config["my_db_name"],
+        "my_db_name": output_name,
     }
 
     if config.get("map_bg_db_by_year"):
@@ -437,6 +431,9 @@ def background_database_names_from_kwargs(kwargs: dict[str, Any]) -> list[str]:
 
 
 def config_fingerprint(config: dict[str, Any]) -> str:
+    """Fingerprint Create-time config only (excludes Write-options naming)."""
     import json
 
-    return json.dumps(normalize_config(config), sort_keys=True, default=str)
+    data = normalize_config(config)
+    data.pop("my_db_name", None)
+    return json.dumps(data, sort_keys=True, default=str)

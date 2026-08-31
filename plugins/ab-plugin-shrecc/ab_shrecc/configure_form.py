@@ -8,8 +8,6 @@ from .configure_model import (
     configure_section_summaries,
     default_config,
     normalize_config,
-    preview_database_names,
-    resolved_sources,
 )
 from .configure_section import ConfigureSection
 from .run_button import style_run_button
@@ -71,7 +69,7 @@ class ConfigureForm(QtWidgets.QWidget):
         project_layout.addWidget(self.project_hint)
         self._add_section(layout, "project", "Project", project_content)
         self._project_name = ""
-        self._project_stale = False
+        self._project_mismatch = False
         self._current_project_name = ""
 
         years_content = QtWidgets.QWidget()
@@ -198,14 +196,6 @@ class ConfigureForm(QtWidgets.QWidget):
         self.bg_db_table.setHorizontalHeaderLabels(["Year", "Background database"])
         self.bg_db_table.horizontalHeader().setStretchLastSection(True)
         db_layout.addWidget(self.bg_db_table)
-        output_row = QtWidgets.QHBoxLayout()
-        self.my_db_name_edit = QtWidgets.QLineEdit()
-        output_row.addWidget(QtWidgets.QLabel("Output database base name"))
-        output_row.addWidget(self.my_db_name_edit, 1)
-        db_layout.addLayout(output_row)
-        self.output_preview = QtWidgets.QLabel()
-        self.output_preview.setWordWrap(True)
-        db_layout.addWidget(self.output_preview)
         self.resolution_combo = QtWidgets.QComboBox()
         for resolution in inventory_resolutions():
             self.resolution_combo.addItem(resolution, resolution)
@@ -313,17 +303,17 @@ class ConfigureForm(QtWidgets.QWidget):
         self,
         project_name: str,
         *,
-        stale: bool = False,
+        project_mismatch: bool = False,
         current_project_name: str | None = None,
     ) -> None:
         self._project_name = project_name
-        self._project_stale = stale
+        self._project_mismatch = project_mismatch
         self._current_project_name = current_project_name or ""
         self.project_value.setText(f"Workflow project: {project_name or '(none)'}")
         section = self._sections.get("project")
         if section is None:
             return
-        if stale:
+        if project_mismatch:
             current = self._current_project_name or "(unknown)"
             self.project_mismatch.setText(
                 f"This workflow uses project “{project_name}”. "
@@ -385,7 +375,6 @@ class ConfigureForm(QtWidgets.QWidget):
         self.map_bg_by_year_check.setChecked(bool(config.get("map_bg_db_by_year")))
         self._set_combo_text(self.bg_db_combo, config.get("bg_db_name", ""))
         self._rebuild_bg_db_table(config)
-        self.my_db_name_edit.setText(config.get("my_db_name", ""))
         self._set_combo_data(
             self.resolution_combo,
             config.get("inventory_resolution", "annual"),
@@ -416,7 +405,6 @@ class ConfigureForm(QtWidgets.QWidget):
         self._update_time_mode_visibility()
         self._update_tyndp_visibility()
         self._update_bg_db_visibility()
-        self._update_output_preview()
         self._update_section_summaries()
         self._loading = False
 
@@ -460,7 +448,6 @@ class ConfigureForm(QtWidgets.QWidget):
             "map_bg_db_by_year": self.map_bg_by_year_check.isChecked(),
             "bg_db_name": self.bg_db_combo.currentText().strip(),
             "bg_db_by_year": bg_db_by_year,
-            "my_db_name": self.my_db_name_edit.text().strip(),
             "inventory_resolution": self.resolution_combo.currentData(),
             "strict": self.strict_check.isChecked(),
             "cutoff": self.cutoff_spin.value(),
@@ -514,7 +501,6 @@ class ConfigureForm(QtWidgets.QWidget):
             self.climate_year_combo,
             self.iam_combo,
             self.bg_db_combo,
-            self.my_db_name_edit,
             self.resolution_combo,
             self.strict_check,
             self.cutoff_spin,
@@ -611,19 +597,6 @@ class ConfigureForm(QtWidgets.QWidget):
         self.bg_db_combo.setVisible(not by_year)
         self.bg_db_table.setVisible(by_year)
 
-    def _update_output_preview(self) -> None:
-        config = self.current_config()
-        names = preview_database_names(config)
-        if not names:
-            self.output_preview.setText("Output preview: (configure years and name)")
-            return
-        sources = resolved_sources(config)
-        lines = [
-            f"{year}: {name} ({sources.get(year, '?')})"
-            for year, name in sorted(names.items())
-        ]
-        self.output_preview.setText("Output preview: " + "; ".join(lines))
-
     def _update_section_summaries(self) -> None:
         summaries = configure_section_summaries(self.current_config())
         for section_id, section in self._sections.items():
@@ -667,7 +640,6 @@ class ConfigureForm(QtWidgets.QWidget):
         if self._loading:
             return
         self._update_tyndp_visibility()
-        self._update_output_preview()
         self._update_section_summaries()
         self.config_changed.emit(self.current_config())
 
