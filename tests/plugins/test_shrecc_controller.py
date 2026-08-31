@@ -119,6 +119,44 @@ def test_can_start_write_requires_done_create_and_current_project():
     assert not ctrl.can_start_write(workflow)
 
 
+def test_can_rewrite_after_successful_write():
+    ctrl = ShreccPluginController(project_name_provider=lambda: "proj-a")
+    workflow = ctrl.new_workflow()
+    _fill_complete_config(ctrl, workflow)
+    handle = object()
+    ctrl.complete_create(workflow, handle, {"years": [2021]})
+    ctrl.complete_write(workflow, {2021: "out-db"})
+    assert not workflow.create_succeeded_unwritten
+    assert ctrl.can_start_write(workflow)
+
+
+def test_one_job_lock_blocks_write_while_create_running():
+    ctrl = ShreccPluginController(project_name_provider=lambda: "proj-a")
+    workflow = ctrl.new_workflow()
+    _fill_complete_config(ctrl, workflow)
+    ctrl.begin_create(workflow)
+    assert not ctrl.can_start_write(workflow)
+
+
+def test_write_lifecycle_complete_and_fail():
+    ctrl = ShreccPluginController(project_name_provider=lambda: "proj-a")
+    workflow = ctrl.new_workflow()
+    _fill_complete_config(ctrl, workflow)
+    ctrl.complete_create(workflow, object(), {"years": [2021]})
+
+    ctrl.begin_write(workflow)
+    assert ctrl.global_job == "write"
+    ctrl.complete_write(workflow, {2021: "out"})
+    assert workflow.write_status == "done"
+    assert workflow.written_database_names == {2021: "out"}
+    assert ctrl.global_job is None
+
+    ctrl.begin_write(workflow)
+    ctrl.fail_write(workflow, "boom", {2021: "out"})
+    assert workflow.write_status == "failed"
+    assert workflow.partial_written_names == {2021: "out"}
+
+
 def _fill_complete_config(ctrl, workflow):
     ctrl.update_config(
         workflow,

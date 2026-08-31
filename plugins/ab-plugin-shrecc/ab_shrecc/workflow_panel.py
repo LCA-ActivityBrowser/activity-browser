@@ -11,6 +11,7 @@ from .configure_form import ConfigureForm
 from .configure_model import config_completion_errors
 from .controller import ShreccPluginController, WorkflowState
 from .inspect_panel import InspectPanel
+from .write_panel import WritePanel
 
 
 class WorkflowPanel(QtWidgets.QWidget):
@@ -21,6 +22,7 @@ class WorkflowPanel(QtWidgets.QWidget):
         *,
         signals=None,
         start_create: Optional[Callable[[str], None]] = None,
+        start_write: Optional[Callable[[str], None]] = None,
         parent=None,
     ):
         super().__init__(parent)
@@ -28,6 +30,7 @@ class WorkflowPanel(QtWidgets.QWidget):
         self.controller = controller
         self._host_signals = signals
         self._start_create = start_create
+        self._start_write = start_write
 
         layout = QtWidgets.QVBoxLayout(self)
         self.project_label = QtWidgets.QLabel()
@@ -56,13 +59,19 @@ class WorkflowPanel(QtWidgets.QWidget):
         inspect_layout.addWidget(self.create_btn)
         self.inspect_panel = InspectPanel()
         inspect_layout.addWidget(self.inspect_panel, 1)
-        self._create_inspect_index = self.stage_tabs.addTab(
+        self.stage_tabs.addTab(
             inspect_widget,
             ids.STAGE_LABELS[ids.STAGE_CREATE_INSPECT],
         )
 
+        self.write_panel = WritePanel(
+            workflow,
+            controller,
+            start_write=start_write,
+            existing_databases=_database_names,
+        )
         self._write_index = self.stage_tabs.addTab(
-            self._placeholder_stage("Write Brightway databases (ticket 16)."),
+            self.write_panel,
             ids.STAGE_LABELS[ids.STAGE_WRITE],
         )
         self.stage_tabs.setTabEnabled(self._write_index, False)
@@ -75,13 +84,6 @@ class WorkflowPanel(QtWidgets.QWidget):
 
         self.refresh()
         self.configure_form.config_changed.connect(self._on_config_changed)
-
-    def _placeholder_stage(self, message: str) -> QtWidgets.QWidget:
-        widget = QtWidgets.QWidget()
-        inner = QtWidgets.QVBoxLayout(widget)
-        inner.addWidget(QtWidgets.QLabel(message))
-        inner.addStretch()
-        return widget
 
     def _on_config_changed(self, config: dict) -> None:
         self.controller.update_config(self.workflow, config)
@@ -158,8 +160,12 @@ class WorkflowPanel(QtWidgets.QWidget):
             self.inspect_panel.set_artifacts(None)
 
     def _refresh_write_tab(self) -> None:
-        enabled = self.controller.can_start_write(self.workflow)
-        self.stage_tabs.setTabEnabled(self._write_index, enabled)
+        can_open = (
+            self.workflow.create_status == "done"
+            and self.workflow.create_handle is not None
+        )
+        self.stage_tabs.setTabEnabled(self._write_index, can_open)
+        self.write_panel.refresh()
 
 
 def _database_names() -> list[str]:
