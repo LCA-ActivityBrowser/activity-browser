@@ -101,6 +101,57 @@ class ShreccPluginController:
     def is_project_stale(self, workflow: WorkflowState) -> bool:
         return workflow.project_name != self.current_project_name()
 
+    def is_pristine(self, workflow: WorkflowState) -> bool:
+        """True when the tab has no meaningful work tied to its workflow project."""
+        if workflow.dirty or workflow.create_succeeded_unwritten:
+            return False
+        if workflow.create_handle is not None:
+            return False
+        if workflow.create_status in ("running", "done", "stale"):
+            return False
+        if workflow.write_status in ("running", "done", "failed"):
+            return False
+        if self.global_job_workflow_id == workflow.id:
+            return False
+        return True
+
+    def switch_to_current_project(self, workflow: WorkflowState) -> bool:
+        """Rebind workflow to the current Brightway project.
+
+        Clears in-memory create/write results (they belong to the old project).
+        Keeps Configure values. Returns True when the workflow project changed.
+        """
+        current = self.current_project_name()
+        if workflow.project_name == current:
+            return False
+        if workflow.create_status == "running" or workflow.write_status == "running":
+            raise RuntimeError("Cannot switch project while a job is running.")
+        workflow.project_name = current
+        workflow.create_status = "idle"
+        workflow.write_status = "idle"
+        workflow.create_succeeded_unwritten = False
+        workflow.inspect_artifacts = {}
+        workflow.create_handle = None
+        workflow.create_error = ""
+        workflow.config_fingerprint_at_create = None
+        workflow.written_database_names = {}
+        workflow.partial_written_names = {}
+        workflow.write_error = ""
+        return True
+
+    def sync_pristine_workflows_to_current(self) -> list[str]:
+        """Auto-rebind empty workflows to the current project. Returns updated ids."""
+        updated: list[str] = []
+        current = self.current_project_name()
+        for workflow in self.workflows:
+            if not self.is_pristine(workflow):
+                continue
+            if workflow.project_name == current:
+                continue
+            workflow.project_name = current
+            updated.append(workflow.id)
+        return updated
+
     def job_status_text(self) -> str:
         if self.global_job is None:
             return "App job: idle"
@@ -128,11 +179,36 @@ class ShreccPluginController:
             self.mark_inspect_stale(workflow)
 
     def mark_inspect_stale(self, workflow: WorkflowState) -> None:
+        """Mark configuration mismatch; keep last Inspect artifacts for review."""
         workflow.create_status = "stale"
         workflow.create_succeeded_unwritten = False
-        workflow.inspect_artifacts = {}
         workflow.create_handle = None
         workflow.create_error = ""
+
+    def is_inspect_stage_available(self, workflow: WorkflowState) -> bool:
+        """Inspect tab enabled after Create results exist (including mismatch / failed retry)."""
+        if workflow.create_status in ("done", "stale"):
+            return True
+        return (
+            workflow.create_status == "failed"
+            and bool(workflow.inspect_artifacts)
+        )
+
+    def is_write_stage_available(self, workflow: WorkflowState) -> bool:
+        """Write tab enabled only for a current successful Create (not mismatch)."""
+        return (
+            workflow.create_status == "done" and workflow.create_handle is not None
+        )
+
+    def create_action_label(self, workflow: WorkflowState) -> str:
+        if workflow.create_status in ("failed", "stale"):
+            return "Create again"
+        return "Create"
+
+    def write_action_label(self, workflow: WorkflowState) -> str:
+        if workflow.write_status in ("failed", "done"):
+            return "Write again"
+        return "Write"
 
     def is_config_complete(self, workflow: WorkflowState) -> bool:
         return is_config_complete(self.get_config(workflow))
@@ -191,7 +267,7 @@ class ShreccPluginController:
     def begin_create(self, workflow: WorkflowState) -> None:
         workflow.create_status = "running"
         workflow.create_error = ""
-        workflow.inspect_artifacts = {}
+        # Keep prior Inspect artifacts visible until Create completes or fails.
         workflow.create_handle = None
         workflow.create_succeeded_unwritten = False
         workflow.config_fingerprint_at_create = None
@@ -219,7 +295,7 @@ class ShreccPluginController:
     def fail_create(self, workflow: WorkflowState, message: str) -> None:
         workflow.create_status = "failed"
         workflow.create_error = message
-        workflow.inspect_artifacts = {}
+        # Keep last Inspect artifacts if Create again fails after a prior success.
         workflow.create_handle = None
         workflow.create_succeeded_unwritten = False
         workflow.config_fingerprint_at_create = None
