@@ -8,7 +8,7 @@ from activity_browser.plugins import ABAbstractPage
 
 from .controller import ShreccPluginController, WorkflowState
 from .create_worker import CreateWorker
-from .write_service import run_write
+from .write_service import refresh_written_databases, run_write
 from .host_adapter import ShreccPluginHost
 from .workflow_panel import WorkflowPanel
 
@@ -43,10 +43,9 @@ class ShreccPluginPage(ABAbstractPage):
         toolbar.addWidget(self.duplicate_btn)
         toolbar.addWidget(self.close_btn)
         toolbar.addStretch()
-        root.addLayout(toolbar)
-
         self.job_banner = QtWidgets.QLabel()
-        root.addWidget(self.job_banner)
+        toolbar.addWidget(self.job_banner)
+        root.addLayout(toolbar)
 
         self.workflow_tabs = QtWidgets.QTabWidget()
         self.workflow_tabs.setTabsClosable(True)
@@ -61,11 +60,13 @@ class ShreccPluginPage(ABAbstractPage):
         if self._host_signals is not None:
             self._host_signals.project.changed.connect(self._on_project_changed)
 
-        self._ensure_workflow_tab()
         self._refresh_job_banner()
 
     def showEvent(self, event):
+        # Bind workflows when the page is actually shown, using the live project.
+        self.controller.sync_pristine_workflows_to_current()
         self._ensure_workflow_tab()
+        self._refresh_all_panels()
         super().showEvent(event)
 
     def _plugin_data_dir(self) -> str | None:
@@ -86,6 +87,7 @@ class ShreccPluginPage(ABAbstractPage):
             signals=self._host_signals,
             start_create=self._start_create,
             start_write=self._start_write,
+            switch_project=self._switch_workflow_project,
         )
         self._panels[workflow.id] = panel
         index = self.workflow_tabs.addTab(panel, workflow.label)
@@ -135,14 +137,14 @@ class ShreccPluginPage(ABAbstractPage):
 
         host = self._host
 
-        def do_write():
-            return run_write(create_handle, host.after_database_write)
-
         result = host.run_blocking_operation(
             "Writing SHRECC databases",
-            do_write,
+            lambda: run_write(create_handle),
             cancellable=False,
         )
+        # Refresh metadata only after the write thread releases SQLite.
+        refresh_written_databases(result.written, host.after_database_write)
+
         workflow = self.controller.get_workflow(workflow_id)
         if workflow is None or workflow.write_status != "running":
             return
@@ -167,12 +169,50 @@ class ShreccPluginPage(ABAbstractPage):
             return
         self.controller.complete_create(workflow, create_handle, artifacts)
         self._refresh_all_panels()
+        panel = self._panels.get(workflow_id)
+        if panel is not None:
+            panel.select_inspect_stage()
 
     def _on_create_failed(self, workflow_id: str, message: str) -> None:
         workflow = self.controller.get_workflow(workflow_id)
         if workflow is None or workflow.create_status != "running":
             return
         self.controller.fail_create(workflow, message)
+        self._refresh_all_panels()
+
+    def _switch_workflow_project(self, workflow_id: str) -> None:
+        workflow = self.controller.get_workflow(workflow_id)
+        if workflow is None:
+            return
+        if not self.controller.is_project_stale(workflow):
+            return
+        if workflow.create_status == "running" or workflow.write_status == "running":
+            QtWidgets.QMessageBox.information(
+                self,
+                "Job running",
+                "Wait for the current create/write job to finish before switching projects.",
+            )
+            return
+        if (
+            workflow.create_succeeded_unwritten
+            or workflow.create_handle is not None
+            or workflow.inspect_artifacts
+        ):
+            answer = QtWidgets.QMessageBox.question(
+                self,
+                "Switch project?",
+                (
+                    f"Switch this workflow from “{workflow.project_name}” to "
+                    f"“{self.controller.current_project_name()}”?\n\n"
+                    "In-memory Create/Inspect results will be discarded. "
+                    "Configure values are kept."
+                ),
+                QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
+                QtWidgets.QMessageBox.No,
+            )
+            if answer != QtWidgets.QMessageBox.Yes:
+                return
+        self.controller.switch_to_current_project(workflow)
         self._refresh_all_panels()
 
     def _on_project_changed(self, *args) -> None:
@@ -189,6 +229,9 @@ class ShreccPluginPage(ABAbstractPage):
                 "Create abandoned",
                 "Project changed during create. In-memory results were discarded.",
             )
+        # Empty tabs follow the new project; tabs with work keep their workflow
+        # project and show Switch when mismatched.
+        self.controller.sync_pristine_workflows_to_current()
         self._refresh_all_panels()
 
     def _current_workflow_id(self) -> str | None:

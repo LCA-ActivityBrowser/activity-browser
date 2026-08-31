@@ -140,8 +140,11 @@ def test_happy_path_configure_create_inspect_write(qtbot, monkeypatch, recording
     qtbot.waitUntil(lambda: workflow.create_status == "done", timeout=5000)
 
     assert workflow.inspect_artifacts.get("summary")
+    assert panel.stage_tabs.isTabEnabled(panel._inspect_index)
     assert panel.stage_tabs.isTabEnabled(panel._write_index)
+    assert panel.stage_tabs.currentIndex() == panel._inspect_index
     assert panel.write_panel.write_btn.isEnabled()
+    assert panel.create_btn.text() == "Create"
 
     page._start_write(workflow.id)
 
