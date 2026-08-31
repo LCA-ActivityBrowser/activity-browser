@@ -225,3 +225,30 @@ def merge_config_update(
     merged = normalize_config(current)
     merged.update(deepcopy(update))
     return normalize_config(merged)
+
+
+def background_database_names(config: dict[str, Any]) -> list[str]:
+    config = normalize_config(config)
+    if config.get("map_bg_db_by_year"):
+        by_year = config.get("bg_db_by_year") or {}
+        names = {
+            str(by_year.get(str(year)) or by_year.get(year) or "").strip()
+            for year in config["years"]
+        }
+        return sorted(name for name in names if name)
+    name = str(config.get("bg_db_name") or "").strip()
+    return [name] if name else []
+
+
+def background_database_names_from_kwargs(kwargs: dict[str, Any]) -> list[str]:
+    bg_db = kwargs.get("bg_db_name")
+    if isinstance(bg_db, dict):
+        return sorted({str(name).strip() for name in bg_db.values() if str(name).strip()})
+    name = str(bg_db or "").strip()
+    return [name] if name else []
+
+
+def config_fingerprint(config: dict[str, Any]) -> str:
+    import json
+
+    return json.dumps(normalize_config(config), sort_keys=True, default=str)

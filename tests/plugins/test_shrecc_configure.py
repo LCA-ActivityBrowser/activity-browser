@@ -92,3 +92,14 @@ def test_per_year_background_mapping():
     )
     kwargs = build_new_database_kwargs(config, project_name="proj-a")
     assert kwargs["bg_db_name"] == {2021: "db-a", 2025: "db-b"}
+
+
+def test_background_database_names():
+    from ab_shrecc.configure_model import background_database_names
+
+    config = _complete_config(
+        years=[2021, 2025],
+        map_bg_db_by_year=True,
+        bg_db_by_year={"2021": "db-a", "2025": "db-b"},
+    )
+    assert background_database_names(config) == ["db-a", "db-b"]
