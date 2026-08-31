@@ -8,6 +8,7 @@ from activity_browser.ui.widgets.abstract_pane import ABAbstractPane
 
 from .context import PluginContext
 from .host_ui import reveal_page, reveal_pane
+from .safe_bw_connection import safe_bw_connection
 from .version import PLUGINS_API_VERSION
 
 __all__ = [
@@ -19,4 +20,5 @@ __all__ = [
     "BaseSettingsChapter",
     "reveal_page",
     "reveal_pane",
+    "safe_bw_connection",
 ]

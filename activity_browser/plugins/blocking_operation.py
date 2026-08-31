@@ -6,8 +6,9 @@ from typing import Any, Callable
 
 from qtpy import QtCore, QtWidgets
 
-from activity_browser.ui.core.threading import SafeBWConnection
 from activity_browser.ui.dialogs import ABProgressDialog
+
+from .safe_bw_connection import safe_bw_connection
 
 
 class _PluginBlockingThread(QtCore.QThread):
@@ -18,7 +19,7 @@ class _PluginBlockingThread(QtCore.QThread):
         self.result: Any = None
 
     def run(self) -> None:
-        with SafeBWConnection():
+        with safe_bw_connection():
             try:
                 self.result = self._func()
             except BaseException as exc:

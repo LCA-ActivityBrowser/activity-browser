@@ -209,3 +209,11 @@ class PluginContext:
         if parent is None:
             raise RuntimeError("run_blocking_operation requires Activity Browser main window")
         return _run(parent, title, func, cancellable=cancellable)
+
+    @contextmanager
+    def safe_bw_connection(self) -> Iterator[None]:
+        """Close Brightway/peewee connections for this thread on exit (worker threads)."""
+        from .safe_bw_connection import safe_bw_connection as _safe
+
+        with _safe():
+            yield
