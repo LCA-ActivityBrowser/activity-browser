@@ -1,4 +1,3 @@
-import ast
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Optional, Union
@@ -8,7 +7,7 @@ import pandas as pd
 
 from ..errors import *
 from .dataframe import ensure_string_scenario_names
-from .excel import valid_cols
+from .excel import convert_tuple_str, valid_cols
 
 
 
@@ -231,7 +230,12 @@ class ABCSVImporter(ABFileImporter):
                 index_col=False,
                 comment="#",
                 usecols=valid_cols,
-                converters={"from key": ast.literal_eval, "to key": ast.literal_eval},
             )
+        # Convert after reading, as the Excel reader does: pandas converters see
+        # empty cells as "" instead of NaN, so keys left empty on purpose would
+        # never be looked up. Categories must be tuples to match biosphere flows.
+        columns = ["from categories", "from key", "to categories", "to key"]
+        if set(columns).issubset(df.columns):
+            df.loc[:, columns] = df[columns].map(convert_tuple_str)
         # Scenario headers typed as numbers (e.g. 2025) must be strings.
         return ensure_string_scenario_names(df)
