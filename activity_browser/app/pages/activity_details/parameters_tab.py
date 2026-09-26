@@ -304,6 +304,7 @@ class ParametersModel(core.ABTreeModel):
         if column_name in ["amount", "formula", "name", "comment"]:
             parameter = refresh_parameter(parameter)
             app.actions.ParameterModify.run(parameter, column_name, value)
+            return True
 
         if column_name == "uncertainty":
             database = row.get("_database")
