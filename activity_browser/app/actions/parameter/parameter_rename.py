@@ -7,6 +7,7 @@ from activity_browser.app.actions.base import ABAction, exception_dialogs
 from activity_browser.ui.icons import qicons
 from activity_browser.bwutils.utils import Parameter
 from activity_browser.bwutils.commontasks import refresh_parameter
+from activity_browser.bwutils.parameters.names import parameter_name_error
 
 
 class ParameterRename(ABAction):
@@ -29,8 +30,11 @@ class ParameterRename(ABAction):
         if not new_name:
             return
 
-        if not new_name.isidentifier():
-            raise ValueError("Parameter name must be a valid Python identifier")
+        if error := parameter_name_error(new_name):
+            QtWidgets.QMessageBox.warning(
+                app.main_window, "Invalid parameter name", error
+            )
+            return
 
         getattr(parameters, f"rename_{parameter.param_type}_parameter")(
                 parameter.to_peewee_model(), new_name, update_dependencies=True
