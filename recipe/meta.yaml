@@ -41,7 +41,7 @@ requirements:
     - pyside2 >=5.15.5
     - qt-webengine
     - qtpy
-    - salib >=1.4
+    - salib >=1.4,<1.6
     - scipy >=1.10
 
 about:

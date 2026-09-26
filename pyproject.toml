@@ -53,7 +53,7 @@ dependencies = [
     "pypardiso ; platform_system == 'Windows'",
     "pyprind",
     "qtpy",
-    "salib>=1.4",
+    "salib>=1.4,<1.6",  # NOTE: 1.6 renamed and re-estimated the delta indices
     "scipy>=1.10",
     "loguru>=0.7",
 ]
