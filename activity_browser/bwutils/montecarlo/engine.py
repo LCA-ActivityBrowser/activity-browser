@@ -159,7 +159,8 @@ class MonteCarloLCA(object):
         """Run Monte Carlo LCA with optional technosphere, biosphere, CF, parameter, and scenario amounts."""
         start = time()
         self.iterations = iterations
-        self.seed = seed or bc.utils.get_seed()
+        # NOTE: 0 is a valid seed, so test for None rather than falsiness.
+        self.seed = seed if seed is not None else bc.utils.get_seed()
         self.include_technosphere = kwargs.get("technosphere", True)
         self.include_biosphere = kwargs.get("biosphere", True)
         self.include_cfs = kwargs.get("cf", True)
