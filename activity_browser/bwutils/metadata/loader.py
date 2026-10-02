@@ -1,6 +1,7 @@
 import sqlite3
 import pickle
 import os
+import threading
 from multiprocessing import Pool
 from loguru import logger
 from typing import Literal
@@ -31,6 +32,7 @@ class MDSLoader(QObject):
         self.thread: QThread | None = None
         self._result_slot = None
         self._pending_database_loads: list[str] = []
+        ensure_database_reload_scheduler(parent=mds)
         self.connect_signals()
 
     def connect_signals(self):
@@ -420,7 +422,7 @@ _reload_scheduler: "_DatabaseReloadScheduler | None" = None
 
 
 class _DatabaseReloadScheduler(QObject):
-    """Marshal single-database metadata reloads onto the Qt GUI thread."""
+    """Queue Metadata store reloads onto the Qt GUI thread."""
 
     reload_requested = Signal(str)
 
@@ -435,11 +437,57 @@ class _DatabaseReloadScheduler(QObject):
         app.metadata.loader.load_database(db_name)
 
 
-def schedule_database_metadata_reload(db_name: str) -> None:
-    """Queue a per-database metadata reload on the Qt GUI thread."""
+def ensure_database_reload_scheduler(parent: QObject | None = None) -> None:
+    """Create the GUI-thread reload scheduler once (call from loader init on GUI)."""
+    global _reload_scheduler
+    if _reload_scheduler is not None:
+        return
     from activity_browser import app
 
-    global _reload_scheduler
+    _reload_scheduler = _DatabaseReloadScheduler(
+        parent=parent if parent is not None else app.application
+    )
+
+
+def schedule_database_metadata_reload(db_name: str) -> None:
+    """Ask the GUI thread to reload one database in the Metadata store.
+
+    The reload scheduler must already exist (created at MDS loader init on the
+    GUI thread). This function only emits.
+    """
     if _reload_scheduler is None:
-        _reload_scheduler = _DatabaseReloadScheduler(parent=app.application)
+        raise RuntimeError(
+            "Metadata reload scheduler was not created on the GUI thread; "
+            "ensure MDSLoader initialized before scheduling reloads"
+        )
     _reload_scheduler.reload_requested.emit(db_name)
+
+
+# --- Hold reloads while a worker still has Brightway SQLite open (ADR-0013) ---
+# ``_hold.names is None`` → apply immediately; ``set`` → remember until release.
+
+_hold = threading.local()
+
+
+def hold_metadata_reloads() -> None:
+    """Remember written databases instead of reloading until ``release_metadata_reloads``."""
+    _hold.names = set()
+
+
+def release_metadata_reloads() -> None:
+    """Reload every database remembered while holding, then stop holding."""
+    names = getattr(_hold, "names", None)
+    _hold.names = None
+    if not names:
+        return
+    for database_name in sorted(names):
+        schedule_database_metadata_reload(database_name)
+
+
+def request_metadata_reload(database_name: str) -> None:
+    """Reload now, or remember ``database_name`` if ``hold_metadata_reloads`` is active."""
+    names = getattr(_hold, "names", None)
+    if names is not None:
+        names.add(database_name)
+        return
+    schedule_database_metadata_reload(database_name)
