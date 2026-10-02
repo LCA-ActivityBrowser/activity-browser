@@ -277,6 +277,21 @@ def test_rebuild_keeps_index_rows_from_other_databases():
 
 
 @bw2test
+def test_signaling_database_write_rebuilds_parameterized_flow_index():
+    """Write with signal=True rebuilds the index via ABSignals on on_database_write."""
+    from activity_browser import app  # noqa: F401 — connect ABSignals
+
+    write_functional_database("basic", DATABASE, process=True)
+    ParameterizedExchange.delete().execute()
+    assert ParameterizedExchange.select().count() == 0
+
+    db = bd.Database("basic")
+    db.write(db.load(), signal=True)
+
+    assert [row.formula for row in ParameterizedExchange.select()] == ["5+5"]
+
+
+@bw2test
 def test_excel_importer_extra_sends_database_write(monkeypatch):
     from types import SimpleNamespace
 

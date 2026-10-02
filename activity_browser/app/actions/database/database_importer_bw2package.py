@@ -9,10 +9,7 @@ from activity_browser.app.actions.base import ABAction, exception_dialogs
 from activity_browser.app.actions.database.database_relink import DatabaseLinkingDialog
 from activity_browser.ui import icons, widgets
 from activity_browser.bwutils.importers import ABPackage
-from activity_browser.bwutils.metadata.loader import schedule_database_metadata_reload
 from activity_browser.ui.core import threading
-
-
 
 
 class DatabaseImporterBW2Package(ABAction):
@@ -121,15 +118,6 @@ class ImportSetup(widgets.ABWizard):
         title = "Importing Database"
         subtitle = "Importing database from .bw2package file"
 
-        def __init__(self, parent=None):
-            super().__init__(parent)
-            self._import_database_name: str | None = None
-            self.thread.finished.connect(self._reload_metadata_after_import)
-
-        def _reload_metadata_after_import(self) -> None:
-            if self._import_database_name and self._import_database_name in bd.databases:
-                schedule_database_metadata_reload(self._import_database_name)
-
         class Thread(threading.ABThread):
             """Thread to handle the install process"""
             def run_safely(self, path: str, db_name: str, relink: dict | None = None):
@@ -137,10 +125,9 @@ class ImportSetup(widgets.ABWizard):
 
         def initializePage(self, context: dict):
             """Start the download thread"""
-            self._import_database_name = context["database_name"]
             self.thread.start(
                 context["path"],
-                self._import_database_name,
+                context["database_name"],
                 context.get("relink", {}),
             )
 

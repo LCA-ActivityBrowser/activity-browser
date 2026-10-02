@@ -23,7 +23,14 @@ class MDSUpdater(QObject):
         signals.signaleddataset_on_save.connect(self.on_signaleddataset_save)
         signals.signaleddataset_on_delete.connect(self.on_signaleddataset_delete)
         signals.on_database_delete.connect(self.on_database_deleted_bw)
+        signals.on_database_write.connect(self.on_database_write)
         databases._save_signal.connect(self.on_databases_metadata_change)
+
+    def on_database_write(self, sender, name):
+        """Full inventory replace — refresh Metadata store (may hold under SafeBWConnection)."""
+        from .loader import request_metadata_reload
+
+        request_metadata_reload(name)
 
     def on_signaleddataset_save(self, sender, old, new):
         """Called when a dataset is created or modified in Brightway."""

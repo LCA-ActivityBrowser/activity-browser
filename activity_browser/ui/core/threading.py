@@ -87,17 +87,25 @@ class ABThread(QThread):
         self.status.connect(slot)
 
 
+def _close_peewee_connections() -> None:
+    for conn in getattr(thread_local, "peewee_connections", []):
+        if hasattr(conn, "conn") and hasattr(conn.conn, "close"):
+            conn.conn.close()
+
+
 class SafeBWConnection:
     def __enter__(self):
-        return
+        from activity_browser.bwutils.metadata.loader import hold_metadata_reloads
+
+        hold_metadata_reloads()
+        return self
 
     def __exit__(self, *args):
-        """
-        Closes all connections for this thread
-        """
-        for conn in getattr(thread_local, "peewee_connections", []):
-            if hasattr(conn, "conn") and hasattr(conn.conn, "close"):
-                conn.conn.close()
+        """Close peewee connections, then apply any held Metadata store reloads."""
+        from activity_browser.bwutils.metadata.loader import release_metadata_reloads
+
+        _close_peewee_connections()
+        release_metadata_reloads()
 
 
 class InfoToSlot:
