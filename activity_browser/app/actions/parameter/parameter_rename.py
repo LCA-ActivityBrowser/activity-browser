@@ -28,17 +28,18 @@ class ParameterRename(ABAction):
         new_name = new_name or ParameterRename.get_new_name(parameter)
 
         if not new_name:
-            return
+            return False
 
         if error := parameter_name_error(new_name):
             QtWidgets.QMessageBox.warning(
                 app.main_window, "Invalid parameter name", error
             )
-            return
+            return False
 
         getattr(parameters, f"rename_{parameter.param_type}_parameter")(
                 parameter.to_peewee_model(), new_name, update_dependencies=True
             )
+        return True
 
     @staticmethod
     def get_new_name(parameter: Parameter):

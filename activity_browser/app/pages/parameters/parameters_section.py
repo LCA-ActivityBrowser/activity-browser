@@ -327,8 +327,7 @@ class ProjectParametersModel(core.ABTreeModel):
                 param_type=row.get("_param_type")
             )
 
-            app.actions.ParameterNewFromParameter.run(parameter)
-            return True
+            return bool(app.actions.ParameterNewFromParameter.run(parameter))
 
         # Handle regular parameter edits
         parameter = row.get("_parameter")
@@ -337,8 +336,7 @@ class ProjectParametersModel(core.ABTreeModel):
 
         if column_name in ["amount", "formula", "name", "comment"]:
             parameter = refresh_parameter(parameter)
-            app.actions.ParameterModify.run(parameter, column_name, value)
-            return True
+            return bool(app.actions.ParameterModify.run(parameter, column_name, value))
 
         if column_name == "uncertainty":
             database = row.get("_database")

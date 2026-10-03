@@ -30,7 +30,7 @@ class ParameterNewFromParameter(ABAction):
             QtWidgets.QMessageBox.warning(
                 app.main_window, "Invalid parameter name", error
             )
-            return
+            return False
 
         # select the right group and instruct the controller to create the parameter there
         if parameter.param_type == "project":
@@ -65,4 +65,5 @@ class ParameterNewFromParameter(ABAction):
             ).save()
 
         parameters.recalculate()
+        return True
 

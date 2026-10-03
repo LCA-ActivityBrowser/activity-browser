@@ -66,3 +66,29 @@ def test_rename_to_invalid_name_is_refused_with_a_clear_message(qapp, dialogs, n
     assert dialogs["critical"] == []
     assert len(dialogs["warning"]) == 1
     assert f"'{name}'" in dialogs["warning"][0][2]
+
+
+@pytest.mark.parametrize("name", INVALID_NAMES)
+@bw2test
+def test_wizard_new_parameter_refuses_invalid_name(qapp, dialogs, monkeypatch, name):
+    """ParameterNew (wizard path) must use the same refusal as table create/rename."""
+    from activity_browser.app.actions.parameter import parameter_new as parameter_new_mod
+
+    class _AcceptedWizard:
+        selected = 0
+        param_data = {"name": name, "amount": "1.0"}
+
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def exec_(self):
+            return QtWidgets.QWizard.Accepted
+
+    monkeypatch.setattr(parameter_new_mod, "ParameterWizard", _AcceptedWizard)
+
+    app.actions.ParameterNew.run(("", ""))
+
+    assert [p.name for p in ProjectParameter.select()] == []
+    assert dialogs["critical"] == []
+    assert len(dialogs["warning"]) == 1
+    assert f"'{name}'" in dialogs["warning"][0][2]
