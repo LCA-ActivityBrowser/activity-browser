@@ -27,16 +27,12 @@ pytestmark = pytest.mark.skipif(
 class _RecordingHost:
     def __init__(self) -> None:
         self.protected_batches: list[list[str]] = []
-        self.after_write_calls: list[str] = []
         self.blocking_titles: list[str] = []
 
     @contextmanager
     def protect_databases(self, names, *, reason="SHRECC create"):
         self.protected_batches.append(list(names))
         yield
-
-    def after_database_write(self, db_name: str, *, notify: bool = True) -> None:
-        self.after_write_calls.append(db_name)
 
     def run_blocking_operation(self, title, func, *, cancellable: bool = False):
         self.blocking_titles.append(title)
@@ -151,7 +147,6 @@ def test_happy_path_configure_create_inspect_write(qtbot, monkeypatch, recording
     assert workflow.write_status == "done"
     assert workflow.written_database_names == {2021: "shrecc_out"}
     assert recording_host.protected_batches == [["bg-db"]]
-    assert recording_host.after_write_calls == ["shrecc_out"]
     assert recording_host.blocking_titles == ["Writing SHRECC databases"]
 
 

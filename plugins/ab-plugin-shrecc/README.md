@@ -10,7 +10,7 @@ pip install -e ./plugins/ab-plugin-shrecc
 
 Enable under **Settings → Plugins**, restart AB, then **Plugins → Open SHRECC**.
 
-Requires host APIs from the `plugins` branch (`protect_databases`, `after_database_write`, `run_blocking_operation`, `safe_bw_connection`).
+Requires host APIs (`protect_databases`, `run_blocking_operation`, `safe_bw_connection`). Database writes must emit Brightway `on_database_write` (e.g. `signal=True`) so the host Metadata store refreshes after the worker exits.
 
 ## Plugin glossary
 
@@ -26,7 +26,7 @@ Canonical definitions: [`CONTEXT.md`](CONTEXT.md) in this package (moves with th
 
 ## Status
 
-Core plugin: workflow shell (Configure → Create action → Inspect → Write), background Create, Write with overwrite confirm and metadata refresh. Stage tabs stay visible and disabled until gated; Inspect/Write enable after Create (Write disables again under configuration mismatch). Future stages (e.g. Analysis) should use the same always-visible, disabled-until-gated pattern.
+Core plugin: workflow shell (Configure → Create action → Inspect → Write), background Create, Write with overwrite confirm. Stage tabs stay visible and disabled until gated; Inspect/Write enable after Create (Write disables again under configuration mismatch). Future stages (e.g. Analysis) should use the same always-visible, disabled-until-gated pattern.
 
 ## Manual end-to-end demo (real SHRECC)
 

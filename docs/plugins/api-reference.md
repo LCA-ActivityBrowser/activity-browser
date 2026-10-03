@@ -106,9 +106,10 @@ Users see incompatible plugins under **Settings → Plugins** with an error such
 ### Long-running / database helpers
 
 - `protect_databases(names, *, reason="")` — context manager; host blocks user edit/delete on named databases until the block exits (separate from user `read_only`). Use during background reads (e.g. SHRECC `create()`).
-- `after_database_write(db_name, *, notify=True)` — after writing a Brightway database outside AB **Action**s, reload **Metadata store** for `db_name` and optionally send Brightway `on_database_write`.
-- `run_blocking_operation(title, func, *, cancellable=False)` — run `func` on a worker thread with modal progress (database-write style). Raises on failure after showing the error message.
-- `safe_bw_connection()` — context manager; close Brightway/peewee SQLite connections for the current thread on exit. Use in long-running plugin worker threads that touch Brightway (also exported as `activity_browser.plugins.safe_bw_connection`).
+- `run_blocking_operation(title, func, *, cancellable=False)` — run `func` on a worker thread with modal progress (database-write style). Uses `safe_bw_connection` so Metadata store reloads from Brightway `on_database_write` are deferred until the worker exits. Raises on failure after showing the error message.
+- `safe_bw_connection()` — context manager; close Brightway/peewee SQLite connections for the current thread on exit, and hold Metadata store reloads until then (also exported as `activity_browser.plugins.safe_bw_connection`). Use in long-running plugin worker threads that touch Brightway.
+
+When a plugin writes a Brightway database, call `Database.write(..., signal=True)` (or equivalent) inside `run_blocking_operation` / `safe_bw_connection`. The host listens to `on_database_write` and refreshes the **Metadata store** after the worker releases SQLite — no separate plugin hook.
 
 Contribution IDs must be `plugin_id.local`. No `main_window`, raw registries, or `register_signal`.
 
