@@ -46,15 +46,14 @@ Dependencies for build and runtime:
 
 ```yaml
 requirements:
-  host:
-    - python >=3.9
-    - pip
+  build:
+    - python
     - setuptools
   run:
-    - python >=3.9
-    - brightway2 >=2.4
-    - pyside6 >=6.0
-    - qtpy >=2.0
+    - python >=3.10, <3.13
+    - pyside6 >=6.5.0
+    - qt6-webengine
+    - qtpy
     # ... more dependencies
 ```
 
