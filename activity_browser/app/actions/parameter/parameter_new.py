@@ -5,6 +5,7 @@ from qtpy import QtCore, QtGui, QtWidgets
 from activity_browser import app
 from activity_browser.app.actions.base import ABAction, exception_dialogs
 from activity_browser.bwutils import commontasks as bc
+from activity_browser.bwutils.parameters.names import parameter_name_error
 from activity_browser.mod import bw2data as bd
 from bw2data.parameters import ActivityParameter
 from activity_browser.ui.icons import qicons
@@ -39,21 +40,18 @@ class ParameterNew(ABAction):
 
         # return if the wizard is canceled
         if wizard.exec_() != QtWidgets.QWizard.Accepted:
-            return
+            return False
 
         # gather wizard variables
         selection = wizard.selected
         data = wizard.param_data
 
-        # check whether the name is valid, otherwise return
         name = data.get("name")
-        if name[0] in ("0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "-", "#"):
-            error = QtWidgets.QErrorMessage()
-            error.showMessage(
-                "<p>Parameter names must not start with a digit, hyphen, or hash character</p>"
+        if error := parameter_name_error(name):
+            QtWidgets.QMessageBox.warning(
+                app.main_window, "Invalid parameter name", error
             )
-            error.exec_()
-            return
+            return False
 
         # select the right group and instruct the controller to create the parameter there
         if selection == 0:
@@ -64,6 +62,7 @@ class ParameterNew(ABAction):
         elif selection == 2:
             group = data.pop("group")
             bd.parameters.new_activity_parameters([data], group)
+        return True
 
 
 class ParameterWizard(QtWidgets.QWizard):

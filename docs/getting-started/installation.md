@@ -13,7 +13,7 @@ Install the Activity Browser 3 from either PyPI or Anaconda.
 This page provides step-by-step instructions to help you set up the Activity Browser 3 on your system. Whether you prefer using PyPI or Anaconda, we've got you covered with detailed instructions for both methods. 
 
 ## Distributions on PyPI and Anaconda
-The Activity Browser 3 Beta is available both on [PyPI](#installing-from-pypi) and [Anaconda](#installing-from-anaconda). Because not all necessary libraries are available on Anaconda right now you need to do an extra `pip install` inside your Conda environment.
+The Activity Browser 3 Beta is available both on [PyPI](#installing-from-pypi) and [Anaconda](#installing-from-anaconda).
 
 ### New to Python?
 
@@ -90,13 +90,6 @@ activate the environment like so:
 
 ```
 conda activate ab_beta
-```
-
-### PySide6 installation
-We will need to install a specific version of `PySide6` from PyPI, as the fully functional version is not available on anaconda.
-
-```
-pip install PySide6==6.9.3
 ```
 
 ### Launching the Activity Browser

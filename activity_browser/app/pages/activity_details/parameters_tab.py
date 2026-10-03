@@ -293,8 +293,7 @@ class ParametersModel(core.ABTreeModel):
                 param_type=row.get("_param_type")
             )
 
-            app.actions.ParameterNewFromParameter.run(parameter)
-            return True
+            return bool(app.actions.ParameterNewFromParameter.run(parameter))
 
         # Handle regular parameter edits
         parameter = row.get("_parameter")
@@ -303,7 +302,7 @@ class ParametersModel(core.ABTreeModel):
 
         if column_name in ["amount", "formula", "name", "comment"]:
             parameter = refresh_parameter(parameter)
-            app.actions.ParameterModify.run(parameter, column_name, value)
+            return bool(app.actions.ParameterModify.run(parameter, column_name, value))
 
         if column_name == "uncertainty":
             database = row.get("_database")
@@ -406,7 +405,11 @@ class ParametersModel(core.ABTreeModel):
         if column_name in ["formula", "uncertainty", "name", "comment"]:
             return True
 
-        if column_name == "amount" and not self.get(index, "formula"):
+        # NOTE: the column is object dtype only when any row holds a formula string,
+        # including ""; otherwise pandas infers float64 and a missing one reads as NaN.
+        formula = self.get(index, "formula")
+        has_formula = isinstance(formula, str) and formula.strip()
+        if column_name == "amount" and not has_formula:
             return True
 
         return False

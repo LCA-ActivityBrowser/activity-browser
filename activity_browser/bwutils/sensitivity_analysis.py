@@ -18,7 +18,7 @@ shown in the LCA results GSA tab. Column names are defined in ``GSA_COLUMNS``:
 | ``index`` | Unique SALib variable id (full exchange path, including ``(database)``) |
 | ``Type`` | ``technosphere``, ``biosphere``, ``characterization factor``, ``parameter`` |
 | ``Shortname (without databases)`` | Same path without database suffixes (compact display) |
-| ``delta``, ``delta_conf`` | SALib sensitivity indices |
+| ``delta``, ``delta_conf`` | SALib sensitivity indices (``delta_balanced`` / ``delta_balanced_conf`` on newer SALib, remapped) |
 | ``uncertainty`` | Distribution type and parameters (``Uniform; Minimum: 0; Maximum: 1``) |
 
 For technosphere exchanges, ``index`` and the shortname differ; for parameters and
@@ -68,6 +68,18 @@ GSA_COLUMNS = (
     "uncertainty",
 )
 GSA_METADATA_COLUMNS = tuple(c for c in GSA_COLUMNS if c not in GSA_RESULT_COLUMNS)
+
+# Newer SALib renamed the default delta measure; keep AB columns unchanged.
+_SALIB_DELTA_RENAME = {
+    "delta_balanced": "delta",
+    "delta_balanced_conf": "delta_conf",
+}
+
+
+def _normalize_salib_delta_columns(si_df: pd.DataFrame) -> pd.DataFrame:
+    """Map SALib ``delta_balanced*`` onto AB ``delta`` / ``delta_conf`` when present."""
+    rename = {src: dst for src, dst in _SALIB_DELTA_RENAME.items() if src in si_df.columns}
+    return si_df.rename(columns=rename) if rename else si_df
 
 
 def _select_gsa_columns(df: pd.DataFrame, *, metadata: bool = False) -> pd.DataFrame:
@@ -496,9 +508,11 @@ class GlobalSensitivityAnalysis:
         )
         logger.info(f"Delta analysis took {np.round(time() - t0, 2)} s")
 
-        combined = (
+        si_df = _normalize_salib_delta_columns(
             pd.DataFrame(self.Si, index=self.metadata.index)
-            .sort_values("delta", ascending=False)
+        )
+        combined = (
+            si_df.sort_values("delta", ascending=False)
             .join(self.metadata)
             .reset_index()
         )

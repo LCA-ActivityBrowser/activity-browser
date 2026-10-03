@@ -14,6 +14,7 @@ from activity_browser.bwutils.sensitivity_analysis import (
     GSA_NAME_COLUMN,
     GSA_TYPE_COLUMN,
     GlobalSensitivityAnalysis,
+    _normalize_salib_delta_columns,
     get_CF_dataframe,
     get_lca,
 )
@@ -134,6 +135,24 @@ def mc_params_only(gsa_mc_project):
 @pytest.fixture(scope="module")
 def gsa_params_only(mc_params_only):
     return _run_gsa(mc_params_only)
+
+
+def test_normalize_salib_delta_columns_maps_balanced():
+    import pandas as pd
+
+    balanced = pd.DataFrame(
+        {
+            "delta_balanced": [0.5, 0.3],
+            "delta_balanced_conf": [0.05, 0.04],
+            "delta_raw": [0.4, 0.2],
+        }
+    )
+    out = _normalize_salib_delta_columns(balanced)
+    assert list(out.columns) == ["delta", "delta_conf", "delta_raw"]
+    assert out["delta"].tolist() == [0.5, 0.3]
+
+    legacy = pd.DataFrame({"delta": [0.1], "delta_conf": [0.01]})
+    assert _normalize_salib_delta_columns(legacy).equals(legacy)
 
 
 def test_gsa_plot_renders_sample_dataframe():

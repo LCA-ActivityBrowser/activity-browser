@@ -42,6 +42,7 @@ class ParameterModify(ABAction):
         if field in ("amount", "formula"):
             ParameterModify.fix_broken_groups()
             parameters.recalculate()
+        return True
 
     @staticmethod
     def fix_broken_groups():
