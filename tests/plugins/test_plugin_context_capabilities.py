@@ -1,4 +1,4 @@
-"""PluginContext host capabilities (protect, after write, blocking operation)."""
+"""PluginContext host capabilities (protect, blocking operation, safe connection)."""
 from __future__ import annotations
 
 from types import SimpleNamespace
@@ -92,38 +92,6 @@ def test_database_is_editing_blocked_combines_read_only_and_protection():
     bd.databases[db_name]["read_only"] = True
     bd.databases.flush()
     assert database_is_editing_blocked(db_name)
-
-
-@bw2test
-def test_after_database_write_schedules_reload_and_signal(monkeypatch):
-    scheduled: list[str] = []
-    sent: list[str] = []
-
-    class _Signals:
-        def send(self, *, name):
-            sent.append(name)
-
-    from activity_browser.bwutils.metadata import loader
-
-    monkeypatch.setattr(loader, "schedule_database_metadata_reload", lambda n: scheduled.append(n))
-
-    import bw2data.signals as bw_signals
-
-    monkeypatch.setattr(bw_signals, "on_database_write", _Signals())
-
-    db_name = "written-db"
-    bd.Database(db_name).register()
-
-    ctx = _ctx()
-    ctx.after_database_write(db_name, notify=True)
-    assert scheduled == [db_name]
-    assert sent == [db_name]
-
-    scheduled.clear()
-    sent.clear()
-    ctx.after_database_write(db_name, notify=False)
-    assert scheduled == [db_name]
-    assert sent == []
 
 
 def test_run_blocking_operation_success(main_window, qtbot):

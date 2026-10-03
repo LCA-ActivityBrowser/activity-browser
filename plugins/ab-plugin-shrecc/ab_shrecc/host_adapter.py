@@ -20,9 +20,6 @@ class ShreccPluginHost:
         with self._ctx.protect_databases(names, reason=reason):
             yield
 
-    def after_database_write(self, db_name: str, *, notify: bool = True) -> None:
-        self._ctx.after_database_write(db_name, notify=notify)
-
     def run_blocking_operation(
         self,
         title: str,
