@@ -1,6 +1,10 @@
 from ast import literal_eval
 
+from qtpy import QtWidgets
+
+from activity_browser import app
 from activity_browser.app.actions.base import ABAction, exception_dialogs
+from activity_browser.bwutils.parameters.names import parameter_name_error
 from activity_browser.bwutils.utils import Parameter
 from bw2data.parameters import ProjectParameter, DatabaseParameter, ActivityParameter, parameters
 from activity_browser.ui.icons import qicons
@@ -22,8 +26,11 @@ class ParameterNewFromParameter(ABAction):
         if not isinstance(parameter, Parameter) or parameter.param_type is None:
             raise ValueError("Parameter must be an instance of Parameter")
 
-        if not parameter.name.isidentifier():
-            raise ValueError("Parameter name must be a valid Python identifier")
+        if error := parameter_name_error(parameter.name):
+            QtWidgets.QMessageBox.warning(
+                app.main_window, "Invalid parameter name", error
+            )
+            return False
 
         # select the right group and instruct the controller to create the parameter there
         if parameter.param_type == "project":
@@ -58,4 +65,5 @@ class ParameterNewFromParameter(ABAction):
             ).save()
 
         parameters.recalculate()
+        return True
 

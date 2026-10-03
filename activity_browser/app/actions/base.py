@@ -46,7 +46,7 @@ class ABAction:
 def exception_dialogs(func):
     def wrapper(*args, **kwargs):
         try:
-            func(*args, **kwargs)
+            return func(*args, **kwargs)
         except Exception as e:
             if not hasattr(e, "dialog_flag"):
                 setattr(e, "dialog_flag", True)
