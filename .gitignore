@@ -6,6 +6,7 @@ docs/_build
 *~
 MANIFEST
 *.egg-info
+*.egg-info/
 target
 *.swp
 Makefile
