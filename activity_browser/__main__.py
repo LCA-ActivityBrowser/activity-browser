@@ -148,21 +148,10 @@ def pre_flight_checks():
     if "--no-checks" in sys.argv:
         return
 
-    check_pyside_version()
-
     if "CONDA_DEFAULT_ENV" in os.environ:
         check_conda_update()
     else:
         check_pypi_update()
-
-
-def check_pyside_version():
-    try:
-        import PySide6
-    except ImportError:
-        input("\033[1;31mPySide6 is not installed but highly recommended.\n\n"
-              "Please install it using 'pip install PySide6==6.9.3'.\n\n"
-              "Press any key to continue...\033[0m")
 
 
 def check_conda_update():
