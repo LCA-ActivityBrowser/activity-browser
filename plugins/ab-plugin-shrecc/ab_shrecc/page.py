@@ -8,7 +8,7 @@ from activity_browser.plugins import ABAbstractPage
 
 from .controller import ShreccPluginController, WorkflowState
 from .create_worker import CreateWorker
-from .write_service import refresh_written_databases, run_write
+from .write_service import run_write
 from .host_adapter import ShreccPluginHost
 from .workflow_panel import WorkflowPanel
 
@@ -143,8 +143,6 @@ class ShreccPluginPage(ABAbstractPage):
             lambda: run_write(create_handle),
             cancellable=False,
         )
-        # Refresh metadata only after the write thread releases SQLite.
-        refresh_written_databases(result.written, host.after_database_write)
 
         workflow = self.controller.get_workflow(workflow_id)
         if workflow is None or workflow.write_status != "running":

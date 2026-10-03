@@ -184,16 +184,6 @@ class PluginContext:
         with _protect(names, plugin_id=self.plugin_id, reason=reason):
             yield
 
-    def after_database_write(self, db_name: str, *, notify: bool = True) -> None:
-        """Refresh AB metadata (and optionally Brightway write signals) after a DB write."""
-        from activity_browser.bwutils.metadata.loader import schedule_database_metadata_reload
-
-        schedule_database_metadata_reload(db_name)
-        if notify:
-            from bw2data import signals
-
-            signals.on_database_write.send(name=db_name)
-
     def run_blocking_operation(
         self,
         title: str,

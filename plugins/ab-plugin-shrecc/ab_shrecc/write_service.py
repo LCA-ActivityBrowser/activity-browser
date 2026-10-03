@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 from dataclasses import dataclass, field
-from typing import Any, Callable, Iterable, Iterator
+from typing import Any, Iterable, Iterator
 
 from .configure_model import preview_database_names
 
@@ -88,9 +88,9 @@ def needs_overwrite_confirm(targets: Iterable[WriteTarget]) -> bool:
 def run_write(create_handle: Any) -> WriteResult:
     """Run ``NewDatabase.write()`` only.
 
-    Call :func:`refresh_written_databases` on the GUI thread after this returns
-    so metadata reload does not race SQLite while the write/vacuum still holds
-    the database lock.
+    Writes should emit Brightway ``on_database_write`` (e.g. ``signal=True``).
+    Host Metadata store reload is deferred until the worker's
+    ``safe_bw_connection`` / ``run_blocking_operation`` exits.
     """
     try:
         with _ensure_product_field_on_write():
@@ -108,15 +108,6 @@ def run_write(create_handle: Any) -> WriteResult:
             ).items()
         }
         return WriteResult(written=partial, error=str(exc))
-
-
-def refresh_written_databases(
-    written: dict[int, str],
-    after_database_write: Callable[[str], None],
-) -> None:
-    """Refresh AB metadata for databases that were written (GUI thread)."""
-    for name in written.values():
-        after_database_write(name)
 
 
 @contextmanager
