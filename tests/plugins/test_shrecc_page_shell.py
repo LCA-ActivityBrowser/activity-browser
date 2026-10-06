@@ -19,24 +19,26 @@ pytestmark = pytest.mark.skipif(
 
 
 def test_shrecc_page_starts_with_one_workflow_tab(qtbot):
-    from ab_shrecc.page import ShreccPluginPage
+    from ab_shrecc.page import EXPLORER_TAB_TITLE, ShreccPluginPage
 
     page = ShreccPluginPage()
     qtbot.addWidget(page)
     page.show()
 
-    assert page.workflow_tabs.count() == 1
+    assert page.workflow_tabs.count() == 2
+    assert page.workflow_tabs.tabText(0) == EXPLORER_TAB_TITLE
     assert page.controller.workflows[0].label == "Workflow 1"
 
+    page.workflow_tabs.setCurrentIndex(1)
     panel = page.workflow_tabs.currentWidget()
     assert panel is not None
     assert not panel.create_btn.isEnabled()
 
     page.close_btn.click()
-    assert page.workflow_tabs.count() == 1
+    assert page.workflow_tabs.count() == 2
 
     page.new_btn.click()
-    assert page.workflow_tabs.count() == 2
+    assert page.workflow_tabs.count() == 3
 
 
 def test_shrecc_page_has_three_stage_tabs(qtbot):
@@ -46,6 +48,7 @@ def test_shrecc_page_has_three_stage_tabs(qtbot):
     page = ShreccPluginPage()
     qtbot.addWidget(page)
     page.show()
+    page.workflow_tabs.setCurrentIndex(1)
     panel = page.workflow_tabs.currentWidget()
     assert panel is not None
     assert panel.stage_tabs.count() == 3

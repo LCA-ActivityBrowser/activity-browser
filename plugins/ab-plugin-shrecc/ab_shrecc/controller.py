@@ -18,7 +18,7 @@ from .configure_model import (
 
 CreateStatus = Literal["idle", "running", "done", "failed", "config_mismatch"]
 WriteStatus = Literal["idle", "running", "done", "failed"]
-GlobalJob = Literal["create", "write"]
+GlobalJob = Literal["create", "write", "prepare"]
 
 DEFAULT_OUTPUT_DB_BASE_NAME = "shrecc_electricity"
 
@@ -159,6 +159,8 @@ class ShreccPluginController:
     def job_status_text(self) -> str:
         if self.global_job is None:
             return "App job: idle"
+        if self.global_job == "prepare":
+            return "App job: explorer prepare…"
         workflow = self.get_workflow(self.global_job_workflow_id or "")
         name = workflow.label if workflow else "?"
         return f"App job: {self.global_job} in {name}…"
@@ -220,6 +222,25 @@ class ShreccPluginController:
 
     def is_config_complete(self, workflow: WorkflowState) -> bool:
         return is_config_complete(self.get_config(workflow))
+
+    def can_start_prepare(self) -> bool:
+        return self.global_job is None
+
+    def begin_prepare(self) -> None:
+        if self.global_job is not None:
+            raise RuntimeError("A plugin job is already running.")
+        self.global_job = "prepare"
+        self.global_job_workflow_id = None
+
+    def complete_prepare(self) -> None:
+        if self.global_job == "prepare":
+            self.global_job = None
+            self.global_job_workflow_id = None
+
+    def fail_prepare(self) -> None:
+        if self.global_job == "prepare":
+            self.global_job = None
+            self.global_job_workflow_id = None
 
     def can_start_create(self, workflow: WorkflowState) -> bool:
         if self.is_project_mismatch(workflow):

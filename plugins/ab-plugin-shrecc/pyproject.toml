@@ -10,6 +10,12 @@ readme = "README.md"
 requires-python = ">=3.10"
 dependencies = []
 
+[project.optional-dependencies]
+explorer = [
+    # Brightway-free explorer; install editable from the shrecc_explorer repo until published.
+    "shrecc-explorer>=0.1.0",
+]
+
 [project.entry-points."activity_browser.plugins"]
 ab_shrecc = "ab_shrecc.activate:activate"
 
