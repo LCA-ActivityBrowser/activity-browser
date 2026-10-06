@@ -7,7 +7,7 @@ import pytest
 
 from ab_shrecc.controller import ShreccPluginController
 from ab_shrecc.explorer_session import (
-    ENV_EXPORTS_DIR,
+    ENV_EXPORTS,
     ExplorerSession,
     explorer_exports_dir,
 )
@@ -49,7 +49,45 @@ def test_status_can_embed_when_export_exists(tmp_path: Path):
     session = ExplorerSession(data_dir_provider=lambda: tmp_path)
     status = session.status()
     assert status.can_embed
+    assert not status.can_prepare
     assert nc.resolve() in {p.resolve() for p in status.ready_exports}
+
+
+def test_status_up_to_date_when_export_newer_than_cache(tmp_path: Path):
+    cache = tmp_path / "2025" / "consumption_results_v1"
+    _write_manifest(cache)
+    exports = explorer_exports_dir(tmp_path)
+    exports.mkdir(parents=True)
+    nc = exports / "shrecc_2025_eu_countries.nc"
+    nc.write_bytes(b"ok")
+    import os
+
+    os.utime(cache / "manifest.json", (1_000, 1_000))
+    os.utime(nc, (2_000, 2_000))
+    session = ExplorerSession(data_dir_provider=lambda: tmp_path)
+    status = session.status()
+    assert status.can_embed
+    assert not status.can_prepare
+    assert status.message == ""
+
+
+def test_status_stale_export_offers_refresh(tmp_path: Path):
+    cache = tmp_path / "2025" / "consumption_results_v1"
+    _write_manifest(cache)
+    exports = explorer_exports_dir(tmp_path)
+    exports.mkdir(parents=True)
+    nc = exports / "shrecc_2025_eu_countries.nc"
+    nc.write_bytes(b"old")
+    import os
+
+    os.utime(nc, (1_000, 1_000))
+    os.utime(cache / "manifest.json", (2_000, 2_000))
+    session = ExplorerSession(data_dir_provider=lambda: tmp_path)
+    status = session.status()
+    assert status.can_embed
+    assert status.can_prepare
+    assert status.prepare_is_refresh
+    assert "refresh" in status.message.lower()
 
 
 def test_ensure_server_raises_when_not_ready(tmp_path: Path):
@@ -77,7 +115,12 @@ def test_prepare_writes_export_via_injected_runner(tmp_path: Path):
     written = session.run_prepare()
     ctrl.complete_prepare()
     assert written
-    assert session.status().can_embed
+    status = session.status()
+    assert status.can_embed
+    assert not status.can_prepare
+    assert "Prepared" in status.message
+    # flash is one-shot
+    assert session.status().message == ""
     assert ctrl.global_job is None
 
 
@@ -141,8 +184,8 @@ def test_ensure_server_starts_once_and_reuses_url(tmp_path: Path, monkeypatch):
 
     starts = []
 
-    def factory(command, *, env, cwd):
-        starts.append((command, env[ENV_EXPORTS_DIR]))
+    def factory(command, *, env, cwd, **_kwargs):
+        starts.append((command, env[ENV_EXPORTS]))
         return _FakeProc()
 
     session = ExplorerSession(
