@@ -2,15 +2,21 @@
 """SHRECC plugin main page."""
 from __future__ import annotations
 
+from pathlib import Path
+
 from qtpy import QtWidgets
 
 from activity_browser.plugins import ABAbstractPage
 
 from .controller import ShreccPluginController, WorkflowState
 from .create_worker import CreateWorker
+from .explorer_panel import ExplorerPanel
+from .explorer_session import ExplorerSession, resolve_data_dir
 from .write_service import run_write
 from .host_adapter import ShreccPluginHost
 from .workflow_panel import WorkflowPanel
+
+EXPLORER_TAB_TITLE = "Explorer"
 
 
 class ShreccPluginPage(ABAbstractPage):
@@ -23,6 +29,7 @@ class ShreccPluginPage(ABAbstractPage):
         signals=None,
         host: ShreccPluginHost | None = None,
         plugin_settings=None,
+        explorer_session: ExplorerSession | None = None,
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
@@ -32,6 +39,18 @@ class ShreccPluginPage(ABAbstractPage):
         self.controller = ShreccPluginController()
         self._panels: dict[str, WorkflowPanel] = {}
         self._create_workers: dict[str, CreateWorker] = {}
+
+        self.explorer_session = explorer_session or ExplorerSession(
+            data_dir_provider=self._resolved_data_dir,
+        )
+        self.explorer_panel = ExplorerPanel(
+            self.explorer_session,
+            can_start_prepare=self.controller.can_start_prepare,
+            begin_prepare=self._begin_prepare_job,
+            complete_prepare=self._on_prepare_complete,
+            fail_prepare=self._on_prepare_failed,
+            job_status_text=self.controller.job_status_text,
+        )
 
         root = QtWidgets.QVBoxLayout(self)
 
@@ -51,6 +70,10 @@ class ShreccPluginPage(ABAbstractPage):
         self.workflow_tabs.setTabsClosable(True)
         self.workflow_tabs.tabCloseRequested.connect(self._on_tab_close_requested)
         self.workflow_tabs.currentChanged.connect(self._on_current_tab_changed)
+        self._explorer_index = self.workflow_tabs.addTab(
+            self.explorer_panel, EXPLORER_TAB_TITLE
+        )
+        self._make_explorer_tab_unclosable()
         root.addWidget(self.workflow_tabs, 1)
 
         self.new_btn.clicked.connect(self._on_new_workflow)
@@ -62,6 +85,10 @@ class ShreccPluginPage(ABAbstractPage):
 
         self._refresh_job_banner()
 
+    def closeEvent(self, event):
+        self.explorer_panel.shutdown()
+        super().closeEvent(event)
+
     def showEvent(self, event):
         # Bind workflows when the page is actually shown, using the live project.
         self.controller.sync_pristine_workflows_to_current()
@@ -69,12 +96,36 @@ class ShreccPluginPage(ABAbstractPage):
         self._refresh_all_panels()
         super().showEvent(event)
 
+    def _make_explorer_tab_unclosable(self) -> None:
+        bar = self.workflow_tabs.tabBar()
+        bar.setTabButton(
+            self._explorer_index, QtWidgets.QTabBar.RightSide, None
+        )
+        bar.setTabButton(
+            self._explorer_index, QtWidgets.QTabBar.LeftSide, None
+        )
+
     def _plugin_data_dir(self) -> str | None:
         data = self._plugin_settings
         if data is None:
             return None
         text = str(data.get("data_dir", "") or "").strip()
         return text or None
+
+    def _resolved_data_dir(self) -> Path:
+        return resolve_data_dir(self._plugin_data_dir())
+
+    def _begin_prepare_job(self) -> None:
+        self.controller.begin_prepare()
+        self._refresh_job_banner()
+
+    def _on_prepare_complete(self) -> None:
+        self.controller.complete_prepare()
+        self._refresh_all_panels()
+
+    def _on_prepare_failed(self) -> None:
+        self.controller.fail_prepare()
+        self._refresh_all_panels()
 
     def _ensure_workflow_tab(self) -> None:
         if not self.controller.workflows:
@@ -235,7 +286,7 @@ class ShreccPluginPage(ABAbstractPage):
 
     def _current_workflow_id(self) -> str | None:
         widget = self.workflow_tabs.currentWidget()
-        if widget is None:
+        if widget is None or widget is self.explorer_panel:
             return None
         for workflow_id, panel in self._panels.items():
             if panel is widget:
@@ -261,6 +312,8 @@ class ShreccPluginPage(ABAbstractPage):
         self._close_workflow(workflow_id)
 
     def _on_tab_close_requested(self, index: int) -> None:
+        if index == self._explorer_index:
+            return
         widget = self.workflow_tabs.widget(index)
         if widget is None:
             return
@@ -304,6 +357,9 @@ class ShreccPluginPage(ABAbstractPage):
         if index < 0:
             return
         widget = self.workflow_tabs.widget(index)
+        if widget is self.explorer_panel:
+            self.explorer_panel.refresh()
+            return
         for workflow_id, panel in self._panels.items():
             if panel is widget:
                 self.controller.active_workflow_id = workflow_id
@@ -312,6 +368,7 @@ class ShreccPluginPage(ABAbstractPage):
     def _refresh_all_panels(self) -> None:
         for panel in self._panels.values():
             panel.refresh()
+        self.explorer_panel.refresh()
         self._refresh_job_banner()
 
     def _refresh_job_banner(self) -> None:

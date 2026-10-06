@@ -2,14 +2,29 @@
 
 Canonical glossary for the Activity Browser SHRECC plugin. Prefer these terms over synonyms. Host AB concepts (Project, Database, Plugin, …) stay in the Activity Browser root `CONTEXT.md`; this file covers plugin-only language and will move with the plugin when it becomes a standalone repo.
 
-Architecture / host contracts: Activity Browser `docs/adr/0012-plugins-contribution-api.md` and `docs/plugins/`.
+Architecture / host contracts: Activity Browser `docs/adr/0012-plugins-contribution-api.md` and `docs/plugins/`. Plugin-local decisions: `docs/adr/` in this package.
 
 ## Glossary
 
+### SHRECC Explorer
+
+Plugin-level exploration surface on the SHRECC plugin page: a fixed top-level tab, sibling to **SHRECC workflow** tabs (not inside a workflow). Always available; not gated on Create; not a workflow stage. Purpose today: explore locally available SHRECC-derived datasets before (or without) configuring Create. Reads from the same **data directory** root as Create, via explorer-ready datasets derived from that root (not from in-memory Create results). For v1, the exploration UI is the existing standalone explorer embedded in this tab (not a Qt reimplementation of its pages). The explorer application is supplied by the separate Brightway-free explorer distribution the plugin depends on—not by vendoring page scripts into the plugin. The tab has thin host chrome for data-directory status, **Explorer prepare**, and embed errors; the embedded UI can also be opened in an external browser when the in-tab view feels too tight. **Open in browser** uses the same explorer server as the embedded view (one process).
+_Avoid_: Analysis stage; Explore stage; treating Explorer as part of a SHRECC workflow; treating Explorer as Create-gated; treating a Qt rewrite of explorer pages as the v1 plan; treating a local checkout path as the primary distribution model; putting Prepare only inside the embedded explorer UI for v1; a second explorer server just for the external browser
+
+### Data directory
+
+Plugin Settings path for the shared on-disk SHRECC data root used by Create (SHRECC cache / downloads) and by **SHRECC Explorer** (explorer-ready datasets under that root). When unset, SHRECC’s own default location applies.
+_Avoid_: explorer-only data path as a separate Settings concept (for the shared-root design); calling NetCDF exports “the cache” without distinguishing them from SHRECC’s working cache
+
+### Explorer prepare
+
+Explicit user action that builds or refreshes explorer-ready datasets (contract NetCDF and needed summaries) from SHRECC cache under the **data directory**. Not automatic on opening **SHRECC Explorer**; not part of Create. Requires usable cache under the data directory; if neither cache nor explorer-ready datasets exist, **SHRECC Explorer** stays on host chrome with an empty state and does not start the embedded explorer until an explorer-ready dataset is available.
+_Avoid_: silent auto-export on tab open; treating Prepare as Create; starting the embedded explorer with no explorer-ready dataset
+
 ### SHRECC workflow
 
-One closable tab on the SHRECC plugin page: a Brightway **project** this workflow uses, a configuration, optional in-memory Create results (Inspect), and optional Write of output databases. Stages are **Configure**, **Inspect**, and **Write**. Later stages (e.g. Analysis) may be added with the same always-visible, disabled-until-gated pattern; they are not shipped as placeholders. **Create** is a run action on Configure, not a stage.
-_Avoid_: Create & inspect (as a stage name); treating Create as a stage
+One closable tab on the SHRECC plugin page: a Brightway **project** this workflow uses, a configuration, optional in-memory Create results (Inspect), and optional Write of output databases. Stages are **Configure**, **Inspect**, and **Write**. Later Create-coupled stages (e.g. Analysis of Create outputs) may be added with the same always-visible, disabled-until-gated pattern; they are not shipped as placeholders and are distinct from **SHRECC Explorer**. **Create** is a run action on Configure, not a stage.
+_Avoid_: Create & inspect (as a stage name); treating Create as a stage; treating SHRECC Explorer as a workflow stage
 
 ### Workflow project
 
@@ -57,7 +72,8 @@ _Avoid_: scenario (alone when meaning TYNDP); Scenario LCA scenario
 
 ### Plugin job
 
-An in-flight Create or Write for this plugin; at most one plugin-wide at a time.
+An in-flight Create, Write, or **Explorer prepare** for this plugin; at most one plugin-wide at a time.
+_Avoid_: allowing Prepare in parallel with Create/Write; treating the embedded explorer process itself as a Plugin job
 
 ## Synonyms to avoid (prefer glossary term)
 
@@ -67,4 +83,9 @@ An in-flight Create or Write for this plugin; at most one plugin-wide at a time.
 | project stale | project mismatch |
 | inspect stale / stale (UI) | configuration mismatch |
 | Create & inspect (stage) | Inspect stage; Create is an action |
+| Analysis / Explore stage (for pre-Create browsing) | SHRECC Explorer |
+| Separate explorer data path (under shared-root design) | data directory |
+| Auto-export on Explorer open | Explorer prepare |
+| Prepare in parallel with Create/Write | Plugin job (serial) |
+| Start embedded explorer with no prepared dataset | empty state on host chrome |
 | output database name on Configure | Write options on Write stage |
