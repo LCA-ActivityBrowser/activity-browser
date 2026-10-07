@@ -58,8 +58,8 @@ maintainer guide (fork workflow, local merges, and release steps).
 
 ### Matrix Strategy
 - **Operating Systems:** Ubuntu (latest), Windows (latest), macOS 15, macOS (latest)
-- **Python Versions:** 3.10, 3.11, 3.12
-- **Total combinations:** 12 test runs per trigger
+- **Python Versions:** 3.11, 3.12, 3.13, 3.14
+- **Total combinations:** 16 test runs per trigger
 
 ### Steps
 1. Checkout code
@@ -83,7 +83,7 @@ maintainer guide (fork workflow, local merges, and release steps).
 
 ### Matrix Strategy
 - **Operating Systems:** Ubuntu (latest), Windows (latest), macOS 15, macOS (latest)
-- **Python Versions:** 3.10, 3.11, 3.12
+- **Python Versions:** 3.11, 3.12, 3.13, 3.14
 - **Timeout:** 12 minutes per job
 
 ### Steps
@@ -241,7 +241,7 @@ pytest -s --no-header --no-summary -q
 When modifying the test matrix (OS or Python versions):
 - Update both `testing.yaml` and `install-canary.yaml` to keep them in sync
 - Consider the maintenance burden of additional combinations
-- Current support: Python 3.10-3.12, Ubuntu/Windows/macOS
+- Current support: Python 3.11-3.14, Ubuntu/Windows/macOS
 
 ### Release Process
 1. **Beta release:** Push to `beta` branch -> auto-publishes beta version
