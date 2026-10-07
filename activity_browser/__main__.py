@@ -209,8 +209,5 @@ def load_plugins():
 
 if "--no-launcher" in sys.argv:
     run_activity_browser_no_launcher()
-elif sys.version_info[1] == 10:
-    logger.info("Running Activity Browser without launcher for Python 3.10")
-    run_activity_browser_no_launcher()
 else:
     run_activity_browser()

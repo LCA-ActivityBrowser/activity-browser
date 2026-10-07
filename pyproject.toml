@@ -23,14 +23,15 @@ classifiers = [
     "Operating System :: POSIX",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Scientific/Engineering :: Information Analysis",
     "Topic :: Scientific/Engineering :: Mathematics",
     "Topic :: Scientific/Engineering :: Visualization",
 ]
-requires-python = ">=3.10, <3.13"
+requires-python = ">=3.11, <3.15"
 dependencies = [
     "arrow",
     "bw2analyzer>=0.11.5",
@@ -47,7 +48,7 @@ dependencies = [
     "networkx",
     "numpy>=1.26",
     "pandas>=2.2.1,<3",
-    "py7zr==0.22.0",
+    "py7zr>=0.22.0",
     "pyperclip",
     "pyside6>=6.5.0",
     "pypardiso ; platform_system == 'Windows'",
