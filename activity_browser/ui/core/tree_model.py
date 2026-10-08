@@ -13,22 +13,37 @@ from .qt_sync import qt_is_valid
 
 def _coerce_string_columns_to_object(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Coerce pandas ``StringDtype`` columns to ``object``.
+    Coerce pandas string storage to ``object`` for tree-model frames.
 
-    Mixed StringDtype + datetime (or other) frames can abort via ``fast_xs`` /
-    ``none_dealloc`` under pandas 3 when rows are taken or frames are replaced
-    during Qt model resets. Object columns remain compatible with pandas 2.x.
+    Under pandas 3, ``StringDtype`` *values* mixed with datetime can abort via
+    ``fast_xs`` / ``none_dealloc``, and a string-typed *column Index* can abort
+    in ``Index.__contains__`` (seen on Linux / Python 3.11 during Qt paint).
+    Object dtypes remain compatible with pandas 2.x.
     """
     if df is None or df.empty:
         return df
+
     string_cols = [
         col for col in df.columns if isinstance(df[col].dtype, pd.StringDtype)
     ]
-    if not string_cols:
+    # pandas 3 often uses dtype ``str`` / StringDtype for column labels
+    cols_are_string = False
+    try:
+        cols_are_string = bool(
+            pd.api.types.is_string_dtype(df.columns.dtype)
+            or str(df.columns.dtype) == "str"
+        )
+    except Exception:
+        cols_are_string = False
+
+    if not string_cols and not cols_are_string:
         return df
+
     out = df.copy()
     for col in string_cols:
         out[col] = out[col].astype(object)
+    if cols_are_string:
+        out.columns = pd.Index(list(out.columns), dtype=object)
     return out
 
 

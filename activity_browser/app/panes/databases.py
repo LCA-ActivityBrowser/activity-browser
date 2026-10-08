@@ -266,7 +266,9 @@ class DatabasesModel(core.ABTreeModel):
             The display data for the index.
         """
         column_name = self.column_name(index)
-        if column_name == "read_only" or column_name not in self.df.columns:
+        # Use a Python list for membership — pandas 3 string-typed column Index
+        # can abort in Index.__contains__ during Qt paint (CI / Linux 3.11).
+        if column_name in ("read_only", "index") or column_name not in self.df.columns.tolist():
             return None
         return self.get(index, column_name)
 
