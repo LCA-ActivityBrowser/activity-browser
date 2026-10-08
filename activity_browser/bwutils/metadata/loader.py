@@ -16,6 +16,7 @@ from .metadata import (
     CACHE_PICKLE_NAME,
     cache_stamp_matches_runtime,
     clear_cache_files,
+    has_usable_metadata_cache,
 )
 from .fields import secondary_types, primary, secondary, search_engine_whitelist, all_fields
 
@@ -303,20 +304,10 @@ class MDSLoader(QObject):
     def _has_cache(self) -> bool:
         from activity_browser.bwutils import filesystem
 
-        ab_path = filesystem.get_project_ab_path()
-        cache_path = ab_path / CACHE_PICKLE_NAME
-        lci_path = filesystem.get_project_path() / "lci" / "databases.db"
-
-        if not cache_path.exists() or not lci_path.exists():
-            return False
-
-        if not cache_stamp_matches_runtime(ab_path):
-            return False
-
-        cache_mtime = cache_path.stat().st_mtime
-        lci_mtime = lci_path.stat().st_mtime
-
-        return cache_mtime >= lci_mtime
+        return has_usable_metadata_cache(
+            filesystem.get_project_ab_path(),
+            filesystem.get_project_path(),
+        )
 
     def _cache_check(self, cached_df: pd.DataFrame) -> bool:
         import bw2data as bd

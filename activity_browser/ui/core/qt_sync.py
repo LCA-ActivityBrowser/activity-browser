@@ -27,7 +27,12 @@ def schedule_awake_sync(
     *,
     flag_attr: str = "_populate_later_flag",
 ) -> None:
-    """Run *sync* on the next GUI-thread awake event (coalesced per *owner*)."""
+    """Run *sync* on the next event-loop tick (coalesced per *owner*).
+
+    Uses ``QTimer.singleShot(0, ...)`` rather than
+    ``thread().eventDispatcher().awake``, which can raise under PySide6/shiboken
+    when the C++ dispatcher wrapper is already deleted (#1752).
+    """
     if not qt_is_valid(owner):
         return
     if getattr(owner, flag_attr, False):
@@ -42,9 +47,5 @@ def schedule_awake_sync(
             sync()
         except RuntimeError:
             pass
-        try:
-            owner.thread().eventDispatcher().awake.disconnect(slot)
-        except (TypeError, RuntimeError):
-            pass
 
-    owner.thread().eventDispatcher().awake.connect(slot)
+    QtCore.QTimer.singleShot(0, slot)

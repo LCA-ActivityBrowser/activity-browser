@@ -62,6 +62,23 @@ def dataframe_for_pickle_cache(df: pd.DataFrame) -> pd.DataFrame:
     return out
 
 
+def write_metadata_cache(ab_path: Path, df: pd.DataFrame) -> None:
+    """Write the pickle cache and pandas-major stamp under *ab_path*."""
+    dataframe_for_pickle_cache(df).to_pickle(ab_path / CACHE_PICKLE_NAME)
+    write_cache_stamp(ab_path)
+
+
+def has_usable_metadata_cache(ab_path: Path, project_path: Path) -> bool:
+    """True when pickle + matching stamp exist and the pickle is not older than LCI."""
+    cache_path = ab_path / CACHE_PICKLE_NAME
+    lci_path = project_path / "lci" / "databases.db"
+    if not cache_path.exists() or not lci_path.exists():
+        return False
+    if not cache_stamp_matches_runtime(ab_path):
+        return False
+    return cache_path.stat().st_mtime >= lci_path.stat().st_mtime
+
+
 class MetaDataStore(QObject):
     """Singleton class to manage metadata storage, loading, updating, and searching."""
     _instance = None
@@ -156,11 +173,7 @@ class MetaDataStore(QObject):
         self._deleted.clear()
 
         if Settings()["metadatastore"]["caching_enabled"]:
-            ab_path = filesystem.get_project_ab_path()
-            dataframe_for_pickle_cache(self._dataframe).to_pickle(
-                ab_path / CACHE_PICKLE_NAME
-            )
-            write_cache_stamp(ab_path)
+            write_metadata_cache(filesystem.get_project_ab_path(), self._dataframe)
 
         return added, updated, deleted
 

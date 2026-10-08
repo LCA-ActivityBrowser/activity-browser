@@ -1,17 +1,21 @@
-"""MetaDataStore pickle cache stamp: invalidate across pandas majors."""
+"""MetaDataStore pickle cache stamp: invalidate across pandas majors.
+
+Pure helpers only — do not construct MetaDataStore (singleton boots loader/app).
+"""
 from pathlib import Path
 
 import pandas as pd
 
 from activity_browser.bwutils.metadata.metadata import (
     CACHE_PICKLE_NAME,
-    MetaDataStore,
     dataframe_for_pickle_cache,
     pandas_major_version,
     read_cache_stamp,
     write_cache_stamp,
     cache_stamp_matches_runtime,
     clear_cache_files,
+    write_metadata_cache,
+    has_usable_metadata_cache,
 )
 
 
@@ -50,44 +54,27 @@ def test_clear_cache_files_removes_pickle_and_stamp(tmp_path: Path):
     assert read_cache_stamp(tmp_path) is None
 
 
-def test_flush_writes_pickle_and_stamp(monkeypatch, tmp_path: Path):
-    """Flush with caching enabled writes both pickle and pandas-major stamp."""
-    from activity_browser.bwutils import filesystem
-    from activity_browser.bwutils.settings import Settings
-
-    monkeypatch.setattr(filesystem, "get_project_ab_path", lambda: tmp_path)
-    settings = Settings()
-    previous = settings["metadatastore"]["caching_enabled"]
-    settings["metadatastore"]["caching_enabled"] = True
-
-    mds = MetaDataStore()
-    old_df = mds._dataframe
-    old_added, old_updated, old_deleted = mds._added.copy(), mds._updated.copy(), mds._deleted.copy()
-    try:
-        mds._dataframe = pd.DataFrame({"name": ["x"]})
-        mds._added = {("db", "code")}
-        mds._updated = set()
-        mds._deleted = set()
-        mds.flush_mutations()
-        assert (tmp_path / CACHE_PICKLE_NAME).is_file()
-        assert read_cache_stamp(tmp_path) == pandas_major_version()
-    finally:
-        mds._dataframe = old_df
-        mds._added, mds._updated, mds._deleted = old_added, old_updated, old_deleted
-        settings["metadatastore"]["caching_enabled"] = previous
+def test_write_metadata_cache_writes_pickle_and_stamp(tmp_path: Path):
+    write_metadata_cache(tmp_path, pd.DataFrame({"name": ["x"]}))
+    assert (tmp_path / CACHE_PICKLE_NAME).is_file()
+    assert read_cache_stamp(tmp_path) == pandas_major_version()
 
 
-def test_has_cache_false_when_stamp_mismatches(monkeypatch, tmp_path: Path):
-    """Loader ignores a pickle whose stamp does not match the running pandas major."""
-    from activity_browser.bwutils import filesystem
-
+def test_has_usable_metadata_cache_false_when_stamp_mismatches(tmp_path: Path):
     (tmp_path / CACHE_PICKLE_NAME).write_bytes(b"x")
     write_cache_stamp(tmp_path, pandas_major_version() + 1)
     lci = tmp_path / "lci"
     lci.mkdir()
     (lci / "databases.db").write_bytes(b"x")
 
-    monkeypatch.setattr(filesystem, "get_project_ab_path", lambda: tmp_path)
-    monkeypatch.setattr(filesystem, "get_project_path", lambda: tmp_path)
+    assert has_usable_metadata_cache(tmp_path, tmp_path) is False
 
-    assert MetaDataStore().loader._has_cache() is False
+
+def test_has_usable_metadata_cache_true_when_stamp_matches(tmp_path: Path):
+    lci = tmp_path / "lci"
+    lci.mkdir()
+    (lci / "databases.db").write_bytes(b"x")
+    # Cache must be at least as new as the LCI db for the mtime check.
+    write_metadata_cache(tmp_path, pd.DataFrame({"name": ["x"]}))
+
+    assert has_usable_metadata_cache(tmp_path, tmp_path) is True
