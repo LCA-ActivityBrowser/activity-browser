@@ -107,8 +107,11 @@ class DatabasesPane(widgets.ABAbstractPane):
             )
 
         cols = ["read_only", "name", "records", "depends", "default_allocation", "modified", "backend"]
-
-        return pd.DataFrame(data, columns=cols)
+        df = pd.DataFrame(data, columns=cols)
+        # pandas 3 stores str as StringDtype; mixed with datetime aborts in Qt paint.
+        for col in ("name", "depends", "default_allocation", "backend"):
+            df[col] = pd.Series(df[col].tolist(), dtype=object)
+        return df
 
 
 class DatabasesView(widgets.ABTreeView):
@@ -266,9 +269,7 @@ class DatabasesModel(core.ABTreeModel):
             The display data for the index.
         """
         column_name = self.column_name(index)
-        # Use a Python list for membership — pandas 3 string-typed column Index
-        # can abort in Index.__contains__ during Qt paint (CI / Linux 3.11).
-        if column_name in ("read_only", "index") or column_name not in self.df.columns.tolist():
+        if column_name in ("read_only", "index"):
             return None
         return self.get(index, column_name)
 

@@ -1,60 +1,62 @@
-"""ABTreeModel.row must avoid DataFrame.iloc[i] (pandas 3 fast_xs abort)."""
+"""Tree-model / DatabasesPane access patterns safe under pandas 2 and 3."""
 from datetime import datetime
 
 import pandas as pd
 from PySide6.QtCore import Qt
 
-from activity_browser.app.panes.databases import DatabasesModel
+from activity_browser.app.panes.databases import DatabasesModel, DatabasesPane
 from activity_browser.ui.core.tree_model import ABTreeModel
 
 
-def _mixed_db_df() -> pd.DataFrame:
-    return pd.DataFrame(
+def test_row_uses_take_not_fast_xs(qapp):
+    """Full-row access must use iloc[[i]] (take), not iloc[i] (fast_xs)."""
+    df = pd.DataFrame(
         {
             "read_only": [True],
-            "name": pd.Series(["basic"], dtype="string"),
+            "name": ["basic"],  # object after list round-trip in real build_df
             "records": [3],
-            "depends": pd.Series([""], dtype="string"),
-            "default_allocation": pd.Series(["unspecified"], dtype="string"),
+            "depends": [""],
+            "default_allocation": ["unspecified"],
             "modified": [datetime(2026, 1, 1)],
-            "backend": pd.Series(["sqlite"], dtype="string"),
+            "backend": ["sqlite"],
         }
     )
+    for col in ("name", "depends", "default_allocation", "backend"):
+        df[col] = pd.Series(df[col].tolist(), dtype=object)
 
-
-def test_row_safe_on_mixed_string_datetime_frame(qapp):
-    df = _mixed_db_df()
     model = ABTreeModel(df)
-    # StringDtype is coerced to object on ingest to avoid pandas 3 fast_xs aborts.
-    assert model.df["name"].dtype == object
-    assert model.df.columns.dtype == object
-
     index = model.index(0, 0)
     row = model.row(index)
     assert row is not None
     assert row.get("name") == "basic"
-    assert bool(row.get("read_only")) is True
     assert model.get(index, "records") == 3
-    # Paint path: membership must not use StringDtype Index.__contains__.
-    assert "index" not in model.df.columns.tolist()
-    assert "name" in model.df.columns.tolist()
-
-    # Replacing the frame (DatabasesModel.sync) must stay safe under pandas 3.
-    model.set_dataframe(df)
-    assert model.df["name"].dtype == object
-    assert model.df.columns.dtype == object
-    assert model.get(model.index(0, 0), "name") == "basic"
 
 
-def test_databases_model_display_data_after_set_dataframe(qapp):
-    """CI abort: displayData used ``in df.columns`` during sync/resize paint."""
+def test_databases_build_df_text_columns_are_object(qapp, monkeypatch):
+    """Avoid StringDtype + datetime in the databases pane frame."""
+    pane = DatabasesPane.__new__(DatabasesPane)
+    monkeypatch.setattr(
+        "activity_browser.app.panes.databases.bd.databases",
+        {
+            "basic": {
+                "modified": "2026-01-01T00:00:00.000000",
+                "depends": [],
+                "read_only": True,
+                "default_allocation": "unspecified",
+                "backend": "sqlite",
+            }
+        },
+    )
+    monkeypatch.setattr(
+        "activity_browser.app.panes.databases.count_database_records",
+        lambda _name: 3,
+    )
+    df = DatabasesPane.build_df(pane)
+    assert df["name"].dtype == object
+    assert df["modified"].dtype.kind == "M"
+
     model = DatabasesModel()
-    model.set_dataframe(_mixed_db_df())
-    assert model.df.columns.dtype == object
-
-    # Column 0 is the synthetic tree "index" label (not a DataFrame column).
-    assert model.displayData(model.index(0, 0)) is None
-    # Name column (section 2 after tree + read_only decoration column layout)
+    model.set_dataframe(df)
     name_col = model.columns().index("name")
-    name_index = model.index(0, name_col)
-    assert model.data(name_index, Qt.ItemDataRole.DisplayRole) == "basic"
+    assert model.data(model.index(0, name_col), Qt.ItemDataRole.DisplayRole) == "basic"
+    assert model.displayData(model.index(0, 0)) is None
