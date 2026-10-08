@@ -8,6 +8,7 @@ from PySide2 import QtWidgets, QtCore
 from activity_browser import application
 from activity_browser.mod import bw2data as bd
 from activity_browser.actions.base import ABAction, exception_dialogs
+from activity_browser.i18n import _
 from activity_browser.ui.threading import ABThread
 
 log = getLogger(__name__)
@@ -29,9 +30,9 @@ class ProjectExport(ABAction):
         # get target path from the user
         save_path, save_type = QtWidgets.QFileDialog.getSaveFileName(
             parent=application.main_window,
-            caption="Choose where",
+            caption=_("Choose where to export the project"),
             dir=os.path.expanduser(f"~/{bd.projects.current}.tar.gz"),
-            filter="Tar-file (*.tar.gz)"
+            filter=_("Tar archive (*.tar.gz)")
         )
 
         if not save_path: return
@@ -39,11 +40,11 @@ class ProjectExport(ABAction):
         # setup dialog
         progress = QtWidgets.QProgressDialog(
             parent=application.main_window,
-            labelText="Exporting project",
+            labelText=_("Exporting project"),
             maximum=0
         )
         progress.setCancelButton(None)
-        progress.setWindowTitle("Exporting project")
+        progress.setWindowTitle(_("Exporting project"))
         progress.setWindowFlag(QtCore.Qt.WindowContextHelpButtonHint, False)
         progress.setWindowFlag(QtCore.Qt.WindowCloseButtonHint, False)
         progress.findChild(QtWidgets.QProgressBar).setTextVisible(False)

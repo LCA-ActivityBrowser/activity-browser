@@ -7,6 +7,7 @@ from PySide2.QtCore import Qt, Slot
 from PySide2.QtWidgets import QApplication, QMessageBox, QVBoxLayout
 
 from activity_browser import signals
+from activity_browser.i18n import _
 from activity_browser.mod import bw2data as bd
 
 from ...bwutils.errors import ABError
@@ -14,6 +15,13 @@ from ..panels import ABTab
 from .LCA_results_tabs import LCAResultsSubTab
 
 log = getLogger(__name__)
+
+
+def calculation_tab_label(name: str, calculation_type: str) -> str:
+    """Return a localized label without changing the calculation setup name."""
+    if calculation_type == "scenario":
+        return _("{name}[Scenarios]", name=name)
+    return name
 
 
 class LCAResultsTab(ABTab):
@@ -51,21 +59,22 @@ class LCAResultsTab(ABTab):
         calculation_type = data.get("calculation_type", "simple")
 
         if calculation_type == "scenario":
-            name = "{}[Scenarios]".format(cs_name)
+            internal_name = "{}[Scenarios]".format(cs_name)
         else:
-            name = cs_name
-        self.remove_setup(name)
+            internal_name = cs_name
+        display_name = calculation_tab_label(cs_name, calculation_type)
+        self.remove_setup(internal_name)
 
         try:
             new_tab = LCAResultsSubTab(data, self)
-            self.tabs[name] = new_tab
-            self.addTab(new_tab, name)
-            self.select_tab(self.tabs[name])
+            self.tabs[internal_name] = new_tab
+            self.addTab(new_tab, display_name)
+            self.select_tab(self.tabs[internal_name])
 
             new_tab.destroyed.connect(
                 lambda: (
-                    self.tabs.pop(name)
-                    if id(self.tabs.get(name, None)) == id(new_tab)
+                    self.tabs.pop(internal_name)
+                    if id(self.tabs.get(internal_name, None)) == id(new_tab)
                     else None
                 )
             )
@@ -78,7 +87,7 @@ class LCAResultsTab(ABTab):
             QApplication.restoreOverrideCursor()
             msg = QMessageBox(
                 QMessageBox.Warning,
-                "Calculation problem",
+                _("Calculation problem"),
                 str(initial),
                 QMessageBox.Ok,
                 self,

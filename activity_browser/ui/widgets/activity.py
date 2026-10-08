@@ -2,6 +2,7 @@
 from PySide2 import QtCore, QtWidgets
 
 from activity_browser import actions, project_settings, signals
+from activity_browser.i18n import _
 
 from ...bwutils import AB_metadata
 from ..icons import qicons
@@ -69,17 +70,19 @@ class ActivityDataGrid(QtWidgets.QWidget):
             contents=parent.activity.get("location", ""),
         )
         self.location_combo.setToolTip(
-            "Select an existing location from the current activity database."
-            " Or add new location"
+            _(
+                "Select an existing location from the current activity database, "
+                "or add a new location."
+            )
         )
         self.location_combo.setEditable(
             True
         )  # always 'editable', but not always 'enabled'
 
         # database label
-        self.database_label = QtWidgets.QLabel("Database")
+        self.database_label = QtWidgets.QLabel(_("Database"))
         self.database_label.setToolTip(
-            "Select a different database to duplicate activity to it"
+            _("Select a different database to copy this activity to.")
         )
 
         # database combobox
@@ -89,7 +92,7 @@ class ActivityDataGrid(QtWidgets.QWidget):
             lambda target_db: self.duplicate_confirm_dialog(target_db)
         )
         self.database_combo.setToolTip(
-            "Use dropdown menu to duplicate activity to another database"
+            _("Use the drop-down menu to copy this activity to another database.")
         )
 
         # arrange widgets for display as a grid
@@ -100,9 +103,9 @@ class ActivityDataGrid(QtWidgets.QWidget):
         self.grid.setSpacing(6)
         self.grid.setAlignment(QtCore.Qt.AlignTop)
 
-        self.grid.addWidget(QtWidgets.QLabel("Name"), 1, 1)
+        self.grid.addWidget(QtWidgets.QLabel(_("Name")), 1, 1)
         self.grid.addWidget(self.name_box, 1, 2, 1, 3)
-        self.grid.addWidget(QtWidgets.QLabel("Location"), 2, 1)
+        self.grid.addWidget(QtWidgets.QLabel(_("Location")), 2, 1)
         self.grid.addWidget(self.location_combo, 2, 2, 1, -1)
         self.grid.addWidget(self.database_combo, 3, 2, 1, -1)
         self.grid.addWidget(self.database_label, 3, 1)
@@ -158,7 +161,9 @@ class ActivityDataGrid(QtWidgets.QWidget):
         self.database_combo.clear()
 
         # first item in db combo, shown by default, is the current database
-        current_db = self.parent.activity.get("database", "Error: db of Act not found")
+        current_db = self.parent.activity.get(
+            "database", _("Activity database not found")
+        )
         self.database_combo.addItem(current_db)
 
         # other items are the dbs that the activity can be duplicated to: find them and add

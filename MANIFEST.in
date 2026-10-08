@@ -8,3 +8,5 @@ recursive-include activity_browser *.js
 recursive-include activity_browser *.css
 recursive-include activity_browser *.txt
 recursive-include activity_browser *.zip
+recursive-include activity_browser *.json
+recursive-include activity_browser *.qm

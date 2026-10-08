@@ -2,6 +2,8 @@
 from PySide2.QtCore import Slot
 from PySide2.QtWidgets import QMessageBox, QWidget
 
+from activity_browser.i18n import _
+
 
 class BaseRightTab(QWidget):
     """Extremely basic widget, to be created and used inside a QTabWidget
@@ -11,7 +13,7 @@ class BaseRightTab(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.explain_text = "I explain what happens here"
+        self.explain_text = _("No explanation is available for this page yet.")
 
     def _connect_signals(self):
         """Used by child classes to wire up specific functionality to signals
@@ -35,5 +37,9 @@ class BaseRightTab(QWidget):
         on self.explain_text
         """
         return QMessageBox.question(
-            self, "Explanation", self.explain_text, QMessageBox.Ok, QMessageBox.Ok
+            self,
+            _("Explanation"),
+            self.explain_text,
+            QMessageBox.Ok,
+            QMessageBox.Ok,
         )

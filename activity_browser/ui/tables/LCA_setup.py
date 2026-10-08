@@ -4,6 +4,7 @@ from PySide2 import QtWidgets
 from PySide2.QtCore import Qt, Slot
 
 from activity_browser import signals, actions
+from activity_browser.i18n import _
 from activity_browser.mod.bw2data import calculation_setups
 
 from ..icons import qicons
@@ -86,9 +87,11 @@ class CSActivityTable(CSGenericTable):
         self.model.updated.connect(lambda: self.resizeColumnToContents(2))
         self.model.updated.connect(lambda: self.resizeColumnToContents(3))
         self.setToolTip(
-            "Drag Activities from the Activities table to include them as a reference flow\n"
-            "Click and drag to re-order individual rows of the table\n"
-            "Hold CTRL and click to select multiple rows to open or delete them."
+            _(
+                "Drag activities from the activities table to include them as reference flows.\n"
+                "Click and drag to reorder rows.\n"
+                "Hold Ctrl while clicking to select multiple rows to open or remove."
+            )
         )
 
     @Slot(name="openActivities")
@@ -123,8 +126,8 @@ class CSActivityTable(CSGenericTable):
         if self.indexAt(event.pos()).row() == -1:
             return
         menu = QtWidgets.QMenu()
-        menu.addAction(qicons.right, "Open activity", self.open_activities)
-        menu.addAction(qicons.delete, "Remove row", self.delete_rows)
+        menu.addAction(qicons.right, _("Open activity"), self.open_activities)
+        menu.addAction(qicons.delete, _("Remove row"), self.delete_rows)
         menu.exec_(event.globalPos())
 
     def dragEnterEvent(self, event):
@@ -173,9 +176,11 @@ class CSMethodsTable(CSGenericTable):
         self.model.updated.connect(lambda: self.setColumnHidden(3, True))
         self.model.updated.connect(lambda: self.resizeColumnToContents(0))
         self.setToolTip(
-            "Drag impact categories from the impact categories tree/table to include them \n"
-            "Click and drag to re-order individual rows of the table\n"
-            "Hold CTRL and click to select multiple rows to open or delete them."
+            _(
+                "Drag impact categories from the tree or table to include them.\n"
+                "Click and drag to reorder rows.\n"
+                "Hold Ctrl while clicking to select multiple rows to open or remove."
+            )
         )
 
         self.open_method_action = actions.MethodOpen.get_QAction(self.selected_methods)
@@ -205,7 +210,7 @@ class CSMethodsTable(CSGenericTable):
         menu.addAction(self.open_method_action)
         menu.addAction(
             qicons.delete,
-            "Remove rows",
+            _("Remove rows"),
             lambda: self.model.delete_rows(self.selectedIndexes()),
         )
 

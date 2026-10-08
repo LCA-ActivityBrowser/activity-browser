@@ -4,6 +4,7 @@ from bw2io.ecoinvent import *
 
 import pyprind
 
+from activity_browser.i18n import _
 from activity_browser.mod.ecoinvent_interface.release import ABEcoinventRelease
 from activity_browser.mod.bw2io.importers.ecospold2_biosphere import ABEcospold2BiosphereImporter
 
@@ -32,27 +33,27 @@ def ab_import_ecoinvent_release(version, system_model):
         name="biosphere3",
         filepath=lci_path / "MasterData" / "ElementaryExchanges.xml",
     )
-    log.info("Applying strategies")
+    log.info(_("Applying strategies"))
     bio_import.apply_strategies()
-    log.info("Writing biosphere database")
+    log.info(_("Writing biosphere database"))
     bio_import.write_database()
     bd.preferences["biosphere_database"] = "biosphere3"
 
     # importing ecoinvent through a ecospold2 importer that implements a progress_slot
-    log.info("Importing ecoinvent")
+    log.info(_("Importing ecoinvent"))
     db_name = f"ecoinvent-{version}-{system_model}"
     ei_import = SingleOutputEcospold2Importer(
         dirpath=str(lci_path / "datasets"),
         db_name=db_name,
         biosphere_database_name="biosphere3",
     )
-    log.info("Applying strategies")
+    log.info(_("Applying strategies"))
     ei_import.apply_strategies()
-    log.info("Writing ecoinvent database")
+    log.info(_("Writing ecoinvent database"))
     ei_import.write_database()
 
     # importing all LCIA methods
-    log.info("Gathering LCIA methods")
+    log.info(_("Gathering LCIA methods"))
     lcia_file = ei.get_excel_lcia_file_for_version(release=release, version=version)
     sheet_names = get_excel_sheet_names(lcia_file)
 
@@ -69,11 +70,11 @@ def ab_import_ecoinvent_release(version, system_model):
         raise ValueError(
             f"Can't find worksheet for characterization factors; expected `CFs`, found {sheet_names}"
         )
-    log.info("Extracting LCIA methods")
+    log.info(_("Extracting LCIA methods"))
     data = dict(ExcelExtractor.extract(lcia_file))
     units = header_dict(data[units_sheetname])
 
-    log.info("Mapping LCIA methods")
+    log.info(_("Mapping LCIA methods"))
     cfs = header_dict(data["CFs"])
 
     CF_COLUMN_LABELS = {
@@ -158,7 +159,7 @@ def ab_import_ecoinvent_release(version, system_model):
                     )
                     unmatched.add(row["name"])
 
-    for key in pyprind.prog_bar(lcia_data_as_dict, title="Writing LCIA methods"):
+    for key in pyprind.prog_bar(lcia_data_as_dict, title=_("Writing LCIA methods")):
         method = bd.Method(key)
         method.register(
             unit=units_mapping.get(key, "Unknown"),

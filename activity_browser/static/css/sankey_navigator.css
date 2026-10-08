@@ -1,5 +1,7 @@
 
-
+body, button {
+  font-family: "Noto Sans SC", "Microsoft YaHei", "PingFang SC", sans-serif;
+}
 
 /*to make the svg resizable*/ /*
 .svg-container {

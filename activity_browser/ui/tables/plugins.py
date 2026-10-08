@@ -3,6 +3,8 @@ import pandas
 from PySide2 import QtCore, QtWidgets
 from PySide2.QtWidgets import QMessageBox
 
+from activity_browser.i18n import _
+
 from ...signals import signals
 from .delegates import CheckboxDelegate
 from .models.plugins import PluginsModel
@@ -41,9 +43,9 @@ class PluginsTable(ABDataFrameView):
                 #                plugin_name = self.model.get_plugin_name(proxy)
                 if not new_value:
                     msgBox = QMessageBox()
-                    msgBox.setText("Remove plugin from project ?")
+                    msgBox.setText(_("Remove plugin from project?"))
                     msgBox.setInformativeText(
-                        "This will remove all data created by the plugin."
+                        _("This will remove all data created by the plugin.")
                     )
                     msgBox.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
                     msgBox.setDefaultButton(QMessageBox.Cancel)

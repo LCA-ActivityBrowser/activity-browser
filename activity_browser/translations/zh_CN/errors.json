@@ -1,0 +1,5 @@
+{
+  "LCA calculation failed": "LCA 计算失败",
+  "Scenario LCA calculation failed": "情景 LCA 计算失败",
+  "The constructed LCA matrix contains none of the exchanges from the scenario data.": "构建的 LCA 矩阵不包含情景数据中的任何交换流。"
+}

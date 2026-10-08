@@ -4,6 +4,9 @@
 
 ### Added
 
+- Added interface language support for English and Simplified Chinese, with a
+  system-language option in Settings. Scientific database content, activity
+  names, methods, units, and exported source data remain unchanged.
 - ([#512](https://github.com/LCA-ActivityBrowser/activity-browser/pull/512))
     Added a number of small improvements to the AB, users can now copy existing
     LCA setups. Additionally, multiple activities can now be duplicated, deleted

@@ -1,0 +1,14 @@
+{
+  "&Main Window": "主窗口(&M)",
+  "Confirm action": "确认操作",
+  "Database": "数据库",
+  "Database: None": "数据库：无",
+  "Database: {database}": "数据库：{database}",
+  "Explanation": "说明",
+  "Information": "信息",
+  "No explanation is available for this page yet.": "此页面暂时没有可用说明。",
+  "No method selected yet": "尚未选择方法",
+  "Project": "项目",
+  "Project: {project}": "项目：{project}",
+  "Welcome": "欢迎"
+}

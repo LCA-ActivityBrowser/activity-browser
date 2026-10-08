@@ -26,6 +26,7 @@ from stats_arrays.errors import InvalidParamsError
 import bw2data as bd
 
 from activity_browser import signals, project_settings
+from activity_browser.i18n import _
 from activity_browser.mod.bw2data import calculation_setups
 from activity_browser.mod.bw2analyzer import ABContributionAnalysis
 
@@ -44,6 +45,20 @@ from .base import BaseRightTab
 ca = ABContributionAnalysis()
 
 log = getLogger(__name__)
+
+
+class InventoryType:
+    BIOSPHERE = "biosphere"
+    TECHNOSPHERE = "technosphere"
+
+
+class CategorisationFilter:
+    ALL = "all"
+    WITHOUT_FACTORS = "without_factors"
+    WITH_FACTORS = "with_factors"
+
+
+NO_AGGREGATION = "none"
 
 
 def get_header_layout(header_text: str) -> QVBoxLayout:
@@ -74,6 +89,7 @@ def get_unit(method: tuple, relative: bool = False) -> str:
     - absolute numbers.
     """
     if relative:
+        # Keep dataframe and export values stable; translate only on display.
         return "relative share"
     if method:  # for all reference flows
         return bc.unit_of_method(method)
@@ -150,14 +166,14 @@ class LCAResultsSubTab(QTabWidget):
             gsa=GSATab(self),
         )
         self.tab_names = Tabs(
-            inventory="Inventory",
-            results="LCA Results",
-            ef="EF Contributions",
-            process="Process Contributions",
-            ft="FT Contributions",
-            sankey="Sankey",
-            mc="Monte Carlo",
-            gsa="Sensitivity Analysis",
+            inventory=_("Inventory"),
+            results=_("LCA Results"),
+            ef=_("EF Contributions"),
+            process=_("Process Contributions"),
+            ft=_("FT Contributions"),
+            sankey=_("Sankey"),
+            mc=_("Monte Carlo"),
+            gsa=_("Sensitivity Analysis"),
         )
         self.setup_tabs()
         self.setCurrentWidget(self.tabs.results)
@@ -207,10 +223,10 @@ class LCAResultsSubTab(QTabWidget):
         impact categories and scenarios, then call the 'export to csv'
         """
         df = self.mlca.lca_scores_to_dataframe()
-        filepath, _ = QFileDialog.getSaveFileName(
+        filepath, _selected_filter = QFileDialog.getSaveFileName(
             parent=self,
-            caption="Choose location to save lca results",
-            filter="Comma Separated Values (*.csv);; All Files (*.*)",
+            caption=_("Choose location to save LCA results"),
+            filter=_("Comma Separated Values (*.csv);; All Files (*.*)"),
         )
         if filepath:
             if not filepath.endswith(".csv"):
@@ -223,10 +239,10 @@ class LCAResultsSubTab(QTabWidget):
         impact categories and scenarios, then call the 'export to excel'
         """
         df = self.mlca.lca_scores_to_dataframe()
-        filepath, _ = QFileDialog.getSaveFileName(
+        filepath, _selected_filter = QFileDialog.getSaveFileName(
             parent=self,
-            caption="Choose location to save lca results",
-            filter="Excel (*.xlsx);; All Files (*.*)",
+            caption=_("Choose location to save LCA results"),
+            filter=_("Excel (*.xlsx);; All Files (*.*)"),
         )
         if filepath:
             if not filepath.endswith(".xlsx"):
@@ -272,10 +288,14 @@ class NewAnalysisTab(BaseRightTab):
         space.setWidgetResizable(True)
 
         # Option switches
-        self.plot_table = PlotTableCheck(QCheckBox("Plot"), QCheckBox("Table"), None)
+        self.plot_table = PlotTableCheck(
+            QCheckBox(_("Plot")), QCheckBox(_("Table")), None
+        )
         if invertable:
             self.plot_table = PlotTableCheck(
-                QCheckBox("Plot"), QCheckBox("Table"), QCheckBox("Invert")
+                QCheckBox(_("Plot")),
+                QCheckBox(_("Table")),
+                QCheckBox(_("Invert")),
             )
             self.plot_table.invert.setChecked(False)
             self.plot_table.invert.stateChanged.connect(self.invert_plot)
@@ -422,7 +442,7 @@ class NewAnalysisTab(BaseRightTab):
         if has_plot:
             plot_layout = QHBoxLayout()
             self.export_plot = ExportPlot(
-                QLabel("Export plot:"),
+                QLabel(_("Export plot:")),
                 QPushButton(".png"),
                 QPushButton(".svg"),
             )
@@ -440,10 +460,10 @@ class NewAnalysisTab(BaseRightTab):
         if has_table:
             table_layout = QHBoxLayout()
             self.export_table = ExportTable(
-                QLabel("Export table:"),
-                QPushButton("Copy"),
+                QLabel(_("Export table:")),
+                QPushButton(_("Copy")),
                 QPushButton(".csv"),
-                QPushButton("Excel"),
+                QPushButton(_("Excel")),
             )
             self.export_table.copy.clicked.connect(self.table.to_clipboard)
             self.export_table.csv.clicked.connect(self.table.to_csv)
@@ -472,22 +492,37 @@ class InventoryTab(NewAnalysisTab):
         self.df_biosphere = None
         self.df_technosphere = None
 
-        self.layout.addLayout(get_header_layout("Inventory"))
+        self.layout.addLayout(get_header_layout(_("Inventory")))
         self.bio_tech_button_group = QButtonGroup()
         self.bio_categorisation_factor_group = QComboBox()
         # buttons
         button_layout = QHBoxLayout()
-        self.radio_button_biosphere = QRadioButton("Biosphere flows")
+        self.radio_button_biosphere = QRadioButton(_("Biosphere flows"))
+        self.radio_button_biosphere.setProperty(
+            "inventory_type", InventoryType.BIOSPHERE
+        )
         self.radio_button_biosphere.setChecked(True)
 
-        self.radio_button_technosphere = QRadioButton("Technosphere flows")
-        self.remove_zeros_checkbox = QCheckBox("Remove '0' values")
+        self.radio_button_technosphere = QRadioButton(_("Technosphere flows"))
+        self.radio_button_technosphere.setProperty(
+            "inventory_type", InventoryType.TECHNOSPHERE
+        )
+        self.remove_zeros_checkbox = QCheckBox(_("Remove '0' values"))
         self.remove_zero_state = False
 
         self.categorisation_factor_filters = [
-            "No filtering with categorisation factors",
-            "Flows without categorisation factors",
-            "Flows with categorisation factors",
+            (
+                CategorisationFilter.ALL,
+                _("No filtering with categorisation factors"),
+            ),
+            (
+                CategorisationFilter.WITHOUT_FACTORS,
+                _("Flows without categorisation factors"),
+            ),
+            (
+                CategorisationFilter.WITH_FACTORS,
+                _("Flows with categorisation factors"),
+            ),
         ]
         self.categorisation_factor_state = None
         self.old_categorisation_factor_state = self.categorisation_factor_state
@@ -495,16 +530,19 @@ class InventoryTab(NewAnalysisTab):
         self.last_remove_zero_state = self.remove_zero_state
         self.remove_zeros_checkbox.setChecked(self.remove_zero_state)
         self.remove_zeros_checkbox.setToolTip(
-            "Choose whether to show '0' values or not.\n"
-            "When selected, '0' values are not shown.\n"
-            "Rows are only removed when all reference flows are '0'."
+            _(
+                "Choose whether to show '0' values or not.\n"
+                "When selected, '0' values are not shown.\n"
+                "Rows are only removed when all reference flows are '0'."
+            )
         )
-        self.scenario_label = QLabel("Scenario:")
+        self.scenario_label = QLabel(_("Scenario:"))
 
         # Group the radio buttons into the appropriate groups for the window
-        self.update_combobox(
-            self.bio_categorisation_factor_group, self.categorisation_factor_filters
-        )
+        for filter_id, label in self.categorisation_factor_filters:
+            self.bio_categorisation_factor_group.addItem(label, filter_id)
+        self.bio_tech_button_group.addButton(self.radio_button_biosphere)
+        self.bio_tech_button_group.addButton(self.radio_button_technosphere)
         self.bio_categorisation_factor_group.setMaximumWidth(300)
         self.bio_categorisation_factor_group.setSizeAdjustPolicy(
             QComboBox.AdjustToContentsOnFirstShow
@@ -512,7 +550,7 @@ class InventoryTab(NewAnalysisTab):
 
         # Setup the Qt environment for the buttons, including the arrangement
         self.categorisation_filter_layout = QVBoxLayout()
-        self.categorisation_filter_layout.addWidget(QLabel("Filter flows:"))
+        self.categorisation_filter_layout.addWidget(QLabel(_("Filter flows:")))
         self.categorisation_filter_layout.addWidget(
             self.bio_categorisation_factor_group
         )
@@ -531,7 +569,7 @@ class InventoryTab(NewAnalysisTab):
         self.layout.addWidget(self.categorisation_filter_box)
         # table
         self.table = InventoryTable(self.parent)
-        self.table.table_name = "Inventory_" + self.parent.cs_name
+        self.table.table_name = _("Inventory") + "_" + self.parent.cs_name
         self.layout.addWidget(self.table)
 
         self.layout.addLayout(self.build_export(has_plot=False, has_table=True))
@@ -556,16 +594,11 @@ class InventoryTab(NewAnalysisTab):
 
     @QtCore.Slot(QRadioButton, name="addCategorisationFactorFilter")
     def add_categorisation_factor_filter(self, index: int):
-        if (
-            self.bio_categorisation_factor_group.currentText()
-            == "Flows without categorisation factors"
-        ):
+        filter_id = self.bio_categorisation_factor_group.currentData()
+        if filter_id == CategorisationFilter.WITHOUT_FACTORS:
             self.categorisation_filter_with_flows = False
             self.categorisation_factor_state = False
-        elif (
-            self.bio_categorisation_factor_group.currentText()
-            == "Flows with categorisation factors"
-        ):
+        elif filter_id == CategorisationFilter.WITH_FACTORS:
             self.categorisation_filter_with_flows = True
             self.categorisation_factor_state = True
         else:
@@ -576,7 +609,7 @@ class InventoryTab(NewAnalysisTab):
 
     @QtCore.Slot(QRadioButton, name="toggleCategorisationFactorFilterButtons")
     def toggle_categorisation_factor_filter_buttons(self, bttn: QRadioButton):
-        if bttn.text() == "Biosphere flows":
+        if bttn.property("inventory_type") == InventoryType.BIOSPHERE:
             self.categorisation_filter_box.setVisible(True)
         else:
             self.categorisation_filter_box.setVisible(False)
@@ -592,8 +625,8 @@ class InventoryTab(NewAnalysisTab):
     @QtCore.Slot(bool, name="isBiosphereToggled")
     def button_clicked(self, toggled: bool):
         """Update table according to radiobutton selected."""
-        ext = "_Inventory" if toggled else "_Inventory_technosphere"
-        self.table.table_name = "{}{}".format(self.parent.cs_name, ext)
+        result_type = _("Inventory") if toggled else _("Technosphere inventory")
+        self.table.table_name = "{}_{}".format(self.parent.cs_name, result_type)
         self.update_table()
 
     def configure_scenario(self):
@@ -632,7 +665,9 @@ class InventoryTab(NewAnalysisTab):
     def update_table(self):
         """Update the table."""
         inventory = (
-            "biosphere" if self.radio_button_biosphere.isChecked() else "technosphere"
+            InventoryType.BIOSPHERE
+            if self.radio_button_biosphere.isChecked()
+            else InventoryType.TECHNOSPHERE
         )
         self.table.showing = inventory
         # We handle both 'df_biosphere' and 'df_technosphere' variables here.
@@ -651,7 +686,7 @@ class InventoryTab(NewAnalysisTab):
         # filter the biosphere flows for the relevance to the CFs
         if (
             self.categorisation_filter_with_flows is not None
-            and inventory == "biosphere"
+            and inventory == InventoryType.BIOSPHERE
         ):
             self.df_biosphere = self.elementary_flows_contributing_to_IA_methods(
                 self.categorisation_filter_with_flows, self.df_biosphere
@@ -696,22 +731,24 @@ class LCAResultsTab(NewAnalysisTab):
         self.lca_overview_widget = LCIAResultsTab(parent)
 
         self.layout.setAlignment(QtCore.Qt.AlignTop)
-        self.layout.addLayout(get_header_layout("LCA Results"))
+        self.layout.addLayout(get_header_layout(_("LCA Results")))
 
         # buttons
         button_layout = QHBoxLayout()
         self.button_group = QButtonGroup()
-        self.button_overview = QRadioButton("Overview")
+        self.button_overview = QRadioButton(_("Overview"))
         self.button_overview.setToolTip(
-            "Show a matrix of all reference flows and all impact categories"
+            _("Show a matrix of all reference flows and all impact categories")
         )
         button_layout.addWidget(self.button_overview)
-        self.button_by_method = QRadioButton("by impact category")
+        self.button_by_method = QRadioButton(_("by impact category"))
         self.button_by_method.setToolTip(
-            "Show the impacts of each reference flow for the selected impact categories"
+            _(
+                "Show the impacts of each reference flow for the selected impact categories"
+            )
         )
         self.button_by_method.setChecked(True)
-        self.scenario_label = QLabel("Scenario:")
+        self.scenario_label = QLabel(_("Scenario:"))
         self.button_group.addButton(self.button_overview, 0)
         self.button_group.addButton(self.button_by_method, 1)
         button_layout.addWidget(self.button_by_method)
@@ -767,7 +804,7 @@ class LCAScoresTab(NewAnalysisTab):
         self.parent = parent
 
         self.combobox_menu = QHBoxLayout()
-        self.combobox_label = QLabel("Choose impact category:")
+        self.combobox_label = QLabel(_("Choose impact category:"))
         self.combobox = QComboBox()
         self.combobox.scroll = False
         self.combobox_menu.addWidget(self.combobox_label)
@@ -776,7 +813,7 @@ class LCAScoresTab(NewAnalysisTab):
         self.layout.addLayout(self.combobox_menu)
 
         self.plot = LCAResultsBarChart(self.parent)
-        self.plot.plot_name = "LCA scores_" + self.parent.cs_name
+        self.plot.plot_name = _("LCA scores") + "_" + self.parent.cs_name
         self.layout.addWidget(self.plot)
 
         self.layout.addLayout(self.build_export(has_plot=True, has_table=False))
@@ -796,18 +833,18 @@ class LCAScoresTab(NewAnalysisTab):
             stretch = layout.takeAt(layout.count() - 1)
             # Then add the additional label and export btn, plus new stretch.
             exp_layout = QHBoxLayout()
-            exp_layout.addWidget(QLabel("Export all data"))
+            exp_layout.addWidget(QLabel(_("Export all data")))
 
             csv_btn = QPushButton(".csv")
             csv_btn.setToolTip(
-                "Include all reference flows, impact categories and scenarios"
+                _("Include all reference flows, impact categories and scenarios")
             )
             if self.parent:
                 csv_btn.clicked.connect(self.parent.generate_lcia_scenario_csv)
 
-            excel_btn = QPushButton("Excel")
+            excel_btn = QPushButton(_("Excel"))
             excel_btn.setToolTip(
-                "Include all reference flows, impact categories and scenarios"
+                _("Include all reference flows, impact categories and scenarios")
             )
             if self.parent:
                 excel_btn.clicked.connect(self.parent.generate_lcia_scenario_excel)
@@ -840,7 +877,9 @@ class LCAScoresTab(NewAnalysisTab):
         self.layout.insertWidget(idx, self.plot)
         super().update_plot(df, method=method, labels=labels)
         self.updateGeometry()
-        self.plot.plot_name = "_".join([self.parent.cs_name, "LCA scores", str(method)])
+        self.plot.plot_name = "_".join(
+            [self.parent.cs_name, _("LCA scores"), str(method)]
+        )
 
 
 class LCIAResultsTab(NewAnalysisTab):
@@ -854,9 +893,9 @@ class LCIAResultsTab(NewAnalysisTab):
 
         # if not self.parent.single_func_unit:
         self.plot = LCAResultsPlot(self.parent)
-        self.plot.plot_name = self.parent.cs_name + "_LCIA results"
+        self.plot.plot_name = self.parent.cs_name + "_" + _("LCIA results")
         self.table = LCAResultsTable(self.parent)
-        self.table.table_name = self.parent.cs_name + "_LCIA results"
+        self.table.table_name = self.parent.cs_name + "_" + _("LCIA results")
         self.relative = False
 
         self.layout.addWidget(self.build_main_space(True))
@@ -872,18 +911,18 @@ class LCIAResultsTab(NewAnalysisTab):
             stretch = layout.takeAt(layout.count() - 1)
             # Then add the additional label and export btn, plus new stretch.
             exp_layout = QHBoxLayout()
-            exp_layout.addWidget(QLabel("Export all data"))
+            exp_layout.addWidget(QLabel(_("Export all data")))
 
             csv_btn = QPushButton(".csv")
             csv_btn.setToolTip(
-                "Include all reference flows, impact categories and scenarios"
+                _("Include all reference flows, impact categories and scenarios")
             )
             if self.parent:
                 csv_btn.clicked.connect(self.parent.generate_lcia_scenario_csv)
 
-            excel_btn = QPushButton("Excel")
+            excel_btn = QPushButton(_("Excel"))
             excel_btn.setToolTip(
-                "Include all reference flows, impact categories and scenarios"
+                _("Include all reference flows, impact categories and scenarios")
             )
             if self.parent:
                 excel_btn.clicked.connect(self.parent.generate_lcia_scenario_excel)
@@ -922,56 +961,62 @@ class ContributionTab(NewAnalysisTab):
         self.cutoff_menu = CutoffMenu(self, cutoff_value=0.05)
         self.combobox_menu = Combobox(
             func=QComboBox(self),
-            func_label=QLabel("Reference Flow:"),
+            func_label=QLabel(_("Reference Flow:")),
             method=QComboBox(self),
-            method_label=QLabel("Impact Category:"),
+            method_label=QLabel(_("Impact Category:")),
             agg=QComboBox(self),
-            agg_label=QLabel("Aggregate by:"),
+            agg_label=QLabel(_("Aggregate by:")),
             scenario=self.scenario_box,
-            scenario_label=QLabel("Scenario:"),
+            scenario_label=QLabel(_("Scenario:")),
         )
-        self.switch_label = QLabel("Compare:")
+        self.switch_label = QLabel(_("Compare:"))
         self.switches = SwitchComboBox(self)
 
         self.relativity = Relativity(
-            QRadioButton("Relative"),
-            QRadioButton("Absolute"),
+            QRadioButton(_("Relative")),
+            QRadioButton(_("Absolute")),
         )
         self.relativity.relative.setChecked(True)
         self.relative = True
         self.relativity.relative.setToolTip(
-            "Show relative values (compare fraction of each contribution)"
+            _("Show relative values (compare fraction of each contribution)")
         )
         self.relativity.absolute.setToolTip(
-            "Show absolute values (compare magnitudes of each contribution)"
+            _("Show absolute values (compare magnitudes of each contribution)")
         )
         self.relativity_group = QButtonGroup(self)
         self.relativity_group.addButton(self.relativity.relative)
         self.relativity_group.addButton(self.relativity.absolute)
 
         self.total_menu = TotalMenu(
-            QRadioButton("Score"),
-            QRadioButton("Range"),
+            QRadioButton(_("Score")),
+            QRadioButton(_("Range")),
         )
         self.total_menu.score.setChecked(True)
         self.total_range = False
         self.total_menu.score.setToolTip(
-            "Show the contributions relative to the <i>total</i> impact score.\n"
-            "e.g. total negative results is -2 and total positive results is 10, then score is 8 (-2 + 10)"
+            _(
+                "Show the contributions relative to the <i>total</i> impact score.\n"
+                "e.g. total negative results is -2 and total positive results is 10, then score is 8 (-2 + 10)"
+            )
         )
         self.total_menu.range.setToolTip(
-            "Show the contribution relative to the total <i>range</i> of results.\n"
-            "e.g. total negative results is -2 and total positive results is 10, then range is 12 (-2 * -1 + 10)"
+            _(
+                "Show the contribution relative to the total <i>range</i> of results.\n"
+                "e.g. total negative results is -2 and total positive results is 10, then range is 12 (-2 * -1 + 10)"
+            )
         )
         self.total_group = QButtonGroup(self)
         self.total_group.addButton(self.total_menu.score)
         self.total_group.addButton(self.total_menu.range)
 
         self.score_marker = project_settings.settings.get("analysis_tab", {}).get(f"{self.__class__.__name__}score_marker_enabled", True)
-        self.score_mrk_checkbox = QCheckBox("Score Marker")
+        self.score_mrk_checkbox = QCheckBox(_("Score Marker"))
         self.score_mrk_checkbox.setToolTip(
-            "Shows the score marker. When there are both positive and negative results,\n"
-            "this shows a marker where the total score is."
+            _(
+                "Shows the score marker. When there are both positive and negative results,\n"
+                "this shows a marker where the total score is."
+            )
         )
         self.score_mrk_checkbox.setChecked(self.score_marker)
 
@@ -981,25 +1026,30 @@ class ContributionTab(NewAnalysisTab):
         self.contribution_fn = None
         self.has_method, self.has_func = False, False
         self.unit = None
+        self.translate_unit = False
 
         self.has_been_opened = False
 
         # set-up the help button
-        self.explain_text = """
-                <p>There are three ways of doing Contribtion Analysis in Activity Browser:</h4>
-                <p>- <b>Elementary Flow (EF) Contributions</b></p>
-                <p>- <b>Process Contributions</b></p>
-                <p>- <b>First Tier (FT) Contributions</b></p>
-                
-                Detailed information on the different approaches provided in this <a href="https://github.com/LCA-ActivityBrowser/activity-browser/wiki/LCA-Results#contribution-analysis">wiki page</a> about the different approaches. 
-
-                <p>You can manipulate the results in many ways with Activity Browser, read more on this <a href="https://github.com/LCA-ActivityBrowser/activity-browser/wiki/LCA-Results#manipulating-results">wiki page</a>
-                about manipulating results. 
-                """
+        self.explain_text = _(
+            "<h4>There are three ways of doing Contribution Analysis in Activity Browser:</h4>"
+            "<p>- <b>Elementary Flow (EF) Contributions</b></p>"
+            "<p>- <b>Process Contributions</b></p>"
+            "<p>- <b>First Tier (FT) Contributions</b></p>"
+            "<p>Detailed information about these approaches is available on the "
+            "<a href=\"https://github.com/LCA-ActivityBrowser/activity-browser/wiki/"
+            "LCA-Results#contribution-analysis\">contribution analysis wiki page</a>.</p>"
+            "<p>You can manipulate the results in several ways. See the "
+            "<a href=\"https://github.com/LCA-ActivityBrowser/activity-browser/wiki/"
+            "LCA-Results#manipulating-results\">results manipulation wiki page</a> "
+            "for details.</p>"
+        )
 
         self.help_button = QToolBar(self)
         self.help_button.addAction(
-            qicons.question, "Left click for help on Contribution Analysis Functions", self.explanation
+            qicons.question,
+            _("Left click for help on Contribution Analysis Functions"),
+            self.explanation,
         )
 
     def set_filename(self, optional_fields: dict = None):
@@ -1015,6 +1065,12 @@ class ContributionTab(NewAnalysisTab):
 
         filename = "_".join((str(x) for x in fields if x is not None))
         self.plot.plot_name, self.table.table_name = filename, filename
+
+    @staticmethod
+    def add_aggregation_items(box: QComboBox, fields: List[str]) -> None:
+        """Add translated aggregation labels with stable dataframe fields."""
+        for field in fields:
+            box.addItem(_(field), field)
 
     def build_combobox(
         self, has_method: bool = True, has_func: bool = False
@@ -1086,23 +1142,24 @@ class ContributionTab(NewAnalysisTab):
         method = self.parent.method_dict[self.combobox_menu.method.currentText()]
         functional_unit = self.combobox_menu.func.currentText()
         scenario = max(self.combobox_menu.scenario.currentIndex(), 0)  # set scenario 0 if not initiated yet
-        aggregator = self.combobox_menu.agg.currentText()
+        aggregator = self.combobox_menu.agg.currentData()
 
         # set aggregator to None if unwanted
-        if aggregator == "none":
+        if aggregator == NO_AGGREGATION:
             aggregator = None
 
         # initiate dict with the field we want to compare
         compare_fields = {"aggregator": aggregator}
 
         # Determine which comparison is active and update the comparison.
-        if self.switches.currentIndex() == self.switches.indexes.func:
+        comparison_mode = self.switches.current_mode
+        if comparison_mode == self.switches.modes.func:
             compare_fields.update({"method": method, "scenario": scenario})
-        elif self.switches.currentIndex() == self.switches.indexes.method:
+        elif comparison_mode == self.switches.modes.method:
             compare_fields.update(
                 {"functional_unit": functional_unit, "scenario": scenario}
             )
-        elif self.switches.currentIndex() == self.switches.indexes.scenario:
+        elif comparison_mode == self.switches.modes.scenario:
             compare_fields.update(
                 {
                     "method": method,
@@ -1112,7 +1169,9 @@ class ContributionTab(NewAnalysisTab):
 
         # Determine the unit for the figure, update the filenames and the
         # underlying dataframe.
-        self.unit = get_unit(compare_fields.get("method"), self.relative)
+        unit_method = compare_fields.get("method")
+        self.unit = get_unit(unit_method, self.relative)
+        self.translate_unit = self.relative or not bool(unit_method)
         self.set_filename(compare_fields)
         self.df = self.update_dataframe(**compare_fields)
 
@@ -1140,7 +1199,9 @@ class ContributionTab(NewAnalysisTab):
         raise NotImplementedError
 
     def update_table(self):
-        super().update_table(self.df, unit=self.unit)
+        super().update_table(
+            self.df, unit=self.unit, translate_unit=self.translate_unit
+        )
 
     def update_plot(self):
         """Update the plot."""
@@ -1152,7 +1213,9 @@ class ContributionTab(NewAnalysisTab):
         self.plot.deleteLater()
         self.plot = ContributionPlot(self)
         self.pt_layout.insertWidget(idx, self.plot)
-        super().update_plot(self.df, unit=self.unit)
+        super().update_plot(
+            self.df, unit=self.unit, translate_unit=self.translate_unit
+        )
         self.plot.plot_name = name
         if self.pt_layout.parentWidget():
             self.pt_layout.parentWidget().updateGeometry()
@@ -1180,7 +1243,9 @@ class ElementaryFlowContributionTab(ContributionTab):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        header = get_header_layout_w_help("Elementary Flow Contributions", self.help_button)
+        header = get_header_layout_w_help(
+            _("Elementary Flow Contributions"), self.help_button
+        )
         self.layout.addLayout(header)
         self.layout.addWidget(self.cutoff_menu)
         self.layout.addWidget(horizontal_line())
@@ -1190,7 +1255,7 @@ class ElementaryFlowContributionTab(ContributionTab):
         self.layout.addWidget(self.build_main_space())
         self.layout.addLayout(self.build_export(True, True))
 
-        self.contribution_fn = "EF contributions"
+        self.contribution_fn = _("EF contributions")
         self.switches.configure(self.has_func, self.has_method)
         self.connect_signals()
         self.toggle_comparisons(self.switches.indexes.func)
@@ -1198,7 +1263,10 @@ class ElementaryFlowContributionTab(ContributionTab):
     def build_combobox(
         self, has_method: bool = True, has_func: bool = False
     ) -> QHBoxLayout:
-        self.combobox_menu.agg.addItems(self.parent.contributions.DEFAULT_EF_AGGREGATES)
+        self.add_aggregation_items(
+            self.combobox_menu.agg,
+            self.parent.contributions.DEFAULT_EF_AGGREGATES,
+        )
         return super().build_combobox(has_method, has_func)
 
     def update_dataframe(self, *args, **kwargs):
@@ -1234,7 +1302,7 @@ class ProcessContributionsTab(ContributionTab):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        header = get_header_layout_w_help("Process Contributions", self.help_button)
+        header = get_header_layout_w_help(_("Process Contributions"), self.help_button)
         self.layout.addLayout(header)
         self.layout.addWidget(self.cutoff_menu)
         self.layout.addWidget(horizontal_line())
@@ -1244,7 +1312,7 @@ class ProcessContributionsTab(ContributionTab):
         self.layout.addWidget(self.build_main_space())
         self.layout.addLayout(self.build_export(True, True))
 
-        self.contribution_fn = "Process contributions"
+        self.contribution_fn = _("Process contributions")
         self.switches.configure(self.has_func, self.has_method)
         self.connect_signals()
         self.toggle_comparisons(self.switches.indexes.func)
@@ -1252,8 +1320,9 @@ class ProcessContributionsTab(ContributionTab):
     def build_combobox(
         self, has_method: bool = True, has_func: bool = False
     ) -> QHBoxLayout:
-        self.combobox_menu.agg.addItems(
-            self.parent.contributions.DEFAULT_ACT_AGGREGATES
+        self.add_aggregation_items(
+            self.combobox_menu.agg,
+            self.parent.contributions.DEFAULT_ACT_AGGREGATES,
         )
         return super().build_combobox(has_method, has_func)
 
@@ -1302,7 +1371,9 @@ class FirstTierContributionsTab(ContributionTab):
         # we also cache scores/ranges, not for calculation speed, but to be able to easily convert for relative results
         self.caching = True  # set to False to disable caching for debug
 
-        header = get_header_layout_w_help("First Tier Contributions", self.help_button)
+        header = get_header_layout_w_help(
+            _("First Tier Contributions"), self.help_button
+        )
         self.layout.addLayout(header)
         self.layout.addWidget(self.cutoff_menu)
         self.layout.addWidget(horizontal_line())
@@ -1322,7 +1393,7 @@ class FirstTierContributionsTab(ContributionTab):
         ]
         self.methods = bd.calculation_setups[self.cs]["ia"]
 
-        self.contribution_fn = "First Tier contributions"
+        self.contribution_fn = _("First Tier contributions")
         self.switches.configure(self.has_func, self.has_method)
         self.connect_signals()
         self.toggle_comparisons(self.switches.indexes.func)
@@ -1335,8 +1406,9 @@ class FirstTierContributionsTab(ContributionTab):
     def build_combobox(
         self, has_method: bool = True, has_func: bool = False
     ) -> QHBoxLayout:
-        self.combobox_menu.agg.addItems(
-            self.parent.contributions.DEFAULT_ACT_AGGREGATES
+        self.add_aggregation_items(
+            self.combobox_menu.agg,
+            self.parent.contributions.DEFAULT_ACT_AGGREGATES,
         )
         return super().build_combobox(has_method, has_func)
 
@@ -1367,7 +1439,7 @@ class FirstTierContributionsTab(ContributionTab):
         demand_key = self.func_keys[demand_index]
 
         all_data = []
-        if compare == "Reference Flows":
+        if compare == self.switches.modes.func:
             # run the analysis for every reference flow
             for demand_index, demand in enumerate(self.func_units):
                 demand_key = self.func_keys[demand_index]
@@ -1381,7 +1453,7 @@ class FirstTierContributionsTab(ContributionTab):
                 if self.caching:
                     self.cache[cache_key] = data
                 all_data.append([demand_key, data])
-        elif compare == "Impact Categories":
+        elif compare == self.switches.modes.method:
             # run the analysis for every method
             for method_index, method in enumerate(self.methods):
                 cache_key = (demand_index, method_index, scenario_index)
@@ -1395,7 +1467,7 @@ class FirstTierContributionsTab(ContributionTab):
                 if self.caching:
                     self.cache[cache_key] = data
                 all_data.append([method, data])
-        elif compare == "Scenarios":
+        elif compare == self.switches.modes.scenario:
             # run the analysis for every scenario
             for scenario_index in range(self.combobox_menu.scenario.count()):
                 scenario = self.combobox_menu.scenario.itemText(scenario_index)
@@ -1543,11 +1615,11 @@ class FirstTierContributionsTab(ContributionTab):
             # item is a key, method or scenario depending on the `compares`
             unique_keys.update(data.keys())
             # already add the total with right column formatting depending on `compares`
-            if compare == "Reference Flows":
+            if compare == self.switches.modes.func:
                 col_name = self.metadata_to_index(self.key_to_metadata(item))
-            elif compare == "Impact Categories":
+            elif compare == self.switches.modes.method:
                 col_name = self.metadata_to_index(list(item))
-            elif compare == "Scenarios":
+            elif compare == self.switches.modes.scenario:
                 col_name = item
 
             self.cache["scores"][col_name] = data["Score"]
@@ -1556,10 +1628,15 @@ class FirstTierContributionsTab(ContributionTab):
 
             all_data[i] = item, data, col_name
 
-        if compare == "Impact Categories":
+        if compare == self.switches.modes.method:
             self.unit = get_unit(method=False, relative=self.relative)
+            self.translate_unit = True
         else:
-            self.unit = get_unit(self.parent.method_dict[self.combobox_menu.method.currentText()], self.relative)
+            unit_method = self.parent.method_dict[
+                self.combobox_menu.method.currentText()
+            ]
+            self.unit = get_unit(unit_method, self.relative)
+            self.translate_unit = self.relative
 
         # convert to dict format to feed into dataframe
         for key in unique_keys:
@@ -1586,8 +1663,8 @@ class FirstTierContributionsTab(ContributionTab):
         df = df.dropna(subset=data_cols, how="all")
 
         # now, apply aggregation
-        group_on = self.combobox_menu.agg.currentText()
-        if group_on != "none":
+        group_on = self.combobox_menu.agg.currentData()
+        if group_on != NO_AGGREGATION:
             df = df.groupby(by=group_on, as_index=False).sum()
             df["index"] = df[group_on]
             df = df[["index"] + data_cols]
@@ -1630,6 +1707,8 @@ class FirstTierContributionsTab(ContributionTab):
         score_and_rest = {col: [] for col in df}
         for col in df:
             if col == "index":
+                # Stable values for calculations and exports; the table model
+                # and plotting copy translate them for display.
                 score_and_rest[col].extend(["Score", "Rest (+)", "Rest (-)"])
             elif col in data_cols:
                 # score
@@ -1660,7 +1739,7 @@ class FirstTierContributionsTab(ContributionTab):
     def update_dataframe(self, *args, **kwargs):
         """Retrieve the product contributions."""
 
-        compare = self.switches.currentText()
+        compare = self.switches.current_mode
 
         all_data = self.get_data(compare)
         df = self.data_to_df(all_data, compare)
@@ -1672,8 +1751,8 @@ class CorrelationsTab(NewAnalysisTab):
         super().__init__(parent)
         self.parent = parent
 
-        self.tab_text = "Correlations"
-        self.layout.addLayout(get_header_layout("Correlation Analysis"))
+        self.tab_text = _("Correlations")
+        self.layout.addLayout(get_header_layout(_("Correlation Analysis")))
 
         if not self.parent.single_func_unit:
             self.plot = CorrelationPlot(self.parent)
@@ -1709,25 +1788,25 @@ class MonteCarloTab(NewAnalysisTab):
         super(MonteCarloTab, self).__init__(parent)
         self.parent: LCAResultsSubTab = parent
         header_ = QToolBar()
-        _header = header("Monte Carlo Simulation")
-        _header.setToolTip("Left click on the question mark for help")
+        _header = header(_("Monte Carlo Simulation"))
+        _header.setToolTip(_("Left click on the question mark for help"))
         header_.addWidget(_header)
         header_.addAction(
             qicons.question,
-            "Left click for help on Monte Carlo analysis",
+            _("Left click for help on Monte Carlo analysis"),
             self.explanation,
         )
         self.layout.addWidget(header_)
-        self.scenario_label = QLabel("Scenario:")
-        self.include_box = QGroupBox("Include uncertainty for:", self)
+        self.scenario_label = QLabel(_("Scenario:"))
+        self.include_box = QGroupBox(_("Include uncertainty for:"), self)
         grid = QGridLayout()
-        self.include_tech = QCheckBox("Technosphere", self)
+        self.include_tech = QCheckBox(_("Technosphere"), self)
         self.include_tech.setChecked(True)
-        self.include_bio = QCheckBox("Biosphere", self)
+        self.include_bio = QCheckBox(_("Biosphere"), self)
         self.include_bio.setChecked(True)
-        self.include_cf = QCheckBox("Characterization Factors", self)
+        self.include_cf = QCheckBox(_("Characterization Factors"), self)
         self.include_cf.setChecked(True)
-        self.include_parameters = QCheckBox("Parameters", self)
+        self.include_parameters = QCheckBox(_("Parameters"), self)
         self.include_parameters.setChecked(True)
         grid.addWidget(self.include_tech, 0, 0)
         grid.addWidget(self.include_bio, 0, 1)
@@ -1738,26 +1817,28 @@ class MonteCarloTab(NewAnalysisTab):
         self.add_MC_ui_elements()
 
         self.table = LCAResultsTable()
-        self.table.table_name = "MonteCarlo_" + self.parent.cs_name
+        self.table.table_name = _("Monte Carlo") + "_" + self.parent.cs_name
         self.plot = MonteCarloPlot(self.parent)
         self.plot.hide()
-        self.plot.plot_name = "MonteCarlo_" + self.parent.cs_name
+        self.plot.plot_name = _("Monte Carlo") + "_" + self.parent.cs_name
         self.layout.addWidget(self.plot)
         self.export_widget = self.build_export(has_plot=True, has_table=True)
         self.layout.addWidget(self.export_widget)
         self.layout.setAlignment(QtCore.Qt.AlignTop)
         self.connect_signals()
-        self.explain_text = """
-            <p><b>Monte Carlo Analyses</b></p>
-            <p><b>Monte Carlo</b> simulations generate stochastic data samples using existing data defined parameter 
-            distributions for generating the expected distribution for the reference flows. </p>
-            <p>More <b>simply</b>, within the LCA model the user may define certain uncertainty distributions for some 
-            (or all) parameters. Monte Carlo analysis uses these defined uncertainty distributions with a stochastic 
-            generator to sample from these distributions. This results in a "posterior" (or final) probability 
-            distribution, expressing the expected variance, for the reference flows.</p>
-             <p><a href="https://github.com/LCA-ActivityBrowser/activity-browser/wiki/Monte-Carlo-Simulation">More 
-             information can be found here</a></p>
-        """
+        self.explain_text = _(
+            "<h4>Monte Carlo Analysis</h4>"
+            "<p>Monte Carlo simulations generate stochastic samples from the "
+            "uncertainty distributions defined in the LCA model and use them to "
+            "estimate the expected result distribution for each reference flow.</p>"
+            "<p>In practical terms, the model can define uncertainty distributions "
+            "for some or all parameters. The simulation repeatedly samples from "
+            "those distributions, producing a final probability distribution that "
+            "describes the expected variability of the reference-flow results.</p>"
+            "<p><a href=\"https://github.com/LCA-ActivityBrowser/activity-browser/wiki/"
+            "Monte-Carlo-Simulation\">Read more about Monte Carlo simulation on "
+            "the wiki</a>.</p>"
+        )
 
     def connect_signals(self):
         self.button_run.clicked.connect(self.calculate_mc_lca)
@@ -1784,15 +1865,17 @@ class MonteCarloTab(NewAnalysisTab):
         layout_mc = QVBoxLayout()
 
         # H-LAYOUT start simulation
-        self.button_run = QPushButton("Run")
-        self.label_iterations = QLabel("Iterations:")
+        self.button_run = QPushButton(_("Run"))
+        self.label_iterations = QLabel(_("Iterations:"))
         self.iterations = QLineEdit("30")
         self.iterations.setFixedWidth(40)
         self.iterations.setValidator(QtGui.QIntValidator(1, 1000))
-        self.label_seed = QLabel("Random seed:")
+        self.label_seed = QLabel(_("Random seed:"))
         self.label_seed.setToolTip(
-            "Seed value (integer) for the random number generator. "
-            "Use this for reproducible samples."
+            _(
+                "Seed value (integer) for the random number generator. "
+                "Use this for reproducible samples."
+            )
         )
         self.seed = QLineEdit("")
         self.seed.setFixedWidth(30)
@@ -1837,7 +1920,7 @@ class MonteCarloTab(NewAnalysisTab):
 
         # method selection
         self.method_selection_widget = QWidget()
-        self.label_methods = QLabel("Choose impact category")
+        self.label_methods = QLabel(_("Choose impact category"))
         self.combobox_methods = QComboBox()
         self.hlayout_methods = QHBoxLayout()
 
@@ -1879,8 +1962,8 @@ class MonteCarloTab(NewAnalysisTab):
                 )
                 QMessageBox.warning(
                     self,
-                    "Warning",
-                    "Seed value must be an integer number or left empty.",
+                    _("Warning"),
+                    _("Seed value must be an integer number or left empty."),
                 )
                 self.seed.setText("")
                 return
@@ -1902,7 +1985,7 @@ class MonteCarloTab(NewAnalysisTab):
             # print(e)
             log.error(e)
             QMessageBox.warning(
-                self, "Could not perform Monte Carlo simulation", str(e)
+                self, _("Could not perform Monte Carlo simulation"), str(e)
             )
         QApplication.restoreOverrideCursor()
 
@@ -1990,7 +2073,14 @@ class MonteCarloTab(NewAnalysisTab):
         self.update_table()
         self.update_plot(method=method)
         filename = "_".join(
-            [str(x) for x in [self.parent.cs_name, "Monte Carlo results", str(method)]]
+            [
+                str(x)
+                for x in [
+                    self.parent.cs_name,
+                    _("Monte Carlo results"),
+                    str(method),
+                ]
+            ]
         )
         self.plot.plot_name, self.table.table_name = filename, filename
 
@@ -2020,12 +2110,12 @@ class GSATab(NewAnalysisTab):
         self.GSA = GlobalSensitivityAnalysis(self.parent.mc)
 
         header_ = QToolBar()
-        _header = header("Global Sensitivity Analysis")
-        _header.setToolTip("Left click on the question mark for help")
+        _header = header(_("Global Sensitivity Analysis"))
+        _header.setToolTip(_("Left click on the question mark for help"))
         header_.addWidget(_header)
         header_.addAction(
             qicons.question,
-            "Left click for help on Global Sensitivity Analysis",
+            _("Left click for help on Global Sensitivity Analysis"),
             self.explanation,
         )
 
@@ -2048,17 +2138,23 @@ class GSATab(NewAnalysisTab):
         self.layout.setAlignment(QtCore.Qt.AlignTop)
         self.connect_signals()
 
-        self.explain_text = """
-            <p><b>Global Sensitivity Analysis (GSA)</b> is a family of methods that, used in conjunction with distribution
-            generating functions, can investigate the contributions of model variables on the final results.</p>
-             <p>Within the AB running a GSA depends on the use of a Monte Carlo simulation for generating the
-             variable distributions for the reference flow(s), upon which the GSA is performed. Running the GSA executes
-             the stochastic simulations whilst fixing the values of selected variables of interest. Taking a lower and
-             upper bound for the variables, therefore, indicates the influence of the fixed variable on the overall 
-             level of model variability. </p>
-             <p>For a more detailed explanation <a href="https://github.com/LCA-ActivityBrowser/activity-browser/wiki/Global-Sensitivity-Analysis">see the wiki</a></p>
-             <p>The paper describing the methods is published by <a href="https://onlinelibrary.wiley.com/doi/10.1111/jiec.13194">Wiley online</a></p> 
-        """
+        self.explain_text = _(
+            "<h4>Global Sensitivity Analysis (GSA)</h4>"
+            "<p>Global sensitivity analysis is a family of methods that uses "
+            "generated distributions to investigate how model variables contribute "
+            "to the final results.</p>"
+            "<p>Activity Browser performs GSA using distributions generated by a "
+            "Monte Carlo simulation for the reference flows. It repeats the "
+            "stochastic simulations while fixing selected variables. Comparing the "
+            "lower and upper bounds then indicates how strongly each fixed variable "
+            "influences the model's overall variability.</p>"
+            "<p><a href=\"https://github.com/LCA-ActivityBrowser/activity-browser/wiki/"
+            "Global-Sensitivity-Analysis\">Read the detailed explanation on the "
+            "wiki</a>.</p>"
+            "<p>The methods are described in a "
+            "<a href=\"https://onlinelibrary.wiley.com/doi/10.1111/jiec.13194\">"
+            "published scientific paper</a>.</p>"
+        )
 
     def connect_signals(self):
         self.button_run.clicked.connect(self.calculate_gsa)
@@ -2068,15 +2164,15 @@ class GSATab(NewAnalysisTab):
         # H-LAYOUT SETTINGS ROW 1
 
         # run button
-        self.button_run = QPushButton("Run")
+        self.button_run = QPushButton(_("Run"))
         self.button_run.setEnabled(False)
 
         # reference flow selection
-        self.label_fu = QLabel("Reference Flow:")
+        self.label_fu = QLabel(_("Reference Flow:"))
         self.combobox_fu = QComboBox()
 
         # method selection
-        self.label_methods = QLabel("Impact Category:")
+        self.label_methods = QLabel(_("Impact Category:"))
         self.combobox_methods = QComboBox()
 
         # arrange layout
@@ -2095,20 +2191,20 @@ class GSATab(NewAnalysisTab):
         self.hlayout_row2 = QHBoxLayout()
 
         # cutoff technosphere
-        self.label_cutoff_technosphere = QLabel("Cut-off technosphere:")
+        self.label_cutoff_technosphere = QLabel(_("Cut-off technosphere:"))
         self.cutoff_technosphere = QLineEdit("0.01")
         self.cutoff_technosphere.setFixedWidth(40)
         self.cutoff_technosphere.setValidator(QtGui.QDoubleValidator(0.0, 1.0, 5))
 
         # cutoff biosphere
-        self.label_cutoff_biosphere = QLabel("Cut-off biosphere:")
+        self.label_cutoff_biosphere = QLabel(_("Cut-off biosphere:"))
         self.cutoff_biosphere = QLineEdit("0.01")
         self.cutoff_biosphere.setFixedWidth(40)
         self.cutoff_biosphere.setValidator(QtGui.QDoubleValidator(0.0, 1.0, 5))
 
         # export GSA input/output data automatically with run
         self.checkbox_export_data_automatically = QCheckBox(
-            "Save input/output data to Excel after run"
+            _("Save input/output data to Excel after run")
         )
         self.checkbox_export_data_automatically.setChecked(False)
 
@@ -2134,7 +2230,7 @@ class GSATab(NewAnalysisTab):
 
         # add to GSA layout
         self.label_monte_carlo_first = QLabel(
-            "You need to run a Monte Carlo Simulation first."
+            _("You need to run a Monte Carlo Simulation first.")
         )
         self.layout.addWidget(self.label_monte_carlo_first)
         self.layout.addWidget(self.widget_settings)
@@ -2178,16 +2274,22 @@ class GSATab(NewAnalysisTab):
             message = str(e)
             message_addition = ""
             if message == "singular matrix":
-                message_addition = "\nIn order to avoid this happening, please increase the Monte Carlo iterations (e.g. to above 50)."
+                message_addition = _(
+                    "\nTo avoid this problem, increase the number of Monte Carlo "
+                    "iterations (for example, to more than 50)."
+                )
             elif message == "`dataset` input should have multiple elements.":
-                message_addition = "\nIn order to avoid this happening, please increase the Monte Carlo iterations (e.g. to above 50)."
+                message_addition = _(
+                    "\nTo avoid this problem, increase the number of Monte Carlo "
+                    "iterations (for example, to more than 50)."
+                )
             elif message == "No objects to concatenate":
-                message_addition = (
+                message_addition = _(
                     "\nThe reason for this is likely that there are no uncertain exchanges. Please check "
                     "the checkboxes in the Monte Carlo tab."
                 )
             QMessageBox.warning(
-                self, "Could not perform GSA", str(message) + message_addition
+                self, _("Could not perform GSA"), str(message) + message_addition
             )
         QApplication.restoreOverrideCursor()
 
@@ -2201,7 +2303,7 @@ class GSATab(NewAnalysisTab):
         self.table.show()
         self.export_widget.show()
 
-        self.table.table_name = "gsa_output_" + self.GSA.get_save_name()
+        self.table.table_name = _("GSA output") + "_" + self.GSA.get_save_name()
 
         if self.checkbox_export_data_automatically.isChecked():
             log.info("EXPORTING DATA")

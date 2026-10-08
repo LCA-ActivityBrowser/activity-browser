@@ -1,6 +1,7 @@
 from PySide2 import QtCore, QtWidgets
 
 from activity_browser import signals
+from activity_browser.i18n import _
 from activity_browser.mod import bw2data as bd
 
 from ...ui.icons import qicons
@@ -17,20 +18,24 @@ class MethodCharacterizationFactorsTab(QtWidgets.QWidget):
         # Not visible when instantiated
         self.cf_table = MethodCharacterizationFactorsTable(self)
         self.cf_read_only_changed(False)  # don't accept drops, don't allow editing.
-        self.hide_uncertainty = QtWidgets.QCheckBox("Hide uncertainty columns")
+        self.hide_uncertainty = QtWidgets.QCheckBox(_("Hide uncertainty columns"))
         self.hide_uncertainty.setChecked(True)
         self.read_only = True
-        self.editable = QtWidgets.QCheckBox("Edit Characterization Factors")
+        self.editable = QtWidgets.QCheckBox(_("Edit characterization factors"))
         self.editable.setToolTip(
-            "Make this impact category editable.\n"
-            "Please make a duplicate of this CF before modifying it."
+            _(
+                "Make this impact category editable.\nDuplicate it before "
+                "modifying its characterization factors."
+            )
         )
         self.editable.toggled.connect(self.cf_read_only_changed)
         toolbar = QtWidgets.QToolBar(self)
         toolbar.addWidget(self.hide_uncertainty)
         toolbar.addWidget(self.editable)
         container = QtWidgets.QVBoxLayout()
-        container.addWidget(header("Method: " + " - ".join(method_tuple)))
+        container.addWidget(
+            header(_("Method: {method}", method=" - ".join(method_tuple)))
+        )
         container.addWidget(horizontal_line())
         container.addWidget(toolbar)
         container.addWidget(self.cf_table)
@@ -73,11 +78,11 @@ class MethodsTab(QtWidgets.QWidget):
 
         self.tree = MethodsTree(self)
         self.tree.setToolTip(
-            "Drag (groups of) impact categories to the calculation setup"
+            _("Drag impact categories or groups into the calculation setup.")
         )
         self.table = MethodsTable(self)
         self.table.setToolTip(
-            "Drag (groups of) impact categories to the calculation setup"
+            _("Drag impact categories or groups into the calculation setup.")
         )
 
         # auto-search
@@ -88,35 +93,40 @@ class MethodsTab(QtWidgets.QWidget):
 
         #
         self.search_box = QtWidgets.QLineEdit()
-        self.search_box.setPlaceholderText("Search impact categories")
+        self.search_box.setPlaceholderText(_("Search impact categories"))
         self.search_box.setToolTip(
-            "If a large number of matches is found the\n"
-            "tree is not expanded automatically."
+            _(
+                "If many matches are found, the tree is not expanded "
+                "automatically."
+            )
         )
         self.search_button = QtWidgets.QToolButton()
         self.search_button.setIcon(qicons.search)
         self.search_button.setToolTip(
-            "Search impact categories.\n"
-            "If a large number of matches is found the\n"
-            "tree is not expanded automatically."
+            _(
+                "Search impact categories. If many matches are found, the "
+                "tree is not expanded automatically."
+            )
         )
         self.reset_search_button = QtWidgets.QToolButton()
         self.reset_search_button.setIcon(qicons.delete)
-        self.reset_search_button.setToolTip("Clear the search")
+        self.reset_search_button.setToolTip(_("Clear the search"))
         #
-        self.mode_radio_tree = QtWidgets.QRadioButton("Tree view")
+        self.mode_radio_tree = QtWidgets.QRadioButton(_("Tree view"))
         self.mode_radio_tree.setChecked(True)
         self.mode_radio_tree.setToolTip(
-            "Tree view of impact categories\n"
-            "v CML 2001\n"
-            "    v climate change\n"
-            "        CML 2001, climate change, GWP 100a\n"
-            "        ...\n"
-            "You can drag entire 'branches' of impact categories at once"
+            _(
+                "Tree view of impact categories\n"
+                "v CML 2001\n"
+                "    v climate change\n"
+                "        CML 2001, climate change, GWP 100a\n"
+                "        ...\n"
+                "You can drag entire branches of impact categories at once."
+            )
         )
         #
-        self.mode_radio_list = QtWidgets.QRadioButton("List view")
-        self.mode_radio_list.setToolTip("List view of impact categories")
+        self.mode_radio_list = QtWidgets.QRadioButton(_("List view"))
+        self.mode_radio_list.setToolTip(_("List view of impact categories"))
         #
         search_layout = QtWidgets.QHBoxLayout()
         search_layout.addWidget(self.search_box)
@@ -125,7 +135,7 @@ class MethodsTab(QtWidgets.QWidget):
         #
         mode_layout = QtWidgets.QHBoxLayout()
         mode_layout.setAlignment(QtCore.Qt.AlignTop)
-        mode_layout.addWidget(header("Impact Categories"))
+        mode_layout.addWidget(header(_("Impact categories")))
         search_layout.addWidget(self.mode_radio_tree)
         search_layout.addWidget(self.mode_radio_list)
         #

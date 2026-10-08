@@ -5,6 +5,8 @@ import numpy as np
 import pandas as pd
 from PySide2.QtWidgets import QPushButton
 
+from activity_browser.i18n import _
+
 from activity_browser.mod import bw2data as bd
 
 from ..commontasks import format_activity_label
@@ -151,9 +153,19 @@ class SuperstructureMLCA(MLCA):
             except (ValueError, KeyError) as e:
                 # This is to be used as a fail safe for the case where we don't catch a bad exchange during the import
                 # process, or if something else causes an issue with the exchange
-                msg = f"One of the activities in the exchange between ({index.input.database}, {index.input.code}) and ({index.output.database}, {index.output.code}) from the scenario file is not present within the designated database. Please check both keys for this exchange within your scenario file with the corresponding databases."
+                msg = _(
+                    "One of the activities in the scenario exchange between "
+                    "({input_database}, {input_code}) and ({output_database}, "
+                    "{output_code}) is not present in the designated database. "
+                    "Check both exchange keys and their corresponding databases in "
+                    "the scenario file.",
+                    input_database=index.input.database,
+                    input_code=index.input.code,
+                    output_database=index.output.database,
+                    output_code=index.output.code,
+                )
                 critical = ABPopup.abCritical(
-                    "Scenario Key Error", msg, QPushButton("Cancel")
+                    _("Scenario key error"), msg, QPushButton(_("Cancel"))
                 )
                 critical.exec_()
                 raise ScenarioExchangeNotFoundError

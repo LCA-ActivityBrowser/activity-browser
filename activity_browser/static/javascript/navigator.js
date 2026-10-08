@@ -587,8 +587,8 @@ const cartographer = function() {
                           + '\n(' + Math.round(n['ind_norm'] * 100) + '%)';
             node_data.ind_norm = n['ind_norm'];
             node_data.tooltip = '<b>' + n['name'] + '</b>'
-                      + '<br>Individual impact: &nbsp&nbsp&nbsp' + roundNumber(n['ind']) + ' ' + n['LCIA_unit'] +  ' (' + Math.round(n['ind_norm'] * 100) + '%)'
-                      + '<br>Cumulative impact: ' + roundNumber(n['cum']) + ' ' + n['LCIA_unit'] +  ' (' + Math.round(n['cum_norm'] * 100) + '%)';
+                      + '<br>' + window.abTranslations.individual_impact + ': &nbsp&nbsp&nbsp' + roundNumber(n['ind']) + ' ' + n['LCIA_unit'] +  ' (' + Math.round(n['ind_norm'] * 100) + '%)'
+                      + '<br>' + window.abTranslations.cumulative_impact + ': ' + roundNumber(n['cum']) + ' ' + n['LCIA_unit'] +  ' (' + Math.round(n['cum_norm'] * 100) + '%)';
         } else {
             node_data.label = formatNodeText(n['name'], n['location']);
             node_data.labelType = "html";
@@ -777,4 +777,3 @@ new QWebChannel(qt.webChannelTransport, function (channel) {
     window.bridge.graph_ready.connect(cartographer.update_graph);
     window.bridge.style.connect(cartographer.update_svg_style);
 });
-

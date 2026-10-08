@@ -4,6 +4,7 @@ from PySide2 import QtWidgets
 
 from activity_browser import application
 from activity_browser.actions.base import ABAction, exception_dialogs
+from activity_browser.i18n import _
 from activity_browser.mod import bw2data as bd
 from activity_browser.mod.bw2data.parameters import (ActivityParameter, Group,
                                                      GroupDependency,
@@ -27,20 +28,23 @@ class ActivityDelete(ABAction):
         # retrieve activity objects from the controller using the provided keys
         activities = [bd.get_activity(key) for key in activity_keys]
 
-        warning_text = f"Are you certain you want to delete {len(activities)} activity/activities?"
+        warning_text = _(
+            "Are you certain you want to delete {count} activities?",
+            count=len(activities),
+        )
 
         # check for downstream processes
         if any(len(act.upstream()) > 0 for act in activities):
             # warning text
-            warning_text += (
-                "\n\nOne or more activities have downstream processes. Deleting these activities will remove the "
-                "exchange from the downstream processes as well."
+            warning_text += _(
+                "\n\nOne or more activities have downstream processes. Deleting these "
+                "activities will also remove their exchanges from downstream processes."
             )
 
         # alert the user
         choice = QtWidgets.QMessageBox.warning(
             application.main_window,
-            "Deleting activity/activities",
+            _("Delete activities"),
             warning_text,
             QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
             QtWidgets.QMessageBox.No,
@@ -49,9 +53,6 @@ class ActivityDelete(ABAction):
         # return if the user cancels
         if choice == QtWidgets.QMessageBox.No:
             return
-
-
-
         # use the activity controller to delete multiple activities
         for act in activities:
             db, code = act.key

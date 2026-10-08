@@ -5,6 +5,7 @@ from PySide2 import QtWidgets
 from PySide2.QtCore import Signal, Slot
 
 from activity_browser.mod import bw2data as bd
+from activity_browser.i18n import _
 
 from ..threading import ABThread
 
@@ -14,8 +15,10 @@ log = getLogger(__name__)
 class BiosphereUpdater(QtWidgets.QProgressDialog):
     def __init__(self, ei_versions, parent=None):
         super().__init__(parent=parent)
-        self.setWindowTitle("Updating '{}' database".format(bd.config.biosphere))
-        self.setLabelText("Adding new flows to biosphere database")
+        self.setWindowTitle(
+            _("Updating '{database}' database", database=bd.config.biosphere)
+        )
+        self.setLabelText(_("Adding new flows to the biosphere database"))
         self.setRange(0, 0)
         self.show()
 

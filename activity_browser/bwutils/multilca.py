@@ -8,6 +8,8 @@ import numpy as np
 import pandas as pd
 from PySide2.QtWidgets import QApplication, QMessageBox
 
+from activity_browser.i18n import _
+
 from activity_browser.mod import bw2data as bd
 from activity_browser.mod.bw2analyzer import ABContributionAnalysis
 
@@ -120,10 +122,10 @@ class MLCA(object):
         # all values of rf are the individual reference flow items.
         if [v for rf in cs["inv"] for v in rf.values() if v == 0]:
             msg = QMessageBox()
-            msg.setWindowTitle("Reference flows equal 0")
-            msg.setText("All reference flows must be non-zero.")
+            msg.setWindowTitle(_("Reference flows equal zero"))
+            msg.setText(_("All reference flows must be non-zero."))
             msg.setInformativeText(
-                "Please enter a valid value before calculating LCA results again."
+                _("Please enter a valid value before calculating LCA results again.")
             )
             msg.setIcon(QMessageBox.Warning)
             QApplication.restoreOverrideCursor()

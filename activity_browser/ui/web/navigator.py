@@ -10,6 +10,7 @@ from PySide2 import QtWidgets
 from PySide2.QtCore import Slot
 
 from activity_browser import signals
+from activity_browser.i18n import _
 from activity_browser.mod.bw2data import Database, get_activity, databases, Edge
 from activity_browser.mod.bw2data.backends import ExchangeDataset, ActivityDataset
 
@@ -32,32 +33,38 @@ log = getLogger(__name__)
 
 
 class GraphNavigatorWidget(BaseNavigatorWidget):
-    HELP_TEXT = """
-    How to use the Graph Navigator:
-
-    EXPANSION MODE (DEFAULT):
-    Click on activities to expand graph. 
-    - click: expand upwards
-    - click + shift: expand downstream
-    - click + alt: delete activity
-
-    Checkbox "Add only direct up-/downstream exchanges" - there are two ways to expand the graph: 
-        1) adding direct up-/downstream nodes and connections (DEFAULT). 
-        2) adding direct up-/downstream nodes and connections AS WELL as ALL OTHER connections between the activities in the graph. 
-        The first option results in cleaner (but not complete) graphs.    
-
-    Checkbox "Remove orphaned nodes": by default nodes that do not link to the central activity (see title) are removed (this may happen after deleting nodes). Uncheck to disable.
-
-    Checkbox "Flip negative flows" (experimental): Arrows of negative product flows (e.g. from ecoinvent treatment activities or from substitution) can be flipped. 
-    The resulting representation can be more intuitive for understanding the physical product flows (e.g. that wastes are outputs of activities and not negative inputs).   
-
-
-    NAVIGATION MODE:
-    Click on activities to jump to specific activities (instead of expanding the graph).
-    """
+    HELP_TEXT = (
+        "How to use the Graph Navigator:",
+        "",
+        "EXPANSION MODE (DEFAULT):",
+        "Click an activity to expand the graph.",
+        "- click: expand upstream",
+        "- shift + click: expand downstream",
+        "- alt + click: remove the activity",
+        "",
+        '"Add only direct up-/downstream exchanges" offers two expansion options:',
+        "1) Add only the selected direct upstream/downstream nodes and connections (default).",
+        "2) Also add every other connection between activities already in the graph.",
+        "The first option produces a cleaner, but incomplete, graph.",
+        "",
+        (
+            '"Remove orphaned nodes" removes nodes that no longer connect to the '
+            "central activity after a node is deleted. Clear the checkbox to keep them."
+        ),
+        "",
+        (
+            '"Flip negative flows" (experimental) reverses arrows for negative '
+            "product flows, such as treatment or substitution flows. This can make "
+            "physical product flows easier to understand."
+        ),
+        "",
+        "NAVIGATION MODE:",
+        "Click an activity to make it the new central activity instead of expanding the graph.",
+    )
     HTML_FILE = os.path.join(
         os.path.abspath(os.path.dirname(__file__)), "../../static/navigator.html"
     )
+    PAGE_TITLE = "Graph Navigator"
 
     def __init__(self, parent=None, key=None):
         super().__init__(parent, css_file="navigator.css")
@@ -68,19 +75,21 @@ class GraphNavigatorWidget(BaseNavigatorWidget):
         self.graph = Graph()
 
         # default settings
-        self.navigation_label = itertools.cycle(
-            ["Current mode: Expansion", "Current mode: Navigation"]
-        )
+        self._expansion_mode = True
         self.selected_db = None
 
-        self.button_navigation_mode = QtWidgets.QPushButton(next(self.navigation_label))
+        self.button_navigation_mode = QtWidgets.QPushButton(
+            _("Current mode: Expansion")
+        )
         self.checkbox_direct_only = QtWidgets.QCheckBox(
-            "Add only direct up-/downstream exchanges"
+            _("Add only direct up-/downstream exchanges")
         )
         self.checkbox_remove_orphaned_nodes = QtWidgets.QCheckBox(
-            "Remove orphaned nodes"
+            _("Remove orphaned nodes")
         )
-        self.checkbox_flip_negative_edges = QtWidgets.QCheckBox("Flip negative flows")
+        self.checkbox_flip_negative_edges = QtWidgets.QCheckBox(
+            _("Flip negative flows")
+        )
         self.layout = QtWidgets.QVBoxLayout()
 
         # Prepare graph
@@ -136,19 +145,28 @@ class GraphNavigatorWidget(BaseNavigatorWidget):
         # checkbox all_exchanges_in_graph
         self.checkbox_direct_only.setChecked(True)
         self.checkbox_direct_only.setToolTip(
-            "When adding activities, show product flows between ALL activities or just selected up-/downstream flows"
+            _(
+                "When adding activities, show product flows between ALL "
+                "activities or just selected up-/downstream flows"
+            )
         )
 
         # checkbox remove orphaned nodes
         self.checkbox_remove_orphaned_nodes.setChecked(True)
         self.checkbox_remove_orphaned_nodes.setToolTip(
-            "When removing activities, automatically remove those that have no further connection to the original product"
+            _(
+                "When removing activities, automatically remove those that "
+                "have no further connection to the original product"
+            )
         )
 
         # checkbox flip negative edges
         self.checkbox_flip_negative_edges.setChecked(False)
         self.checkbox_flip_negative_edges.setToolTip(
-            "Flip negative product flows (e.g. from ecoinvent treatment activities or from substitution)"
+            _(
+                "Flip negative product flows (e.g. from ecoinvent treatment "
+                "activities or from substitution)"
+            )
         )
         # Controls Layout
         hl_controls = QtWidgets.QHBoxLayout()
@@ -181,11 +199,16 @@ class GraphNavigatorWidget(BaseNavigatorWidget):
 
     @property
     def is_expansion_mode(self) -> bool:
-        return "Expansion" in self.button_navigation_mode.text()
+        return self._expansion_mode
 
     @Slot(name="toggleNavigationMode")
     def toggle_navigation_mode(self):
-        mode = next(self.navigation_label)
+        self._expansion_mode = not self._expansion_mode
+        mode = _(
+            "Current mode: Expansion"
+            if self._expansion_mode
+            else "Current mode: Navigation"
+        )
         self.button_navigation_mode.setText(mode)
         log.info(f"Switched to: {mode}")
         self.checkbox_remove_orphaned_nodes.setVisible(self.is_expansion_mode)
@@ -198,7 +221,7 @@ class GraphNavigatorWidget(BaseNavigatorWidget):
 
     @Slot(name="reload_graph")
     def reload_graph(self) -> None:
-        signals.new_statusbar_message.emit("Reloading graph")
+        signals.new_statusbar_message.emit(_("Reloading graph"))
         self.graph.update(delete_unstacked=False)
 
     @Slot(object, name="update_graph")
@@ -244,7 +267,7 @@ class GraphNavigatorWidget(BaseNavigatorWidget):
             self.new_graph(Database(self.selected_db).random().key)
         else:
             QtWidgets.QMessageBox.information(
-                None, "Not possible.", "Please load a database first."
+                None, _("Not possible."), _("Please load a database first.")
             )
 
 
@@ -497,7 +520,9 @@ class Graph(BaseGraph):
             "amount": amount,
             "unit": exc.get("unit"),
             "product": reference,
-            "tooltip": "<b>{:.3g} {} of {}<b>".format(
-                amount, exc.get("unit", ""), reference
+            "tooltip": _("<b>{amount:.3g} {unit} of {product}</b>").format(
+                amount=amount,
+                unit=exc.get("unit", ""),
+                product=reference,
             ),
         }

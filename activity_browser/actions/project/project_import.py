@@ -9,6 +9,7 @@ from bw2io import backup
 from activity_browser import application
 from activity_browser.mod import bw2data as bd
 from activity_browser.actions.base import ABAction, exception_dialogs
+from activity_browser.i18n import _
 from activity_browser.ui.icons import qicons
 from activity_browser.ui.threading import ABThread
 
@@ -32,11 +33,11 @@ class ProjectImport(ABAction):
         """Import a project into AB based on file chosen by user."""
 
         # get the path from the user
-        path, _ = QtWidgets.QFileDialog.getOpenFileName(
+        path = QtWidgets.QFileDialog.getOpenFileName(
             parent=application.main_window,
-            caption='Choose project file to import',
-            filter='Tar archive (*.tar.gz);; All files (*.*)'
-        )
+            caption=_("Choose project file to import"),
+            filter=_("Tar archive (*.tar.gz);;All files (*.*)"),
+        )[0]
         if not path: return
 
         # create a name suggestion based on the file name
@@ -44,12 +45,12 @@ class ProjectImport(ABAction):
 
         # get a new project name from the user:
         while True:
-            project_name, _ = QtWidgets.QInputDialog.getText(
+            project_name = QtWidgets.QInputDialog.getText(
                 application.main_window,
-                'Choose project name',
-                'Choose a name for your project',
+                _("Choose project name"),
+                _("Choose a name for your project"),
                 text=suggestion
-            )
+            )[0]
 
             if not project_name: return
 
@@ -57,19 +58,19 @@ class ProjectImport(ABAction):
                 # this name already exists, inform user and ask again.
                 QtWidgets.QMessageBox.information(
                     application.main_window,
-                    "Not possible.",
-                    "A project with this name already exists."
+                    _("Not possible."),
+                    _("A project with this name already exists."),
                 )
             else: break
 
         # setup dialog
         progress = QtWidgets.QProgressDialog(
             parent=application.main_window,
-            labelText="Importing project",
+            labelText=_("Importing project"),
             maximum=0
         )
         progress.setCancelButton(None)
-        progress.setWindowTitle("Importing project")
+        progress.setWindowTitle(_("Importing project"))
         progress.setWindowFlag(QtCore.Qt.WindowContextHelpButtonHint, False)
         progress.setWindowFlag(QtCore.Qt.WindowCloseButtonHint, False)
         progress.findChild(QtWidgets.QProgressBar).setTextVisible(False)
@@ -95,7 +96,7 @@ class ProjectImport(ABAction):
             for member in tar:
                 if member.name[-17:] == "project-name.json":
                     return json.load(reader(tar.extractfile(member)))["name"]
-            raise ValueError("Couldn't find project name file in archive")
+            raise ValueError(_("Could not find the project name file in the archive."))
 
 
 class ImportThread(ABThread):
@@ -106,4 +107,3 @@ class ImportThread(ABThread):
                   f'\nNAME: {self.project_name}')
         backup.restore_project_directory(fp=self.path, project_name=self.project_name)
         log.info(f"Project `{self.project_name}` imported.")
-

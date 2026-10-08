@@ -6,6 +6,7 @@ from peewee import SqliteDatabase
 from PySide2 import QtCore, QtWidgets
 
 from activity_browser import ab_settings
+from activity_browser.i18n import _, language_choices
 from activity_browser.mod.bw2data import projects
 
 log = getLogger(__name__)
@@ -16,7 +17,7 @@ class SettingsWizard(QtWidgets.QWizard):
         self.last_project = projects.current
         self.last_bwdir = projects.base_dir
 
-        self.setWindowTitle("Activity Browser Settings")
+        self.setWindowTitle(_("Activity Browser Settings"))
         self.settings_page = SettingsPage(self)
         self.addPage(self.settings_page)
         self.show()
@@ -41,6 +42,13 @@ class SettingsWizard(QtWidgets.QWizard):
             ab_settings.startup_project = new_startup_project
             log.info(f"Saved startup project as: {new_startup_project}")
 
+        # Language display names are deliberately not persisted.  The stable
+        # item data is applied at the next application start.
+        language = self.settings_page.language_combo.currentData()
+        if language != ab_settings.language:
+            ab_settings.language = language
+            log.info(f"Saved interface language as: {language} (restart required)")
+
         ab_settings.write_settings()
         projects.switch_dir(field)
 
@@ -64,10 +72,10 @@ class SettingsPage(QtWidgets.QWizardPage):
         self.bwdir_variables = set()
         self.bwdir = QtWidgets.QComboBox()
 
-        self.bwdir_browse_button = QtWidgets.QPushButton("Browse")
-        self.bwdir_remove_button = QtWidgets.QPushButton("Remove")
+        self.bwdir_browse_button = QtWidgets.QPushButton(_("Browse"))
+        self.bwdir_remove_button = QtWidgets.QPushButton(_("Remove"))
         self.update_combobox(self.bwdir, ab_settings.custom_bw_dir)
-        self.restore_defaults_button = QtWidgets.QPushButton("Restore defaults")
+        self.restore_defaults_button = QtWidgets.QPushButton(_("Restore defaults"))
         self.bwdir_name = QtWidgets.QLineEdit(self.bwdir.currentText())
         self.registerField("current_bw_dir", self.bwdir_name)
 
@@ -81,27 +89,35 @@ class SettingsPage(QtWidgets.QWizardPage):
 
         # light/dark theme
         self.theme_combo = QtWidgets.QComboBox()
-        self.theme_combo.addItems([
-            "Light theme",
-            "Dark theme compatibility"
-        ])
-        self.theme_combo.setCurrentText(ab_settings.theme)
-        self.registerField(
-            "theme_cbox", self.theme_combo, "currentText"
-        )
+        for theme_code in ("Light theme", "Dark theme compatibility"):
+            self.theme_combo.addItem(_(theme_code), theme_code)
+        theme_index = self.theme_combo.findData(ab_settings.theme)
+        self.theme_combo.setCurrentIndex(max(theme_index, 0))
+
+        # UI labels are translated, while itemData contains the stable codes
+        # written to ABsettings.json.
+        self.language_combo = QtWidgets.QComboBox()
+        self.language_combo.setObjectName("language_combo")
+        for language_code, display_name in language_choices():
+            self.language_combo.addItem(display_name, language_code)
+        language_index = self.language_combo.findData(ab_settings.language)
+        self.language_combo.setCurrentIndex(max(language_index, 0))
 
         # Startup options
-        self.startup_groupbox = QtWidgets.QGroupBox("Startup Options")
+        self.startup_groupbox = QtWidgets.QGroupBox(_("Startup Options"))
         self.startup_layout = QtWidgets.QGridLayout()
-        self.startup_layout.addWidget(QtWidgets.QLabel("Brightway Dir: "), 0, 0)
+        self.startup_layout.addWidget(QtWidgets.QLabel(_("Brightway Dir: ")), 0, 0)
         self.startup_layout.addWidget(self.bwdir, 0, 1)
         self.startup_layout.addWidget(self.bwdir_browse_button, 0, 2)
         self.startup_layout.addWidget(self.bwdir_remove_button, 0, 3)
-        self.startup_layout.addWidget(QtWidgets.QLabel("Startup Project: "), 1, 0)
+        self.startup_layout.addWidget(QtWidgets.QLabel(_("Startup Project: ")), 1, 0)
         self.startup_layout.addWidget(self.startup_project_combobox, 1, 1)
-        self.startup_layout.addWidget(QtWidgets.QLabel("Theme: "), 2, 0)
+        self.startup_layout.addWidget(QtWidgets.QLabel(_("Theme: ")), 2, 0)
         self.startup_layout.addWidget(self.theme_combo, 2, 1)
-        self.startup_layout.addWidget(QtWidgets.QLabel("(Requires restart)"), 2, 2)
+        self.startup_layout.addWidget(QtWidgets.QLabel(_("(Requires restart)")), 2, 2)
+        self.startup_layout.addWidget(QtWidgets.QLabel(_("Language: ")), 3, 0)
+        self.startup_layout.addWidget(self.language_combo, 3, 1)
+        self.startup_layout.addWidget(QtWidgets.QLabel(_("(Requires restart)")), 3, 2)
 
         self.startup_groupbox.setLayout(self.startup_layout)
 
@@ -111,14 +127,15 @@ class SettingsPage(QtWidgets.QWizardPage):
         self.layout.addWidget(self.restore_defaults_button)
         self.setLayout(self.layout)
         self.setFinalPage(True)
-        self.setButtonText(QtWidgets.QWizard.FinishButton, "Save")
+        self.setButtonText(QtWidgets.QWizard.FinishButton, _("Save"))
 
         # signals
         self.startup_project_combobox.currentIndexChanged.connect(self.changed)
         self.bwdir_browse_button.clicked.connect(self.bwdir_browse)
         self.bwdir_remove_button.clicked.connect(self.bwdir_remove)
         self.bwdir.currentTextChanged.connect(self.bwdir_change)
-        self.theme_combo.currentTextChanged.connect(self.theme_change)
+        self.theme_combo.currentIndexChanged.connect(self.theme_change)
+        self.language_combo.currentIndexChanged.connect(self.changed)
         self.restore_defaults_button.clicked.connect(self.restore_defaults)
 
     def bw_projects(self, path: str):
@@ -135,6 +152,10 @@ class SettingsPage(QtWidgets.QWizardPage):
         self.startup_project_combobox.setCurrentText(
             ab_settings.get_default_project_name()
         )
+        language_index = self.language_combo.findData(
+            ab_settings.get_default_settings()["language"]
+        )
+        self.language_combo.setCurrentIndex(language_index)
 
     def bwdir_remove(self):
         """
@@ -143,10 +164,12 @@ class SettingsPage(QtWidgets.QWizardPage):
         """
         hard_deletion = QtWidgets.QMessageBox.question(
             self,
-            "Delete Brightway2 directory?",
-            "This action will remove the local information only, click"
-            "'Yes' to remove\nthe projects. Data on the \"disk\" will remain"
-            " untouched and needs to be removed manually",
+            _("Delete Brightway2 directory?"),
+            _(
+                "This action will remove the local information only, click"
+                "'Yes' to remove\nthe projects. Data on the \"disk\" will remain"
+                " untouched and needs to be removed manually"
+            ),
             QtWidgets.QMessageBox.Yes,
             QtWidgets.QMessageBox.Cancel,
         )
@@ -173,8 +196,9 @@ class SettingsPage(QtWidgets.QWizardPage):
         """
         self.change_bw_dir(path)
 
-    def theme_change(self, theme: str):
+    def theme_change(self, index: int):
         """Change the theme."""
+        theme = self.theme_combo.itemData(index)
         if ab_settings.theme != theme:
             ab_settings.theme = theme
             self.changed()
@@ -187,7 +211,7 @@ class SettingsPage(QtWidgets.QWizardPage):
                 bw2 environments
         """
         path = QtWidgets.QFileDialog.getExistingDirectory(
-            self, "Select a brightway2 database folder"
+            self, _("Select a brightway2 database folder")
         )
         if path:
             self.change_bw_dir(os.path.normpath(path))
@@ -201,8 +225,12 @@ class SettingsPage(QtWidgets.QWizardPage):
         if not os.path.isfile(os.path.join(path, "projects.db")):
             create_new_directory = QtWidgets.QMessageBox.question(
                 self,
-                "New brightway data directory?",
-                'This directory does not contain any projects. \n Would you like to setup a new brightway data directory here? \n This will close the current project and create a "default" project in the new directory.',
+                _("New brightway data directory?"),
+                _(
+                    "This directory does not contain any projects. \n Would you like "
+                    "to setup a new brightway data directory here? \n This will close "
+                    'the current project and create a "default" project in the new directory.'
+                ),
                 QtWidgets.QMessageBox.Yes,
                 QtWidgets.QMessageBox.Cancel,
             )
@@ -223,8 +251,12 @@ class SettingsPage(QtWidgets.QWizardPage):
             # ask user if to switch directory (which will update the project combobox correctly)
             reply = QtWidgets.QMessageBox.question(
                 self,
-                "Continue?",
-                'Would you like to switch to this directory now? \nThis will close your currently opened project. \nClick "Yes" to be able to choose the startup project.',
+                _("Continue?"),
+                _(
+                    "Would you like to switch to this directory now? \nThis will close "
+                    'your currently opened project. \nClick "Yes" to be able to choose '
+                    "the startup project."
+                ),
                 QtWidgets.QMessageBox.Yes,
                 QtWidgets.QMessageBox.No,
             )
@@ -291,9 +323,11 @@ class SettingsPage(QtWidgets.QWizardPage):
             return
         QtWidgets.QMessageBox.warning(
             self,
-            "Discrepancy in the ABsettings.json file",
-            "The value provided for the current brightway directory does not exist\n"
-            "in the available list of directories. Please check the settings file.",
+            _("Discrepancy in the ABsettings.json file"),
+            _(
+                "The value provided for the current brightway directory does not exist\n"
+                "in the available list of directories. Please check the settings file."
+            ),
             QtWidgets.QMessageBox.Ok,
         )
 

@@ -2,6 +2,8 @@
 from PySide2 import QtCore, QtWidgets
 from stats_arrays import uncertainty_choices as uc
 
+from activity_browser.i18n import _
+
 from ....signals import signals
 
 
@@ -23,9 +25,10 @@ class UncertaintyDelegate(QtWidgets.QStyledItemDelegate):
         either cannot be found or the value is 'nan' (when id is not set)
         """
         try:
-            return uc[int(value)].description
+            description = uc[int(value)].description
         except (IndexError, ValueError):
-            return uc[0].description
+            description = uc[0].description
+        return _(description)
 
     def createEditor(self, parent, option, index):
         """Simply use the wizard for updating uncertainties. Send a signal."""
@@ -41,6 +44,9 @@ class UncertaintyDelegate(QtWidgets.QStyledItemDelegate):
         model: QtCore.QAbstractItemModel,
         index: QtCore.QModelIndex,
     ):
-        """Read the current text and look up the actual ID of that uncertainty type."""
-        uc_id = self.choices.get(editor.currentText(), 0)
+        """Store the stable item ID, independent of its translated label."""
+        uc_id = editor.currentData()
+        if uc_id is None:
+            # Compatibility with an older editor that stored only English text.
+            uc_id = self.choices.get(editor.currentText(), 0)
         model.setData(index, uc_id, QtCore.Qt.EditRole)

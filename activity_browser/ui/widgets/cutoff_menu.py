@@ -17,6 +17,8 @@ from PySide2.QtWidgets import (QButtonGroup, QHBoxLayout, QLabel, QLineEdit,
                                QPushButton, QRadioButton, QSlider, QVBoxLayout,
                                QWidget)
 
+from activity_browser.i18n import _
+
 from ..style import vertical_line
 
 # These tuples are used in referring to the two Types and three Labels used
@@ -44,21 +46,28 @@ class CutoffMenu(QWidget):
         self.validators.percent.setLocale(locale)
         self.validators.number.setLocale(locale)
         self.buttons = Types(
-            QRadioButton("Minimum %"),
-            QRadioButton("Cumulative %"),
-            QRadioButton("Top #"))
+            QRadioButton(_("Minimum %")),
+            QRadioButton(_("Cumulative %")),
+            QRadioButton(_("Top #")))
         self.buttons.percent.setChecked(True)
         self.buttons.percent.setToolTip(
-            "This cut-off type shows contributions of at least some percentage "
-            "(for example contributions of at least 5% of the total impact)"
+            _(
+                "Show contributions that are at least a given percentage (for "
+                "example, contributions of at least 5% of the total impact)."
+            )
         )
         self.buttons.cum_percent.setToolTip(
-            "This cut-off type shows contributions that together are some percentage "
-            "(for example all highest contributors that together count up to 80% of the total impact)"
+            _(
+                "Show the largest contributions whose cumulative share reaches a "
+                "given percentage (for example, contributors that together account "
+                "for 80% of the total impact)."
+            )
         )
         self.buttons.number.setToolTip(
-            "This cut-off type shows this number of largest contributors "
-            "(for example the top 5 largest contributors)"
+            _(
+                "Show a given number of the largest contributors (for example, the "
+                "top 5 contributors)."
+            )
         )
         self.button_group = QButtonGroup()
         self.button_group.addButton(self.buttons.percent, 0)
@@ -75,28 +84,28 @@ class CutoffMenu(QWidget):
             QSlider(Qt.Horizontal, self),
             QSlider(Qt.Horizontal, self))
         self.sliders.percent.setToolTip(
-            "This slider sets the cut-off percentage to show"
+            _("Set the minimum contribution percentage to show.")
         )
         self.sliders.cum_percent.setToolTip(
-            "This slider sets the cumulative cut-off percentage to show"
+            _("Set the cumulative contribution percentage to show.")
         )
         self.sliders.number.setToolTip(
-            "This slider sets the amount of highest contributors to show"
+            _("Set the number of largest contributors to show.")
         )
-        self.units = Types("minimum %", "cumulative %", "number")
+        self.units = Types(_("minimum %"), _("cumulative %"), _("number"))
         self.labels = Labels(QLabel(), QLabel(), QLabel())
         self.cutoff_slider_line = QLineEdit()
         self.cutoff_slider_line.setToolTip(
-            "This entry sets the cut-off amount"
+            _("Enter the cut-off level.")
         )
         self.cutoff_slider_line.setLocale(locale)
         self.cutoff_slider_lft_btn = QPushButton("<")
         self.cutoff_slider_lft_btn.setToolTip(
-            "This button moves the cut-off value one increment"
+            _("Move the cut-off value by one increment.")
         )
         self.cutoff_slider_rght_btn = QPushButton(">")
         self.cutoff_slider_rght_btn.setToolTip(
-            "This button moves the cut-off value one increment"
+            _("Move the cut-off value by one increment.")
         )
 
         self.debounce_slider = QtCore.QTimer()
@@ -353,12 +362,12 @@ class CutoffMenu(QWidget):
 
         # Cut-off types
         cutoff_type = QVBoxLayout()
-        cutoff_type_label = QLabel("Cut-off type")
+        cutoff_type_label = QLabel(_("Cut-off type"))
 
         # Cut-off slider
         cutoff_slider = QVBoxLayout()
         cutoff_slider_set = QVBoxLayout()
-        cutoff_slider_label = QLabel("Cut-off level")
+        cutoff_slider_label = QLabel(_("Cut-off level"))
         self.sliders.percent.log_value = self.cutoff_value
         self.sliders.percent.setInvertedAppearance(True)
         self.sliders.cum_percent.setValue(self.cutoff_value)
@@ -370,7 +379,7 @@ class CutoffMenu(QWidget):
         cutoff_slider_minmax = QHBoxLayout()
         self.labels.min.setText("100%")
         self.labels.max.setText("0.001%")
-        self.labels.unit.setText("minimum %")
+        self.labels.unit.setText(self.units.percent)
         cutoff_slider_ledit = QHBoxLayout()
         self.cutoff_slider_line.setValidator(self.validators.percent)
         self.cutoff_slider_lft_btn.setMaximumWidth(15)

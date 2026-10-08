@@ -9,6 +9,7 @@ from logging import getLogger
 import appdirs
 from PySide2.QtWidgets import QMessageBox
 
+from activity_browser.i18n import _, SYSTEM_LANGUAGE, normalize_language
 from activity_browser.signals import signals
 from activity_browser.mod import bw2data as bd
 
@@ -45,12 +46,18 @@ class BaseSettings(object):
             self.write_settings()
 
     def load_settings(self) -> None:
-        with open(self.settings_file, "r") as infile:
+        with open(self.settings_file, "r", encoding="utf-8") as infile:
             self.settings = json.load(infile)
 
     def write_settings(self) -> None:
-        with open(self.settings_file, "w") as outfile:
-            json.dump(self.settings, outfile, indent=4, sort_keys=True)
+        with open(self.settings_file, "w", encoding="utf-8") as outfile:
+            json.dump(
+                self.settings,
+                outfile,
+                ensure_ascii=False,
+                indent=4,
+                sort_keys=True,
+            )
 
 
 class ABSettings(BaseSettings):
@@ -74,8 +81,31 @@ class ABSettings(BaseSettings):
         super().__init__(ab_dir.user_data_dir, filename)
 
         if not self.healthy():
-            log.warn("Settings health check failed, resetting")
+            log.warning("Settings health check failed, resetting")
             self.restore_default_settings()
+
+        self.migrate_settings()
+
+    def migrate_settings(self) -> None:
+        """Migrate interface settings to their stable stored representation."""
+
+        stored_language = self.settings.get(
+            "language",
+            self.settings.get("ui_language", self.settings.get("locale")),
+        )
+        language = normalize_language(stored_language)
+        changed = self.settings.get("language") != language
+
+        # These keys were used by early development versions.  Keeping only the
+        # stable key avoids display names accidentally becoming program state.
+        for deprecated_key in ("ui_language", "locale"):
+            if deprecated_key in self.settings:
+                self.settings.pop(deprecated_key)
+                changed = True
+
+        if changed:
+            self.settings["language"] = language
+            self.write_settings()
 
     def healthy(self) -> bool:
         """
@@ -104,16 +134,19 @@ class ABSettings(BaseSettings):
             if os.path.exists(old_settings):
                 shutil.copyfile(old_settings, file)
         if os.path.isfile(file):
-            with open(file, "r") as current:
+            with open(file, "r", encoding="utf-8") as current:
                 current_settings = json.load(current)
             if "current_bw_dir" not in current_settings:
-                new_settings_content = {
-                    "current_bw_dir": current_settings["custom_bw_dir"],
-                    "custom_bw_dirs": [current_settings["custom_bw_dir"]],
-                    "startup_project": current_settings["startup_project"],
-                }
-                with open(file, "w") as new_file:
-                    json.dump(new_settings_content, new_file)
+                new_settings_content = dict(current_settings)
+                custom_bw_dir = new_settings_content.pop("custom_bw_dir")
+                new_settings_content.update(
+                    {
+                        "current_bw_dir": custom_bw_dir,
+                        "custom_bw_dirs": [custom_bw_dir],
+                    }
+                )
+                with open(file, "w", encoding="utf-8") as new_file:
+                    json.dump(new_settings_content, new_file, ensure_ascii=False)
 
     @classmethod
     def get_default_settings(cls) -> dict:
@@ -121,6 +154,7 @@ class ABSettings(BaseSettings):
         return {
             "current_bw_dir": cls.get_default_directory(),
             "custom_bw_dirs": [cls.get_default_directory()],
+            "language": SYSTEM_LANGUAGE,
             "startup_project": cls.get_default_project_name(),
         }
 
@@ -151,10 +185,16 @@ class ABSettings(BaseSettings):
         try:
             self.settings["custom_bw_dirs"].remove(directory)
             self.write_settings()
-        except KeyError as e:
+        except (KeyError, ValueError) as error:
             QMessageBox.warning(
-                self,
-                f"Error while attempting to remove a brightway environmental dir: {e}",
+                None,
+                _("Could not remove directory"),
+                _(
+                    "The Brightway data directory could not be removed from settings."
+                    "\n\nDetails: {details}",
+                    details=str(error),
+                ),
+                QMessageBox.Ok,
             )
 
     @property
@@ -196,6 +236,16 @@ class ABSettings(BaseSettings):
     @theme.setter
     def theme(self, new_theme: str) -> None:
         self.settings.update({"theme": new_theme})
+
+    @property
+    def language(self) -> str:
+        """Return the stable interface language code."""
+
+        return normalize_language(self.settings.get("language", SYSTEM_LANGUAGE))
+
+    @language.setter
+    def language(self, language: str) -> None:
+        self.settings["language"] = normalize_language(language)
 
 
 class ProjectSettings(BaseSettings):

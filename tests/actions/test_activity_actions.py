@@ -3,6 +3,7 @@ import pytest
 from PySide2 import QtWidgets
 
 from activity_browser import actions
+from activity_browser.layouts.panels.panel import TabId
 from activity_browser.mod.bw2data import Database
 from activity_browser.ui.widgets.dialog import (ActivityLinkingDialog,
                                                 LocationLinkingDialog)
@@ -85,7 +86,7 @@ def test_activity_duplicate_to_loc(ab_app, monkeypatch):
 
 def test_activity_graph(ab_app):
     key = ("activity_tests", "3fcde3e3bf424e97b32cf29347ac7f33")
-    panel = ab_app.main_window.right_panel.tabs["Graph Explorer"]
+    panel = ab_app.main_window.right_panel.tabs[TabId.GRAPH_EXPLORER]
 
     assert bd.projects.current == "default"
     assert bd.get_activity(key)
@@ -113,7 +114,7 @@ def test_activity_new(ab_app, monkeypatch):
 
 def test_activity_open(ab_app):
     key = ("activity_tests", "3fcde3e3bf424e97b32cf29347ac7f33")
-    panel = ab_app.main_window.right_panel.tabs["Activity Details"]
+    panel = ab_app.main_window.right_panel.tabs[TabId.ACTIVITY_DETAILS]
 
     assert bd.projects.current == "default"
     assert bd.get_activity(key)

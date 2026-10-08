@@ -5,6 +5,7 @@ from PySide2.QtCore import Slot
 
 from activity_browser import ab_settings, project_settings, signals
 from activity_browser.bwutils import commontasks as bc
+from activity_browser.i18n import _
 from activity_browser.mod import bw2data as bd
 
 from ...ui.icons import qicons
@@ -43,9 +44,8 @@ class ActivitiesTab(ABTab):
             # If this is a new or duplicated activity then we want to exit it
             # ditto check the Technosphere and Biosphere tables
             if not read_only:
-                for table in new_tab.grouped_tables:
-                    if table.title() in ("Technosphere Flows:", "Biosphere Flows:"):
-                        table.setChecked(True)
+                for group in new_tab.exchange_groups[1:3]:
+                    group.setChecked(True)
             self.tabs[key] = new_tab
             tab_index = self.addTab(new_tab, bc.get_activity_name(act, str_length=30))
 
@@ -95,7 +95,7 @@ class ActivityTab(QtWidgets.QWidget):
         self.database = bd.Database(self.db_name)
 
         # Edit Activity checkbox
-        self.checkbox_edit_act = QtWidgets.QCheckBox("Edit Activity")
+        self.checkbox_edit_act = QtWidgets.QCheckBox(_("Edit activity"))
         self.checkbox_edit_act.setChecked(not self.read_only)
         self.checkbox_edit_act.toggled.connect(self.act_read_only_changed)
 
@@ -108,33 +108,35 @@ class ActivityTab(QtWidgets.QWidget):
 
         # Activity Description checkbox
         self.checkbox_activity_description = QtWidgets.QCheckBox(
-            "Description", parent=self
+            _("Description"), parent=self
         )
         self.checkbox_activity_description.clicked.connect(
             self.toggle_activity_description_visibility
         )
         self.checkbox_activity_description.setChecked(not self.read_only)
         self.checkbox_activity_description.setToolTip(
-            "Show/hide the activity description"
+            _("Show or hide the activity description." )
         )
         self.toggle_activity_description_visibility()
 
         # Reveal/hide uncertainty columns
-        self.checkbox_uncertainty = QtWidgets.QCheckBox("Uncertainty")
-        self.checkbox_uncertainty.setToolTip("Show/hide the uncertainty columns")
+        self.checkbox_uncertainty = QtWidgets.QCheckBox(_("Uncertainty"))
+        self.checkbox_uncertainty.setToolTip(
+            _("Show or hide the uncertainty columns.")
+        )
         self.checkbox_uncertainty.setChecked(False)
         self.checkbox_uncertainty.toggled.connect(self.show_exchange_uncertainty)
 
         # Reveal/hide exchange comment columns
-        self.checkbox_comment = QtWidgets.QCheckBox("Comments")
-        self.checkbox_comment.setToolTip("Show/hide the comment column")
+        self.checkbox_comment = QtWidgets.QCheckBox(_("Comments"))
+        self.checkbox_comment.setToolTip(_("Show or hide the comment column."))
         self.checkbox_comment.setChecked(False)
         self.checkbox_comment.toggled.connect(self.show_comments)
 
         # Toolbar Layout
         toolbar = QtWidgets.QToolBar()
         self.graph_action = toolbar.addAction(
-            qicons.graph_explorer, "Show in Graph Explorer", self.open_graph
+            qicons.graph_explorer, _("Show in Graph Explorer"), self.open_graph
         )
         toolbar.addWidget(self.checkbox_edit_act)
         toolbar.addWidget(self.checkbox_activity_description)
@@ -155,10 +157,10 @@ class ActivityTab(QtWidgets.QWidget):
         self.downstream = DownstreamExchangeTable(self)
 
         self.exchange_groups = [
-            DetailsGroupBox("Products:", self.production),
-            DetailsGroupBox("Technosphere Flows:", self.technosphere),
-            DetailsGroupBox("Biosphere Flows:", self.biosphere),
-            DetailsGroupBox("Downstream Consumers:", self.downstream),
+            DetailsGroupBox(_("Products:"), self.production),
+            DetailsGroupBox(_("Technosphere flows:"), self.technosphere),
+            DetailsGroupBox(_("Biosphere flows:"), self.biosphere),
+            DetailsGroupBox(_("Downstream consumers:"), self.downstream),
         ]
         self.exchange_groups[-1].setChecked(False)  # hide Downstream table by default
 
@@ -321,17 +323,22 @@ class ActivityTab(QtWidgets.QWidget):
     def update_tooltips(self) -> None:
         if self.db_read_only:
             self.checkbox_edit_act.setToolTip(
-                "The database this activity belongs to is read-only."
-                " Enable database editing with checkbox in databases list"
+                _(
+                    "The database containing this activity is read-only. Use the "
+                    "checkbox in the database list to enable editing."
+                )
             )
         else:
             if self.read_only:
                 self.checkbox_edit_act.setToolTip(
-                    "Click to enable editing. Edits are saved automatically"
+                    _("Click to enable editing. Changes are saved automatically.")
                 )
             else:
                 self.checkbox_edit_act.setToolTip(
-                    "Click to prevent further edits. Edits are saved automatically"
+                    _(
+                        "Click to prevent further editing. Changes are saved "
+                        "automatically."
+                    )
                 )
 
     def update_style(self) -> None:

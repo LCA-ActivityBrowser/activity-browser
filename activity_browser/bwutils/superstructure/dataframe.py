@@ -8,6 +8,8 @@ import pandas as pd
 from PySide2.QtCore import Qt
 from PySide2.QtWidgets import QApplication, QPushButton
 
+from activity_browser.i18n import _
+
 from ..errors import ScenarioDatabaseNotFoundError
 from ..metadata import AB_metadata
 from ..utils import Index
@@ -216,41 +218,39 @@ def scenario_replace_databases(df_: pd.DataFrame, replacements: dict) -> pd.Data
         # prepare a warning message in case unlinkable activities were found in the scenario dataframe
         QApplication.restoreOverrideCursor()
         if len(critical["from database"]) > 1:
-            msg = (
-                f'Multiple activities could not be "relinked" to the local database.<br> The first five are provided. '
-                f"If you want to save the dataframe you can either save those scenario exchanges where relinking failed "
-                f"(check the excerpt box), or save the entire dataframe with a new column indicating failed relinking."
-                f"<br> To abort the process press 'Cancel'"
-            )
             critical_message = ABPopup.abCritical(
-                "Activities not found",
-                msg,
-                QPushButton("Save"),
-                QPushButton("Cancel"),
+                _("Activities not found"),
+                _(
+                    "Multiple activities could not be relinked to the local database.<br>"
+                    "The first five are shown. You can save only the failed scenario "
+                    "exchanges (select Excerpt), or save the entire table with a column "
+                    "that marks failed relinking.<br>Press Cancel to stop."
+                ),
+                QPushButton(_("Save")),
+                QPushButton(_("Cancel")),
                 default=2,
             )
             critical_message.save_options()
             critical_message.dataframe(df.loc[critical["index"], :], SUPERSTRUCTURE)
             critical_message.dataframe_to_file(df_, critical["index"])
-            response = critical_message.exec_()
+            critical_message.exec_()
         else:
-            msg = (
-                f'An activity could not be "relinked" to the local database.<br> Some additional information is '
-                f"provided. If you want to save the dataframe you can either save those scenario exchanges where "
-                f"relinking failed (check the excerpt box), or save the entire dataframe with a new column indicating"
-                f" failed relinking.<br>To abort the process press 'Cancel'"
-            )
             critical_message = ABPopup.abCritical(
-                "Activity not found",
-                msg,
-                QPushButton("Save"),
-                QPushButton("Cancel"),
+                _("Activity not found"),
+                _(
+                    "An activity could not be relinked to the local database.<br>"
+                    "You can save only the failed scenario exchange (select Excerpt), "
+                    "or save the entire table with a column that marks failed relinking."
+                    "<br>Press Cancel to stop."
+                ),
+                QPushButton(_("Save")),
+                QPushButton(_("Cancel")),
                 default=2,
             )
             critical_message.save_options()
             critical_message.dataframe(df.loc[critical["index"], :], SUPERSTRUCTURE)
             critical_message.dataframe_to_file(df_, critical["index"])
-            response = critical_message.exec_()
+            critical_message.exec_()
         QApplication.setOverrideCursor(Qt.WaitCursor)
         raise ScenarioDatabaseNotFoundError(
             "Incompatible Databases in the scenario file, unable to complete further checks on the file"
