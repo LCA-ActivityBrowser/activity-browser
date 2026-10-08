@@ -11,6 +11,27 @@ from activity_browser.ui.icons import qicons
 from .qt_sync import qt_is_valid
 
 
+def _coerce_string_columns_to_object(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Coerce pandas ``StringDtype`` columns to ``object``.
+
+    Mixed StringDtype + datetime (or other) frames can abort via ``fast_xs`` /
+    ``none_dealloc`` under pandas 3 when rows are taken or frames are replaced
+    during Qt model resets. Object columns remain compatible with pandas 2.x.
+    """
+    if df is None or df.empty:
+        return df
+    string_cols = [
+        col for col in df.columns if isinstance(df[col].dtype, pd.StringDtype)
+    ]
+    if not string_cols:
+        return df
+    out = df.copy()
+    for col in string_cols:
+        out[col] = out[col].astype(object)
+    return out
+
+
 class TreeNode:
     """
     Optimized node object that combines children_map, row_indices, loaded_counts, 
@@ -60,7 +81,8 @@ class ABTreeModel(QAbstractItemModel):
                  enable_sorting: bool = False
                  ) -> None:
         super().__init__(parent)
-        self.df = df if df is not None else pd.DataFrame()
+        raw = df if df is not None else pd.DataFrame()
+        self.df = _coerce_string_columns_to_object(raw)
         self.df.index = pd.MultiIndex.from_arrays([range(len(self.df))], names=[f"index"])
 
         # dictionary where queries can be registered
@@ -378,7 +400,7 @@ class ABTreeModel(QAbstractItemModel):
             return
         self.beginResetModel()
 
-        self.df = df
+        self.df = _coerce_string_columns_to_object(df)
         self.grouped_columns = group or self.grouped_columns
 
         self.build_df_index()
@@ -391,7 +413,7 @@ class ABTreeModel(QAbstractItemModel):
         if not qt_is_valid(self):
             return
         self.layoutAboutToBeChanged.emit()
-        self.df = df
+        self.df = _coerce_string_columns_to_object(df)
         self.grouped_columns = group or self.grouped_columns
 
         self.build_df_index()

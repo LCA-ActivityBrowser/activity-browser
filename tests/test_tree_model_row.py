@@ -19,8 +19,8 @@ def test_row_safe_on_mixed_string_datetime_frame(qapp):
         }
     )
     model = ABTreeModel(df)
-    # Stored dtypes are unchanged (no ingest-time rewrite).
-    assert isinstance(model.df["name"].dtype, pd.StringDtype)
+    # StringDtype is coerced to object on ingest to avoid pandas 3 fast_xs aborts.
+    assert model.df["name"].dtype == object
 
     index = model.index(0, 0)
     row = model.row(index)
@@ -28,3 +28,8 @@ def test_row_safe_on_mixed_string_datetime_frame(qapp):
     assert row.get("name") == "basic"
     assert bool(row.get("read_only")) is True
     assert model.get(index, "records") == 3
+
+    # Replacing the frame (DatabasesModel.sync) must stay safe under pandas 3.
+    model.set_dataframe(df)
+    assert model.df["name"].dtype == object
+    assert model.get(model.index(0, 0), "name") == "basic"

@@ -4,6 +4,7 @@ from qtpy import QtWidgets, QtCore, QtGui
 from qtpy.QtCore import Qt
 
 import pandas as pd
+from bw2data.errors import UnknownObject
 
 from activity_browser import app
 from activity_browser.ui import widgets, icons, delegates, core
@@ -270,7 +271,11 @@ class ParameterizedExchangesModel(core.ABTreeModel):
             return True
 
         if column_name == "uncertainty":
-            if database_is_locked(exchange.output[0]):
+            try:
+                locked = database_is_locked(exchange.output[0])
+            except UnknownObject:
+                return False
+            if locked:
                 return False
             if not isinstance(value, dict):
                 return False
@@ -300,7 +305,10 @@ class ParameterizedExchangesModel(core.ABTreeModel):
         ex = row.get("_exchange")
         if ex is None:
             return True
-        return database_is_locked(ex.output[0])
+        try:
+            return database_is_locked(ex.output[0])
+        except UnknownObject:
+            return True
 
     def decorationData(self, index: QtCore.QModelIndex) -> any:
         """
@@ -342,7 +350,11 @@ class ParameterizedExchangesModel(core.ABTreeModel):
         if exchange is None:
             return False
 
-        db = exchange.output[0]
+        try:
+            db = exchange.output[0]
+        except UnknownObject:
+            # Stale proxy after project/db teardown during Qt spanning/sync.
+            return False
         # Locked DB: uncertainty column stays openable (read-only dialog), like exchanges tab.
         if database_is_locked(db):
             return column_name == "uncertainty"
@@ -372,4 +384,7 @@ class ParameterizedExchangesModel(core.ABTreeModel):
         if exchange is None:
             return {}
 
-        return parameters_in_scope(node=exchange.output)
+        try:
+            return parameters_in_scope(node=exchange.output)
+        except UnknownObject:
+            return {}

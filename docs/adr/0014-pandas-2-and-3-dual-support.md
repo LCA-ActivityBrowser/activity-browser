@@ -17,6 +17,6 @@ accepted
 - Hotspot call sites must treat text columns as object **or** string dtype.
 - MetaDataStore field schema uses `object` for text columns (not builtin `str`, which becomes StringDtype under pandas 3).
 - Scenario SDF key/category parsers must coerce to `object` before storing tuples (string dtype rejects non-strings).
-- Tree models: prefer ``get()``/``iat`` for cells; full-row access must use ``iloc[[i]]`` (take), not ``iloc[i]`` (``fast_xs``), under pandas 3.
+- Tree models: coerce ``StringDtype`` columns to ``object`` on ingest; prefer ``get()``/``iat`` for cells; full-row access must use ``iloc[[i]]`` (take), not ``iloc[i]`` (``fast_xs``), under pandas 3.
 - Pre-stamp caches rebuild once (missing stamp is a mismatch).
 - Replacing pickle / adopting string dtype in the Metadata store remains a follow-up.
