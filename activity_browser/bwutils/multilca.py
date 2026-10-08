@@ -788,7 +788,8 @@ class Contributions(object):
 
         joined = meta.merge(df, left_on="id", right_index=True, how="left")
         joined.reset_index(inplace=True, drop=True)
-        grouped = joined.groupby(parameters, observed=False)
+        # Keep rows with an empty grouping field, or their impact drops out of the total.
+        grouped = joined.groupby(parameters, observed=False, dropna=False)
         aggregated = grouped[columns].sum()
         mask_index = {i: m for i, m in enumerate(aggregated.index)}
 
