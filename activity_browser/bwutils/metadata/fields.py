@@ -1,10 +1,12 @@
 primary_types = {
     "key": object,
     "id": "Int64",
-    "code": str,
+    # object (not str): under pandas 3, builtin str → StringDtype, which rejects
+    # non-strings and skips NaN→None coercion (ADR-0014 keeps object/pickle hybrid).
+    "code": object,
     "database": object,
     "location": object,
-    "name": str,
+    "name": object,
     "product": object,
     "type": object,
 }
