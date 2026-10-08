@@ -10,6 +10,9 @@ formula.
 
 Deliberately out of scope: the "New parameter..." placeholder row, the
 ParameterizedExchangesSection, and the exchanges tab.
+
+Parametrize is thinned to one case per distinct intent (not a full view×scope×fixture
+cross-product).
 """
 
 import bw2data as bd
@@ -21,6 +24,16 @@ from activity_browser import app  # noqa: F401
 from activity_browser.app.pages.activity_details.parameters_tab import ParametersTab
 from activity_browser.app.pages.parameters.parameters_section import ParametersSection
 from activity_browser.ui import icons
+
+_CONSTANTS_ONLY = ([{"name": "first", "amount": 1}], {"first": True})
+_WITH_FORMULAS = (
+    [
+        {"name": "first", "amount": 1},
+        {"name": "blank", "amount": 2, "formula": ""},
+        {"name": "derived", "amount": 3, "formula": "first * 2"},
+    ],
+    {"first": True, "blank": True, "derived": False},
+)
 
 
 def _parameter_indexes(model, parent=None):
@@ -39,24 +52,25 @@ def _index_by_name(model, name):
     raise AssertionError(f"parameter {name!r} is not in the model")
 
 
-@pytest.mark.parametrize("view", ["parameters-page", "activity-tab"])
-@pytest.mark.parametrize("scope", ["project", "database", "activity"])
 @pytest.mark.parametrize(
-    "parameters, expected_editable",
+    "view, scope, parameters, expected_editable",
     [
-        # No formula anywhere: the all-missing formula column is what #1735 tripped on.
-        ([{"name": "first", "amount": 1}], {"first": True}),
-        # A formula string keeps the column object dtype. Guard: "" is not a formula.
-        (
-            [
-                {"name": "first", "amount": 1},
-                {"name": "blank", "amount": 2, "formula": ""},
-                {"name": "derived", "amount": 3, "formula": "first * 2"},
-            ],
-            {"first": True, "blank": True, "derived": False},
-        ),
+        ("parameters-page", "project", *_CONSTANTS_ONLY),
+        ("parameters-page", "project", *_WITH_FORMULAS),
+        # Non-project scope exercises the read-only database lock path.
+        ("parameters-page", "database", *_WITH_FORMULAS),
+        # Activity-scoped parameters (group registration path).
+        ("parameters-page", "activity", *_CONSTANTS_ONLY),
+        # Activity tab uses a different widget; keep one smoke case.
+        ("activity-tab", "project", *_CONSTANTS_ONLY),
     ],
-    ids=["constants-only", "with-formulas"],
+    ids=[
+        "constants-page",
+        "formulas-page",
+        "formulas-db-readonly",
+        "constants-activity-scope",
+        "constants-activity-tab",
+    ],
 )
 def test_parameter_amount_editability(
     basic_project, qtbot, view, scope, parameters, expected_editable

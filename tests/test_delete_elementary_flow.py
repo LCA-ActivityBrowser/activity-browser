@@ -26,12 +26,12 @@ def _make_database_writable(db_name: str) -> None:
     bd.databases.flush()
 
 
-def test_delete_elementary_flow_removes_cf_and_node(basic_database, monkeypatch):
-    elementary = basic_database.get("elementary")
+def test_delete_elementary_flow_removes_cf_and_node(basic_project, monkeypatch):
+    elementary = basic_project.get("elementary")
     flow_id = elementary.id
     flow_key = elementary.key
 
-    _make_database_writable(basic_database.name)
+    _make_database_writable(basic_project.name)
     _confirm_delete(monkeypatch)
 
     app.actions.DeleteElementaryFlow.run([flow_key])
@@ -42,11 +42,11 @@ def test_delete_elementary_flow_removes_cf_and_node(basic_database, monkeypatch)
     except UnknownObject:
         pass
     assert not [cf for cf in Method(("basic_method",)).load() if cf[0] == flow_id]
-    assert len(list(basic_database.get("process").biosphere())) == 0
+    assert len(list(basic_project.get("process").biosphere())) == 0
 
 
-def test_remove_characterization_factors_for_flows(basic_database):
-    elementary = basic_database.get("elementary")
+def test_remove_characterization_factors_for_flows(basic_project):
+    elementary = basic_project.get("elementary")
     fake_id = 999999999999999
     method = Method(("basic_method",))
     method.write(list(method.load()) + [(fake_id, 1.0)], process=False)

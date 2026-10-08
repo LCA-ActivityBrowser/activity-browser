@@ -5,7 +5,7 @@ from activity_browser import app
 
 
 
-def test_cs_delete(monkeypatch, basic_database):
+def test_cs_delete(monkeypatch, basic_project):
     monkeypatch.setattr(
         QtWidgets.QMessageBox, "warning", staticmethod(lambda *args, **kwargs: True)
     )
@@ -23,7 +23,7 @@ def test_cs_delete(monkeypatch, basic_database):
     assert cs_name not in bd.calculation_setups
 
 
-def test_cs_duplicate(monkeypatch, basic_database):
+def test_cs_duplicate(monkeypatch, basic_project):
     monkeypatch.setattr(
         QtWidgets.QInputDialog,
         "getText",
@@ -42,7 +42,7 @@ def test_cs_duplicate(monkeypatch, basic_database):
     assert duplicated in bd.calculation_setups
 
 
-def test_cs_new(monkeypatch, basic_database):
+def test_cs_new(monkeypatch, basic_project):
     new_cs = "cs_that_is_new"
 
     monkeypatch.setattr(
@@ -58,7 +58,7 @@ def test_cs_new(monkeypatch, basic_database):
     assert new_cs in bd.calculation_setups
 
 
-def test_cs_rename(monkeypatch, basic_database):
+def test_cs_rename(monkeypatch, basic_project):
     cs_name = "basic_calculation_setup"
     renamed_cs = "cs_that_is_renamed"
 

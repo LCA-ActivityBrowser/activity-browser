@@ -8,29 +8,29 @@ from activity_browser.bwutils.commontasks import (
 )
 
 
-def test_exchange_label_technosphere(basic_database):
-    process = basic_database.get("process")
-    elementary = basic_database.get("elementary")
+def test_exchange_label_technosphere(basic_project):
+    process = basic_project.get("process")
+    elementary = basic_project.get("elementary")
 
     product = exchange_product_name(elementary.key)
     assert product == elementary["name"]
 
     proc, location, database = exchange_consumer_parts(process.key)
     assert proc == process["name"]
-    assert database == basic_database.name
+    assert database == basic_project.name
 
     full = exchange_label(elementary.key, process.key, include_database=True)
     assert "-->" in full
     assert process["name"] in full
     assert elementary["name"] in full
-    assert basic_database.name in full
+    assert basic_project.name in full
 
     short = exchange_label(elementary.key, process.key, include_database=False)
-    assert basic_database.name not in short
+    assert basic_project.name not in short
 
 
-def test_exchange_endpoint_label(basic_database):
-    process = basic_database.get("process")
+def test_exchange_endpoint_label(basic_project):
+    process = basic_project.get("process")
     label = exchange_part_label(process.key, include_database=True)
     assert process["name"] in label
-    assert basic_database.name in label
+    assert basic_project.name in label

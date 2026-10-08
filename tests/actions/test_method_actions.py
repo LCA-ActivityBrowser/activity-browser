@@ -10,9 +10,9 @@ from stats_arrays.distributions import (
 from activity_browser import app
 
 
-def test_cf_amount_modify(basic_database):
+def test_cf_amount_modify(basic_project):
     method = ("basic_method",)
-    elementary = basic_database.get("elementary")
+    elementary = basic_project.get("elementary")
 
     cf = [cf for cf in Method(method).load() if cf[0] == elementary.id]
 
@@ -25,11 +25,11 @@ def test_cf_amount_modify(basic_database):
     assert cf[0][1] == 200.0 or cf[0][1]["amount"] == 200.0
 
 
-def test_cf_new(basic_database):
-    basic_database.new_node("new_elementary", type="emission", name="new_elementary").save()
+def test_cf_new(basic_project):
+    basic_project.new_node("new_elementary", type="emission", name="new_elementary").save()
 
     method = ("basic_method",)
-    new_elementary = basic_database.get("new_elementary")
+    new_elementary = basic_project.get("new_elementary")
 
     cf = [cf for cf in Method(method).load() if cf[0] == new_elementary.id]
     assert len(cf) == 0
@@ -42,9 +42,9 @@ def test_cf_new(basic_database):
     assert cf[0][1] == 0.0
 
 
-def test_cf_new_detects_duplicate_by_tuple_key(basic_database, monkeypatch):
+def test_cf_new_detects_duplicate_by_tuple_key(basic_project, monkeypatch):
     method = ("basic_method",)
-    elementary = basic_database.get("elementary")
+    elementary = basic_project.get("elementary")
     initial_count = len([cf for cf in Method(method).load() if cf[0] == elementary.id])
     assert initial_count == 1
 
@@ -59,16 +59,16 @@ def test_cf_new_detects_duplicate_by_tuple_key(basic_database, monkeypatch):
     assert len([cf for cf in Method(method).load() if cf[0] == elementary.id]) == initial_count
 
 
-def test_cf_new_drops_orphaned_characterization_factors(basic_database):
+def test_cf_new_drops_orphaned_characterization_factors(basic_project):
     method = ("basic_method",)
-    elementary = basic_database.get("elementary")
+    elementary = basic_project.get("elementary")
     fake_id = 999999999999999
     method_obj = Method(method)
 
     method_obj.write(list(method_obj.load()) + [(fake_id, 1.0)], process=False)
 
-    basic_database.new_node("new_ef", type="emission", name="new_ef").save()
-    new_ef = basic_database.get("new_ef")
+    basic_project.new_node("new_ef", type="emission", name="new_ef").save()
+    new_ef = basic_project.get("new_ef")
 
     app.actions.CFNew.run(method, [new_ef.key])
 
@@ -78,9 +78,9 @@ def test_cf_new_drops_orphaned_characterization_factors(basic_database):
     assert elementary.id in ids
 
 
-def test_cf_remove(monkeypatch, basic_database):
+def test_cf_remove(monkeypatch, basic_project):
     method = ("basic_method",)
-    elementary = basic_database.get("elementary")
+    elementary = basic_project.get("elementary")
     cf = [cf for cf in Method(method).load() if cf[0] == elementary.id]
 
     monkeypatch.setattr(
@@ -97,9 +97,9 @@ def test_cf_remove(monkeypatch, basic_database):
     assert len(cf) == 0
 
 
-# def test_cf_uncertainty_modify(basic_database, application_instance):
+# def test_cf_uncertainty_modify(basic_project, application_instance):
 #     method = ("basic_method",)
-#     elementary = basic_database.get("elementary")
+#     elementary = basic_project.get("elementary")
 #     cf = [cf for cf in Method(method).load() if cf[0] == elementary.id]
 #     new_cf_tuple = (
 #         elementary.id,
@@ -133,9 +133,9 @@ def test_cf_remove(monkeypatch, basic_database):
 #     assert cf[0][1].get("amount") == 5.5
 
 
-def test_cf_uncertainty_remove(basic_database):
+def test_cf_uncertainty_remove(basic_project):
     method = ("basic_method",)
-    elementary = basic_database.get("elementary")
+    elementary = basic_project.get("elementary")
     cf = [cf for cf in Method(method).load() if cf[0] == elementary.id]
     assert len(cf) == 1
 
@@ -149,7 +149,7 @@ def test_cf_uncertainty_remove(basic_database):
     )
 
 
-def test_method_delete(monkeypatch, basic_database):
+def test_method_delete(monkeypatch, basic_project):
     method = ("basic_method",)
 
     monkeypatch.setattr(
@@ -165,7 +165,7 @@ def test_method_delete(monkeypatch, basic_database):
     assert method not in methods
 
 
-def test_method_duplicate(monkeypatch, basic_database):
+def test_method_duplicate(monkeypatch, basic_project):
     from activity_browser.app.actions.method.method_duplicate import TupleNameDialog
 
     method = ("basic_method",)
@@ -192,7 +192,7 @@ def test_method_duplicate(monkeypatch, basic_database):
     duplicated.datapackage()
 
 
-def test_method_new(monkeypatch, basic_database):
+def test_method_new(monkeypatch, basic_project):
     from activity_browser.ui.dialogs import ABListEditDialog
 
     new_method = ("New Test Method", "Test Category")
@@ -221,7 +221,7 @@ def test_method_new(monkeypatch, basic_database):
     assert len(method_obj.load()) == 0
 
 
-def test_calculation_setups_updated_on_method_delete(monkeypatch, basic_database):
+def test_calculation_setups_updated_on_method_delete(monkeypatch, basic_project):
     # ensure method exists and is present in calculation setup
     method = ("basic_method",)
 
@@ -251,7 +251,7 @@ def test_calculation_setups_updated_on_method_delete(monkeypatch, basic_database
     assert method not in cs.get("ia", [])
 
 
-def test_calculation_setups_updated_on_method_rename(monkeypatch, basic_database):
+def test_calculation_setups_updated_on_method_rename(monkeypatch, basic_project):
     # prepare rename dialog to accept and return new name
     from activity_browser.ui.dialogs import ABListEditDialog
     import bw2data as bd

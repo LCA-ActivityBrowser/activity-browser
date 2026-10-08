@@ -8,7 +8,7 @@ from activity_browser.bwutils.parameters.formula_exchanges import (
 )
 
 
-def test_parameterized_flows_table_follows_index_only(basic_database):
+def test_parameterized_flows_table_follows_index_only(basic_project):
     from activity_browser.app.pages.parameters.parameterized_exchanges_section import (
         ParameterizedExchangesSection,
     )
@@ -24,14 +24,14 @@ def test_parameterized_flows_table_follows_index_only(basic_database):
     assert df.iloc[0]["_exchange"] is not None
 
 
-def test_app_database_write_handler_rebuilds_index(basic_database):
+def test_app_database_write_handler_rebuilds_index(basic_project):
     from copy import deepcopy
 
     from bw2data.parameters import ParameterizedExchange
     from fixtures.basic import DATABASE
 
     ParameterizedExchange.delete().execute()
-    basic_database.write(deepcopy(DATABASE), process=True, signal=True)
+    basic_project.write(deepcopy(DATABASE), process=True, signal=True)
     assert [row.formula for row in ParameterizedExchange.select()] == ["5+5"]
 
 

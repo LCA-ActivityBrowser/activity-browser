@@ -19,6 +19,10 @@ def setup_logging():
     logger.add(sys.stderr, level=6, colorize=True,
                format="<green>{time:HH:mm:ss}</green> | <level>{level: <8}</level> | <level>{message}</level>")
 
+    # Tests set AB_NO_FILE_LOG=1 to avoid Windows file-lock noise during pytest.
+    if os.environ.get("AB_NO_FILE_LOG") == "1":
+        return
+
     log_dir = platformdirs.user_log_dir(appname="ActivityBrowser", appauthor="pylca")
     os.makedirs(log_dir, exist_ok=True)
     log_file = os.path.join(log_dir, "activity_browser.log")

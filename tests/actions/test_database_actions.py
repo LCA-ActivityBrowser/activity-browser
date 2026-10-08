@@ -28,38 +28,38 @@ def _broken_activity_parameter_groups() -> list[str]:
     return broken
 
 
-def test_database_delete(monkeypatch, basic_database):
+def test_database_delete(monkeypatch, basic_project):
     _confirm_delete(monkeypatch)
 
-    app.actions.DatabaseDelete.run([basic_database.name])
+    app.actions.DatabaseDelete.run([basic_project.name])
 
-    assert basic_database.name not in bd.databases
+    assert basic_project.name not in bd.databases
 
 
-def test_database_delete_removes_functional_units(monkeypatch, basic_database):
+def test_database_delete_removes_functional_units(monkeypatch, basic_project):
     cs_name = "basic_calculation_setup"
     assert bd.calculation_setups[cs_name]["inv"]
 
     _confirm_delete(monkeypatch)
-    app.actions.DatabaseDelete.run([basic_database.name])
+    app.actions.DatabaseDelete.run([basic_project.name])
 
     assert bd.calculation_setups[cs_name]["inv"] == []
     assert bd.calculation_setups[cs_name]["inv_active"] == []
 
 
-def test_database_delete_removes_characterization_factors(monkeypatch, basic_database):
+def test_database_delete_removes_characterization_factors(monkeypatch, basic_project):
     from activity_browser.bwutils.characterization_factors import impact_methods_with_flows
 
-    elementary = basic_database.get("elementary")
+    elementary = basic_project.get("elementary")
     assert impact_methods_with_flows({elementary.id})
 
     _confirm_delete(monkeypatch)
-    app.actions.DatabaseDelete.run([basic_database.name])
+    app.actions.DatabaseDelete.run([basic_project.name])
 
     assert not impact_methods_with_flows({elementary.id})
 
 
-def test_database_delete_clears_orphan_activity_parameter_groups(monkeypatch, basic_database):
+def test_database_delete_clears_orphan_activity_parameter_groups(monkeypatch, basic_project):
     """Deleting a DB must not leave hashed activity parameter groups behind."""
     from bw2data.parameters import ActivityParameter
     from fixtures.database_roundtrip import write_source_db
@@ -87,7 +87,7 @@ def test_database_delete_clears_orphan_activity_parameter_groups(monkeypatch, ba
     assert _broken_activity_parameter_groups() == []
 
 
-def test_fix_broken_groups_removes_orphan_activity_groups(basic_database):
+def test_fix_broken_groups_removes_orphan_activity_groups(basic_project):
     """Brightway removes parameter rows on delete; AB must drop the leftover groups."""
     from bw2data.parameters import ActivityParameter, Group
     from activity_browser.app.actions.parameter.parameter_modify import ParameterModify
@@ -113,7 +113,7 @@ def test_fix_broken_groups_removes_orphan_activity_groups(basic_database):
     assert not {g.name for g in Group.select()} & activity_groups
 
 
-def test_database_export_excel(monkeypatch, qtbot, basic_database, tmp_path):
+def test_database_export_excel(monkeypatch, qtbot, basic_project, main_window, tmp_path):
     """Test exporting a database to Excel format."""
     from activity_browser.app.actions.database.database_export_excel import ExportExcelSetup
     
@@ -126,7 +126,7 @@ def test_database_export_excel(monkeypatch, qtbot, basic_database, tmp_path):
     )
     
     # Call the action
-    app.actions.DatabaseExportExcel.run([basic_database.name])
+    app.actions.DatabaseExportExcel.run([basic_project.name])
     
     # Find the wizard dialog and wait for the export thread to finish
     wizard = app.main_window.findChild(ExportExcelSetup)
@@ -141,7 +141,7 @@ def test_database_export_excel(monkeypatch, qtbot, basic_database, tmp_path):
     wizard.close()
 
 
-def test_database_export_bw2package(monkeypatch, qtbot, basic_database, tmp_path):
+def test_database_export_bw2package(monkeypatch, qtbot, basic_project, main_window, tmp_path):
     """Test exporting a database to BW2Package format."""
     from activity_browser.app.actions.database.database_export_bw2package import ExportBW2PackageSetup
     
@@ -154,7 +154,7 @@ def test_database_export_bw2package(monkeypatch, qtbot, basic_database, tmp_path
     )
     
     # Call the action
-    app.actions.DatabaseExportBW2Package.run([basic_database.name])
+    app.actions.DatabaseExportBW2Package.run([basic_project.name])
     
     # Find the wizard dialog and wait for the export thread to finish
     wizard = app.main_window.findChild(ExportBW2PackageSetup)
@@ -169,7 +169,7 @@ def test_database_export_bw2package(monkeypatch, qtbot, basic_database, tmp_path
     wizard.close()
 
 
-def test_database_new(monkeypatch, basic_database):
+def test_database_new(monkeypatch, basic_project):
     from activity_browser.app.actions.database.database_new import NewDatabaseDialog
 
     new_db = "db_that_is_new"
@@ -197,7 +197,7 @@ def test_database_new(monkeypatch, basic_database):
     assert db_number == len(bd.databases)
 
 
-def test_database_delete_multiple(monkeypatch, basic_database):
+def test_database_delete_multiple(monkeypatch, basic_project):
     """Test that multiple databases can be deleted at once."""
     from activity_browser.app.actions.database.database_new import NewDatabaseDialog
 
