@@ -89,27 +89,37 @@ class DatabasesPane(widgets.ABAbstractPane):
         """
         data = []
         for name in bd.databases:
-            # get the modified time, in case it doesn't exist, just write 'now' in the correct format
-            dt = bd.databases[name].get("modified", datetime.datetime.now().isoformat())
-            dt = datetime.datetime.strptime(dt, "%Y-%m-%dT%H:%M:%S.%f")
-
-            # final column includes interactive checkbox which shows read-only state of db
+            # Keep modified as ISO string (DateTimeDelegate/arrow accepts it). Avoid
+            # datetime64 columns: mixed blocks abort under pandas 3 on Linux/3.11.
+            modified = bd.databases[name].get(
+                "modified", datetime.datetime.now().isoformat()
+            )
             data.append(
                 {
                     "name": name,
                     "depends": ", ".join(bd.databases[name].get("depends", [])),
-                    "modified": dt,
+                    "modified": modified,
                     "records": count_database_records(name),
                     "read_only": bd.databases[name].get("read_only", True),
-                    "default_allocation": bd.databases[name].get("default_allocation", "unspecified"),
-                    "backend": bd.databases[name].get("backend")
+                    "default_allocation": bd.databases[name].get(
+                        "default_allocation", "unspecified"
+                    ),
+                    "backend": bd.databases[name].get("backend"),
                 }
             )
 
-        cols = ["read_only", "name", "records", "depends", "default_allocation", "modified", "backend"]
+        cols = [
+            "read_only",
+            "name",
+            "records",
+            "depends",
+            "default_allocation",
+            "modified",
+            "backend",
+        ]
         df = pd.DataFrame(data, columns=cols)
-        # pandas 3 stores str as StringDtype; mixed with datetime aborts in Qt paint.
-        for col in ("name", "depends", "default_allocation", "backend"):
+        # Single object block — pandas 2 and 3 (no StringDtype / datetime64 mix).
+        for col in cols:
             df[col] = pd.Series(df[col].tolist(), dtype=object)
         return df
 
