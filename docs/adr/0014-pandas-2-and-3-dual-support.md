@@ -17,6 +17,6 @@ accepted
 - Hotspot call sites must treat text columns as object **or** string dtype.
 - MetaDataStore field schema uses `object` for text columns (not builtin `str`, which becomes StringDtype under pandas 3).
 - Scenario SDF key/category parsers must coerce to `object` before storing tuples (string dtype rejects non-strings).
-- Tree models: prefer ``get()``/``iat`` for cells; full-row access must use ``iloc[[i]]`` (take), not ``iloc[i]`` (``fast_xs``). Small UI frames that would mix StringDtype/datetime64 (e.g. DatabasesPane) should use a uniform ``object`` block.
+- Tree models: prefer ``get()``/``iat`` for cells; full-row access must use ``iloc[[i]]`` (take), not ``iloc[i]`` (``fast_xs``). Small UI frames that would mix StringDtype/datetime64 (e.g. DatabasesPane) should use a uniform ``object`` block. ``set_dataframe`` / ``update_dataframe`` keep the previous frame and node tree alive until the next event-loop turn, so a view can stay on the same model. Destroying that generation inside the view reset aborts on CPython 3.11 (``none_dealloc``); from 3.12 ``None`` is immortal and the same extra decref does not abort.
 - Pre-stamp caches rebuild once (missing stamp is a mismatch).
 - Replacing pickle / adopting string dtype in the Metadata store remains a follow-up.

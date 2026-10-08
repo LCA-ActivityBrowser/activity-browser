@@ -1,6 +1,7 @@
 """Tree-model / DatabasesPane access patterns safe under pandas 2 and 3."""
 import pandas as pd
 from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QTreeView
 
 from activity_browser.app.panes.databases import DatabasesModel, DatabasesPane
 from activity_browser.ui.core.tree_model import ABTreeModel
@@ -51,11 +52,18 @@ def test_databases_build_df_is_object_block(qapp, monkeypatch):
     df = DatabasesPane.build_df(pane)
     assert all(df[c].dtype == object for c in df.columns)
 
-    # Mimic DatabasesPane.sync: populate a detached model, then (re)attach.
+    # Refresh the model the view is already showing. Same object, new frame.
     model = DatabasesModel()
+    view = QTreeView()
+    view.setModel(model)
     model.set_dataframe(df)
-    model2 = DatabasesModel()
-    model2.set_dataframe(df)
-    name_col = model2.columns().index("name")
-    assert model2.data(model2.index(0, name_col), Qt.ItemDataRole.DisplayRole) == "basic"
-    assert model2.displayData(model2.index(0, 0)) is None
+    assert view.model() is model
+    name_col = model.columns().index("name")
+    assert model.data(model.index(0, name_col), Qt.ItemDataRole.DisplayRole) == "basic"
+    assert model.displayData(model.index(0, 0)) is None
+
+    refreshed = df.copy()
+    refreshed.loc[refreshed.index[0], "name"] = "renamed"
+    model.set_dataframe(refreshed)
+    assert view.model() is model
+    assert model.get(model.index(0, 0), "name") == "renamed"

@@ -4,7 +4,7 @@ from loguru import logger
 import pandas as pd
 
 from PySide6 import QtGui
-from PySide6.QtCore import QModelIndex, Qt, QAbstractItemModel
+from PySide6.QtCore import QModelIndex, QTimer, Qt, QAbstractItemModel
 from PySide6.QtWidgets import QWidget
 
 from activity_browser.ui.icons import qicons
@@ -374,31 +374,53 @@ class ABTreeModel(QAbstractItemModel):
 
     # --- helper functions ---
     def set_dataframe(self, df: pd.DataFrame, group: list[str] = None) -> None:
+        """Replace this model's DataFrame and reset any attached views.
+
+        The previous frame and node tree stay alive until the next event-loop
+        turn. Destroying them inside ``beginResetModel`` aborts on CPython 3.11
+        (``none_dealloc``). From 3.12, ``None`` is immortal, so the same extra
+        decref does not abort.
+        """
         if not qt_is_valid(self):
             return
+        previous = (self.df, self.root, self.node_map)
         self.beginResetModel()
-
-        self.df = df
-        self.grouped_columns = group or self.grouped_columns
-
-        self.build_df_index()
-        self.apply_sort()
-        self.apply_filter()
-
-        self.endResetModel()
+        try:
+            self._install_dataframe(df, group)
+        finally:
+            self.endResetModel()
+        self._retire_model_generation(previous)
 
     def update_dataframe(self, df: pd.DataFrame, group: list[str] = None) -> None:
+        """Like :meth:`set_dataframe` but emits layout-change signals."""
         if not qt_is_valid(self):
             return
+        previous = (self.df, self.root, self.node_map)
         self.layoutAboutToBeChanged.emit()
+        try:
+            self._install_dataframe(df, group)
+        finally:
+            self.layoutChanged.emit()
+        self._retire_model_generation(previous)
+
+    def _install_dataframe(self, df: pd.DataFrame, group: list[str] | None) -> None:
         self.df = df
         self.grouped_columns = group or self.grouped_columns
-
         self.build_df_index()
         self.apply_sort()
         self.apply_filter()
 
-        self.layoutChanged.emit()
+    def _retire_model_generation(self, generation: tuple) -> None:
+        """Drop a previous frame and node tree on the next event-loop turn."""
+        frame, _root, nodes = generation
+        if frame is self.df and nodes is self.node_map:
+            return
+        holder = [generation]
+
+        def release(holder=holder) -> None:
+            holder.clear()
+
+        QTimer.singleShot(0, release)
 
     def group(self, columns: list[str] = None) -> None:
         self.layoutAboutToBeChanged.emit()
