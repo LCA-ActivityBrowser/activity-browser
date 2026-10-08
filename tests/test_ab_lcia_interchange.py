@@ -19,6 +19,27 @@ from fixtures.basic import DATABASE
 from fixtures.bw_helpers import write_functional_database
 
 
+@pytest.fixture(scope="module")
+@bw2test
+def ab_lcia_biosphere():
+    """Shared biosphere for AB LCIA import/export cases in this module."""
+    write_functional_database("basic", DATABASE, process=True)
+    yield
+
+
+@pytest.fixture
+def clean_climate_gwp(ab_lcia_biosphere):
+    """Reset the shared method name used by several cases in this module."""
+    name = ("climate", "gwp")
+    if name in bd.methods:
+        del bd.methods[name]
+        bd.methods.flush()
+    yield name
+    if name in bd.methods:
+        del bd.methods[name]
+        bd.methods.flush()
+
+
 def test_join_split_tuple_path():
     assert join_tuple_path(("My", "climate", "GWP")) == "My::climate::GWP"
     assert split_tuple_path("My::climate::GWP") == ("My", "climate", "GWP")
@@ -125,15 +146,13 @@ def test_method_name_to_filename_stem_is_cross_platform():
     assert "|" not in dirty
 
 
-@bw2test
-def test_ab_csv_round_trip(tmp_path: Path):
+def test_ab_csv_round_trip(clean_climate_gwp, tmp_path: Path):
     from activity_browser.bwutils.impact_categories import (
         export_methods_ab_csv_pair,
         load_ab_csv_pair,
     )
 
-    write_functional_database("basic", DATABASE, process=True)
-    name = ("climate", "gwp")
+    name = clean_climate_gwp
     method = bd.Method(name)
     method.register(unit="kg", description="GWP demo")
     method.write([(("basic", "elementary"), 1.5)], process=True)
@@ -146,16 +165,14 @@ def test_ab_csv_round_trip(tmp_path: Path):
     assert loaded[0]["exchanges"][0]["amount"] == 1.5
 
 
-@bw2test
-def test_bw2io_xlsx_round_trip(tmp_path: Path):
+def test_bw2io_xlsx_round_trip(clean_climate_gwp, tmp_path: Path):
     from activity_browser.bwutils.impact_categories.bw2io_lcia_file import (
         export_method_bw2io_xlsx,
         load_bw2io_lcia_file,
         read_bw2io_metadata_xlsx,
     )
 
-    write_functional_database("basic", DATABASE, process=True)
-    name = ("climate", "gwp")
+    name = clean_climate_gwp
     method = bd.Method(name)
     method.register(unit="kg", description="GWP demo")
     method.write([(("basic", "elementary"), 3.0)], process=True)
@@ -173,9 +190,7 @@ def test_bw2io_xlsx_round_trip(tmp_path: Path):
     assert data[0]["exchanges"][0]["categories"] == ("air",)
 
 
-@bw2test
-def test_ab_xlsx_round_trip_preserves_uncertainty(tmp_path: Path):
-    write_functional_database("basic", DATABASE, process=True)
+def test_ab_xlsx_round_trip_preserves_uncertainty(clean_climate_gwp, tmp_path: Path):
     cfs = [
         (
             ("basic", "elementary"),
@@ -188,7 +203,7 @@ def test_ab_xlsx_round_trip_preserves_uncertainty(tmp_path: Path):
             },
         )
     ]
-    name = ("climate", "gwp")
+    name = clean_climate_gwp
     method = bd.Method(name)
     method.register(unit="kg", description="GWP demo")
     method.write(cfs, process=True)
@@ -230,12 +245,10 @@ def test_ab_xlsx_round_trip_preserves_uncertainty(tmp_path: Path):
     assert bd.methods[name].get("description") == "GWP demo"
 
 
-@bw2test
-def test_import_ab_methods_blocks_on_unlinked():
-    write_functional_database("basic", DATABASE, process=True)
+def test_import_ab_methods_blocks_on_unlinked(clean_climate_gwp):
     data = [
         {
-            "name": ("climate", "gwp"),
+            "name": clean_climate_gwp,
             "unit": "kg",
             "description": "",
             "filename": "test.xlsx",
@@ -251,15 +264,13 @@ def test_import_ab_methods_blocks_on_unlinked():
     stats = import_ab_methods(data, biosphere_name="basic")
     assert stats.written == 0
     assert stats.unlinked == 1
-    assert ("climate", "gwp") not in bd.methods
+    assert clean_climate_gwp not in bd.methods
 
 
-@bw2test
-def test_import_ab_methods_drop_unlinked_writes_linked_only():
-    write_functional_database("basic", DATABASE, process=True)
+def test_import_ab_methods_drop_unlinked_writes_linked_only(clean_climate_gwp):
     data = [
         {
-            "name": ("climate", "gwp"),
+            "name": clean_climate_gwp,
             "unit": "kg",
             "description": "",
             "filename": "test.xlsx",
@@ -282,7 +293,7 @@ def test_import_ab_methods_drop_unlinked_writes_linked_only():
     )
     assert stats.written == 1
     assert stats.unlinked == 0
-    cfs = list(bd.Method(("climate", "gwp")).load())
+    cfs = list(bd.Method(clean_climate_gwp).load())
     assert len(cfs) == 1
     assert cfs[0][1] == 2.0 or (
         isinstance(cfs[0][1], dict) and cfs[0][1]["amount"] == 2.0

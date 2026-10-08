@@ -3,34 +3,34 @@ import bw2data as bd
 from bw2data.errors import BW2Exception
 from qtpy import QtWidgets
 
-from activity_browser import app, app
+from activity_browser import app
 
 
-def test_activity_delete(monkeypatch, basic_database):
+def test_activity_delete(monkeypatch, basic_project):
     monkeypatch.setattr(
         QtWidgets.QMessageBox,
         "warning",
         staticmethod(lambda *args, **kwargs: QtWidgets.QMessageBox.Yes),
     )
-    assert len(basic_database) == 4
+    assert len(basic_project) == 4
 
-    process = basic_database.get("process")
+    process = basic_project.get("process")
 
     app.actions.ActivityDelete.run([process.key])
 
-    assert len(basic_database) == 1  # removed process and products
+    assert len(basic_project) == 1  # removed process and products
 
     with pytest.raises(BW2Exception):
         bd.get_activity(process.key)
 
 
-def test_activity_duplicate(basic_database):
-    assert len(basic_database) == 4
+def test_activity_duplicate(basic_project):
+    assert len(basic_project) == 4
 
-    process = basic_database.get("process")
+    process = basic_project.get("process")
     app.actions.ActivityDuplicate.run([process.key])
 
-    assert len(basic_database) == 7
+    assert len(basic_project) == 7
 
 
 
@@ -47,7 +47,7 @@ def test_activity_duplicate(basic_database):
 #     assert key in panel.tabs
 #
 #
-def test_activity_new(monkeypatch, basic_database):
+def test_activity_new(monkeypatch, basic_project):
     from activity_browser.app.actions.activity.activity_new_process import NewNodeDialog
 
     monkeypatch.setattr(
@@ -60,13 +60,13 @@ def test_activity_new(monkeypatch, basic_database):
         staticmethod(lambda *args, **kwargs: ("new_process", "new_product", "kg", "GLO"))
     )
 
-    assert len(basic_database) == 4
+    assert len(basic_project) == 4
 
-    app.actions.ActivityNewProcess.run(basic_database.name)
+    app.actions.ActivityNewProcess.run(basic_project.name)
 
-    assert len(basic_database) == 6
-    assert len([p for p in basic_database if p["name"] == "new_process"]) == 2
-    assert len([p for p in basic_database if p.get("product") == "new_product"]) == 1
+    assert len(basic_project) == 6
+    assert len([p for p in basic_project if p["name"] == "new_process"]) == 2
+    assert len([p for p in basic_project if p.get("product") == "new_product"]) == 1
 
 
 def test_process_open(basic_database):
@@ -78,8 +78,8 @@ def test_process_open(basic_database):
     assert "activity_details_basic_process" in [group.widget(i).objectName() for i in range(group.count())]
 
 
-# def test_product_open(application_instance, basic_database):
-#     product = basic_database.get("product_1")
+# def test_product_open(application_instance, basic_project):
+#     product = basic_project.get("product_1")
 #
 #     app.actions.ActivityOpen.run([product.key])
 #

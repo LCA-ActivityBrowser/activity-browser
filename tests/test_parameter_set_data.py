@@ -6,6 +6,9 @@ to `return False`; only the uncertainty branch returned True.
 
 When a name create or rename is refused (invalid name), setData must return False so
 Qt does not treat the edit as committed.
+
+Parametrize is thinned to one view per distinct setData behavior (plus one activity-tab
+smoke for a successful amount edit).
 """
 
 import bw2data as bd
@@ -48,6 +51,12 @@ def _new_row_index(model, parent=None):
     return None
 
 
+def _section_for_view(view: str):
+    if view == "parameters-page":
+        return ParametersSection()
+    return ParametersTab(("basic", "process"))
+
+
 @pytest.fixture
 def dialogs(monkeypatch):
     shown = {"warning": [], "critical": []}
@@ -60,20 +69,20 @@ def dialogs(monkeypatch):
     return shown
 
 
-@pytest.mark.parametrize("view", ["parameters-page", "activity-tab"])
 @pytest.mark.parametrize(
-    "column, value, expected_amount",
-    [("amount", 42.0, 42.0), ("formula", "6 * 7", 42.0)],
+    "view, column, value, expected_amount",
+    [
+        ("parameters-page", "amount", 42.0, 42.0),
+        ("parameters-page", "formula", "6 * 7", 42.0),
+        ("activity-tab", "amount", 42.0, 42.0),
+    ],
+    ids=["amount-page", "formula-page", "amount-activity-tab"],
 )
 def test_parameter_set_data_returns_true(
     basic_project, qtbot, view, column, value, expected_amount
 ):
     bd.parameters.new_project_parameters([{"name": "first", "amount": 1}])
-    section = (
-        ParametersSection()
-        if view == "parameters-page"
-        else ParametersTab(("basic", "process"))
-    )
+    section = _section_for_view(view)
     qtbot.addWidget(section)
     section.sync()
     model = section.model
@@ -86,16 +95,11 @@ def test_parameter_set_data_returns_true(
     assert model.get(_index_by_name(model, "first"), "amount") == expected_amount
 
 
-@pytest.mark.parametrize("view", ["parameters-page", "activity-tab"])
 def test_parameter_set_data_returns_false_for_invalid_rename(
-    basic_project, qtbot, dialogs, view
+    basic_project, qtbot, dialogs
 ):
     bd.parameters.new_project_parameters([{"name": "first", "amount": 1}])
-    section = (
-        ParametersSection()
-        if view == "parameters-page"
-        else ParametersTab(("basic", "process"))
-    )
+    section = ParametersSection()
     qtbot.addWidget(section)
     section.sync()
     model = section.model
@@ -109,15 +113,10 @@ def test_parameter_set_data_returns_false_for_invalid_rename(
     assert len(dialogs["warning"]) == 1
 
 
-@pytest.mark.parametrize("view", ["parameters-page", "activity-tab"])
 def test_parameter_set_data_returns_false_for_invalid_new_name(
-    basic_project, qtbot, dialogs, view
+    basic_project, qtbot, dialogs
 ):
-    section = (
-        ParametersSection()
-        if view == "parameters-page"
-        else ParametersTab(("basic", "process"))
-    )
+    section = ParametersSection()
     qtbot.addWidget(section)
     section.sync()
     model = section.model

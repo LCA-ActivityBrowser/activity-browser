@@ -5,13 +5,13 @@ from activity_browser import app
 from activity_browser.ui.dialogs import UncertaintyDialog
 
 
-# def test_exchange_copy_sdf(basic_database):
+# def test_exchange_copy_sdf(basic_project):
 #     # this test will always fail on the linux automated test because it doesn't have a clipboard
 #     if platform.system() == "Linux":
 #         return
 #
-#     process = basic_database.get("process")
-#     elementary = basic_database.get("elementary")
+#     process = basic_project.get("process")
+#     elementary = basic_project.get("elementary")
 #
 #     exchange = [
 #         exchange
@@ -33,9 +33,9 @@ from activity_browser.ui.dialogs import UncertaintyDialog
 #     return
 
 
-def test_exchange_delete(basic_database):
-    process = basic_database.get("process")
-    elementary = basic_database.get("elementary")
+def test_exchange_delete(basic_project):
+    process = basic_project.get("process")
+    elementary = basic_project.get("elementary")
 
     exchange = [
         exchange
@@ -51,9 +51,9 @@ def test_exchange_delete(basic_database):
     assert len(process.exchanges()) == num_exchanges - 1
 
 
-def test_exchange_formula_remove(basic_database):
-    process = basic_database.get("process")
-    elementary = basic_database.get("elementary")
+def test_exchange_formula_remove(basic_project):
+    process = basic_project.get("process")
+    elementary = basic_project.get("elementary")
 
     exchange = [
         exchange
@@ -70,9 +70,9 @@ def test_exchange_formula_remove(basic_database):
         assert exchange[0].as_dict()["formula"]
 
 
-def test_exchange_modify(basic_database):
-    process = basic_database.get("process")
-    elementary = basic_database.get("elementary")
+def test_exchange_modify(basic_project):
+    process = basic_project.get("process")
+    elementary = basic_project.get("elementary")
 
     exchange = [
         exchange
@@ -90,11 +90,11 @@ def test_exchange_modify(basic_database):
     assert exchange[0].amount == 200.0
 
 
-def test_exchange_modify_formula_indexes_process(basic_database):
+def test_exchange_modify_formula_indexes_process(basic_project):
     from bw2data.parameters import ParameterizedExchange
 
-    process = basic_database.get("process")
-    elementary = basic_database.get("elementary")
+    process = basic_project.get("process")
+    elementary = basic_project.get("elementary")
     exchange = next(
         exc for exc in process.exchanges() if exc.input == elementary
     )
@@ -109,11 +109,11 @@ def test_exchange_modify_formula_indexes_process(basic_database):
     assert ParameterizedExchange.select().count() == 1
 
 
-def test_exchange_new(basic_database):
-    basic_database.new_node("other", type="processwithreferenceproduct", name="other_process").save()
+def test_exchange_new(basic_project):
+    basic_project.new_node("other", type="processwithreferenceproduct", name="other_process").save()
 
-    process = basic_database.get("process")
-    other = basic_database.get("other")
+    process = basic_project.get("process")
+    other = basic_project.get("other")
 
     assert not [
         exchange
@@ -135,9 +135,9 @@ def test_exchange_new(basic_database):
     )
 
 
-def test_exchange_uncertainty_modify(monkeypatch, basic_database):
-    process = basic_database.get("process")
-    elementary = basic_database.get("elementary")
+def test_exchange_uncertainty_modify(monkeypatch, basic_project):
+    process = basic_project.get("process")
+    elementary = basic_project.get("elementary")
 
     exchange = [
         exchange
@@ -176,9 +176,9 @@ def test_exchange_uncertainty_modify(monkeypatch, basic_database):
     assert exchange[0]["negative"] == False
 
 
-def test_exchange_uncertainty_modify_writes_pedigree(monkeypatch, basic_database):
-    process = basic_database.get("process")
-    elementary = basic_database.get("elementary")
+def test_exchange_uncertainty_modify_writes_pedigree(monkeypatch, basic_project):
+    process = basic_project.get("process")
+    elementary = basic_project.get("elementary")
     exchange = [
         exc for exc in process.exchanges() if exc.input == elementary
     ]
@@ -210,9 +210,9 @@ def test_exchange_uncertainty_modify_writes_pedigree(monkeypatch, basic_database
     assert exchange[0]["pedigree"]["basic uncertainty"] == 1.05
 
 
-def test_exchange_uncertainty_modify_without_pedigree_keeps_recipe(monkeypatch, basic_database):
-    process = basic_database.get("process")
-    elementary = basic_database.get("elementary")
+def test_exchange_uncertainty_modify_without_pedigree_keeps_recipe(monkeypatch, basic_project):
+    process = basic_project.get("process")
+    elementary = basic_project.get("elementary")
     exchange = [
         exc for exc in process.exchanges() if exc.input == elementary
     ]
@@ -243,9 +243,9 @@ def test_exchange_uncertainty_modify_without_pedigree_keeps_recipe(monkeypatch, 
     assert exchange[0]["minimum"] == 5.0
 
 
-def test_exchange_uncertainty_modify_clears_pedigree(monkeypatch, basic_database):
-    process = basic_database.get("process")
-    elementary = basic_database.get("elementary")
+def test_exchange_uncertainty_modify_clears_pedigree(monkeypatch, basic_project):
+    process = basic_project.get("process")
+    elementary = basic_project.get("elementary")
     exchange = [
         exc for exc in process.exchanges() if exc.input == elementary
     ]
@@ -270,9 +270,9 @@ def test_exchange_uncertainty_modify_clears_pedigree(monkeypatch, basic_database
     assert "pedigree" not in exchange[0]
 
 
-def test_exchange_uncertainty_remove(basic_database):
-    process = basic_database.get("process")
-    elementary = basic_database.get("elementary")
+def test_exchange_uncertainty_remove(basic_project):
+    process = basic_project.get("process")
+    elementary = basic_project.get("elementary")
 
     exchange = [
         exchange
@@ -288,9 +288,9 @@ def test_exchange_uncertainty_remove(basic_database):
     assert exchange[0].uncertainty_type == UndefinedUncertainty
 
 
-def test_exchange_uncertainty_remove_keeps_pedigree(basic_database):
-    process = basic_database.get("process")
-    elementary = basic_database.get("elementary")
+def test_exchange_uncertainty_remove_keeps_pedigree(basic_project):
+    process = basic_project.get("process")
+    elementary = basic_project.get("elementary")
     exchange = [
         exc for exc in process.exchanges() if exc.input == elementary
     ]

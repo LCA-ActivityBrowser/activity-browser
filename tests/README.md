@@ -93,6 +93,15 @@ def test_delete_action():
 
 Fixtures provide test data and setup (see `conftest.py` and `fixtures/`):
 
+**Prefer the cheapest fixture that still expresses the assertion:**
+
+| Fixture | Use when |
+|---|---|
+| `basic_project` | Brightway / action / MLCA checks without UI pages or MetaDataStore rows |
+| `basic_database` | UI pages, metadata rows, or a loaded secondary metadata pass are required |
+| `main_window` | Explicit main-window interaction (often already pulled in by `basic_database`) |
+| `basic_project` + `main_window` | Need the window (e.g. find a wizard) but not MetaDataStore rows — cheaper than `basic_database` |
+
 ### Common Fixtures
 ```python
 @pytest.fixture
@@ -111,12 +120,9 @@ def test_with_fixture(sample_activity):
 
 ### Brightway Fixtures
 ```python
-@pytest.fixture
-def bw_project(tmp_path):
-    """Create temporary Brightway project."""
-    bd.projects.set_current("test_project")
-    yield
-    bd.projects.delete_project("test_project", delete_dir=True)
+# Prefer basic_project from conftest for isolated Brightway data without UI cost.
+def test_action(basic_project):
+    assert "basic" in bd.databases
 ```
 
 ### Qt Fixtures

@@ -34,16 +34,16 @@ def _make_database_writable(db_name: str) -> None:
     bd.databases.flush()
 
 
-def test_activity_edit_elementary_flow(basic_database, monkeypatch):
-    elementary = basic_database.get("elementary")
+def test_activity_edit_elementary_flow(basic_project, monkeypatch):
+    elementary = basic_project.get("elementary")
     original_id = elementary.id
 
-    _make_database_writable(basic_database.name)
+    _make_database_writable(basic_project.name)
     monkeypatch.setattr(edit_mod, "ElementaryFlowDialog", _AcceptedDialog)
 
     app.actions.EditElementaryFlow.run([elementary.key])
 
-    flow = basic_database.get("elementary")
+    flow = basic_project.get("elementary")
     assert flow.id == original_id
     assert flow["name"] == "edited emission"
     assert flow["unit"] == "tonne"
@@ -52,8 +52,8 @@ def test_activity_edit_elementary_flow(basic_database, monkeypatch):
     assert flow["categories"] == ("water",)
 
 
-def test_edit_elementary_flow_ignores_non_biosphere(basic_database, monkeypatch):
-    process = basic_database.get("process")
+def test_edit_elementary_flow_ignores_non_biosphere(basic_project, monkeypatch):
+    process = basic_project.get("process")
     called = False
 
     def _fail_dialog(*args, **kwargs):
@@ -67,15 +67,15 @@ def test_edit_elementary_flow_ignores_non_biosphere(basic_database, monkeypatch)
     assert not called
 
 
-def test_edit_elementary_flow_requires_single_biosphere_selection(basic_database, monkeypatch):
-    elementary = basic_database.get("elementary")
+def test_edit_elementary_flow_requires_single_biosphere_selection(basic_project, monkeypatch):
+    elementary = basic_project.get("elementary")
     second = create_elementary_flow(
-        basic_database.name,
+        basic_project.name,
         name="second",
         unit="kg",
         flow_type="emission",
     )
-    _make_database_writable(basic_database.name)
+    _make_database_writable(basic_project.name)
     _dismiss_messagebox(monkeypatch)
 
     called = False

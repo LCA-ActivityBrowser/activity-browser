@@ -20,6 +20,7 @@ from fixtures.bw_helpers import (
 
 os.environ["AB_SKIP_SETTINGS_ON_STARTUP"] = "1"
 os.environ["AB_NO_SEARCHER"] = "1"
+os.environ["AB_NO_FILE_LOG"] = "1"
 
 _MAIN_WINDOW_READY = False
 
@@ -125,11 +126,17 @@ def main_window(qtbot, monkeypatch, no_exception_dialogs):
 @pytest.fixture
 @bw2test
 def basic_database(qapp, main_window):
+    """``basic`` DB with main window + MetaDataStore loaded.
+
+    Prefer :func:`basic_project` unless the test needs UI pages, metadata rows,
+    or a loaded secondary metadata pass. This fixture is much slower per test.
+    """
     from activity_browser.app import metadata
     from fixtures.basic import CALCULATION_SETUP, DATABASE, METHOD
 
     qapp.processEvents(QtCore.QEventLoop.ProcessEventsFlag.AllEvents)
-    _wait_for_loader(qapp, metadata.loader)
+    if metadata.loader.secondary_status != "done":
+        _wait_for_loader(qapp, metadata.loader)
 
     db = write_functional_database("basic", DATABASE, process=False, mark_dirty=True)
     write_method("basic_method", METHOD, process=False)
@@ -191,12 +198,18 @@ def lcia_overview_project():
 def basic_project():
     """``basic`` DB + method + CS without main_window / metadata load.
 
-    Prefer this over ``basic_database`` for pure Brightway / MLCA tests.
+    Prefer this over ``basic_database`` for Brightway / action / MLCA tests that
+    do not need Qt pages or MetaDataStore rows. Keeps per-test ``@bw2test``
+    isolation without the metadata-wait tax.
+
+    Process synchronously and do not mark dirty: once any earlier test has created
+    ``main_window``, a dirty write triggers MetaDataStore reload work and defeats
+    this fixture.
     """
     from fixtures.basic import CALCULATION_SETUP, DATABASE, METHOD
 
-    db = write_functional_database("basic", DATABASE, process=False, mark_dirty=True)
-    write_method("basic_method", METHOD, process=False)
+    db = write_functional_database("basic", DATABASE, process=True, mark_dirty=False)
+    write_method("basic_method", METHOD, process=True)
     write_calculation_setup("basic_calculation_setup", CALCULATION_SETUP)
     yield db
 

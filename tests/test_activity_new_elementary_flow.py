@@ -25,15 +25,15 @@ def _make_database_writable(db_name: str) -> None:
     bd.databases.flush()
 
 
-def test_activity_new_elementary_flow(basic_database, monkeypatch):
-    _make_database_writable(basic_database.name)
+def test_activity_new_elementary_flow(basic_project, monkeypatch):
+    _make_database_writable(basic_project.name)
     monkeypatch.setattr(mod, "ElementaryFlowDialog", _AcceptedDialog)
 
     app.actions.NewElementaryFlow.run(database_name="basic")
 
     flows = [
         node
-        for node in basic_database
+        for node in basic_project
         if node.get("name") == "custom emission" and is_node_biosphere(node)
     ]
     assert len(flows) == 1
