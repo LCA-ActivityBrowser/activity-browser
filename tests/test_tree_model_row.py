@@ -51,9 +51,11 @@ def test_databases_build_df_is_object_block(qapp, monkeypatch):
     df = DatabasesPane.build_df(pane)
     assert all(df[c].dtype == object for c in df.columns)
 
+    # Mimic DatabasesPane.sync: populate a detached model, then (re)attach.
     model = DatabasesModel()
     model.set_dataframe(df)
-    model.set_dataframe(df)  # replace — former crash site on Linux/3.11
-    name_col = model.columns().index("name")
-    assert model.data(model.index(0, name_col), Qt.ItemDataRole.DisplayRole) == "basic"
-    assert model.displayData(model.index(0, 0)) is None
+    model2 = DatabasesModel()
+    model2.set_dataframe(df)
+    name_col = model2.columns().index("name")
+    assert model2.data(model2.index(0, name_col), Qt.ItemDataRole.DisplayRole) == "basic"
+    assert model2.displayData(model2.index(0, 0)) is None

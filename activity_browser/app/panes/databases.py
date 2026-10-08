@@ -70,13 +70,20 @@ class DatabasesPane(widgets.ABAbstractPane):
         """
         Synchronizes the model with the current state of the databases.
         """
-        if not core.qt_is_valid(self.model):
+        if not core.qt_is_valid(self.view):
             return
 
         logger.log("SYNC", f"{self.__class__.__name__}: {id(self)}")
 
+        # Build a fresh model and attach it only after it is populated.
+        # Replacing the dataframe on a model that already has a live view
+        # aborts under pandas 3 on Linux/Python 3.11 (none_dealloc in
+        # set_dataframe). Empty → data on a detached model is fine.
         df = self.build_df()
-        self.model.set_dataframe(df)
+        model = DatabasesModel(parent=self)
+        model.set_dataframe(df)
+        self.view.setModel(model)
+        self.model = model
         self.view.resizeColumnToContents(1)
         self.view.header().setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeMode.Fixed)
 
