@@ -832,8 +832,13 @@ class ScenarioImportWidget(QtWidgets.QWidget):
             logger.info(
                 "Superstructure: Attempting to read as parameter scenario file."
             )
-            if not df["Group"].dtype == object:
-                df["Group"] = df["Group"].astype(str)
+            # Object or pandas string dtype are already text-like; coerce numerics etc.
+            group = df["Group"]
+            if not (
+                pd.api.types.is_object_dtype(group)
+                or pd.api.types.is_string_dtype(group)
+            ):
+                df["Group"] = group.astype(str)
             self.sync_superstructure(ss.parameters_to_sdf(df), combine=combine)
         else:
             self._update_filename_label(path, ok=False)

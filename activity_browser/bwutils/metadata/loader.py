@@ -11,7 +11,12 @@ from qtpy.QtCore import QObject, QThread, Signal, SignalInstance, Qt, Slot, QTim
 
 from activity_browser.bwutils.settings import Settings
 
-from .metadata import MetaDataStore
+from .metadata import (
+    MetaDataStore,
+    CACHE_PICKLE_NAME,
+    cache_stamp_matches_runtime,
+    clear_cache_files,
+)
 from .fields import secondary_types, primary, secondary, search_engine_whitelist, all_fields
 
 
@@ -71,7 +76,17 @@ class MDSLoader(QObject):
 
         logger.debug("Loading metadata from cache")
 
-        cache_path = filesystem.get_project_ab_path() / "metadatastore_cache.pkl"
+        ab_path = filesystem.get_project_ab_path()
+        cache_path = ab_path / CACHE_PICKLE_NAME
+        if not cache_stamp_matches_runtime(ab_path):
+            logger.info(
+                "Metadata cache pandas major stamp missing or mismatched; "
+                "rebuilding from database"
+            )
+            clear_cache_files(ab_path)
+            self.load_project()
+            return
+
         try:
             cached_df = pd.read_pickle(cache_path)
         except (
@@ -90,14 +105,14 @@ class MDSLoader(QObject):
             logger.warning(
                 f"Metadata cache could not be loaded, rebuilding from database: {exc}"
             )
-            cache_path.unlink(missing_ok=True)
+            clear_cache_files(ab_path)
             self.load_project()
             return
 
         # quick sanity checks
         if not self._cache_check(cached_df):
             logger.info("Cache file is invalid or outdated, loading from database instead")
-            cache_path.unlink()
+            clear_cache_files(ab_path)
             self.load_project()
             return
 
@@ -288,10 +303,14 @@ class MDSLoader(QObject):
     def _has_cache(self) -> bool:
         from activity_browser.bwutils import filesystem
 
-        cache_path = filesystem.get_project_ab_path() / "metadatastore_cache.pkl"
+        ab_path = filesystem.get_project_ab_path()
+        cache_path = ab_path / CACHE_PICKLE_NAME
         lci_path = filesystem.get_project_path() / "lci" / "databases.db"
 
         if not cache_path.exists() or not lci_path.exists():
+            return False
+
+        if not cache_stamp_matches_runtime(ab_path):
             return False
 
         cache_mtime = cache_path.stat().st_mtime
