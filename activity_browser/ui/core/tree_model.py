@@ -93,8 +93,13 @@ class ABTreeModel(QAbstractItemModel):
     def row(self, index: QModelIndex) -> pd.Series | None:
         """
         Return the DataFrame row corresponding to the given index, or None for non-leaf nodes.
-        
-        Warning: This is a slow operation and should be avoided in methods called frequently like data(), *Data(), flags(), or index*().
+
+        Warning: This is a slow operation and should be avoided in methods called
+        frequently like data(), *Data(), flags(), or index*(). Prefer :meth:`get`
+        for a single column.
+
+        Uses ``iloc[[pos]]`` (take) rather than ``iloc[pos]`` (``fast_xs``), which
+        can abort under pandas 3 on mixed StringDtype/datetime frames.
         """
         if not index.isValid():
             return None
@@ -104,8 +109,7 @@ class ABTreeModel(QAbstractItemModel):
         if not isinstance(node, TreeNode) or not node.is_leaf:
             return None
         
-        # Use the pre-computed df_position for fast access
-        return self.df.iloc[node.df_position]
+        return self.df.iloc[[node.df_position]].astype(object).squeeze(axis=0)
     
     def get(self, index: QModelIndex, column: str | int) -> any:
         """

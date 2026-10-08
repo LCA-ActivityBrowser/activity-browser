@@ -248,16 +248,12 @@ class DatabasesModel(core.ABTreeModel):
         Returns:
             The decoration data for the index.
         """
-        column_name = self.column_name(index)
-        row = self.row(index)
-
-        if row is None:
+        if self.column_name(index) != "read_only":
             return None
-
-        if column_name == "read_only":
-            return icons.qicons.locked if row.get("read_only") else icons.qicons.empty
-
-        return None
+        node = index.internalPointer() if index.isValid() else None
+        if not isinstance(node, core.TreeNode) or not node.is_leaf:
+            return None
+        return icons.qicons.locked if self.get(index, "read_only") else icons.qicons.empty
 
     def displayData(self, index: QtCore.QModelIndex) -> any:
         """
@@ -270,15 +266,9 @@ class DatabasesModel(core.ABTreeModel):
             The display data for the index.
         """
         column_name = self.column_name(index)
-        row = self.row(index)
-
-        if row is None:
+        if column_name == "read_only" or column_name not in self.df.columns:
             return None
-
-        if column_name == "read_only":
-            return None
-
-        return row.get(column_name)
+        return self.get(index, column_name)
 
     def fontData(self, index: QtCore.QModelIndex) -> any:
         """
