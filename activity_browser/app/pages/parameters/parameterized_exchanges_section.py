@@ -24,7 +24,8 @@ def _meta_row(meta, key):
         return {}
     try:
         row = meta.loc[key]
-        return row.iloc[0] if isinstance(row, pd.DataFrame) else row
+        # iloc[[0]] is take; iloc[0] is fast_xs and aborts on CPython 3.11.
+        return row.iloc[[0]].squeeze(axis=0) if isinstance(row, pd.DataFrame) else row
     except Exception:
         return {}
 
@@ -98,7 +99,10 @@ class ParameterizedExchangesSection(QtWidgets.QWidget):
         logger.log("SYNC", f"{self.__class__.__name__}: {id(self)}")
 
         df = self.build_exchanges_df()
-        self.model.set_dataframe(df)
+        model = ParameterizedExchangesModel(parent=self)
+        model.set_dataframe(df)
+        self.view.setModel(model)
+        self.model = model
 
     def build_exchanges_df(self) -> pd.DataFrame:
         """Build a DataFrame from Brightway's parameterized-flow index."""

@@ -462,7 +462,9 @@ class ABTreeModel(QAbstractItemModel):
         # unpack iterables in the grouped columns
         for col in self.grouped_columns:
             # Check if the column contains iterables (excluding strings)
-            sample_val = df[col].dropna().iloc[0] if not df[col].dropna().empty else None
+            dropped = df[col].dropna()
+            # iat, not iloc[0]: iloc[0] uses fast_xs and aborts on CPython 3.11.
+            sample_val = None if dropped.empty else dropped.iat[0]
             if not isinstance(sample_val, (list, tuple, set)):
                 continue
 
