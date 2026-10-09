@@ -1,6 +1,7 @@
 from typing import Optional
 from loguru import logger
 
+import numpy as np
 import pandas as pd
 
 from PySide6 import QtGui
@@ -9,6 +10,17 @@ from PySide6.QtWidgets import QWidget
 
 from activity_browser.ui.icons import qicons
 from .qt_sync import qt_is_valid
+
+
+def _as_qt_value(val):
+    """Return a builtin. ``pd.isna`` on numpy scalars over-decrefs ``None`` on CPython 3.11."""
+    if val is None or val is pd.NA:
+        return None
+    if isinstance(val, np.generic):
+        val = val.item()
+    if isinstance(val, float) and val != val:
+        return None
+    return val
 
 
 class TreeNode:
@@ -211,7 +223,9 @@ class ABTreeModel(QAbstractItemModel):
             if not node.is_leaf: # branch node
                 # For branch nodes, show the name in the first column only
                 # (spanning will be handled by the view)
-                return node.path[-1] if index.column() == 0 else None
+                if index.column() != 0:
+                    return None
+                return _as_qt_value(node.path[-1])
             
             if index.column() == 0:
                 return None  # leaf node tree column is empty
@@ -220,12 +234,7 @@ class ABTreeModel(QAbstractItemModel):
             col_name = self.columns()[index.column()]
             col_idx = self.df.columns.get_loc(col_name)
             
-            val = self.df.iat[node.df_position, col_idx]
-
-            if not hasattr(val, "__iter__") and pd.isna(val):
-                return None
-
-            return val
+            return _as_qt_value(self.df.iat[node.df_position, col_idx])
 
     def editData(self, index: QModelIndex) -> any:
         return self.displayData(index)
@@ -374,22 +383,14 @@ class ABTreeModel(QAbstractItemModel):
 
     # --- helper functions ---
     def set_dataframe(self, df: pd.DataFrame, group: list[str] = None) -> None:
-        """Replace this model's DataFrame and reset any attached views.
-
-        ``beginResetModel`` already drops persistent indexes. Rebuilding them
-        in the middle of that reset aborts on CPython 3.11.
-        """
+        """Replace this model's DataFrame and reset any attached views."""
         if not qt_is_valid(self):
             return
-        self._resetting = True
+        self.beginResetModel()
         try:
-            self.beginResetModel()
-            try:
-                self._install_dataframe(df, group)
-            finally:
-                self.endResetModel()
+            self._install_dataframe(df, group)
         finally:
-            self._resetting = False
+            self.endResetModel()
 
     def update_dataframe(self, df: pd.DataFrame, group: list[str] = None) -> None:
         """Like :meth:`set_dataframe` but emits layout-change signals."""
@@ -483,10 +484,6 @@ class ABTreeModel(QAbstractItemModel):
 
     def reset_hierarchy(self, df: pd.DataFrame = None) -> None:
         df = df if df is not None else self.df
-        if getattr(self, "_resetting", False):
-            # beginResetModel already invalidated persistent indexes.
-            self.build_node_hierarchy(df.index)
-            return
         old_persistent_indices = [(idx, idx.internalPointer()) for idx in self.persistentIndexList()]
 
         # Rebuild the node hierarchy

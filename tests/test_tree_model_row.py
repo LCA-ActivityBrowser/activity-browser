@@ -1,10 +1,27 @@
 """Tree-model / DatabasesPane access patterns safe under pandas 2 and 3."""
+import numpy as np
 import pandas as pd
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QTreeView
 
 from activity_browser.app.panes.databases import DatabasesModel, DatabasesPane
 from activity_browser.ui.core.tree_model import ABTreeModel
+
+
+def test_display_data_returns_python_scalars(qapp):
+    """Qt must receive builtins. pd.isna on numpy scalars aborts on CPython 3.11."""
+    df = pd.DataFrame(
+        {
+            "n": np.array([1, 2], dtype="int64"),
+            "x": np.array([1.5, np.nan]),
+        }
+    )
+    model = ABTreeModel(df)
+    n_col = model.columns().index("n")
+    x_col = model.columns().index("x")
+    assert model.data(model.index(0, n_col), Qt.ItemDataRole.DisplayRole) == 1
+    assert type(model.data(model.index(0, n_col), Qt.ItemDataRole.DisplayRole)) is int
+    assert model.data(model.index(1, x_col), Qt.ItemDataRole.DisplayRole) is None
 
 
 def test_row_uses_take_not_fast_xs(qapp):

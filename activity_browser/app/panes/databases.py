@@ -75,8 +75,14 @@ class DatabasesPane(widgets.ABAbstractPane):
 
         logger.log("SYNC", f"{self.__class__.__name__}: {id(self)}")
 
+        # Populate a detached model, then hand it to the view. Replacing the
+        # frame on the model the view is already showing aborts on Linux /
+        # CPython 3.11 while the view is inside the reset.
         df = self.build_df()
-        self.model.set_dataframe(df)
+        model = DatabasesModel(parent=self)
+        model.set_dataframe(df)
+        self.view.setModel(model)
+        self.model = model
         self.view.resizeColumnToContents(1)
         self.view.header().setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeMode.Fixed)
 
