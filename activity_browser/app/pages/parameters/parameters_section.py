@@ -85,12 +85,7 @@ class ParametersSection(QtWidgets.QWidget):
         logger.log("SYNC", f"{self.__class__.__name__}: {id(self)}")
 
         df = self.build_df()
-        # Fill a detached model. Replacing the frame on the attached model
-        # aborts on Linux / CPython 3.11 during metadata reload.
-        model = ProjectParametersModel(parent=self)
-        model.set_dataframe(df, group=["_param_type", "_scope"])
-        self.view.setModel(model)
-        self.model = model
+        self.model.set_dataframe(df, group=["_param_type", "_scope"])
         self.view.expandAll()
 
         self.view.resizeColumnToContents(1)

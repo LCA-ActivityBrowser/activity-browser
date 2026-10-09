@@ -99,10 +99,7 @@ class ParameterizedExchangesSection(QtWidgets.QWidget):
         logger.log("SYNC", f"{self.__class__.__name__}: {id(self)}")
 
         df = self.build_exchanges_df()
-        model = ParameterizedExchangesModel(parent=self)
-        model.set_dataframe(df)
-        self.view.setModel(model)
-        self.model = model
+        self.model.set_dataframe(df)
 
     def build_exchanges_df(self) -> pd.DataFrame:
         """Build a DataFrame from Brightway's parameterized-flow index."""
