@@ -64,6 +64,7 @@ def test_databases_build_df_is_object_block(qapp, monkeypatch):
 
     refreshed = df.copy()
     refreshed.loc[refreshed.index[0], "name"] = "renamed"
+    view.setCurrentIndex(model.index(0, 0))
     model.set_dataframe(refreshed)
     assert view.model() is model
     assert model.get(model.index(0, 0), "name") == "renamed"

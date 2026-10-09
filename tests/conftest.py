@@ -1,5 +1,9 @@
 from importlib import reload
+import faulthandler
+
 from loguru import logger
+
+faulthandler.enable(all_threads=True)
 
 import pandas as pd
 import pytest
