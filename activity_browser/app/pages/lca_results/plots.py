@@ -299,7 +299,8 @@ class ContributionPlot(ABPlot):
                 if pd.notna(score.get(raw_col)):
                     col_scores[label] = float(score[raw_col])
 
-        dfp.drop(dfp.select_dtypes(["object"]), axis=1, inplace=True)
+        # Drop non-numeric columns (object under pandas 2; string dtype under pandas 3).
+        dfp.drop(columns=list(dfp.select_dtypes(exclude=np.number).columns), inplace=True)
         if "Score" in dfp.index:
             dfp.drop("Score", inplace=True)
         dfp = dfp.drop(

@@ -34,7 +34,7 @@ See `fields.py` for defined metadata fields and schemas. Common types include:
 - **synonyms** - Alternative names
 
 ## Storage
-Metadata is cached separately from Brightway2's native storage to allow faster access and searching. It is stored as a pickle on each flush.
+Metadata is cached separately from Brightway2's native storage to allow faster access and searching. It is stored as a pickle on each flush, with a sidecar stamp of the pandas major version (`metadatastore_cache.pandas_major`). A missing or mismatched stamp invalidates the cache (see ADR-0014).
 
 ## MetaDataStore
 

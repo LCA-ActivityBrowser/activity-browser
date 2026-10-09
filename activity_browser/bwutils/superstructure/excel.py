@@ -18,6 +18,25 @@ def convert_tuple_str(x):
         return x
 
 
+TUPLE_COLUMNS = ("from categories", "from key", "to categories", "to key")
+
+
+def apply_tuple_converters(
+    df: pd.DataFrame, columns: tuple[str, ...] = TUPLE_COLUMNS
+) -> pd.DataFrame:
+    """Parse key/category string cells into Python tuples.
+
+    Under pandas 3, CSV/Excel string columns use a dedicated string dtype that
+    rejects non-string values. Coerce to object before assigning tuples.
+    """
+    present = [c for c in columns if c in df.columns]
+    if not present:
+        return df
+    for col in present:
+        df[col] = df[col].astype(object).map(convert_tuple_str)
+    return df
+
+
 def get_sheet_names(document_path: Union[str, Path]) -> List[str]:
     try:
         with Path(document_path).open("rb") as f:
@@ -92,8 +111,7 @@ def import_from_excel(
             # Do not run key converters that require a complete SUPERSTRUCTURE.
             return ensure_string_scenario_names(data)
 
-        columns = ["from categories", "from key", "to categories", "to key"]
-        data.loc[:, columns] = data[columns].map(convert_tuple_str)
+        data = apply_tuple_converters(data)
         data = ensure_string_scenario_names(data)
         return data
     except Exception as e:

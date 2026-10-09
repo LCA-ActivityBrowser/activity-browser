@@ -74,6 +74,56 @@ def test_signaling_write_on_main_thread_updates_metadata_and_index(
     _wait_metadata_count(qtbot, "basic", len(bd.Database("basic")))
 
 
+def test_metadata_change_during_hold_skips_dataframe_sync():
+    """Worker database-metadata flushes must not call ``load_database``."""
+    from activity_browser.bwutils.metadata.loader import (
+        hold_metadata_reloads,
+        metadata_reloads_held,
+        release_metadata_reloads,
+    )
+    from activity_browser.bwutils.metadata.updater import MDSUpdater
+
+    updater = MDSUpdater.__new__(MDSUpdater)
+    called: list[bool] = []
+    updater.on_database_changed = lambda: called.append(True)
+
+    hold_metadata_reloads()
+    try:
+        assert metadata_reloads_held()
+        updater.on_databases_metadata_change(None, {}, {})
+        assert called == []
+    finally:
+        if metadata_reloads_held():
+            release_metadata_reloads()
+
+    updater.on_databases_metadata_change(None, {}, {})
+    assert called == [True]
+
+
+def test_metadata_hold_posts_callback_on_release(qapp):
+    """Held UI refresh runs on the GUI thread after release, not during the hold."""
+    from activity_browser.bwutils.metadata.loader import (
+        defer_until_metadata_release,
+        ensure_database_reload_scheduler,
+        hold_metadata_reloads,
+        metadata_reloads_held,
+        release_metadata_reloads,
+    )
+
+    ensure_database_reload_scheduler()
+    seen: list[str] = []
+    hold_metadata_reloads()
+    try:
+        assert defer_until_metadata_release(lambda: seen.append("ran"))
+        assert seen == []
+        release_metadata_reloads()
+    finally:
+        if metadata_reloads_held():
+            release_metadata_reloads()
+    qapp.processEvents()
+    assert seen == ["ran"]
+
+
 def test_secondary_load_reconnect_does_not_warn(qapp, basic_database):
     """Reloading metadata must not warn about disconnecting an unconnected slot."""
     import warnings

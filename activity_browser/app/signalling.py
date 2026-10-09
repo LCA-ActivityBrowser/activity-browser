@@ -262,8 +262,18 @@ class ABSignals(QObject):
         logger.log("SIGNAL", f"Project: created: {time() - t:.2f} seconds")
 
     def _on_database_metadata_change(self, sender, old, new):
+        from activity_browser.bwutils.metadata.loader import defer_until_metadata_release
+
         t = time()
-        self.meta.databases_changed.emit(old, new)
+
+        def emit() -> None:
+            self.meta.databases_changed.emit(old, new)
+
+        # Blinker runs on the writing thread. While that thread still holds
+        # SQLite, post the refresh so the Databases pane does not rebuild
+        # concurrently (``qtbot.waitSignal`` pumps the GUI event loop).
+        if not defer_until_metadata_release(emit):
+            emit()
         logger.log("SIGNAL", f"Meta: databased_changed: {time() - t:.2f} seconds")
 
     def _on_methods_metadata_change(self, sender, old, new):

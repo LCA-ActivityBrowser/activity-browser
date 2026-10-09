@@ -11,7 +11,13 @@ from qtpy.QtCore import QObject, QThread, Signal, SignalInstance, Qt, Slot, QTim
 
 from activity_browser.bwutils.settings import Settings
 
-from .metadata import MetaDataStore
+from .metadata import (
+    MetaDataStore,
+    CACHE_PICKLE_NAME,
+    cache_stamp_matches_runtime,
+    clear_cache_files,
+    has_usable_metadata_cache,
+)
 from .fields import secondary_types, primary, secondary, search_engine_whitelist, all_fields
 
 
@@ -71,7 +77,17 @@ class MDSLoader(QObject):
 
         logger.debug("Loading metadata from cache")
 
-        cache_path = filesystem.get_project_ab_path() / "metadatastore_cache.pkl"
+        ab_path = filesystem.get_project_ab_path()
+        cache_path = ab_path / CACHE_PICKLE_NAME
+        if not cache_stamp_matches_runtime(ab_path):
+            logger.info(
+                "Metadata cache pandas major stamp missing or mismatched; "
+                "rebuilding from database"
+            )
+            clear_cache_files(ab_path)
+            self.load_project()
+            return
+
         try:
             cached_df = pd.read_pickle(cache_path)
         except (
@@ -90,14 +106,14 @@ class MDSLoader(QObject):
             logger.warning(
                 f"Metadata cache could not be loaded, rebuilding from database: {exc}"
             )
-            cache_path.unlink(missing_ok=True)
+            clear_cache_files(ab_path)
             self.load_project()
             return
 
         # quick sanity checks
         if not self._cache_check(cached_df):
             logger.info("Cache file is invalid or outdated, loading from database instead")
-            cache_path.unlink()
+            clear_cache_files(ab_path)
             self.load_project()
             return
 
@@ -288,16 +304,10 @@ class MDSLoader(QObject):
     def _has_cache(self) -> bool:
         from activity_browser.bwutils import filesystem
 
-        cache_path = filesystem.get_project_ab_path() / "metadatastore_cache.pkl"
-        lci_path = filesystem.get_project_path() / "lci" / "databases.db"
-
-        if not cache_path.exists() or not lci_path.exists():
-            return False
-
-        cache_mtime = cache_path.stat().st_mtime
-        lci_mtime = lci_path.stat().st_mtime
-
-        return cache_mtime >= lci_mtime
+        return has_usable_metadata_cache(
+            filesystem.get_project_ab_path(),
+            filesystem.get_project_path(),
+        )
 
     def _cache_check(self, cached_df: pd.DataFrame) -> bool:
         import bw2data as bd
@@ -425,16 +435,34 @@ class _DatabaseReloadScheduler(QObject):
     """Queue Metadata store reloads onto the Qt GUI thread."""
 
     reload_requested = Signal(str)
+    callback_requested = Signal()
 
     def __init__(self, parent: QObject | None = None):
         super().__init__(parent=parent)
         self.reload_requested.connect(self._on_reload, Qt.QueuedConnection)
+        self.callback_requested.connect(self._on_callback, Qt.QueuedConnection)
+        self._callbacks: list = []
+        self._callbacks_lock = threading.Lock()
 
     @Slot(str)
     def _on_reload(self, db_name: str) -> None:
         from activity_browser import app
 
         app.metadata.loader.load_database(db_name)
+
+    def post(self, callback) -> None:
+        """Run ``callback`` on the GUI thread."""
+        with self._callbacks_lock:
+            self._callbacks.append(callback)
+        self.callback_requested.emit()
+
+    @Slot()
+    def _on_callback(self) -> None:
+        with self._callbacks_lock:
+            batch = self._callbacks
+            self._callbacks = []
+        for callback in batch:
+            callback()
 
 
 def ensure_database_reload_scheduler(parent: QObject | None = None) -> None:
@@ -465,23 +493,57 @@ def schedule_database_metadata_reload(db_name: str) -> None:
 
 # --- Hold reloads while a worker still has Brightway SQLite open (ADR-0013) ---
 # ``_hold.names is None`` → apply immediately; ``set`` → remember until release.
+# ``_hold.callbacks`` queues GUI work (metadata-change emits) for the same release.
 
 _hold = threading.local()
+
+
+def metadata_reloads_held() -> bool:
+    """Return whether this thread is inside ``hold_metadata_reloads``."""
+    return getattr(_hold, "names", None) is not None
 
 
 def hold_metadata_reloads() -> None:
     """Remember written databases instead of reloading until ``release_metadata_reloads``."""
     _hold.names = set()
+    _hold.callbacks = []
+
+
+def defer_until_metadata_release(callback) -> bool:
+    """Queue ``callback`` for the GUI thread at release.
+
+    Returns False when this thread is not holding, so the caller runs ``callback``
+    immediately. Returns True when the callback was queued.
+    """
+    callbacks = getattr(_hold, "callbacks", None)
+    if callbacks is None:
+        return False
+    callbacks.append(callback)
+    return True
 
 
 def release_metadata_reloads() -> None:
-    """Reload every database remembered while holding, then stop holding."""
+    """Reload every database remembered while holding, then stop holding.
+
+    Queued callbacks are posted to the GUI thread after the reload requests.
+    Peewee connections must already be closed by the caller.
+    """
     names = getattr(_hold, "names", None)
+    callbacks = getattr(_hold, "callbacks", None)
     _hold.names = None
-    if not names:
+    _hold.callbacks = None
+    if names:
+        for database_name in sorted(names):
+            schedule_database_metadata_reload(database_name)
+    if not callbacks:
         return
-    for database_name in sorted(names):
-        schedule_database_metadata_reload(database_name)
+    if _reload_scheduler is None:
+        raise RuntimeError(
+            "Metadata reload scheduler was not created on the GUI thread; "
+            "ensure MDSLoader initialized before releasing held metadata work"
+        )
+    for callback in callbacks:
+        _reload_scheduler.post(callback)
 
 
 def request_metadata_reload(database_name: str) -> None:

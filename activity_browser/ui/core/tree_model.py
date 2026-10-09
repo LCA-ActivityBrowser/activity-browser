@@ -1,6 +1,7 @@
 from typing import Optional
 from loguru import logger
 
+import numpy as np
 import pandas as pd
 
 from PySide6 import QtGui
@@ -9,6 +10,17 @@ from PySide6.QtWidgets import QWidget
 
 from activity_browser.ui.icons import qicons
 from .qt_sync import qt_is_valid
+
+
+def _as_qt_value(val):
+    """Return a builtin. ``pd.isna`` on numpy scalars over-decrefs ``None`` on CPython 3.11."""
+    if val is None or val is pd.NA:
+        return None
+    if isinstance(val, np.generic):
+        val = val.item()
+    if isinstance(val, float) and val != val:
+        return None
+    return val
 
 
 class TreeNode:
@@ -93,8 +105,13 @@ class ABTreeModel(QAbstractItemModel):
     def row(self, index: QModelIndex) -> pd.Series | None:
         """
         Return the DataFrame row corresponding to the given index, or None for non-leaf nodes.
-        
-        Warning: This is a slow operation and should be avoided in methods called frequently like data(), *Data(), flags(), or index*().
+
+        Warning: This is a slow operation and should be avoided in methods called
+        frequently like data(), *Data(), flags(), or index*(). Prefer :meth:`get`
+        for a single column.
+
+        Uses ``iloc[[pos]]`` (take) rather than ``iloc[pos]`` (``fast_xs``), which
+        can abort under pandas 3 on mixed StringDtype/datetime frames.
         """
         if not index.isValid():
             return None
@@ -104,8 +121,7 @@ class ABTreeModel(QAbstractItemModel):
         if not isinstance(node, TreeNode) or not node.is_leaf:
             return None
         
-        # Use the pre-computed df_position for fast access
-        return self.df.iloc[node.df_position]
+        return self.df.iloc[[node.df_position]].astype(object).squeeze(axis=0)
     
     def get(self, index: QModelIndex, column: str | int) -> any:
         """
@@ -207,7 +223,9 @@ class ABTreeModel(QAbstractItemModel):
             if not node.is_leaf: # branch node
                 # For branch nodes, show the name in the first column only
                 # (spanning will be handled by the view)
-                return node.path[-1] if index.column() == 0 else None
+                if index.column() != 0:
+                    return None
+                return _as_qt_value(node.path[-1])
             
             if index.column() == 0:
                 return None  # leaf node tree column is empty
@@ -216,12 +234,7 @@ class ABTreeModel(QAbstractItemModel):
             col_name = self.columns()[index.column()]
             col_idx = self.df.columns.get_loc(col_name)
             
-            val = self.df.iat[node.df_position, col_idx]
-
-            if not hasattr(val, "__iter__") and pd.isna(val):
-                return None
-
-            return val
+            return _as_qt_value(self.df.iat[node.df_position, col_idx])
 
     def editData(self, index: QModelIndex) -> any:
         return self.displayData(index)
@@ -370,31 +383,31 @@ class ABTreeModel(QAbstractItemModel):
 
     # --- helper functions ---
     def set_dataframe(self, df: pd.DataFrame, group: list[str] = None) -> None:
+        """Replace this model's DataFrame and reset any attached views."""
         if not qt_is_valid(self):
             return
         self.beginResetModel()
-
-        self.df = df
-        self.grouped_columns = group or self.grouped_columns
-
-        self.build_df_index()
-        self.apply_sort()
-        self.apply_filter()
-
-        self.endResetModel()
+        try:
+            self._install_dataframe(df, group)
+        finally:
+            self.endResetModel()
 
     def update_dataframe(self, df: pd.DataFrame, group: list[str] = None) -> None:
+        """Like :meth:`set_dataframe` but emits layout-change signals."""
         if not qt_is_valid(self):
             return
         self.layoutAboutToBeChanged.emit()
+        try:
+            self._install_dataframe(df, group)
+        finally:
+            self.layoutChanged.emit()
+
+    def _install_dataframe(self, df: pd.DataFrame, group: list[str] | None) -> None:
         self.df = df
         self.grouped_columns = group or self.grouped_columns
-
         self.build_df_index()
         self.apply_sort()
         self.apply_filter()
-
-        self.layoutChanged.emit()
 
     def group(self, columns: list[str] = None) -> None:
         self.layoutAboutToBeChanged.emit()
@@ -449,7 +462,9 @@ class ABTreeModel(QAbstractItemModel):
         # unpack iterables in the grouped columns
         for col in self.grouped_columns:
             # Check if the column contains iterables (excluding strings)
-            sample_val = df[col].dropna().iloc[0] if not df[col].dropna().empty else None
+            dropped = df[col].dropna()
+            # iat, not iloc[0]: iloc[0] uses fast_xs and aborts on CPython 3.11.
+            sample_val = None if dropped.empty else dropped.iat[0]
             if not isinstance(sample_val, (list, tuple, set)):
                 continue
 

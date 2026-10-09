@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Literal, Optional
 from loguru import logger
 
@@ -7,6 +8,45 @@ import pandas as pd
 
 from activity_browser.bwutils.settings import Settings
 from .fields import all_fields, all_types
+
+CACHE_PICKLE_NAME = "metadatastore_cache.pkl"
+CACHE_STAMP_NAME = "metadatastore_cache.pandas_major"
+
+
+def pandas_major_version() -> int:
+    return int(pd.__version__.split(".", 1)[0])
+
+
+def write_cache_stamp(ab_path: Path, major: int | None = None) -> None:
+    """Write the pandas major version beside the metadata cache."""
+    major = pandas_major_version() if major is None else major
+    (ab_path / CACHE_STAMP_NAME).write_text(str(major), encoding="utf-8")
+
+
+def read_cache_stamp(ab_path: Path) -> int | None:
+    stamp_path = ab_path / CACHE_STAMP_NAME
+    if not stamp_path.is_file():
+        return None
+    try:
+        return int(stamp_path.read_text(encoding="utf-8").strip())
+    except ValueError:
+        return None
+
+
+def cache_stamp_matches_runtime(ab_path: Path) -> bool:
+    """True only when a stamp exists and equals the running pandas major."""
+    stamp = read_cache_stamp(ab_path)
+    if stamp is None:
+        return False
+    return stamp == pandas_major_version()
+
+
+def clear_cache_files(ab_path: Path) -> None:
+    """Remove metadata cache pickle and pandas-major stamp if present."""
+    for name in (CACHE_PICKLE_NAME, CACHE_STAMP_NAME):
+        path = ab_path / name
+        if path.exists():
+            path.unlink()
 
 
 def dataframe_for_pickle_cache(df: pd.DataFrame) -> pd.DataFrame:
@@ -20,6 +60,23 @@ def dataframe_for_pickle_cache(df: pd.DataFrame) -> pd.DataFrame:
         if isinstance(out[col].dtype, pd.StringDtype):
             out[col] = out[col].astype(object)
     return out
+
+
+def write_metadata_cache(ab_path: Path, df: pd.DataFrame) -> None:
+    """Write the pickle cache and pandas-major stamp under *ab_path*."""
+    dataframe_for_pickle_cache(df).to_pickle(ab_path / CACHE_PICKLE_NAME)
+    write_cache_stamp(ab_path)
+
+
+def has_usable_metadata_cache(ab_path: Path, project_path: Path) -> bool:
+    """True when pickle + matching stamp exist and the pickle is not older than LCI."""
+    cache_path = ab_path / CACHE_PICKLE_NAME
+    lci_path = project_path / "lci" / "databases.db"
+    if not cache_path.exists() or not lci_path.exists():
+        return False
+    if not cache_stamp_matches_runtime(ab_path):
+        return False
+    return cache_path.stat().st_mtime >= lci_path.stat().st_mtime
 
 
 class MetaDataStore(QObject):
@@ -116,8 +173,7 @@ class MetaDataStore(QObject):
         self._deleted.clear()
 
         if Settings()["metadatastore"]["caching_enabled"]:
-            cache_path = filesystem.get_project_ab_path() / "metadatastore_cache.pkl"
-            dataframe_for_pickle_cache(self._dataframe).to_pickle(cache_path)
+            write_metadata_cache(filesystem.get_project_ab_path(), self._dataframe)
 
         return added, updated, deleted
 
@@ -264,9 +320,10 @@ class MetaDataStore(QObject):
     def clear_cache(self):
         from activity_browser.bwutils import filesystem
 
-        cache_path = filesystem.get_project_ab_path() / "metadatastore_cache.pkl"
-        if cache_path.exists():
-            cache_path.unlink()
+        ab_path = filesystem.get_project_ab_path()
+        had_cache = (ab_path / CACHE_PICKLE_NAME).exists()
+        clear_cache_files(ab_path)
+        if had_cache:
             logger.info("Metadata store cache cleared.")
         else:
             logger.info("No metadata store cache found to clear.")

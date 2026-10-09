@@ -37,7 +37,7 @@ requirements:
     - pyperclip
     - pyprind
     - networkx
-    - pandas >=2.2.1, <3
+    - pandas >=2.2.1, <4
     - pyside6 >=6.5.0
     - qt6-webengine
     - qtpy

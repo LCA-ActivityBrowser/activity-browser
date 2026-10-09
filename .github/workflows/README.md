@@ -59,7 +59,8 @@ maintainer guide (fork workflow, local merges, and release steps).
 ### Matrix Strategy
 - **Operating Systems:** Ubuntu (latest), Windows (latest), macOS 15, macOS (latest)
 - **Python Versions:** 3.11, 3.12, 3.13, 3.14
-- **Total combinations:** 16 test runs per trigger
+- **Total combinations:** 16 test runs per trigger (default pandas from the package constraint, typically 3.x)
+- **Extra job `tests-pandas2`:** Ubuntu + Python 3.12 with `pandas>=2.2.1,<3` forced after install (dual-support guard; see ADR-0014)
 
 ### Steps
 1. Checkout code

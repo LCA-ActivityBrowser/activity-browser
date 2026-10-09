@@ -70,13 +70,19 @@ class DatabasesPane(widgets.ABAbstractPane):
         """
         Synchronizes the model with the current state of the databases.
         """
-        if not core.qt_is_valid(self.model):
+        if not core.qt_is_valid(self.view):
             return
 
         logger.log("SYNC", f"{self.__class__.__name__}: {id(self)}")
 
+        # Populate a detached model, then hand it to the view. Replacing the
+        # frame on the model the view is already showing aborts on Linux /
+        # CPython 3.11 while the view is inside the reset.
         df = self.build_df()
-        self.model.set_dataframe(df)
+        model = DatabasesModel(parent=self)
+        model.set_dataframe(df)
+        self.view.setModel(model)
+        self.model = model
         self.view.resizeColumnToContents(1)
         self.view.header().setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeMode.Fixed)
 
@@ -89,26 +95,39 @@ class DatabasesPane(widgets.ABAbstractPane):
         """
         data = []
         for name in bd.databases:
-            # get the modified time, in case it doesn't exist, just write 'now' in the correct format
-            dt = bd.databases[name].get("modified", datetime.datetime.now().isoformat())
-            dt = datetime.datetime.strptime(dt, "%Y-%m-%dT%H:%M:%S.%f")
-
-            # final column includes interactive checkbox which shows read-only state of db
+            # Keep modified as ISO string (DateTimeDelegate/arrow accepts it). Avoid
+            # datetime64 columns: mixed blocks abort under pandas 3 on Linux/3.11.
+            modified = bd.databases[name].get(
+                "modified", datetime.datetime.now().isoformat()
+            )
             data.append(
                 {
                     "name": name,
                     "depends": ", ".join(bd.databases[name].get("depends", [])),
-                    "modified": dt,
+                    "modified": modified,
                     "records": count_database_records(name),
                     "read_only": bd.databases[name].get("read_only", True),
-                    "default_allocation": bd.databases[name].get("default_allocation", "unspecified"),
-                    "backend": bd.databases[name].get("backend")
+                    "default_allocation": bd.databases[name].get(
+                        "default_allocation", "unspecified"
+                    ),
+                    "backend": bd.databases[name].get("backend"),
                 }
             )
 
-        cols = ["read_only", "name", "records", "depends", "default_allocation", "modified", "backend"]
-
-        return pd.DataFrame(data, columns=cols)
+        cols = [
+            "read_only",
+            "name",
+            "records",
+            "depends",
+            "default_allocation",
+            "modified",
+            "backend",
+        ]
+        df = pd.DataFrame(data, columns=cols)
+        # Single object block — pandas 2 and 3 (no StringDtype / datetime64 mix).
+        for col in cols:
+            df[col] = pd.Series(df[col].tolist(), dtype=object)
+        return df
 
 
 class DatabasesView(widgets.ABTreeView):
@@ -248,16 +267,12 @@ class DatabasesModel(core.ABTreeModel):
         Returns:
             The decoration data for the index.
         """
-        column_name = self.column_name(index)
-        row = self.row(index)
-
-        if row is None:
+        if self.column_name(index) != "read_only":
             return None
-
-        if column_name == "read_only":
-            return icons.qicons.locked if row.get("read_only") else icons.qicons.empty
-
-        return None
+        node = index.internalPointer() if index.isValid() else None
+        if not isinstance(node, core.TreeNode) or not node.is_leaf:
+            return None
+        return icons.qicons.locked if self.get(index, "read_only") else icons.qicons.empty
 
     def displayData(self, index: QtCore.QModelIndex) -> any:
         """
@@ -270,15 +285,9 @@ class DatabasesModel(core.ABTreeModel):
             The display data for the index.
         """
         column_name = self.column_name(index)
-        row = self.row(index)
-
-        if row is None:
+        if column_name in ("read_only", "index"):
             return None
-
-        if column_name == "read_only":
-            return None
-
-        return row.get(column_name)
+        return self.get(index, column_name)
 
     def fontData(self, index: QtCore.QModelIndex) -> any:
         """

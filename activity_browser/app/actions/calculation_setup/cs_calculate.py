@@ -63,7 +63,9 @@ class CSCalculate(ABAction):
 
         dialog = CalculationDialog(cs_name, app.main_window)
         dialog.show()
-        app.application.thread().eventDispatcher().processEvents(QtCore.QEventLoop.ProcessEventsFlag.AllEvents)
+        # Prefer QApplication.processEvents — holding thread().eventDispatcher()
+        # raises under PySide6/shiboken when the C++ wrapper is already gone (#1752).
+        app.application.processEvents()
 
         try:
             if scenario_data is None:
