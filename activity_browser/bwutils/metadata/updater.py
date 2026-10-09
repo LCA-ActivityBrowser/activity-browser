@@ -68,6 +68,13 @@ class MDSUpdater(QObject):
 
     def on_databases_metadata_change(self, sender, old, new):
         """Called when the databases metadata changes (e.g., new database added)."""
+        from .loader import metadata_reloads_held
+
+        # ``load_database`` assigns the shared dataframe and starts a QThread.
+        # Doing that on the worker that still holds SQLite aborts on CPython 3.11
+        # Linux. The write notification reloads after ``SafeBWConnection`` exits.
+        if metadata_reloads_held():
+            return
         self.on_database_changed()
 
     def on_database_changed(self) -> None:
