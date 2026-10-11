@@ -288,10 +288,15 @@ class MDSLoader(QObject):
     def _has_cache(self) -> bool:
         from activity_browser.bwutils import filesystem
 
-        cache_path = filesystem.get_project_ab_path() / "metadatastore_cache.pkl"
+        from .cache import cache_stamp_matches_runtime
+
+        project_ab = filesystem.get_project_ab_path()
+        cache_path = project_ab / "metadatastore_cache.pkl"
         lci_path = filesystem.get_project_path() / "lci" / "databases.db"
 
         if not cache_path.exists() or not lci_path.exists():
+            return False
+        if not cache_stamp_matches_runtime(project_ab):
             return False
 
         cache_mtime = cache_path.stat().st_mtime
@@ -442,11 +447,10 @@ def ensure_database_reload_scheduler(parent: QObject | None = None) -> None:
     global _reload_scheduler
     if _reload_scheduler is not None:
         return
-    from activity_browser import app
-
-    _reload_scheduler = _DatabaseReloadScheduler(
-        parent=parent if parent is not None else app.application
-    )
+    if parent is None:
+        from activity_browser import app
+        parent = app.application
+    _reload_scheduler = _DatabaseReloadScheduler(parent=parent)
 
 
 def schedule_database_metadata_reload(db_name: str) -> None:
