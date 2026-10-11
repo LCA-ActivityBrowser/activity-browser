@@ -67,10 +67,13 @@ maintainer guide (fork workflow, local merges, and release steps).
 3. Install Qt libraries (Linux only)
 4. Update pip, setuptools, and wheel
 5. Install package with testing dependencies: `pip install .[testing]`
-6. Run pytest with minimal output: `pytest -s --no-header --no-summary -q`
+6. Run pytest quietly with `--durations=50` and `--junitxml=pytest-junit.xml`
+7. Upload `test-durations.tsv` + JUnit XML artifacts (`test-durations-<os>-<py>`)
 
 ### Environment
 - Sets `QT_QPA_PLATFORM=offscreen` for headless GUI testing
+- Sets `AB_TEST_DURATION_LOG=1` so each test emits a `[test-duration]` log line
+  and writes `test-durations.tsv` (see `tests/duration_logging.py`)
 - Uses `fail-fast: false` to run all combinations even if some fail
 
 ---

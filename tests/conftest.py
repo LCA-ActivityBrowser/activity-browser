@@ -18,6 +18,9 @@ from fixtures.bw_helpers import (
     write_method,
 )
 
+# Per-test duration TSV / CI log lines (see tests/duration_logging.py).
+pytest_plugins = ["duration_logging"]
+
 os.environ["AB_SKIP_SETTINGS_ON_STARTUP"] = "1"
 os.environ["AB_NO_SEARCHER"] = "1"
 os.environ["AB_NO_FILE_LOG"] = "1"
@@ -255,6 +258,15 @@ def lcia_overview_project():
     yield DATABASE_NAME
 
 
+def _write_basic_project_data():
+    from fixtures.basic import CALCULATION_SETUP, DATABASE, METHOD
+
+    db = write_functional_database("basic", DATABASE, process=True, mark_dirty=False)
+    write_method("basic_method", METHOD, process=True)
+    write_calculation_setup("basic_calculation_setup", CALCULATION_SETUP)
+    return db
+
+
 @pytest.fixture
 @bw2test
 def basic_project():
@@ -268,12 +280,18 @@ def basic_project():
     ``main_window``, a dirty write triggers MetaDataStore reload work and defeats
     this fixture.
     """
-    from fixtures.basic import CALCULATION_SETUP, DATABASE, METHOD
+    yield _write_basic_project_data()
 
-    db = write_functional_database("basic", DATABASE, process=True, mark_dirty=False)
-    write_method("basic_method", METHOD, process=True)
-    write_calculation_setup("basic_calculation_setup", CALCULATION_SETUP)
-    yield db
+
+@pytest.fixture(scope="module")
+@bw2test
+def basic_project_readonly():
+    """Module-scoped ``basic`` project for read-only tests only (ADR-0014).
+
+    Do not mutate databases, methods, calculation setups, or parameters in tests
+    that use this fixture — use :func:`basic_project` instead.
+    """
+    yield _write_basic_project_data()
 
 
 @pytest.fixture

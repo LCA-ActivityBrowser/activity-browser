@@ -12,6 +12,8 @@ Makefile
 .DS_Store
 .cache
 .pytest_cache
+test-durations.tsv
+pytest-junit.xml
 activity_browser/ABSettings.json
 *.bak
 /.idea

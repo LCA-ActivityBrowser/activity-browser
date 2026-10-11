@@ -93,19 +93,28 @@ def test_delete_action():
 
 Fixtures provide test data and setup (see `conftest.py` and `fixtures/`):
 
-**Prefer the cheapest fixture that still expresses the assertion:**
+**Prefer the cheapest fixture that still expresses the assertion**
+([ADR-0014](../docs/adr/0014-test-fixture-tiers.md)):
 
 | Fixture | Use when |
 |---|---|
 | `basic_project` | Brightway / action / MLCA checks without UI pages or MetaDataStore rows |
+| `basic_project_readonly` | Same data as `basic_project`, **module-scoped**, **read-only tests only** |
+| `basic_project` + `qtbot.addWidget` | Mid-tier: widget/model behavior without main window / MetaDataStore |
 | `basic_database` | UI pages, metadata rows, or a loaded secondary metadata pass are required |
 | `main_window` | Explicit main-window interaction (often already pulled in by `basic_database`) |
 | `basic_project` + `main_window` | Need the window (e.g. find a wizard) but not MetaDataStore rows — cheaper than `basic_database` |
 
+Keep about **one** expensive UI/MetaDataStore smoke per feature area (open database
+pane, process open, metadata reload after write, project delete via UI, parameters
+UI, one export wizard). Merge asserts instead of adding another MetaDataStore boot.
+
 After the main window exists, an autouse fixture closes leftover product docks and
 orphan signal-connected widgets so later `basic_project` / `@bw2test` swaps stay
-safe. Still prefer `qtbot.addWidget(...)` for any widget you construct that
-subscribes to `app.signals`.
+safe. Always use `qtbot.addWidget(...)` for widgets that subscribe to `app.signals`.
+
+**Good:** `def test_label(basic_project_readonly): ...`  
+**Bad:** `def test_label(basic_database): ...` when the assert never touches UI or metadata rows.
 
 ### Common Fixtures
 ```python
@@ -257,7 +266,7 @@ Tests run automatically on:
 - Commits to main branch
 - Scheduled runs
 
-See `.github/workflows/main.yaml` for CI configuration.
+See `.github/workflows/testing.yaml` for CI configuration.
 
 ## Development Guidelines
 
@@ -290,7 +299,19 @@ pytest --pdb tests/test_file.py::test_function
 
 ### Show test durations
 ```bash
-pytest --durations=10  # Slowest 10 tests
+pytest --durations=10  # Slowest 10 tests (terminal summary)
+```
+
+Every run also writes ``test-durations.tsv`` (sorted by total time) via
+``tests/duration_logging.py``. In CI, ``AB_TEST_DURATION_LOG=1`` prints one
+``[test-duration]`` line per test and uploads the TSV + JUnit XML as artifacts.
+
+```bash
+# Local: TSV only (default). Console lines: AB_TEST_DURATION_LOG=1
+# Off: AB_TEST_DURATION_LOG=0
+grep "\[test-duration\]"  # from CI logs
+# columns: nodeid, outcome, setup_s, call_s, teardown_s, total_s
+sort -t$'\t' -k6 -nr test-durations.tsv | head
 ```
 
 ## Test Organization

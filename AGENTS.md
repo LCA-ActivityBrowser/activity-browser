@@ -73,6 +73,11 @@ Two common patterns:
 
 Fixtures and sample data live under `tests/fixtures/`. Prefer non-blocking UI tests; monkeypatch blocking dialogs (see `no_exception_dialogs`).
 
+**Fixture tiers:** use the cheapest fixture that still expresses the assertion
+(`docs/adr/0014-test-fixture-tiers.md`, cheat sheet in `tests/README.md`). Prefer
+`basic_project` / `basic_project_readonly` over `basic_database` unless the test
+needs MetaDataStore rows or real UI chrome.
+
 ## CI and packaging (pointers)
 
 Agents should not assume Linux-only or a single Python version. Details live in the workflow files; summary:

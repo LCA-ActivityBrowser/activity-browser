@@ -18,6 +18,8 @@ jobs:
         py-version: ["3.11", "3.12", "3.13", "3.14"]
     env:
       QT_QPA_PLATFORM: 'offscreen'
+      # File + grep-friendly [test-duration] lines (see tests/duration_logging.py).
+      AB_TEST_DURATION_LOG: '1'
     steps:
       - uses: actions/checkout@v4
 
@@ -40,4 +42,18 @@ jobs:
           pip install .[testing]
 
       - name: Test with pytest
-        run: pytest -q --no-cov -o log_cli=false --durations=25
+        run: >
+          pytest -q --no-cov -o log_cli=false
+          --durations=50
+          --junitxml=pytest-junit.xml
+
+      - name: Upload test duration reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-durations-${{ matrix.os }}-${{ matrix.py-version }}
+          path: |
+            test-durations.tsv
+            pytest-junit.xml
+          if-no-files-found: warn
+          retention-days: 14

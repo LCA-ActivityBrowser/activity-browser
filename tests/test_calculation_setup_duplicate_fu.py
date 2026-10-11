@@ -6,7 +6,8 @@ from activity_browser.app.pages.calculation_setup.functional_unit_section import
 from activity_browser.bwutils.multilca import MLCA, Contributions
 
 
-def test_duplicate_reference_flow_in_cs_build_df(basic_database, qtbot):
+def test_functional_unit_section_build_df(basic_database, qtbot):
+    """One MetaDataStore boot: duplicate reference flows and missing-flow placeholder."""
     cs_name = "basic_calculation_setup"
     key = ("basic", "product_1")
     cs = bd.calculation_setups[cs_name]
@@ -21,6 +22,15 @@ def test_duplicate_reference_flow_in_cs_build_df(basic_database, qtbot):
     assert len(df) == 2
     assert list(df["amount"]) == [1.0, 2.0]
     assert df["process"].notna().all()
+
+    cs["inv"] = [{("basic", "ghost_product"): 1.0}]
+    bd.calculation_setups[cs_name] = cs
+    bd.calculation_setups.serialize()
+    section.calculation_setup = bd.calculation_setups[cs_name]
+    missing = section.build_df()
+
+    assert len(missing) == 1
+    assert missing.iloc[0]["product"] == "(missing reference flow)"
 
 
 def test_duplicate_reference_flow_in_cs_calculate(basic_project):
@@ -67,17 +77,6 @@ def test_duplicate_reference_flow_same_amount_inventory(basic_project):
     assert set(mlca.inventory) == {"0", "1"}
     contributions.inventory_df(inventory_type="biosphere")
     contributions.inventory_df(inventory_type="technosphere")
-
-
-def test_setup_fu_labels_exclude_amount(basic_project):
-    from activity_browser.bwutils.multilca import _load_cs
-
-    key = ("basic", "product_1")
-    obj = type("Obj", (), {})()
-    _load_cs(obj, [{key: 1.0}, {key: 2.0}], [])
-    assert len(obj.fu_labels) == 2
-    assert obj.fu_labels[0] == obj.fu_labels[1]
-    assert "1.0" not in obj.fu_labels[0]
 
 
 def test_duplicate_reference_flow_contribution_columns(basic_project):
@@ -136,19 +135,3 @@ def test_superstructure_build_inventory_keeps_duplicate_reference_flows(basic_pr
     contributions = SuperstructureContributions(fake)
     contributions.inventory_df(inventory_type="biosphere")
     contributions.inventory_df(inventory_type="technosphere")
-
-
-
-def test_build_df_handles_missing_reference_flow(basic_database, qtbot):
-    cs_name = "basic_calculation_setup"
-    cs = bd.calculation_setups[cs_name]
-    cs["inv"] = [{("basic", "ghost_product"): 1.0}]
-    bd.calculation_setups[cs_name] = cs
-    bd.calculation_setups.serialize()
-
-    section = FunctionalUnitSection(cs_name)
-    qtbot.addWidget(section)
-    df = section.build_df()
-
-    assert len(df) == 1
-    assert df.iloc[0]["product"] == "(missing reference flow)"

@@ -7,3 +7,7 @@ ADRs record hard-to-reverse, surprising, trade-off decisions for Activity Browse
 - New ADRs are often created during `/grill-with-docs` / `/domain-modeling`.
 
 Read ADRs that touch the area you are changing. If your change contradicts an ADR, surface that explicitly.
+
+| ADR | Topic |
+|---|---|
+| [0014](0014-test-fixture-tiers.md) | Test fixture tiers / UI smoke budget |

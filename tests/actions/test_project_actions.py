@@ -48,7 +48,7 @@ def _patch_delete_signals(monkeypatch):
     )
 
 
-def test_project_delete_closes_sqlite_before_removing_dir(monkeypatch, basic_database):
+def test_project_delete_closes_sqlite_before_removing_dir(monkeypatch, basic_project):
     """Windows cannot shutil.rmtree a project while parameters.db is still open."""
     original = bd.projects.current
     victim = "victim_project_to_delete"
@@ -108,7 +108,8 @@ def test_project_delete_removes_dir_despite_leaked_parameters_connection(monkeyp
             bd.projects.set_current(original, update=False)
 
 
-def test_project_delete_run_removes_current_project(monkeypatch, basic_database):
+def test_project_delete_run_removes_current_project(monkeypatch, basic_project, main_window):
+    """UI smoke: ProjectDelete.run with confirmation dialogs (ADR-0014)."""
     monkeypatch.setattr(
         ProjectDeletionDialog, "exec_", lambda self: ProjectDeletionDialog.Accepted
     )
