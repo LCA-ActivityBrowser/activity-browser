@@ -38,7 +38,8 @@ requirements:
     - pyprind
     - networkx
     - pandas >=2.2.1, <3
-    - pyside6 >=6.5.0
+    # Cap below 6.12: eventDispatcher shiboken crash (Ubuntu/Py3.11 CI abort).
+    - pyside6 >=6.5.0,<6.12
     - qt6-webengine
     - qtpy
     - salib >=1.4

@@ -63,7 +63,9 @@ class CSCalculate(ABAction):
 
         dialog = CalculationDialog(cs_name, app.main_window)
         dialog.show()
-        app.application.thread().eventDispatcher().processEvents(QtCore.QEventLoop.ProcessEventsFlag.AllEvents)
+        # Prefer QApplication.processEvents: QThread.eventDispatcher() can
+        # return a deleted wrapper on PySide6 6.12+ (libshiboken RuntimeError).
+        app.application.processEvents()
 
         try:
             if scenario_data is None:

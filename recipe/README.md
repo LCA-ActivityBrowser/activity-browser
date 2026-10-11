@@ -51,7 +51,7 @@ requirements:
     - setuptools
   run:
     - python >=3.11, <3.15
-    - pyside6 >=6.5.0
+    - pyside6 >=6.5.0,<6.12
     - qt6-webengine
     - qtpy
     # ... more dependencies

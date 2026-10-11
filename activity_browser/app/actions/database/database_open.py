@@ -1,4 +1,4 @@
-from qtpy.QtCore import Qt, QEventLoop
+from qtpy.QtCore import Qt
 
 from activity_browser import app
 from activity_browser.ui import widgets
@@ -27,7 +27,9 @@ class DatabaseOpen(ABAction):
             if sibling:
                 app.main_window.tabifyDockWidget(sibling, dock_widget)
 
-                app.application.thread().eventDispatcher().processEvents(QEventLoop.ProcessEventsFlags.AllEvents)
+                # Prefer QApplication.processEvents: QThread.eventDispatcher() can
+                # return a deleted wrapper on PySide6 6.12+ (libshiboken RuntimeError).
+                app.application.processEvents()
                 dock_widget.raise_()
                 dock_widget.show()
             else:

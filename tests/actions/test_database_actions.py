@@ -169,6 +169,28 @@ def test_database_export_bw2package(monkeypatch, qtbot, basic_database, tmp_path
     wizard.close()
 
 
+def test_database_open_tabified_sibling(basic_database, main_window, qtbot):
+    """Opening a second products pane must not use QThread.eventDispatcher().
+
+    On PySide6 6.12+, ``thread().eventDispatcher()`` can wrap a deleted C++
+    object and raise during the tabify + processEvents path.
+    """
+    from activity_browser.app.actions.database.database_open import DatabaseOpen
+    from activity_browser.app import panes
+    from activity_browser.ui import widgets
+
+    name = basic_database.name
+    DatabaseOpen.run([name])
+    DatabaseOpen.run([name])
+
+    products = [
+        w
+        for w in app.main_window.findChildren(widgets.ABDockWidget)
+        if isinstance(w.widget(), panes.DatabaseProductsPane)
+    ]
+    assert len(products) >= 2
+
+
 def test_database_new(monkeypatch, basic_database):
     from activity_browser.app.actions.database.database_new import NewDatabaseDialog
 
