@@ -3,6 +3,13 @@ from loguru import logger
 
 import pandas as pd
 import pytest
+
+# Do not import activity_browser here: that pulls the app package during
+# collection. Keep in sync with bwutils.pandas_semantics.apply_pandas_3_semantics.
+if int(str(pd.__version__).split(".")[0]) < 3:
+    pd.options.mode.copy_on_write = True
+    pd.options.future.infer_string = True
+
 import os
 import time
 

@@ -109,6 +109,8 @@ class ModuleThread(QtCore.QThread):
         self.status.emit("Loading Numpy")
         logger.debug("ABLoader: Importing numpy")
         import numpy, pandas
+        from activity_browser.bwutils.pandas_semantics import apply_pandas_3_semantics
+        apply_pandas_3_semantics()
         self.status.emit("Loading Brightway25")
         logger.debug("ABLoader: Importing brightway modules")
         import bw2data, bw2calc, bw2analyzer, bw2io, bw_functional, bw_processing, matrix_utils

@@ -7,7 +7,7 @@ import pandas as pd
 
 from ..errors import *
 from .dataframe import ensure_string_scenario_names
-from .excel import convert_tuple_str, valid_cols
+from .excel import coerce_identity_columns, valid_cols
 
 
 
@@ -207,9 +207,7 @@ class ABFeatherImporter(ABFileImporter):
     def read_file(path: Optional[Union[str, Path]], **kwargs):
         df = pd.read_feather(path)
         # ... execute code
-        df.loc[:, "from key"] = df.loc[:, "from key"].apply(tuple)
-        df.loc[:, "to key"] = df.loc[:, "to key"].apply(tuple)
-        return ensure_string_scenario_names(df)
+        return ensure_string_scenario_names(coerce_identity_columns(df))
 
 
 class ABCSVImporter(ABFileImporter):
@@ -234,8 +232,6 @@ class ABCSVImporter(ABFileImporter):
         # Convert after reading, as the Excel reader does: pandas converters see
         # empty cells as "" instead of NaN, so keys left empty on purpose would
         # never be looked up. Categories must be tuples to match biosphere flows.
-        columns = ["from categories", "from key", "to categories", "to key"]
-        if set(columns).issubset(df.columns):
-            df.loc[:, columns] = df[columns].map(convert_tuple_str)
+        df = coerce_identity_columns(df)
         # Scenario headers typed as numbers (e.g. 2025) must be strings.
         return ensure_string_scenario_names(df)

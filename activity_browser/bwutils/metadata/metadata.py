@@ -3,10 +3,29 @@ from loguru import logger
 
 from qtpy.QtCore import QObject
 
+import numpy as np
 import pandas as pd
 
 from activity_browser.bwutils.settings import Settings
 from .fields import all_fields, all_types
+
+
+def series_as_pandas_str(s: pd.Series) -> pd.Series:
+    """Cast to pandas 3 string dtype without turning missing values into ``'nan'``."""
+    return s.astype(pd.StringDtype(na_value=np.nan))
+
+
+def apply_metadata_dtypes(df: pd.DataFrame) -> pd.DataFrame:
+    """Apply MetaDataStore schema: ``str`` for scalar text, ``object`` for Python objects."""
+    df = df.reindex(columns=all_fields)[all_fields]
+    for col, col_type in all_types.items():
+        if col not in df.columns:
+            continue
+        if col_type == "str":
+            df[col] = series_as_pandas_str(df[col])
+        else:
+            df[col] = df[col].astype(col_type)
+    return df
 
 
 def dataframe_for_pickle_cache(df: pd.DataFrame) -> pd.DataFrame:
@@ -58,21 +77,7 @@ class MetaDataStore(QObject):
 
     @dataframe.setter
     def dataframe(self, df: pd.DataFrame) -> None:
-        # Ensure all expected columns are present, in the correct order
-        df = df.reindex(columns=all_fields)[all_fields]
-
-        # Apply types carefully - avoid in-place modifications
-        for col, col_type in all_types.items():
-            if col in df.columns:
-                df[col] = df[col].astype(col_type)
-
-        # No NaN values in object columns, use None instead
-        for col, col_type in all_types.items():
-            if col_type != object or col not in df.columns:
-                continue
-            df[col] = df[col].where(df[col].notnull(), None)
-
-        self._dataframe = df
+        self._dataframe = apply_metadata_dtypes(df)
 
     @property
     def databases(self):
@@ -116,8 +121,12 @@ class MetaDataStore(QObject):
         self._deleted.clear()
 
         if Settings()["metadatastore"]["caching_enabled"]:
-            cache_path = filesystem.get_project_ab_path() / "metadatastore_cache.pkl"
+            from .cache import write_cache_stamp
+
+            project_ab = filesystem.get_project_ab_path()
+            cache_path = project_ab / "metadatastore_cache.pkl"
             dataframe_for_pickle_cache(self._dataframe).to_pickle(cache_path)
+            write_cache_stamp(project_ab)
 
         return added, updated, deleted
 
@@ -127,7 +136,7 @@ class MetaDataStore(QObject):
         df = self._dataframe.query(
             " and ".join(
                 [
-                    f"`{key}`.astype('str') == {str(value)!r}" if not pd.isna(value) else f"`{key}`.isnull()"
+                    f"`{key}`.fillna('').astype(str) == {str(value)!r}" if not pd.isna(value) else f"`{key}`.isna()"
                     for key, value in kwargs.items()
                 ])
         )
@@ -181,7 +190,7 @@ class MetaDataStore(QObject):
             if params:
                 extra_query = " & ".join(
                     [
-                        f"`{key}`.astype('str').str.contains('{value}', case=False)"
+                        f"`{key}`.fillna('').astype(str).str.contains('{value}', case=False)"
                         for key, value in params.items()
                         if key in df.columns
                     ]
@@ -197,7 +206,9 @@ class MetaDataStore(QObject):
         for field in search_fields:
             if field in df.columns:
                 # Case-insensitive search
-                mask |= df[field].astype(str).str.contains(clean_query, case=False, na=False)
+                mask |= df[field].fillna("").astype(str).str.contains(
+                    clean_query, case=False, na=False
+                )
 
         df = df[mask]
 
@@ -205,7 +216,7 @@ class MetaDataStore(QObject):
         if params:
             extra_query = " & ".join(
                 [
-                    f"`{key}`.astype('str').str.contains('{value}', case=False)"
+                    f"`{key}`.fillna('').astype(str).str.contains('{value}', case=False)"
                     for key, value in params.items()
                     if key in df.columns
                 ]
@@ -242,7 +253,7 @@ class MetaDataStore(QObject):
 
         extra_query = " & ".join(
             [
-                f"`{key}`.astype('str').str.contains('{value}', False)"
+                f"`{key}`.fillna('').astype(str).str.contains('{value}', False)"
                 for key, value in params.items()
                 if key in df.columns
             ]
