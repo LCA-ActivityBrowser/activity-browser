@@ -11,6 +11,7 @@ def setup_logging():
     import os
     import platformdirs
 
+    # Defining logging message colors
     logger.level("SYNC", no=9, color="<cyan>")
     logger.level("SIGNAL", no=19, color="<yellow>")
     logger.level("TEST", no=19, color="<cyan>")
