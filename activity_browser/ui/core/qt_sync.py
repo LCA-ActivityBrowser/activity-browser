@@ -21,6 +21,20 @@ def qt_is_valid(obj) -> bool:
         return False
 
 
+def _event_dispatcher(owner: QtCore.QObject):
+    """Return a live event dispatcher for *owner*'s thread, or None."""
+    try:
+        thread = owner.thread()
+        if thread is None:
+            return None
+        dispatcher = thread.eventDispatcher()
+    except (TypeError, RuntimeError, AttributeError):
+        return None
+    if not qt_is_valid(dispatcher):
+        return None
+    return dispatcher
+
+
 def schedule_awake_sync(
     owner: QtCore.QObject,
     sync: Callable[[], None],
@@ -42,9 +56,21 @@ def schedule_awake_sync(
             sync()
         except RuntimeError:
             pass
+        dispatcher = _event_dispatcher(owner)
+        if dispatcher is None:
+            return
         try:
-            owner.thread().eventDispatcher().awake.disconnect(slot)
+            dispatcher.awake.disconnect(slot)
         except (TypeError, RuntimeError):
             pass
 
-    owner.thread().eventDispatcher().awake.connect(slot)
+    dispatcher = _event_dispatcher(owner)
+    if dispatcher is not None:
+        try:
+            dispatcher.awake.connect(slot)
+            return
+        except (TypeError, RuntimeError):
+            pass
+
+    # Fallback when the dispatcher wrapper is already gone (PySide6/shiboken).
+    QtCore.QTimer.singleShot(0, slot)

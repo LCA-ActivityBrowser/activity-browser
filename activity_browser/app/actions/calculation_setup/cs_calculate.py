@@ -63,7 +63,8 @@ class CSCalculate(ABAction):
 
         dialog = CalculationDialog(cs_name, app.main_window)
         dialog.show()
-        app.application.thread().eventDispatcher().processEvents(QtCore.QEventLoop.ProcessEventsFlag.AllEvents)
+        # Avoid thread().eventDispatcher() — shiboken may report it already deleted (#1752).
+        app.application.processEvents()
 
         try:
             if scenario_data is None:
