@@ -8,12 +8,13 @@ from activity_browser.bwutils.parameters.formula_exchanges import (
 )
 
 
-def test_parameterized_flows_table_follows_index_only(basic_project):
+def test_parameterized_flows_table_follows_index_only(basic_project, qtbot):
     from activity_browser.app.pages.parameters.parameterized_exchanges_section import (
         ParameterizedExchangesSection,
     )
 
     section = ParameterizedExchangesSection()
+    qtbot.addWidget(section)
     ParameterizedExchange.delete().execute()
     assert len(section.build_exchanges_df()) == 0
 

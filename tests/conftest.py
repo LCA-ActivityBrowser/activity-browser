@@ -50,13 +50,48 @@ def _ensure_main_window() -> None:
     _MAIN_WINDOW_READY = True
 
 
-def _reset_main_window(qtbot) -> None:
-    """Close extra tabs opened during a test; keep the main window alive."""
+def _delete_orphan_signal_widgets() -> None:
+    """Drop top-level widgets that subscribe to ``app.signals`` but are not owned
+    by the main window.
+
+    Tests that build parameter / FU sections without ``qtbot.addWidget`` (or that
+    leave deferred ``QTimer.singleShot(0)`` syncs pending) otherwise keep walking
+    Brightway proxies after ``@bw2test`` tears the project down — UnknownObject on
+    Windows, native abort on Linux/CPython 3.11.
+    """
+    from activity_browser.app.pages.activity_details.parameters_tab import ParametersTab
+    from activity_browser.app.pages.calculation_setup.functional_unit_section import (
+        FunctionalUnitSection,
+    )
+    from activity_browser.app.pages.parameters.parameterized_exchanges_section import (
+        ParameterizedExchangesSection,
+    )
+    from activity_browser.app.pages.parameters.parameters_section import ParametersSection
+    from activity_browser.ui import core
+
+    qapp = QtWidgets.QApplication.instance()
+    if qapp is None:
+        return
+
+    kinds = (
+        ParameterizedExchangesSection,
+        ParametersSection,
+        ParametersTab,
+        FunctionalUnitSection,
+    )
+    for widget in list(qapp.topLevelWidgets()):
+        if isinstance(widget, kinds) and core.qt_is_valid(widget):
+            widget.deleteLater()
+
+
+def _reset_main_window(qtbot=None) -> None:
+    """Close extra tabs/docks opened during a test; keep the main window alive."""
     from activity_browser import app
+    from activity_browser.app import panes
     from activity_browser.app.pages.activity_details.activity_details import (
         ActivityDetailsPage,
     )
-    from activity_browser.ui import core
+    from activity_browser.ui import core, widgets
 
     qapp = QtWidgets.QApplication.instance()
     mw = getattr(app, "main_window", None)
@@ -68,6 +103,17 @@ def _reset_main_window(qtbot) -> None:
         if core.qt_is_valid(page):
             page.deleteLater()
 
+    # Products docks hold live Database proxies; leave them and later basic_project
+    # / @bw2test swaps crash or raise UnknownObject during project.changed sync.
+    for dock in list(mw.findChildren(widgets.ABDockWidget)):
+        if not core.qt_is_valid(dock):
+            continue
+        inner = dock.widget()
+        if isinstance(inner, panes.DatabaseProductsPane):
+            mw.removeDockWidget(dock)
+            dock.close()
+            dock.deleteLater()
+
     central = mw.centralWidget()
     if central is not None and core.qt_is_valid(central):
         while central.count() > 1:
@@ -76,6 +122,8 @@ def _reset_main_window(qtbot) -> None:
             central.removeTab(index)
             if widget is not None and core.qt_is_valid(widget):
                 widget.deleteLater()
+
+    _delete_orphan_signal_widgets()
 
     if qapp is not None:
         qapp.processEvents(QtCore.QEventLoop.ProcessEventsFlag.AllEvents)
@@ -95,6 +143,20 @@ def _sync_metadata_singleton():
     from activity_browser.bwutils.metadata.metadata import MetaDataStore
 
     MetaDataStore._instance = app_module.metadata
+
+
+@pytest.fixture(autouse=True)
+def _cleanup_live_ui_after_bw_tests():
+    """When the main window exists, reset UI after every test — not only those
+    that requested the ``main_window`` fixture.
+
+    Cheap ``basic_project`` tests still run after slower UI tests; without this,
+    leftover docks/widgets sync into the next ``@bw2test`` project.
+    """
+    yield
+    if not _MAIN_WINDOW_READY:
+        return
+    _reset_main_window()
 
 
 @pytest.fixture

@@ -102,6 +102,11 @@ Fixtures provide test data and setup (see `conftest.py` and `fixtures/`):
 | `main_window` | Explicit main-window interaction (often already pulled in by `basic_database`) |
 | `basic_project` + `main_window` | Need the window (e.g. find a wizard) but not MetaDataStore rows — cheaper than `basic_database` |
 
+After the main window exists, an autouse fixture closes leftover product docks and
+orphan signal-connected widgets so later `basic_project` / `@bw2test` swaps stay
+safe. Still prefer `qtbot.addWidget(...)` for any widget you construct that
+subscribes to `app.signals`.
+
 ### Common Fixtures
 ```python
 @pytest.fixture

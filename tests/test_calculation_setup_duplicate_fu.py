@@ -6,7 +6,7 @@ from activity_browser.app.pages.calculation_setup.functional_unit_section import
 from activity_browser.bwutils.multilca import MLCA, Contributions
 
 
-def test_duplicate_reference_flow_in_cs_build_df(basic_database):
+def test_duplicate_reference_flow_in_cs_build_df(basic_database, qtbot):
     cs_name = "basic_calculation_setup"
     key = ("basic", "product_1")
     cs = bd.calculation_setups[cs_name]
@@ -15,6 +15,7 @@ def test_duplicate_reference_flow_in_cs_build_df(basic_database):
     bd.calculation_setups.serialize()
 
     section = FunctionalUnitSection(cs_name)
+    qtbot.addWidget(section)
     df = section.build_df()
 
     assert len(df) == 2
@@ -138,7 +139,7 @@ def test_superstructure_build_inventory_keeps_duplicate_reference_flows(basic_pr
 
 
 
-def test_build_df_handles_missing_reference_flow(basic_database):
+def test_build_df_handles_missing_reference_flow(basic_database, qtbot):
     cs_name = "basic_calculation_setup"
     cs = bd.calculation_setups[cs_name]
     cs["inv"] = [{("basic", "ghost_product"): 1.0}]
@@ -146,6 +147,7 @@ def test_build_df_handles_missing_reference_flow(basic_database):
     bd.calculation_setups.serialize()
 
     section = FunctionalUnitSection(cs_name)
+    qtbot.addWidget(section)
     df = section.build_df()
 
     assert len(df) == 1
