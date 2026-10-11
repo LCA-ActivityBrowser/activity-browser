@@ -27,8 +27,8 @@ class DatabaseOpen(ABAction):
             if sibling:
                 app.main_window.tabifyDockWidget(sibling, dock_widget)
 
-                # Prefer QApplication.processEvents — holding thread().eventDispatcher()
-                # raises under PySide6/shiboken when the C++ wrapper is already gone (#1752).
+                # Prefer QApplication.processEvents: QThread.eventDispatcher() can
+                # return a deleted wrapper on PySide6 6.12+ (libshiboken RuntimeError).
                 app.application.processEvents()
                 dock_widget.raise_()
                 dock_widget.show()

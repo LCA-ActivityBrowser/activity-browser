@@ -63,8 +63,8 @@ class CSCalculate(ABAction):
 
         dialog = CalculationDialog(cs_name, app.main_window)
         dialog.show()
-        # Prefer QApplication.processEvents — holding thread().eventDispatcher()
-        # raises under PySide6/shiboken when the C++ wrapper is already gone (#1752).
+        # Prefer QApplication.processEvents: QThread.eventDispatcher() can
+        # return a deleted wrapper on PySide6 6.12+ (libshiboken RuntimeError).
         app.application.processEvents()
 
         try:

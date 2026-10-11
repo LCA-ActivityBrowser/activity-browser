@@ -30,8 +30,8 @@ def schedule_awake_sync(
     """Run *sync* on the next event-loop tick (coalesced per *owner*).
 
     Uses ``QTimer.singleShot(0, ...)`` rather than
-    ``thread().eventDispatcher().awake``, which can raise under PySide6/shiboken
-    when the C++ dispatcher wrapper is already deleted (#1752).
+    ``thread().eventDispatcher().awake``, which can raise on PySide6 6.12+
+    when the C++ dispatcher wrapper is already deleted.
     """
     if not qt_is_valid(owner):
         return
