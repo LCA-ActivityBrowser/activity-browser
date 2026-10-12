@@ -1,5 +1,7 @@
 import copy
 import json
+from pathlib import Path
+
 import bw2data as bd
 import bw2data.signals as bw_signals
 import blinker
@@ -109,4 +111,31 @@ class Settings:
         project_path = get_project_ab_path() / "settings.json"
         project_path.unlink(missing_ok=True)
 
+
+def activate_configured_project(settings: "Settings | None" = None) -> bool:
+    """Open the Brightway directory and project from AB settings if needed.
+
+    Brightway imports with a default project (often ``default``). Calling
+    ``set_current`` / ``change_base_directories`` always emits ``project_changed``,
+    which is expensive once the UI is listening. Activate here *before* the main
+    window connects so MetaDataStore can load the right project, then let
+    ``MainWindow.apply_settings(load=True)`` build panes via :meth:`sync` without
+    a second Brightway switch.
+
+    Returns:
+        True if the data directory or project was changed.
+    """
+    if settings is None:
+        settings = Settings()
+
+    base_dir = Path(settings["startup"]["brightway_directory"])
+    project_name = settings["startup"]["startup_project"]
+
+    if Path(bd.projects._base_data_dir) == base_dir and bd.projects.current == project_name:
+        return False
+
+    bd.projects.change_base_directories(
+        base_dir, project_name=project_name, update=False
+    )
+    return True
 
