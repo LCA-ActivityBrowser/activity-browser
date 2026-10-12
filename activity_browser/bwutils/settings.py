@@ -113,24 +113,18 @@ class Settings:
 
 
 def activate_configured_project(settings: "Settings | None" = None) -> bool:
-    """Open the Brightway directory and project from AB settings if needed.
+    """Switch Brightway to the configured data dir / startup project if needed.
 
-    Brightway imports with a default project (often ``default``). Calling
-    ``set_current`` / ``change_base_directories`` always emits ``project_changed``,
-    which is expensive once the UI is listening. Activate here *before* the main
-    window connects so MetaDataStore can load the right project, then let
-    ``MainWindow.apply_settings(load=True)`` build panes via :meth:`sync` without
-    a second Brightway switch.
+    Call before UI listens to ``project_changed`` — ``set_current`` always emits,
+    and that rebuild is costly once MainWindow is connected.
 
-    Returns:
-        True if the data directory or project was changed.
+    Returns True if a switch ran.
     """
     if settings is None:
         settings = Settings()
 
     base_dir = Path(settings["startup"]["brightway_directory"])
     project_name = settings["startup"]["startup_project"]
-
     if Path(bd.projects._base_data_dir) == base_dir and bd.projects.current == project_name:
         return False
 

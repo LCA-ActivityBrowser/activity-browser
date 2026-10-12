@@ -96,26 +96,20 @@ class MainWindow(widgets.ABMainWindow):
                     self.central_widget.addPage(page)
 
     def apply_settings(self, load=False):
-        """Apply appearance settings and optionally open the configured Brightway project.
+        """Apply appearance settings; reopen BW dir if it changed; sync panes on load.
 
-        ``bw2data.projects.set_current`` always emits ``project_changed`` (even when
-        the name is unchanged), which rebuilds every pane (~seconds on large
-        projects). When the startup project was already activated before UI
-        listeners connected, skip that call and :meth:`sync` once so panes still
-        appear.
+        Startup activates the configured project in ``app/__init__`` before UI
+        listeners connect. On ``load=True`` we only :meth:`sync` panes — calling
+        ``set_current`` again would re-emit ``project_changed`` and rebuild UI.
         """
         base_dir = Path(app.settings["startup"]["brightway_directory"])
-        project_name = app.settings["startup"]["startup_project"]
-        current_base = Path(bd.projects._base_data_dir)
 
-        needs_dir = current_base != base_dir
-        needs_project = bd.projects.current != project_name
-
-        if needs_dir or (load and needs_project):
+        if Path(bd.projects._base_data_dir) != base_dir:
             bd.projects.change_base_directories(
-                base_dir, project_name=project_name, update=False
+                base_dir,
+                project_name=app.settings["startup"]["startup_project"],
+                update=False,
             )
-
             if not bd.projects.twofive:
                 logger.warning(
                     f"Project: {bd.projects.current} is not yet BW25 compatible"

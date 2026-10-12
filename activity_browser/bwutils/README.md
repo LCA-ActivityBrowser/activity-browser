@@ -29,7 +29,7 @@ This module provides a collection of generic methods and utilities that wrap and
 - **`multilca.py`** - Multi-functional LCA calculation utilities
 - **`pedigree.py`** - Pedigree matrix conversion; infer basic uncertainty; in-dialog pedigree session; resolve pedigree edits on a flow
 - **`sensitivity_analysis.py`** - SALib delta GSA on ``MonteCarloLCA``; ``df_final`` columns in ``GSA_COLUMNS`` (maps newer SALib ``delta_balanced`` → ``delta``); runnable via ``if __name__ == "__main__"``
-- **`settings.py`** - Settings specific to bwutils operations; ``activate_configured_project`` opens the startup Brightway dir/project before UI listens
+- **`settings.py`** - Settings; ``activate_configured_project`` for startup project selection
 - **`strategies.py`** - Import strategies and data transformation functions
 - **`uncertainty.py`** - Uncertainty dialog interfaces; ``uncertainty_type_name`` / ``uncertainty_parameters_summary`` for GSA tables
 - **`utils.py`** - General utility functions

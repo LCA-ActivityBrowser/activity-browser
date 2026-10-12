@@ -12,10 +12,10 @@ application = ABApplication()
 settings = Settings()
 metadata = MetaDataStore(application)
 
-# Open the settings startup project before UI listens to project.changed.
-# Otherwise Brightway stays on ``default`` until apply_settings, and the switch
-# rebuilds every pane while MetaDataStore loads (multi-second on large projects).
-if not os.environ.get("AB_SKIP_SETTINGS_ON_STARTUP"):
+# Before ABSignals/MainWindow: open the configured project so the later
+# apply_settings(load=True) only syncs panes (no second project_changed).
+_skip_startup = bool(os.environ.get("AB_SKIP_SETTINGS_ON_STARTUP"))
+if not _skip_startup:
     activate_configured_project(settings)
 
 # modules dependent on application instance
@@ -32,5 +32,5 @@ from . import dialogs
 main_window = MainWindow()
 application.main_window = main_window
 
-if not os.environ.get("AB_SKIP_SETTINGS_ON_STARTUP"):
+if not _skip_startup:
     main_window.apply_settings(load=True)  # Ensure settings are applied at startup
