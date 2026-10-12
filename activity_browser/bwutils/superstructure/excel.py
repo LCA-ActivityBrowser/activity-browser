@@ -11,11 +11,37 @@ from .utils import SUPERSTRUCTURE
 from .dataframe import ensure_string_scenario_names
 
 
+SDF_IDENTITY_COLUMNS = ["from categories", "from key", "to categories", "to key"]
+
+
 def convert_tuple_str(x):
+    if isinstance(x, tuple):
+        return x
+    if isinstance(x, list):
+        return tuple(x)
+    try:
+        if pd.isna(x):
+            return x
+    except (ValueError, TypeError):
+        pass
     try:
         return literal_eval(x)
-    except (ValueError, SyntaxError) as e:
+    except (ValueError, SyntaxError, TypeError):
         return x
+
+
+def coerce_identity_columns(data: pd.DataFrame) -> pd.DataFrame:
+    """Cast identity columns to object, then parse tuple literals.
+
+    Pandas 3 infers these as ``str``, which cannot hold tuples.
+    """
+    present = [c for c in SDF_IDENTITY_COLUMNS if c in data.columns]
+    if not present:
+        return data
+    out = data.copy()
+    for col in present:
+        out[col] = out[col].astype(object).map(convert_tuple_str)
+    return out
 
 
 def get_sheet_names(document_path: Union[str, Path]) -> List[str]:
@@ -92,8 +118,7 @@ def import_from_excel(
             # Do not run key converters that require a complete SUPERSTRUCTURE.
             return ensure_string_scenario_names(data)
 
-        columns = ["from categories", "from key", "to categories", "to key"]
-        data.loc[:, columns] = data[columns].map(convert_tuple_str)
+        data = coerce_identity_columns(data)
         data = ensure_string_scenario_names(data)
         return data
     except Exception as e:

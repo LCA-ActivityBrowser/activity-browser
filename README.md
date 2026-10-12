@@ -9,56 +9,78 @@
 
 # Activity Browser
 
-
-> [!TIP]
-> **Activity Browser** now has an open beta for Version 3🚀.
+> [!IMPORTANT]
+> **Activity Browser 3 (beta)** is the version we recommend for new installs. It is already far ahead of the AB2 (soon legacy) version.
 >
-> The beta supports many new features such as Multi-functionality and uses Brightway 2.5 under the hood.
-> Help us by making Activity Browser even better by using and providing feedback on Activity Browser.
+> It runs on Brightway 2.5 and adds multifunctionality and a refreshed UI.
+> Please try it and [report issues](https://github.com/LCA-ActivityBrowser/activity-browser/issues/new?template=beta_report.yml).
 >
-> Learn more about the beta
-> [here](https://lca-activitybrowser.github.io/activity-browser/beta.html).
+> Full beta notes: [Activity Browser 3 Beta](https://lca-activitybrowser.github.io/activity-browser/beta.html)
 
 <img src="https://user-images.githubusercontent.com/33026150/54299977-47a9f680-45bc-11e9-81c6-b99462f84d0b.png" width=100%/>
 
-The **Activity Browser (AB) is an open source software for Life Cycle Assessment (LCA)** that builds on [Brightway2](https://brightway.dev).
+The **Activity Browser (AB)** is an open-source GUI for Life Cycle Assessment on [Brightway](https://brightway.dev).
 
-### Some highlights
+### Highlights
 
 - **Fast LCA calculations**: for multiple reference flows, impact categories, and scenarios
-- **A productivity tool for brightway**: model in brightway (python) and see the results in the AB or vice-versa
+- **A productivity tool for Brightway**: model in Brightway (Python) and see the results in the AB or vice versa
 - **Advanced modeling:** Use parameters, scenarios (including prospective LCI databases from [premise](https://premise.readthedocs.io/en/latest/)), uncertainties and our Graph Explorer
 - **Advanced analyses:** Contribution analyses, Sankey Diagrams, Monte Carlo, and Global Sensitivity Analysis
-- **Plugins:** Extend the functionality of Activity Browser with 
+- **Plugins:** Extend the functionality of Activity Browser with
 [Plugins](https://github.com/LCA-ActivityBrowser/activity-browser/wiki/Plugins)
 
 # Contents
-- [Installation](#installation)
+- [Installation (recommended: AB3 beta)](#installation-recommended-ab3-beta)
 - [First Steps](#first-steps)
 - [Contributing](#contributing)
 - [Developers](#developers)
+- [Activity Browser 2 (legacy)](#activity-browser-2-legacy)
 - [Copyright](#copyright)
 - [License](#license)
 
-# Installation
+# Installation (recommended: AB3 beta)
 
-## Step-by-step guide
-See our 
-[Installation Guide](https://github.com/LCA-ActivityBrowser/activity-browser/wiki/Installation-Guide) 
-wiki page for a step-by-step guide to installing Activity Browser.
+See the
+[Installation Guide](https://lca-activitybrowser.github.io/activity-browser/getting-started/installation.html)
+for a step-by-step walkthrough (PyPI or Anaconda).
 
-## The quick way
-Or you can install and start the activity-browser like this:
+### Quick install — PyPI (recommended)
 
 ```bash
-conda create -n ab -c conda-forge activity-browser
-conda activate ab
+# CREATE the virtual environment (in directory you can remember, 
+# a good default is ...user\virtualenvs\):
+python -m venv ab-beta
+
+# ACTIVATE the virtual environment:
+# on Windows: 
+ab-beta\Scripts\activate
+
+# on macOS/Linux: 
+source ab-beta/bin/activate
+
+# INSTALL the Activity Browser:
+pip install activity-browser
+
+# RUN the Activity Browser:
 activity-browser
 ```
 
+### Quick install — Conda
+
+```bash
+conda create -n ab_beta -c conda-forge lca::activity-browser
+conda activate ab_beta
+activity-browser
+```
+
+> **Note:** For AB3 beta, install the `lca` package (`lca::activity-browser`).
+> The older `conda-forge` `activity-browser` package is Activity Browser 2 — see
+> [Activity Browser 2 (legacy)](#activity-browser-2-legacy).
+
 # First Steps
 See our
-[Getting Started](https://github.com/LCA-ActivityBrowser/activity-browser/wiki/Getting-Started)
+[Getting Started](https://lca-activitybrowser.github.io/activity-browser/getting-started/)
 wiki page to learn how to get started using Activity Browser.
 
 # Contributing
@@ -71,22 +93,41 @@ If you experience problems or are suffering from a specific bug, please [raise a
 
 # Developers
 
-### Current main developers
+### Current maintainers
 
-- Bernhard Steubing (b.steubing@cml.leidenuniv.nl) (creator)
-- Marin Visscher (m.r.visscher@cml.leidenuniv.nl) (main developer)
-- Marc van der Meide (m.t.van.der.meide@cml.leidenuniv.nl) (maintainer)
+- [Bernhard Steubing](https://github.com/bsteubing) (creator, maintainer)
+- [Marc van der Meide](https://github.com/marc-vdm) (maintainer)
 
 ### Important contributors
 
-- [Adrian Haas](https://github.com/haasad)
-- [Chris Mutel](https://github.com/cmutel)
-- [Daniel de Koning](https://github.com/dgdekoning)
+- [Marin Visscher](https://github.com/mrvisscher)
 - [Jonathan Kidner](https://github.com/Zoophobus)
 - [Remy le Calloch](https://remy.lecalloch.net)
+- [Daniel de Koning](https://github.com/dgdekoning)
+- [Adrian Haas](https://github.com/haasad)
+- [Chris Mutel](https://github.com/cmutel)
 
-# Copyright
-- 2016-2023: Bernhard Steubing (Leiden University)
 
-# License
-You can find the license information for Activity Browser in the [license file](https://github.com/LCA-ActivityBrowser/activity-browser/blob/main/LICENSE.txt).
+# Activity Browser 2 (legacy)
+
+Activity Browser 2 is the previous stable version, but not actively maintained anymore (Brightway2). 
+Prefer AB3 beta for new work.
+
+Installation (see also: [Installation Guide (wiki)](https://github.com/LCA-ActivityBrowser/activity-browser/wiki/Installation-Guide)):
+```bash
+conda create -n ab -c conda-forge activity-browser
+conda activate ab
+activity-browser
+```
+
+# License and Copyright
+
+This project is licensed under the terms of the 
+GNU Lesser General Public License (LGPL v3 or later), 
+see [license file](https://github.com/LCA-ActivityBrowser/activity-browser/blob/main/LICENSE.txt).
+
+* Copyright (c) 2014-2026: Bernhard Steubing
+* Copyright (c) 2014-2016: ETH Zürich
+* Copyright (c) 2018-2024: Universiteit Leiden
+
+

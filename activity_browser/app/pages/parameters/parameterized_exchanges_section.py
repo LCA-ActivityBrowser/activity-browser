@@ -270,7 +270,8 @@ class ParameterizedExchangesModel(core.ABTreeModel):
             return True
 
         if column_name == "uncertainty":
-            if database_is_locked(exchange.output[0]):
+            output = exchange.get("output")
+            if not output or database_is_locked(output[0]):
                 return False
             if not isinstance(value, dict):
                 return False
@@ -342,7 +343,12 @@ class ParameterizedExchangesModel(core.ABTreeModel):
         if exchange is None:
             return False
 
-        db = exchange.output[0]
+        # Use the stored key; exchange.output resolves via get_activity and can
+        # raise UnknownObject when a queued tree refresh runs after a project switch.
+        output = exchange.get("output")
+        if not output:
+            return False
+        db = output[0]
         # Locked DB: uncertainty column stays openable (read-only dialog), like exchanges tab.
         if database_is_locked(db):
             return column_name == "uncertainty"

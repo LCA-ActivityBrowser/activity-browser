@@ -15,7 +15,7 @@ This directory handles storage, retrieval, and management of metadata associated
 - **Fallback:** Brightway only if the row or field is missing from the store, or you need a live activity proxy (exchanges, save).
 - **`bwutils/`:** pass `app.metadata.dataframe` (or a lookup callback) into helpers. Do not import the `app` singleton from `bwutils/`.
 
-See `docs/adr/0005-metadata-from-metadatastore.md`.
+See `docs/adr/0005-metadata-from-metadatastore.md`. Column dtypes: scalar text is pandas `"str"`; Python objects (key tuples, categories tuples, synonyms lists, properties dicts) stay explicit `object` (`docs/adr/0014-pandas-2-and-3-dual-support.md`).
 
 ## Purpose
 

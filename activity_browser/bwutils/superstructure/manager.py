@@ -506,7 +506,7 @@ class SuperstructureManager(object):
             # converting to numeric only works on lists and with the coercive option
             # any errors convert to np.nan and can then only be excluded if previous
             # NaNs are masked by conversion to numeric values
-            _df.loc[:, cols].fillna(0, inplace=True)
+            _df.loc[:, cols] = _df.loc[:, cols].fillna(0)
             bad_entries = pd.DataFrame(index=_df.index)
             for col in cols:
                 bad_entries[col] = pd.to_numeric(df.loc[:, col], errors="coerce")

@@ -17,13 +17,13 @@ The Activity Browser 3 Beta is available both on [PyPI](#installing-from-pypi) a
 
 ### New to Python?
 
-Activity Browser runs on Python. If you have never installed or used Python before, start by installing a supported version (3.10, 3.11, or 3.12) from [python.org](https://www.python.org/downloads/) — their [beginner's guide](https://wiki.python.org/moin/BeginnersGuide) walks through the basics. If you prefer the Anaconda route below, install [Miniconda](https://docs.anaconda.com/miniconda/) instead and follow the [official installation instructions](https://docs.anaconda.com/miniconda/install/).
+Activity Browser runs on Python. If you have never installed or used Python before, start by installing a supported version (3.11, 3.12, 3.13, or 3.14) from [python.org](https://www.python.org/downloads/) — their [beginner's guide](https://wiki.python.org/moin/BeginnersGuide) walks through the basics. If you prefer the Anaconda route below, install [Miniconda](https://docs.anaconda.com/miniconda/) instead and follow the [official installation instructions](https://docs.anaconda.com/miniconda/install/).
 
 ## Installing from PyPI
 Installing from the Python Package Index (PyPI) can be done using the standard `pip` command. We strongly recommended installing the Activity Browser into a separate [virtual environment](https://realpython.com/python-virtual-environments-a-primer/)
 
 First make sure you have Python installed on your PC by entering the following command into your terminal or command prompt. 
-At this moment the AB is compatible with Python versions 3.10, 3.11, and 3.12. 
+At this moment the AB is compatible with Python versions 3.11, 3.12, 3.13, and 3.14. 
 
 ```
 python --version
@@ -31,11 +31,11 @@ python --version
 If you get an error please install Python [using their install instructions](https://www.python.org/downloads/).
 
 ### Creating a virtual environment
-Firstly, create a directory for your virtual environments, such as C:/Users/me/virtualenvs/. Then create a virtual environment in that location using the following command (IF YOUR PYTHON VERSION WAS 3.10, 3.11, OR 3.12):
+Firstly, create a directory for your virtual environments, such as C:/Users/me/virtualenvs/. Then create a virtual environment in that location using the following command (IF YOUR PYTHON VERSION WAS 3.11, 3.12, 3.13, OR 3.14):
 ```
 python -m venv C:/Users/me/virtualenvs/ab-beta
 ```
-In case your python version is not 3.10, 3.11, or 3.12 (the versions currently supported by the AB), you need to use a command like this (here for python 3.12):
+In case your python version is not 3.11, 3.12, 3.13, or 3.14 (the versions currently supported by the AB), you need to use a command like this (here for python 3.12):
 ```
 py -3.12 -m venv C:/Users/me/virtualenvs/ab-beta
 ```
@@ -79,7 +79,7 @@ Next we're going to create a new environment for the Activity Browser Beta relea
 conda create -n ab_beta -c conda-forge lca::activity-browser
 ```
 
-In case your Python version is not 3.10, 3.11, or 3.12 (the versions currently supported by the AB), then use a command like this (here for Python 3.12):
+In case your Python version is not 3.11, 3.12, 3.13, or 3.14 (the versions currently supported by the AB), then use a command like this (here for Python 3.12):
 
 ```
 conda create -n ab_beta -c conda-forge lca::activity-browser python=3.12

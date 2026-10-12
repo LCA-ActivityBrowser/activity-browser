@@ -50,8 +50,8 @@ requirements:
     - python
     - setuptools
   run:
-    - python >=3.10, <3.13
-    - pyside6 >=6.5.0
+    - python >=3.11, <3.15
+    - pyside6 >=6.5.0,<6.12
     - qt6-webengine
     - qtpy
     # ... more dependencies
@@ -89,9 +89,9 @@ This will:
 ### Build Variants
 For different Python versions:
 ```bash
-conda build recipe/ --python 3.9
-conda build recipe/ --python 3.10
 conda build recipe/ --python 3.11
+conda build recipe/ --python 3.12
+conda build recipe/ --python 3.13
 ```
 
 ## conda-forge

@@ -15,7 +15,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-15, macos-latest]
-        py-version: ["3.10", "3.11", "3.12"]
+        py-version: ["3.11", "3.12", "3.13", "3.14"]
     env:
       QT_QPA_PLATFORM: 'offscreen'
     steps:
@@ -38,6 +38,34 @@ jobs:
       - name: Install package and test deps
         run: |
           pip install .[testing]
+
+      - name: Test with pytest
+        run: pytest -q --no-cov -o log_cli=false --durations=25
+
+  tests-pandas2:
+    runs-on: ubuntu-latest
+    env:
+      QT_QPA_PLATFORM: 'offscreen'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install linux dependencies
+        uses: tlambert03/setup-qt-libs@v1
+
+      - name: Update pip & install testing pkgs
+        run: |
+          python -VV
+          python -m pip install --upgrade pip setuptools wheel
+
+      - name: Install package, test deps, and pandas 2.3
+        run: |
+          pip install .[testing]
+          pip install "pandas>=2.3,<3"
 
       - name: Test with pytest
         run: pytest -q --no-cov -o log_cli=false --durations=25
