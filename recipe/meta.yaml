@@ -37,7 +37,7 @@ requirements:
     - pyperclip
     - pyprind
     - networkx
-    - pandas >=2.2.1, <4
+    - pandas >=2.3, <4
     # Cap below 6.12: eventDispatcher shiboken crash (Ubuntu/Py3.11 CI abort).
     - pyside6 >=6.5.0,<6.12
     - qt6-webengine
