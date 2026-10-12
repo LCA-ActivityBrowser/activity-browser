@@ -44,10 +44,10 @@ dependencies = [
     "bw_simapro_csv >=0.2.6",
     "ecoinvent_interface",
     "matrix_utils>=0.5",
-    "bw-functional==0b97",
+    "bw-functional>=0b97",
     "networkx",
     "numpy>=1.26",
-    "pandas>=2.3,<4",
+    "pandas>=2.2.1,<4",
     "py7zr>=0.22.0",
     "pyperclip",
     # Cap below 6.12: QThread.eventDispatcher() returns a deleted shiboken

@@ -29,7 +29,7 @@ requirements:
     - bw_graph_tools >=0.5
     - bw_processing >=1.0
     - bw_simapro_csv >=0.2.6
-    - bw_functional=0.b.97
+    - bw_functional>0.b.97
     - ecoinvent_interface
     - matrix_utils >=0.5
     - numpy >=1.26
@@ -37,7 +37,7 @@ requirements:
     - pyperclip
     - pyprind
     - networkx
-    - pandas >=2.2.1, <3
+    - pandas >=2.2.1, <4
     # Cap below 6.12: eventDispatcher shiboken crash (Ubuntu/Py3.11 CI abort).
     - pyside6 >=6.5.0,<6.12
     - qt6-webengine
