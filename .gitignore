@@ -28,3 +28,4 @@ uv.lock
 /scripts/
 /.ci-test-venv/
 .scratch/
+/test-durations.tsv
