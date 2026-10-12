@@ -7,11 +7,15 @@ has to hand those rows over the same way the Excel reader does.
 
 import math
 
+import pandas as pd
 import bw2data as bd
 from bw2data.tests import bw2test
 from openpyxl import Workbook
 
-from activity_browser.bwutils.superstructure.excel import import_from_excel
+from activity_browser.bwutils.superstructure.excel import (
+    coerce_identity_columns,
+    import_from_excel,
+)
 from activity_browser.bwutils.superstructure.file_imports import ABCSVImporter
 from activity_browser.bwutils.superstructure.manager import SuperstructureManager
 from activity_browser.bwutils.superstructure.utils import SUPERSTRUCTURE
@@ -142,3 +146,32 @@ def test_csv_empty_keys_are_filled_from_the_databases(tmp_path):
 
     assert list(df["from key"]) == [("db", "steel"), (bd.config.biosphere, "co2")]
     assert list(df["to key"]) == [("db", "car"), ("db", "car")]
+
+
+def test_coerce_identity_columns_parses_tuple_literals_on_string_columns():
+    df = pd.DataFrame(
+        {
+            "from key": ["('db', 'a')", None],
+            "to key": ["('db', 'b')", "('db', 'c')"],
+            "from categories": ["('air',)", None],
+            "to categories": [None, None],
+        }
+    )
+    out = coerce_identity_columns(df)
+    assert out.loc[0, "from key"] == ("db", "a")
+    assert out.loc[0, "to key"] == ("db", "b")
+    assert out.loc[0, "from categories"] == ("air",)
+
+
+def test_coerce_identity_columns_keeps_existing_tuples():
+    df = pd.DataFrame(
+        {
+            "from key": [("db", "a")],
+            "to key": [("db", "b")],
+            "from categories": [("air", "unspecified")],
+            "to categories": [None],
+        }
+    )
+    out = coerce_identity_columns(df)
+    assert out.loc[0, "from key"] == ("db", "a")
+    assert out.loc[0, "from categories"] == ("air", "unspecified")

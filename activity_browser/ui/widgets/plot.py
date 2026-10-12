@@ -804,7 +804,11 @@ class ABPlot(QtWidgets.QWidget):
         if ax.title:
             ax.title.set_color(rc["text.color"])
         for line in ax.lines:
-            x, y = np.asarray(line.get_xdata()), np.asarray(line.get_ydata())
+            try:
+                x = np.asarray(line.get_xdata(), dtype=float)
+                y = np.asarray(line.get_ydata(), dtype=float)
+            except (TypeError, ValueError):
+                continue
             if x.size >= 2 and y.size >= 2 and (
                 (np.allclose(y, 0) and not np.allclose(x, 0))
                 or (np.allclose(x, 0) and not np.allclose(y, 0))
