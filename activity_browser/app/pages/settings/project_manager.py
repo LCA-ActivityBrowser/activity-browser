@@ -62,6 +62,11 @@ class ProjectManagerSettingsChapter(BaseSettingsChapter):
         """Reset to initial values."""
         self.sync()
 
+    def refresh_templates(self):
+        """Fetch the remote template catalogue again, e.g. after it failed at startup."""
+        fetch_remote_projects.cache_clear()
+        self.sync()
+
     def has_changes(self):
         """Project manager doesn't have editable settings."""
         return False
@@ -201,10 +206,15 @@ class ProjectModel(core.ABTreeModel):
 class TemplateView(widgets.ABTreeView):
 
     class ContextMenu(widgets.ABMenu):
-        menuSetup = []
+        menuSetup = [
+            lambda m, p: m.callback(
+                "Refresh remote templates", p.chapter.refresh_templates
+            ),
+        ]
 
     def __init__(self, parent):
         super().__init__(parent)
+        self.chapter = parent
         self.setSortingEnabled(True)
         self.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectionBehavior.SelectRows)
 
