@@ -94,6 +94,8 @@ class ABLoader(QtWidgets.QWidget):
         self.load_finished()
 
     def load_finished(self):
+        # Most of startup wall time is here (app package + apply_settings), not in ModuleThread.
+        self.text_label.setText("Building main window")
         from activity_browser import app
 
         load_plugins()
@@ -126,7 +128,6 @@ def run_activity_browser():
 
     app.set_icon()  # setting this here seems to fix the icon not showing sometimes
     sys.exit(app.exec_())
-
 
 def run_activity_browser_no_launcher():
     pre_flight_checks()

@@ -5,12 +5,18 @@ import os
 
 from activity_browser.ui.core.application import ABApplication
 from activity_browser.bwutils.metadata import MetaDataStore
-from activity_browser.bwutils.settings import Settings
+from activity_browser.bwutils.settings import Settings, activate_configured_project
 from .main import MainWindow
 
 application = ABApplication()
-metadata = MetaDataStore(application)
 settings = Settings()
+metadata = MetaDataStore(application)
+
+# Before ABSignals/MainWindow: open the configured project so the later
+# apply_settings(load=True) only syncs panes (no second project_changed).
+_skip_startup = bool(os.environ.get("AB_SKIP_SETTINGS_ON_STARTUP"))
+if not _skip_startup:
+    activate_configured_project(settings)
 
 # modules dependent on application instance
 from .signalling import ABSignals
@@ -26,6 +32,5 @@ from . import dialogs
 main_window = MainWindow()
 application.main_window = main_window
 
-if not os.environ.get("AB_SKIP_SETTINGS_ON_STARTUP"):
+if not _skip_startup:
     main_window.apply_settings(load=True)  # Ensure settings are applied at startup
-

@@ -1,5 +1,7 @@
 import copy
 import json
+from pathlib import Path
+
 import bw2data as bd
 import bw2data.signals as bw_signals
 import blinker
@@ -109,4 +111,25 @@ class Settings:
         project_path = get_project_ab_path() / "settings.json"
         project_path.unlink(missing_ok=True)
 
+
+def activate_configured_project(settings: "Settings | None" = None) -> bool:
+    """Switch Brightway to the configured data dir / startup project if needed.
+
+    Call before UI listens to ``project_changed`` — ``set_current`` always emits,
+    and that rebuild is costly once MainWindow is connected.
+
+    Returns True if a switch ran.
+    """
+    if settings is None:
+        settings = Settings()
+
+    base_dir = Path(settings["startup"]["brightway_directory"])
+    project_name = settings["startup"]["startup_project"]
+    if Path(bd.projects._base_data_dir) == base_dir and bd.projects.current == project_name:
+        return False
+
+    bd.projects.change_base_directories(
+        base_dir, project_name=project_name, update=False
+    )
+    return True
 
