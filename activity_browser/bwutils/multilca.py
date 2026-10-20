@@ -343,6 +343,15 @@ class MLCA(object):
         )
 
 
+def _accepts_contributions(mlca) -> bool:
+    """MLCA and the datapackage Scenario result both feed contribution tabs."""
+    if isinstance(mlca, MLCA):
+        return True
+    from activity_browser.bwutils.scenario_datapackage import ABMultiLCA
+
+    return isinstance(mlca, ABMultiLCA)
+
+
 class Contributions(object):
     """Contribution Analysis built on top of the Multi-LCA class.
 
@@ -387,7 +396,7 @@ class Contributions(object):
     def __init__(self, mlca):
         from activity_browser.app import metadata
 
-        if not isinstance(mlca, MLCA):
+        if not _accepts_contributions(mlca):
             raise ValueError("Must pass an MLCA object. Passed:", type(mlca))
         self.mlca = mlca
 

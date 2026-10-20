@@ -95,6 +95,12 @@ class CalculationSetupPage(widgets.ABAbstractPage):
         if self.type_dropdown.currentText() == "Standard":
             app.actions.CSCalculate.run(self.calculation_setup_name)
         elif self.type_dropdown.currentText() == "Scenario":
-            scenario_data = self.scenario_section.scenario_dataframe()
-            app.actions.CSCalculate.run(self.calculation_setup_name, scenario_data)
+            if self.scenario_section.uses_datapackage():
+                app.actions.CSCalculate.run(
+                    self.calculation_setup_name,
+                    scenario_datapackage=self.scenario_section.scenario_datapackage(),
+                )
+            else:
+                scenario_data = self.scenario_section.scenario_dataframe()
+                app.actions.CSCalculate.run(self.calculation_setup_name, scenario_data)
 

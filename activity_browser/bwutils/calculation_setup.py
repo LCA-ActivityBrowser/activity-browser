@@ -26,6 +26,12 @@ SCENARIO_COMBINE = "scenario_combine"
 SCENARIO_INCLUDED = "scenario_included"
 SCENARIO_AXES = "scenario_axes"
 
+SCENARIO_INPUT = "scenario_input"
+SCENARIO_DATAPACKAGE_PATH = "scenario_datapackage_path"
+SCENARIO_DATAPACKAGE_INCLUDED = "scenario_datapackage_included"
+INPUT_SDF = "sdf"
+INPUT_DATAPACKAGE = "datapackage"
+
 
 def active_flags(cs: dict, list_key: str) -> list[bool]:
     n = len(cs.get(list_key, []))
@@ -116,6 +122,74 @@ def set_scenario_persistence(
     cs[SCENARIO_INCLUDED] = list(included)
     cs[SCENARIO_AXES] = [list(ax) for ax in axes]
     _save(cs_name, cs)
+
+
+def scenario_input_kind(cs: dict) -> str:
+    """Active scenario input. A missing kind means scenario difference files."""
+    if cs.get(SCENARIO_INPUT) == INPUT_DATAPACKAGE:
+        return INPUT_DATAPACKAGE
+    return INPUT_SDF
+
+
+def set_scenario_input(cs_name: str, kind: str) -> None:
+    """Persist which scenario input Calculate uses. The other side stays stored."""
+    if kind not in (INPUT_SDF, INPUT_DATAPACKAGE):
+        raise ValueError(f"Unknown scenario input: {kind!r}")
+    cs = bd.calculation_setups[cs_name]
+    cs[SCENARIO_INPUT] = kind
+    _save(cs_name, cs)
+
+
+def get_scenario_datapackage(cs: dict) -> dict | None:
+    """Datapackage path and included names, or None when no path is stored.
+
+    ``included`` is ``None`` when the calculation setup has a path but no
+    inclusion list yet.
+    """
+    path = cs.get(SCENARIO_DATAPACKAGE_PATH)
+    if not path:
+        return None
+    included = cs.get(SCENARIO_DATAPACKAGE_INCLUDED)
+    return {
+        SCENARIO_DATAPACKAGE_PATH: str(path),
+        SCENARIO_DATAPACKAGE_INCLUDED: None if included is None else list(included),
+    }
+
+
+def set_scenario_datapackage_persistence(
+    cs_name: str, path: str, included: Sequence[str]
+) -> None:
+    """Persist the datapackage path and included scenario names."""
+    cs = bd.calculation_setups[cs_name]
+    cs[SCENARIO_DATAPACKAGE_PATH] = str(path)
+    cs[SCENARIO_DATAPACKAGE_INCLUDED] = list(included)
+    _save(cs_name, cs)
+
+
+def clear_scenario_datapackage_persistence(cs_name: str) -> None:
+    """Drop the datapackage path and inclusion. Scenario difference files stay."""
+    cs = bd.calculation_setups[cs_name]
+    cs.pop(SCENARIO_DATAPACKAGE_PATH, None)
+    cs.pop(SCENARIO_DATAPACKAGE_INCLUDED, None)
+    _save(cs_name, cs)
+
+
+def reconcile_datapackage_inclusion(
+    saved: Sequence[str] | None, names: Sequence[str]
+) -> tuple[list[str], bool]:
+    """Return included names in package order, and whether the saved set was stale.
+
+    ``saved is None`` selects every name without a mismatch. An explicit empty
+    list stays empty. Any saved name that is not in ``names`` selects all.
+    """
+    names = list(names)
+    if saved is None:
+        return names, False
+    saved_list = list(saved)
+    if any(name not in names for name in saved_list):
+        return names, True
+    saved_set = set(saved_list)
+    return [name for name in names if name in saved_set], False
 
 
 def clear_scenario_persistence(cs_name: str) -> None:

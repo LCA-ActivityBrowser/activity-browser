@@ -87,8 +87,16 @@ def lca_for_tree_selection(
     ``prepared_lca_inputs`` (rebuild when demand databases change).
     """
     if has_scenarios:
-        if mlca is None:
-            raise ValueError("Scenario Tree LCA requires SuperstructureMLCA")
+        from activity_browser.bwutils.scenario_datapackage import ABMultiLCA
+        from activity_browser.bwutils.superstructure.mlca import SuperstructureMLCA
+
+        if isinstance(mlca, ABMultiLCA):
+            idx = 0 if scenario_idx is None else scenario_idx
+            return mlca.singular_lca(demand, method, idx), None
+        if not isinstance(mlca, SuperstructureMLCA):
+            raise ValueError(
+                "Scenario Tree LCA requires SuperstructureMLCA or ABMultiLCA"
+            )
         idx = 0 if scenario_idx is None else scenario_idx
         mlca.update_lca_calculation_for_sankey(idx, demand, method_idx)
         return mlca.lca, None

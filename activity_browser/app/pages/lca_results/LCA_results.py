@@ -1612,11 +1612,17 @@ class FirstTierContributionsTab(ContributionTab):
             # get score from the already calculated result
             score = self.parent.mlca.lca_scores[demand_index, method_index, scenario_index]
 
-            # get lca object from mlca class
-            self.parent.mlca.current = scenario_index
-            self.parent.mlca.update_matrices()
-            _lca = self.parent.mlca.lca
-            _lca.redo_lci(demand)
+            from activity_browser.bwutils.scenario_datapackage import ABMultiLCA
+
+            if isinstance(self.parent.mlca, ABMultiLCA):
+                self.parent.mlca.set_scenario(scenario_index)
+                _lca = self.parent.mlca.singular_lca(demand, method, scenario_index)
+            else:
+                # get lca object from mlca class
+                self.parent.mlca.current = scenario_index
+                self.parent.mlca.update_matrices()
+                _lca = self.parent.mlca.lca
+                _lca.redo_lci(demand)
 
         else:
             # get score from the already calculated result
@@ -2027,6 +2033,8 @@ class MonteCarloTab(NewAnalysisTab):
             seed=seed,
             **includes,
         )
+        # ABMultiLCA is not a SuperstructureMLCA, so Monte Carlo does not apply
+        # a scenario-difference overlay to a datapackage Scenario LCA.
         if self.has_scenarios and isinstance(self.parent.mlca, SuperstructureMLCA):
             scenario_name = self._selected_scenario_name()
             if scenario_name is None:

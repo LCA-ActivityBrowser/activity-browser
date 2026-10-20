@@ -30,6 +30,7 @@ class ScenarioSection(QtWidgets.QWidget):
         self._axes: list[list[str]] = []
         self._mode: str | None = None
         self._last_inclusion_mismatch = False
+        self._datapackage_loaded_this_session = False
 
         # set up the control buttons
         self.table_btn = QtWidgets.QPushButton("Add scenarios...", self)
@@ -111,13 +112,41 @@ class ScenarioSection(QtWidgets.QWidget):
         self.stats_widget = QtWidgets.QLabel()
         self.update_stats()
 
+        self.sdf_panel = QtWidgets.QWidget(self)
+        sdf_layout = QtWidgets.QVBoxLayout()
+        sdf_layout.setContentsMargins(0, 0, 0, 0)
+        sdf_layout.addLayout(tool_row)
+        sdf_layout.addLayout(content_row)
+        sdf_layout.addStretch(1)
+        sdf_layout.addWidget(self.stats_widget)
+        self.sdf_panel.setLayout(sdf_layout)
+
+        self.datapackage_panel = DatapackageScenarioPanel(self)
+        self.datapackage_panel.hide()
+
+        self.sdf_choice = QtWidgets.QRadioButton("SDF", self)
+        self.sdf_choice.setToolTip("Scenario difference files")
+        self.sdf_choice.setChecked(True)
+        self.datapackage_choice = QtWidgets.QRadioButton("Datapackage", self)
+        self.datapackage_choice.setToolTip("One scenario datapackage")
+        self.input_group = QtWidgets.QButtonGroup(self)
+        self.input_group.setExclusive(True)
+        self.input_group.addButton(self.sdf_choice)
+        self.input_group.addButton(self.datapackage_choice)
+
+        input_row = QtWidgets.QHBoxLayout()
+        input_row.setContentsMargins(10, 0, 0, 0)
+        input_row.addWidget(widgets.ABLabel.demiBold("Scenario input:", self))
+        input_row.addWidget(self.sdf_choice)
+        input_row.addWidget(self.datapackage_choice)
+        input_row.addStretch(1)
+
         # construct the full layout
         layout = QtWidgets.QVBoxLayout()
         layout.setContentsMargins(0, 0, 10, 0)
-        layout.addLayout(tool_row)
-        layout.addLayout(content_row)
-        layout.addStretch(1)
-        layout.addWidget(self.stats_widget)
+        layout.addLayout(input_row)
+        layout.addWidget(self.sdf_panel)
+        layout.addWidget(self.datapackage_panel)
         self.setLayout(layout)
 
         self.connect_signals()
@@ -132,6 +161,8 @@ class ScenarioSection(QtWidgets.QWidget):
         self.save_scenario.clicked.connect(self.save_action)
         self.help_btn.clicked.connect(self.show_scenarios_help)
         self.combine_group.buttonClicked.connect(self.toggle_combine_type)
+        self.input_group.buttonClicked.connect(self._on_scenario_input_clicked)
+        app.signals.project.changed.connect(self._reset_datapackage_on_project_change)
 
     def get_template_action(self) -> None:
         """Save a parameter- or flow-scenario starter template chosen by the user."""
@@ -327,16 +358,181 @@ class ScenarioSection(QtWidgets.QWidget):
         self._set_included(included)
         return mismatched
 
+    def uses_datapackage(self) -> bool:
+        return self.datapackage_choice.isChecked()
+
+    def scenario_datapackage(self) -> dict:
+        """Path and included scenario names currently shown on the datapackage side."""
+        return {
+            "path": self.datapackage_panel.path(),
+            "included": self.datapackage_panel.included_names(),
+        }
+
     def load_persisted_scenarios(self) -> None:
-        """Reload scenario files from the CS when entering Scenario mode."""
+        """Restore the saved scenario input and load only that side."""
+        name = self.cs_name()
+        kind = cs_helpers.INPUT_SDF
+        if name and name in bd.calculation_setups:
+            kind = cs_helpers.scenario_input_kind(bd.calculation_setups[name])
+        self._set_input_kind_ui(kind)
+        self.load_active_scenario_input(force=False)
+
+    def load_active_scenario_input(self, *, force: bool) -> None:
+        """Load the visible side from the calculation setup.
+
+        Entering Scenario mode leaves a side that is already loaded. Switching
+        the radio reloads that side from the calculation setup.
+        """
+        if self.uses_datapackage():
+            if self._datapackage_loaded_this_session and not force:
+                return
+            self._load_datapackage_side()
+            self._datapackage_loaded_this_session = True
+            return
+        if (
+            not force
+            and self.tables
+            and any(not table.dataframe.empty for table in self.tables)
+        ):
+            return
+        if force:
+            self.clear_tables()
+        self._load_sdf_from_cs()
+
+    def _set_input_kind_ui(self, kind: str) -> None:
+        self.input_group.blockSignals(True)
+        try:
+            if kind == cs_helpers.INPUT_DATAPACKAGE:
+                self.datapackage_choice.setChecked(True)
+            else:
+                self.sdf_choice.setChecked(True)
+            self._apply_input_visibility()
+        finally:
+            self.input_group.blockSignals(False)
+
+    def _apply_input_visibility(self) -> None:
+        datapackage = self.uses_datapackage()
+        self.sdf_panel.setVisible(not datapackage)
+        self.datapackage_panel.setVisible(datapackage)
+
+    def _on_scenario_input_clicked(self) -> None:
+        kind = (
+            cs_helpers.INPUT_DATAPACKAGE
+            if self.uses_datapackage()
+            else cs_helpers.INPUT_SDF
+        )
+        name = self.cs_name()
+        if name and name in bd.calculation_setups:
+            cs_helpers.set_scenario_input(name, kind)
+        self._apply_input_visibility()
+        self.load_active_scenario_input(force=True)
+
+    def _reset_datapackage_on_project_change(self) -> None:
+        self._datapackage_loaded_this_session = False
+        self.datapackage_panel.clear()
+        self._set_input_kind_ui(cs_helpers.INPUT_SDF)
+
+    def use_datapackage_path(self, path: str) -> None:
+        """Attach one scenario datapackage and select every scenario name."""
+        path = (path or "").strip()
+        name = self.cs_name()
+        if name and name in bd.calculation_setups:
+            cs_helpers.set_scenario_input(name, cs_helpers.INPUT_DATAPACKAGE)
+        if not path:
+            self._clear_datapackage_side()
+            return
+        self._read_datapackage_into_panel(path, included=None)
+
+    def on_datapackage_inclusion_changed(self) -> None:
+        path = self.datapackage_panel.path()
+        name = self.cs_name()
+        if not path or not name or name not in bd.calculation_setups:
+            self.datapackage_panel.update_count()
+            return
+        cs_helpers.set_scenario_datapackage_persistence(
+            name, path, self.datapackage_panel.included_names()
+        )
+        self.datapackage_panel.update_count()
+
+    def _load_datapackage_side(self) -> None:
+        name = self.cs_name()
+        if not name or name not in bd.calculation_setups:
+            self.datapackage_panel.clear()
+            return
+        saved = cs_helpers.get_scenario_datapackage(bd.calculation_setups[name])
+        if not saved:
+            self.datapackage_panel.clear()
+            return
+        path = saved[cs_helpers.SCENARIO_DATAPACKAGE_PATH]
+        if not Path(path).exists():
+            self._warn_and_clear_datapackage(path, missing=True)
+            return
+        self._read_datapackage_into_panel(
+            path, included=saved[cs_helpers.SCENARIO_DATAPACKAGE_INCLUDED]
+        )
+
+    def _read_datapackage_into_panel(self, path: str, included: list[str] | None) -> None:
+        from activity_browser.bwutils.scenario_datapackage import (
+            ScenarioDatapackageError,
+            read_scenario_datapackage,
+        )
+
+        try:
+            contents = read_scenario_datapackage(path)
+        except ScenarioDatapackageError:
+            self._warn_and_clear_datapackage(path, missing=not Path(path).exists())
+            return
+        if contents.used_fallback:
+            QtWidgets.QMessageBox.warning(
+                self,
+                "Scenario names",
+                "Scenario names in this datapackage are missing or do not match "
+                "the scenario columns.\n\nUsing Scenario 0, Scenario 1, and so on.",
+            )
+        chosen, mismatched = cs_helpers.reconcile_datapackage_inclusion(
+            included, contents.names
+        )
+        if mismatched:
+            QtWidgets.QMessageBox.warning(
+                self,
+                "Scenario selection reset",
+                "Saved scenario names no longer match this datapackage. "
+                "All scenarios were selected again.",
+            )
+        name = self.cs_name()
+        if name and name in bd.calculation_setups:
+            cs_helpers.set_scenario_datapackage_persistence(name, path, chosen)
+        self.datapackage_panel.show_scenarios(path, contents.names, chosen)
+
+    def _warn_and_clear_datapackage(self, path: str, *, missing: bool) -> None:
+        if missing:
+            text = (
+                "The scenario datapackage could not be found:\n"
+                f"{path}\n\n"
+                "This side was cleared. Scenario difference files are unchanged."
+            )
+        else:
+            text = (
+                "The scenario datapackage could not be read:\n"
+                f"{path}\n\n"
+                "This side was cleared. Scenario difference files are unchanged."
+            )
+        QtWidgets.QMessageBox.warning(self, "Scenario datapackage", text)
+        self._clear_datapackage_side()
+
+    def _clear_datapackage_side(self) -> None:
+        name = self.cs_name()
+        if name and name in bd.calculation_setups:
+            cs_helpers.clear_scenario_datapackage_persistence(name)
+        self.datapackage_panel.clear()
+
+    def _load_sdf_from_cs(self) -> None:
+        """Reload scenario difference files from the CS."""
         name = self.cs_name()
         if not name or name not in bd.calculation_setups:
             return
         saved = cs_helpers.get_scenario_persistence(bd.calculation_setups[name])
         if not saved:
-            return
-        if self.tables and any(not t.dataframe.empty for t in self.tables):
-            # Already have scenario data loaded in this session.
             return
 
         paths = [Path(p) for p in saved[cs_helpers.SCENARIO_PATHS]]
@@ -536,6 +732,126 @@ class ScenarioSection(QtWidgets.QWidget):
     def save_button(self, visible: bool):
         """Compatibility hook after manual file load; state follows the combined table."""
         self.refresh_save_button()
+
+
+class DatapackageScenarioPanel(QtWidgets.QWidget):
+    """Path, scenario-name checkboxes, and selected-scenario count."""
+
+    def __init__(self, section: ScenarioSection, parent=None):
+        super().__init__(parent or section)
+        self._section = section
+        self._updating = False
+        self._applied_path = ""
+
+        self.path_edit = QtWidgets.QLineEdit(self)
+        self.path_edit.setObjectName("scenario-datapackage-path")
+        self.path_edit.setPlaceholderText("Scenario datapackage (.zip or directory)")
+        self.browse_btn = QtWidgets.QPushButton("Browse...", self)
+        self.browse_btn.setObjectName("scenario-datapackage-browse")
+
+        path_row = QtWidgets.QHBoxLayout()
+        path_row.setContentsMargins(10, 0, 0, 0)
+        path_row.addWidget(widgets.ABLabel.demiBold("Datapackage:", self))
+        path_row.addWidget(self.path_edit, stretch=1)
+        path_row.addWidget(self.browse_btn)
+
+        self.list = QtWidgets.QListWidget(self)
+        self.list.setObjectName("scenario-datapackage-scenarios")
+        self.list.setSelectionMode(QtWidgets.QAbstractItemView.SelectionMode.NoSelection)
+
+        self.count_label = QtWidgets.QLabel(self)
+        self.count_label.setObjectName("scenario-datapackage-count")
+
+        layout = QtWidgets.QVBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addLayout(path_row)
+        layout.addWidget(self.list, stretch=1)
+        layout.addWidget(self.count_label)
+        self.setLayout(layout)
+        self.update_count()
+
+        self.browse_btn.clicked.connect(self._browse)
+        self.path_edit.editingFinished.connect(self._path_edited)
+        self.list.itemChanged.connect(self._on_item_changed)
+
+    def path(self) -> str:
+        return self.path_edit.text().strip()
+
+    def included_names(self) -> list[str]:
+        names = []
+        for row in range(self.list.count()):
+            item = self.list.item(row)
+            if item.checkState() == QtCore.Qt.CheckState.Checked:
+                names.append(item.text())
+        return names
+
+    def show_scenarios(self, path: str, names: list[str], included: list[str]) -> None:
+        included_set = set(included)
+        self._updating = True
+        self.path_edit.blockSignals(True)
+        self.list.blockSignals(True)
+        try:
+            self.path_edit.setText(str(path))
+            self._applied_path = str(path)
+            self.list.clear()
+            for name in names:
+                item = QtWidgets.QListWidgetItem(name)
+                item.setFlags(
+                    item.flags()
+                    | QtCore.Qt.ItemFlag.ItemIsUserCheckable
+                    | QtCore.Qt.ItemFlag.ItemIsEnabled
+                )
+                item.setCheckState(
+                    QtCore.Qt.CheckState.Checked
+                    if name in included_set
+                    else QtCore.Qt.CheckState.Unchecked
+                )
+                self.list.addItem(item)
+        finally:
+            self.list.blockSignals(False)
+            self.path_edit.blockSignals(False)
+            self._updating = False
+        self.update_count()
+
+    def clear(self) -> None:
+        self._updating = True
+        self.path_edit.blockSignals(True)
+        self.list.blockSignals(True)
+        try:
+            self.path_edit.clear()
+            self.list.clear()
+            self._applied_path = ""
+        finally:
+            self.list.blockSignals(False)
+            self.path_edit.blockSignals(False)
+            self._updating = False
+        self.update_count()
+
+    def update_count(self) -> None:
+        total = self.list.count()
+        selected = len(self.included_names())
+        self.count_label.setText(
+            f"Selected scenarios: <b>{selected}</b> / <b>{total}</b>"
+        )
+
+    def _browse(self) -> None:
+        path, _ = QtWidgets.QFileDialog.getOpenFileName(
+            parent=self,
+            caption="Choose scenario datapackage",
+            filter="Datapackage (*.zip);;All files (*)",
+        )
+        if path:
+            self._section.use_datapackage_path(path)
+
+    def _path_edited(self) -> None:
+        if self._updating or self.path() == self._applied_path:
+            return
+        self._section.use_datapackage_path(self.path())
+
+    def _on_item_changed(self, _item: QtWidgets.QListWidgetItem) -> None:
+        if self._updating:
+            return
+        self._section.on_datapackage_inclusion_changed()
 
 
 class ScenarioCombinationsPanel(QtWidgets.QWidget):

@@ -335,9 +335,13 @@ class SuperstructureContributions(Contributions):
     mlca: SuperstructureMLCA
 
     def __init__(self, mlca):
-        if not isinstance(mlca, SuperstructureMLCA):
+        from activity_browser.bwutils.scenario_datapackage import ABMultiLCA
+
+        if not isinstance(mlca, (SuperstructureMLCA, ABMultiLCA)):
             raise TypeError(
-                "Must pass a SuperstructureMLCA object. Passed: {}".format(type(mlca))
+                "Must pass a SuperstructureMLCA or ABMultiLCA object. Passed: {}".format(
+                    type(mlca)
+                )
             )
         super().__init__(mlca)
 
