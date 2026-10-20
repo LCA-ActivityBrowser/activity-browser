@@ -54,7 +54,7 @@ The quantified output (or input in case of a waste treatment system) of the prod
 
 ### Calculation setup (CS)
 
-A named set of reference flow(s) and impact categories used to run LCA / multi-LCA / Monte Carlo. Managed under calculation-setup UI and `app` actions. It can also additionaly include scenarios as a third element in the "Scenario" LCA mode. The CS page always opens in **Standard** mode; switching to **Scenario** mode may reload persisted scenario files (with a loading indication). Scenario file paths, combine mode, and the included scenario-combinations set may be stored on the CS.
+A named set of reference flow(s) and impact categories used to run LCA / multi-LCA / Monte Carlo. Managed under calculation-setup UI and `app` actions. It can also additionaly include scenarios as a third element in the "Scenario" LCA mode. The CS page always opens in **Standard** mode; switching to **Scenario** mode may reload persisted scenario files (with a loading indication). Scenario file paths, combine mode, and the included scenario-combinations set may be stored on the CS. The active scenario input is either scenario difference files or one scenario datapackage. Both may be stored; only the active input is used when calculating.
 
 ### LCIA method / impact category
 
@@ -113,12 +113,17 @@ _Avoid_: giving GSA its own independent scenario dropdown
 
 ### Scenario LCA
 
-An LCA calculation that also considers multiple scenarios for inventory data (based on the superstructure approach). A chosen scenario replaces selected technosphere and biosphere flow amounts; it does not define new uncertainty. Monte Carlo in scenario mode still samples database (and parameter) uncertainty with precedence scenario amount < uncertainty sampling < parameter sampling. See `activity_browser/bwutils/superstructure/`.
-_Avoid_: treating a scenario difference file as an uncertainty distribution
+An LCA calculation that also considers multiple scenarios for inventory data. The scenario input is either the superstructure approach (scenario difference files) or one scenario datapackage, exclusively. A chosen scenario replaces selected technosphere and biosphere flow amounts; it does not define new uncertainty. Monte Carlo in scenario mode still samples database (and parameter) uncertainty with precedence scenario amount < uncertainty sampling < parameter sampling. See `activity_browser/bwutils/superstructure/`.
+_Avoid_: treating a scenario difference file as an uncertainty distribution; mixing scenario difference files and a scenario datapackage in one calculation
+
+### Scenario datapackage
+
+A Brightway scenario data package used as the scenario input for a Scenario LCA. One package per calculation. Distinct from the metadata store’s datapackage `id`.
+_Avoid_: datapackage (alone, when meaning the metadata-store id)
 
 ### Scenario name
 
-The string identifier of a scenario column in a scenario difference file (or in a combined scenario table). Always a string — file importers coerce numeric-looking headers (e.g. Excel `2025`) with `str(...)`. When scenarios from multiple files are combined (product), the combined scenario name is the file-order join of the parts with ` | ` (e.g. `A` and `X` → `A | X`). _Avoid_: scenario header (as a typed value), scenario label when meaning the column identity.
+The string identifier of a scenario column in a scenario difference file (or in a combined scenario table), or of a column in a scenario datapackage. In a scenario datapackage the names are the ordered `scenario_labels` list, one per column. Always a string — file importers coerce numeric-looking headers (e.g. Excel `2025`) with `str(...)`. When scenarios from multiple files are combined (product), the combined scenario name is the file-order join of the parts with ` | ` (e.g. `A` and `X` → `A | X`). _Avoid_: scenario header (as a typed value), scenario label when meaning the column identity.
 
 ### Scenario-combinations list
 

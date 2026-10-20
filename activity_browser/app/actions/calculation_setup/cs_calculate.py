@@ -14,6 +14,39 @@ from activity_browser.app.actions.base import ABAction, exception_dialogs
 from activity_browser.ui.icons import qicons
 
 
+_NO_SCENARIOS_TEXT = (
+    "Select at least one scenario before calculating.\n\n"
+    "Use the checkboxes on the scenario files, or the combinations "
+    "list when combining multiple files."
+)
+
+
+def _warn_datapackage_refusal(reason: str) -> None:
+    from activity_browser.bwutils.scenario_datapackage import (
+        EMPTY,
+        MISSING,
+        NO_PATH,
+        UNREADABLE,
+    )
+
+    messages = {
+        NO_PATH: (
+            "Scenario datapackage",
+            "Choose a scenario datapackage before calculating.",
+        ),
+        MISSING: (
+            "Scenario datapackage",
+            "The scenario datapackage could not be found. Calculation did not start.",
+        ),
+        UNREADABLE: (
+            "Scenario datapackage",
+            "The file is not a readable sequential scenario datapackage. "
+            "Calculation did not start.",
+        ),
+        EMPTY: ("No scenarios selected", _NO_SCENARIOS_TEXT),
+    }
+    title, text = messages[reason]
+    QtWidgets.QMessageBox.warning(app.main_window, title, text)
 
 
 class CSCalculate(ABAction):
@@ -27,7 +60,7 @@ class CSCalculate(ABAction):
 
     @staticmethod
     @exception_dialogs
-    def run(cs_name: str, scenario_data: pd.DataFrame = None):
+    def run(cs_name: str, scenario_data: pd.DataFrame = None, scenario_datapackage: dict = None):
         from activity_browser.app import pages
 
         # Check if the calculation setup is complete
@@ -49,15 +82,25 @@ class CSCalculate(ABAction):
                 f"Calculation setup '{cs_name}' has no active impact categories."
             )
 
-        if scenario_data is not None and (
+        if scenario_datapackage is not None:
+            from activity_browser.bwutils.scenario_datapackage import (
+                datapackage_calculation_refusal,
+            )
+
+            refusal = datapackage_calculation_refusal(
+                scenario_datapackage.get("path"),
+                scenario_datapackage.get("included"),
+            )
+            if refusal is not None:
+                _warn_datapackage_refusal(refusal)
+                return
+        elif scenario_data is not None and (
             scenario_data.empty or len(scenario_data.columns) == 0
         ):
             QtWidgets.QMessageBox.warning(
                 app.main_window,
                 "No scenarios selected",
-                "Select at least one scenario before calculating.\n\n"
-                "Use the checkboxes on the scenario files, or the combinations "
-                "list when combining multiple files.",
+                _NO_SCENARIOS_TEXT,
             )
             return
 
@@ -68,7 +111,17 @@ class CSCalculate(ABAction):
         app.application.processEvents()
 
         try:
-            if scenario_data is None:
+            if scenario_datapackage is not None:
+                from activity_browser.bwutils.scenario_datapackage import ABMultiLCA
+
+                mlca = ABMultiLCA(
+                    cs_name,
+                    scenario_datapackage.get("path"),
+                    scenario_datapackage.get("included"),
+                    cs=active_cs,
+                )
+                contributions = SuperstructureContributions(mlca)
+            elif scenario_data is None:
                 mlca = MLCA(cs_name, cs=active_cs)
                 contributions = Contributions(mlca)
             else:

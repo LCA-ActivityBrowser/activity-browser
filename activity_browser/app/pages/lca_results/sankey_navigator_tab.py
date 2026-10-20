@@ -504,10 +504,16 @@ class SankeyNavigatorWidget(widgets.ABAbstractNavigator):
                 if progress.wasCanceled():
                     return
                 if scenario_lca:
-                    self.parent.mlca.update_lca_calculation_for_sankey(
-                        scenario_index, demand, method_index
-                    )
-                    lca = self.parent.mlca.lca
+                    from activity_browser.bwutils.scenario_datapackage import ABMultiLCA
+
+                    if isinstance(self.parent.mlca, ABMultiLCA):
+                        idx = 0 if scenario_index is None or scenario_index < 0 else scenario_index
+                        lca = self.parent.mlca.singular_lca(demand, method, idx)
+                    else:
+                        self.parent.mlca.update_lca_calculation_for_sankey(
+                            scenario_index, demand, method_index
+                        )
+                        lca = self.parent.mlca.lca
                 else:
                     fu, data_objs, _ = prepared_lca_inputs(demand, method)
                     lca = bc.LCA(demand=fu, data_objs=data_objs)
