@@ -136,7 +136,7 @@ class MetaDataStore(QObject):
         df = self._dataframe.query(
             " and ".join(
                 [
-                    f"`{key}`.fillna('').astype(str) == {str(value)!r}" if not pd.isna(value) else f"`{key}`.isna()"
+                    f"`{key}`.fillna('').astype('str') == {str(value)!r}" if not pd.isna(value) else f"`{key}`.isna()"
                     for key, value in kwargs.items()
                 ])
         )
@@ -190,7 +190,7 @@ class MetaDataStore(QObject):
             if params:
                 extra_query = " & ".join(
                     [
-                        f"`{key}`.fillna('').astype(str).str.contains('{value}', case=False)"
+                        f"`{key}`.fillna('').astype('str').str.contains('{value}', case=False)"
                         for key, value in params.items()
                         if key in df.columns
                     ]
@@ -216,7 +216,7 @@ class MetaDataStore(QObject):
         if params:
             extra_query = " & ".join(
                 [
-                    f"`{key}`.fillna('').astype(str).str.contains('{value}', case=False)"
+                    f"`{key}`.fillna('').astype('str').str.contains('{value}', case=False)"
                     for key, value in params.items()
                     if key in df.columns
                 ]
@@ -253,7 +253,7 @@ class MetaDataStore(QObject):
 
         extra_query = " & ".join(
             [
-                f"`{key}`.fillna('').astype(str).str.contains('{value}', False)"
+                f"`{key}`.fillna('').astype('str').str.contains('{value}', False)"
                 for key, value in params.items()
                 if key in df.columns
             ]
