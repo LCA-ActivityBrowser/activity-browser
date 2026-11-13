@@ -251,8 +251,8 @@ class ABSignals(QObject):
         logger.log("SIGNAL", f"Database: written: {time() - t:.2f} seconds")
 
     def _on_project_changed(self, sender, dataset=None, **_kwargs):
-        # bw2data 4.7: project_changed.send(dataset)
-        # bw2data 4.8+: project_changed.send(manager, dataset=dataset)
+        # bw2data 4.8 API (brightway2-data#305): send(manager, dataset=...).
+        # Still accept 4.7 positional send(dataset).
         ds = dataset if dataset is not None else sender
         t = time()
         self.project.changed.emit(ds, self._project_dataset)
@@ -260,8 +260,7 @@ class ABSignals(QObject):
         logger.log("SIGNAL", f"Project: changed: {time() - t:.2f} seconds")
 
     def _on_project_created(self, sender, dataset=None, **_kwargs):
-        # bw2data 4.7: project_created.send(dataset)
-        # bw2data 4.8+: project_created.send(manager, dataset=dataset)
+        # Same 4.7 / 4.8 dual signature as _on_project_changed.
         t = time()
         self.project.created.emit()
         logger.log("SIGNAL", f"Project: created: {time() - t:.2f} seconds")

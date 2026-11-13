@@ -16,9 +16,14 @@ def write_functional_database(
     process: bool = True,
     mark_dirty: bool = False,
 ) -> bf.FunctionalSQLiteDatabase:
-    """Write a ``functional_sqlite`` database and register it in the current project."""
+    """Write a ``functional_sqlite`` database and register it in the current project.
+
+    Always pass ``signal=True``: under bw2data 4.8, ``write`` defaults
+    ``signal`` to ``projects.dataset.is_sourced``, so unsourced test projects
+    would skip ``on_database_write`` and leave MetaDataStore empty.
+    """
     db = bf.FunctionalSQLiteDatabase(name)
-    db.write(deepcopy(data), process=process)
+    db.write(deepcopy(data), process=process, signal=True)
     if mark_dirty:
         db.metadata["dirty"] = True
     bd.databases.flush()

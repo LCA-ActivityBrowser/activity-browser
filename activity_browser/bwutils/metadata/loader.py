@@ -47,9 +47,10 @@ class MDSLoader(QObject):
             self.load_project()
 
     def on_project_changed(self, sender, dataset=None, **_kwargs):
-        """Called when the Brightway project changes.
+        """Reload MDS when the Brightway project changes.
 
-        Accepts bw2data 4.7 (``send(dataset)``) and 4.8+ (``send(manager, dataset=...)``).
+        Compatible with bw2data 4.7 ``send(dataset)`` and 4.8
+        ``send(manager, dataset=...)`` (brightway2-data#305).
         """
         self.load_project()
 
@@ -457,17 +458,33 @@ def ensure_database_reload_scheduler(parent: QObject | None = None) -> None:
 
 
 def schedule_database_metadata_reload(db_name: str) -> None:
-    """Ask the GUI thread to reload one database in the Metadata store.
+    """Reload one database in the Metadata store on the GUI thread.
 
     The reload scheduler must already exist (created at MDS loader init on the
-    GUI thread). This function only emits.
+    GUI thread).
+
+    Under bw2data 4.8, ``signaleddataset_on_save`` is skipped for unsourced
+    projects (brightway2-data#299 / #305), so MDS relies on ``on_database_write``
+    → this reload. If we are already on the GUI thread, load synchronously so
+    callers (and tests without an event-loop spin) see updated metadata
+    immediately; otherwise queue to the GUI thread. Mark ``secondary_status``
+    loading before any queued slot so waiters do not observe a stale ``done``.
     """
     if _reload_scheduler is None:
         raise RuntimeError(
             "Metadata reload scheduler was not created on the GUI thread; "
             "ensure MDSLoader initialized before scheduling reloads"
         )
-    _reload_scheduler.reload_requested.emit(db_name)
+    from qtpy.QtCore import QThread
+
+    from activity_browser import app
+
+    loader = app.metadata.loader
+    loader.secondary_status = "loading"
+    if QThread.currentThread() is app.application.thread():
+        loader.load_database(db_name)
+    else:
+        _reload_scheduler.reload_requested.emit(db_name)
 
 
 # --- Hold reloads while a worker still has Brightway SQLite open (ADR-0013) ---
