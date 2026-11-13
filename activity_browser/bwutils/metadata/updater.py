@@ -20,6 +20,10 @@ class MDSUpdater(QObject):
         from bw2data import signals
         from bw2data.meta import databases
 
+        # bw2data 4.8 gates signaleddataset_on_save on is_sourced; restore emit
+        # for MetaDataStore / ABSignals on unsourced projects.
+        from . import signaled_save_compat  # noqa: F401
+
         signals.signaleddataset_on_save.connect(self.on_signaleddataset_save)
         signals.signaleddataset_on_delete.connect(self.on_signaleddataset_delete)
         signals.on_database_delete.connect(self.on_database_deleted_bw)

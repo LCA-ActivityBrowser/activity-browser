@@ -10,6 +10,7 @@ This directory handles storage, retrieval, and management of metadata associated
 
 **Prefer the MetaDataStore for activity metadata reads.** `app.metadata` is already loaded in memory. Do not query Brightway SQLite (`ActivityDataset`) or `bd.get_node` for display labels (name, product, location, unit, database, …) when the store has the row.
 
+- **bw2data 4.8:** `signaled_save_compat.py` re-enables `signaleddataset_on_save` on unsourced projects (upstream #299 gated it for revisions); without that, incremental MDS updates never run.
 - **Reads:** `app.metadata.get_metadata(keys, columns)` by `(database, code)`, or filter `app.metadata.dataframe` on the `id` column (Brightway datapackage id).
 - **Writes:** mutate via Brightway APIs (actions). The store updates from bw signals.
 - **Fallback:** Brightway only if the row or field is missing from the store, or you need a live activity proxy (exchanges, save).

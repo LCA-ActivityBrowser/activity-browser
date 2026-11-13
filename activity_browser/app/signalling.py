@@ -154,6 +154,9 @@ class ABSignals(QObject):
         patch_methods_datastore()
         patch_projects()
 
+        # Ensure SignaledDataset.save emits on unsourced projects before we connect.
+        from activity_browser.bwutils.metadata import signaled_save_compat  # noqa: F401
+
         signals.signaleddataset_on_save.connect(self._on_signaleddataset_on_save)
         signals.signaleddataset_on_delete.connect(self._on_signaleddataset_on_delete)
         signals.on_activity_database_change.connect(self._on_activity_database_change)
