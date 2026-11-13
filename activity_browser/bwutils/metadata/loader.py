@@ -46,8 +46,11 @@ class MDSLoader(QObject):
         if self.primary_status == "idle":
             self.load_project()
 
-    def on_project_changed(self, sender):
-        """Called when the Brightway project changes."""
+    def on_project_changed(self, sender, dataset=None, **_kwargs):
+        """Called when the Brightway project changes.
+
+        Accepts bw2data 4.7 (``send(dataset)``) and 4.8+ (``send(manager, dataset=...)``).
+        """
         self.load_project()
 
     def load_project(self):

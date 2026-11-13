@@ -250,13 +250,18 @@ class ABSignals(QObject):
         self.database.written.emit(Database(name))
         logger.log("SIGNAL", f"Database: written: {time() - t:.2f} seconds")
 
-    def _on_project_changed(self, ds):
+    def _on_project_changed(self, sender, dataset=None, **_kwargs):
+        # bw2data 4.7: project_changed.send(dataset)
+        # bw2data 4.8+: project_changed.send(manager, dataset=dataset)
+        ds = dataset if dataset is not None else sender
         t = time()
         self.project.changed.emit(ds, self._project_dataset)
         self._project_dataset = ds
         logger.log("SIGNAL", f"Project: changed: {time() - t:.2f} seconds")
 
-    def _on_project_created(self, ds):
+    def _on_project_created(self, sender, dataset=None, **_kwargs):
+        # bw2data 4.7: project_created.send(dataset)
+        # bw2data 4.8+: project_created.send(manager, dataset=dataset)
         t = time()
         self.project.created.emit()
         logger.log("SIGNAL", f"Project: created: {time() - t:.2f} seconds")
