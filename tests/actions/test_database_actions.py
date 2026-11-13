@@ -152,6 +152,12 @@ def test_database_export_bw2package(monkeypatch, qtbot, basic_database, tmp_path
         "getSaveFileName",
         staticmethod(lambda *args, **kwargs: (test_path, "")),
     )
+    # basic fixture has formulas; avoid blocking Yes/No parameter warning in offscreen CI.
+    monkeypatch.setattr(
+        QtWidgets.QMessageBox,
+        "warning",
+        staticmethod(lambda *args, **kwargs: QtWidgets.QMessageBox.Yes),
+    )
     
     # Call the action
     app.actions.DatabaseExportBW2Package.run([basic_database.name])

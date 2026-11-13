@@ -44,7 +44,9 @@ dependencies = [
     "bw_simapro_csv >=0.2.6",
     "ecoinvent_interface",
     "matrix_utils>=0.5",
-    "bw-functional>=0b97",
+    # Temporary: exercise unmerged bw2data 4.8 dual-API fix on CI. Revert to
+    # "bw-functional>=0b97" (or a released version) after that PR is merged.
+    "bw-functional @ git+https://github.com/LCA-ActivityBrowser/bw-functional.git@fix-bw2data-48-project-signals",
     "networkx",
     "numpy>=1.26",
     "pandas>=2.3,<4",

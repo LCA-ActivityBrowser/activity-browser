@@ -68,7 +68,9 @@ def _run_gsa(mc: MonteCarloLCA) -> GlobalSensitivityAnalysis:
 @bw2test
 def gsa_mc_project():
     """One parameterized MC project for the whole module (shared MC/GSA runs)."""
-    write_functional_database("mc", DATABASE_WITH_PARAMETER_FORMULA, process=True)
+    write_functional_database(
+        "mc", DATABASE_WITH_PARAMETER_FORMULA, process=True, signal=False
+    )
     register_parameter_setup(DATABASE_NAME, PARAMETER_SETUP)
     write_method(METHOD_NAME, METHOD, process=True)
     write_calculation_setup(CALCULATION_SETUP_NAME, CALCULATION_SETUP)

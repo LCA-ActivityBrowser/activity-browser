@@ -61,7 +61,7 @@ EV_CASE = {
 
 @bw2test
 def test_rebuild_indexes_database_parameter_formulas_and_recalculates():
-    write_functional_database("ev", EV_CASE, process=True)
+    write_functional_database("ev", EV_CASE, process=True, signal=False)
     bd.parameters.new_database_parameters(
         [{"name": "battery_size", "amount": 0.00262, "formula": ""}],
         "ev",
@@ -85,7 +85,7 @@ def test_rebuild_indexes_database_parameter_formulas_and_recalculates():
 def test_rebuild_leaves_existing_parameters_in_place():
     from bw2data.parameters import DatabaseParameter, ProjectParameter
 
-    write_functional_database("ev", EV_CASE, process=True)
+    write_functional_database("ev", EV_CASE, process=True, signal=False)
     bd.parameters.new_project_parameters(
         [{"name": "proj_k", "amount": 1.5, "formula": ""}]
     )
@@ -130,7 +130,7 @@ def test_rebuild_runs_over_cap_when_database_has_parameters(monkeypatch):
         "activity_browser.bwutils.parameters.formula_exchanges.INDEX_FLOW_CAP",
         0,
     )
-    write_functional_database("ev", EV_CASE, process=True)
+    write_functional_database("ev", EV_CASE, process=True, signal=False)
     bd.parameters.new_database_parameters(
         [{"name": "battery_size", "amount": 0.00262, "formula": ""}],
         "ev",

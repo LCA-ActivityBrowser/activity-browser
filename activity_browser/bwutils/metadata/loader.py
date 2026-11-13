@@ -46,8 +46,12 @@ class MDSLoader(QObject):
         if self.primary_status == "idle":
             self.load_project()
 
-    def on_project_changed(self, sender):
-        """Called when the Brightway project changes."""
+    def on_project_changed(self, sender, dataset=None, **_kwargs):
+        """Reload MDS when the Brightway project changes.
+
+        Compatible with bw2data 4.7 ``send(dataset)`` and 4.8
+        ``send(manager, dataset=...)`` (brightway2-data#305).
+        """
         self.load_project()
 
     def load_project(self):
@@ -457,7 +461,11 @@ def schedule_database_metadata_reload(db_name: str) -> None:
     """Ask the GUI thread to reload one database in the Metadata store.
 
     The reload scheduler must already exist (created at MDS loader init on the
-    GUI thread). This function only emits.
+    GUI thread). This function only emits (``QueuedConnection``).
+
+    Do not call ``load_database`` synchronously from Brightway signal handlers:
+    ``on_database_write`` can still hold the LCI SQLite lock, and a sync reload
+    worker then deadlocks. Fixtures must ``processEvents`` / ``_wait_for_loader``.
     """
     if _reload_scheduler is None:
         raise RuntimeError(

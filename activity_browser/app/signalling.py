@@ -154,6 +154,9 @@ class ABSignals(QObject):
         patch_methods_datastore()
         patch_projects()
 
+        # Ensure SignaledDataset.save emits on unsourced projects before we connect.
+        from activity_browser.bwutils.metadata import signaled_save_compat  # noqa: F401
+
         signals.signaleddataset_on_save.connect(self._on_signaleddataset_on_save)
         signals.signaleddataset_on_delete.connect(self._on_signaleddataset_on_delete)
         signals.on_activity_database_change.connect(self._on_activity_database_change)
@@ -250,13 +253,17 @@ class ABSignals(QObject):
         self.database.written.emit(Database(name))
         logger.log("SIGNAL", f"Database: written: {time() - t:.2f} seconds")
 
-    def _on_project_changed(self, ds):
+    def _on_project_changed(self, sender, dataset=None, **_kwargs):
+        # bw2data 4.8 API (brightway2-data#305): send(manager, dataset=...).
+        # Still accept 4.7 positional send(dataset).
+        ds = dataset if dataset is not None else sender
         t = time()
         self.project.changed.emit(ds, self._project_dataset)
         self._project_dataset = ds
         logger.log("SIGNAL", f"Project: changed: {time() - t:.2f} seconds")
 
-    def _on_project_created(self, ds):
+    def _on_project_created(self, sender, dataset=None, **_kwargs):
+        # Same 4.7 / 4.8 dual signature as _on_project_changed.
         t = time()
         self.project.created.emit()
         logger.log("SIGNAL", f"Project: created: {time() - t:.2f} seconds")
