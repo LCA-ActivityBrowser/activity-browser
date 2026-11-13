@@ -25,6 +25,10 @@ from fixtures.bw_helpers import (
     write_method,
 )
 
+# bw_helpers imports bw_functional, which connects a 4.7-style project_changed
+# handler; patch before any fixture creates/switches projects (bw2data 4.8+).
+import activity_browser.mod.bw_functional  # noqa: F401
+
 os.environ["AB_SKIP_SETTINGS_ON_STARTUP"] = "1"
 os.environ["AB_NO_SEARCHER"] = "1"
 

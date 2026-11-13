@@ -116,6 +116,7 @@ class ModuleThread(QtCore.QThread):
         self.status.emit("Loading Brightway25")
         logger.debug("ABLoader: Importing brightway modules")
         import bw2data, bw2calc, bw2analyzer, bw2io, bw_functional, bw_processing, matrix_utils
+        import activity_browser.mod.bw_functional  # noqa: F401 — bw2data 4.8 project_changed compat
 
 
 def run_activity_browser():
