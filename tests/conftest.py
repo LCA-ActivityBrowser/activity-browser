@@ -202,7 +202,12 @@ def basic_project():
     """
     from fixtures.basic import CALCULATION_SETUP, DATABASE, METHOD
 
-    db = write_functional_database("basic", DATABASE, process=False, mark_dirty=True)
+    # signal=False: DATABASE includes formula ``5+5``; a write signal would index
+    # parameterized flows under ``str(activity.id)`` and break later
+    # ``new_activity_parameters(..., "test_group")`` (Cross group activity).
+    db = write_functional_database(
+        "basic", DATABASE, process=False, mark_dirty=True, signal=False
+    )
     write_method("basic_method", METHOD, process=False)
     write_calculation_setup("basic_calculation_setup", CALCULATION_SETUP)
     yield db
@@ -224,7 +229,9 @@ def mc_project_with_parameters():
         PARAMETER_SETUP,
     )
 
-    write_functional_database("mc", DATABASE_WITH_PARAMETER_FORMULA, process=True)
+    write_functional_database(
+        "mc", DATABASE_WITH_PARAMETER_FORMULA, process=True, signal=False
+    )
     register_parameter_setup(DATABASE_NAME, PARAMETER_SETUP)
     write_method(METHOD_NAME, METHOD, process=True)
     write_calculation_setup(CALCULATION_SETUP_NAME, CALCULATION_SETUP)

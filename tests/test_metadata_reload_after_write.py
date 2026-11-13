@@ -79,8 +79,11 @@ def test_secondary_load_reconnect_does_not_warn(qapp, basic_database):
     import warnings
 
     from activity_browser.app import metadata
-
     loader = metadata.loader
+    # write(..., signal=True) queues a reload; wait before asserting status.
+    from conftest import _wait_for_loader
+
+    _wait_for_loader(qapp, loader)
     assert loader.secondary_status == "done"
 
     with warnings.catch_warnings(record=True) as caught:
