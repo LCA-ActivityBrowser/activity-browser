@@ -82,40 +82,82 @@ class ABLoader(QtWidgets.QWidget):
 
         self.setLayout(layout)
 
+        self._module_thread = None
         self.load_modules()
 
     def load_modules(self):
-        thread = ModuleThread(self)
-        thread.finished.connect(self.load_layout)
-        thread.status.connect(self.text_label.setText)
-        thread.start()
+        self._module_thread = ModuleThread(self)
+        # QThread.finished fires on success and failure; check thread.error before continuing.
+        self._module_thread.finished.connect(self._on_modules_finished)
+        self._module_thread.status.connect(self.text_label.setText)
+        self._module_thread.start()
 
-    def load_layout(self):
+    def _on_modules_finished(self):
+        error = getattr(self._module_thread, "error", None)
+        if error is not None:
+            self._on_load_failed(error)
+            return
         self.load_finished()
 
     def load_finished(self):
         # Most of startup wall time is here (app package + apply_settings), not in ModuleThread.
-        self.text_label.setText("Building main window")
-        from activity_browser import app
+        try:
+            self.text_label.setText("Building main window")
+            from activity_browser import app
 
-        load_plugins()
+            load_plugins()
 
-        app.main_window.show()
-        self.deleteLater()
+            app.main_window.show()
+            self.deleteLater()
+        except Exception as e:
+            self._on_load_failed(e)
+
+    def _on_load_failed(self, exc: BaseException):
+        show_startup_failure(exc, parent=self)
+        qapp = QtWidgets.QApplication.instance()
+        if qapp is not None:
+            qapp.quit()
 
 
 class ModuleThread(QtCore.QThread):
     status: QtCore.SignalInstance = QtCore.Signal(str)
 
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.error: BaseException | None = None
+
     def run(self):
+        self.error = None
+        try:
+            self._load_modules()
+        except Exception as e:
+            logger.exception("Failed to load startup modules")
+            self.error = e
+
+    def _load_modules(self):
         self.status.emit("Loading Numpy")
-        logger.debug("ABLoader: Importing numpy")
+        logger.debug("ABLoader: Importing numpy and pandas")
         import numpy, pandas
         from activity_browser.bwutils.pandas_semantics import apply_pandas_3_semantics
         apply_pandas_3_semantics()
         self.status.emit("Loading Brightway25")
         logger.debug("ABLoader: Importing brightway modules")
         import bw2data, bw2calc, bw2analyzer, bw2io, bw_functional, bw_processing, matrix_utils
+
+
+def show_startup_failure(exc: BaseException, parent=None) -> None:
+    """Show a single actionable dialog when startup cannot continue."""
+    title = "Activity Browser failed to start"
+    text = (
+        f"{type(exc).__name__}: {exc}\n\n"
+        "A required dependency failed to load. Check that your Python "
+        "environment matches the install instructions, then reinstall "
+        "Activity Browser dependencies if needed.\n\n"
+        "See the application log for full details."
+    )
+    QtWidgets.QMessageBox.critical(
+        parent, title, text, QtWidgets.QMessageBox.Ok
+    )
 
 
 def run_activity_browser():
@@ -134,16 +176,24 @@ def run_activity_browser_no_launcher():
 
     modules = ModuleThread()
     modules.run()
+    if modules.error is not None:
+        show_startup_failure(modules.error)
+        sys.exit(1)
 
-    from .ui.widgets import ABCentralPagesWidget
-    from .app import panes, pages, application, metadata
+    try:
+        from .ui.widgets import ABCentralPagesWidget
+        from .app import panes, pages, application, metadata
 
-    load_plugins()
+        load_plugins()
 
-    application.main_window.show()
+        application.main_window.show()
 
-    application.set_icon()  # setting this here seems to fix the icon not showing sometimes
-    sys.exit(application.exec_())
+        application.set_icon()  # setting this here seems to fix the icon not showing sometimes
+        sys.exit(application.exec_())
+    except Exception as e:
+        logger.exception("Failed to build the main window")
+        show_startup_failure(e)
+        sys.exit(1)
 
 
 def pre_flight_checks():
@@ -210,7 +260,8 @@ def load_plugins():
             logger.warning(f"Could not load plugin: {plugin}")
 
 
-if "--no-launcher" in sys.argv:
-    run_activity_browser_no_launcher()
-else:
-    run_activity_browser()
+if __name__ == "__main__":
+    if "--no-launcher" in sys.argv:
+        run_activity_browser_no_launcher()
+    else:
+        run_activity_browser()
