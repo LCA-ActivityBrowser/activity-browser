@@ -39,7 +39,8 @@ class DatabaseSignals(QObject):
 
 
 class ProjectSignals(QObject):
-    changed: SignalInstance = Signal(object, object)  # Project changed | new project dataset, old project dataset
+    # Blinker payload varies by bw2data version; Qt only notifies (read bd.projects if needed).
+    changed: SignalInstance = Signal()
     created: SignalInstance = Signal()
     deleted: SignalInstance = Signal(str)
 
@@ -140,10 +141,6 @@ class ABSignals(QObject):
     def __getattribute__(self, item):
         """Delayed loading of connecting to the brighway signals"""
         setattr(ABSignals, "__getattribute__", super().__getattribute__)
-        import bw2data as bd
-
-        self._project_dataset = bd.projects.dataset
-
         self._connect_bw_signals()
         return super().__getattribute__(item)
 
@@ -155,7 +152,7 @@ class ABSignals(QObject):
         patch_projects()
 
         # Ensure SignaledDataset.save emits on unsourced projects before we connect.
-        from activity_browser.bwutils.metadata import signaled_save_compat  # noqa: F401
+        from activity_browser.mod.bw2data import signaled_save_compat  # noqa: F401
 
         signals.signaleddataset_on_save.connect(self._on_signaleddataset_on_save)
         signals.signaleddataset_on_delete.connect(self._on_signaleddataset_on_delete)
@@ -253,17 +250,14 @@ class ABSignals(QObject):
         self.database.written.emit(Database(name))
         logger.log("SIGNAL", f"Database: written: {time() - t:.2f} seconds")
 
-    def _on_project_changed(self, sender, dataset=None, **_kwargs):
-        # bw2data 4.8 API (brightway2-data#305): send(manager, dataset=...).
-        # Still accept 4.7 positional send(dataset).
-        ds = dataset if dataset is not None else sender
+    def _on_project_changed(self, *_args, **_kwargs):
+        # Trigger only — bw2data 4.7 send(dataset) vs 4.8 send(manager, dataset=...).
+        # Listeners that need state should read bd.projects.
         t = time()
-        self.project.changed.emit(ds, self._project_dataset)
-        self._project_dataset = ds
+        self.project.changed.emit()
         logger.log("SIGNAL", f"Project: changed: {time() - t:.2f} seconds")
 
-    def _on_project_created(self, sender, dataset=None, **_kwargs):
-        # Same 4.7 / 4.8 dual signature as _on_project_changed.
+    def _on_project_created(self, *_args, **_kwargs):
         t = time()
         self.project.created.emit()
         logger.log("SIGNAL", f"Project: created: {time() - t:.2f} seconds")

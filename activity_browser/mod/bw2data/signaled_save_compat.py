@@ -8,9 +8,6 @@ notifications for normal (unsourced) projects.
 Revision ``signal_dispatcher`` already no-ops when not sourced
 (``ProjectDataset.add_revision``), so re-emitting is safe. We still skip the
 old-row query unless the project is sourced.
-
-Lives under ``bwutils/metadata`` (not ``mod/``) so MetaDataStore can apply it
-during app init without importing the heavy ``activity_browser.mod`` package.
 """
 from __future__ import annotations
 

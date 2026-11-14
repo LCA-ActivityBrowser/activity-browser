@@ -46,11 +46,11 @@ class MDSLoader(QObject):
         if self.primary_status == "idle":
             self.load_project()
 
-    def on_project_changed(self, sender, dataset=None, **_kwargs):
+    def on_project_changed(self, *_args, **_kwargs):
         """Reload MDS when the Brightway project changes.
 
-        Compatible with bw2data 4.7 ``send(dataset)`` and 4.8
-        ``send(manager, dataset=...)`` (brightway2-data#305).
+        Ignore blinker payload (4.7 positional dataset vs 4.8
+        ``send(manager, dataset=...)``); ``load_project`` reads current state.
         """
         self.load_project()
 

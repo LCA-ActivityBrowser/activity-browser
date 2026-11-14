@@ -8,6 +8,7 @@ This module contains patches and modifications to external libraries to fix bugs
 
 ## Directory Structure
 
+- **`bw2data/`** - Patches for brightway2-data (e.g. `signaled_save_compat` for unsourced `signaleddataset_on_save`)
 - **`bw2analyzer/`** - Patches for brightway2-analyzer
 - **`bw2io/`** - Patches for brightway2-io
 - **`ecoinvent_interface/`** - Patches for ecoinvent-interface

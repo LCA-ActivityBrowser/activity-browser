@@ -1,36 +1,28 @@
-"""Adapt receivers to bw2data 4.8 project signals (send(manager, dataset=...))."""
+"""Project blinker → Qt / MDS: treat Brightway payload as a trigger only."""
 
 from activity_browser import app  # noqa: F401  — ABApplication before pytest-qt's QApplication
 
 
-def test_ab_signals_project_handlers_accept_both_emit_styles(qtbot):
+def test_ab_signals_project_handlers_ignore_blinker_payload(qtbot):
     signals = app.signals
     _ = signals.project  # connect Brightway bridges
-    previous = signals._project_dataset
 
-    try:
-        manager = object()
-        dataset = object()
+    with qtbot.waitSignal(signals.project.created, timeout=1000):
+        signals._on_project_created(object(), dataset=object())
+    with qtbot.waitSignal(signals.project.changed, timeout=1000):
+        signals._on_project_changed(object(), dataset=object())
 
-        signals._on_project_created(manager, dataset=dataset)
-        signals._on_project_changed(manager, dataset=dataset)
-        assert signals._project_dataset is dataset
-
-        # bw2data 4.7: first positional arg is the dataset
-        older = object()
-        signals._on_project_created(older)
-        signals._on_project_changed(older)
-        assert signals._project_dataset is older
-    finally:
-        signals._project_dataset = previous
+    # bw2data 4.7: first positional arg is the dataset
+    with qtbot.waitSignal(signals.project.created, timeout=1000):
+        signals._on_project_created(object())
+    with qtbot.waitSignal(signals.project.changed, timeout=1000):
+        signals._on_project_changed(object())
 
 
-def test_mds_loader_on_project_changed_accepts_dataset_kwarg(monkeypatch):
-    from activity_browser.bwutils.metadata.loader import MDSLoader
+def test_mds_loader_on_project_changed_ignores_payload(monkeypatch):
     from activity_browser.bwutils.metadata.metadata import MetaDataStore
 
-    mds = MetaDataStore()
-    loader = mds.loader
+    loader = MetaDataStore().loader
     called = []
     monkeypatch.setattr(loader, "load_project", lambda: called.append(True))
 
@@ -44,7 +36,7 @@ def test_signaleddataset_save_emits_on_unsourced_project(qtbot, basic_database):
     import bw2data as bd
     from bw2data.signals import signaleddataset_on_save
 
-    from activity_browser.bwutils.metadata import signaled_save_compat  # noqa: F401
+    from activity_browser.mod.bw2data import signaled_save_compat  # noqa: F401
 
     assert not bd.projects.dataset.is_sourced
 
