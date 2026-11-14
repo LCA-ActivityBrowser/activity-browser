@@ -6,6 +6,7 @@ if __name__ == '__main__':
 
 import sys
 import os
+import traceback
 from importlib import metadata
 
 import requests
@@ -146,18 +147,40 @@ class ModuleThread(QtCore.QThread):
 
 
 def show_startup_failure(exc: BaseException, parent=None) -> None:
-    """Show a single actionable dialog when startup cannot continue."""
+    """Show a single actionable dialog when startup cannot continue.
+
+    Prints the traceback to stderr (copyable from the console) and exposes the
+    same text via Show Details plus a Copy details button — QMessageBox summary
+    labels are not reliably selectable on Windows.
+    """
+    tb = "".join(traceback.format_exception(type(exc), exc, exc.__traceback__))
+    summary = f"{type(exc).__name__}: {exc}"
+    details = f"{summary}\n\n{tb}".rstrip() + "\n"
+
+    logger.opt(exception=exc).error("Activity Browser failed to start")
+    print(details, file=sys.stderr, flush=True)
+
     title = "Activity Browser failed to start"
     text = (
-        f"{type(exc).__name__}: {exc}\n\n"
-        "A required dependency failed to load. Check that your Python "
-        "environment matches the install instructions, then reinstall "
-        "Activity Browser dependencies if needed.\n\n"
-        "See the application log for full details."
+        f"{summary}\n\n"
+        "Startup could not continue. Check that your Python environment "
+        "matches the install instructions, then reinstall Activity Browser "
+        "dependencies if needed.\n\n"
+        "Use Show Details or Copy details for the full traceback "
+        "(also printed to the console)."
     )
-    QtWidgets.QMessageBox.critical(
-        parent, title, text, QtWidgets.QMessageBox.Ok
-    )
+    box = QtWidgets.QMessageBox(parent)
+    box.setIcon(QtWidgets.QMessageBox.Critical)
+    box.setWindowTitle(title)
+    box.setText(text)
+    box.setDetailedText(details)
+    copy_btn = box.addButton("Copy details", QtWidgets.QMessageBox.ActionRole)
+    box.addButton(QtWidgets.QMessageBox.Ok)
+    box.exec_()
+    if box.clickedButton() is copy_btn:
+        qapp = QtWidgets.QApplication.instance()
+        if qapp is not None:
+            qapp.clipboard().setText(details)
 
 
 def run_activity_browser():
