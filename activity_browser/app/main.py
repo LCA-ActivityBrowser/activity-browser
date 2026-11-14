@@ -96,17 +96,30 @@ class MainWindow(widgets.ABMainWindow):
                     self.central_widget.addPage(page)
 
     def apply_settings(self, load=False):
+        """Apply appearance settings; reopen BW dir if it changed; sync panes on load.
 
+        Startup activates the configured project in ``app/__init__`` before UI
+        listeners connect. On ``load=True`` we only :meth:`sync` panes — calling
+        ``set_current`` again would re-emit ``project_changed`` and rebuild UI.
+        """
         base_dir = Path(app.settings["startup"]["brightway_directory"])
 
-        if load or base_dir != bd.projects._base_data_dir:
-            project_name = app.settings["startup"]["startup_project"]
-            bd.projects.change_base_directories(base_dir, project_name=project_name, update=False)
-
+        if Path(bd.projects._base_data_dir) != base_dir:
+            bd.projects.change_base_directories(
+                base_dir,
+                project_name=app.settings["startup"]["startup_project"],
+                update=False,
+            )
             if not bd.projects.twofive:
-                logger.warning(f"Project: {bd.projects.current} is not yet BW25 compatible")
+                logger.warning(
+                    f"Project: {bd.projects.current} is not yet BW25 compatible"
+                )
                 app.actions.ProjectSwitch.set_warning_bar()
-        
+        elif load:
+            # Correct project already active (e.g. activated in app/__init__ before
+            # signals); Brightway will not emit project_changed — build panes here.
+            self.sync()
+
         # Apply color scheme settings
         if app.settings["appearance"]["theme"] == "dark":
             hint = QtCore.Qt.ColorScheme.Dark
@@ -114,19 +127,21 @@ class MainWindow(widgets.ABMainWindow):
             hint = QtCore.Qt.ColorScheme.Light
         else:
             hint = QtCore.Qt.ColorScheme.Unknown
-        
+
         app.application.apply_color_scheme(hint)
 
         # apply pane tab position
         position = app.settings["appearance"]["pane_tab_position"]
         if position == "top":
             qt_position = QtWidgets.QTabWidget.TabPosition.North
-        if position == "bottom":
+        elif position == "bottom":
             qt_position = QtWidgets.QTabWidget.TabPosition.South
-        if position == "left":
+        elif position == "left":
             qt_position = QtWidgets.QTabWidget.TabPosition.West
-        if position == "right":
+        elif position == "right":
             qt_position = QtWidgets.QTabWidget.TabPosition.East
+        else:
+            qt_position = QtWidgets.QTabWidget.TabPosition.South
         self.setTabPosition(QtCore.Qt.DockWidgetArea.AllDockWidgetAreas, qt_position)
 
     def dialog_on_exception(self, exception: Exception):

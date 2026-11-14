@@ -43,6 +43,12 @@ def tree_scenario_mlca():
     write_method("lcia_method_0", METHODS["lcia_method_0"], process=True)
     write_calculation_setup("lcia_1x1", CALCULATION_SETUPS["lcia_1x1"])
 
+    # Superstructure indexing needs MetaDataStore ids; this fixture has no qtbot
+    # to drain the queued post-write reload, so load primary metadata now.
+    from activity_browser.bwutils.metadata import MetaDataStore
+
+    MetaDataStore().loader.load_database(DATABASE_NAME)
+
     df = SuperstructureManager(build_scenario_dataframe()).combined_data()
     mlca = SuperstructureMLCA("lcia_1x1", df)
     mlca.calculate()

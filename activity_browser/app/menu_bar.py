@@ -172,6 +172,7 @@ class CalculateMenu(QtWidgets.QMenu):
 
         app.signals.project.changed.connect(self.sync)
         app.signals.meta.calculation_setups_changed.connect(self.sync)
+        self.sync()  # project may already be active before this menu connected
 
     def sync(self):
         logger.log("SYNC", f"{self.__class__.__name__}: {id(self)}")

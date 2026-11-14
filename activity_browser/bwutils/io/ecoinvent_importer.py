@@ -92,7 +92,9 @@ class Ecoinvent7zImporter:
 
         # creating the actual database
         db = bd.Database(db_name)
-        db.write(db_data, searchable=False)
+        # signal=True: bw2data 4.8 defaults signal to is_sourced; unsourced
+        # projects must still emit on_database_write so MetaDataStore reloads.
+        db.write(db_data, searchable=False, signal=True)
 
     def apply_strategies(self, db_data, biosphere_name):
         strategies = [

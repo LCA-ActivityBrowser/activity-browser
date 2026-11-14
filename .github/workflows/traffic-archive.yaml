@@ -1,0 +1,36 @@
+# Daily snapshots of GitHub traffic (and related) stats via github-repo-stats.
+# GitHub only retains traffic insights for a rolling ~14 days; this persists
+# history and builds HTML/PDF reports on a dedicated data branch.
+#
+# One-time setup: see .github/workflows/README.md § Traffic Archive
+# Secret required: GHRS_GITHUB_API_TOKEN
+name: Archive GitHub traffic
+
+on:
+  schedule:
+    # Daily near end of UTC day so the latest data point is most meaningful
+    - cron: "0 23 * * *"
+  workflow_dispatch:
+
+jobs:
+  stats:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check GHRS_GITHUB_API_TOKEN
+        id: gate
+        run: |
+          if [ -z "${{ secrets.GHRS_GITHUB_API_TOKEN }}" ]; then
+            echo "GHRS_GITHUB_API_TOKEN secret not set — skipping (see workflows README for setup)."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Collect stats and update report
+        if: steps.gate.outputs.ready == 'true'
+        uses: jgehrcke/github-repo-stats@v1.4.2
+        with:
+          ghtoken: ${{ secrets.GHRS_GITHUB_API_TOKEN }}
+          # Stats repo defaults to this repository.
+          # Data is committed to branch github-repo-stats (action default).
+          databranch: github-repo-stats

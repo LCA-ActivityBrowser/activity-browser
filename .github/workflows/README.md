@@ -13,6 +13,7 @@ The Activity Browser project uses several GitHub Actions workflows to automate t
 5. **Stable Release** - Creates releases and publishes to Anaconda
 6. **Milestone Comments** - Automatically notifies users when issues are resolved in releases
 7. **Documentation Deployment** - No workflow, done via GitHub settings
+8. **Traffic Archive** - Daily github-repo-stats snapshots and HTML/PDF reports on branch `github-repo-stats`
 
 ---
 
@@ -211,6 +212,52 @@ Documentation is currently deployed by **GitHub Pages "Deploy from a branch"** (
 - Recommended Pages setting: branch `major`, folder `/docs`
 - Expected Actions entry for docs: GitHub-managed `pages build and deployment`
 
+---
+
+## 8. Traffic Archive (`traffic-archive.yaml`)
+
+**Trigger:** Daily at 23:00 UTC (`cron: 0 23 * * *`), or manual `workflow_dispatch`
+
+**Purpose:** GitHub only retains repository traffic insights for about 14 days. This workflow uses [`jgehrcke/github-repo-stats`](https://github.com/marketplace/actions/github-repo-stats) to snapshot traffic (views/clones, referrers, paths), plus stars/forks evolution, then commits data and HTML/PDF reports to the `github-repo-stats` branch.
+
+### Steps
+1. Skip with a notice if `GHRS_GITHUB_API_TOKEN` is not configured
+2. Run github-repo-stats (reads Traffic API, aggregates history, commits to `databranch`)
+
+### One-time setup
+1. Create a classic PAT with **`repo`** scope (needed for Traffic API + pushing to the data branch). Store it as repository secret `GHRS_GITHUB_API_TOKEN`.
+2. Create an empty orphan data branch (recommended by upstream):
+   ```bash
+   git checkout --orphan github-repo-stats
+   git rm -rf .
+   git commit --allow-empty -m "Initialize github-repo-stats data branch"
+   git push -u origin github-repo-stats
+   git checkout major   # or whatever branch you were on
+   ```
+3. Merge this workflow to the default branch used for Actions, then run **Actions → Archive GitHub traffic → Run workflow** once.
+4. (Optional) Serve the HTML report via GitHub Pages — see [Viewing the report](#viewing-the-report) below.
+
+Data lives only on `github-repo-stats` and does not pollute `major` / `beta`.
+
+### Viewing the report
+
+After at least one successful workflow run, open the data branch:
+
+- **Browse data:** [branch `github-repo-stats`](https://github.com/LCA-ActivityBrowser/activity-browser/tree/github-repo-stats)
+- **Latest HTML report:** [`…/LCA-ActivityBrowser/activity-browser/latest-report/report.html`](https://github.com/LCA-ActivityBrowser/activity-browser/blob/github-repo-stats/LCA-ActivityBrowser/activity-browser/latest-report/report.html)
+- **Latest PDF report:** [`…/latest-report/report.pdf`](https://github.com/LCA-ActivityBrowser/activity-browser/blob/github-repo-stats/LCA-ActivityBrowser/activity-browser/latest-report/report.pdf) (use **Download** / raw if the blob view is awkward)
+
+The HTML report is meant for a browser (charts via Altair/Vega). GitHub’s blob preview is a weak substitute; for a proper dashboard:
+
+1. Repo **Settings → Pages** → source **Deploy from a branch** → branch **`github-repo-stats`** / root (or a docs-compatible layout if you prefer).
+2. After Pages is live, set `ghpagesprefix` in `traffic-archive.yaml` to the site URL **without** a trailing slash, e.g. `https://LCA-ActivityBrowser.github.io/activity-browser`, then re-run the workflow so report links resolve correctly.
+3. Open  
+   `https://LCA-ActivityBrowser.github.io/activity-browser/LCA-ActivityBrowser/activity-browser/latest-report/report.html`  
+   (exact host/path depends on your Pages setup).
+
+The first report is sparse; charts improve as daily snapshots accumulate.
+
+---
 
 ## Workflow Dependencies
 
@@ -218,6 +265,7 @@ Documentation is currently deployed by **GitHub Pages "Deploy from a branch"** (
 - `GITHUB_TOKEN` - Automatically provided by GitHub Actions
 - `CONDA_LCA` - Anaconda upload token for beta releases
 - `CONDA_UPLOAD_TOKEN` - Anaconda upload token for stable releases
+- `GHRS_GITHUB_API_TOKEN` - PAT (`repo` scope) for Traffic API + pushing reports to `github-repo-stats` (see [Traffic Archive](#8-traffic-archive-traffic-archiveyaml))
 
 ### Configuration Files
 - `.github/conda-envs/build.yml` - Conda environment for building packages

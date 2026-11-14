@@ -80,12 +80,27 @@ def index_parameterized_flows_for_process(key: tuple) -> None:
     act = bd.get_activity(key)
     if act.get("type", "process") not in _process_types():
         return
+    from bw2parameters.errors import MissingName
+    from loguru import logger
+
     ap = ActivityParameter.get_or_none(database=key[0], code=key[1])
-    group = ap.group if ap else act.id
+    # Brightway activity-parameter groups are strings (often ``str(activity.id)``).
+    # Using a bare int here creates ParameterizedExchange rows that later conflict
+    # with ``new_activity_parameters`` ("Cross group activity").
+    group = ap.group if ap else str(act.id)
     with bd.parameters.db.atomic():
         bd.parameters.remove_exchanges_from_group(group, act)
         bd.parameters.add_exchanges_to_group(group, act)
-        ActivityParameter.recalculate_exchanges(group)
+        try:
+            ActivityParameter.recalculate_exchanges(group)
+        except MissingName as exc:
+            # Write paths can index formulas before parameters exist
+            # (fixtures register parameters after write(..., signal=True)).
+            logger.debug(
+                "Skip recalculate for {} (undefined formula names): {}",
+                key,
+                exc,
+            )
 
 
 def rebuild_parameterized_flow_index(database: str) -> None:
