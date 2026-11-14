@@ -221,10 +221,11 @@ def check_conda_update():
         print("Could not fetch latest Activity Browser version")
 
     elif ab_current != "0.0.0" and ab_current != ab_response.json()['latest_version']:
-        input("\033[1;31mThere is an update available for the Activity Browser. Please update it using the following command: \n "
-              "conda update -c lca activity-browser\n\n"
+        input("\033[1;31mThere is an update available for the Activity Browser. Please update it using the following commands: \n "
+              "conda update -c conda-forge -c lca activity-browser\n"
+              "pip install PySide6==6.9.3\n\n"
               "Complete installation instructions can be found here:\n\n"
-              "https://lca-activitybrowser.github.io/activity-browser/getting-started/installation.html#installing-from-pypi\n\n"
+              "https://lca-activitybrowser.github.io/activity-browser/getting-started/installation.html#installing-from-anaconda\n\n"
               "Press any key to continue without updating...\033[0m")
 
 
