@@ -15,10 +15,18 @@ def write_functional_database(
     *,
     process: bool = True,
     mark_dirty: bool = False,
+    signal: bool = True,
 ) -> bf.FunctionalSQLiteDatabase:
-    """Write a ``functional_sqlite`` database and register it in the current project."""
+    """Write a ``functional_sqlite`` database and register it in the current project.
+
+    Default ``signal=True``: under bw2data 4.8, ``write`` defaults ``signal`` to
+    ``projects.dataset.is_sourced``, so unsourced projects would skip
+    ``on_database_write`` / MetaDataStore reload. Pass ``signal=False`` when the
+    payload has formulas that are registered only *after* this write (otherwise
+    ``rebuild_parameterized_flow_index`` races fixture setup).
+    """
     db = bf.FunctionalSQLiteDatabase(name)
-    db.write(deepcopy(data), process=process)
+    db.write(deepcopy(data), process=process, signal=signal)
     if mark_dirty:
         db.metadata["dirty"] = True
     bd.databases.flush()
