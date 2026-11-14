@@ -64,4 +64,4 @@ jobs:
     - name: Publish to Anaconda
       run: |
         anaconda -t ${{ secrets.CONDA_LCA }} upload \
-        /usr/share/miniconda/conda-bld/noarch/*.conda
+        "$CONDA/conda-bld/noarch/"*.conda
