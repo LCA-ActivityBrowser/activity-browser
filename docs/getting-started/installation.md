@@ -75,14 +75,16 @@ If you get an error, please download and install miniconda from anaconda.com htt
 ### Activity Browser Beta installation
 Next we're going to create a new environment for the Activity Browser Beta release.
 
+Include the `cmutel` channel so Conda can resolve `bw_simapro_csv` (not on conda-forge).
+
 ```
-conda create -n ab_beta -c conda-forge lca::activity-browser
+conda create -n ab_beta -c conda-forge -c cmutel lca::activity-browser
 ```
 
 In case your Python version is not 3.11, 3.12, 3.13, or 3.14 (the versions currently supported by the AB), then use a command like this (here for Python 3.12):
 
 ```
-conda create -n ab_beta -c conda-forge lca::activity-browser python=3.12
+conda create -n ab_beta -c conda-forge -c cmutel lca::activity-browser python=3.12
 ```
 
 This will go through a few steps, some of which like `solving environment` may take a while. After installation has finished you can

@@ -69,14 +69,15 @@ activity-browser
 ### Quick install — Conda
 
 ```bash
-conda create -n ab_beta -c conda-forge lca::activity-browser
+conda create -n ab_beta -c conda-forge -c cmutel lca::activity-browser
 conda activate ab_beta
 pip install PySide6==6.9.3
 activity-browser
 ```
 
-> **Note:** For AB3 beta, install the `lca` package (`lca::activity-browser`).
-> The older `conda-forge` `activity-browser` package is Activity Browser 2 — see
+> **Note:** For AB3 beta, install the `lca` package (`lca::activity-browser`) and
+> include `-c cmutel` for `bw_simapro_csv`. The older `conda-forge`
+> `activity-browser` package is Activity Browser 2 — see
 > [Activity Browser 2 (legacy)](#activity-browser-2-legacy).
 
 # First Steps
