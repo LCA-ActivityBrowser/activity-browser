@@ -25,6 +25,8 @@ def setup_logging():
     logger.add(log_file, level="DEBUG", rotation="5 MB", retention=5)
 
 def run_activity_browser():
-    from .__main__ import run_activity_browser
+    from . import __main__ as ab_main
+
+    ab_main.run_activity_browser()
 
 setup_logging()
