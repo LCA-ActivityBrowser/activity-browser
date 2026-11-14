@@ -71,6 +71,7 @@ activity-browser
 ```bash
 conda create -n ab_beta -c conda-forge lca::activity-browser
 conda activate ab_beta
+pip install PySide6==6.9.3
 activity-browser
 ```
 

@@ -51,10 +51,10 @@ requirements:
     - setuptools
   run:
     - python >=3.11, <3.15
-    - pyside6 >=6.5.0,<6.12
-    - qt6-webengine
     - qtpy
     # ... more dependencies
+    # PySide6 is installed from PyPI after conda create:
+    #   pip install PySide6==6.9.3
 ```
 
 ### About Section
