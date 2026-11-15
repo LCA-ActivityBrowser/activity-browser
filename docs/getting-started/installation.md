@@ -84,12 +84,14 @@ If you get an error, please download and install miniconda from anaconda.com htt
 Next we're going to create a new environment for the Activity Browser Beta release.
 IF YOUR PYTHON VERSION IS SUPPORTED BY THE AB (see Supported Python versions), you can create the environment like this:
 ```
-conda create -n ab_beta -c conda-forge -c lca -c cmutel activity-browser
+conda create -n ab_beta -c conda-forge -c lca -c cmutel lca::activity-browser
 ```
 In case your python version is not supported, you can specify a specific python version like this (here python 3.12):
 ```
-conda create -n ab_beta -c conda-forge -c lca -c cmutel activity-browser python=3.12
+conda create -n ab_beta -c conda-forge -c lca -c cmutel lca::activity-browser python=3.12
 ```
+
+Pin `lca::activity-browser`. Without that pin, conda prefers `conda-forge::activity-browser`, which is still Activity Browser 2 (Brightway2 + PySide2).
 
 This will go through a few steps, some of which like `solving environment` may take a while. After installation has finished, activate the environment (same command on Windows, macOS, and Linux):
 
