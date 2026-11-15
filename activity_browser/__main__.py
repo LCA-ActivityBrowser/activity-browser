@@ -6,6 +6,7 @@ if __name__ == '__main__':
 
 import sys
 import os
+import traceback
 from importlib import metadata
 
 import requests
@@ -145,19 +146,60 @@ class ModuleThread(QtCore.QThread):
         import bw2data, bw2calc, bw2analyzer, bw2io, bw_functional, bw_processing, matrix_utils
 
 
+STARTUP_FAILURE_TITLE = "Activity Browser failed to start"
+
+
 def show_startup_failure(exc: BaseException, parent=None) -> None:
-    """Show a single actionable dialog when startup cannot continue."""
-    title = "Activity Browser failed to start"
+    """Show a single actionable dialog when startup cannot continue.
+
+    Prints the traceback to stderr (copyable from the console) and exposes the
+    same text via Show Details plus a Copy details button — QMessageBox summary
+    labels are not reliably selectable on Windows.
+    """
+    tb = "".join(traceback.format_exception(type(exc), exc, exc.__traceback__))
+    summary = f"{type(exc).__name__}: {exc}"
+    details = f"{summary}\n\n{tb}".rstrip() + "\n"
+
+    logger.opt(exception=exc).error(STARTUP_FAILURE_TITLE)
+    print(details, file=sys.stderr, flush=True)
+
     text = (
-        f"{type(exc).__name__}: {exc}\n\n"
-        "A required dependency failed to load. Check that your Python "
-        "environment matches the install instructions, then reinstall "
-        "Activity Browser dependencies if needed.\n\n"
-        "See the application log for full details."
+        f"{summary}\n\n"
+        "Startup could not continue. Check that your Python environment "
+        "matches the install instructions, then reinstall Activity Browser "
+        "dependencies if needed.\n\n"
+        "Use Show Details or Copy details for the full traceback "
+        "(also printed to the console)."
     )
-    QtWidgets.QMessageBox.critical(
-        parent, title, text, QtWidgets.QMessageBox.Ok
-    )
+
+    # Nested so tests can swap QtWidgets.QMessageBox and still inherit the patch.
+    class StartupFailureBox(QtWidgets.QMessageBox):
+        def __init__(self, details_text: str, parent=None):
+            super().__init__(parent)
+            self._details = details_text
+            self._copy_btn = self.addButton(
+                "Copy details", QtWidgets.QMessageBox.ActionRole
+            )
+            self.addButton(QtWidgets.QMessageBox.Ok)
+            self._copy_btn.clicked.connect(self._copy_details)
+
+        def _copy_details(self) -> None:
+            qapp = QtWidgets.QApplication.instance()
+            if qapp is not None:
+                qapp.clipboard().setText(self._details)
+
+        def done(self, result: int) -> None:
+            # Keep the dialog open when Copy details is clicked.
+            if self.clickedButton() is self._copy_btn:
+                return
+            super().done(result)
+
+    box = StartupFailureBox(details, parent)
+    box.setIcon(QtWidgets.QMessageBox.Critical)
+    box.setWindowTitle(STARTUP_FAILURE_TITLE)
+    box.setText(text)
+    box.setDetailedText(details)
+    box.exec_()
 
 
 def run_activity_browser():
