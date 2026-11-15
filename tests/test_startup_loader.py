@@ -7,10 +7,12 @@ from PySide6 import QtWidgets
 @pytest.fixture
 def no_startup_dialogs(monkeypatch):
     """Keep startup failure tests non-blocking under offscreen Qt."""
+    from activity_browser.__main__ import STARTUP_FAILURE_TITLE
+
     shown = []
 
     def _show(exc, parent=None):
-        shown.append((parent, "Activity Browser failed to start", str(exc)))
+        shown.append((parent, STARTUP_FAILURE_TITLE, str(exc)))
 
     monkeypatch.setattr(
         "activity_browser.__main__.show_startup_failure", _show
@@ -62,7 +64,7 @@ def test_ab_loader_stops_on_module_thread_error(qtbot, monkeypatch, no_startup_d
 
     assert load_finished_calls == []
     assert len(no_startup_dialogs) == 1
-    assert no_startup_dialogs[0][1] == "Activity Browser failed to start"
+    assert no_startup_dialogs[0][1] == ab_main.STARTUP_FAILURE_TITLE
     assert "loader boom" in no_startup_dialogs[0][2]
     assert quit_calls == [True]
 
@@ -73,6 +75,21 @@ def test_show_startup_failure_exposes_copyable_traceback(monkeypatch, capsys):
 
     recorded = {}
 
+    class FakeSignal:
+        def __init__(self):
+            self._slots = []
+
+        def connect(self, slot):
+            self._slots.append(slot)
+
+        def emit(self):
+            for slot in self._slots:
+                slot()
+
+    class FakeButton:
+        def __init__(self):
+            self.clicked = FakeSignal()
+
     class FakeMessageBox:
         Critical = QtWidgets.QMessageBox.Critical
         Ok = QtWidgets.QMessageBox.Ok
@@ -81,6 +98,7 @@ def test_show_startup_failure_exposes_copyable_traceback(monkeypatch, capsys):
         def __init__(self, parent=None):
             self._parent = parent
             self._clicked = None
+            self._closed = False
             recorded["box"] = self
 
         def setIcon(self, icon):
@@ -96,18 +114,34 @@ def test_show_startup_failure_exposes_copyable_traceback(monkeypatch, capsys):
             recorded["detailed"] = text
 
         def addButton(self, *args):
-            btn = object()
+            btn = FakeButton()
             recorded.setdefault("buttons", []).append((args, btn))
             if args and args[0] == "Copy details":
-                self._clicked = btn
                 recorded["copy_btn"] = btn
+            else:
+                recorded["ok_btn"] = btn
             return btn
-
-        def exec_(self):
-            return QtWidgets.QMessageBox.Ok
 
         def clickedButton(self):
             return self._clicked
+
+        def done(self, result):
+            self._closed = True
+            recorded["done_result"] = result
+
+        def exec_(self):
+            # Simulate Copy details (must not close), then Ok (closes).
+            copy_btn = recorded["copy_btn"]
+            self._clicked = copy_btn
+            copy_btn.clicked.emit()
+            type(self).done(self, 0)
+            assert self._closed is False
+
+            ok_btn = recorded["ok_btn"]
+            self._clicked = ok_btn
+            type(self).done(self, QtWidgets.QMessageBox.Ok)
+            assert self._closed is True
+            return QtWidgets.QMessageBox.Ok
 
     clipboard = {"text": None}
 
@@ -124,7 +158,7 @@ def test_show_startup_failure_exposes_copyable_traceback(monkeypatch, capsys):
     except TypeError as exc:
         ab_main.show_startup_failure(exc)
 
-    assert recorded["title"] == "Activity Browser failed to start"
+    assert recorded["title"] == ab_main.STARTUP_FAILURE_TITLE
     assert "unexpected keyword argument 'dataset'" in recorded["text"]
     assert "Show Details" in recorded["text"] or "Copy details" in recorded["text"]
     assert "TypeError" in recorded["detailed"]
