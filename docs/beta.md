@@ -29,7 +29,7 @@ pip install activity-browser
 
 #### Quick-Install Anaconda
 ```
-conda create -n ab_beta -c conda-forge -c cmutel lca::activity-browser
+conda create -n ab_beta -c conda-forge -c lca -c cmutel activity-browser
 conda activate ab_beta
 activity-browser
 ```

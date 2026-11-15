@@ -29,6 +29,10 @@ requirements:
     - bw_graph_tools >=0.5
     - bw_processing >=1.0
     - bw_simapro_csv >=0.2.6
+    # Pin from lca: cmutel still only has 1.1.1; pip already gets 1.1.2 from PyPI
+    # via bw_simapro_csv. Channel-qualified so strict priority does not stick to
+    # cmutel::multifunctional.
+    - lca::multifunctional >=1.1.2
     - bw_functional >=0.1.1
     - ecoinvent_interface
     - matrix_utils >=0.5
