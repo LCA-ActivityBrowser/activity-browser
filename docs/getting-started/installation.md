@@ -7,41 +7,49 @@ nav_order: 1
 # Installing the Activity Browser
 {: .fs-9 }
 
-Install the Activity Browser 3 from either PyPI or Anaconda.
+The Activity Browser 3 Beta is available both on [PyPI](#installing-from-pypi) (our recommended path) and [Anaconda](#installing-from-anaconda). Please follow the respective instructions below.
 {: .fs-6 .fw-300 }
 
-This page provides step-by-step instructions to help you set up the Activity Browser 3 on your system. Whether you prefer using PyPI or Anaconda, we've got you covered with detailed instructions for both methods. 
-
-## Distributions on PyPI and Anaconda
-The Activity Browser 3 Beta is available both on [PyPI](#installing-from-pypi) and [Anaconda](#installing-from-anaconda). Because not all necessary libraries are available on Anaconda right now you need to do an extra `pip install` inside your Conda environment.
+### Supported Python versions
+3.11, 3.12, 3.13, and 3.14.
 
 ### New to Python?
 
-Activity Browser runs on Python. If you have never installed or used Python before, start by installing a supported version (3.11, 3.12, 3.13, or 3.14) from [python.org](https://www.python.org/downloads/) — their [beginner's guide](https://wiki.python.org/moin/BeginnersGuide) walks through the basics. If you prefer the Anaconda route below, install [Miniconda](https://docs.anaconda.com/miniconda/) instead and follow the [official installation instructions](https://docs.anaconda.com/miniconda/install/).
+The Activity Browser runs on Python.
+If you have never installed or used Python before, start by installing a supported version from [python.org](https://www.python.org/downloads/).
+Their [beginner's guide](https://wiki.python.org/moin/BeginnersGuide) walks through the basics.
+If you prefer the Anaconda route below, install [Miniconda](https://docs.anaconda.com/miniconda/) instead and follow the [official installation instructions](https://docs.anaconda.com/miniconda/install/).
 
-## Installing from PyPI
-Installing from the Python Package Index (PyPI) can be done using the standard `pip` command. We strongly recommended installing the Activity Browser into a separate [virtual environment](https://realpython.com/python-virtual-environments-a-primer/)
+### Check your Python version
 
-First make sure you have Python installed on your PC by entering the following command into your terminal or command prompt. 
-At this moment the AB is compatible with Python versions 3.11, 3.12, 3.13, and 3.14. 
+Make sure you have Python available by entering the following command into your terminal or command prompt.
 
 ```
 python --version
 ```
-If you get an error please install Python [using their install instructions](https://www.python.org/downloads/).
+If you get an error, install a supported Python from [python.org](https://www.python.org/downloads/), or install [Miniconda](https://docs.anaconda.com/miniconda/) if you plan to use the Anaconda path below.
+
+## Installing from PyPI
+Installing the AB from the Python Package Index (PyPI) can be done using the standard `pip` command. We strongly recommended installing the Activity Browser into a separate [virtual environment](https://realpython.com/python-virtual-environments-a-primer/)
 
 ### Creating a virtual environment
-Firstly, create a directory for your virtual environments, such as C:/Users/me/virtualenvs/. Then create a virtual environment in that location using the following command (IF YOUR PYTHON VERSION WAS 3.11, 3.12, 3.13, OR 3.14):
+Firstly, create a directory for your virtual environments, such as C:/Users/me/virtualenvs/.
+IF YOUR PYTHON VERSION IS SUPPORTED BY THE AB (see Supported Python versions), you can create a virtual environment in that location like this:
 ```
 python -m venv C:/Users/me/virtualenvs/ab-beta
 ```
-In case your python version is not 3.11, 3.12, 3.13, or 3.14 (the versions currently supported by the AB), you need to use a command like this (here for python 3.12):
+In case your python version is not supported, you can specify a specific python version like this (here python 3.12):
 ```
 py -3.12 -m venv C:/Users/me/virtualenvs/ab-beta
 ```
-Afterwards, you need to activate the virtual environment, which differs between operating systems and shells. Using Window Command Prompt activate the environment using this command:
+Afterwards, activate the virtual environment:
+
 ```
-C:\Users\me\virtualenvs\ab-beta\Scripts\activate.bat
+# Windows:
+C:\Users\me\virtualenvs\ab-beta\Scripts\activate
+
+# macOS / Linux:
+source ~/virtualenvs/ab-beta/bin/activate
 ```
 
 ### Activity Browser installation
@@ -74,31 +82,19 @@ If you get an error, please download and install miniconda from anaconda.com htt
 
 ### Activity Browser Beta installation
 Next we're going to create a new environment for the Activity Browser Beta release.
-
-Include the `cmutel` channel so Conda can resolve `bw_simapro_csv` (not on conda-forge).
-
+IF YOUR PYTHON VERSION IS SUPPORTED BY THE AB (see Supported Python versions), you can create the environment like this:
 ```
 conda create -n ab_beta -c conda-forge -c cmutel lca::activity-browser
 ```
-
-In case your Python version is not 3.11, 3.12, 3.13, or 3.14 (the versions currently supported by the AB), then use a command like this (here for Python 3.12):
-
+In case your python version is not supported, you can specify a specific python version like this (here python 3.12):
 ```
 conda create -n ab_beta -c conda-forge -c cmutel lca::activity-browser python=3.12
 ```
 
-This will go through a few steps, some of which like `solving environment` may take a while. After installation has finished you can
-activate the environment like so:
+This will go through a few steps, some of which like `solving environment` may take a while. After installation has finished, activate the environment (same command on Windows, macOS, and Linux):
 
 ```
 conda activate ab_beta
-```
-
-### PySide6 installation
-We will need to install a specific version of `PySide6` from PyPI, as the fully functional version (including Qt WebEngine) is not reliably available via conda together with the rest of the Activity Browser stack.
-
-```
-pip install PySide6==6.9.3
 ```
 
 ### Launching the Activity Browser
