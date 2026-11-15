@@ -69,12 +69,12 @@ activity-browser
 ### Quick install — Conda
 
 ```bash
-conda create -n ab_beta -c conda-forge -c cmutel lca::activity-browser
+conda create -n ab_beta -c conda-forge -c lca -c cmutel activity-browser
 conda activate ab_beta
 activity-browser
 ```
 
-> **Note:** For AB3 beta, install the `lca` package (`lca::activity-browser`) and
+> **Note:** For AB3 beta, install from the `lca` channel (`-c lca`) and
 > include `-c cmutel` (needed for `bw_simapro_csv` and so `pyside6` /
 > `qt6-webengine` resolve with the ecoinvent stack). The older `conda-forge`
 > `activity-browser` package is Activity Browser 2 — see
