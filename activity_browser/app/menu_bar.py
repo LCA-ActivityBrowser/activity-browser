@@ -120,12 +120,16 @@ class ProjectNewMenu(QtWidgets.QMenu):
 
 
 class ProjectNewTemplateMenu(QtWidgets.QMenu):
-    remote_projects = {}
-
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setTitle("Import from template")
 
+        self.sync()
+        # Rebuild on open so new local templates and a refreshed remote catalogue show up.
+        self.aboutToShow.connect(self.sync)
+
+    def sync(self):
+        self.clear()
         self.actions = {}
 
         for key in get_templates():
@@ -134,16 +138,11 @@ class ProjectNewTemplateMenu(QtWidgets.QMenu):
             self.actions[key] = action
             self.addAction(action)
 
-        for key in self.get_projects():
+        for key in fetch_remote_projects():
             action = app.actions.ProjectNewRemote.get_QAction(key, parent=self)
             action.setText(key)
             self.actions[key] = action
             self.addAction(action)
-
-    def get_projects(self):
-        if not self.remote_projects:
-            ProjectNewTemplateMenu.remote_projects = fetch_remote_projects()
-        return self.remote_projects
 
 
 class ViewMenu(QtWidgets.QMenu):

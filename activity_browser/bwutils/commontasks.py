@@ -705,8 +705,13 @@ def get_templates() -> dict:
     return collection
 
 
+@lru_cache(maxsize=None)
 def fetch_remote_projects() -> dict:
-    """Remote template catalogue from ``bw2io``; empty dict if unreachable."""
+    """Remote template catalogue from ``bw2io``; empty dict if unreachable.
+
+    Fetched once per session. Call ``fetch_remote_projects.cache_clear()`` to
+    fetch it again.
+    """
     try:
         from bw2io.remote import get_projects
 
