@@ -29,10 +29,12 @@ pip install activity-browser
 
 #### Quick-Install Anaconda
 ```
-conda create -n ab_beta -c conda-forge -c lca -c cmutel activity-browser
+conda create -n ab_beta -c conda-forge -c lca -c cmutel lca::activity-browser
 conda activate ab_beta
 activity-browser
 ```
+
+Pin `lca::activity-browser`. An unpinned install with `-c conda-forge` first resolves to Activity Browser 2 from conda-forge.
 
 ## Reporting issues
 If you encounter any issues while using the Activity Browser 3 Beta, please report them on our [GitHub issues page](https://github.com/LCA-ActivityBrowser/activity-browser/issues/new?template=beta_report.yml). The more reports the better, so please don't hesitate to report any problems you encounter.
