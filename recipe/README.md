@@ -120,14 +120,15 @@ conda-forge package maintainers can:
 
 ## Installation
 
-Users install from conda-forge:
+Until AB3 is on conda-forge, users install from the `lca` channel (pin required
+so conda does not pick AB2 from conda-forge):
 ```bash
-conda install -c conda-forge activity-browser
+conda create -n ab_beta -c conda-forge -c lca -c cmutel lca::activity-browser
 ```
 
 Or with mamba (faster):
 ```bash
-mamba install -c conda-forge activity-browser
+mamba create -n ab_beta -c conda-forge -c lca -c cmutel lca::activity-browser
 ```
 
 ## Dependencies
