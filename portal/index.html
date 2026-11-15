@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Activity Browser Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,400&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="atmosphere" aria-hidden="true"></div>
+  <header class="top">
+    <div class="brand">
+      <span class="mark" aria-hidden="true">AB</span>
+      <div>
+        <p class="brand-name">Activity Browser</p>
+        <p class="brand-sub">Brightway project portal</p>
+      </div>
+    </div>
+    <div class="stats" id="stats">Loading snapshot…</div>
+  </header>
+
+  <main class="layout">
+    <section class="panel">
+      <div class="panel-head">
+        <h1>Databases</h1>
+        <p>Browse Brightway databases from the default project.</p>
+      </div>
+      <ul class="db-list" id="databases"></ul>
+    </section>
+
+    <section class="panel grow">
+      <div class="panel-head row">
+        <div>
+          <h1 id="browse-title">Biosphere flows</h1>
+          <p id="browse-sub">Search sample activities from biosphere3.</p>
+        </div>
+        <label class="search">
+          <span class="sr-only">Search</span>
+          <input id="search" type="search" placeholder="Search name or category…" autocomplete="off" />
+        </label>
+      </div>
+      <div class="tabs" role="tablist">
+        <button class="tab active" data-tab="activities" type="button">Activities</button>
+        <button class="tab" data-tab="methods" type="button">LCIA methods</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead id="thead"></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+      <p class="footer-note" id="footer-note"></p>
+    </section>
+  </main>
+
+  <script src="./app.js"></script>
+</body>
+</html>

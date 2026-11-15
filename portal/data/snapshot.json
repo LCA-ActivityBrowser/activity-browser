@@ -1,0 +1,2781 @@
+{
+  "project": "default",
+  "databases": [
+    {
+      "name": "biosphere3",
+      "records": 4709
+    }
+  ],
+  "method_count": 762,
+  "activities_sample": [
+    {
+      "name": "Ruthenium-106",
+      "categories": [
+        "water",
+        "ground-"
+      ],
+      "unit": "kilo Becquerel",
+      "type": "emission",
+      "code": "47367f49-cc19-46a1-9b51-c7ceed075bff"
+    },
+    {
+      "name": "4-Methyl-2-pentanone",
+      "categories": [
+        "air",
+        "urban air close to ground"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "9fbec2f4-6b42-4e63-9573-14e04befe20f"
+    },
+    {
+      "name": "Copper, 1.42% in sulfide, Cu 0.81% and Mo 8.2E-3% in crude ore",
+      "categories": [
+        "natural resource",
+        "in ground"
+      ],
+      "unit": "kilogram",
+      "type": "natural resource",
+      "code": "c8f18160-6937-4bb9-ad0c-dffa942ca41e"
+    },
+    {
+      "name": "Boron carbide",
+      "categories": [
+        "water"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "60b42f10-f538-4d77-ad4a-e83282f929e8"
+    },
+    {
+      "name": "Transformation, from annual crop, non-irrigated, extensive",
+      "categories": [
+        "natural resource",
+        "land"
+      ],
+      "unit": "square meter",
+      "type": "natural resource",
+      "code": "c7869c43-266c-429d-bfd5-6b578ed32ce8"
+    },
+    {
+      "name": "Sodium formate",
+      "categories": [
+        "air",
+        "urban air close to ground"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "4764f5f1-69bc-4ebb-b7c6-6b54c251056e"
+    },
+    {
+      "name": "Acenaphthene",
+      "categories": [
+        "air",
+        "urban air close to ground"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "99c07b66-c039-4896-866d-06abdaa9d46a"
+    },
+    {
+      "name": "Iron ion",
+      "categories": [
+        "water"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "de444dc0-5964-4501-8367-50ba53bfc6b9"
+    },
+    {
+      "name": "Tebuconazole",
+      "categories": [
+        "water",
+        "surface water"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "69349323-70b7-41d0-aeef-a29b49a89f85"
+    },
+    {
+      "name": "Thorium-232",
+      "categories": [
+        "air",
+        "low population density, long-term"
+      ],
+      "unit": "kilo Becquerel",
+      "type": "emission",
+      "code": "751d9236-ee45-4d21-addd-fd1747f0b74f"
+    },
+    {
+      "name": "Molybdenum VI",
+      "categories": [
+        "soil",
+        "industrial"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "c126f8a0-6bc4-42e6-9220-d6ccfef3f2ed"
+    },
+    {
+      "name": "Carbon monoxide, from soil or biomass stock",
+      "categories": [
+        "air"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "69a6c884-39be-444f-a67c-7436a5e66de2"
+    },
+    {
+      "name": "Transformation, to urban, green area",
+      "categories": [
+        "natural resource",
+        "land"
+      ],
+      "unit": "square meter",
+      "type": "natural resource",
+      "code": "f669a957-5574-4932-98cb-2851a12b3137"
+    },
+    {
+      "name": "Pyroxasulfone",
+      "categories": [
+        "air"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "f5e2536a-bbff-5f01-8dcf-df010d6e65b6"
+    },
+    {
+      "name": "Butyrolactone",
+      "categories": [
+        "water",
+        "ground-, long-term"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "189372b3-0e83-4ee0-bf62-b65925068657"
+    },
+    {
+      "name": "Americium-241",
+      "categories": [
+        "air",
+        "low population density, long-term"
+      ],
+      "unit": "kilo Becquerel",
+      "type": "emission",
+      "code": "fe7cb994-f3bb-41aa-84ad-5c59290af14a"
+    },
+    {
+      "name": "Hydrocarbons, unspecified",
+      "categories": [
+        "soil",
+        "agricultural"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "614d5544-9edf-5b76-90e8-e9c7b98a8084"
+    },
+    {
+      "name": "Energy, gross calorific value, in biomass, primary forest",
+      "categories": [
+        "natural resource",
+        "biotic"
+      ],
+      "unit": "megajoule",
+      "type": "natural resource",
+      "code": "8842042d-7f07-45f8-bf43-fa83833d75de"
+    },
+    {
+      "name": "Cyproconazole",
+      "categories": [
+        "air",
+        "non-urban air or from high stacks"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "6f323211-812a-5c49-bbf5-84cdb8ba0f5e"
+    },
+    {
+      "name": "Propionic acid",
+      "categories": [
+        "water",
+        "surface water"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "374b89b9-1abe-4557-aff3-fb772bffe01b"
+    },
+    {
+      "name": "Propylamine",
+      "categories": [
+        "water",
+        "surface water"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "813b3b1d-4b12-44cd-bbb9-5c384ba019d2"
+    },
+    {
+      "name": "Radiation, electromagnetic",
+      "categories": [
+        "air"
+      ],
+      "unit": "megajoule",
+      "type": "emission",
+      "code": "1ff59fcb-f634-422c-bbbf-63dae44d9485"
+    },
+    {
+      "name": "Methyl borate",
+      "categories": [
+        "air",
+        "lower stratosphere + upper troposphere"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "419bd741-384e-41ba-a432-5ad25e006a45"
+    },
+    {
+      "name": "Nitrogen dioxide",
+      "categories": [
+        "water",
+        "surface water"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "399b496b-b590-4c48-ba34-0e8f18b5baff"
+    },
+    {
+      "name": "Nickel II",
+      "categories": [
+        "air",
+        "urban air close to ground"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "e43a270f-4f88-4789-a0b8-7aba56677743"
+    },
+    {
+      "name": "Penflufen",
+      "categories": [
+        "air"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "9f2adb9f-fcea-54d0-9993-ba8bbc12b9df"
+    },
+    {
+      "name": "Ammonia",
+      "categories": [
+        "air",
+        "urban air close to ground"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "9990b51b-7023-4700-bca0-1a32ef921f74"
+    },
+    {
+      "name": "Aclonifen",
+      "categories": [
+        "soil",
+        "agricultural"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "dc64ecac-a65f-4d9a-9de6-557f1135659f"
+    },
+    {
+      "name": "Ethane, 1,2-dichloro-1,1,2,2-tetrafluoro-, CFC-114",
+      "categories": [
+        "air",
+        "urban air close to ground"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "3b30d058-02ef-4ed2-b357-5fc1a45c63e7"
+    },
+    {
+      "name": "Formic acid",
+      "categories": [
+        "water"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "97f92a10-ea74-463f-a9d7-3c852b6aab4c"
+    },
+    {
+      "name": "Chromium VI",
+      "categories": [
+        "soil",
+        "industrial"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "58060894-19d9-4855-84d8-58935a5325f8"
+    },
+    {
+      "name": "8-Quinolinol",
+      "categories": [
+        "soil",
+        "agricultural"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "3d071bc4-855b-52d7-baa8-2cacbf536777"
+    },
+    {
+      "name": "Plutonium-alpha",
+      "categories": [
+        "water",
+        "surface water"
+      ],
+      "unit": "kilo Becquerel",
+      "type": "emission",
+      "code": "819b2984-a9f6-4086-922d-5aa0be96dfdb"
+    },
+    {
+      "name": "Ethane, 2,2-dichloro-1,1,1-trifluoro-, HCFC-123",
+      "categories": [
+        "air",
+        "non-urban air or from high stacks"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "2cbc6042-2cee-4668-8017-d7f805d9029e"
+    },
+    {
+      "name": "Methyl acetate",
+      "categories": [
+        "air"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "bd70c699-1ea1-4bb1-b23d-bc771d7d6311"
+    },
+    {
+      "name": "2-Aminopropanol",
+      "categories": [
+        "water",
+        "ground-"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "22d1d385-5aa4-404d-8c14-2680ce4accb0"
+    },
+    {
+      "name": "Formamide",
+      "categories": [
+        "water",
+        "ocean"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "8c1489f3-f3cc-4c8d-a15e-6a5f91cf8abb"
+    },
+    {
+      "name": "Zinc-65",
+      "categories": [
+        "water",
+        "ground-"
+      ],
+      "unit": "kilo Becquerel",
+      "type": "emission",
+      "code": "fd3fbe1e-b25a-463b-9e2e-56770a985b74"
+    },
+    {
+      "name": "Ruthenium",
+      "categories": [
+        "natural resource",
+        "in ground"
+      ],
+      "unit": "kilogram",
+      "type": "natural resource",
+      "code": "c7ef04b7-15e1-5cb9-a2c8-93d15d4e36a4"
+    },
+    {
+      "name": "Boron trifluoride",
+      "categories": [
+        "air",
+        "non-urban air or from high stacks"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "be248928-14cd-4478-978c-13c040c1c4a9"
+    },
+    {
+      "name": "Diuron",
+      "categories": [
+        "air",
+        "non-urban air or from high stacks"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "c3a98302-0fe0-501f-b99f-4031d0d73970"
+    },
+    {
+      "name": "Silver-110",
+      "categories": [
+        "water",
+        "surface water"
+      ],
+      "unit": "kilo Becquerel",
+      "type": "emission",
+      "code": "9f826bcb-5efc-4977-93f2-8415e3f957df"
+    },
+    {
+      "name": "Lead",
+      "categories": [
+        "natural resource",
+        "in ground"
+      ],
+      "unit": "kilogram",
+      "type": "natural resource",
+      "code": "fbcb9c7a-eea7-4694-ba6c-568e01d28883"
+    },
+    {
+      "name": "Krypton-85m",
+      "categories": [
+        "air",
+        "low population density, long-term"
+      ],
+      "unit": "kilo Becquerel",
+      "type": "emission",
+      "code": "168746ee-b79e-47d6-951e-b085e7e7130b"
+    },
+    {
+      "name": "Oxasulfuron",
+      "categories": [
+        "soil",
+        "agricultural"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "224c984f-5232-53d7-be57-5fece5b26323"
+    },
+    {
+      "name": "Chlorine",
+      "categories": [
+        "air",
+        "low population density, long-term"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "5370addb-668e-4223-9a58-8ae947807c27"
+    },
+    {
+      "name": "Noble gases, radioactive, unspecified",
+      "categories": [
+        "air",
+        "lower stratosphere + upper troposphere"
+      ],
+      "unit": "kilo Becquerel",
+      "type": "emission",
+      "code": "a385870b-a14e-4fc1-a8e9-4d37257bf970"
+    },
+    {
+      "name": "Cloransulam-methyl",
+      "categories": [
+        "air",
+        "non-urban air or from high stacks"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "5041394a-2d8f-4f9c-b399-a9f3a54ff235"
+    },
+    {
+      "name": "Hydrogen peroxide",
+      "categories": [
+        "air",
+        "low population density, long-term"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "b39670dc-16e3-485e-b477-c54c996d7516"
+    },
+    {
+      "name": "Ethane, 1,1-difluoro-, HFC-152a",
+      "categories": [
+        "air",
+        "lower stratosphere + upper troposphere"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "fff3d2db-2784-4044-a6a2-2bc7242456ee"
+    },
+    {
+      "name": "Uranium-235",
+      "categories": [
+        "water",
+        "ground-, long-term"
+      ],
+      "unit": "kilo Becquerel",
+      "type": "emission",
+      "code": "a5e0860b-7e2b-4870-ae00-0ed150fb8ae3"
+    },
+    {
+      "name": "Dimethyl ether",
+      "categories": [
+        "air",
+        "urban air close to ground"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "7c76ca96-5e7e-43be-aa71-a64627cdca23"
+    },
+    {
+      "name": "Chromium VI",
+      "categories": [
+        "air",
+        "non-urban air or from high stacks"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "03b279a7-4626-4703-a451-d0650599dbd9"
+    },
+    {
+      "name": "Calcium",
+      "categories": [
+        "air",
+        "lower stratosphere + upper troposphere"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "b24b66e6-633c-49bf-a6ce-1e81da0715ce"
+    },
+    {
+      "name": "2-Phenylphenol",
+      "categories": [
+        "soil",
+        "agricultural"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "5357f101-f2df-5f6e-b534-f1705b597773"
+    },
+    {
+      "name": "m-Xylene",
+      "categories": [
+        "air",
+        "low population density, long-term"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "62bd2ced-16de-43c2-88e1-adfae242654e"
+    },
+    {
+      "name": "Graphite",
+      "categories": [
+        "natural resource",
+        "in ground"
+      ],
+      "unit": "kilogram",
+      "type": "natural resource",
+      "code": "5666353e-2db2-41d3-8414-404709151422"
+    },
+    {
+      "name": "Fluorspar",
+      "categories": [
+        "natural resource",
+        "in ground"
+      ],
+      "unit": "kilogram",
+      "type": "natural resource",
+      "code": "0fa4f51e-b0dc-5d11-84d3-b32f0f3c88d5"
+    },
+    {
+      "name": "Nitrate",
+      "categories": [
+        "water",
+        "ground-"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "b9291c72-4b1d-4275-8068-4c707dc3ce33"
+    },
+    {
+      "name": "Trimethylamine",
+      "categories": [
+        "air",
+        "non-urban air or from high stacks"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "0e2e2f54-225f-4782-bfda-99bedacebee5"
+    },
+    {
+      "name": "Ethane, chloropentafluoro-, CFC-115",
+      "categories": [
+        "air"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "ec8789e5-d140-4ca8-b7ef-b3abfd044414"
+    },
+    {
+      "name": "Demeton-S-methylsulfon",
+      "categories": [
+        "soil",
+        "agricultural"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "dae66465-5c82-5b83-b400-2ec6e25b078a"
+    },
+    {
+      "name": "Carbon disulfide",
+      "categories": [
+        "air",
+        "lower stratosphere + upper troposphere"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "a0399529-bdc0-49bc-a09b-9aea421fbd34"
+    },
+    {
+      "name": "Flumioxazin",
+      "categories": [
+        "air",
+        "non-urban air or from high stacks"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "c1bcea7e-26d9-4714-950b-c425d78179fa"
+    },
+    {
+      "name": "Dolomite",
+      "categories": [
+        "natural resource",
+        "in ground"
+      ],
+      "unit": "kilogram",
+      "type": "natural resource",
+      "code": "c7aee986-b7d8-4ad9-ad45-1ac0d68e6b78"
+    },
+    {
+      "name": "Hydrogen-3, Tritium",
+      "categories": [
+        "air",
+        "urban air close to ground"
+      ],
+      "unit": "kilo Becquerel",
+      "type": "emission",
+      "code": "b772118d-cb3e-4330-aa01-317b04703cb2"
+    },
+    {
+      "name": "Carbon dioxide, from soil or biomass stock",
+      "categories": [
+        "air",
+        "urban air close to ground"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "e8787b5e-d927-446d-81a9-f56977bbfeb4"
+    },
+    {
+      "name": "Chlorimuron-ethyl",
+      "categories": [
+        "soil",
+        "forestry"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "93aee31e-c6e1-5ea0-9d85-048ee2cc57ed"
+    },
+    {
+      "name": "Ethane, 1,1,2-trichloro-",
+      "categories": [
+        "air",
+        "lower stratosphere + upper troposphere"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "22317c8a-3b60-4479-8798-eec0bdfada2f"
+    },
+    {
+      "name": "Xenon-137",
+      "categories": [
+        "air",
+        "lower stratosphere + upper troposphere"
+      ],
+      "unit": "kilo Becquerel",
+      "type": "emission",
+      "code": "88af0a76-5bd7-4e99-a14e-9cf2608abef0"
+    },
+    {
+      "name": "Tellurium-123m",
+      "categories": [
+        "water",
+        "surface water"
+      ],
+      "unit": "kilo Becquerel",
+      "type": "emission",
+      "code": "2f36d881-55bd-44ed-a383-a97cd4c53b16"
+    },
+    {
+      "name": "Metalaxyl-M",
+      "categories": [
+        "air"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "10174d33-e2ca-5bd7-ae77-335c59edf286"
+    },
+    {
+      "name": "Methane, dichloro-, HCC-30",
+      "categories": [
+        "air"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "432a3326-73f8-4752-bc4d-06b7b4b1243c"
+    },
+    {
+      "name": "Dioxins, measured as 2,3,7,8-tetrachlorodibenzo-p-dioxin",
+      "categories": [
+        "soil",
+        "industrial"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "7533d11b-e96e-4a99-80f2-91400a62d650"
+    },
+    {
+      "name": "Methyl formate",
+      "categories": [
+        "air"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "4877b7b5-0ac1-47f7-96bd-677179544c9f"
+    },
+    {
+      "name": "Uranium alpha",
+      "categories": [
+        "water",
+        "ground-"
+      ],
+      "unit": "kilo Becquerel",
+      "type": "emission",
+      "code": "354e2cd7-e68f-400a-a318-a33c33f9e83c"
+    },
+    {
+      "name": "Plutonium-238",
+      "categories": [
+        "air",
+        "lower stratosphere + upper troposphere"
+      ],
+      "unit": "kilo Becquerel",
+      "type": "emission",
+      "code": "be1642be-ad24-46e2-8539-a74fc11d637d"
+    },
+    {
+      "name": "Iodine-131",
+      "categories": [
+        "air",
+        "non-urban air or from high stacks"
+      ],
+      "unit": "kilo Becquerel",
+      "type": "emission",
+      "code": "03e91172-fca0-47f3-9014-22ae3136251b"
+    },
+    {
+      "name": "Metribuzin",
+      "categories": [
+        "water",
+        "ground-"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "b2901848-11f6-55d9-ad94-7e087982a739"
+    },
+    {
+      "name": "Toluene",
+      "categories": [
+        "air"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "3b1ecf8e-1d2c-4330-81da-a79f9068976d"
+    },
+    {
+      "name": "Vinclozolin",
+      "categories": [
+        "soil",
+        "agricultural"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "7db70809-e30b-4633-992e-2cfe03891907"
+    },
+    {
+      "name": "Benzene, ethyl-",
+      "categories": [
+        "air"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "88ef28f1-cfd5-44a0-ac34-01acf2db84a0"
+    },
+    {
+      "name": "Strontium-89",
+      "categories": [
+        "water",
+        "ground-, long-term"
+      ],
+      "unit": "kilo Becquerel",
+      "type": "emission",
+      "code": "b06d062d-b979-415c-ab40-53b71298e3c7"
+    },
+    {
+      "name": "Methane, bromochlorodifluoro-, Halon 1211",
+      "categories": [
+        "air"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "ee31ac2a-9336-4ed6-8077-9663003bc2f9"
+    },
+    {
+      "name": "Scandium",
+      "categories": [
+        "water",
+        "ocean"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "3626a6e4-e594-44f2-b2cc-24ac1c9b6f07"
+    },
+    {
+      "name": "MCPA",
+      "categories": [
+        "soil",
+        "agricultural"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "e5492922-eaf5-4409-aa49-7f2a35cd0336"
+    },
+    {
+      "name": "Fenoxaprop-P ethyl ester",
+      "categories": [
+        "soil",
+        "agricultural"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "b6e37022-cef7-4b2a-9e1e-f6ae4a0503e7"
+    },
+    {
+      "name": "Benzene, pentachloro-",
+      "categories": [
+        "air"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "6a9ef0ac-2a82-492b-90f7-7f8d09995bbc"
+    },
+    {
+      "name": "Fenpropimorph",
+      "categories": [
+        "soil",
+        "agricultural"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "c8896e68-6c78-43be-a31b-bc5d2307f40a"
+    },
+    {
+      "name": "Occupation, shrub land, sclerophyllous",
+      "categories": [
+        "natural resource",
+        "land"
+      ],
+      "unit": "square meter-year",
+      "type": "natural resource",
+      "code": "c199261c-8234-43c5-b906-5b67707e4395"
+    },
+    {
+      "name": "Transformation, from permanent crop, irrigated, intensive",
+      "categories": [
+        "natural resource",
+        "land"
+      ],
+      "unit": "square meter",
+      "type": "natural resource",
+      "code": "d585d599-05f1-47ff-8c41-790f51830b9b"
+    },
+    {
+      "name": "Dissolved solids",
+      "categories": [
+        "water",
+        "ground-, long-term"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "bd254636-6538-4bcf-b0e5-62a2e8252b57"
+    },
+    {
+      "name": "Strontium-90",
+      "categories": [
+        "water",
+        "ground-"
+      ],
+      "unit": "kilo Becquerel",
+      "type": "emission",
+      "code": "f819c350-4a6c-457d-938f-27e8d23850ad"
+    },
+    {
+      "name": "Plutonium-alpha",
+      "categories": [
+        "water",
+        "ocean"
+      ],
+      "unit": "kilo Becquerel",
+      "type": "emission",
+      "code": "a3cfd5c8-d309-469c-aef6-21a0388902d6"
+    },
+    {
+      "name": "Dipropylamine",
+      "categories": [
+        "water"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "101c756f-d7af-4c18-826f-2144b6a54f5f"
+    },
+    {
+      "name": "Radioactive species, other beta emitters",
+      "categories": [
+        "air",
+        "lower stratosphere + upper troposphere"
+      ],
+      "unit": "kilo Becquerel",
+      "type": "emission",
+      "code": "a5f7045e-4f1f-4cdb-88ac-1a8e8e0232dd"
+    },
+    {
+      "name": "Dichromate",
+      "categories": [
+        "water",
+        "ground-"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "ff5b7e31-3118-40f5-9b82-f65018442d77"
+    },
+    {
+      "name": "Dinitrogen monoxide",
+      "categories": [
+        "air",
+        "lower stratosphere + upper troposphere"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "473826ae-125a-4b02-8c8e-c84322491d80"
+    },
+    {
+      "name": "Dichromate",
+      "categories": [
+        "water",
+        "ground-, long-term"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "b6ecaa32-6ab5-4060-b641-45a2bf7beded"
+    },
+    {
+      "name": "Cobalt II",
+      "categories": [
+        "soil",
+        "industrial"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "381a22c9-3722-4378-810d-86958f7b6d32"
+    },
+    {
+      "name": "MCPB",
+      "categories": [
+        "air",
+        "non-urban air or from high stacks"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "0e20b8fa-3f9a-41f2-b9aa-2b4e32c62264"
+    },
+    {
+      "name": "MCPB",
+      "categories": [
+        "water",
+        "surface water"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "7edf2b3a-762e-40ce-85e3-6716d8222e47"
+    },
+    {
+      "name": "Chlorine",
+      "categories": [
+        "air"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "39d1390a-ded6-41cb-a536-d47510bf2fbc"
+    },
+    {
+      "name": "Feldspar",
+      "categories": [
+        "natural resource",
+        "in ground"
+      ],
+      "unit": "kilogram",
+      "type": "natural resource",
+      "code": "26296ec9-ff93-41e6-bbbf-6175af04284d"
+    },
+    {
+      "name": "Transformation, to pasture, man made, intensive",
+      "categories": [
+        "natural resource",
+        "land"
+      ],
+      "unit": "square meter",
+      "type": "natural resource",
+      "code": "ec242c43-095c-4b42-8907-e0f13573f0a4"
+    },
+    {
+      "name": "Antimony ion",
+      "categories": [
+        "air",
+        "urban air close to ground"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "3ea5684a-6d64-4f96-8c09-1d90f997c9d4"
+    },
+    {
+      "name": "Helium",
+      "categories": [
+        "air",
+        "non-urban air or from high stacks"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "76c79f4e-3cda-428e-b8f0-0ba8bbf272b6"
+    },
+    {
+      "name": "2-Aminopropanol",
+      "categories": [
+        "air",
+        "low population density, long-term"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "cdce48e7-8c92-4214-b948-cc46a4700fe6"
+    },
+    {
+      "name": "Tribenuron-methyl",
+      "categories": [
+        "air",
+        "low population density, long-term"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "83605d14-94d7-57e3-af9b-8cb347afd5e0"
+    },
+    {
+      "name": "Helium",
+      "categories": [
+        "air",
+        "urban air close to ground"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "a91c4052-de24-456d-a1d5-4e2d9db201e3"
+    },
+    {
+      "name": "Lanthanum",
+      "categories": [
+        "air"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "b6e43995-389d-4353-a5ad-6957ab1ae048"
+    },
+    {
+      "name": "Gold, Au 4.3E-4%, in ore",
+      "categories": [
+        "natural resource",
+        "in ground"
+      ],
+      "unit": "kilogram",
+      "type": "natural resource",
+      "code": "95268685-7bea-4883-a412-119d7e88372c"
+    },
+    {
+      "name": "Hydrocarbons, aliphatic, unsaturated",
+      "categories": [
+        "water"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "ef7bc7b8-f85b-4687-9cb1-eb60384650fa"
+    },
+    {
+      "name": "Orbencarb",
+      "categories": [
+        "soil",
+        "agricultural"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "365010c0-d4dd-4281-a1a7-7e2302c4105f"
+    },
+    {
+      "name": "Chlorbufam",
+      "categories": [
+        "soil",
+        "agricultural"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "d5694174-f34c-5f47-a385-564ac1712c69"
+    },
+    {
+      "name": "Potassium-40",
+      "categories": [
+        "air",
+        "low population density, long-term"
+      ],
+      "unit": "kilo Becquerel",
+      "type": "emission",
+      "code": "dfffbe78-8173-4059-b3d8-a34b602d3eaa"
+    },
+    {
+      "name": "Calcium hydroxide",
+      "categories": [
+        "air",
+        "lower stratosphere + upper troposphere"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "411d78df-01f8-4a5f-8d13-92670620b934"
+    },
+    {
+      "name": "Fosetyl-aluminium",
+      "categories": [
+        "soil",
+        "agricultural"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "4c44e04f-9b3d-4389-bf08-1bddf9dfa9e7"
+    },
+    {
+      "name": "Gypsum",
+      "categories": [
+        "natural resource",
+        "in ground"
+      ],
+      "unit": "kilogram",
+      "type": "natural resource",
+      "code": "11a2a7b1-ab2f-47b8-9e29-6f33d5207fa6"
+    },
+    {
+      "name": "Styrene",
+      "categories": [
+        "water",
+        "ground-"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "9f884326-b503-4451-9259-b52f3001bbb8"
+    },
+    {
+      "name": "Hydrogen-3, Tritium",
+      "categories": [
+        "air",
+        "lower stratosphere + upper troposphere"
+      ],
+      "unit": "kilo Becquerel",
+      "type": "emission",
+      "code": "bf75c125-b39c-49d3-b06e-83153db03bd8"
+    },
+    {
+      "name": "Silicon tetrafluoride",
+      "categories": [
+        "air",
+        "lower stratosphere + upper troposphere"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "80c83d84-1aad-489a-9c7f-1d65b7f84f45"
+    },
+    {
+      "name": "Methane, bromo-, Halon 1001",
+      "categories": [
+        "air",
+        "non-urban air or from high stacks"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "701cda28-4722-431c-b52f-05a735ef5ed3"
+    },
+    {
+      "name": "Acetochlor",
+      "categories": [
+        "soil",
+        "agricultural"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "92ee2fc1-238c-465d-9887-418af42db9c7"
+    },
+    {
+      "name": "Chloramine",
+      "categories": [
+        "air",
+        "urban air close to ground"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "b34d0551-cb9a-4d3f-95ad-2cdb380d5cd1"
+    },
+    {
+      "name": "Copper oxychloride",
+      "categories": [
+        "soil",
+        "forestry"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "aaca334b-09a5-589e-8088-d3bc090b12e0"
+    },
+    {
+      "name": "Ethephon",
+      "categories": [
+        "soil",
+        "agricultural"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "0ba582f8-3360-441a-a93c-ea15e87f7b0c"
+    },
+    {
+      "name": "Transformation, from pasture, man made",
+      "categories": [
+        "natural resource",
+        "land"
+      ],
+      "unit": "square meter",
+      "type": "natural resource",
+      "code": "2c126bcc-bb63-4d63-bd72-f02a1e616809"
+    },
+    {
+      "name": "Arsenic ion",
+      "categories": [
+        "water",
+        "ground-"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "1f607ae2-b42d-4411-90b8-e9bbac66a554"
+    },
+    {
+      "name": "Hydrocarbons, chlorinated",
+      "categories": [
+        "air"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "d14eb0da-95fd-46c3-90db-55ca33d78701"
+    },
+    {
+      "name": "Strontium-90",
+      "categories": [
+        "air",
+        "lower stratosphere + upper troposphere"
+      ],
+      "unit": "kilo Becquerel",
+      "type": "emission",
+      "code": "5b44c026-dd45-45c6-95c5-2d451b9a0d20"
+    },
+    {
+      "name": "4-Methyl-2-pentanone",
+      "categories": [
+        "water",
+        "surface water"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "1a19ad61-abd0-4d42-9828-8fae315c0b06"
+    },
+    {
+      "name": "2,4-D dimethylamine salt",
+      "categories": [
+        "air"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "1dfb1f01-807b-5379-94f7-88e3ae421f57"
+    },
+    {
+      "name": "Pyrene",
+      "categories": [
+        "water",
+        "surface water"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "b397980f-62a4-4b0f-a05c-7c5c0e634aec"
+    },
+    {
+      "name": "Emamectin benzoate",
+      "categories": [
+        "water"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "8cb3d9ad-9db7-5ec6-a1d6-96d5e327c426"
+    },
+    {
+      "name": "Sulfur",
+      "categories": [
+        "natural resource",
+        "in ground"
+      ],
+      "unit": "kilogram",
+      "type": "natural resource",
+      "code": "852281f6-db73-4250-84d3-86b569fce0c1"
+    },
+    {
+      "name": "Chloroacetic acid",
+      "categories": [
+        "air",
+        "lower stratosphere + upper troposphere"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "666ba6f3-014c-4e96-b660-bcb5daa18798"
+    },
+    {
+      "name": "Uranium-234",
+      "categories": [
+        "water"
+      ],
+      "unit": "kilo Becquerel",
+      "type": "emission",
+      "code": "1869fd74-ed68-4814-9596-12315b1e810d"
+    },
+    {
+      "name": "Phenol, 2,4-dichloro",
+      "categories": [
+        "air",
+        "urban air close to ground"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "e4f501bb-02e2-4562-be3c-5a047b6d2581"
+    },
+    {
+      "name": "Silicon",
+      "categories": [
+        "water",
+        "ground-"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "fc91fc6f-596e-424a-9ee4-4432d718a66f"
+    },
+    {
+      "name": "Hydrogen-3, Tritium",
+      "categories": [
+        "air",
+        "non-urban air or from high stacks"
+      ],
+      "unit": "kilo Becquerel",
+      "type": "emission",
+      "code": "0cdaaa7e-3c23-419d-8ad5-12dc93c2e1e3"
+    },
+    {
+      "name": "Cadmium II",
+      "categories": [
+        "air",
+        "non-urban air or from high stacks"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "e2d58f90-9aac-4ac4-87f7-bbd6cfc358e3"
+    },
+    {
+      "name": "Sodium dichromate",
+      "categories": [
+        "air",
+        "urban air close to ground"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "7a63162b-4ffe-447f-ba52-782d5548b774"
+    },
+    {
+      "name": "Acephate",
+      "categories": [
+        "water",
+        "ground-"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "383570f4-fd89-5fcf-958d-d2aedb4bbd0e"
+    },
+    {
+      "name": "Fungicides, unspecified",
+      "categories": [
+        "water",
+        "ocean"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "79c4520a-47b1-4ec1-a1e5-b52114b0dce6"
+    },
+    {
+      "name": "Propylene oxide",
+      "categories": [
+        "water"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "48fececf-9b55-408d-9782-72057c79effe"
+    },
+    {
+      "name": "Phenol, pentachloro-",
+      "categories": [
+        "soil"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "a7ce2d61-decb-4076-baf1-774c4039b4e3"
+    },
+    {
+      "name": "1,2-Dichlorobenzene",
+      "categories": [
+        "air",
+        "lower stratosphere + upper troposphere"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "77db8bd1-5a69-465c-b51f-7b27fbb574a5"
+    },
+    {
+      "name": "Anthraquinone",
+      "categories": [
+        "soil",
+        "agricultural"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "3fe03409-76e1-4228-8fd7-77c4c6a0d9f3"
+    },
+    {
+      "name": "Strontium",
+      "categories": [
+        "soil",
+        "forestry"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "aa2d6624-ad64-4fff-9260-cb51500bba0d"
+    },
+    {
+      "name": "Tin ion",
+      "categories": [
+        "air",
+        "lower stratosphere + upper troposphere"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "6366d4ec-5ffc-4488-be51-0c239cdf535d"
+    },
+    {
+      "name": "Transformation, from forest, secondary (non-use)",
+      "categories": [
+        "natural resource",
+        "land"
+      ],
+      "unit": "square meter",
+      "type": "natural resource",
+      "code": "9cc80820-fcf9-4ea9-8e67-0aa423eba6a4"
+    },
+    {
+      "name": "3-Methyl-1-butanol",
+      "categories": [
+        "air"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "1eefb686-03de-4dc8-933a-e3b7459438da"
+    },
+    {
+      "name": "PAH, polycyclic aromatic hydrocarbons",
+      "categories": [
+        "air",
+        "lower stratosphere + upper troposphere"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "1f5330ac-e81c-45f2-8c9c-335b531faab0"
+    },
+    {
+      "name": "2-Nitrobenzoic acid",
+      "categories": [
+        "air"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "98d3f159-b420-4e43-aab5-4fd093b82429"
+    },
+    {
+      "name": "Uranium-238",
+      "categories": [
+        "air",
+        "non-urban air or from high stacks"
+      ],
+      "unit": "kilo Becquerel",
+      "type": "emission",
+      "code": "e6aafd63-a6d5-41f7-9b82-45f791c7037c"
+    },
+    {
+      "name": "Transformation, from traffic area, rail network",
+      "categories": [
+        "natural resource",
+        "land"
+      ],
+      "unit": "square meter",
+      "type": "natural resource",
+      "code": "a99a8eaf-2f2c-42c6-b6ce-d5686a9ca249"
+    },
+    {
+      "name": "Carbon dioxide, fossil",
+      "categories": [
+        "air",
+        "lower stratosphere + upper troposphere"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "16eeda8a-1ea2-408e-ab37-2648495058dd"
+    },
+    {
+      "name": "Difenoconazole",
+      "categories": [
+        "air",
+        "non-urban air or from high stacks"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "3eca47eb-0bf4-5381-bc15-0e85d67e4bb5"
+    },
+    {
+      "name": "Terbacil",
+      "categories": [
+        "soil",
+        "agricultural"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "a110815e-69d2-43bd-8bf8-4e842e5895e3"
+    },
+    {
+      "name": "Phenol, pentachloro-",
+      "categories": [
+        "air",
+        "low population density, long-term"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "4b1709c7-df14-45be-a233-621c76d0b57f"
+    },
+    {
+      "name": "Zirconium-95",
+      "categories": [
+        "air",
+        "urban air close to ground"
+      ],
+      "unit": "kilo Becquerel",
+      "type": "emission",
+      "code": "498c8296-8f0c-4aa9-869b-78bb6c299c3a"
+    },
+    {
+      "name": "Xylene",
+      "categories": [
+        "air",
+        "urban air close to ground"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "ed8da356-ed40-4a35-8de4-57aee1d3c279"
+    },
+    {
+      "name": "Metosulam",
+      "categories": [
+        "soil",
+        "agricultural"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "b7feaed4-a5d3-4601-894c-e10f9dc7575b"
+    },
+    {
+      "name": "Chloramine",
+      "categories": [
+        "water",
+        "ground-"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "cc83ea17-d066-4751-b8e6-659f68771ade"
+    },
+    {
+      "name": "Tungsten",
+      "categories": [
+        "air"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "da5e6be3-ed71-48ac-9397-25bac666c7b7"
+    },
+    {
+      "name": "Thallium I",
+      "categories": [
+        "water",
+        "ground-, long-term"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "7e9baf19-8fa4-49c6-a3c2-2e875217e60b"
+    },
+    {
+      "name": "Beryllium II",
+      "categories": [
+        "soil"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "dbf49708-ee0c-44f2-8662-5edd89ad472b"
+    },
+    {
+      "name": "Mevinfos",
+      "categories": [
+        "soil",
+        "agricultural"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "0fe04bc3-350c-5755-8db2-919c16b85d6f"
+    },
+    {
+      "name": "Tembotrione",
+      "categories": [
+        "soil",
+        "forestry"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "2ba6c345-1a1c-5337-b547-1753ea269581"
+    },
+    {
+      "name": "Lactic acid",
+      "categories": [
+        "air",
+        "lower stratosphere + upper troposphere"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "538fe63d-1b39-4aab-b50c-427dd4c0552b"
+    },
+    {
+      "name": "Calcium hydroxide",
+      "categories": [
+        "air",
+        "non-urban air or from high stacks"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "b605b6eb-8760-4142-b741-2844b00ccbb1"
+    },
+    {
+      "name": "Thiophanate-methyl",
+      "categories": [
+        "air",
+        "non-urban air or from high stacks"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "686b132d-0ebf-5e4c-84f6-e525cda9a36a"
+    },
+    {
+      "name": "Sodium chloride",
+      "categories": [
+        "natural resource",
+        "in ground"
+      ],
+      "unit": "kilogram",
+      "type": "natural resource",
+      "code": "0b9159dd-305d-4add-802f-f7b780ed0289"
+    },
+    {
+      "name": "Azadirachtin",
+      "categories": [
+        "soil",
+        "agricultural"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "49cf6a32-97db-5cf4-b1d6-47ea6fd1e4c8"
+    },
+    {
+      "name": "1-Pentanol",
+      "categories": [
+        "water",
+        "ground-, long-term"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "cfa50eaf-a817-4352-b9fe-aa834240d269"
+    },
+    {
+      "name": "Arsenic ion",
+      "categories": [
+        "water",
+        "surface water"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "8c8ffaa5-84ed-4668-ba7d-80fd0f47013f"
+    },
+    {
+      "name": "Chlorpyrifos methyl",
+      "categories": [
+        "soil",
+        "agricultural"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "2b3cf153-0dd6-4b79-b0d4-b4df832f3a7e"
+    },
+    {
+      "name": "Lead-210",
+      "categories": [
+        "air",
+        "low population density, long-term"
+      ],
+      "unit": "kilo Becquerel",
+      "type": "emission",
+      "code": "141ec03e-9ec3-4cfe-853d-37cc66e1c333"
+    },
+    {
+      "name": "Propamocarb",
+      "categories": [
+        "soil",
+        "agricultural"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "22fbf3b0-06cf-53c7-b38b-64dfcdef37f8"
+    },
+    {
+      "name": "Radium-228",
+      "categories": [
+        "water",
+        "ground-, long-term"
+      ],
+      "unit": "kilo Becquerel",
+      "type": "emission",
+      "code": "d4bb55d3-8165-466b-b502-d4b25fae104b"
+    },
+    {
+      "name": "Diphenyltin",
+      "categories": [
+        "water",
+        "ocean"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "8892f038-c4cf-4166-adeb-df61c4e32af0"
+    },
+    {
+      "name": "Disinfectants, unspecified",
+      "categories": [
+        "water",
+        "surface water"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "eb71ce59-d412-4e1e-a496-06134cf9d3d3"
+    },
+    {
+      "name": "Aniline",
+      "categories": [
+        "water"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "09f735ea-0a87-4e19-a660-d044db3a7118"
+    },
+    {
+      "name": "Boron",
+      "categories": [
+        "soil",
+        "industrial"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "58a3086e-3ded-4751-a313-05608f725081"
+    },
+    {
+      "name": "Tin ion",
+      "categories": [
+        "water",
+        "ground-"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "f73177d8-5e57-4f0d-ba34-6889cfdfed40"
+    },
+    {
+      "name": "Emamectin benzoate",
+      "categories": [
+        "soil",
+        "forestry"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "ba3d5340-7c78-5202-ac08-63d9c52fb417"
+    },
+    {
+      "name": "Paraffins",
+      "categories": [
+        "air",
+        "urban air close to ground"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "428e384f-5146-4023-9e62-cca1db3ed321"
+    },
+    {
+      "name": "Manganese II",
+      "categories": [
+        "soil",
+        "agricultural"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "9ba8c05d-1593-45a5-8d3b-5c4f3e9fef32"
+    },
+    {
+      "name": "Benzal chloride",
+      "categories": [
+        "air"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "a65f4744-f555-44cb-8534-aa5adc72d7a7"
+    },
+    {
+      "name": "Water, salt, sole",
+      "categories": [
+        "natural resource",
+        "in water"
+      ],
+      "unit": "cubic meter",
+      "type": "natural resource",
+      "code": "79238018-8ec1-4615-9469-2b0df95a43c3"
+    },
+    {
+      "name": "Spirotetramat",
+      "categories": [
+        "soil",
+        "agricultural"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "36c72e34-2c5a-5995-aec4-44f168d866c7"
+    },
+    {
+      "name": "Acrylonitrile",
+      "categories": [
+        "air"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "981ea86a-b527-4e29-b092-f16d2cd57e45"
+    },
+    {
+      "name": "COD, Chemical Oxygen Demand",
+      "categories": [
+        "water",
+        "ground-"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "be10dd54-eb4d-48ae-9e14-7d79ce8b170d"
+    },
+    {
+      "name": "Suspended solids, unspecified",
+      "categories": [
+        "water",
+        "ground-"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "51c35cf0-3417-4d42-936f-9a6fd7a2638a"
+    },
+    {
+      "name": "Particulate Matter, < 2.5 um",
+      "categories": [
+        "air",
+        "non-urban air or from high stacks"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "66f50b33-fd62-4fdd-a373-c5b0de7de00d"
+    },
+    {
+      "name": "Thorium-232",
+      "categories": [
+        "air",
+        "lower stratosphere + upper troposphere"
+      ],
+      "unit": "kilo Becquerel",
+      "type": "emission",
+      "code": "532d8b1e-14aa-45df-8f89-dd749c83635f"
+    },
+    {
+      "name": "Sulfur dioxide",
+      "categories": [
+        "air"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "fd7aa71c-508c-480d-81a6-8052aad92646"
+    },
+    {
+      "name": "Cyanoacetic acid",
+      "categories": [
+        "air",
+        "lower stratosphere + upper troposphere"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "b3ebd051-6ad4-4741-abf3-b55cad059e2c"
+    },
+    {
+      "name": "Chromium VI",
+      "categories": [
+        "water",
+        "ground-, long-term"
+      ],
+      "unit": "kilogram",
+      "type": "emission",
+      "code": "ef475b50-9cd0-4e7c-9c59-07868fe16e91"
+    }
+  ],
+  "methods_sample": [
+    {
+      "key": [
+        "CML v4.8 2016",
+        "acidification",
+        "acidification (incl. fate, average Europe total, A&B)"
+      ],
+      "label": "CML v4.8 2016 | acidification | acidification (incl. fate, average Europe total, A&B)"
+    },
+    {
+      "key": [
+        "CML v4.8 2016",
+        "climate change",
+        "global warming potential (GWP100)"
+      ],
+      "label": "CML v4.8 2016 | climate change | global warming potential (GWP100)"
+    },
+    {
+      "key": [
+        "CML v4.8 2016",
+        "ecotoxicity: freshwater",
+        "freshwater aquatic ecotoxicity (FAETP inf)"
+      ],
+      "label": "CML v4.8 2016 | ecotoxicity: freshwater | freshwater aquatic ecotoxicity (FAETP inf)"
+    },
+    {
+      "key": [
+        "CML v4.8 2016",
+        "ecotoxicity: marine",
+        "marine aquatic ecotoxicity (MAETP inf)"
+      ],
+      "label": "CML v4.8 2016 | ecotoxicity: marine | marine aquatic ecotoxicity (MAETP inf)"
+    },
+    {
+      "key": [
+        "CML v4.8 2016",
+        "ecotoxicity: terrestrial",
+        "terrestrial ecotoxicity (TETP inf)"
+      ],
+      "label": "CML v4.8 2016 | ecotoxicity: terrestrial | terrestrial ecotoxicity (TETP inf)"
+    },
+    {
+      "key": [
+        "CML v4.8 2016",
+        "energy resources: non-renewable",
+        "abiotic depletion potential (ADP): fossil fuels"
+      ],
+      "label": "CML v4.8 2016 | energy resources: non-renewable | abiotic depletion potential (ADP): fossil fuels"
+    },
+    {
+      "key": [
+        "CML v4.8 2016",
+        "eutrophication",
+        "eutrophication (fate not incl.)"
+      ],
+      "label": "CML v4.8 2016 | eutrophication | eutrophication (fate not incl.)"
+    },
+    {
+      "key": [
+        "CML v4.8 2016",
+        "human toxicity",
+        "human toxicity (HTP inf)"
+      ],
+      "label": "CML v4.8 2016 | human toxicity | human toxicity (HTP inf)"
+    },
+    {
+      "key": [
+        "CML v4.8 2016",
+        "material resources: metals/minerals",
+        "abiotic depletion potential (ADP): elements (ultimate reserves)"
+      ],
+      "label": "CML v4.8 2016 | material resources: metals/minerals | abiotic depletion potential (ADP): elements (ultimate reserves)"
+    },
+    {
+      "key": [
+        "CML v4.8 2016",
+        "ozone depletion",
+        "ozone layer depletion (ODP steady state)"
+      ],
+      "label": "CML v4.8 2016 | ozone depletion | ozone layer depletion (ODP steady state)"
+    },
+    {
+      "key": [
+        "CML v4.8 2016",
+        "photochemical oxidant formation",
+        "photochemical oxidation (high NOx)"
+      ],
+      "label": "CML v4.8 2016 | photochemical oxidant formation | photochemical oxidation (high NOx)"
+    },
+    {
+      "key": [
+        "CML v4.8 2016 no LT",
+        "acidification no LT",
+        "acidification (incl. fate, average Europe total, A&B) no LT"
+      ],
+      "label": "CML v4.8 2016 no LT | acidification no LT | acidification (incl. fate, average Europe total, A&B) no LT"
+    },
+    {
+      "key": [
+        "CML v4.8 2016 no LT",
+        "climate change no LT",
+        "global warming potential (GWP100) no LT"
+      ],
+      "label": "CML v4.8 2016 no LT | climate change no LT | global warming potential (GWP100) no LT"
+    },
+    {
+      "key": [
+        "CML v4.8 2016 no LT",
+        "ecotoxicity: freshwater no LT",
+        "freshwater aquatic ecotoxicity (FAETP inf) no LT"
+      ],
+      "label": "CML v4.8 2016 no LT | ecotoxicity: freshwater no LT | freshwater aquatic ecotoxicity (FAETP inf) no LT"
+    },
+    {
+      "key": [
+        "CML v4.8 2016 no LT",
+        "ecotoxicity: marine no LT",
+        "marine aquatic ecotoxicity (MAETP inf) no LT"
+      ],
+      "label": "CML v4.8 2016 no LT | ecotoxicity: marine no LT | marine aquatic ecotoxicity (MAETP inf) no LT"
+    },
+    {
+      "key": [
+        "CML v4.8 2016 no LT",
+        "ecotoxicity: terrestrial no LT",
+        "terrestrial ecotoxicity (TETP inf) no LT"
+      ],
+      "label": "CML v4.8 2016 no LT | ecotoxicity: terrestrial no LT | terrestrial ecotoxicity (TETP inf) no LT"
+    },
+    {
+      "key": [
+        "CML v4.8 2016 no LT",
+        "energy resources: non-renewable no LT",
+        "abiotic depletion potential (ADP): fossil fuels no LT"
+      ],
+      "label": "CML v4.8 2016 no LT | energy resources: non-renewable no LT | abiotic depletion potential (ADP): fossil fuels no LT"
+    },
+    {
+      "key": [
+        "CML v4.8 2016 no LT",
+        "eutrophication no LT",
+        "eutrophication (fate not incl.) no LT"
+      ],
+      "label": "CML v4.8 2016 no LT | eutrophication no LT | eutrophication (fate not incl.) no LT"
+    },
+    {
+      "key": [
+        "CML v4.8 2016 no LT",
+        "human toxicity no LT",
+        "human toxicity (HTP inf) no LT"
+      ],
+      "label": "CML v4.8 2016 no LT | human toxicity no LT | human toxicity (HTP inf) no LT"
+    },
+    {
+      "key": [
+        "CML v4.8 2016 no LT",
+        "material resources: metals/minerals no LT",
+        "abiotic depletion potential (ADP): elements (ultimate reserves) no LT"
+      ],
+      "label": "CML v4.8 2016 no LT | material resources: metals/minerals no LT | abiotic depletion potential (ADP): elements (ultimate reserves) no LT"
+    },
+    {
+      "key": [
+        "CML v4.8 2016 no LT",
+        "ozone depletion no LT",
+        "ozone layer depletion (ODP steady state) no LT"
+      ],
+      "label": "CML v4.8 2016 no LT | ozone depletion no LT | ozone layer depletion (ODP steady state) no LT"
+    },
+    {
+      "key": [
+        "CML v4.8 2016 no LT",
+        "photochemical oxidant formation no LT",
+        "photochemical oxidation (high NOx) no LT"
+      ],
+      "label": "CML v4.8 2016 no LT | photochemical oxidant formation no LT | photochemical oxidation (high NOx) no LT"
+    },
+    {
+      "key": [
+        "Crustal Scarcity Indicator 2020",
+        "material resources: metals/minerals",
+        "crustal scarcity potential (CSP)"
+      ],
+      "label": "Crustal Scarcity Indicator 2020 | material resources: metals/minerals | crustal scarcity potential (CSP)"
+    },
+    {
+      "key": [
+        "Cumulative Energy Demand (CED)",
+        "energy resources: non-renewable",
+        "energy content (HHV)"
+      ],
+      "label": "Cumulative Energy Demand (CED) | energy resources: non-renewable | energy content (HHV)"
+    },
+    {
+      "key": [
+        "Cumulative Energy Demand (CED)",
+        "energy resources: non-renewable, biomass",
+        "energy content (HHV)"
+      ],
+      "label": "Cumulative Energy Demand (CED) | energy resources: non-renewable, biomass | energy content (HHV)"
+    },
+    {
+      "key": [
+        "Cumulative Energy Demand (CED)",
+        "energy resources: non-renewable, fossil",
+        "energy content (HHV)"
+      ],
+      "label": "Cumulative Energy Demand (CED) | energy resources: non-renewable, fossil | energy content (HHV)"
+    },
+    {
+      "key": [
+        "Cumulative Energy Demand (CED)",
+        "energy resources: non-renewable, nuclear",
+        "energy content (HHV)"
+      ],
+      "label": "Cumulative Energy Demand (CED) | energy resources: non-renewable, nuclear | energy content (HHV)"
+    },
+    {
+      "key": [
+        "Cumulative Energy Demand (CED)",
+        "energy resources: renewable",
+        "energy content (HHV)"
+      ],
+      "label": "Cumulative Energy Demand (CED) | energy resources: renewable | energy content (HHV)"
+    },
+    {
+      "key": [
+        "Cumulative Energy Demand (CED)",
+        "energy resources: renewable, biomass",
+        "energy content (HHV)"
+      ],
+      "label": "Cumulative Energy Demand (CED) | energy resources: renewable, biomass | energy content (HHV)"
+    },
+    {
+      "key": [
+        "Cumulative Energy Demand (CED)",
+        "energy resources: renewable, geothermal",
+        "energy content (HHV)"
+      ],
+      "label": "Cumulative Energy Demand (CED) | energy resources: renewable, geothermal | energy content (HHV)"
+    },
+    {
+      "key": [
+        "Cumulative Energy Demand (CED)",
+        "energy resources: renewable, geothermal, solar, wind",
+        "energy content (HHV)"
+      ],
+      "label": "Cumulative Energy Demand (CED) | energy resources: renewable, geothermal, solar, wind | energy content (HHV)"
+    },
+    {
+      "key": [
+        "Cumulative Energy Demand (CED)",
+        "energy resources: renewable, solar",
+        "energy content (HHV)"
+      ],
+      "label": "Cumulative Energy Demand (CED) | energy resources: renewable, solar | energy content (HHV)"
+    },
+    {
+      "key": [
+        "Cumulative Energy Demand (CED)",
+        "energy resources: renewable, water",
+        "energy content (HHV)"
+      ],
+      "label": "Cumulative Energy Demand (CED) | energy resources: renewable, water | energy content (HHV)"
+    },
+    {
+      "key": [
+        "Cumulative Energy Demand (CED)",
+        "energy resources: renewable, wind",
+        "energy content (HHV)"
+      ],
+      "label": "Cumulative Energy Demand (CED) | energy resources: renewable, wind | energy content (HHV)"
+    },
+    {
+      "key": [
+        "Cumulative Energy Demand (CED)",
+        "total",
+        "energy content (HHV)"
+      ],
+      "label": "Cumulative Energy Demand (CED) | total | energy content (HHV)"
+    },
+    {
+      "key": [
+        "Cumulative Exergy Demand (CExD)",
+        "energy resources: non-renewable",
+        "exergy content"
+      ],
+      "label": "Cumulative Exergy Demand (CExD) | energy resources: non-renewable | exergy content"
+    },
+    {
+      "key": [
+        "Cumulative Exergy Demand (CExD)",
+        "energy resources: non-renewable, biomass",
+        "exergy content"
+      ],
+      "label": "Cumulative Exergy Demand (CExD) | energy resources: non-renewable, biomass | exergy content"
+    },
+    {
+      "key": [
+        "Cumulative Exergy Demand (CExD)",
+        "energy resources: non-renewable, fossil",
+        "exergy content"
+      ],
+      "label": "Cumulative Exergy Demand (CExD) | energy resources: non-renewable, fossil | exergy content"
+    },
+    {
+      "key": [
+        "Cumulative Exergy Demand (CExD)",
+        "energy resources: non-renewable, nuclear",
+        "exergy content"
+      ],
+      "label": "Cumulative Exergy Demand (CExD) | energy resources: non-renewable, nuclear | exergy content"
+    },
+    {
+      "key": [
+        "Cumulative Exergy Demand (CExD)",
+        "energy resources: renewable",
+        "exergy content"
+      ],
+      "label": "Cumulative Exergy Demand (CExD) | energy resources: renewable | exergy content"
+    },
+    {
+      "key": [
+        "Cumulative Exergy Demand (CExD)",
+        "energy resources: renewable, biomass",
+        "exergy content"
+      ],
+      "label": "Cumulative Exergy Demand (CExD) | energy resources: renewable, biomass | exergy content"
+    },
+    {
+      "key": [
+        "Cumulative Exergy Demand (CExD)",
+        "energy resources: renewable, solar",
+        "exergy content"
+      ],
+      "label": "Cumulative Exergy Demand (CExD) | energy resources: renewable, solar | exergy content"
+    },
+    {
+      "key": [
+        "Cumulative Exergy Demand (CExD)",
+        "energy resources: renewable, water",
+        "exergy content"
+      ],
+      "label": "Cumulative Exergy Demand (CExD) | energy resources: renewable, water | exergy content"
+    },
+    {
+      "key": [
+        "Cumulative Exergy Demand (CExD)",
+        "energy resources: renewable, wind",
+        "exergy content"
+      ],
+      "label": "Cumulative Exergy Demand (CExD) | energy resources: renewable, wind | exergy content"
+    },
+    {
+      "key": [
+        "Cumulative Exergy Demand (CExD)",
+        "material resources",
+        "exergy content"
+      ],
+      "label": "Cumulative Exergy Demand (CExD) | material resources | exergy content"
+    },
+    {
+      "key": [
+        "Cumulative Exergy Demand (CExD)",
+        "material resources: metals",
+        "exergy content"
+      ],
+      "label": "Cumulative Exergy Demand (CExD) | material resources: metals | exergy content"
+    },
+    {
+      "key": [
+        "Cumulative Exergy Demand (CExD)",
+        "material resources: minerals",
+        "exergy content"
+      ],
+      "label": "Cumulative Exergy Demand (CExD) | material resources: minerals | exergy content"
+    },
+    {
+      "key": [
+        "Cumulative Exergy Demand (CExD)",
+        "material resources: water",
+        "exergy content"
+      ],
+      "label": "Cumulative Exergy Demand (CExD) | material resources: water | exergy content"
+    },
+    {
+      "key": [
+        "Cumulative Exergy Demand (CExD)",
+        "total",
+        "exergy content"
+      ],
+      "label": "Cumulative Exergy Demand (CExD) | total | exergy content"
+    },
+    {
+      "key": [
+        "EDIP 2003",
+        "acidification",
+        "acidification"
+      ],
+      "label": "EDIP 2003 | acidification | acidification"
+    },
+    {
+      "key": [
+        "EDIP 2003",
+        "ecotoxicity",
+        "acute, in water"
+      ],
+      "label": "EDIP 2003 | ecotoxicity | acute, in water"
+    },
+    {
+      "key": [
+        "EDIP 2003",
+        "ecotoxicity",
+        "chronic, in soil"
+      ],
+      "label": "EDIP 2003 | ecotoxicity | chronic, in soil"
+    },
+    {
+      "key": [
+        "EDIP 2003",
+        "ecotoxicity",
+        "chronic, in water"
+      ],
+      "label": "EDIP 2003 | ecotoxicity | chronic, in water"
+    },
+    {
+      "key": [
+        "EDIP 2003",
+        "ecotoxicity",
+        "in sewage treatment plants"
+      ],
+      "label": "EDIP 2003 | ecotoxicity | in sewage treatment plants"
+    },
+    {
+      "key": [
+        "EDIP 2003",
+        "eutrophication",
+        "combined potential"
+      ],
+      "label": "EDIP 2003 | eutrophication | combined potential"
+    },
+    {
+      "key": [
+        "EDIP 2003",
+        "eutrophication",
+        "separate N potential"
+      ],
+      "label": "EDIP 2003 | eutrophication | separate N potential"
+    },
+    {
+      "key": [
+        "EDIP 2003",
+        "eutrophication",
+        "separate P potential"
+      ],
+      "label": "EDIP 2003 | eutrophication | separate P potential"
+    },
+    {
+      "key": [
+        "EDIP 2003",
+        "eutrophication",
+        "terrestrial eutrophication"
+      ],
+      "label": "EDIP 2003 | eutrophication | terrestrial eutrophication"
+    },
+    {
+      "key": [
+        "EDIP 2003",
+        "global warming",
+        "GWP 100a"
+      ],
+      "label": "EDIP 2003 | global warming | GWP 100a"
+    },
+    {
+      "key": [
+        "EDIP 2003",
+        "global warming",
+        "GWP 20a"
+      ],
+      "label": "EDIP 2003 | global warming | GWP 20a"
+    },
+    {
+      "key": [
+        "EDIP 2003",
+        "global warming",
+        "GWP 500a"
+      ],
+      "label": "EDIP 2003 | global warming | GWP 500a"
+    },
+    {
+      "key": [
+        "EDIP 2003",
+        "human toxicity",
+        "via air"
+      ],
+      "label": "EDIP 2003 | human toxicity | via air"
+    },
+    {
+      "key": [
+        "EDIP 2003",
+        "human toxicity",
+        "via soil"
+      ],
+      "label": "EDIP 2003 | human toxicity | via soil"
+    },
+    {
+      "key": [
+        "EDIP 2003",
+        "human toxicity",
+        "via surface water"
+      ],
+      "label": "EDIP 2003 | human toxicity | via surface water"
+    },
+    {
+      "key": [
+        "EDIP 2003",
+        "land filling",
+        "bulk waste"
+      ],
+      "label": "EDIP 2003 | land filling | bulk waste"
+    },
+    {
+      "key": [
+        "EDIP 2003",
+        "land filling",
+        "hazardous waste"
+      ],
+      "label": "EDIP 2003 | land filling | hazardous waste"
+    },
+    {
+      "key": [
+        "EDIP 2003",
+        "land filling",
+        "radioactive waste"
+      ],
+      "label": "EDIP 2003 | land filling | radioactive waste"
+    },
+    {
+      "key": [
+        "EDIP 2003",
+        "land filling",
+        "slag and ashes"
+      ],
+      "label": "EDIP 2003 | land filling | slag and ashes"
+    },
+    {
+      "key": [
+        "EDIP 2003",
+        "non-renewable resources",
+        "aluminium"
+      ],
+      "label": "EDIP 2003 | non-renewable resources | aluminium"
+    },
+    {
+      "key": [
+        "EDIP 2003",
+        "non-renewable resources",
+        "antimony"
+      ],
+      "label": "EDIP 2003 | non-renewable resources | antimony"
+    },
+    {
+      "key": [
+        "EDIP 2003",
+        "non-renewable resources",
+        "brown coal"
+      ],
+      "label": "EDIP 2003 | non-renewable resources | brown coal"
+    },
+    {
+      "key": [
+        "EDIP 2003",
+        "non-renewable resources",
+        "cadmium"
+      ],
+      "label": "EDIP 2003 | non-renewable resources | cadmium"
+    },
+    {
+      "key": [
+        "EDIP 2003",
+        "non-renewable resources",
+        "cerium"
+      ],
+      "label": "EDIP 2003 | non-renewable resources | cerium"
+    },
+    {
+      "key": [
+        "EDIP 2003",
+        "non-renewable resources",
+        "coal"
+      ],
+      "label": "EDIP 2003 | non-renewable resources | coal"
+    },
+    {
+      "key": [
+        "EDIP 2003",
+        "non-renewable resources",
+        "cobalt"
+      ],
+      "label": "EDIP 2003 | non-renewable resources | cobalt"
+    },
+    {
+      "key": [
+        "EDIP 2003",
+        "non-renewable resources",
+        "copper"
+      ],
+      "label": "EDIP 2003 | non-renewable resources | copper"
+    },
+    {
+      "key": [
+        "EDIP 2003",
+        "non-renewable resources",
+        "gold"
+      ],
+      "label": "EDIP 2003 | non-renewable resources | gold"
+    },
+    {
+      "key": [
+        "EDIP 2003",
+        "non-renewable resources",
+        "iron"
+      ],
+      "label": "EDIP 2003 | non-renewable resources | iron"
+    },
+    {
+      "key": [
+        "EDIP 2003",
+        "non-renewable resources",
+        "lanthanum"
+      ],
+      "label": "EDIP 2003 | non-renewable resources | lanthanum"
+    },
+    {
+      "key": [
+        "EDIP 2003",
+        "non-renewable resources",
+        "lead"
+      ],
+      "label": "EDIP 2003 | non-renewable resources | lead"
+    },
+    {
+      "key": [
+        "EDIP 2003",
+        "non-renewable resources",
+        "manganese"
+      ],
+      "label": "EDIP 2003 | non-renewable resources | manganese"
+    },
+    {
+      "key": [
+        "EDIP 2003",
+        "non-renewable resources",
+        "mercury"
+      ],
+      "label": "EDIP 2003 | non-renewable resources | mercury"
+    },
+    {
+      "key": [
+        "EDIP 2003",
+        "non-renewable resources",
+        "molybdenum"
+      ],
+      "label": "EDIP 2003 | non-renewable resources | molybdenum"
+    },
+    {
+      "key": [
+        "EDIP 2003",
+        "non-renewable resources",
+        "natural gas"
+      ],
+      "label": "EDIP 2003 | non-renewable resources | natural gas"
+    },
+    {
+      "key": [
+        "EDIP 2003",
+        "non-renewable resources",
+        "nickel"
+      ],
+      "label": "EDIP 2003 | non-renewable resources | nickel"
+    },
+    {
+      "key": [
+        "EDIP 2003",
+        "non-renewable resources",
+        "oil"
+      ],
+      "label": "EDIP 2003 | non-renewable resources | oil"
+    },
+    {
+      "key": [
+        "EDIP 2003",
+        "non-renewable resources",
+        "palladium"
+      ],
+      "label": "EDIP 2003 | non-renewable resources | palladium"
+    },
+    {
+      "key": [
+        "EDIP 2003",
+        "non-renewable resources",
+        "platinum"
+      ],
+      "label": "EDIP 2003 | non-renewable resources | platinum"
+    },
+    {
+      "key": [
+        "EDIP 2003",
+        "non-renewable resources",
+        "silver"
+      ],
+      "label": "EDIP 2003 | non-renewable resources | silver"
+    },
+    {
+      "key": [
+        "EDIP 2003",
+        "non-renewable resources",
+        "tantalum"
+      ],
+      "label": "EDIP 2003 | non-renewable resources | tantalum"
+    },
+    {
+      "key": [
+        "EDIP 2003",
+        "non-renewable resources",
+        "tin"
+      ],
+      "label": "EDIP 2003 | non-renewable resources | tin"
+    },
+    {
+      "key": [
+        "EDIP 2003",
+        "non-renewable resources",
+        "zinc"
+      ],
+      "label": "EDIP 2003 | non-renewable resources | zinc"
+    },
+    {
+      "key": [
+        "EDIP 2003",
+        "photochemical ozone formation",
+        "impacts on human health"
+      ],
+      "label": "EDIP 2003 | photochemical ozone formation | impacts on human health"
+    },
+    {
+      "key": [
+        "EDIP 2003",
+        "photochemical ozone formation",
+        "impacts on vegetation"
+      ],
+      "label": "EDIP 2003 | photochemical ozone formation | impacts on vegetation"
+    },
+    {
+      "key": [
+        "EDIP 2003",
+        "renewable resources",
+        "wood"
+      ],
+      "label": "EDIP 2003 | renewable resources | wood"
+    },
+    {
+      "key": [
+        "EDIP 2003",
+        "stratospheric ozone depletion",
+        "ODP total"
+      ],
+      "label": "EDIP 2003 | stratospheric ozone depletion | ODP total"
+    },
+    {
+      "key": [
+        "EDIP 2003 no LT",
+        "acidification no LT",
+        "acidification no LT"
+      ],
+      "label": "EDIP 2003 no LT | acidification no LT | acidification no LT"
+    },
+    {
+      "key": [
+        "EDIP 2003 no LT",
+        "ecotoxicity no LT",
+        "acute, in water no LT"
+      ],
+      "label": "EDIP 2003 no LT | ecotoxicity no LT | acute, in water no LT"
+    },
+    {
+      "key": [
+        "EDIP 2003 no LT",
+        "ecotoxicity no LT",
+        "chronic, in soil no LT"
+      ],
+      "label": "EDIP 2003 no LT | ecotoxicity no LT | chronic, in soil no LT"
+    },
+    {
+      "key": [
+        "EDIP 2003 no LT",
+        "ecotoxicity no LT",
+        "chronic, in water no LT"
+      ],
+      "label": "EDIP 2003 no LT | ecotoxicity no LT | chronic, in water no LT"
+    }
+  ],
+  "note": "Sample snapshot from Brightway default project for portal demo."
+}
