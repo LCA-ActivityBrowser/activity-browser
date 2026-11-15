@@ -38,11 +38,12 @@ requirements:
     - pyprind
     - networkx
     - pandas >=2.3, <4
-    # Qt bindings come from PyPI after conda install (see installation docs):
-    #   pip install PySide6==6.9.3
-    # Conda pyside6 + qt6-webengine currently conflict with the ecoinvent
-    # stack (pyecospold → lxml 4.9.3 vs libxml2-16), so they are not declared
-    # as run deps. Keep qtpy here; it uses the pip-installed PySide6.
+    # Cap below 6.12: eventDispatcher shiboken crash (Ubuntu/Py3.11 CI abort).
+    # Requires -c cmutel at install time: conda-forge pyecospold pins lxml
+    # 4.9.3, which conflicts with libxml2-16 from pyside6/qt6-webengine;
+    # cmutel::pyecospold 4.x does not.
+    - pyside6 >=6.5.0,<6.12
+    - qt6-webengine
     - qtpy
     - salib >=1.4
     - scipy >=1.10
