@@ -1,9 +1,13 @@
 name: Build Executable
 
 on:
-  # Run from Actions → Build Executable → Run workflow.
-  # Choose any branch that contains this file (e.g. this PR branch, or major).
+  # Manual run once the workflow exists on the default branch (see PR to main),
+  # or when the repo default branch is packaging-capable.
   workflow_dispatch:
+  # Temporary: build on every push to this packaging PR branch.
+  push:
+    branches:
+      - cursor/standalone-downloads-b6ac
 
 jobs:
   build:
