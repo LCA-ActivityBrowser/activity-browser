@@ -147,7 +147,7 @@ GitHub Releases. See [`packaging/README.md`](../../packaging/README.md).
 1. Checkout code and stamp version as `YYYYMMDD-<shortsha>`
 2. Install system dependencies (Linux only)
 3. Set up Python 3.12 and `uv`; sync project deps; install PyInstaller
-4. Build onedir via `pyinstaller.spec` (bundles `LICENSE.txt`; Windows `console=False`)
+4. Build onedir via `pyinstaller.spec` (bundles `LICENSE.txt`; console window enabled)
 5. Export `ActivityBrowser-<version>-<platform>-dependencies.txt`
 6. Platform packaging (Inno Setup / DMG / AppImage)
 7. Upload release-ready files as artifact `ActivityBrowser-<version>-<platform>`
