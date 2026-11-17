@@ -131,12 +131,13 @@ maintainer guide (fork workflow, local merges, and release steps).
 
 ## 4. Build Executable (`build-executable.yml`)
 
-**Trigger:** Manual **workflow_dispatch** only (Actions → Build Executable → Run workflow).
-Select the branch to build from (any branch that contains this workflow file).
+**Trigger:** Push to the packaging branch `standalone` (or `cursor/standalone-downloads-b6ac`),
+or optional **workflow_dispatch**.
 
 **Purpose:** Builds stand-alone Activity Browser packages with PyInstaller (onedir) plus
 platform installers, uploads them as workflow artifacts for **manual** promotion to
-GitHub Releases. See [`packaging/README.md`](../../packaging/README.md).
+GitHub Releases. Maintainer flow: rebase packaging branch onto `major` or `beta`, push,
+then attach artifacts to a Release. See [`packaging/README.md`](../../packaging/README.md).
 
 ### Matrix Strategy
 - **Windows** (`windows-latest`) → Inno Setup installer (`*-windows-x64-setup.exe`)
@@ -302,7 +303,7 @@ When modifying the test matrix (OS or Python versions):
 
 ### Release Process
 1. **Beta release:** Push to `beta` branch -> auto-publishes beta version
-2. **Executable stand-alone AB versions:** Manually run **Build Executable** on the desired branch → uploads platform installer artifacts (then manual upload to GitHub Releases)
+2. **Executable stand-alone AB versions:** Rebase packaging branch (`standalone`) onto `major`/`beta`, push → Build Executable artifacts → manual upload to GitHub Releases
 3. **Stable release:** Create and push a tag -> creates GitHub release and publishes to Anaconda
 4. **Close milestone:** Users get release comments automatically
 

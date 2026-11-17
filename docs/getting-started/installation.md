@@ -108,7 +108,7 @@ activity-browser
 
 ## Stand-alone installers
 
-Pre-built packages are produced when a maintainer manually runs the **Build Executable** workflow in GitHub Actions (on the chosen branch) and uploaded as workflow artifacts. Maintainers then attach selected builds to [GitHub Releases](https://github.com/LCA-ActivityBrowser/activity-browser/releases).
+Pre-built packages are produced when maintainers push the packaging branch (`standalone`) after rebasing onto `major` or `beta`. CI uploads workflow artifacts; maintainers then attach selected builds to [GitHub Releases](https://github.com/LCA-ActivityBrowser/activity-browser/releases) for public download.
 
 | Platform | File |
 |---|---|

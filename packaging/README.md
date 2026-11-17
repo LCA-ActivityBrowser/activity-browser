@@ -1,18 +1,37 @@
 # Stand-alone packaging
 
-Scripts and metadata used by `.github/workflows/build-executable.yml` to produce
-downloadable Activity Browser builds for Windows, macOS, and Linux.
+Scripts and metadata used by [`.github/workflows/build-executable.yml`](../.github/workflows/build-executable.yml)
+to produce downloadable Activity Browser builds for Windows, macOS, and Linux.
 
-The workflow is started **manually** (Actions → Build Executable → Run workflow).
-Pick the branch to build (for example a feature branch that already has this
-workflow, or `major` after merge).
+## Maintainer workflow
+
+Intended loop for shipping stand-alone builds:
+
+1. **Use the packaging branch** `standalone` (preferred long-term name).  
+   Until that branch exists, pushes to `cursor/standalone-downloads-b6ac` also trigger builds.
+2. **Rebase** that branch onto the code you want to package:
+   - `major` — current development integration branch  
+   - `beta` — what is published to PyPI / conda  
+3. **Push** the packaging branch. CI runs **Build Executable** and uploads
+   Windows / macOS / Linux artifacts.
+4. **Promote manually:** download artifacts from the Actions run and attach them
+   to a [GitHub Release](https://github.com/LCA-ActivityBrowser/activity-browser/releases)
+   (create or update a release; do not rely on Actions artifact retention).
+
+Optional: **Actions → Build Executable → Run workflow** (`workflow_dispatch`) if
+the workflow file is available on the repo default branch and you can pick the
+packaging branch in the UI. Push-to-packaging-branch is the supported path.
+
+```text
+major or beta  --rebase-->  standalone  --push-->  Actions artifacts  --manual-->  GitHub Release
+```
 
 ## Outputs
 
 | Platform | Artifact |
 |---|---|
 | Windows | `ActivityBrowser-<version>-windows-x64-setup.exe` (Inno Setup) |
-| macOS (Apple Silicon) | `ActivityBrowser-<version>-macos-arm64.dmg` (unsigned) |
+| macOS (Apple Silicon) | `ActivityBrowser-<version>-macos-arm64.dmg` (unsigned; console enabled) |
 | Linux | `ActivityBrowser-<version>-linux-x86_64.AppImage` |
 
 Each build also produces `ActivityBrowser-<version>-<platform>-dependencies.txt`
@@ -29,14 +48,12 @@ binary already embeds those packages via PyInstaller).
 - `linux/create-appimage.sh` — AppImage wrapper around the PyInstaller onedir
 - `linux/activity-browser.desktop` — desktop entry for the AppImage
 
-## Maintainer: publish to GitHub Releases
+## Publishing checklist
 
-CI uploads artifacts only. Publishing is manual:
-
-1. In GitHub Actions, run **Build Executable** on the branch/commit you want.
-2. Open that successful run and download the three platform artifacts (and dependency `.txt` files).
-3. Create or edit a [GitHub Release](https://github.com/LCA-ActivityBrowser/activity-browser/releases) and attach the files.
-4. Mention in the release notes that macOS builds are **unsigned** (see user docs).
-
-Do not rely on Actions artifact retention for long-term distribution — promote
-builds you care about to Releases promptly.
+1. Open the successful **Build Executable** run for the push you care about.
+2. Download the three platform artifacts (and dependency `.txt` files).
+3. Create or edit a GitHub Release and attach the files.
+4. Note in the release body that macOS builds are **unsigned** (Gatekeeper:
+   Control-click → Open).
+5. Point the repo README / install docs at that Release (or `/releases/latest`)
+   once you are ready for users to find the downloads on the landing page.

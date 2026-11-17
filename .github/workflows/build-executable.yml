@@ -1,12 +1,14 @@
 name: Build Executable
 
+# Maintainer flow (see packaging/README.md):
+#   1. On branch `standalone` (or this PR branch), rebase onto major or beta
+#   2. Push — this workflow builds Win/macOS/Linux installers as Actions artifacts
+#   3. Manually attach chosen artifacts to a GitHub Release for public download
 on:
-  # Manual run once the workflow exists on the default branch (see PR to main),
-  # or when the repo default branch is packaging-capable.
   workflow_dispatch:
-  # Temporary: build on every push to this packaging PR branch.
   push:
     branches:
+      - standalone
       - cursor/standalone-downloads-b6ac
 
 jobs:
