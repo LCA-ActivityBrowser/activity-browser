@@ -1,9 +1,14 @@
 # -*- mode: python ; coding: utf-8 -*-
 """PyInstaller spec for Activity Browser stand-alone builds (onedir)."""
+import os
 import sys
 from pathlib import Path
 
 from PyInstaller.utils.hooks import collect_all
+
+# collect_all imports package submodules in a subprocess. On headless CI Linux
+# that pulls in Qt and aborts without a platform plugin unless we set this.
+os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 # SPECPATH is injected by PyInstaller when this file is executed.
 spec_root = Path(SPECPATH).resolve()
