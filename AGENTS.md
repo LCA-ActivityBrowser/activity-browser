@@ -78,6 +78,7 @@ Fixtures and sample data live under `tests/fixtures/`. Prefer non-blocking UI te
 Agents should not assume Linux-only or a single Python version. Details live in the workflow files; summary:
 
 - **Tests:** `.github/workflows/testing.yaml` — pytest on Ubuntu / Windows / macOS × Python 3.11–3.14; `QT_QPA_PLATFORM=offscreen`; install via `pip install .[testing]`.
+- **Stand-alone executables:** `.github/workflows/build-executable.yml` on push to `major` (Windows Inno Setup, macOS unsigned DMG, Linux AppImage). Packaging scripts in `packaging/`. Artifacts are promoted to GitHub Releases manually — see `packaging/README.md`.
 - **Workflow overview:** `.github/workflows/README.md` (testing, canary, deploy, executables, releases).
 - **Branches:** feature work → PR into `major`; releases via `major` → `beta`. See `CONTRIBUTING.md`.
 - **Dev deps / extras:** `pyproject.toml` (`[project.optional-dependencies]`).

@@ -131,21 +131,29 @@ maintainer guide (fork workflow, local merges, and release steps).
 
 ## 4. Build Executable (`build-executable.yml`)
 
-**Trigger:** Push to `beta` branch or any tag
+**Trigger:** Push to `major` branch or any tag
 
-**Purpose:** Builds application executables using PyInstaller and uploads them as workflow artifacts.
+**Purpose:** Builds stand-alone Activity Browser packages with PyInstaller (onedir) plus
+platform installers, uploads them as workflow artifacts for **manual** promotion to
+GitHub Releases. See [`packaging/README.md`](../../packaging/README.md).
 
 ### Matrix Strategy
-- **Operating Systems:** Ubuntu (latest), Windows (latest), macOS 15, macOS (latest)
+- **Windows** (`windows-latest`) → Inno Setup installer (`*-windows-x64-setup.exe`)
+- **Linux** (`ubuntu-latest`) → AppImage (`*-linux-x86_64.AppImage`)
+- **macOS** (`macos-latest`, Apple Silicon) → unsigned DMG (`*-macos-arm64.dmg`)
 
 ### Steps
-1. Checkout code
+1. Checkout code and stamp version as `YYYYMMDD-<shortsha>`
 2. Install system dependencies (Linux only)
-3. Set up Python 3.12
-4. Install and use `uv`
-5. Sync dependencies and install PyInstaller
-6. Build executable via `pyinstaller.spec`
-7. Upload `dist/*` as artifact (`activity-browser-${os}`)
+3. Set up Python 3.12 and `uv`; sync project deps; install PyInstaller
+4. Build onedir via `pyinstaller.spec` (bundles `LICENSE.txt`; Windows `console=False`)
+5. Export `ActivityBrowser-<version>-<platform>-dependencies.txt`
+6. Platform packaging (Inno Setup / DMG / AppImage)
+7. Upload release-ready files as artifact `ActivityBrowser-<version>-<platform>`
+
+### Publishing
+Artifacts are **not** attached to GitHub Releases automatically. Maintainers download
+selected artifacts and attach them in the GitHub Releases UI.
 
 ---
 
@@ -293,7 +301,7 @@ When modifying the test matrix (OS or Python versions):
 
 ### Release Process
 1. **Beta release:** Push to `beta` branch -> auto-publishes beta version
-2. **Executable stand-alone AB versions:** Push to `beta` or tag -> uploads platform artifacts
+2. **Executable stand-alone AB versions:** Push to `major` or tag -> uploads platform installer artifacts (manual upload to GitHub Releases)
 3. **Stable release:** Create and push a tag -> creates GitHub release and publishes to Anaconda
 4. **Close milestone:** Users get release comments automatically
 

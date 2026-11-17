@@ -7,11 +7,12 @@ nav_order: 1
 # Installing the Activity Browser
 {: .fs-9 }
 
-The Activity Browser 3 Beta is available both on [PyPI](#installing-from-pypi) (our recommended path) and [Anaconda](#installing-from-anaconda). Please follow the respective instructions below.
+The Activity Browser 3 Beta is available on [PyPI](#installing-from-pypi) (recommended for most users) and [Anaconda](#installing-from-anaconda). Stand-alone installers (no Python install required) are published on [GitHub Releases](#stand-alone-installers) when maintainers promote a CI build.
 {: .fs-6 .fw-300 }
 
 ### Supported Python versions
-3.11, 3.12, 3.13, and 3.14.
+3.11, 3.12, 3.13, and 3.14 (PyPI / Anaconda). Stand-alone builds bundle their own Python runtime.
+
 
 ### New to Python?
 
@@ -104,3 +105,41 @@ Launch the Activity Browser like you would normally
 ```
 activity-browser
 ```
+
+## Stand-alone installers
+
+Pre-built packages are produced by CI on every push to the `major` branch and uploaded as GitHub Actions artifacts. Maintainers manually attach selected builds to [GitHub Releases](https://github.com/LCA-ActivityBrowser/activity-browser/releases).
+
+| Platform | File |
+|---|---|
+| Windows | `ActivityBrowser-<version>-windows-x64-setup.exe` |
+| macOS (Apple Silicon) | `ActivityBrowser-<version>-macos-arm64.dmg` |
+| Linux | `ActivityBrowser-<version>-linux-x86_64.AppImage` |
+
+Each release asset set also includes a `*-dependencies.txt` file listing the Python packages that were bundled into that build.
+
+### Windows
+
+1. Download the `*-windows-x64-setup.exe` installer from the Release.
+2. Run it and accept the LGPL license terms.
+3. Start Activity Browser from the Start Menu (or the desktop shortcut if you enabled that option).
+
+Windows may show a SmartScreen warning for unsigned installers — choose **More info** → **Run anyway** if you trust the GitHub Release source.
+
+### macOS (Apple Silicon)
+
+1. Download the `*-macos-arm64.dmg`.
+2. Open the DMG and drag **Activity Browser** to **Applications** (or run it from the DMG).
+3. These builds are **not notarized**. On first launch, Gatekeeper may block the app:
+   - In Finder, **Control-click** (right-click) the app → **Open** → confirm **Open**.
+   - After that, normal double-clicks work for that user account.
+
+Intel Macs are not covered by the current CI macOS artifact.
+
+### Linux
+
+1. Download the `*-linux-x86_64.AppImage`.
+2. Make it executable: `chmod +x ActivityBrowser-*-linux-x86_64.AppImage`
+3. Run it: `./ActivityBrowser-*-linux-x86_64.AppImage`
+
+You may need FUSE (or a distro-specific AppImage runtime) depending on your distribution.
