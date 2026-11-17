@@ -11,13 +11,26 @@ def setup_logging():
     import os
     import platformdirs
 
-    logger.level("SYNC", no=9, color="<cyan>")
-    logger.level("SIGNAL", no=19, color="<yellow>")
-    logger.level("TEST", no=19, color="<cyan>")
+    for name, no, color in (
+        ("SYNC", 9, "<cyan>"),
+        ("SIGNAL", 19, "<yellow>"),
+        ("TEST", 19, "<cyan>"),
+    ):
+        try:
+            logger.level(name, no=no, color=color)
+        except ValueError:
+            # Already registered (e.g. setup_logging called more than once).
+            pass
 
     logger.remove()
-    logger.add(sys.stderr, level=6, colorize=True,
-               format="<green>{time:HH:mm:ss}</green> | <level>{level: <8}</level> | <level>{message}</level>")
+    # Windowed PyInstaller builds (console=False) set sys.stderr to None on Windows.
+    if sys.stderr is not None:
+        logger.add(
+            sys.stderr,
+            level=6,
+            colorize=True,
+            format="<green>{time:HH:mm:ss}</green> | <level>{level: <8}</level> | <level>{message}</level>",
+        )
 
     log_dir = platformdirs.user_log_dir(appname="ActivityBrowser", appauthor="pylca")
     os.makedirs(log_dir, exist_ok=True)
