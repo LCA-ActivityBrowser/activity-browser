@@ -16,24 +16,67 @@ license_file = spec_root / "LICENSE.txt"
 icon_ico = spec_root / "activity_browser" / "static" / "icons" / "main" / "activitybrowser.ico"
 icon_png = spec_root / "activity_browser" / "static" / "icons" / "main" / "activitybrowser.png"
 
-if sys.platform == "win32":
-    pardiso_deps = [
-        "libiomp5md.dll",
-        "mkl_core.2.dll",
-        "mkl_intel_thread.2.dll",
-        "mkl_avx2.2.dll",
-        "tbbmalloc.dll",
-        "mkl_vml_avx2.2.dll",
-        "mkl_rt.2.dll",
-    ]
-    bin_dir = Path(sys.prefix) / "Library" / "bin"
-    binaries = [
-        (str(bin_dir / dll), "lib")
-        for dll in pardiso_deps
-        if (bin_dir / dll).exists()
-    ]
-else:
-    binaries = []
+binaries = []
+extra_datas = []
+extra_hiddenimports = []
+
+
+def _collect_solver_shared_libs():
+    """Bundle Intel MKL / OpenMP libs so pypardiso can load in the frozen app.
+
+    pip installs these under ``sys.prefix/Library/bin`` (Windows) or
+    ``sys.prefix/lib`` (Linux). pypardiso searches ``sys.prefix/[Ll]ib*/**/*mkl_rt*``,
+    so keep that relative layout inside the onedir ``_internal`` tree.
+    """
+    prefix = Path(sys.prefix)
+    collected = []
+
+    if sys.platform == "win32":
+        patterns = (
+            "Library/bin/mkl_*.dll",
+            "Library/bin/libiomp*.dll",
+            "Library/bin/libimalloc.dll",
+            "Library/bin/tbb*.dll",
+            "Library/bin/tbbmalloc*.dll",
+        )
+        dest = "Library/bin"
+    elif sys.platform.startswith("linux"):
+        patterns = (
+            "lib/libmkl_*.so*",
+            "lib/libiomp*.so*",
+            "lib/libtbb*.so*",
+        )
+        dest = "lib"
+    else:
+        return collected
+
+    for pattern in patterns:
+        for path in prefix.glob(pattern):
+            if path.is_file():
+                collected.append((str(path), dest))
+
+    return collected
+
+
+if sys.platform == "win32" or sys.platform.startswith("linux"):
+    # Ensure the Python package is analyzed even if nothing imports it yet.
+    try:
+        d, b, h = collect_all("pypardiso")
+        extra_datas += d
+        binaries += b
+        extra_hiddenimports += h
+    except Exception as exc:  # pragma: no cover - packaging diagnostics
+        print(f"WARNING: collect_all(pypardiso) failed: {exc}")
+
+    binaries += _collect_solver_shared_libs()
+    mkl_rt_names = {"mkl_rt.2.dll", "mkl_rt.3.dll", "libmkl_rt.so.2", "libmkl_rt.so.3"}
+    have_mkl_rt = any(Path(src).name in mkl_rt_names or "mkl_rt" in Path(src).name for src, _ in binaries)
+    if not have_mkl_rt:
+        raise SystemExit(
+            "Fast solver libs not found under sys.prefix "
+            f"({sys.prefix}). On Windows/Linux x86_64 install pypardiso "
+            "(pulls in the pip `mkl` package) before running PyInstaller."
+        )
 
 block_cipher = None
 
@@ -42,6 +85,7 @@ block_cipher = None
 # the frozen package (namespace package) and breaks imports like __main__.
 ab_datas, ab_binaries, ab_hiddenimports = collect_all("activity_browser")
 binaries += ab_binaries
+ab_datas += extra_datas
 
 if license_file.exists():
     ab_datas.append((str(license_file), "."))
@@ -49,6 +93,7 @@ if license_file.exists():
 hiddenimports = sorted(
     set(
         ab_hiddenimports
+        + extra_hiddenimports
         + [
             "activity_browser",
             "activity_browser.__main__",
@@ -91,7 +136,6 @@ exe = EXE(
     strip=False,
     upx=True,
     console=True,
-
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,

@@ -40,6 +40,16 @@ binary already embeds those packages via PyInstaller).
 
 `<version>` is `YYYYMMDD-<shortsha>` from the CI commit.
 
+## Fast sparse solver (Windows / Linux x86_64)
+
+AB uses Brightway’s `bw2calc`, which prefers **pypardiso** (Intel MKL) on x86_64.
+`pyproject.toml` already depends on `pypardiso` on Windows; the PyInstaller spec
+bundles the pip `mkl` / OpenMP shared libraries into the onedir tree at
+`Library/bin` (Windows) or `lib` (Linux) so pypardiso can find `mkl_rt` after
+freeze. CI fails the build if those libs are missing.
+
+macOS Apple Silicon uses scikit-umfpack when available (pypardiso is not on ARM).
+
 ## Layout
 
 - `export-dependencies.sh` — write the freeze `.txt`

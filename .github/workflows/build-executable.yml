@@ -62,7 +62,25 @@ jobs:
         run: |
           uv sync --prerelease=allow
           uv pip install pyinstaller
+          # pypardiso is a Windows marker dep in pyproject; install explicitly for
+          # Linux x86_64 stand-alones too (pulls pip `mkl` + OpenMP libs).
+          if [[ "${{ runner.os }}" == "Windows" || "${{ runner.os }}" == "Linux" ]]; then
+            uv pip install pypardiso
+          fi
           uv run --no-sync python -c "import activity_browser, PyInstaller; print('ready', PyInstaller.__version__)"
+
+      - name: Verify fast sparse solver (Windows / Linux)
+        if: runner.os == 'Windows' || runner.os == 'Linux'
+        shell: bash
+        run: |
+          uv run --no-sync python - <<'PY'
+          from pypardiso import factorized, spsolve
+          import pathlib, sys
+          prefix = pathlib.Path(sys.prefix)
+          hits = list(prefix.glob("Library/bin/mkl_rt*")) + list(prefix.glob("lib/libmkl_rt*"))
+          print("pypardiso import ok; mkl_rt candidates:", hits)
+          assert hits, f"mkl_rt not found under {prefix}"
+          PY
 
       - name: Build with PyInstaller (onedir)
         shell: bash
