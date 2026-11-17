@@ -131,7 +131,8 @@ maintainer guide (fork workflow, local merges, and release steps).
 
 ## 4. Build Executable (`build-executable.yml`)
 
-**Trigger:** Push to `major` branch or any tag
+**Trigger:** Manual **workflow_dispatch** only (Actions → Build Executable → Run workflow).
+Select the branch to build from (any branch that contains this workflow file).
 
 **Purpose:** Builds stand-alone Activity Browser packages with PyInstaller (onedir) plus
 platform installers, uploads them as workflow artifacts for **manual** promotion to
@@ -301,7 +302,7 @@ When modifying the test matrix (OS or Python versions):
 
 ### Release Process
 1. **Beta release:** Push to `beta` branch -> auto-publishes beta version
-2. **Executable stand-alone AB versions:** Push to `major` or tag -> uploads platform installer artifacts (manual upload to GitHub Releases)
+2. **Executable stand-alone AB versions:** Manually run **Build Executable** on the desired branch → uploads platform installer artifacts (then manual upload to GitHub Releases)
 3. **Stable release:** Create and push a tag -> creates GitHub release and publishes to Anaconda
 4. **Close milestone:** Users get release comments automatically
 

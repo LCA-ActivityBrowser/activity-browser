@@ -1,9 +1,9 @@
 name: Build Executable
 
 on:
-  push:
-    branches: [major]
-    tags: ["*"]
+  # Run from Actions → Build Executable → Run workflow.
+  # Choose any branch that contains this file (e.g. this PR branch, or major).
+  workflow_dispatch:
 
 jobs:
   build:

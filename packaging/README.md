@@ -3,6 +3,10 @@
 Scripts and metadata used by `.github/workflows/build-executable.yml` to produce
 downloadable Activity Browser builds for Windows, macOS, and Linux.
 
+The workflow is started **manually** (Actions → Build Executable → Run workflow).
+Pick the branch to build (for example a feature branch that already has this
+workflow, or `major` after merge).
+
 ## Outputs
 
 | Platform | Artifact |
@@ -29,8 +33,8 @@ binary already embeds those packages via PyInstaller).
 
 CI uploads artifacts only. Publishing is manual:
 
-1. Open the successful **Build Executable** run for the `major` commit you want.
-2. Download the three platform artifacts (and dependency `.txt` files).
+1. In GitHub Actions, run **Build Executable** on the branch/commit you want.
+2. Open that successful run and download the three platform artifacts (and dependency `.txt` files).
 3. Create or edit a [GitHub Release](https://github.com/LCA-ActivityBrowser/activity-browser/releases) and attach the files.
 4. Mention in the release notes that macOS builds are **unsigned** (see user docs).
 
