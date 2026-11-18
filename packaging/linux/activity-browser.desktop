@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Activity Browser
+Comment=Graphical user interface for Brightway2 LCA
+Exec=activity-browser
+Icon=activity-browser
+Categories=Science;Education;
+Terminal=false
+StartupNotify=true

@@ -1,44 +1,118 @@
 # -*- mode: python ; coding: utf-8 -*-
+"""PyInstaller spec for Activity Browser stand-alone builds (onedir)."""
+import os
 import sys
 from pathlib import Path
-from PyInstaller.utils.hooks import collect_data_files
+
+from PyInstaller.utils.hooks import collect_all
+
+# collect_all imports package submodules in a subprocess. On headless CI Linux
+# that pulls in Qt and aborts without a platform plugin unless we set this.
+os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+
+# SPECPATH is injected by PyInstaller when this file is executed.
+spec_root = Path(SPECPATH).resolve()
+license_file = spec_root / "LICENSE.txt"
+icon_ico = spec_root / "activity_browser" / "static" / "icons" / "main" / "activitybrowser.ico"
+icon_png = spec_root / "activity_browser" / "static" / "icons" / "main" / "activitybrowser.png"
+
+binaries = []
+extra_datas = []
+extra_hiddenimports = []
 
 
-if sys.platform == "win32":
-    pardiso_deps = [
-        "libiomp5md.dll",
-        "mkl_core.2.dll",
-        "mkl_intel_thread.2.dll",
-        "mkl_avx2.2.dll",
-        "tbbmalloc.dll",
-        "mkl_vml_avx2.2.dll",
-        "mkl_rt.2.dll",
-    ]
+def _collect_solver_shared_libs():
+    """Bundle Intel MKL / OpenMP libs so pypardiso can load in the frozen app.
 
-    bin_dir = Path(sys.prefix) / "Library" / "bin"
-    binaries = [(str(bin_dir / dll), "lib") for dll in pardiso_deps if (bin_dir / dll).exists()]
-else:
-    binaries = []
+    pip installs these under ``sys.prefix/Library/bin`` (Windows) or
+    ``sys.prefix/lib`` (Linux). pypardiso searches ``sys.prefix/[Ll]ib*/**/*mkl_rt*``,
+    so keep that relative layout inside the onedir ``_internal`` tree.
+    """
+    prefix = Path(sys.prefix)
+    collected = []
+
+    if sys.platform == "win32":
+        patterns = (
+            "Library/bin/mkl_*.dll",
+            "Library/bin/libiomp*.dll",
+            "Library/bin/libimalloc.dll",
+            "Library/bin/tbb*.dll",
+            "Library/bin/tbbmalloc*.dll",
+        )
+        dest = "Library/bin"
+    elif sys.platform.startswith("linux"):
+        patterns = (
+            "lib/libmkl_*.so*",
+            "lib/libiomp*.so*",
+            "lib/libtbb*.so*",
+        )
+        dest = "lib"
+    else:
+        return collected
+
+    for pattern in patterns:
+        for path in prefix.glob(pattern):
+            if path.is_file():
+                collected.append((str(path), dest))
+
+    return collected
+
+
+if sys.platform == "win32" or sys.platform.startswith("linux"):
+    # Ensure the Python package is analyzed even if nothing imports it yet.
+    try:
+        d, b, h = collect_all("pypardiso")
+        extra_datas += d
+        binaries += b
+        extra_hiddenimports += h
+    except Exception as exc:  # pragma: no cover - packaging diagnostics
+        print(f"WARNING: collect_all(pypardiso) failed: {exc}")
+
+    binaries += _collect_solver_shared_libs()
+    mkl_rt_names = {"mkl_rt.2.dll", "mkl_rt.3.dll", "libmkl_rt.so.2", "libmkl_rt.so.3"}
+    have_mkl_rt = any(Path(src).name in mkl_rt_names or "mkl_rt" in Path(src).name for src, _ in binaries)
+    if not have_mkl_rt:
+        raise SystemExit(
+            "Fast solver libs not found under sys.prefix "
+            f"({sys.prefix}). On Windows/Linux x86_64 install pypardiso "
+            "(pulls in the pip `mkl` package) before running PyInstaller."
+        )
 
 block_cipher = None
 
-# Collect all data files from activity_browser package
-ab_datas = collect_data_files('activity_browser')
+# collect_all pulls package data *and* modules. Using only collect_data_files
+# creates an on-disk activity_browser/ tree without .py files, which shadows
+# the frozen package (namespace package) and breaks imports like __main__.
+ab_datas, ab_binaries, ab_hiddenimports = collect_all("activity_browser")
+binaries += ab_binaries
+ab_datas += extra_datas
+
+if license_file.exists():
+    ab_datas.append((str(license_file), "."))
+
+hiddenimports = sorted(
+    set(
+        ab_hiddenimports
+        + extra_hiddenimports
+        + [
+            "activity_browser",
+            "activity_browser.__main__",
+            "PySide6",
+            "bw2data",
+            "bw2io",
+            "bw2calc",
+            "pypardiso",
+            "scikits.umfpack",
+        ]
+    )
+)
 
 a = Analysis(
-    ['run-activity-browser.py'],
+    ["run-activity-browser.py"],
     pathex=[],
     binaries=binaries,
     datas=ab_datas,
-    hiddenimports=[
-        'activity_browser',
-        'PySide6',
-        'bw2data',
-        'bw2io',
-        'bw2calc',
-        'pypardiso',
-        'scikits.umfpack',
-    ],
+    hiddenimports=hiddenimports,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
@@ -54,21 +128,44 @@ pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 exe = EXE(
     pyz,
     a.scripts,
-    a.binaries,
-    a.datas,
     [],
-    name='activity-browser',
+    exclude_binaries=True,
+    name="activity-browser",
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
-    upx=True,
-    upx_exclude=[],
-    runtime_tmpdir=None,
+    # UPX packing commonly triggers browser/AV false positives on Windows.
+    upx=False,
     console=True,
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon='activity_browser/static/icons/main/activitybrowser.ico',
+    icon=str(icon_ico) if icon_ico.exists() else None,
 )
+
+coll = COLLECT(
+    exe,
+    a.binaries,
+    a.zipfiles,
+    a.datas,
+    strip=False,
+    upx=False,
+    upx_exclude=[],
+    name="activity-browser",
+)
+
+if sys.platform == "darwin":
+    app = BUNDLE(
+        coll,
+        name="Activity Browser.app",
+        icon=str(icon_png) if icon_png.exists() else None,
+        bundle_identifier="org.activity-browser.ActivityBrowser",
+        info_plist={
+            "CFBundleName": "Activity Browser",
+            "CFBundleDisplayName": "Activity Browser",
+            "CFBundleShortVersionString": "3.0.0",
+            "NSHighResolutionCapable": True,
+        },
+    )

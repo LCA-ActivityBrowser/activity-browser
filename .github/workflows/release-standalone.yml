@@ -1,0 +1,165 @@
+name: Release Stand-alone
+
+# Promote a successful Build Executable run to the public GitHub Release tag
+# `stand-alone` (stable asset names for README / docs download buttons).
+#
+# Manual only. A minimal workflow_dispatch stub with the same name must exist
+# on main so Actions shows "Run workflow"; pick major (or this PR branch) in
+# the dropdown so GitHub uses this full workflow file.
+on:
+  workflow_dispatch:
+    inputs:
+      build_run_id:
+        description: "Build Executable run ID (empty = latest success on source_branch)"
+        required: false
+        type: string
+      source_branch:
+        description: "Branch used to find the latest Build Executable run when build_run_id is empty"
+        required: true
+        default: "major"
+        type: string
+      ab_version:
+        description: "AB version shown in release notes (empty = PyPI latest)"
+        required: false
+        type: string
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resolve AB version
+        id: ver
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -n "${{ inputs.ab_version }}" ]]; then
+            BASE="${{ inputs.ab_version }}"
+          else
+            BASE="$(python -c 'import json,urllib.request; print(json.load(urllib.request.urlopen("https://pypi.org/pypi/activity-browser/json"))["info"]["version"])')"
+          fi
+          echo "base=${BASE}" >> "$GITHUB_OUTPUT"
+          echo "display=${BASE}-stand-alone" >> "$GITHUB_OUTPUT"
+
+      - name: Resolve Build Executable run
+        id: run
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if [[ -n "${{ inputs.build_run_id }}" ]]; then
+            RUN_ID="${{ inputs.build_run_id }}"
+          else
+            RUN_ID="$(gh run list \
+              --repo "${{ github.repository }}" \
+              --workflow "Build Executable" \
+              --branch "${{ inputs.source_branch }}" \
+              --status success \
+              --limit 1 \
+              --json databaseId \
+              --jq '.[0].databaseId')"
+            if [[ -z "${RUN_ID}" || "${RUN_ID}" == "null" ]]; then
+              echo "No successful Build Executable run found on ${{ inputs.source_branch }}" >&2
+              echo "Tip: use a run from a merged PR to major, or paste build_run_id explicitly." >&2
+              exit 1
+            fi
+          fi
+          echo "id=${RUN_ID}" >> "$GITHUB_OUTPUT"
+          echo "Using Build Executable run ${RUN_ID}"
+          gh run view "${RUN_ID}" --repo "${{ github.repository }}"
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          github-token: ${{ github.token }}
+          run-id: ${{ steps.run.outputs.id }}
+          path: artifacts
+          merge-multiple: true
+
+      - name: Prepare stable and versioned assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p release-assets
+          shopt -s nullglob
+
+          win=(artifacts/*-windows-x64-setup.exe)
+          mac=(artifacts/*-macos-arm64.dmg)
+          linux=(artifacts/*-linux-x86_64.AppImage)
+          deps=(artifacts/*-dependencies.txt)
+
+          if [[ ${#win[@]} -ne 1 || ${#mac[@]} -ne 1 || ${#linux[@]} -ne 1 ]]; then
+            echo "Expected one installer per platform; found:" >&2
+            find artifacts -type f -print >&2
+            exit 1
+          fi
+
+          DISPLAY_VER="${{ steps.ver.outputs.display }}"
+
+          # Stable names → fixed download URLs in README / docs
+          cp -f "${win[0]}" "release-assets/ActivityBrowser-stand-alone-windows-x64-setup.exe"
+          cp -f "${mac[0]}" "release-assets/ActivityBrowser-stand-alone-macos-arm64.dmg"
+          cp -f "${linux[0]}" "release-assets/ActivityBrowser-stand-alone-linux-x86_64.AppImage"
+
+          # Versioned copies for archival / support
+          cp -f "${win[0]}" "release-assets/ActivityBrowser-${DISPLAY_VER}-windows-x64-setup.exe"
+          cp -f "${mac[0]}" "release-assets/ActivityBrowser-${DISPLAY_VER}-macos-arm64.dmg"
+          cp -f "${linux[0]}" "release-assets/ActivityBrowser-${DISPLAY_VER}-linux-x86_64.AppImage"
+
+          for f in "${deps[@]}"; do
+            cp -f "$f" "release-assets/$(basename "$f")"
+          done
+
+          ls -la release-assets
+
+      - name: Publish or update stand-alone Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG="stand-alone"
+          TITLE="Activity Browser stand-alone (${{ steps.ver.outputs.display }})"
+          NOTES="$(cat <<EOF
+          Stand-alone installers for Activity Browser **${{ steps.ver.outputs.display }}**
+          (matches PyPI/conda AB **${{ steps.ver.outputs.base }}**, packaged without a local Python install).
+
+          Built from [Build Executable run ${{ steps.run.outputs.id }}](https://github.com/${{ github.repository }}/actions/runs/${{ steps.run.outputs.id }}).
+
+          ### Downloads (stable filenames)
+
+          - Windows: \`ActivityBrowser-stand-alone-windows-x64-setup.exe\`
+          - macOS (Apple Silicon): \`ActivityBrowser-stand-alone-macos-arm64.dmg\`
+          - Linux: \`ActivityBrowser-stand-alone-linux-x86_64.AppImage\`
+
+          Versioned copies of the same files are attached for support/archival.
+
+          ### Notes
+
+          - Windows builds are **not code-signed** (SmartScreen / browser warnings are common).
+          - macOS builds are **not notarized** (Control-click → Open on first launch).
+          EOF
+          )"
+
+          if gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
+            gh release edit "$TAG" \
+              --repo "${{ github.repository }}" \
+              --title "$TITLE" \
+              --notes "$NOTES" \
+              --latest=false
+            gh release upload "$TAG" release-assets/* \
+              --repo "${{ github.repository }}" \
+              --clobber
+          else
+            gh release create "$TAG" release-assets/* \
+              --repo "${{ github.repository }}" \
+              --title "$TITLE" \
+              --notes "$NOTES" \
+              --latest=false
+          fi
+
+          echo "Published https://github.com/${{ github.repository }}/releases/tag/${TAG}"

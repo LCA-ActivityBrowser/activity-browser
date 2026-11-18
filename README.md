@@ -32,6 +32,7 @@ The **Activity Browser (AB)** is an open-source GUI for Life Cycle Assessment on
 
 # Contents
 - [Installation (recommended: AB3 beta)](#installation-recommended-ab3-beta)
+  - [Download stand-alone](#download-stand-alone-no-python-install)
 - [First Steps](#first-steps)
 - [Contributing](#contributing)
 - [Developers](#developers)
@@ -43,9 +44,19 @@ The **Activity Browser (AB)** is an open-source GUI for Life Cycle Assessment on
 
 See the
 [Installation Guide](https://lca-activitybrowser.github.io/activity-browser/getting-started/installation.html)
-for a step-by-step walkthrough (PyPI or Anaconda).
+for a step-by-step walkthrough.
 
-### Quick install — PyPI (recommended)
+### Download stand-alone (no Python install)
+
+<a href="https://github.com/LCA-ActivityBrowser/activity-browser/releases/download/stand-alone/ActivityBrowser-stand-alone-windows-x64-setup.exe"><img src="https://img.shields.io/badge/Download-Windows-0A66C2?style=for-the-badge&logo=windows&logoColor=white" alt="Download Windows"></a>
+<a href="https://github.com/LCA-ActivityBrowser/activity-browser/releases/download/stand-alone/ActivityBrowser-stand-alone-macos-arm64.dmg"><img src="https://img.shields.io/badge/Download-macOS-000000?style=for-the-badge&logo=apple&logoColor=white" alt="Download macOS"></a>
+<a href="https://github.com/LCA-ActivityBrowser/activity-browser/releases/download/stand-alone/ActivityBrowser-stand-alone-linux-x86_64.AppImage"><img src="https://img.shields.io/badge/Download-Linux-FCC624?style=for-the-badge&logo=linux&logoColor=black" alt="Download Linux"></a>
+
+All stand-alone builds and release notes: [GitHub Releases — stand-alone](https://github.com/LCA-ActivityBrowser/activity-browser/releases/tag/stand-alone)
+
+> Windows/macOS builds are unsigned; browsers or Gatekeeper/SmartScreen may warn on first download/launch. Prefer the official GitHub Release links above.
+
+### Quick install — PyPI (recommended if you already use Python)
 
 ```bash
 # CREATE the virtual environment (in directory you can remember, 

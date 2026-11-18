@@ -1,29 +1,74 @@
 name: Build Executable
+
+# Full installer build (lives on major / feature branches).
+# A minimal workflow_dispatch stub with the same name must exist on main
+# so Actions shows "Run workflow"; pick this branch (or major) in the dropdown.
+# See packaging/README.md and PR #1791 pattern.
 on:
+  workflow_dispatch:
+    inputs:
+      ab_version:
+        description: "AB version to stamp (empty = latest activity-browser on PyPI)"
+        required: false
+        type: string
+  pull_request:
+    branches: [major]
   push:
-    branches: [ major ]
-    tags: '*'
+    branches: [major]
 
 jobs:
   build:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, ubuntu-latest, macos-latest, macos-15]
+        include:
+          - os: windows-latest
+            platform: windows-x64
+          - os: ubuntu-latest
+            platform: linux-x86_64
+          - os: macos-latest
+            platform: macos-arm64
     runs-on: ${{ matrix.os }}
+    env:
+      # Headless PyInstaller analysis imports Qt via collect_all.
+      QT_QPA_PLATFORM: offscreen
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Set version stamp
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -n "${{ inputs.ab_version }}" ]]; then
+            BASE_VERSION="${{ inputs.ab_version }}"
+          else
+            BASE_VERSION="$(python -c 'import json,urllib.request; print(json.load(urllib.request.urlopen("https://pypi.org/pypi/activity-browser/json"))["info"]["version"])')"
+          fi
+          # Human / installer filenames: <ab>-stand-alone
+          AB_VERSION="${BASE_VERSION}-stand-alone"
+          # setup.py / PEP 440: local version label
+          PKG_VERSION="${BASE_VERSION}+stand.alone"
+          SHORT_SHA="$(echo "${GITHUB_SHA}" | cut -c1-7)"
+          echo "BASE_VERSION=${BASE_VERSION}" >> "$GITHUB_ENV"
+          echo "AB_VERSION=${AB_VERSION}" >> "$GITHUB_ENV"
+          echo "VERSION=${PKG_VERSION}" >> "$GITHUB_ENV"
+          echo "Building stand-alone ${AB_VERSION} (package ${PKG_VERSION}, sha ${SHORT_SHA})"
+
       - name: Install system dependencies (Linux)
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libegl1 libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-xinerama0 libxcb-xfixes0 libxcb-shape0
+          sudo apt-get install -y \
+            libegl1 libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 \
+            libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 \
+            libxcb-xinerama0 libxcb-xfixes0 libxcb-shape0 \
+            libfuse2 desktop-file-utils
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: 3.12
+          python-version: "3.12"
 
       - name: Install UV
         uses: astral-sh/setup-uv@v2
@@ -31,15 +76,83 @@ jobs:
       - name: Sync dependencies
         shell: bash
         run: |
-          uv add pyinstaller
-          uv sync --prerelease=allow        
+          uv sync --prerelease=allow
+          uv pip install pyinstaller
+          # pypardiso is a Windows marker dep in pyproject; install explicitly for
+          # Linux x86_64 stand-alones too (pulls pip `mkl` + OpenMP libs).
+          if [[ "${{ runner.os }}" == "Windows" || "${{ runner.os }}" == "Linux" ]]; then
+            uv pip install pypardiso
+          fi
+          # Reinstall with VERSION from the env so dist-info (and the frozen app)
+          # report the build stamp, not setup.py's default 0.0.0.
+          uv pip install -e . --force-reinstall --no-deps
+          uv run --no-sync python -c "from importlib.metadata import version; import activity_browser, PyInstaller; print('ready', PyInstaller.__version__, 'activity_browser', version('activity_browser'))"
 
-      - name: Build executable with PyInstaller
+      - name: Verify fast sparse solver (Windows / Linux)
+        if: runner.os == 'Windows' || runner.os == 'Linux'
         shell: bash
         run: |
-          uv run pyinstaller pyinstaller.spec
+          uv run --no-sync python - <<'PY'
+          from pypardiso import factorized, spsolve
+          import pathlib, sys
+          prefix = pathlib.Path(sys.prefix)
+          hits = list(prefix.glob("Library/bin/mkl_rt*")) + list(prefix.glob("lib/libmkl_rt*"))
+          print("pypardiso import ok; mkl_rt candidates:", hits)
+          assert hits, f"mkl_rt not found under {prefix}"
+          PY
+
+      - name: Build with PyInstaller (onedir)
+        shell: bash
+        run: |
+          uv run --no-sync pyinstaller pyinstaller.spec
+
+      - name: Export dependency freeze
+        shell: bash
+        run: |
+          chmod +x packaging/export-dependencies.sh
+          packaging/export-dependencies.sh \
+            "dist/ActivityBrowser-${AB_VERSION}-${{ matrix.platform }}-dependencies.txt"
+
+      - name: Build Windows installer (Inno Setup)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          choco install innosetup --no-progress -y
+          New-Item -ItemType Directory -Force -Path dist\installers | Out-Null
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" `
+            "/DMyAppVersion=${env:AB_VERSION}" `
+            packaging\windows\activity-browser.iss
+
+      - name: Build macOS DMG
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          chmod +x packaging/macos/create-dmg.sh
+          packaging/macos/create-dmg.sh "$AB_VERSION"
+
+      - name: Build Linux AppImage
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          chmod +x packaging/linux/create-appimage.sh
+          packaging/linux/create-appimage.sh "$AB_VERSION"
+
+      - name: Collect release-ready files
+        shell: bash
+        run: |
+          mkdir -p dist/upload
+          cp -f "dist/ActivityBrowser-${AB_VERSION}-${{ matrix.platform }}-dependencies.txt" dist/upload/
+          if [[ "${{ runner.os }}" == "Windows" ]]; then
+            cp -f dist/installers/ActivityBrowser-${AB_VERSION}-windows-x64-setup.exe dist/upload/
+          elif [[ "${{ runner.os }}" == "macOS" ]]; then
+            cp -f dist/installers/ActivityBrowser-${AB_VERSION}-macos-arm64.dmg dist/upload/
+          else
+            cp -f dist/installers/ActivityBrowser-${AB_VERSION}-linux-x86_64.AppImage dist/upload/
+          fi
+          ls -la dist/upload/
 
       - uses: actions/upload-artifact@v4
         with:
-          name: activity-browser-${{ matrix.os }}
-          path: dist/*
+          name: ActivityBrowser-${{ env.AB_VERSION }}-${{ matrix.platform }}
+          path: dist/upload/*
+          if-no-files-found: error
