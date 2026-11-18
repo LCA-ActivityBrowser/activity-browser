@@ -124,7 +124,11 @@ Each release asset set also includes a `*-dependencies.txt` file listing the Pyt
 2. Run it and accept the LGPL license terms.
 3. Start Activity Browser from the Start Menu (or the desktop shortcut if you enabled that option).
 
-Windows may show a SmartScreen warning for unsigned installers — choose **More info** → **Run anyway** if you trust the GitHub Release source.
+Windows builds are **not code-signed**. Firefox/Chrome may warn that the file
+“contains a virus or malware”, and SmartScreen may block the installer — these
+are common false positives for new unsigned apps. If you trust the official
+GitHub Release (or Actions artifact from this repo), choose **Keep** /
+**Download anyway**, then SmartScreen **More info** → **Run anyway**.
 
 ### macOS (Apple Silicon)
 

@@ -58,12 +58,29 @@ macOS Apple Silicon uses scikit-umfpack when available (pypardiso is not on ARM)
 - `linux/create-appimage.sh` — AppImage wrapper around the PyInstaller onedir
 - `linux/activity-browser.desktop` — desktop entry for the AppImage
 
+## Windows browser / SmartScreen warnings
+
+Stand-alone Windows builds are **not code-signed**. Browsers (Firefox Safe
+Browsing, Chrome, Edge) and Windows SmartScreen often flag new unsigned
+`.exe` / `.zip` downloads — especially from GitHub Actions artifact URLs
+(`*.blob.core.windows.net`). That is a reputation/heuristic false positive,
+not evidence the build is malicious.
+
+Mitigations in this repo:
+- PyInstaller **UPX is disabled** (UPX-packed binaries are frequent false positives).
+- Prefer publishing via **GitHub Releases** (better than raw Actions artifact links).
+- Longer term: Authenticode signing with a Windows code-signing certificate.
+
+Until then, document for users: download from the official GitHub org Release,
+and if the browser blocks it use “Keep” / “Download anyway”, then SmartScreen
+“More info” → “Run anyway” if needed.
+
 ## Publishing checklist
 
 1. Open the successful **Build Executable** run for the push you care about.
 2. Download the three platform artifacts (and dependency `.txt` files).
 3. Create or edit a GitHub Release and attach the files.
 4. Note in the release body that macOS builds are **unsigned** (Gatekeeper:
-   Control-click → Open).
+   Control-click → Open) and Windows builds may trigger SmartScreen until signed.
 5. Point the repo README / install docs at that Release (or `/releases/latest`)
    once you are ready for users to find the downloads on the landing page.
