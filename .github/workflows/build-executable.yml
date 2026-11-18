@@ -1,0 +1,18 @@
+# Present on the default branch (main) so GitHub Actions can show
+# "Run workflow". When you run it, pick major (or a PR branch that has the
+# full workflow + packaging/) in the branch dropdown. GitHub then uses that
+# branch's workflow file and code. See packaging/README.md / PR #1791 pattern.
+name: Build Executable
+
+on:
+  workflow_dispatch:
+
+jobs:
+  select-branch-note:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Reminder
+        run: |
+          echo "If you ran this against 'main', re-run and select 'major'"
+          echo "(or a feature branch that contains the full Build Executable workflow)."
+          echo "The real installer jobs live on major after the stand-alone packaging PR merges."
