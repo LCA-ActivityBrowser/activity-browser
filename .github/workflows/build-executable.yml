@@ -1,27 +1,20 @@
 name: Build Executable
 
-# Maintainer flow (see packaging/README.md):
-#   1. Packaging branch push → builds Win/macOS/Linux installers as Actions artifacts
-#   2. Actions → "Release Stand-alone" → attach those artifacts to the stand-alone Release
-#
-# workflow_dispatch must exist on the repo default branch (main) for the Actions UI
-# "Run workflow" button. Keep this file in sync on main and the packaging branch.
+# Full installer build (lives on major / feature branches).
+# A minimal workflow_dispatch stub with the same name must exist on main
+# so Actions shows "Run workflow"; pick this branch (or major) in the dropdown.
+# See packaging/README.md and PR #1791 pattern.
 on:
   workflow_dispatch:
     inputs:
-      packaging_ref:
-        description: "Git ref to build (packaging branch with pyinstaller/packaging scripts)"
-        required: true
-        default: "cursor/standalone-downloads-b6ac"
-        type: string
       ab_version:
         description: "AB version to stamp (empty = latest activity-browser on PyPI)"
         required: false
         type: string
+  pull_request:
+    branches: [major]
   push:
-    branches:
-      - standalone
-      - cursor/standalone-downloads-b6ac
+    branches: [major]
 
 jobs:
   build:
@@ -42,9 +35,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          # Dispatch from main can build a packaging branch; push uses this commit.
-          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.packaging_ref || github.sha }}
 
       - name: Set version stamp
         shell: bash
@@ -163,8 +153,6 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          # Artifact names cannot contain '+' or some PEP 440 chars; use the
-          # human AB_VERSION stamp (e.g. 3.0.0b…-stand-alone).
           name: ActivityBrowser-${{ env.AB_VERSION }}-${{ matrix.platform }}
           path: dist/upload/*
           if-no-files-found: error

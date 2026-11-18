@@ -1,22 +1,22 @@
 name: Release Stand-alone
 
 # Promote a successful Build Executable run to the public GitHub Release tag
-# `stand-alone` with **stable asset names** so README / docs download buttons
-# keep working across builds.
+# `stand-alone` (stable asset names for README / docs download buttons).
 #
-# This workflow file must also exist on the default branch (main) for the
-# Actions UI "Run workflow" button. Keep it in sync on main and the packaging branch.
+# Manual only. A minimal workflow_dispatch stub with the same name must exist
+# on main so Actions shows "Run workflow"; pick major (or this PR branch) in
+# the dropdown so GitHub uses this full workflow file.
 on:
   workflow_dispatch:
     inputs:
       build_run_id:
-        description: "Build Executable run ID (empty = latest success on packaging_branch)"
+        description: "Build Executable run ID (empty = latest success on source_branch)"
         required: false
         type: string
-      packaging_branch:
+      source_branch:
         description: "Branch used to find the latest Build Executable run when build_run_id is empty"
         required: true
-        default: "cursor/standalone-downloads-b6ac"
+        default: "major"
         type: string
       ab_version:
         description: "AB version shown in release notes (empty = PyPI latest)"
@@ -57,13 +57,14 @@ jobs:
             RUN_ID="$(gh run list \
               --repo "${{ github.repository }}" \
               --workflow "Build Executable" \
-              --branch "${{ inputs.packaging_branch }}" \
+              --branch "${{ inputs.source_branch }}" \
               --status success \
               --limit 1 \
               --json databaseId \
               --jq '.[0].databaseId')"
             if [[ -z "${RUN_ID}" || "${RUN_ID}" == "null" ]]; then
-              echo "No successful Build Executable run found on ${{ inputs.packaging_branch }}" >&2
+              echo "No successful Build Executable run found on ${{ inputs.source_branch }}" >&2
+              echo "Tip: use a run from a merged PR to major, or paste build_run_id explicitly." >&2
               exit 1
             fi
           fi
@@ -80,7 +81,6 @@ jobs:
           merge-multiple: true
 
       - name: Prepare stable and versioned assets
-        id: assets
         shell: bash
         run: |
           set -euo pipefail
@@ -115,12 +115,6 @@ jobs:
           done
 
           ls -la release-assets
-          {
-            echo "Stable download URLs:"
-            echo "  https://github.com/${{ github.repository }}/releases/download/stand-alone/ActivityBrowser-stand-alone-windows-x64-setup.exe"
-            echo "  https://github.com/${{ github.repository }}/releases/download/stand-alone/ActivityBrowser-stand-alone-macos-arm64.dmg"
-            echo "  https://github.com/${{ github.repository }}/releases/download/stand-alone/ActivityBrowser-stand-alone-linux-x86_64.AppImage"
-          }
 
       - name: Publish or update stand-alone Release
         shell: bash

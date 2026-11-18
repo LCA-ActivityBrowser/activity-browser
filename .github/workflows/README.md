@@ -131,40 +131,41 @@ maintainer guide (fork workflow, local merges, and release steps).
 
 ## 4. Build Executable (`build-executable.yml`)
 
-**Trigger:** Push to the packaging branch `standalone` (or `cursor/standalone-downloads-b6ac`),
-or **workflow_dispatch** (requires this file on `main` for the Actions UI button).
+**Trigger (on `major` / feature branches):**
+- `pull_request` → `major`
+- `push` → `major`
+- `workflow_dispatch` (optional manual rebuild)
 
 **Purpose:** Builds stand-alone Activity Browser packages with PyInstaller (onedir) plus
-platform installers and uploads them as workflow artifacts. Version stamp defaults to
+platform installers; uploads workflow artifacts. Version stamp defaults to
 `{latest PyPI activity-browser}-stand-alone`. See [`packaging/README.md`](../../packaging/README.md).
 
-### Matrix Strategy
-- **Windows** (`windows-latest`) → Inno Setup installer
-- **Linux** (`ubuntu-latest`) → AppImage
-- **macOS** (`macos-latest`, Apple Silicon) → unsigned DMG
+**Default branch (`main`):** keep a **minimal stub** with the same workflow `name` and
+`on: workflow_dispatch` only (PR #1791 pattern). That unlocks **Run workflow** in the
+Actions UI; choose **`major`** in the branch dropdown so the full job matrix runs.
 
-### Dispatch inputs
-- `packaging_ref` — git ref to build (default packaging branch)
-- `ab_version` — optional override instead of PyPI latest
+### Matrix Strategy
+- **Windows** → Inno Setup installer
+- **Linux** → AppImage
+- **macOS** (Apple Silicon) → unsigned DMG
 
 ### Publishing
-Use **Release Stand-alone** (below) to attach artifacts to the public Release.
+Use **Release Stand-alone** (below).
 
 ---
 
 ## 4b. Release Stand-alone (`release-standalone.yml`)
 
-**Trigger:** **workflow_dispatch** only (file must exist on `main` for the Actions UI).
+**Trigger:** `workflow_dispatch` only (full file on `major`; stub on `main` for the UI).
 
 **Purpose:** Downloads artifacts from a Build Executable run and publishes/updates the
 GitHub Release tag `stand-alone` with **stable asset names** used by README/docs
-download buttons. Marks the release with `--latest=false` so it does not replace
-versioned AB2/AB3 “Latest” releases.
+download buttons (`--latest=false` so it does not replace versioned “Latest” releases).
 
 ### Dispatch inputs
-- `build_run_id` — optional; empty = latest successful Build Executable on `packaging_branch`
-- `packaging_branch` — branch used to find that latest run
-- `ab_version` — optional; empty = PyPI latest (for release notes / versioned asset names)
+- `build_run_id` — optional; empty = latest successful Build Executable on `source_branch`
+- `source_branch` — default `major`
+- `ab_version` — optional; empty = PyPI latest
 
 ---
 
