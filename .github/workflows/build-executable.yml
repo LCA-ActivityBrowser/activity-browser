@@ -1,11 +1,23 @@
 name: Build Executable
 
 # Maintainer flow (see packaging/README.md):
-#   1. On branch `standalone` (or this PR branch), rebase onto major or beta
-#   2. Push — this workflow builds Win/macOS/Linux installers as Actions artifacts
-#   3. Manually attach chosen artifacts to a GitHub Release for public download
+#   1. Packaging branch push → builds Win/macOS/Linux installers as Actions artifacts
+#   2. Actions → "Release Stand-alone" → attach those artifacts to the stand-alone Release
+#
+# workflow_dispatch must exist on the repo default branch (main) for the Actions UI
+# "Run workflow" button. Keep this file in sync on main and the packaging branch.
 on:
   workflow_dispatch:
+    inputs:
+      packaging_ref:
+        description: "Git ref to build (packaging branch with pyinstaller/packaging scripts)"
+        required: true
+        default: "cursor/standalone-downloads-b6ac"
+        type: string
+      ab_version:
+        description: "AB version to stamp (empty = latest activity-browser on PyPI)"
+        required: false
+        type: string
   push:
     branches:
       - standalone
@@ -30,19 +42,28 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          # Dispatch from main can build a packaging branch; push uses this commit.
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.packaging_ref || github.sha }}
 
       - name: Set version stamp
         shell: bash
         run: |
+          set -euo pipefail
+          if [[ -n "${{ inputs.ab_version }}" ]]; then
+            BASE_VERSION="${{ inputs.ab_version }}"
+          else
+            BASE_VERSION="$(python -c 'import json,urllib.request; print(json.load(urllib.request.urlopen("https://pypi.org/pypi/activity-browser/json"))["info"]["version"])')"
+          fi
+          # Human / installer filenames: <ab>-stand-alone
+          AB_VERSION="${BASE_VERSION}-stand-alone"
+          # setup.py / PEP 440: local version label
+          PKG_VERSION="${BASE_VERSION}+stand.alone"
           SHORT_SHA="$(echo "${GITHUB_SHA}" | cut -c1-7)"
-          # Artifact / installer filenames keep a hyphen (Windows-friendly).
-          AB_VERSION="$(date -u +%Y%m%d)-${SHORT_SHA}"
-          # setup.py reads VERSION; use PEP 440 local form so About / console
-          # show the build id instead of the default 0.0.0.
-          PKG_VERSION="$(date -u +%Y%m%d)+${SHORT_SHA}"
+          echo "BASE_VERSION=${BASE_VERSION}" >> "$GITHUB_ENV"
           echo "AB_VERSION=${AB_VERSION}" >> "$GITHUB_ENV"
           echo "VERSION=${PKG_VERSION}" >> "$GITHUB_ENV"
-          echo "Building stand-alone version ${AB_VERSION} (package ${PKG_VERSION})"
+          echo "Building stand-alone ${AB_VERSION} (package ${PKG_VERSION}, sha ${SHORT_SHA})"
 
       - name: Install system dependencies (Linux)
         if: runner.os == 'Linux'
@@ -142,6 +163,8 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
+          # Artifact names cannot contain '+' or some PEP 440 chars; use the
+          # human AB_VERSION stamp (e.g. 3.0.0b…-stand-alone).
           name: ActivityBrowser-${{ env.AB_VERSION }}-${{ matrix.platform }}
           path: dist/upload/*
           if-no-files-found: error

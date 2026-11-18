@@ -5,43 +5,76 @@ to produce downloadable Activity Browser builds for Windows, macOS, and Linux.
 
 ## Maintainer workflow
 
-Intended loop for shipping stand-alone builds:
+```text
+rebase packaging branch onto major/beta
+        │
+        ▼
+push packaging branch  ──►  Build Executable (artifacts)
+        │
+        ▼
+Actions → "Release Stand-alone"  ──►  GitHub Release tag `stand-alone`
+        │
+        ▼
+stable download URLs used by README / docs buttons
+```
 
 1. **Use the packaging branch** `standalone` (preferred long-term name).  
    Until that branch exists, pushes to `cursor/standalone-downloads-b6ac` also trigger builds.
-2. **Rebase** that branch onto the code you want to package:
-   - `major` — current development integration branch  
-   - `beta` — what is published to PyPI / conda  
-3. **Push** the packaging branch. CI runs **Build Executable** and uploads
-   Windows / macOS / Linux artifacts.
-4. **Promote manually:** download artifacts from the Actions run and attach them
-   to a [GitHub Release](https://github.com/LCA-ActivityBrowser/activity-browser/releases)
-   (create or update a release; do not rely on Actions artifact retention).
+2. **Rebase** that branch onto the code you want to package (`major` or `beta`).
+3. **Push** the packaging branch → **Build Executable** uploads Win/macOS/Linux artifacts.
+4. **Promote:** Actions → **Release Stand-alone** → **Run workflow**  
+   (optional: paste a Build Executable run ID; otherwise uses the latest success on the packaging branch).  
+   This updates the GitHub Release tag [`stand-alone`](https://github.com/LCA-ActivityBrowser/activity-browser/releases/tag/stand-alone)
+   with stable asset names so README/docs download buttons keep working.
 
-Optional: **Actions → Build Executable → Run workflow** (`workflow_dispatch`) if
-the workflow file is available on the repo default branch and you can pick the
-packaging branch in the UI. Push-to-packaging-branch is the supported path.
+### Enabling “Run workflow” in the Actions UI
 
-```text
-major or beta  --rebase-->  standalone  --push-->  Actions artifacts  --manual-->  GitHub Release
+GitHub only shows **workflow_dispatch** in the Actions UI for workflows that exist on the
+**default branch** (`main`). The packaging branch alone is not enough for the button.
+
+One-time (or after workflow edits): merge/cherry-pick these files onto `main`:
+
+- `.github/workflows/build-executable.yml`
+- `.github/workflows/release-standalone.yml`
+
+Until then you can still dispatch from a machine with `gh`:
+
+```bash
+gh workflow run "Build Executable" --ref main \
+  -f packaging_ref=cursor/standalone-downloads-b6ac
+
+gh workflow run "Release Stand-alone" --ref main \
+  -f packaging_branch=cursor/standalone-downloads-b6ac
 ```
+
+(`--ref` must point at a commit that contains the workflow file.)
+
+## Versioning
+
+| Where | Format | Example |
+|---|---|---|
+| About / console / installer version | `{PyPI}-stand-alone` | `3.0.0b202611151932-stand-alone` |
+| Package metadata (`setup.py` `VERSION`) | `{PyPI}+stand.alone` (PEP 440) | `3.0.0b202611151932+stand.alone` |
+| Stable Release assets (download buttons) | fixed names under tag `stand-alone` | `ActivityBrowser-stand-alone-windows-x64-setup.exe` |
+| Versioned Release assets (archival) | include display version | `ActivityBrowser-3.0.0b…-stand-alone-windows-x64-setup.exe` |
+
+`Build Executable` and `Release Stand-alone` default the base version to the latest
+`activity-browser` on PyPI. Override with the `ab_version` workflow input when packaging
+a commit that is ahead of (or behind) PyPI.
 
 ## Outputs
 
-| Platform | Artifact |
-|---|---|
-| Windows | `ActivityBrowser-<version>-windows-x64-setup.exe` (Inno Setup) |
-| macOS (Apple Silicon) | `ActivityBrowser-<version>-macos-arm64.dmg` (unsigned; console enabled) |
-| Linux | `ActivityBrowser-<version>-linux-x86_64.AppImage` |
+| Platform | Versioned CI artifact | Stable Release asset |
+|---|---|---|
+| Windows | `ActivityBrowser-<ver>-stand-alone-windows-x64-setup.exe` | `ActivityBrowser-stand-alone-windows-x64-setup.exe` |
+| macOS (Apple Silicon) | `…-macos-arm64.dmg` | `ActivityBrowser-stand-alone-macos-arm64.dmg` |
+| Linux | `…-linux-x86_64.AppImage` | `ActivityBrowser-stand-alone-linux-x86_64.AppImage` |
 
-Each build also produces `ActivityBrowser-<version>-<platform>-dependencies.txt`
-listing the Python packages resolved at build time (documentation only; the
-binary already embeds those packages via PyInstaller).
+Public download URLs (stable):
 
-`<version>` is `YYYYMMDD-<shortsha>` from the CI commit (installer / artifact names).
-The same stamp is written into the installed package as PEP 440 `YYYYMMDD+<shortsha>`
-via the `VERSION` env var (`setup.py`), so About and the console log show that
-build id instead of `0.0.0`.
+- https://github.com/LCA-ActivityBrowser/activity-browser/releases/download/stand-alone/ActivityBrowser-stand-alone-windows-x64-setup.exe
+- https://github.com/LCA-ActivityBrowser/activity-browser/releases/download/stand-alone/ActivityBrowser-stand-alone-macos-arm64.dmg
+- https://github.com/LCA-ActivityBrowser/activity-browser/releases/download/stand-alone/ActivityBrowser-stand-alone-linux-x86_64.AppImage
 
 ## Windows multiprocessing (freeze_support)
 
@@ -82,19 +115,9 @@ not evidence the build is malicious.
 
 Mitigations in this repo:
 - PyInstaller **UPX is disabled** (UPX-packed binaries are frequent false positives).
-- Prefer publishing via **GitHub Releases** (better than raw Actions artifact links).
+- Prefer publishing via the **`stand-alone` GitHub Release** (stable URLs above).
 - Longer term: Authenticode signing with a Windows code-signing certificate.
 
 Until then, document for users: download from the official GitHub org Release,
 and if the browser blocks it use “Keep” / “Download anyway”, then SmartScreen
 “More info” → “Run anyway” if needed.
-
-## Publishing checklist
-
-1. Open the successful **Build Executable** run for the push you care about.
-2. Download the three platform artifacts (and dependency `.txt` files).
-3. Create or edit a GitHub Release and attach the files.
-4. Note in the release body that macOS builds are **unsigned** (Gatekeeper:
-   Control-click → Open) and Windows builds may trigger SmartScreen until signed.
-5. Point the repo README / install docs at that Release (or `/releases/latest`)
-   once you are ready for users to find the downloads on the landing page.

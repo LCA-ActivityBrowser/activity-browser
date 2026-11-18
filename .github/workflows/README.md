@@ -132,30 +132,39 @@ maintainer guide (fork workflow, local merges, and release steps).
 ## 4. Build Executable (`build-executable.yml`)
 
 **Trigger:** Push to the packaging branch `standalone` (or `cursor/standalone-downloads-b6ac`),
-or optional **workflow_dispatch**.
+or **workflow_dispatch** (requires this file on `main` for the Actions UI button).
 
 **Purpose:** Builds stand-alone Activity Browser packages with PyInstaller (onedir) plus
-platform installers, uploads them as workflow artifacts for **manual** promotion to
-GitHub Releases. Maintainer flow: rebase packaging branch onto `major` or `beta`, push,
-then attach artifacts to a Release. See [`packaging/README.md`](../../packaging/README.md).
+platform installers and uploads them as workflow artifacts. Version stamp defaults to
+`{latest PyPI activity-browser}-stand-alone`. See [`packaging/README.md`](../../packaging/README.md).
 
 ### Matrix Strategy
-- **Windows** (`windows-latest`) → Inno Setup installer (`*-windows-x64-setup.exe`)
-- **Linux** (`ubuntu-latest`) → AppImage (`*-linux-x86_64.AppImage`)
-- **macOS** (`macos-latest`, Apple Silicon) → unsigned DMG (`*-macos-arm64.dmg`)
+- **Windows** (`windows-latest`) → Inno Setup installer
+- **Linux** (`ubuntu-latest`) → AppImage
+- **macOS** (`macos-latest`, Apple Silicon) → unsigned DMG
 
-### Steps
-1. Checkout code and stamp version as `YYYYMMDD-<shortsha>`
-2. Install system dependencies (Linux only)
-3. Set up Python 3.12 and `uv`; sync project deps; install PyInstaller
-4. Build onedir via `pyinstaller.spec` (bundles `LICENSE.txt`; console window enabled)
-5. Export `ActivityBrowser-<version>-<platform>-dependencies.txt`
-6. Platform packaging (Inno Setup / DMG / AppImage)
-7. Upload release-ready files as artifact `ActivityBrowser-<version>-<platform>`
+### Dispatch inputs
+- `packaging_ref` — git ref to build (default packaging branch)
+- `ab_version` — optional override instead of PyPI latest
 
 ### Publishing
-Artifacts are **not** attached to GitHub Releases automatically. Maintainers download
-selected artifacts and attach them in the GitHub Releases UI.
+Use **Release Stand-alone** (below) to attach artifacts to the public Release.
+
+---
+
+## 4b. Release Stand-alone (`release-standalone.yml`)
+
+**Trigger:** **workflow_dispatch** only (file must exist on `main` for the Actions UI).
+
+**Purpose:** Downloads artifacts from a Build Executable run and publishes/updates the
+GitHub Release tag `stand-alone` with **stable asset names** used by README/docs
+download buttons. Marks the release with `--latest=false` so it does not replace
+versioned AB2/AB3 “Latest” releases.
+
+### Dispatch inputs
+- `build_run_id` — optional; empty = latest successful Build Executable on `packaging_branch`
+- `packaging_branch` — branch used to find that latest run
+- `ab_version` — optional; empty = PyPI latest (for release notes / versioned asset names)
 
 ---
 
