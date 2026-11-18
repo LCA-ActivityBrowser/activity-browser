@@ -54,7 +54,7 @@ class MDSLoader(QObject):
         """
         self.load_project()
 
-    def load_project(self):
+    def load_project(self, *, use_cache: bool = True):
         import bw2data as bd
         from bw2data.backends import sqlite3_lci_db
 
@@ -63,7 +63,11 @@ class MDSLoader(QObject):
         self.secondary_status = "loading"
 
         # check for valid cache and load from it if available
-        if self._has_cache() and Settings()["metadatastore"]["caching_enabled"]:
+        if (
+            use_cache
+            and self._has_cache()
+            and Settings()["metadatastore"]["caching_enabled"]
+        ):
             self.cache_load_project()
             return
 
@@ -94,15 +98,16 @@ class MDSLoader(QObject):
             logger.warning(
                 f"Metadata cache could not be loaded, rebuilding from database: {exc}"
             )
-            cache_path.unlink(missing_ok=True)
-            self.load_project()
+            self._safe_unlink_cache(cache_path)
+            # Skip cache even if unlink failed (Windows sharing violation).
+            self.load_project(use_cache=False)
             return
 
         # quick sanity checks
         if not self._cache_check(cached_df):
             logger.info("Cache file is invalid or outdated, loading from database instead")
-            cache_path.unlink()
-            self.load_project()
+            self._safe_unlink_cache(cache_path)
+            self.load_project(use_cache=False)
             return
 
         self.mds.dataframe = cached_df
@@ -307,6 +312,19 @@ class MDSLoader(QObject):
         lci_mtime = lci_path.stat().st_mtime
 
         return cache_mtime >= lci_mtime
+
+    @staticmethod
+    def _safe_unlink_cache(cache_path) -> None:
+        """Remove a bad cache file; ignore Windows sharing violations.
+
+        Concurrent AB processes (historically from missing freeze_support) can
+        hold the pickle open so ``unlink`` raises ``PermissionError``. Rebuild
+        from the database without failing the load.
+        """
+        try:
+            cache_path.unlink(missing_ok=True)
+        except OSError as exc:
+            logger.warning(f"Could not remove metadata cache {cache_path}: {exc}")
 
     def _cache_check(self, cached_df: pd.DataFrame) -> bool:
         import bw2data as bd

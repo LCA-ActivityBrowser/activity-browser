@@ -40,6 +40,17 @@ binary already embeds those packages via PyInstaller).
 
 `<version>` is `YYYYMMDD-<shortsha>` from the CI commit.
 
+## Windows multiprocessing (freeze_support)
+
+PyInstaller’s entry script is [`run-activity-browser.py`](../run-activity-browser.py).
+On Windows, `multiprocessing.Pool` (metadata load, ecoinvent import, …) spawns
+child processes that re-exec that script. The entry’s
+`if __name__ == "__main__"` block must call `multiprocessing.freeze_support()`
+**before** starting the GUI; otherwise each worker opens a new Activity Browser
+window. `activity_browser.run_activity_browser()` also calls `freeze_support()`
+as a backstop. Do not move the PyInstaller `Analysis` entry away from that
+script without keeping the same guard.
+
 ## Fast sparse solver (Windows / Linux x86_64)
 
 AB uses Brightway’s `bw2calc`, which prefers **pypardiso** (Intel MKL) on x86_64.

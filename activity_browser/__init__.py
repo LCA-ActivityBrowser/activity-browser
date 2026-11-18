@@ -38,8 +38,15 @@ def setup_logging():
     logger.add(log_file, level="DEBUG", rotation="5 MB", retention=5)
 
 def run_activity_browser():
+    # Windows frozen builds (PyInstaller): Pool/Process workers re-enter the
+    # app entry. Divert them before the GUI starts even if the wrapper script
+    # forgot freeze_support (see run-activity-browser.py).
+    import multiprocessing
+
+    multiprocessing.freeze_support()
     from . import __main__ as ab_main
 
     ab_main.run_activity_browser()
+
 
 setup_logging()
