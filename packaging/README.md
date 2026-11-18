@@ -38,7 +38,10 @@ Each build also produces `ActivityBrowser-<version>-<platform>-dependencies.txt`
 listing the Python packages resolved at build time (documentation only; the
 binary already embeds those packages via PyInstaller).
 
-`<version>` is `YYYYMMDD-<shortsha>` from the CI commit.
+`<version>` is `YYYYMMDD-<shortsha>` from the CI commit (installer / artifact names).
+The same stamp is written into the installed package as PEP 440 `YYYYMMDD+<shortsha>`
+via the `VERSION` env var (`setup.py`), so About and the console log show that
+build id instead of `0.0.0`.
 
 ## Windows multiprocessing (freeze_support)
 

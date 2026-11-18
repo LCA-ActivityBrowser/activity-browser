@@ -35,9 +35,14 @@ jobs:
         shell: bash
         run: |
           SHORT_SHA="$(echo "${GITHUB_SHA}" | cut -c1-7)"
-          VERSION="$(date -u +%Y%m%d)-${SHORT_SHA}"
-          echo "AB_VERSION=${VERSION}" >> "$GITHUB_ENV"
-          echo "Building stand-alone version ${VERSION}"
+          # Artifact / installer filenames keep a hyphen (Windows-friendly).
+          AB_VERSION="$(date -u +%Y%m%d)-${SHORT_SHA}"
+          # setup.py reads VERSION; use PEP 440 local form so About / console
+          # show the build id instead of the default 0.0.0.
+          PKG_VERSION="$(date -u +%Y%m%d)+${SHORT_SHA}"
+          echo "AB_VERSION=${AB_VERSION}" >> "$GITHUB_ENV"
+          echo "VERSION=${PKG_VERSION}" >> "$GITHUB_ENV"
+          echo "Building stand-alone version ${AB_VERSION} (package ${PKG_VERSION})"
 
       - name: Install system dependencies (Linux)
         if: runner.os == 'Linux'
@@ -67,7 +72,10 @@ jobs:
           if [[ "${{ runner.os }}" == "Windows" || "${{ runner.os }}" == "Linux" ]]; then
             uv pip install pypardiso
           fi
-          uv run --no-sync python -c "import activity_browser, PyInstaller; print('ready', PyInstaller.__version__)"
+          # Reinstall with VERSION from the env so dist-info (and the frozen app)
+          # report the build stamp, not setup.py's default 0.0.0.
+          uv pip install -e . --force-reinstall --no-deps
+          uv run --no-sync python -c "from importlib.metadata import version; import activity_browser, PyInstaller; print('ready', PyInstaller.__version__, 'activity_browser', version('activity_browser'))"
 
       - name: Verify fast sparse solver (Windows / Linux)
         if: runner.os == 'Windows' || runner.os == 'Linux'
