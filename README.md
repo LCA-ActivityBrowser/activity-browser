@@ -15,7 +15,7 @@
 > It comes with a refreshed UI, runs on Brightway 2.5 and adds multifunctionality via [bw_functional](https://github.com/LCA-ActivityBrowser/bw-functional).
 > Please try it and [report issues](https://github.com/LCA-ActivityBrowser/activity-browser/issues/new?template=beta_report.yml).
 >
-Seel also: [Activity Browser 3 Documentation](https://lca-activitybrowser.github.io/activity-browser/)
+See also: [Activity Browser 3 Documentation](https://lca-activitybrowser.github.io/activity-browser/)
 
 <img src="https://user-images.githubusercontent.com/33026150/54299977-47a9f680-45bc-11e9-81c6-b99462f84d0b.png" width=100%/>
 
@@ -30,14 +30,22 @@ The **Activity Browser (AB)** is an open-source GUI for Life Cycle Assessment on
 - **Plugins:** Extend the functionality of Activity Browser with
 [Plugins](https://github.com/LCA-ActivityBrowser/activity-browser/wiki/Plugins)
 
+### Download stand-alone (Windows / macOS / Linux)
+
+**No Python required.** Installers for Windows, macOS (Apple Silicon), and Linux:
+
+<a href="https://github.com/LCA-ActivityBrowser/activity-browser/releases"><img src="https://img.shields.io/badge/Download-stand--alone%20(GitHub%20Releases)-0A66C2?style=for-the-badge&logo=github&logoColor=white" alt="Download stand-alone from GitHub Releases"></a>
+
+Pick a release tag ending in `-stand-alone`, then the file for your OS (Windows `.exe`, macOS Apple Silicon `.dmg`, or Linux AppImage). Builds are **unsigned**, so browser/SmartScreen warnings on Windows and Gatekeeper on macOS are expected. Details: [Installation Guide](https://lca-activitybrowser.github.io/activity-browser/getting-started/installation.html).
+
 
 # Installation (AB3)
 
 See the
 [Installation Guide](https://lca-activitybrowser.github.io/activity-browser/getting-started/installation.html)
-for a more comprehensive guide.
+for a more comprehensive guide (stand-alone, PyPI, or Anaconda).
 
-### PyPI (recommended)
+### PyPI (if you already use Python)
 
 
 #### CREATE the virtual environment:
@@ -67,7 +75,7 @@ activity-browser
 ### Conda
 
 We are currently waiting for the AB3 (and bw_functional) to be accepted onto conda-forge. 
-In the meantime, we recommend to use the PyPi install above. 
+In the meantime, we recommend to use the PyPI install above (or the stand-alone download). 
 
 ```bash
 conda create -n ab3 -c conda-forge lca::activity-browser
