@@ -1,5 +1,6 @@
 ; Inno Setup script for Activity Browser (Windows x64).
-; Pass version at compile time: iscc /DMyAppVersion=YYYYMMDD-abcdef0 activity-browser.iss
+; Pass version at compile time, e.g.:
+;   iscc /DMyAppVersion=3.0.0b202611151932-stand-alone activity-browser.iss
 
 #ifndef MyAppVersion
   #define MyAppVersion "dev"
@@ -14,6 +15,8 @@
 AppId={{A1B2C3D4-E5F6-4789-ABCD-ACTIVITYBROWSER}}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
+; Windows Apps list title (default would be "AppName version AppVersion").
+AppVerName={#MyAppName} {#MyAppVersion}
 AppPublisher={#MyAppPublisher}
 AppPublisherURL={#MyAppURL}
 AppSupportURL={#MyAppURL}
@@ -39,6 +42,14 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
+
+; PyInstaller onedir: Inno's ignoreversion copy does not remove stale files.
+; Leftover activity_browser-*.dist-info from earlier stamps makes
+; importlib.metadata.version() report an old build id (e.g. YYYYMMDD+sha).
+[InstallDelete]
+Type: filesandordirs; Name: "{app}\_internal"
+Type: files; Name: "{app}\{#MyAppExeName}"
+Type: files; Name: "{app}\dependencies.txt"
 
 [Files]
 Source: "..\..\dist\activity-browser\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs

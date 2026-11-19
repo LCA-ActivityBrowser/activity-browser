@@ -17,15 +17,15 @@ feature branch  →  PR into major  →  (later) major → beta
          Actions → "Release Stand-alone" (manual)
                          │
                          ▼
-         GitHub Release tag `stand-alone` (public downloads)
+         GitHub Release tag `{AB}-stand-alone` (immutable)
 ```
 
 1. Open a PR into **`major`** (or merge to `major`). **Build Executable** runs automatically.
 2. When you want public downloads: Actions → **Release Stand-alone** → **Run workflow**.
    - Branch dropdown: choose **`major`** (not `main`) so GitHub uses the full workflow.
    - Optional: paste a Build Executable run ID; otherwise uses the latest success on `major`.
-3. That updates Release tag [`stand-alone`](https://github.com/LCA-ActivityBrowser/activity-browser/releases/tag/stand-alone)
-   with stable asset names used by README / docs download buttons.
+3. That creates an immutable Release tagged `{PyPI}-stand-alone` with versioned installer assets.
+   Docs and the in-app updater point users at the [Releases](https://github.com/LCA-ActivityBrowser/activity-browser/releases) page (newest `*-stand-alone` tag). See ADR-0015.
 
 ### Enabling “Run workflow” on main (one-time)
 
@@ -43,26 +43,24 @@ full workflow file from that branch. Running against `main` itself only prints a
 
 | Where | Format | Example |
 |---|---|---|
-| About / console / installer version | `{PyPI}-stand-alone` | `3.0.0b202611151932-stand-alone` |
-| Package metadata (`setup.py` `VERSION`) | `{PyPI}+stand.alone` (PEP 440) | `3.0.0b202611151932+stand.alone` |
-| Stable Release assets (download buttons) | fixed names under tag `stand-alone` | `ActivityBrowser-stand-alone-windows-x64-setup.exe` |
-| Versioned Release assets (archival) | include display version | `ActivityBrowser-3.0.0b…-stand-alone-windows-x64-setup.exe` |
+| Package metadata (`setup.py` `VERSION`) | same as PyPI AB version | `3.0.0b202611151932` |
+| About / console / installer display | `{PyPI}-stand-alone` | `3.0.0b202611151932-stand-alone` |
+| GitHub Release tag | `{PyPI}-stand-alone` | `3.0.0b202611151932-stand-alone` |
+| Versioned Release assets | include display version | `ActivityBrowser-3.0.0b…-stand-alone-windows-x64-setup.exe` |
+
+Stand-alone is detected at runtime with `sys.frozen`, not a PEP 440 local version label.
 
 Override the PyPI base with the `ab_version` workflow input when needed.
 
 ## Outputs
 
-| Platform | Stable Release asset |
+| Platform | Versioned Release asset |
 |---|---|
-| Windows | `ActivityBrowser-stand-alone-windows-x64-setup.exe` |
-| macOS (Apple Silicon) | `ActivityBrowser-stand-alone-macos-arm64.dmg` |
-| Linux | `ActivityBrowser-stand-alone-linux-x86_64.AppImage` |
+| Windows | `ActivityBrowser-{ver}-stand-alone-windows-x64-setup.exe` |
+| macOS (Apple Silicon) | `ActivityBrowser-{ver}-stand-alone-macos-arm64.dmg` |
+| Linux | `ActivityBrowser-{ver}-stand-alone-linux-x86_64.AppImage` |
 
-Public download URLs (stable):
-
-- https://github.com/LCA-ActivityBrowser/activity-browser/releases/download/stand-alone/ActivityBrowser-stand-alone-windows-x64-setup.exe
-- https://github.com/LCA-ActivityBrowser/activity-browser/releases/download/stand-alone/ActivityBrowser-stand-alone-macos-arm64.dmg
-- https://github.com/LCA-ActivityBrowser/activity-browser/releases/download/stand-alone/ActivityBrowser-stand-alone-linux-x86_64.AppImage
+Public entry point: [Releases](https://github.com/LCA-ActivityBrowser/activity-browser/releases) (choose a `*-stand-alone` tag).
 
 ## Windows multiprocessing (freeze_support)
 
@@ -70,6 +68,31 @@ PyInstaller’s entry script is [`run-activity-browser.py`](../run-activity-brow
 On Windows, `multiprocessing.Pool` spawns child processes that re-exec that script.
 The entry’s `if __name__ == "__main__"` block must call `multiprocessing.freeze_support()`
 before starting the GUI. See also `activity_browser.run_activity_browser()`.
+
+## macOS console / LSBackgroundOnly
+
+`pyinstaller.spec` uses `console=False` on darwin (and sets `LSBackgroundOnly` to
+false in the bundle plist). `console=True` makes PyInstaller mark the `.app` as
+background-only; Finder then opens Terminal/bash after the splash. Build Executable
+CI asserts the built plist is not `LSBackgroundOnly=true`.
+
+## macOS Qt WebEngine support
+
+Creating a `QWebEnginePage` aborts if `Helpers` (QtWebEngineProcess) or
+`Resources` (`icudtl.dat` / `.pak`) are missing from
+`QtWebEngineCore.framework`. The spec copies both into the `.app` after BUNDLE;
+CI checks they are present.
+
+## Smoke launch (CI)
+
+After packaging, Build Executable runs [`smoke-standalone.sh`](smoke-standalone.sh):
+silent-install the Windows `.exe` (or launch the macOS `.app` binary / Linux
+AppImage), start under `QT_QPA_PLATFORM=offscreen` with
+`AB_SKIP_SETTINGS_ON_STARTUP` / `--no-checks`, and fail if the process exits in
+the first ~90s or if the console line `Activity Browser version:` does not
+exactly match `AB_VERSION` (the `{PyPI}-stand-alone` stamp). This catches
+splash-then-crash failures and wrong version stamps; it does not cover
+Gatekeeper / SmartScreen Finder UX.
 
 ## Fast sparse solver (Windows / Linux x86_64)
 
@@ -85,7 +108,15 @@ are missing. macOS Apple Silicon uses scikit-umfpack when available.
 - `linux/create-appimage.sh` — AppImage wrapper
 - `linux/activity-browser.desktop` — desktop entry for the AppImage
 
+## Windows upgrade leftovers
+
+The Windows installer deletes `{app}\_internal` (and the main exe) before copying the
+new onedir tree. Without that, reinstalling over an older stand-alone can leave
+stale `activity_browser-*.dist-info` folders; `importlib.metadata` may then report
+an old build id in the console even though Apps → Installed apps shows the new
+stamp. macOS DMGs replace the whole `.app`, so they do not have this issue.
+
 ## Windows browser / SmartScreen warnings
 
-Builds are **not code-signed**. Prefer the official `stand-alone` GitHub Release links;
+Builds are **not code-signed**. Prefer official GitHub Releases (`*-stand-alone` tags);
 browser/SmartScreen warnings on unsigned `.exe` files are common false positives.

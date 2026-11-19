@@ -149,6 +149,9 @@ Actions UI; choose **`major`** in the branch dropdown so the full job matrix run
 - **Linux** → AppImage
 - **macOS** (Apple Silicon) → unsigned DMG
 
+After packaging, each OS job smoke-launches the stand-alone under offscreen Qt
+(`packaging/smoke-standalone.sh`) and fails if the process dies during startup.
+
 ### Publishing
 Use **Release Stand-alone** (below).
 
@@ -158,9 +161,9 @@ Use **Release Stand-alone** (below).
 
 **Trigger:** `workflow_dispatch` only (full file on `major`; stub on `main` for the UI).
 
-**Purpose:** Downloads artifacts from a Build Executable run and publishes/updates the
-GitHub Release tag `stand-alone` with **stable asset names** used by README/docs
-download buttons (`--latest=false` so it does not replace versioned “Latest” releases).
+**Purpose:** Downloads artifacts from a Build Executable run and creates an immutable
+GitHub Release tagged `{AB}-stand-alone` with versioned installer assets. Docs and the
+in-app updater use the Releases page / API filter on `*-stand-alone` tags (ADR-0015).
 
 ### Dispatch inputs
 - `build_run_id` — optional; empty = latest successful Build Executable on `source_branch`

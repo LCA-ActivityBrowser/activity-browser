@@ -239,25 +239,36 @@ def run_activity_browser_no_launcher():
 
 
 def pre_flight_checks():
+    """Always print the stamped version (smoke needs it under ``--no-checks``).
+
+    Network update prompts stay on the legacy path until the updates PR lands.
+    """
+    try:
+        current = metadata.version("activity_browser")
+    except metadata.PackageNotFoundError:
+        current = "0.0.0"
+    # Frozen/stand-alone builds stamp the public AB version; display adds the channel suffix.
+    display = f"{current}-stand-alone" if getattr(sys, "frozen", False) else current
+    version_line = f"Activity Browser version: {display}"
+    print(version_line, flush=True)
+    logger.info(version_line)
 
     if "--no-checks" in sys.argv:
         return
 
     if "CONDA_DEFAULT_ENV" in os.environ:
-        check_conda_update()
+        check_conda_update(current)
     else:
-        check_pypi_update()
+        check_pypi_update(current)
 
 
-def check_conda_update():
+def check_conda_update(ab_current: str):
     ab_url = "https://api.anaconda.org/package/lca/activity-browser"
     try:
         ab_response = requests.get(ab_url)
     except:
         print("Could not fetch latest Activity Browser version")
         return
-    ab_current = metadata.version("activity_browser")
-    print(f"Activity Browser version: {ab_current}")
 
     if ab_response.status_code != 200:
         print("Could not fetch latest Activity Browser version")
@@ -270,15 +281,13 @@ def check_conda_update():
               "Press any key to continue without updating...\033[0m")
 
 
-def check_pypi_update():
+def check_pypi_update(ab_current: str):
     ab_url = "https://pypi.org/pypi/activity-browser/json"
     try:
         ab_response = requests.get(ab_url)
     except:
         print("Could not fetch latest Activity Browser version")
         return
-    ab_current = metadata.version("activity_browser")
-    print(f"Activity Browser version: {ab_current}")
 
     if ab_response.status_code != 200:
         print("Could not fetch latest Activity Browser version")

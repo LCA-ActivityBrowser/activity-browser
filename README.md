@@ -48,13 +48,11 @@ for a step-by-step walkthrough.
 
 ### Download stand-alone (no Python install)
 
-<a href="https://github.com/LCA-ActivityBrowser/activity-browser/releases/download/stand-alone/ActivityBrowser-stand-alone-windows-x64-setup.exe"><img src="https://img.shields.io/badge/Download-Windows-0A66C2?style=for-the-badge&logo=windows&logoColor=white" alt="Download Windows"></a>
-<a href="https://github.com/LCA-ActivityBrowser/activity-browser/releases/download/stand-alone/ActivityBrowser-stand-alone-macos-arm64.dmg"><img src="https://img.shields.io/badge/Download-macOS-000000?style=for-the-badge&logo=apple&logoColor=white" alt="Download macOS"></a>
-<a href="https://github.com/LCA-ActivityBrowser/activity-browser/releases/download/stand-alone/ActivityBrowser-stand-alone-linux-x86_64.AppImage"><img src="https://img.shields.io/badge/Download-Linux-FCC624?style=for-the-badge&logo=linux&logoColor=black" alt="Download Linux"></a>
+<a href="https://github.com/LCA-ActivityBrowser/activity-browser/releases"><img src="https://img.shields.io/badge/Download-stand--alone%20(GitHub%20Releases)-0A66C2?style=for-the-badge&logo=github&logoColor=white" alt="Download stand-alone from GitHub Releases"></a>
 
-All stand-alone builds and release notes: [GitHub Releases — stand-alone](https://github.com/LCA-ActivityBrowser/activity-browser/releases/tag/stand-alone)
+Choose a release tag ending in `-stand-alone` and download the installer for your OS (Windows `.exe`, macOS `.dmg`, or Linux AppImage). Older stand-alone builds stay on their own tags.
 
-> Windows/macOS builds are unsigned; browsers or Gatekeeper/SmartScreen may warn on first download/launch. Prefer the official GitHub Release links above.
+> Windows/macOS builds are unsigned; browsers or Gatekeeper/SmartScreen may warn on first download/launch. Prefer the official GitHub Release links.
 
 ### Quick install — PyPI (recommended if you already use Python)
 
