@@ -94,11 +94,19 @@ exactly match `AB_VERSION` (the `{PyPI}-stand-alone` stamp). This catches
 splash-then-crash failures and wrong version stamps; it does not cover
 Gatekeeper / SmartScreen Finder UX.
 
-## Fast sparse solver (Windows / Linux x86_64)
+## Fast sparse solver
 
-AB uses Brightway’s `bw2calc`, which prefers **pypardiso** (Intel MKL) on x86_64.
-The PyInstaller spec bundles MKL/OpenMP libs into the onedir tree. CI fails if they
-are missing. macOS Apple Silicon uses scikit-umfpack when available.
+AB uses Brightway’s `bw2calc`, which prefers **pypardiso** (Intel MKL) on x86_64 and
+**scikit-umfpack** (SuiteSparse) on Apple Silicon.
+
+| Platform | Freeze env | Solver | CI |
+|---|---|---|---|
+| Windows / Linux x86_64 | `uv` | pypardiso + MKL (pip) | Fails if `mkl_rt` missing |
+| macOS Apple Silicon | micromamba (conda-forge) | scikit-umfpack + SuiteSparse | Fails if umfpack + core SuiteSparse libs missing from env or `.app` |
+
+The PyInstaller spec bundles the matching native libs into the onedir / `.app` tree.
+Win/Linux stay on `uv` because MKL wheels are straightforward there; Mac uses micromamba
+because `scikit-umfpack` is sdist-only on PyPI. See ADR-0016.
 
 ## Layout
 
