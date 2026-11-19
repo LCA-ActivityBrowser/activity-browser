@@ -11,6 +11,7 @@ import importlib
 _upstream = importlib.import_module("bw2data")
 
 from . import signaled_save_compat  # noqa: F401
+from . import serialized_save_compat  # noqa: F401
 
 
 def __getattr__(name: str):
