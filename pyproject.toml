@@ -48,7 +48,7 @@ dependencies = [
     "networkx",
     "numpy>=1.26",
     "pandas>=2.3,<4",
-    "py7zr>=0.22.0",
+    "py7zr>=1.0",
     "pyperclip",
     # Cap below 6.12: QThread.eventDispatcher() returns a deleted shiboken
     # wrapper there, which fails CI (e.g. Ubuntu / Python 3.11 aborts with
