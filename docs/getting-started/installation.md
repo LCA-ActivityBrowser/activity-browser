@@ -42,23 +42,23 @@ If that fails, or the version is outside the range above, install a supported Py
 Create a directory for virtual environments (for example `C:/Users/me/virtualenvs/` or `~/virtualenvs/`), then:
 
 ```
-python -m venv C:/Users/me/virtualenvs/ab-beta
+python -m venv C:/Users/me/virtualenvs/ab
 ```
 
 To force a specific supported version on Windows (here 3.12):
 
 ```
-py -3.12 -m venv C:/Users/me/virtualenvs/ab-beta
+py -3.12 -m venv C:/Users/me/virtualenvs/ab
 ```
 
 Activate it:
 
 ```
 # Windows:
-C:\Users\me\virtualenvs\ab-beta\Scripts\activate
+C:\Users\me\virtualenvs\ab\Scripts\activate
 
 # macOS / Linux:
-source ~/virtualenvs/ab-beta/bin/activate
+source ~/virtualenvs/ab/bin/activate
 ```
 
 ### Installing the Activity Browser
@@ -109,13 +109,13 @@ conda update conda
 Create and populate the environment:
 
 ```
-conda create -n ab_beta -c conda-forge -c lca -c cmutel lca::activity-browser
+conda create -n ab -c conda-forge -c lca -c cmutel lca::activity-browser
 ```
 
 To pin a specific supported Python (here 3.12):
 
 ```
-conda create -n ab_beta -c conda-forge -c lca -c cmutel lca::activity-browser python=3.12
+conda create -n ab -c conda-forge -c lca -c cmutel lca::activity-browser python=3.12
 ```
 
 
@@ -123,7 +123,7 @@ conda create -n ab_beta -c conda-forge -c lca -c cmutel lca::activity-browser py
 Solving can take a while. When it finishes, activate the environment:
 
 ```
-conda activate ab_beta
+conda activate ab
 ```
 
 ### Launching the Activity Browser

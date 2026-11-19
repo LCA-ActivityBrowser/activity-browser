@@ -1,16 +1,16 @@
-name: Activity Browser 3 Beta
+name: Activity Browser 3
 description: File a bug report or feature request.
-labels: ["beta"]
+labels: ["bug"]
 body:
   - type: markdown
     attributes:
       value: |
-        Thanks for taking the time to test the Activity Browser 3 Beta! Please fill out the following form to report a bug or request a feature. If you are reporting a bug, please make sure to include as much information as possible to help us reproduce the issue.
+        Thanks for helping improve Activity Browser. Please include enough detail to reproduce bugs (version, install channel, OS, and steps). Feature requests are welcome too.
   - type: textarea
     id: what-happened
     attributes:
       label: What do you want to report?
-      description: Also tell us, what did you expect to happen? You can share relevant files (e.g. screenshots/databases) here too.
+      description: Also tell us what you expected to happen. You can share relevant files (e.g. screenshots) here too.
       placeholder: Tell us what happened
     validations:
       required: true
@@ -26,7 +26,7 @@ body:
     attributes:
       label: Version
       description: Please specify the version of the Activity Browser you are using.
-      placeholder: e.g. 3.0.0b202503221430 (from About / pip show)
+      placeholder: e.g. 3.0.0 (from About / pip show)
   - type: dropdown
     id: distribution
     attributes:
@@ -34,7 +34,8 @@ body:
       multiple: false
       options:
         - PyPI (pip)
-        - Anaconda (conda)
+        - Anaconda (conda / lca)
+        - Stand-alone
       default: 0
   - type: dropdown
     id: os

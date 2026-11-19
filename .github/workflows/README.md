@@ -8,9 +8,9 @@ The Activity Browser project uses several GitHub Actions workflows to automate t
 
 1. **Automated Testing** - Runs tests on every push and PR
 2. **Canary Installation** - Daily installation checks to catch dependency issues
-3. **Beta Deployment** - Publishes beta releases to PyPI and Anaconda
+3. **Semver Publish** - Publishes tagged releases to PyPI and Anaconda (`lca`)
 4. **Build Executable** - Builds distributable app binaries
-5. **Stable Release** - Creates releases and publishes to Anaconda
+5. **GitHub Release** - Creates GitHub Releases (changelog) and updates the wiki
 6. **Milestone Comments** - Automatically notifies users when issues are resolved in releases
 7. **Documentation Deployment** - No workflow, done via GitHub settings
 8. **Traffic Archive** - Daily github-repo-stats snapshots and HTML/PDF reports on branch `github-repo-stats`
@@ -19,41 +19,40 @@ The Activity Browser project uses several GitHub Actions workflows to automate t
 
 ## Branch context
 
-- **`main`**: Legacy branch. Do not use for new development.
-- **`major`**: Integration branch for ongoing development and testing.
-- **`beta`**: Stable branch for the current Activity Browser; this branch is deployed to PyPI and Conda.
+- **`main`**: AB3 stable (default). Public versions are cut with semver tags.
+- **`dev`**: AB3 integration for ongoing development and testing.
+- **`AB2_legacy`**: AB2 line (critical fixes only). See [ADR-0017](../../docs/adr/0017-ab3-release-channels-and-branches.md).
 
 ### General developer workflow
 
 ```text
-feature/short-topic  →  pull request  →  major  →  pull request  →  beta
+feature/short-topic  →  pull request  →  dev  →  pull request  →  main
+main  →  annotated tag x.y.z  →  GitHub Release + PyPI + lca
 ```
 
-1. Create a short-lived feature branch from **`major`**.
-2. Open a pull request into **`major`** when the change is ready (preferred over direct pushes).
+1. Create a short-lived feature branch from **`dev`**.
+2. Open a pull request into **`dev`** when the change is ready (preferred over direct pushes).
 3. Merge feature pull requests with **“Create a merge commit”**.
-4. When a milestone is stable enough, open a pull request from **`major` into `beta`**.
-5. Merge into **`beta`** with **“Create a merge commit”** — not squash and merge.
+4. When a milestone is ready for the stable line, open a pull request from **`dev` into `main`**.
+5. Merge into **`main`** with **“Create a merge commit”** — not squash and merge. Merges do **not** publish packages.
 
-**Why not squash into `beta`?** Squash merges create new commits that are not ancestors of the commits on
-`major`. Later pull requests from `major` to `beta` will then list already-released work again. Regular merge
-commits keep the branches linked.
+**Why not squash into `main`?** Squash merges break shared history between `dev` and `main`.
 
-If hotfixes land on **`beta`** first, merge **`beta` back into `major`** so both branches stay aligned.
+If hotfixes land on **`main`** first, merge **`main` back into `dev`** so both branches stay aligned.
 
 See [`CONTRIBUTING.md`](../../CONTRIBUTING.md#branching-and-git-workflow) for the full contributor and
 maintainer guide (fork workflow, local merges, and release steps).
 
 ### CI and deployment
 
-- Automated testing runs on pushes and pull requests to **`major`** and **`beta`**.
-- Pushing to **`beta`** triggers beta deployment (see [Beta Deployment](#3-beta-deployment-python-package-deployyml) below).
+- Automated testing runs on pushes and pull requests to **`main`** and **`dev`**.
+- Semver tags (excluding `*-stand-alone`) publish PyPI + `lca` and create a GitHub Release.
 
 ---
 
 ## 1. Automated Testing (`testing.yaml`)
 
-**Trigger:** Push or pull request to the `major` and `beta` branches
+**Trigger:** Push or pull request to the `main` and `dev` branches
 
 **Purpose:** Ensures code quality by running the test suite across multiple operating systems and Python versions.
 
@@ -101,18 +100,18 @@ maintainer guide (fork workflow, local merges, and release steps).
 
 ---
 
-## 3. Beta Deployment (`python-package-deploy.yml`)
+## 3. Semver Publish (`python-package-deploy.yml`)
 
-**Trigger:** Push to `beta` branch or any tag
+**Trigger:** Push of a git tag (job skipped when the tag ends in `-stand-alone`)
 
-**Purpose:** Publishes beta versions to PyPI (test and production) and Anaconda Cloud.
+**Purpose:** Publishes the tagged version to PyPI (test and production) and Anaconda Cloud (`lca`).
 
 ### Version Scheme
-- Beta version format: `3.0.0bYYYYMMDDHHMM` (UTC timestamp, PEP 440 compatible)
+- `VERSION` = tag name (e.g. `3.0.0`)
 
 ### Steps
 1. Checkout with full git history (`fetch-depth: "0"`)
-2. Set version number from UTC timestamp
+2. Set `VERSION` from the tag
 3. Set up Python 3.11
 4. Install `build` package
 5. Build wheel and source distribution
@@ -121,8 +120,8 @@ maintainer guide (fork workflow, local merges, and release steps).
    - Publish to production PyPI
 7. **Conda Publishing:**
    - Set up Conda environment from `.github/conda-envs/build.yml`
-   - Build Conda package: `conda build -c conda-forge -c cmutel ./recipe/`
-   - Upload to Anaconda Cloud using `CONDA_LCA` secret token
+   - Build Conda package: `conda build -c conda-forge -c cmutel -c lca ./recipe/`
+   - Upload to Anaconda Cloud using `CONDA_LCA`
 
 ### Permissions
 - Requires `id-token: write` for PyPI trusted publishing
@@ -131,9 +130,9 @@ maintainer guide (fork workflow, local merges, and release steps).
 
 ## 4. Build Executable (`build-executable.yml`)
 
-**Trigger (on `major` / feature branches):**
-- `pull_request` → `major`
-- `push` → `major`
+**Trigger (on `dev` / feature branches):**
+- `pull_request` → `dev`
+- `push` → `dev`
 - `workflow_dispatch` (optional manual rebuild)
 
 **Purpose:** Builds stand-alone Activity Browser packages with PyInstaller (onedir) plus
@@ -142,7 +141,7 @@ platform installers; uploads workflow artifacts. Version stamp defaults to
 
 **Default branch (`main`):** keep a **minimal stub** with the same workflow `name` and
 `on: workflow_dispatch` only (PR #1791 pattern). That unlocks **Run workflow** in the
-Actions UI; choose **`major`** in the branch dropdown so the full job matrix runs.
+Actions UI; choose **`dev`** in the branch dropdown so the full job matrix runs.
 
 ### Matrix Strategy
 - **Windows** → Inno Setup installer
@@ -159,7 +158,7 @@ Use **Release Stand-alone** (below).
 
 ## 4b. Release Stand-alone (`release-standalone.yml`)
 
-**Trigger:** `workflow_dispatch` only (full file on `major`; stub on `main` for the UI).
+**Trigger:** `workflow_dispatch` only (full file on `dev`; stub on `main` for the UI).
 
 **Purpose:** Downloads artifacts from a Build Executable run and creates an immutable
 GitHub Release tagged `{AB}-stand-alone` with versioned installer assets. Docs and the
@@ -167,38 +166,27 @@ in-app updater use the Releases page / API filter on `*-stand-alone` tags (ADR-0
 
 ### Dispatch inputs
 - `build_run_id` — optional; empty = latest successful Build Executable on `source_branch`
-- `source_branch` — default `major`
+- `source_branch` — default `dev`
 - `ab_version` — optional; empty = PyPI latest
 
 ---
 
-## 5. Stable Release (`release.yaml`)
+## 5. GitHub Release (`release.yaml`)
 
-**Trigger:** Push of any git tag
+**Trigger:** Push of a git tag (job skipped when the tag ends in `-stand-alone`)
 
-**Purpose:** Creates GitHub releases with auto-generated changelogs and publishes stable versions to Anaconda.
+**Purpose:** Creates a GitHub Release with an auto-generated PR-label changelog and updates the wiki.
+PyPI / `lca` uploads are handled by [Semver Publish](#3-semver-publish-python-package-deployyml).
 
 ### Steps
 1. Checkout code
-2. **Generate Changelog:**
-   - Uses `mikepenz/release-changelog-builder-action@v4`
-   - Configuration from `.github/changelog-configuration.json`
-   - Builds changelog from PRs with labels
-3. **Create GitHub Release:**
-   - Uses `ncipollo/release-action@v1`
-   - Includes generated changelog as release notes
-   - Targets `main` branch commit
-4. **Build and Upload Conda Package:**
-   - Set up Conda environment (Python 3.11)
-   - Build with `conda build recipe/`
-   - Upload to Anaconda using `CONDA_UPLOAD_TOKEN` secret
-5. **Update Wiki:**
-   - Runs `.github/scripts/update_wiki.sh` to automatically update documentation
+2. **Generate Changelog** from PR labels (`.github/changelog-configuration.json`)
+3. **Create GitHub Release** on the tagged commit (`commit: main`)
+4. **Update Wiki** via `.github/scripts/update_wiki.sh`
 
 ### Notes
-- Only runs on tagged commits (version releases)
-- Creates public GitHub releases visible to users
-- Updates project wiki documentation automatically
+- After the Release is created, maintainers **Edit release** to prepend a curated preamble (CONTRIBUTING)
+- `*-stand-alone` tags are handled only by Release Stand-alone
 
 ---
 
@@ -232,7 +220,7 @@ The bot posts a formatted note:
 
 Documentation is currently deployed by **GitHub Pages "Deploy from a branch"** (not by a repository workflow file).
 
-- Recommended Pages setting: branch `major`, folder `/docs`
+- Recommended Pages setting: branch `main`, folder `/docs`
 - Expected Actions entry for docs: GitHub-managed `pages build and deployment`
 
 ---
@@ -255,12 +243,12 @@ Documentation is currently deployed by **GitHub Pages "Deploy from a branch"** (
    git rm -rf .
    git commit --allow-empty -m "Initialize github-repo-stats data branch"
    git push -u origin github-repo-stats
-   git checkout major   # or whatever branch you were on
+   git checkout main   # or whatever branch you were on
    ```
 3. Merge this workflow to the default branch used for Actions, then run **Actions → Archive GitHub traffic → Run workflow** once.
 4. (Optional) Serve the HTML report via GitHub Pages — see [Viewing the report](#viewing-the-report) below.
 
-Data lives only on `github-repo-stats` and does not pollute `major` / `beta`.
+Data lives only on `github-repo-stats` and does not pollute `main` / `dev`.
 
 ### Viewing the report
 
@@ -286,8 +274,7 @@ The first report is sparse; charts improve as daily snapshots accumulate.
 
 ### Secrets Required
 - `GITHUB_TOKEN` - Automatically provided by GitHub Actions
-- `CONDA_LCA` - Anaconda upload token for beta releases
-- `CONDA_UPLOAD_TOKEN` - Anaconda upload token for stable releases
+- `CONDA_LCA` - Anaconda upload token for AB3 releases (`lca` channel)
 - `GHRS_GITHUB_API_TOKEN` - PAT (`repo` scope) for Traffic API + pushing reports to `github-repo-stats` (see [Traffic Archive](#8-traffic-archive-traffic-archiveyaml))
 
 ### Configuration Files
@@ -315,10 +302,10 @@ When modifying the test matrix (OS or Python versions):
 - Current support: Python 3.11-3.14, Ubuntu/Windows/macOS
 
 ### Release Process
-1. **Beta release:** Push to `beta` branch -> auto-publishes beta version
-2. **Executable stand-alone AB versions:** Rebase packaging branch (`standalone`) onto `major`/`beta`, push → Build Executable artifacts → manual upload to GitHub Releases
-3. **Stable release:** Create and push a tag -> creates GitHub release and publishes to Anaconda
-4. **Close milestone:** Users get release comments automatically
+1. **Stable release:** Push annotated semver tag on `main` → GitHub Release + PyPI + `lca` (then Edit release for curated preamble; see CONTRIBUTING)
+2. **Stand-alone:** Build Executable on `dev` → Release Stand-alone → `{ver}-stand-alone` tag
+3. **Close milestone:** Users get release comments automatically
+4. **conda-forge:** remains AB2 until forge deps allow AB3; defer bot upgrades (ADR-0017)
 
 ### Monitoring
 - Check daily canary runs to catch dependency issues

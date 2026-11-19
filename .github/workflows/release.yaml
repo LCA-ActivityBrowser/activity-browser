@@ -2,16 +2,18 @@ name: stable release
 on:
   push:
     tags:
-      - '*'
+      - "*"
 
 jobs:
   release:
+    # Stand-alone promotes use tags ending in -stand-alone; skip GitHub Release/wiki for those.
+    if: ${{ !endsWith(github.ref_name, '-stand-alone') }}
     runs-on: ubuntu-latest
     defaults:
       run:
         shell: bash -l {0}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Build changelog from PRs with labels
         id: build_changelog
         uses: mikepenz/release-changelog-builder-action@v4
@@ -25,22 +27,5 @@ jobs:
           body: ${{steps.build_changelog.outputs.changelog}}
           commit: main
           token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Set up conda-build environment
-        uses: conda-incubator/setup-miniconda@v3
-        with:
-          python-version: 3.11
-          activate-environment: build
-          environment-file: .github/conda-envs/build.yml
-          conda-build-version: "*"
-      - name: Build activity-browser stable
-        env:
-          VERSION: ${{ github.ref_name }}
-        run: |
-          echo "Building conda package with VERSION=${VERSION}"
-          conda build -c conda-forge -c cmutel -c lca recipe/
-      - name: Upload to anaconda.org
-        run: |
-          anaconda -t ${{ secrets.CONDA_UPLOAD_TOKEN }} upload \
-          "$CONDA/conda-bld/noarch/"*.conda
       - name: Update wiki
         run: ./.github/scripts/update_wiki.sh "Automated documentation update for $GITHUB_REF_NAME" "${{ secrets.GITHUB_TOKEN }}"
