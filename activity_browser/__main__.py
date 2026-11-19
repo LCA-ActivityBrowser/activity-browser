@@ -9,8 +9,6 @@ import os
 import traceback
 from importlib import metadata
 
-import requests
-
 from qtpy import QtWidgets, QtCore, QtGui
 from qtpy.QtCore import Qt
 
@@ -109,6 +107,10 @@ class ABLoader(QtWidgets.QWidget):
             load_plugins()
 
             app.main_window.show()
+            if "--no-checks" not in sys.argv:
+                from activity_browser.app.actions import CheckForUpdates
+
+                CheckForUpdates.schedule_startup_check()
             self.deleteLater()
         except Exception as e:
             self._on_load_failed(e)
@@ -229,6 +231,10 @@ def run_activity_browser_no_launcher():
         load_plugins()
 
         application.main_window.show()
+        if "--no-checks" not in sys.argv:
+            from activity_browser.app.actions import CheckForUpdates
+
+            CheckForUpdates.schedule_startup_check()
 
         application.set_icon()  # setting this here seems to fix the icon not showing sometimes
         sys.exit(application.exec_())
@@ -239,65 +245,24 @@ def run_activity_browser_no_launcher():
 
 
 def pre_flight_checks():
-    """Always print the stamped version (smoke needs it under ``--no-checks``).
+    """Print version only — never block on network.
 
-    Network update prompts stay on the legacy path until the updates PR lands.
+    Update discovery runs asynchronously after the main window is shown
+    (``CheckForUpdates.schedule_startup_check``). ``--no-checks`` still prints
+    the version (stand-alone smoke) but skips the async check.
     """
+    from activity_browser.bwutils.updates import display_version
+
     try:
         current = metadata.version("activity_browser")
     except metadata.PackageNotFoundError:
         current = "0.0.0"
-    # Frozen/stand-alone builds stamp the public AB version; display adds the channel suffix.
-    display = f"{current}-stand-alone" if getattr(sys, "frozen", False) else current
-    version_line = f"Activity Browser version: {display}"
+
+    # Flush + logger: smoke redirects stdout/stderr; windowed macOS may hide stdout.
+    version_line = f"Activity Browser version: {display_version(current)}"
     print(version_line, flush=True)
     logger.info(version_line)
 
-    if "--no-checks" in sys.argv:
-        return
-
-    if "CONDA_DEFAULT_ENV" in os.environ:
-        check_conda_update(current)
-    else:
-        check_pypi_update(current)
-
-
-def check_conda_update(ab_current: str):
-    ab_url = "https://api.anaconda.org/package/lca/activity-browser"
-    try:
-        ab_response = requests.get(ab_url)
-    except:
-        print("Could not fetch latest Activity Browser version")
-        return
-
-    if ab_response.status_code != 200:
-        print("Could not fetch latest Activity Browser version")
-
-    elif ab_current != "0.0.0" and ab_current != ab_response.json()['latest_version']:
-        input("\033[1;31mThere is an update available for the Activity Browser. Please update it using the following command: \n "
-              "conda update -c conda-forge -c cmutel -c lca activity-browser\n\n"
-              "Complete installation instructions can be found here:\n\n"
-              "https://lca-activitybrowser.github.io/activity-browser/getting-started/installation.html#installing-from-anaconda\n\n"
-              "Press any key to continue without updating...\033[0m")
-
-
-def check_pypi_update(ab_current: str):
-    ab_url = "https://pypi.org/pypi/activity-browser/json"
-    try:
-        ab_response = requests.get(ab_url)
-    except:
-        print("Could not fetch latest Activity Browser version")
-        return
-
-    if ab_response.status_code != 200:
-        print("Could not fetch latest Activity Browser version")
-
-    elif ab_current != "0.0.0" and ab_current != ab_response.json()['info']['version']:
-        input("\033[1;31mThere is an update available for the Activity Browser. Please update it using the following command: \n "
-              "pip install --upgrade activity-browser\n\n"
-              "Complete installation instructions can be found here:\n\n"
-              "https://lca-activitybrowser.github.io/activity-browser/getting-started/installation.html#installing-from-pypi\n\n"
-              "Press any key to continue without updating...\033[0m")
 
 def load_plugins():
     from activity_browser.bwutils.settings import Settings

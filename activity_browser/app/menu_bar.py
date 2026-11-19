@@ -201,6 +201,7 @@ class HelpMenu(QtWidgets.QMenu):
         self.addAction(
             "&About Qt", lambda: QtWidgets.QMessageBox.aboutQt(app.main_window)
         )
+        self.addAction(app.actions.CheckForUpdates.get_QAction(parent=self))
         self.addAction(
             qicons.question, "&Get help on the wiki", self.open_wiki
         )
@@ -210,9 +211,11 @@ class HelpMenu(QtWidgets.QMenu):
 
     def about(self):
         """Displays an 'about' window to the user containing e.g. the version of the AB and copyright info"""
+        from activity_browser.bwutils.updates import display_version
+
         text = f"""
         Activity Browser - a graphical interface for Brightway2.<br><br>
-        Application version: <b>{version("activity_browser")}</b><br>
+        Application version: <b>{display_version(version("activity_browser"))}</b><br>
         bw2data version: <b>{version("bw2data")}</b><br>
         bw2io version: <b>{version("bw2io")}</b><br>
         bw2calc version: <b>{version("bw2calc")}</b><br><br>
