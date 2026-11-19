@@ -147,6 +147,21 @@ Command-style operation under `activity_browser/app/actions/` (menus, toolbars, 
 
 Extensibility mechanism for third-party AB features. **Architecture TBD** — do not invent API contracts; document here when redesigned.
 
+### Install channel
+
+How this Activity Browser process was installed and therefore which registry is authoritative for updates: **pip**, **conda**, or **stand-alone**. Update checks are channel-local (a stand-alone install is not “behind” merely because PyPI moved).
+_Avoid_: distribution method (alone); package source (alone)
+
+### Skipped version
+
+The PEP 440 **base** of an offered update the user chose not to be prompted about again. Automatic **GUI** prompts resume only when the install channel’s latest base is strictly newer; a manual check may still report the skipped offer. The terminal update notice is not gated by a skipped version.
+_Avoid_: dismissed version; ignore version (alone)
+
+### Stand-alone
+
+An Activity Browser build shipped as a frozen OS installer/AppImage (no local Python env). Package metadata uses the same public AB version as PyPI; the install channel is detected via frozen runtime (`sys.frozen`). UI/docs show `{AB-version}-stand-alone`. Each promoted build is an immutable GitHub Release tagged `{AB-version}-stand-alone`. The newest stand-alone is the highest such tag (API filter), not the repo’s GitHub Latest badge and not PyPI. Docs and in-app update actions point at the Releases / release page rather than fixed asset URLs.
+_Avoid_: portable (alone); executable (alone); PyInstaller build (when meaning the product channel); treating GitHub Latest as latest stand-alone; encoding the channel in package metadata
+
 ### Contribution tree
 
 A hierarchical, acyclic breakdown of LCA impact by upstream supplier, produced by priority-first graph traversal (`SameNodeEachVisitGraphTraversal`). Each node carries a **cumulative impact** (its own direct emissions plus all upstream) and a **direct impact** (its own biosphere flows only). The root is the reference flow; children are direct technosphere suppliers, recursed up the supply chain. Shown in AB as a table (`QTreeView`) plus plots on the **Tree** tab of the LCA Results page. Nodes are calculated lazily on expand; the **adjust policy** controls how far the Adjust control walks the tree.
