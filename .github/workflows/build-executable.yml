@@ -1,8 +1,8 @@
 name: Build Executable
 
-# Full installer build (lives on major / feature branches).
+# Full installer build (lives on dev / feature branches).
 # A minimal workflow_dispatch stub with the same name must exist on main
-# so Actions shows "Run workflow"; pick this branch (or major) in the dropdown.
+# so Actions shows "Run workflow"; pick this branch (or dev) in the dropdown.
 # See packaging/README.md and PR #1791 pattern.
 on:
   workflow_dispatch:
@@ -12,9 +12,9 @@ on:
         required: false
         type: string
   pull_request:
-    branches: [major]
+    branches: [dev]
   push:
-    branches: [major]
+    branches: [dev]
 
 jobs:
   build:

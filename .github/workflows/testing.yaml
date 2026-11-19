@@ -2,11 +2,12 @@ name: Automated Testing
 on:
   pull_request:
     branches:
-      - beta
-      - major
+      - main
+      - dev
   push:
     branches:
-      - major
+      - main
+      - dev
 
 jobs:
   tests:

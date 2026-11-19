@@ -8,7 +8,7 @@ to produce downloadable Activity Browser builds for Windows, macOS, and Linux.
 Normal development path is unchanged:
 
 ```text
-feature branch  →  PR into major  →  (later) major → beta
+feature branch  →  PR into dev  →  (later) dev → main
                          │
                          ▼
               Build Executable (CI artifacts)
@@ -20,10 +20,10 @@ feature branch  →  PR into major  →  (later) major → beta
          GitHub Release tag `{AB}-stand-alone` (immutable)
 ```
 
-1. Open a PR into **`major`** (or merge to `major`). **Build Executable** runs automatically.
+1. Open a PR into **`dev`** (or merge to `dev`). **Build Executable** runs automatically.
 2. When you want public downloads: Actions → **Release Stand-alone** → **Run workflow**.
-   - Branch dropdown: choose **`major`** (not `main`) so GitHub uses the full workflow.
-   - Optional: paste a Build Executable run ID; otherwise uses the latest success on `major`.
+   - Branch dropdown: choose **`dev`** (not `main`) so GitHub uses the full workflow.
+   - Optional: paste a Build Executable run ID; otherwise uses the latest success on `dev`.
 3. That creates an immutable Release tagged `{PyPI}-stand-alone` with versioned installer assets.
    Docs and the in-app updater point users at the [Releases](https://github.com/LCA-ActivityBrowser/activity-browser/releases) page (newest `*-stand-alone` tag). See ADR-0015.
 
@@ -31,12 +31,12 @@ feature branch  →  PR into major  →  (later) major → beta
 
 GitHub only shows the Actions **Run workflow** button for `workflow_dispatch` workflows
 that exist on the **default branch** (`main`). Put **minimal stubs** there (same
-`name:` / filename as the full workflows on `major`) — see PR #1791:
+`name:` / filename as the full workflows on `dev`) — see PR #1791:
 
 - `.github/workflows/build-executable.yml` — stub with `on: workflow_dispatch` only
 - `.github/workflows/release-standalone.yml` — same pattern
 
-When you run them, pick **`major`** in the branch dropdown. GitHub then executes the
+When you run them, pick **`dev`** in the branch dropdown. GitHub then executes the
 full workflow file from that branch. Running against `main` itself only prints a reminder.
 
 ## Versioning
