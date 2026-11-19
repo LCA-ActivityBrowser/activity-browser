@@ -140,7 +140,10 @@ class LoggingProgressSink:
                 return
             if record["thread"].id != threading.get_ident():
                 return
-            thread_local.progress_slot(None, record.get("message", ""))
+            # -1 = indeterminate "Working..." (see ABThread._emit_status /
+            # connect_progress_dialog). None is not a valid Signal(int, str) arg
+            # and triggers Shiboken NoneType conversion warnings.
+            thread_local.progress_slot(-1, record.get("message", ""))
         except AttributeError:
             # No progress slot set or malformed record
             pass

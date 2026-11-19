@@ -32,6 +32,7 @@ The **Activity Browser (AB)** is an open-source GUI for Life Cycle Assessment on
 
 # Contents
 - [Installation (recommended: AB3 beta)](#installation-recommended-ab3-beta)
+  - [Download stand-alone](#download-stand-alone-no-python-install)
 - [First Steps](#first-steps)
 - [Contributing](#contributing)
 - [Developers](#developers)
@@ -43,9 +44,17 @@ The **Activity Browser (AB)** is an open-source GUI for Life Cycle Assessment on
 
 See the
 [Installation Guide](https://lca-activitybrowser.github.io/activity-browser/getting-started/installation.html)
-for a step-by-step walkthrough (PyPI or Anaconda).
+for a step-by-step walkthrough.
 
-### Quick install — PyPI (recommended)
+### Download stand-alone (no Python install)
+
+<a href="https://github.com/LCA-ActivityBrowser/activity-browser/releases"><img src="https://img.shields.io/badge/Download-stand--alone%20(GitHub%20Releases)-0A66C2?style=for-the-badge&logo=github&logoColor=white" alt="Download stand-alone from GitHub Releases"></a>
+
+Choose a release tag ending in `-stand-alone` and download the installer for your OS (Windows `.exe`, macOS `.dmg`, or Linux AppImage). Older stand-alone builds stay on their own tags.
+
+> Windows/macOS builds are unsigned; browsers or Gatekeeper/SmartScreen may warn on first download/launch. Prefer the official GitHub Release links.
+
+### Quick install — PyPI (recommended if you already use Python)
 
 ```bash
 # CREATE the virtual environment (in directory you can remember, 

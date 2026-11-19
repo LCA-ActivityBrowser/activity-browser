@@ -28,7 +28,10 @@ defaults = {
     },
     "plugins": {
         "enabled_plugins": [],
-    }
+    },
+    "updates": {
+        "skipped_version": None,
+    },
 }
 
 

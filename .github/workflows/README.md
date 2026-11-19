@@ -131,21 +131,44 @@ maintainer guide (fork workflow, local merges, and release steps).
 
 ## 4. Build Executable (`build-executable.yml`)
 
-**Trigger:** Push to `beta` branch or any tag
+**Trigger (on `major` / feature branches):**
+- `pull_request` → `major`
+- `push` → `major`
+- `workflow_dispatch` (optional manual rebuild)
 
-**Purpose:** Builds application executables using PyInstaller and uploads them as workflow artifacts.
+**Purpose:** Builds stand-alone Activity Browser packages with PyInstaller (onedir) plus
+platform installers; uploads workflow artifacts. Version stamp defaults to
+`{latest PyPI activity-browser}-stand-alone`. See [`packaging/README.md`](../../packaging/README.md).
+
+**Default branch (`main`):** keep a **minimal stub** with the same workflow `name` and
+`on: workflow_dispatch` only (PR #1791 pattern). That unlocks **Run workflow** in the
+Actions UI; choose **`major`** in the branch dropdown so the full job matrix runs.
 
 ### Matrix Strategy
-- **Operating Systems:** Ubuntu (latest), Windows (latest), macOS 15, macOS (latest)
+- **Windows** → Inno Setup installer
+- **Linux** → AppImage
+- **macOS** (Apple Silicon) → unsigned DMG
 
-### Steps
-1. Checkout code
-2. Install system dependencies (Linux only)
-3. Set up Python 3.12
-4. Install and use `uv`
-5. Sync dependencies and install PyInstaller
-6. Build executable via `pyinstaller.spec`
-7. Upload `dist/*` as artifact (`activity-browser-${os}`)
+After packaging, each OS job smoke-launches the stand-alone under offscreen Qt
+(`packaging/smoke-standalone.sh`) and fails if the process dies during startup.
+
+### Publishing
+Use **Release Stand-alone** (below).
+
+---
+
+## 4b. Release Stand-alone (`release-standalone.yml`)
+
+**Trigger:** `workflow_dispatch` only (full file on `major`; stub on `main` for the UI).
+
+**Purpose:** Downloads artifacts from a Build Executable run and creates an immutable
+GitHub Release tagged `{AB}-stand-alone` with versioned installer assets. Docs and the
+in-app updater use the Releases page / API filter on `*-stand-alone` tags (ADR-0015).
+
+### Dispatch inputs
+- `build_run_id` — optional; empty = latest successful Build Executable on `source_branch`
+- `source_branch` — default `major`
+- `ab_version` — optional; empty = PyPI latest
 
 ---
 
@@ -293,7 +316,7 @@ When modifying the test matrix (OS or Python versions):
 
 ### Release Process
 1. **Beta release:** Push to `beta` branch -> auto-publishes beta version
-2. **Executable stand-alone AB versions:** Push to `beta` or tag -> uploads platform artifacts
+2. **Executable stand-alone AB versions:** Rebase packaging branch (`standalone`) onto `major`/`beta`, push → Build Executable artifacts → manual upload to GitHub Releases
 3. **Stable release:** Create and push a tag -> creates GitHub release and publishes to Anaconda
 4. **Close milestone:** Users get release comments automatically
 

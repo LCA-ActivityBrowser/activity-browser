@@ -1,45 +1,284 @@
 name: Build Executable
+
+# Full installer build (lives on major / feature branches).
+# A minimal workflow_dispatch stub with the same name must exist on main
+# so Actions shows "Run workflow"; pick this branch (or major) in the dropdown.
+# See packaging/README.md and PR #1791 pattern.
 on:
+  workflow_dispatch:
+    inputs:
+      ab_version:
+        description: "AB version to stamp (empty = latest activity-browser on PyPI)"
+        required: false
+        type: string
+  pull_request:
+    branches: [major]
   push:
-    branches: [ major ]
-    tags: '*'
+    branches: [major]
 
 jobs:
   build:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, ubuntu-latest, macos-latest, macos-15]
+        include:
+          - os: windows-latest
+            platform: windows-x64
+          - os: ubuntu-latest
+            platform: linux-x86_64
+          - os: macos-latest
+            platform: macos-arm64
     runs-on: ${{ matrix.os }}
+    env:
+      # Headless PyInstaller analysis imports Qt via collect_all.
+      QT_QPA_PLATFORM: offscreen
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Set version stamp
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Host image Python only (freeze envs come later; Mac has no setup-python).
+          PY="$(command -v python3 || command -v python)"
+          if [[ -n "${{ inputs.ab_version }}" ]]; then
+            BASE_VERSION="${{ inputs.ab_version }}"
+          else
+            BASE_VERSION="$("$PY" -c 'import json,urllib.request; print(json.load(urllib.request.urlopen("https://pypi.org/pypi/activity-browser/json"))["info"]["version"])')"
+          fi
+          # Installer / GitHub display stamp; package metadata stays the public AB version.
+          AB_VERSION="${BASE_VERSION}-stand-alone"
+          SHORT_SHA="$(echo "${GITHUB_SHA}" | cut -c1-7)"
+          echo "BASE_VERSION=${BASE_VERSION}" >> "$GITHUB_ENV"
+          echo "AB_VERSION=${AB_VERSION}" >> "$GITHUB_ENV"
+          echo "VERSION=${BASE_VERSION}" >> "$GITHUB_ENV"
+          echo "Building stand-alone ${AB_VERSION} (package ${BASE_VERSION}, sha ${SHORT_SHA})"
+
       - name: Install system dependencies (Linux)
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libegl1 libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-xinerama0 libxcb-xfixes0 libxcb-shape0
+          sudo apt-get install -y \
+            libegl1 libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 \
+            libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 \
+            libxcb-xinerama0 libxcb-xfixes0 libxcb-shape0 \
+            libfuse2 desktop-file-utils
 
+      # Win/Linux freeze via uv; Mac freeze via micromamba (ADR-0016).
       - name: Set up Python
+        if: runner.os != 'macOS'
         uses: actions/setup-python@v5
         with:
-          python-version: 3.12
+          python-version: "3.12"
 
       - name: Install UV
+        if: runner.os != 'macOS'
         uses: astral-sh/setup-uv@v2
 
-      - name: Sync dependencies
+      - name: Sync dependencies (Windows / Linux)
+        if: runner.os != 'macOS'
         shell: bash
         run: |
-          uv add pyinstaller
-          uv sync --prerelease=allow        
+          uv sync --prerelease=allow
+          uv pip install pyinstaller
+          # pypardiso is a Windows marker dep in pyproject; install explicitly for
+          # Linux x86_64 stand-alones too (pulls pip `mkl` + OpenMP libs).
+          uv pip install pypardiso
+          # Reinstall with VERSION from the env so dist-info (and the frozen app)
+          # report the build stamp, not setup.py's default 0.0.0.
+          uv pip install -e . --force-reinstall --no-deps
+          uv run --no-sync python -c "from importlib.metadata import version; import activity_browser, PyInstaller; print('ready', PyInstaller.__version__, 'activity_browser', version('activity_browser'))"
 
-      - name: Build executable with PyInstaller
+      - name: Set up micromamba (macOS)
+        if: runner.os == 'macOS'
+        uses: mamba-org/setup-micromamba@v2
+        with:
+          environment-name: ab-freeze
+          # conda-forge binaries: scikit-umfpack is sdist-only on PyPI.
+          create-args: >-
+            python=3.12
+            pip
+            scikit-umfpack>=0.4.2
+          cache-environment: true
+          init-shell: bash
+          condarc: |
+            channels:
+              - conda-forge
+            channel_priority: strict
+
+      - name: Sync dependencies (macOS)
+        if: runner.os == 'macOS'
+        shell: bash -l {0}
+        run: |
+          set -euo pipefail
+          # Pip deps into the micromamba prefix; reinstall umfpack after so pip
+          # cannot replace conda-forge SuiteSparse binaries.
+          python -m pip install pyinstaller
+          python -m pip install -e .
+          micromamba install -y -n ab-freeze -c conda-forge "scikit-umfpack>=0.4.2"
+          python -m pip install -e . --force-reinstall --no-deps
+          python -c "from importlib.metadata import version; import activity_browser, PyInstaller; print('ready', PyInstaller.__version__, 'activity_browser', version('activity_browser'))"
+
+      - name: Verify fast sparse solver
         shell: bash
         run: |
-          uv run pyinstaller pyinstaller.spec
+          set -euo pipefail
+          if [[ "${{ runner.os }}" == "macOS" ]]; then
+            micromamba run -n ab-freeze python - <<'PY'
+          import pathlib, sys
+          import scikits.umfpack
+
+          prefix = pathlib.Path(sys.prefix)
+          required = ("libumfpack", "libsuitesparseconfig", "libamd")
+          for name in required:
+              hits = list(prefix.glob(f"lib/{name}*"))
+              print(f"{name}:", hits)
+              assert hits, f"{name} not found under {prefix}"
+          PY
+          else
+            uv run --no-sync python - <<'PY'
+          from pypardiso import factorized, spsolve
+          import pathlib, sys
+          prefix = pathlib.Path(sys.prefix)
+          hits = list(prefix.glob("Library/bin/mkl_rt*")) + list(prefix.glob("lib/libmkl_rt*"))
+          print("pypardiso import ok; mkl_rt candidates:", hits)
+          assert hits, f"mkl_rt not found under {prefix}"
+          PY
+          fi
+
+      - name: Build with PyInstaller (onedir)
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${{ runner.os }}" == "macOS" ]]; then
+            micromamba run -n ab-freeze pyinstaller pyinstaller.spec
+          else
+            uv run --no-sync pyinstaller pyinstaller.spec
+          fi
+
+      - name: Export dependency freeze
+        shell: bash
+        run: |
+          set -euo pipefail
+          chmod +x packaging/export-dependencies.sh
+          OUT="dist/ActivityBrowser-${AB_VERSION}-${{ matrix.platform }}-dependencies.txt"
+          if [[ "${{ runner.os }}" == "macOS" ]]; then
+            micromamba run -n ab-freeze bash packaging/export-dependencies.sh "$OUT"
+          else
+            packaging/export-dependencies.sh "$OUT"
+          fi
+
+      - name: Build Windows installer (Inno Setup)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          choco install innosetup --no-progress -y
+          New-Item -ItemType Directory -Force -Path dist\installers | Out-Null
+          & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" `
+            "/DMyAppVersion=${env:AB_VERSION}" `
+            packaging\windows\activity-browser.iss
+
+      - name: Build macOS DMG
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          chmod +x packaging/macos/create-dmg.sh
+          packaging/macos/create-dmg.sh "$AB_VERSION"
+
+      - name: Guard macOS .app is not LSBackgroundOnly
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -euo pipefail
+          PLIST="dist/Activity Browser.app/Contents/Info.plist"
+          test -f "$PLIST"
+          # PyInstaller console=True sets LSBackgroundOnly; that breaks Finder launches.
+          if /usr/libexec/PlistBuddy -c 'Print :LSBackgroundOnly' "$PLIST" 2>/dev/null | grep -qx 'true'; then
+            echo "FAIL: $PLIST has LSBackgroundOnly=true (set console=False on darwin in pyinstaller.spec)" >&2
+            exit 1
+          fi
+          echo "OK: LSBackgroundOnly is not true"
+
+      - name: Guard macOS QtWebEngine support is bundled
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -euo pipefail
+          PROC="$(find "dist/Activity Browser.app" -name QtWebEngineProcess -type f | head -n 1)"
+          ICU="$(find "dist/Activity Browser.app" -path '*/QtWebEngineCore.framework/Resources/icudtl.dat' | head -n 1)"
+          if [[ -z "$PROC" ]]; then
+            echo "FAIL: QtWebEngineProcess missing from Activity Browser.app" >&2
+            exit 1
+          fi
+          if [[ -z "$ICU" ]]; then
+            echo "FAIL: QtWebEngine Resources (icudtl.dat) missing from Activity Browser.app" >&2
+            exit 1
+          fi
+          echo "OK: $PROC"
+          echo "OK: $ICU"
+
+      - name: Guard macOS SuiteSparse is bundled
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP="dist/Activity Browser.app"
+          for name in libumfpack libsuitesparseconfig libamd; do
+            HIT="$(find "$APP" -name "${name}*" | head -n 1)"
+            if [[ -z "$HIT" ]]; then
+              echo "FAIL: ${name}* missing from Activity Browser.app" >&2
+              exit 1
+            fi
+            echo "OK: $HIT"
+          done
+      - name: Build Linux AppImage
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          chmod +x packaging/linux/create-appimage.sh
+          packaging/linux/create-appimage.sh "$AB_VERSION"
+
+      - name: Smoke-test stand-alone launch
+        shell: bash
+        env:
+          # Job already sets QT_QPA_PLATFORM=offscreen; keep smoke isolated from runner home.
+          AB_SKIP_SETTINGS_ON_STARTUP: "1"
+          AB_NO_SEARCHER: "1"
+          SMOKE_SECONDS: "90"
+        run: |
+          chmod +x packaging/smoke-standalone.sh
+          packaging/smoke-standalone.sh
+
+      - name: Collect release-ready files
+        if: success()
+        shell: bash
+        run: |
+          mkdir -p dist/upload
+          cp -f "dist/ActivityBrowser-${AB_VERSION}-${{ matrix.platform }}-dependencies.txt" dist/upload/
+          if [[ -f dist/smoke-standalone.log ]]; then
+            cp -f dist/smoke-standalone.log dist/upload/
+          fi
+          if [[ "${{ runner.os }}" == "Windows" ]]; then
+            cp -f dist/installers/ActivityBrowser-${AB_VERSION}-windows-x64-setup.exe dist/upload/
+          elif [[ "${{ runner.os }}" == "macOS" ]]; then
+            cp -f dist/installers/ActivityBrowser-${AB_VERSION}-macos-arm64.dmg dist/upload/
+          else
+            cp -f dist/installers/ActivityBrowser-${AB_VERSION}-linux-x86_64.AppImage dist/upload/
+          fi
+          ls -la dist/upload/
 
       - uses: actions/upload-artifact@v4
+        if: success()
         with:
-          name: activity-browser-${{ matrix.os }}
-          path: dist/*
+          name: ActivityBrowser-${{ env.AB_VERSION }}-${{ matrix.platform }}
+          path: dist/upload/*
+          if-no-files-found: error
+
+      - name: Upload smoke log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-log-${{ env.AB_VERSION }}-${{ matrix.platform }}
+          path: dist/smoke-standalone.log
+          if-no-files-found: ignore
