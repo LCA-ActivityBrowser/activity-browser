@@ -136,7 +136,7 @@ jobs:
               print(f"{name}:", hits)
               assert hits, f"{name} not found under {prefix}"
           PY
-          else:
+          else
             uv run --no-sync python - <<'PY'
           from pypardiso import factorized, spsolve
           import pathlib, sys
