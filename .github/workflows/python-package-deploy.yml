@@ -1,15 +1,18 @@
 ---
 # Inspired from:
 # https://packaging.python.org/en/latest/guides/publishing-package-distribution-releases-using-github-actions-ci-cd-workflows/
-name: Publish beta to PyPI and Anaconda
+name: Publish release to PyPI and Anaconda
 
 on:
   push:
-    branches: [beta]
-    tags: '*'
+    tags:
+      - "*"
+
 jobs:
   build-n-publish:
-    name: Publish beta to PyPI and Anaconda
+    name: Publish release to PyPI and Anaconda
+    # Stand-alone promotes use tags ending in -stand-alone; do not publish those here.
+    if: ${{ !endsWith(github.ref_name, '-stand-alone') }}
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -20,9 +23,8 @@ jobs:
     - uses: actions/checkout@v4
       with:
         fetch-depth: "0"
-    # PEP 440 beta: 3.0.0b + YYYYMMDDHHMM (UTC). Sortable; no hyphens (invalid in public versions).
-    - name: Set version
-      run: echo "VERSION=3.0.0b$(date -u +%Y%m%d%H%M)" >> $GITHUB_ENV
+    - name: Set version from tag
+      run: echo "VERSION=${GITHUB_REF_NAME}" >> "$GITHUB_ENV"
     - name: Set up Python 3.11
       uses: actions/setup-python@v5
       with:
@@ -55,13 +57,13 @@ jobs:
         activate-environment: build
         environment-file: .github/conda-envs/build.yml
         conda-build-version: "*"
-    - name: Build a Conda tarbal
+    - name: Build a Conda package
       env:
         VERSION: ${{ env.VERSION }}
       run: |
         echo "Building conda package with VERSION=${VERSION}"
         conda build -c conda-forge -c cmutel -c lca ./recipe/
-    - name: Publish to Anaconda
+    - name: Publish to Anaconda (lca)
       run: |
         anaconda -t ${{ secrets.CONDA_LCA }} upload \
         "$CONDA/conda-bld/noarch/"*.conda

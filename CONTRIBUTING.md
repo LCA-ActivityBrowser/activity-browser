@@ -149,45 +149,46 @@ If you want to contribute code, we suggest the following setup:
 
 ### Branching and git workflow
 
-Activity Browser uses three long-lived branches:
+Activity Browser uses three long-lived branches (see [ADR-0017](docs/adr/0017-ab3-release-channels-and-branches.md)):
 
 | Branch | Role |
 |--------|------|
-| **`major`** | Integration branch for ongoing development and testing |
-| **`beta`** | Stable branch for the current Activity Browser; deployed to PyPI and Conda |
-| **`main`** | Legacy branch (do not use for new work) |
+| **`main`** | AB3 stable (default); public versions are cut from here via semver tags |
+| **`dev`** | AB3 integration for ongoing development and testing |
+| **`AB2_legacy`** | AB2 line: critical fixes only; no feature development |
 
 The recommended workflow is:
 
 ```text
-feature/short-topic  →  pull request  →  major  →  pull request  →  beta
+feature/short-topic  →  pull request  →  dev  →  pull request  →  main
+main  →  annotated tag x.y.z  →  GitHub Release + PyPI + lca conda
 ```
 
 #### For all contributors
 
-1. Create a **short-lived feature branch** from `major` (not `main`).
+1. Create a **short-lived feature branch** from `dev`.
 2. Make commits on the feature branch. Small, descriptive commits are welcome.
-3. Open a **pull request into `major`** when the change is ready.
-4. After review and passing CI, merge the pull request using **“Create a merge commit”**. 
+3. Open a **pull request into `dev`** when the change is ready.
+4. After review and passing CI, merge the pull request using **“Create a merge commit”**.
 
 External contributors use the [fork and pull model](https://help.github.com/articles/about-collaborative-development-models/):
-fork the repository, branch from `major` in your fork, and open a pull request back to `major`.
+fork the repository, branch from `dev` in your fork, and open a pull request back to `dev`.
 
-Maintainers with write access may push directly to `major`, but pull requests are preferred because they
+Maintainers with write access may push directly to `dev`, but pull requests are preferred because they
 trigger review and keep a clear record of changes.
 
-#### For maintainers: releasing to beta
+#### For maintainers: landing work on stable `main`
 
-When a [milestone](https://github.com/LCA-ActivityBrowser/activity-browser/milestones) is stable enough to publish:
+When a [milestone](https://github.com/LCA-ActivityBrowser/activity-browser/milestones) is ready for the stable line:
 
-1. Open a pull request from **`major` into `beta`**.
-2. Review the changes carefully — merging into `beta` triggers beta deployment to PyPI and Conda.
+1. Open a pull request from **`dev` into `main`**.
+2. Review carefully — merges to `main` run CI but **do not** publish packages.
 3. Merge using **“Create a merge commit”**.
 
-**Do not squash and merge into `beta`.** Squash merges break the shared history between `major` and `beta`,
-which causes later pull requests to list already-released commits again.
+**Do not squash and merge into `main`.** Squash merges break the shared history between `dev` and `main`,
+which causes later pull requests to list already-landed commits again.
 
-If changes land on `beta` first (for example a hotfix), merge `beta` back into `major` so the branches stay aligned.
+If hotfixes land on `main` first, merge `main` back into `dev` so the branches stay aligned.
 
 See [`.github/workflows/README.md`](.github/workflows/README.md) for details on CI and deployment triggers.
 
@@ -195,14 +196,14 @@ See [`.github/workflows/README.md`](.github/workflows/README.md) for details on 
 
 Pull requests are a GitHub feature, but the underlying git operation is a branch merge. Maintainers may merge
 locally when appropriate (for example after running tests), as long as the same rules apply — especially using
-regular merges for `major` → `beta`:
+regular merges for `dev` → `main`:
 
 ```bash
 git fetch origin
-git checkout major
-git pull origin major
+git checkout dev
+git pull origin dev
 git merge origin/feature/my-fix
-git push origin major
+git push origin dev
 ```
 
 Prefer GitHub pull requests when review, CI gating, or a release record matters.
@@ -237,11 +238,11 @@ Please see the tests that are already present in the
 [pytest-qt documentation](https://pytest-qt.readthedocs.io/en/latest/) for inspiration and examples.
 
 ### Pull requests
-Once you are happy with your changes to AB, please open a pull-request **into `major`**. 
+Once you are happy with your changes to AB, please open a pull-request **into `dev`**. 
 We use the
 [fork and pull model](https://help.github.com/articles/about-collaborative-development-models/)
 for external contributions. 
-Fork the AB repository, create a new branch from the `major` branch, apply your changes on the new branch in your 
+Fork the AB repository, create a new branch from the `dev` branch, apply your changes on the new branch in your 
 forked repository and open a pull request from there. 
 When creating a pull-request, please add a description of what your new changes should accomplish (and if this wasn't a 
 known problem, _why_ AB needs this).
@@ -285,7 +286,7 @@ When the tests pass on a pull-request, one of the maintainers of AB will review 
   If some complex data processing is needed, see if your use-case is covered by bwutils instead. 
   If bwutils does not contain any for your use-case you are welcome to add it.
 - Always create changes on your own fork, even if you have write access to the main repository
-- Do not squash and merge pull requests into `beta` (or from `major` into `beta`); use **“Create a merge commit”**
+- Do not squash and merge pull requests into `main` (or from `dev` into `main`); use **“Create a merge commit”**
 - Do try to write descriptive commit messages:
   - This is a [BAD example](https://github.com/LCA-ActivityBrowser/activity-browser/commit/86922c1578c9d9d9fd034a7048bc9c74fae20e4a):
 
@@ -364,47 +365,46 @@ In addition, the tests that run when a pull-request is opened can pass, while st
 
 If any installation problems occur or warnings happen in the pull-requests tests, they should be resolved. 
 
-### Releasing to beta (Activity Browser 3)
-
-Beta releases are published automatically when changes are merged into the `beta` branch.
-Follow the [branching and git workflow](#branching-and-git-workflow) steps for maintainers: open a pull request
-from `major` into `beta` and merge with **“Create a merge commit”** once the milestone is ready.
-
 ### Creating a new stable release of Activity Browser
-Activity Browser versions and related information can be found on the
+
+Activity Browser versions and related information live on the
 [__releases__](https://github.com/LCA-ActivityBrowser/activity-browser/releases)
-page.
+page. Release policy is recorded in [ADR-0017](docs/adr/0017-ab3-release-channels-and-branches.md).
 
 The AB follows the `major.minor.patch` versioning [schema](https://semver.org/) closely, but not entirely.
 Where `major` releases are reserved for completely backwards-incompatible
 changes, `minor` for new (non-breaking) features or improvements and `patch` for
 bug-fixes and minor changes.
 
-To create a new release follow these steps:
-- Review if all scheduled changes in the [milestone](https://github.com/LCA-ActivityBrowser/activity-browser/milestones) 
-  for the next version are complete, if not, either re-plan them for a next milestone or finish them
-- __Do not__ close the milestone yet
-- Check out the main branch (either through your IDE or with `git checkout main`)
-- `Fetch` and `Pull` changes
-- Create a new tag: `git tag -a x.y.z -m 'x.y.z'` (where `x.y.z` is the new version number)
-- Push the new tag to the repository: `git push upstream x.y.z`
-  - Of course make sure your upstream remote is actually called `upstream`
-- The above triggers the following:
-  - github actions creates a new [release](https://github.com/LCA-ActivityBrowser/activity-browser/releases), showing 
-    all changes in a changelog
-  - Within a few hours, the `conda forge` bot will notice a new release and open a new pull-request on our 
-    [feedstock page](https://github.com/conda-forge/activity-browser-feedstock)
-- Wait until a new pull-request is opened on the 
-  [`conda forge feedstock`](https://github.com/conda-forge/activity-browser-feedstock/pulls)
-  automatically, then review the pull-request and merge the changes
-  - The release will be available on [conda-forge](https://anaconda.org/conda-forge/activity-browser) shortly 
-- Close the [milestone](https://github.com/LCA-ActivityBrowser/activity-browser/milestones) for this version
-  - This triggers a 
-    [`github actions`](https://github.com/LCA-ActivityBrowser/activity-browser/actions/workflows/comment-milestoned-issues.yaml) 
-    bot that will reply to each _closed_ issue with this milestone that a new release is available with an 
-    implemented solution for the issue
-- Write an email to the   [updates mailing list](https://brightway.groups.io/g/AB-updates/topics) announcing the 
-  new changes
+Public AB3 versions are published **only from annotated semver tags** on `main`.
+Merges to `main` run CI and do **not** upload packages. Install channels are pip,
+conda (`lca::activity-browser`), and stand-alone. conda-forge remains AB2 until
+forge deps allow an AB3 feedstock — **do not merge** feedstock bot upgrades to AB3
+while that is true.
+
+#### Changelog (automatic + curated)
+
+- **Automatic:** on tag push, Actions builds a categorized changelog from merged PRs
+  using labels in [`.github/changelog-configuration.json`](.github/changelog-configuration.json)
+  (`breaking`, `feature`/`enhancement`, `ui`, `change`, `bug`, `documentation`, `ci`).
+  Label PRs before merge so the list is useful.
+- **Curated preamble:** after the tag creates the GitHub Release, open that Release →
+  **Edit release** → prepend human notes (upgrade caveats, install channels, highlights)
+  above the generated list → save. That Release body is the published changelog.
+
+#### Steps
+
+1. Land the work on **`main`** via `dev` → `main` (merge commit). Confirm CI green; milestone items done.
+2. __Do not__ close the milestone yet.
+3. On that tip: `git checkout main && git pull`
+4. Annotated tag: `git tag -a x.y.z -m "x.y.z"`
+5. Push the tag: `git push upstream x.y.z` (or `origin`)
+6. Actions create a GitHub Release (auto changelog) and publish **PyPI** + **`lca` conda** at version `x.y.z`
+7. **Edit the Release** and prepend the curated preamble
+8. For a full cut that includes stand-alone: Actions → Build Executable (`ab_version=x.y.z`, run from **`dev`**) →
+   Release Stand-alone → tag `x.y.z-stand-alone` (see [ADR-0015](docs/adr/0015-stand-alone-update-discovery.md))
+9. Close the milestone (issue-comment bot) and announce on the
+   [updates mailing list](https://brightway.groups.io/g/AB-updates/topics) as appropriate
 
 ### Don'ts for maintainers:
 - Never create a new release on a Friday or on a day before you'll be unavailable

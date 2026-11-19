@@ -5,7 +5,7 @@ name: Release Stand-alone
 # page; the in-app update checker finds the newest `*-stand-alone` tag via API.
 #
 # Manual only. A minimal workflow_dispatch stub with the same name must exist
-# on main so Actions shows "Run workflow"; pick major (or this PR branch) in
+# on main so Actions shows "Run workflow"; pick dev (or this PR branch) in
 # the dropdown so GitHub uses this full workflow file.
 on:
   workflow_dispatch:
@@ -17,7 +17,7 @@ on:
       source_branch:
         description: "Branch used to find the latest Build Executable run when build_run_id is empty"
         required: true
-        default: "major"
+        default: "dev"
         type: string
       ab_version:
         description: "AB version shown in release notes (empty = PyPI latest)"
@@ -65,7 +65,7 @@ jobs:
               --jq '.[0].databaseId')"
             if [[ -z "${RUN_ID}" || "${RUN_ID}" == "null" ]]; then
               echo "No successful Build Executable run found on ${{ inputs.source_branch }}" >&2
-              echo "Tip: use a run from a merged PR to major, or paste build_run_id explicitly." >&2
+              echo "Tip: use a run from a merged PR to dev, or paste build_run_id explicitly." >&2
               exit 1
             fi
           fi
