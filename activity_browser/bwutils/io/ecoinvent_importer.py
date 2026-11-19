@@ -6,6 +6,7 @@ from io import BytesIO
 from lxml import objectify
 from functools import partial
 from loguru import logger
+from py7zr.io import BytesIOFactory
 
 import tqdm
 import bw2data as bd
@@ -36,6 +37,8 @@ from bw2io.strategies import (
 )
 
 
+# Per-member in-memory extract cap; ecoinvent .spold files are small XML.
+_SPOLD_MEMBER_LIMIT = 64 * 1024 * 1024
 
 
 class Ecoinvent7zImporter:
@@ -124,7 +127,7 @@ class Ecoinvent7zImporter:
             db_data = strategy(db_data)
         return db_data
 
-    def read_archive_to_bytes(self) -> {str: BytesIO}:
+    def read_archive_to_bytes(self) -> dict[str, BytesIO]:
         logger.info("Extracting .7z archive to memory")
         with py7zr.SevenZipFile(self.archive_path, mode='r') as archive:
             # Find all .spold dataset files
@@ -133,12 +136,17 @@ class Ecoinvent7zImporter:
                 if file.filename.startswith("datasets")
                 and file.filename.endswith(".spold")
             ]
+            # py7zr >= 1.0: SevenZipFile.read() was removed; use extract + factory.
+            factory = BytesIOFactory(limit=_SPOLD_MEMBER_LIMIT)
+            archive.extract(targets=file_list, factory=factory)
+            extracted: dict[str, BytesIO] = {}
+            for name in file_list:
+                buf = factory.get(name)
+                buf.seek(0)
+                extracted[name] = BytesIO(buf.read())
+            return extracted
 
-            extracted_data = archive.read(file_list)
-
-        return extracted_data
-
-    def process_bytes(self, spold_bytes: {str: BytesIO}, db_name: str) -> list:
+    def process_bytes(self, spold_bytes: dict[str, BytesIO], db_name: str) -> list:
         with multiprocessing.Pool(processes=multiprocessing.cpu_count()) as pool:
             logger.info(f"Extracting XML data from {len(spold_bytes)} datasets")
             results = [

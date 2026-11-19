@@ -37,7 +37,7 @@ requirements:
     - ecoinvent_interface
     - matrix_utils >=0.5
     - numpy >=1.26
-    - py7zr >=0.22.0
+    - py7zr >=1.0
     - pyperclip
     - pyprind
     - networkx
