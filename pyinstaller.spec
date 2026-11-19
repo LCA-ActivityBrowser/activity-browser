@@ -21,6 +21,43 @@ extra_datas = []
 extra_hiddenimports = []
 
 
+def _replace_dir(src: Path, dest: Path) -> None:
+    import shutil
+
+    if dest.is_symlink() or dest.is_file():
+        dest.unlink()
+    elif dest.is_dir():
+        shutil.rmtree(dest)
+    shutil.copytree(src, dest, symlinks=False)
+    print(f"Copied {src.name} -> {dest}")
+
+
+def _copy_macos_qtwebengine_support(app_path: Path) -> None:
+    """Ship QtWebEngineProcess + resource .pak files into the .app.
+
+    Missing either causes QWebEnginePage to abort() (SIGABRT).
+    """
+    import PySide6
+
+    qt_lib = Path(PySide6.__file__).resolve().parent / "Qt" / "lib"
+    src_fw = qt_lib / "QtWebEngineCore.framework"
+    src_helpers = src_fw / "Helpers"
+    src_resources = src_fw / "Resources"
+    if not src_helpers.is_dir() or not src_resources.is_dir():
+        raise SystemExit(
+            f"Incomplete QtWebEngineCore.framework under {src_fw} "
+            "(need Helpers and Resources)"
+        )
+
+    for fw in app_path.glob("**/QtWebEngineCore.framework"):
+        proc = fw / "Helpers/QtWebEngineProcess.app/Contents/MacOS/QtWebEngineProcess"
+        if not proc.is_file():
+            _replace_dir(src_helpers, fw / "Helpers")
+        # Resources hold icudtl.dat / *.pak; Qt searches framework/Resources first.
+        if not (fw / "Resources" / "icudtl.dat").is_file():
+            _replace_dir(src_resources, fw / "Resources")
+
+
 def _collect_solver_shared_libs():
     """Bundle Intel MKL / OpenMP libs so pypardiso can load in the frozen app.
 
@@ -98,6 +135,10 @@ hiddenimports = sorted(
             "activity_browser",
             "activity_browser.__main__",
             "PySide6",
+            # Named so PyInstaller's WebEngine hooks run (AB imports via qtpy).
+            "PySide6.QtWebEngineCore",
+            "PySide6.QtWebEngineWidgets",
+            "PySide6.QtWebEngineQuick",
             "bw2data",
             "bw2io",
             "bw2calc",
@@ -125,6 +166,13 @@ a = Analysis(
 
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 
+# Windows: keep a console so startup failures are visible (stderr).
+# macOS: console=True makes PyInstaller set LSBackgroundOnly=True on the .app,
+# so Launch Services treats AB as a background agent and Finder launches leave
+# a Terminal/bash window after the splash. Use a windowed bundle instead.
+# Linux: console has no Finder equivalent; keep True for AppImage stderr.
+_console = sys.platform != "darwin"
+
 exe = EXE(
     pyz,
     a.scripts,
@@ -136,7 +184,7 @@ exe = EXE(
     strip=False,
     # UPX packing commonly triggers browser/AV false positives on Windows.
     upx=False,
-    console=True,
+    console=_console,
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
@@ -167,5 +215,8 @@ if sys.platform == "darwin":
             "CFBundleDisplayName": "Activity Browser",
             "CFBundleShortVersionString": "3.0.0",
             "NSHighResolutionCapable": True,
+            # Belt-and-suspenders if console is ever flipped back to True.
+            "LSBackgroundOnly": False,
         },
     )
+    _copy_macos_qtwebengine_support(spec_root / "dist" / "Activity Browser.app")

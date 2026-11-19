@@ -45,15 +45,13 @@ jobs:
           else
             BASE_VERSION="$(python -c 'import json,urllib.request; print(json.load(urllib.request.urlopen("https://pypi.org/pypi/activity-browser/json"))["info"]["version"])')"
           fi
-          # Human / installer filenames: <ab>-stand-alone
+          # Installer / GitHub display stamp; package metadata stays the public AB version.
           AB_VERSION="${BASE_VERSION}-stand-alone"
-          # setup.py / PEP 440: local version label
-          PKG_VERSION="${BASE_VERSION}+stand.alone"
           SHORT_SHA="$(echo "${GITHUB_SHA}" | cut -c1-7)"
           echo "BASE_VERSION=${BASE_VERSION}" >> "$GITHUB_ENV"
           echo "AB_VERSION=${AB_VERSION}" >> "$GITHUB_ENV"
-          echo "VERSION=${PKG_VERSION}" >> "$GITHUB_ENV"
-          echo "Building stand-alone ${AB_VERSION} (package ${PKG_VERSION}, sha ${SHORT_SHA})"
+          echo "VERSION=${BASE_VERSION}" >> "$GITHUB_ENV"
+          echo "Building stand-alone ${AB_VERSION} (package ${BASE_VERSION}, sha ${SHORT_SHA})"
 
       - name: Install system dependencies (Linux)
         if: runner.os == 'Linux'
@@ -130,6 +128,38 @@ jobs:
           chmod +x packaging/macos/create-dmg.sh
           packaging/macos/create-dmg.sh "$AB_VERSION"
 
+      - name: Guard macOS .app is not LSBackgroundOnly
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -euo pipefail
+          PLIST="dist/Activity Browser.app/Contents/Info.plist"
+          test -f "$PLIST"
+          # PyInstaller console=True sets LSBackgroundOnly; that breaks Finder launches.
+          if /usr/libexec/PlistBuddy -c 'Print :LSBackgroundOnly' "$PLIST" 2>/dev/null | grep -qx 'true'; then
+            echo "FAIL: $PLIST has LSBackgroundOnly=true (set console=False on darwin in pyinstaller.spec)" >&2
+            exit 1
+          fi
+          echo "OK: LSBackgroundOnly is not true"
+
+      - name: Guard macOS QtWebEngine support is bundled
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -euo pipefail
+          PROC="$(find "dist/Activity Browser.app" -name QtWebEngineProcess -type f | head -n 1)"
+          ICU="$(find "dist/Activity Browser.app" -path '*/QtWebEngineCore.framework/Resources/icudtl.dat' | head -n 1)"
+          if [[ -z "$PROC" ]]; then
+            echo "FAIL: QtWebEngineProcess missing from Activity Browser.app" >&2
+            exit 1
+          fi
+          if [[ -z "$ICU" ]]; then
+            echo "FAIL: QtWebEngine Resources (icudtl.dat) missing from Activity Browser.app" >&2
+            exit 1
+          fi
+          echo "OK: $PROC"
+          echo "OK: $ICU"
+
       - name: Build Linux AppImage
         if: runner.os == 'Linux'
         shell: bash
@@ -137,11 +167,26 @@ jobs:
           chmod +x packaging/linux/create-appimage.sh
           packaging/linux/create-appimage.sh "$AB_VERSION"
 
+      - name: Smoke-test stand-alone launch
+        shell: bash
+        env:
+          # Job already sets QT_QPA_PLATFORM=offscreen; keep smoke isolated from runner home.
+          AB_SKIP_SETTINGS_ON_STARTUP: "1"
+          AB_NO_SEARCHER: "1"
+          SMOKE_SECONDS: "90"
+        run: |
+          chmod +x packaging/smoke-standalone.sh
+          packaging/smoke-standalone.sh
+
       - name: Collect release-ready files
+        if: success()
         shell: bash
         run: |
           mkdir -p dist/upload
           cp -f "dist/ActivityBrowser-${AB_VERSION}-${{ matrix.platform }}-dependencies.txt" dist/upload/
+          if [[ -f dist/smoke-standalone.log ]]; then
+            cp -f dist/smoke-standalone.log dist/upload/
+          fi
           if [[ "${{ runner.os }}" == "Windows" ]]; then
             cp -f dist/installers/ActivityBrowser-${AB_VERSION}-windows-x64-setup.exe dist/upload/
           elif [[ "${{ runner.os }}" == "macOS" ]]; then
@@ -152,7 +197,16 @@ jobs:
           ls -la dist/upload/
 
       - uses: actions/upload-artifact@v4
+        if: success()
         with:
           name: ActivityBrowser-${{ env.AB_VERSION }}-${{ matrix.platform }}
           path: dist/upload/*
           if-no-files-found: error
+
+      - name: Upload smoke log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-log-${{ env.AB_VERSION }}-${{ matrix.platform }}
+          path: dist/smoke-standalone.log
+          if-no-files-found: ignore
