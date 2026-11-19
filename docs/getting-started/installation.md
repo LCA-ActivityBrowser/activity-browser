@@ -19,7 +19,7 @@ Pick a tag ending in `-stand-alone`, then the file for your OS (Windows `.exe`, 
 Builds are **unsigned**, so browser/SmartScreen warnings on Windows and Gatekeeper on macOS are expected.
 
 - **Windows:** run the installer; Microsoft blocks unknown apps with a "Windows protected your PC" prompt; you can bypass this by clicking More info and then Run anyway
-- **macOS (ARM):** open the DMG; drag to Applications; After attempting to launch the app and dismissing the Gatekeeper warning, go to System Settings > Privacy & Security, scroll down, and click Open Anyway
+- **macOS (ARM):** open the DMG; drag to Applications; After attempting to launch the app and dismissing the Gatekeeper warning, go to System Settings > Privacy & Security, scroll down, and click Open Anyway. The Apple Silicon DMG includes the fast sparse solver (`scikit-umfpack`).
 - **macOS (Intel):** not supported yet
 - **Linux:** mark the file as executable via `chmod +x` filename or by right-clicking the file, opening Properties > Permissions, and checking Allow executing file as program
 
@@ -68,6 +68,17 @@ With the virtual environment activated:
 ```
 pip install activity-browser
 ```
+
+### Faster calculations on Apple Silicon (optional)
+
+On Apple Silicon, Brightway’s calculator prefers **scikit-umfpack**. The **stand-alone** (Apple Silicon) and **conda** channels already include it. Pip does not (PyPI ships umfpack as source and needs SuiteSparse). After `pip install activity-browser`:
+
+```
+brew install swig suite-sparse pkgconf
+pip install scikit-umfpack
+```
+
+If that build fails, see [Brightway’s installation guide](https://docs.brightway.dev/en/latest/content/installation/).
 
 ### Launching the Activity Browser
 

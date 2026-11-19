@@ -58,45 +58,18 @@ def _copy_macos_qtwebengine_support(app_path: Path) -> None:
             _replace_dir(src_resources, fw / "Resources")
 
 
-def _collect_solver_shared_libs():
-    """Bundle Intel MKL / OpenMP libs so pypardiso can load in the frozen app.
-
-    pip installs these under ``sys.prefix/Library/bin`` (Windows) or
-    ``sys.prefix/lib`` (Linux). pypardiso searches ``sys.prefix/[Ll]ib*/**/*mkl_rt*``,
-    so keep that relative layout inside the onedir ``_internal`` tree.
-    """
-    prefix = Path(sys.prefix)
-    collected = []
-
-    if sys.platform == "win32":
-        patterns = (
-            "Library/bin/mkl_*.dll",
-            "Library/bin/libiomp*.dll",
-            "Library/bin/libimalloc.dll",
-            "Library/bin/tbb*.dll",
-            "Library/bin/tbbmalloc*.dll",
-        )
-        dest = "Library/bin"
-    elif sys.platform.startswith("linux"):
-        patterns = (
-            "lib/libmkl_*.so*",
-            "lib/libiomp*.so*",
-            "lib/libtbb*.so*",
-        )
-        dest = "lib"
-    else:
-        return collected
-
+def _collect_prefix_libs(patterns, dest, *, resolve=False):
+    """Collect ``(src, dest)`` pairs for shared libs under ``sys.prefix``."""
+    out = []
     for pattern in patterns:
-        for path in prefix.glob(pattern):
-            if path.is_file():
-                collected.append((str(path), dest))
+        for path in Path(sys.prefix).glob(pattern):
+            if path.is_file() or path.is_symlink():
+                out.append((str(path.resolve() if resolve else path), dest))
+    return out
 
-    return collected
 
-
+# Keep freeze-env relative layout inside onedir / .app ``_internal``.
 if sys.platform == "win32" or sys.platform.startswith("linux"):
-    # Ensure the Python package is analyzed even if nothing imports it yet.
     try:
         d, b, h = collect_all("pypardiso")
         extra_datas += d
@@ -105,14 +78,66 @@ if sys.platform == "win32" or sys.platform.startswith("linux"):
     except Exception as exc:  # pragma: no cover - packaging diagnostics
         print(f"WARNING: collect_all(pypardiso) failed: {exc}")
 
-    binaries += _collect_solver_shared_libs()
-    mkl_rt_names = {"mkl_rt.2.dll", "mkl_rt.3.dll", "libmkl_rt.so.2", "libmkl_rt.so.3"}
-    have_mkl_rt = any(Path(src).name in mkl_rt_names or "mkl_rt" in Path(src).name for src, _ in binaries)
-    if not have_mkl_rt:
+    if sys.platform == "win32":
+        binaries += _collect_prefix_libs(
+            (
+                "Library/bin/mkl_*.dll",
+                "Library/bin/libiomp*.dll",
+                "Library/bin/libimalloc.dll",
+                "Library/bin/tbb*.dll",
+                "Library/bin/tbbmalloc*.dll",
+            ),
+            "Library/bin",
+        )
+    else:
+        binaries += _collect_prefix_libs(
+            ("lib/libmkl_*.so*", "lib/libiomp*.so*", "lib/libtbb*.so*"),
+            "lib",
+        )
+
+    if not any("mkl_rt" in Path(src).name for src, _ in binaries):
         raise SystemExit(
             "Fast solver libs not found under sys.prefix "
             f"({sys.prefix}). On Windows/Linux x86_64 install pypardiso "
             "(pulls in the pip `mkl` package) before running PyInstaller."
+        )
+
+elif sys.platform == "darwin":
+    try:
+        d, b, h = collect_all("scikits.umfpack")
+        extra_datas += d
+        binaries += b
+        extra_hiddenimports += h
+    except Exception as exc:  # pragma: no cover - packaging diagnostics
+        raise SystemExit(
+            f"collect_all(scikits.umfpack) failed: {exc}. "
+            "Install scikit-umfpack (conda-forge) into the freeze env before PyInstaller."
+        ) from exc
+
+    binaries += _collect_prefix_libs(
+        (
+            "lib/libumfpack*.dylib*",
+            "lib/libsuitesparseconfig*.dylib*",
+            "lib/libamd*.dylib*",
+            "lib/libcamd*.dylib*",
+            "lib/libcolamd*.dylib*",
+            "lib/libccolamd*.dylib*",
+            "lib/libcholmod*.dylib*",
+        ),
+        "lib",
+        resolve=True,
+    )
+    required = ("libumfpack", "libsuitesparseconfig", "libamd")
+    missing = [
+        name
+        for name in required
+        if not any(Path(src).name.startswith(name) for src, _ in binaries)
+    ]
+    if missing:
+        raise SystemExit(
+            "Fast solver libs missing under sys.prefix "
+            f"({sys.prefix}): {', '.join(missing)}. Install scikit-umfpack "
+            "from conda-forge before running PyInstaller."
         )
 
 block_cipher = None

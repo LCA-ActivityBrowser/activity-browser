@@ -40,10 +40,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          # Host image Python only (freeze envs come later; Mac has no setup-python).
+          PY="$(command -v python3 || command -v python)"
           if [[ -n "${{ inputs.ab_version }}" ]]; then
             BASE_VERSION="${{ inputs.ab_version }}"
           else
-            BASE_VERSION="$(python -c 'import json,urllib.request; print(json.load(urllib.request.urlopen("https://pypi.org/pypi/activity-browser/json"))["info"]["version"])')"
+            BASE_VERSION="$("$PY" -c 'import json,urllib.request; print(json.load(urllib.request.urlopen("https://pypi.org/pypi/activity-browser/json"))["info"]["version"])')"
           fi
           # Installer / GitHub display stamp; package metadata stays the public AB version.
           AB_VERSION="${BASE_VERSION}-stand-alone"
@@ -63,34 +65,79 @@ jobs:
             libxcb-xinerama0 libxcb-xfixes0 libxcb-shape0 \
             libfuse2 desktop-file-utils
 
+      # Win/Linux freeze via uv; Mac freeze via micromamba (ADR-0016).
       - name: Set up Python
+        if: runner.os != 'macOS'
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
       - name: Install UV
+        if: runner.os != 'macOS'
         uses: astral-sh/setup-uv@v2
 
-      - name: Sync dependencies
+      - name: Sync dependencies (Windows / Linux)
+        if: runner.os != 'macOS'
         shell: bash
         run: |
           uv sync --prerelease=allow
           uv pip install pyinstaller
           # pypardiso is a Windows marker dep in pyproject; install explicitly for
           # Linux x86_64 stand-alones too (pulls pip `mkl` + OpenMP libs).
-          if [[ "${{ runner.os }}" == "Windows" || "${{ runner.os }}" == "Linux" ]]; then
-            uv pip install pypardiso
-          fi
+          uv pip install pypardiso
           # Reinstall with VERSION from the env so dist-info (and the frozen app)
           # report the build stamp, not setup.py's default 0.0.0.
           uv pip install -e . --force-reinstall --no-deps
           uv run --no-sync python -c "from importlib.metadata import version; import activity_browser, PyInstaller; print('ready', PyInstaller.__version__, 'activity_browser', version('activity_browser'))"
 
-      - name: Verify fast sparse solver (Windows / Linux)
-        if: runner.os == 'Windows' || runner.os == 'Linux'
+      - name: Set up micromamba (macOS)
+        if: runner.os == 'macOS'
+        uses: mamba-org/setup-micromamba@v2
+        with:
+          environment-name: ab-freeze
+          # conda-forge binaries: scikit-umfpack is sdist-only on PyPI.
+          create-args: >-
+            python=3.12
+            pip
+            scikit-umfpack>=0.4.2
+          cache-environment: true
+          init-shell: bash
+          condarc: |
+            channels:
+              - conda-forge
+            channel_priority: strict
+
+      - name: Sync dependencies (macOS)
+        if: runner.os == 'macOS'
+        shell: bash -l {0}
+        run: |
+          set -euo pipefail
+          # Pip deps into the micromamba prefix; reinstall umfpack after so pip
+          # cannot replace conda-forge SuiteSparse binaries.
+          python -m pip install pyinstaller
+          python -m pip install -e .
+          micromamba install -y -n ab-freeze -c conda-forge "scikit-umfpack>=0.4.2"
+          python -m pip install -e . --force-reinstall --no-deps
+          python -c "from importlib.metadata import version; import activity_browser, PyInstaller; print('ready', PyInstaller.__version__, 'activity_browser', version('activity_browser'))"
+
+      - name: Verify fast sparse solver
         shell: bash
         run: |
-          uv run --no-sync python - <<'PY'
+          set -euo pipefail
+          if [[ "${{ runner.os }}" == "macOS" ]]; then
+            micromamba run -n ab-freeze python - <<'PY'
+          import pathlib, sys
+          import scikits.umfpack
+
+          prefix = pathlib.Path(sys.prefix)
+          required = ("libumfpack", "libsuitesparseconfig", "libamd")
+          for name in required:
+              hits = list(prefix.glob(f"lib/{name}*"))
+              print(f"{name}:", hits)
+              assert hits, f"{name} not found under {prefix}"
+          PY
+          else
+            uv run --no-sync python - <<'PY'
           from pypardiso import factorized, spsolve
           import pathlib, sys
           prefix = pathlib.Path(sys.prefix)
@@ -98,18 +145,29 @@ jobs:
           print("pypardiso import ok; mkl_rt candidates:", hits)
           assert hits, f"mkl_rt not found under {prefix}"
           PY
+          fi
 
       - name: Build with PyInstaller (onedir)
         shell: bash
         run: |
-          uv run --no-sync pyinstaller pyinstaller.spec
+          set -euo pipefail
+          if [[ "${{ runner.os }}" == "macOS" ]]; then
+            micromamba run -n ab-freeze pyinstaller pyinstaller.spec
+          else
+            uv run --no-sync pyinstaller pyinstaller.spec
+          fi
 
       - name: Export dependency freeze
         shell: bash
         run: |
+          set -euo pipefail
           chmod +x packaging/export-dependencies.sh
-          packaging/export-dependencies.sh \
-            "dist/ActivityBrowser-${AB_VERSION}-${{ matrix.platform }}-dependencies.txt"
+          OUT="dist/ActivityBrowser-${AB_VERSION}-${{ matrix.platform }}-dependencies.txt"
+          if [[ "${{ runner.os }}" == "macOS" ]]; then
+            micromamba run -n ab-freeze bash packaging/export-dependencies.sh "$OUT"
+          else
+            packaging/export-dependencies.sh "$OUT"
+          fi
 
       - name: Build Windows installer (Inno Setup)
         if: runner.os == 'Windows'
@@ -160,6 +218,20 @@ jobs:
           echo "OK: $PROC"
           echo "OK: $ICU"
 
+      - name: Guard macOS SuiteSparse is bundled
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP="dist/Activity Browser.app"
+          for name in libumfpack libsuitesparseconfig libamd; do
+            HIT="$(find "$APP" -name "${name}*" | head -n 1)"
+            if [[ -z "$HIT" ]]; then
+              echo "FAIL: ${name}* missing from Activity Browser.app" >&2
+              exit 1
+            fi
+            echo "OK: $HIT"
+          done
       - name: Build Linux AppImage
         if: runner.os == 'Linux'
         shell: bash
