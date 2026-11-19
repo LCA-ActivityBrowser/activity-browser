@@ -9,26 +9,26 @@
 
 # Activity Browser
 
-> [!IMPORTANT]
-> **Activity Browser 3**  (moving out of the beta phase anytime soon) is the version we recommend for new installs. It is already far ahead of the AB2 (soon legacy) version.
->
-> It comes with a refreshed UI, runs on Brightway 2.5 and adds multifunctionality via [bw_functional](https://github.com/LCA-ActivityBrowser/bw-functional).
-> Please try it and [report issues](https://github.com/LCA-ActivityBrowser/activity-browser/issues/new?template=beta_report.yml).
->
-See also: [Activity Browser 3 Documentation](https://lca-activitybrowser.github.io/activity-browser/)
-
 <img src="https://user-images.githubusercontent.com/33026150/54299977-47a9f680-45bc-11e9-81c6-b99462f84d0b.png" width=100%/>
 
 The **Activity Browser (AB)** is an open-source GUI for Life Cycle Assessment on [Brightway](https://brightway.dev).
 
 ### Highlights
 
-- **Fast LCA calculations**: for multiple reference flows, impact categories, and scenarios
 - **A productivity tool for Brightway**: model in Brightway (Python) and see the results in the AB or vice versa
+- **Fast LCA calculations**: for multiple reference flows, impact categories, and scenarios
 - **Advanced modeling:** Use parameters, scenarios (including prospective LCI databases from [premise](https://premise.readthedocs.io/en/latest/)), uncertainties and our Graph Explorer
 - **Advanced analyses:** Contribution analyses, Sankey Diagrams, Monte Carlo, and Global Sensitivity Analysis
 - **Plugins:** Extend the functionality of Activity Browser with
 [Plugins](https://github.com/LCA-ActivityBrowser/activity-browser/wiki/Plugins)
+
+
+# Installation (AB3)
+
+> [!IMPORTANT]
+> **Activity Browser 3**  is moving out of the beta phase anytime soon. It is already far ahead of the AB2 (soon legacy) version.
+> It comes with a refreshed UI, runs on Brightway 2.5 and adds multifunctionality via [bw_functional](https://github.com/LCA-ActivityBrowser/bw-functional).
+> Please try it and [report issues](https://github.com/LCA-ActivityBrowser/activity-browser/issues/new?template=beta_report.yml).
 
 ### Download stand-alone (Windows / macOS / Linux)
 
@@ -36,58 +36,17 @@ The **Activity Browser (AB)** is an open-source GUI for Life Cycle Assessment on
 
 <a href="https://github.com/LCA-ActivityBrowser/activity-browser/releases"><img src="https://img.shields.io/badge/Download-stand--alone%20(GitHub%20Releases)-0A66C2?style=for-the-badge&logo=github&logoColor=white" alt="Download stand-alone from GitHub Releases"></a>
 
-Pick a release tag ending in `-stand-alone`, then the file for your OS (Windows `.exe`, macOS Apple Silicon `.dmg`, or Linux AppImage). Builds are **unsigned**, so browser/SmartScreen warnings on Windows and Gatekeeper on macOS are expected. Details: [Installation Guide](https://lca-activitybrowser.github.io/activity-browser/getting-started/installation.html).
+See the [Installation Guide](https://lca-activitybrowser.github.io/activity-browser/getting-started/installation.html#stand-alone-installers) for additional instructions.
 
+### Installation via PyPI and Conda 
+Please follow the
+[Installation Guide](https://lca-activitybrowser.github.io/activity-browser/getting-started/installation.html).
 
-# Installation (AB3)
-
-See the
-[Installation Guide](https://lca-activitybrowser.github.io/activity-browser/getting-started/installation.html)
-for a more comprehensive guide (stand-alone, PyPI, or Anaconda).
-
-### PyPI (if you already use Python)
-
-
-#### CREATE the virtual environment:
-```bash
-# do this in a directory you can remember, e.g. ...user\virtualenvs\
-python -m venv ab3
-```
-#### ACTIVATE the virtual environment:
-```bash
-# on Windows:
-ab3\Scripts\activate
-
-# on macOS/Linux:
-source ab3/bin/activate
-```
-
-#### INSTALL the Activity Browser:
-```bash
-pip install activity-browser
-```
-
-#### RUN the Activity Browser:
-```bash
-activity-browser
-```
-
-### Conda
-
-We are currently waiting for the AB3 (and bw_functional) to be accepted onto conda-forge. 
-In the meantime, we recommend to use the PyPI install above (or the stand-alone download). 
-
-```bash
-conda create -n ab3 -c conda-forge lca::activity-browser
-conda activate ab3
-activity-browser
-```
-
+See also: [Activity Browser 3 Documentation](https://lca-activitybrowser.github.io/activity-browser/)
 
 # First Steps
 See our
-[Getting Started](https://lca-activitybrowser.github.io/activity-browser/getting-started/)
-wiki page to learn how to get started using Activity Browser.
+[Getting Started](https://lca-activitybrowser.github.io/activity-browser/getting-started/) page to learn how to get started with the Activity Browser.
 
 # Contributing
 
@@ -113,19 +72,6 @@ If you experience problems or are suffering from a specific bug, please [raise a
 - [Adrian Haas](https://github.com/haasad)
 - [Chris Mutel](https://github.com/cmutel)
 
-
-# AB 2 (legacy)
-
-Activity Browser 2 is the previous stable version, but not actively maintained anymore (Brightway2). 
-Prefer AB3 beta for new work.
-
-Installation (see also: [Installation Guide (wiki)](https://github.com/LCA-ActivityBrowser/activity-browser/wiki/Installation-Guide)):
-```bash
-conda create -n ab -c conda-forge activity-browser
-conda activate ab
-activity-browser
-```
-
 # License and Copyright
 
 This project is licensed under the terms of the 
@@ -136,4 +82,14 @@ see [license file](https://github.com/LCA-ActivityBrowser/activity-browser/blob/
 * Copyright (c) 2014-2016: ETH Zürich
 * Copyright (c) 2018-2024: Universiteit Leiden
 
+# AB 2 (legacy version)
 
+Activity Browser 2 is the previous stable version, but not actively maintained anymore (Brightway2). 
+Prefer AB3 beta for new work.
+
+[Installation Guide (wiki)](https://github.com/LCA-ActivityBrowser/activity-browser/wiki/Installation-Guide)
+```bash
+conda create -n ab -c conda-forge activity-browser
+conda activate ab
+activity-browser
+```
