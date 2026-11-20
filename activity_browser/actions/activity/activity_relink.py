@@ -10,12 +10,12 @@ from activity_browser.ui.icons import qicons
 from activity_browser.ui.widgets import (ActivityLinkingDialog,
                                          ActivityLinkingResultsDialog)
 
-
 class ActivityRelink(ABAction):
     """
     ABAction to relink the exchanges of an activity to exchanges from another database.
 
-    This action only uses the first key from activity_keys
+    This action only uses the first key from activity_keys.
+    Only shows databases relevant to activity.
     """
 
     icon = qicons.edit
@@ -31,8 +31,10 @@ class ActivityRelink(ABAction):
         db = bd.Database(key[0])
         activity = bd.get_activity(key)
 
-        # find the dependents for the database and construct the alternatives in tuple format
-        depends = db.find_dependents()
+        # find the dependents for the activity using bw2data method and construct the alternatives in tuple format
+        data = {}
+        data[activity.key] = db.load()[activity.key]
+        depends = db.find_dependents(data = data, ignore= [db.name])
         options = [(depend, list(bd.databases)) for depend in depends]
 
         # present the alternatives to the user in a linking dialog
@@ -49,16 +51,15 @@ class ActivityRelink(ABAction):
 
         # use the relink_activity_exchanges strategy to relink the exchanges of the activity
         relinking_results = {}
+        failed = 0 
         for old, new in dialog.relink.items():
             other = bd.Database(new)
             failed, succeeded, examples = relink_activity_exchanges(
                 activity, old, other
             )
             relinking_results[f"{old} --> {other.name}"] = (failed, succeeded)
-
         # restore normal cursor
         QtWidgets.QApplication.restoreOverrideCursor()
-
         # if any relinks failed present them to the user
         if failed > 0:
             relinking_dialog = ActivityLinkingResultsDialog.present_relinking_results(
