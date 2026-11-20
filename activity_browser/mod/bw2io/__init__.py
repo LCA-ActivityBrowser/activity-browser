@@ -3,6 +3,7 @@ from logging import getLogger
 from bw2io import *
 
 from activity_browser.info import __ei_versions__
+from activity_browser.i18n import _
 from activity_browser.utils import sort_semantic_versions
 
 log = getLogger(__name__)
@@ -18,18 +19,18 @@ def ab_bw2setup(version):
     version = version[:3]
 
     if version == sort_semantic_versions(__ei_versions__)[0][:3]:
-        log.info(f"Installing biosphere version >{version}<")
+        log.info(_("Installing biosphere version {version}", version=version))
         # most recent version
         bio_import = ABEcospold2BiosphereImporter()
     else:
-        log.info(f"Installing legacy biosphere version >{version}<")
+        log.info(_("Installing legacy biosphere version {version}", version=version))
         # not most recent version, import legacy biosphere from AB
         bio_import = ABEcospold2BiosphereImporter(version=version)
     bio_import.apply_strategies()
-    log.info("Writing biosphere database")
+    log.info(_("Writing biosphere database"))
     bio_import.write_database()
 
-    log.info("Writing LCIA methods")
+    log.info(_("Writing LCIA methods"))
     create_default_lcia_methods()
 
     # patching biosphere
@@ -47,7 +48,6 @@ def ab_bw2setup(version):
     ]
 
     for patch in patches:
-        log.info(f"Applying biosphere patch: {patch}")
+        log.info(_("Applying biosphere patch: {patch}", patch=patch))
         update_bio = getattr(bi.data, patch)
         update_bio()
-

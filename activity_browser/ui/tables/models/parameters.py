@@ -10,6 +10,7 @@ from PySide2 import QtWidgets
 from PySide2.QtCore import QModelIndex, Slot
 
 from activity_browser import actions, application
+from activity_browser.i18n import _
 from activity_browser.mod import bw2data as bd
 from activity_browser.mod.bw2data.parameters import (ActivityParameter,
                                                      DatabaseParameter, Group,
@@ -88,7 +89,7 @@ class BaseParameterModel(EditablePandasModel):
         except Exception as e:
             QtWidgets.QMessageBox.warning(
                 application.main_window,
-                "Could not save changes",
+                _("Could not save changes"),
                 str(e),
                 QtWidgets.QMessageBox.Ok,
                 QtWidgets.QMessageBox.Ok,

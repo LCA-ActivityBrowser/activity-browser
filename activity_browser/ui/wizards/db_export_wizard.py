@@ -5,6 +5,7 @@ from PySide2 import QtWidgets
 from PySide2.QtCore import Slot
 
 from activity_browser.bwutils import exporters as exp
+from activity_browser.i18n import _
 from activity_browser.mod import bw2data as bd
 
 EXPORTERS = {
@@ -28,7 +29,7 @@ class DatabaseExportWizard(QtWidgets.QWizard):
 
     def __init__(self, parent=None):
         super().__init__(parent=parent)
-        self.setWindowTitle("Database export wizard")
+        self.setWindowTitle(_("Database export wizard"))
         self.export_page = ExportDatabasePage(self)
         self.pages = [self.export_page]
         for i, page in enumerate(self.pages):
@@ -40,7 +41,7 @@ class DatabaseExportWizard(QtWidgets.QWizard):
 
     def perform_export(self) -> None:
         db_name = self.field("database_choice")
-        export_as = self.field("export_option")
+        export_as = self.export_page.selected_exporter
         out_path = self.field("output_path")
         # Ensure that extension matches export_option.
         path, ext = os.path.splitext(out_path)
@@ -60,25 +61,27 @@ class ExportDatabasePage(QtWidgets.QWizardPage):
 
     def __init__(self, parent=None):
         super().__init__(parent=parent)
+        self.setTitle(_("Export database"))
         self.wizard = parent
         self.database = QtWidgets.QComboBox()
         self.export_option = QtWidgets.QComboBox()
-        self.export_option.addItems(list(EXPORTERS))
+        for exporter_id in EXPORTERS:
+            self.export_option.addItem(exporter_id, exporter_id)
         self.database.currentIndexChanged.connect(self.changed)
         self.output_dir = QtWidgets.QLineEdit()
         self.output_dir.setReadOnly(True)
-        self.browse_button = QtWidgets.QPushButton("Browse")
+        self.browse_button = QtWidgets.QPushButton(_("Browse"))
         self.browse_button.clicked.connect(self.browse)
         self.complete = False
 
-        box = QtWidgets.QGroupBox("Database selection:")
+        box = QtWidgets.QGroupBox(_("Database selection:"))
         grid = QtWidgets.QGridLayout()
-        grid.addWidget(QtWidgets.QLabel("Database:"), 0, 0, 1, 1)
+        grid.addWidget(QtWidgets.QLabel(_("Database:")), 0, 0, 1, 1)
         grid.addWidget(self.database, 0, 1, 1, 2)
-        grid.addWidget(QtWidgets.QLabel("Exported as:"), 1, 0, 1, 1)
+        grid.addWidget(QtWidgets.QLabel(_("Exported as:")), 1, 0, 1, 1)
         grid.addWidget(self.export_option, 1, 1, 1, 2)
         grid.addWidget(
-            QtWidgets.QLabel("Exported data is stored in the directory below:"),
+            QtWidgets.QLabel(_("Exported data is stored in the directory below:")),
             2,
             0,
             1,
@@ -93,8 +96,14 @@ class ExportDatabasePage(QtWidgets.QWizardPage):
 
         self.setFinalPage(True)
         self.registerField("database_choice", self.database, "currentText")
-        self.registerField("export_option", self.export_option, "currentText")
+        self.registerField("export_option", self.export_option, "currentIndex")
         self.registerField("output_path*", self.output_dir)
+
+    @property
+    def selected_exporter(self) -> str:
+        """Return the stable exporter ID stored separately from its label."""
+
+        return self.export_option.currentData()
 
     def initializePage(self):
         self.wizard.setButtonLayout(
@@ -110,7 +119,7 @@ class ExportDatabasePage(QtWidgets.QWizardPage):
         self.output_dir.setText(bd.projects.output_dir)
 
     def changed(self):
-        self.complete = False if self.database.currentText() == "-----" else True
+        self.complete = self.database.currentIndex() > 0
         self.completeChanged.emit()
 
     def isComplete(self):
@@ -118,9 +127,9 @@ class ExportDatabasePage(QtWidgets.QWizardPage):
 
     @Slot(name="browseFile")
     def browse(self) -> None:
-        file_filter = self.FILTERS[self.field("export_option")]
-        path, _ = QtWidgets.QFileDialog.getSaveFileName(
-            parent=self, caption="Save database", filter=file_filter
-        )
+        file_filter = _(self.FILTERS[self.selected_exporter])
+        path = QtWidgets.QFileDialog.getSaveFileName(
+            parent=self, caption=_("Save database"), filter=file_filter
+        )[0]
         if path:
             self.output_dir.setText(path)

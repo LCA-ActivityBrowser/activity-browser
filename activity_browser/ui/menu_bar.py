@@ -5,11 +5,19 @@ from PySide2 import QtGui, QtWidgets
 from PySide2.QtCore import QSize, QUrl, Slot
 
 from activity_browser import actions, signals, application, info
+from activity_browser.i18n import _
 from activity_browser.mod import bw2data as bd
 
 from .icons import qicons
 
 AB_BW25 = True if os.environ.get("AB_BW25", False) else False
+
+# Keep menu signal payloads independent from translated action labels.  The
+# values mirror ``layouts.panels.panel.TabId`` without importing the layouts
+# package here (which would introduce an import cycle while MainWindow loads).
+GRAPH_EXPLORER_TAB_ID = "right.graph_explorer"
+HISTORY_TAB_ID = "left.history"
+WELCOME_TAB_ID = "right.welcome"
 
 
 class MenuBar(QtWidgets.QMenuBar):
@@ -33,7 +41,7 @@ class ProjectMenu(QtWidgets.QMenu):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
 
-        self.setTitle("&Project")
+        self.setTitle(_("&Project"))
 
         self.new_proj_action = actions.ProjectNew.get_QAction()
         self.dup_proj_action = actions.ProjectDuplicate.get_QAction()
@@ -82,22 +90,22 @@ class ViewMenu(QtWidgets.QMenu):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
 
-        self.setTitle("&View")
+        self.setTitle(_("&View"))
 
         self.addAction(
             qicons.graph_explorer,
-            "&Graph Explorer",
-            lambda: signals.toggle_show_or_hide_tab.emit("Graph Explorer"),
+            _("&Graph Explorer"),
+            lambda: signals.toggle_show_or_hide_tab.emit(GRAPH_EXPLORER_TAB_ID),
         )
         self.addAction(
             qicons.history,
-            "&Activity History",
-            lambda: signals.toggle_show_or_hide_tab.emit("History"),
+            _("&Activity History"),
+            lambda: signals.toggle_show_or_hide_tab.emit(HISTORY_TAB_ID),
         )
         self.addAction(
             qicons.welcome,
-            "&Welcome screen",
-            lambda: signals.toggle_show_or_hide_tab.emit("Welcome"),
+            _("&Welcome screen"),
+            lambda: signals.toggle_show_or_hide_tab.emit(WELCOME_TAB_ID),
         )
 
 
@@ -108,7 +116,7 @@ class ToolsMenu(QtWidgets.QMenu):
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
-        self.setTitle("&Tools")
+        self.setTitle(_("&Tools"))
 
         self.manage_plugins_action = actions.PluginWizardOpen.get_QAction()
 
@@ -122,38 +130,45 @@ class HelpMenu(QtWidgets.QMenu):
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
-        self.setTitle("&Help")
+        self.setTitle(_("&Help"))
 
         self.addAction(
-            qicons.ab, "&About Activity Browser", self.about
+            qicons.ab, _("&About Activity Browser"), self.about
         )
         self.addAction(
-            "&About Qt", lambda: QtWidgets.QMessageBox.aboutQt(application.main_window)
+            _("&About Qt"),
+            lambda: QtWidgets.QMessageBox.aboutQt(application.main_window),
         )
         self.addAction(
-            qicons.question, "&Get help on the wiki", self.open_wiki
+            qicons.question, _("&Get help on the wiki"), self.open_wiki
         )
         self.addAction(
-            qicons.issue, "&Report an idea/issue on GitHub", self.raise_issue_github
+            qicons.issue,
+            _("&Report an idea/issue on GitHub"),
+            self.raise_issue_github,
         )
 
     def about(self):
         """Displays an 'about' window to the user containing e.g. the version of the AB and copyright info"""
         # set the window text in html format
-        text = f"""
-        Activity Browser - a graphical interface for Brightway2.<br><br>
-        Application version: <b>{version("activity_browser")}</b><br>
-        bw2data version: <b>{version("bw2data")}</b><br>
-        bw2io version: <b>{version("bw2calc")}</b><br>
-        bw2calc version: <b>{version("bw2io")}</b><br><br>
-        All development happens on <a href="https://github.com/LCA-ActivityBrowser/activity-browser">github</a>.<br><br>
-        For copyright information please see the copyright on <a href="https://github.com/LCA-ActivityBrowser/activity-browser/tree/main#copyright">this page</a>.<br><br>
-        For license information please see the copyright on <a href="https://github.com/LCA-ActivityBrowser/activity-browser/blob/main/LICENSE.txt">this page</a>.<br><br>
-        """
+        text = _(
+            "Activity Browser - a graphical interface for Brightway2.<br><br>"
+            "Application version: <b>{application_version}</b><br>"
+            "bw2data version: <b>{bw2data_version}</b><br>"
+            "bw2io version: <b>{bw2io_version}</b><br>"
+            "bw2calc version: <b>{bw2calc_version}</b><br><br>"
+            "All development happens on <a href=\"https://github.com/LCA-ActivityBrowser/activity-browser\">github</a>.<br><br>"
+            "For copyright information please see the copyright on <a href=\"https://github.com/LCA-ActivityBrowser/activity-browser/tree/main#copyright\">this page</a>.<br><br>"
+            "For license information please see the copyright on <a href=\"https://github.com/LCA-ActivityBrowser/activity-browser/blob/main/LICENSE.txt\">this page</a>.<br><br>",
+            application_version=version("activity_browser"),
+            bw2data_version=version("bw2data"),
+            bw2io_version=version("bw2calc"),
+            bw2calc_version=version("bw2io"),
+        )
 
         # set up the window
         about_window = QtWidgets.QMessageBox(parent=application.main_window)
-        about_window.setWindowTitle("About the Activity Browser")
+        about_window.setWindowTitle(_("About the Activity Browser"))
         about_window.setIconPixmap(qicons.ab.pixmap(QSize(150, 150)))
         about_window.setText(text)
 
@@ -181,7 +196,7 @@ class ProjectSelectionMenu(QtWidgets.QMenu):
     """
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setTitle("Open project")
+        self.setTitle(_("Open project"))
         self.populate()
 
         self.aboutToShow.connect(self.populate)
@@ -222,8 +237,7 @@ class MigrationsMenu(QtWidgets.QMenu):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
 
-        self.setTitle("Migrations")
+        self.setTitle(_("Migrations"))
         self.install_migrations_action = actions.MigrationsInstall.get_QAction()
 
         self.addAction(self.install_migrations_action)
-

@@ -11,11 +11,150 @@ from matplotlib.figure import Figure
 from PySide2 import QtWidgets
 
 from activity_browser.mod.bw2data import methods
+from activity_browser.i18n import _, current_language
 from activity_browser.utils import savefilepath
 
 from ..bwutils.commontasks import wrap_text
 
 log = getLogger(__name__)
+
+
+CHINESE_PLOT_FONTS = (
+    "Noto Sans CJK SC",
+    "Noto Sans SC",
+    "Source Han Sans SC",
+    "Microsoft YaHei",
+    "PingFang SC",
+    "Hiragino Sans GB",
+    "SimHei",
+    "WenQuanYi Zen Hei",
+    "Arial Unicode MS",
+    "DejaVu Sans",
+)
+
+
+def configure_plot_fonts(language: str = None) -> None:
+    """Add common CJK-capable fallbacks when the Chinese UI is active."""
+
+    if (language or current_language()) != "zh_CN":
+        return
+    existing = list(plt.rcParams["font.sans-serif"])
+    plt.rcParams["font.sans-serif"] = list(
+        dict.fromkeys((*CHINESE_PLOT_FONTS, *existing))
+    )
+    # Several otherwise suitable CJK fonts omit the Unicode minus glyph.
+    plt.rcParams["axes.unicode_minus"] = False
+
+
+configure_plot_fonts()
+
+
+def prepare_contribution_plot_dataframe(df: pd.DataFrame):
+    """Build a plotting copy while preserving user-provided labels.
+
+    The first three contribution rows are program-defined. Row position,
+    rather than spelling, distinguishes them from scientific data that may
+    legitimately be named ``Score`` or ``Rest (+)``.
+    """
+
+    source = df.iloc[:, ::-1]
+    raw_index = [str(item) for item in source["index"]]
+    fixed_prefix = tuple(raw_index[:3]) in {
+        ("Score", "Rest (+)", "Rest (-)"),
+        ("Total", "Rest (+)", "Rest (-)"),
+    }
+    # Selecting numeric columns by dtype avoids label-based removal when a
+    # result column happens to share a name with a metadata column.
+    dfp = source.select_dtypes(include=np.number).copy()
+
+    if fixed_prefix and raw_index[0] == "Score":
+        dfp = dfp.iloc[1:]
+        raw_index = raw_index[1:]
+        fixed_display_rows = 2
+    else:
+        fixed_display_rows = 3 if fixed_prefix else 0
+
+    keep_rows = ~(dfp == 0).all(axis=1)
+    dfp = dfp.iloc[keep_rows.to_numpy()]
+    display_index = []
+    fixed_rest_positions = []
+    for position, (raw_label, keep_row) in enumerate(
+        zip(raw_index, keep_rows.tolist())
+    ):
+        if not keep_row:
+            continue
+        is_fixed = position < fixed_display_rows
+        display_label = _(raw_label) if is_fixed else raw_label
+        if is_fixed and raw_label in {"Rest (+)", "Rest (-)"}:
+            fixed_rest_positions.append(len(display_index))
+        display_index.append(wrap_text(str(display_label), max_length=40))
+
+    dfp.index = pd.Index(display_index).str.strip("_ \n\t")
+    dfp.columns = pd.Index(
+        [wrap_text(str(item), max_length=40) for item in dfp.columns]
+    ).str.strip("_ \n\t")
+    return dfp, tuple(fixed_rest_positions)
+
+
+def prepare_lca_results_plot_dataframe(df: pd.DataFrame) -> pd.DataFrame:
+    """Build a heatmap copy without matching program rows by label alone."""
+
+    source = df.copy()
+    raw_index = [str(item) for item in source["index"]]
+    fixed_prefix = tuple(raw_index[:3]) in {
+        ("Score", "Rest (+)", "Rest (-)"),
+        ("Total", "Rest (+)", "Rest (-)"),
+    }
+
+    # The overview's first numeric ``amount`` column is metadata. Selecting
+    # all other numeric columns by position preserves a later scientific result
+    # column with the same spelling.
+    amount_section = next(
+        (
+            section
+            for section, value in enumerate(source.columns)
+            if value == "amount"
+            and pd.api.types.is_numeric_dtype(source.iloc[:, section])
+        ),
+        None,
+    )
+    has_overview_metadata = any(
+        value == "database"
+        and amount_section is not None
+        and section > amount_section
+        and not pd.api.types.is_numeric_dtype(source.iloc[:, section])
+        for section, value in enumerate(source.columns)
+    )
+    fixed_amount_section = amount_section if has_overview_metadata else None
+    numeric_sections = [
+        section
+        for section in range(source.shape[1])
+        if pd.api.types.is_numeric_dtype(source.iloc[:, section])
+        and section != fixed_amount_section
+    ]
+    dfp = source.iloc[:, numeric_sections].copy()
+
+    if fixed_prefix and raw_index[0] == "Score":
+        dfp = dfp.iloc[1:]
+        raw_index = raw_index[1:]
+        fixed_display_rows = 2
+    else:
+        fixed_display_rows = 3 if fixed_prefix else 0
+
+    dfp.index = pd.Index(
+        [
+            wrap_text(
+                str(_(label) if position < fixed_display_rows else label),
+                max_length=40,
+            )
+            for position, label in enumerate(raw_index)
+        ]
+    )
+    dfp.columns = pd.Index(
+        [wrap_text(str(item), max_length=20) for item in dfp.columns]
+    )
+    return dfp
+
 
 # todo: sizing of the figures needs to be improved and systematized...
 # todo: Bokeh is a potential alternative as it allows interactive visualizations,
@@ -23,7 +162,7 @@ log = getLogger(__name__)
 
 
 class Plot(QtWidgets.QWidget):
-    ALL_FILTER = "All Files (*.*)"
+    ALL_FILTER = _("All files (*.*)")
     PNG_FILTER = "PNG (*.png)"
     SVG_FILTER = "SVG (*.svg)"
 
@@ -35,7 +174,7 @@ class Plot(QtWidgets.QWidget):
         self.canvas = FigureCanvasQTAgg(self.figure)
         self.canvas.setMinimumHeight(0)
         self.ax = self.figure.add_subplot(111)  # create an axis
-        self.plot_name = "Figure"
+        self.plot_name = _("Figure")
 
         # set the layout
         layout = QtWidgets.QVBoxLayout()
@@ -83,7 +222,7 @@ class LCAResultsBarChart(Plot):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.plot_name = "LCA scores"
+        self.plot_name = _("LCA scores")
 
     def plot(self, df: pd.DataFrame, method: tuple, labels: list):
         self.reset_plot()
@@ -113,7 +252,7 @@ class LCAResultsBarChart(Plot):
 class LCAResultsPlot(Plot):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.plot_name = "LCA heatmap"
+        self.plot_name = _("LCA heatmap")
 
     def plot(self, df: pd.DataFrame, invert_plot: bool = False):
         """Plot a heatmap grid of the different impact categories and reference flows."""
@@ -121,19 +260,7 @@ class LCAResultsPlot(Plot):
         # because of the colorbar which does not get removed by the ax.clear()
         self.reset_plot()
 
-        dfp = df.copy()
-        dfp.index = dfp["index"]
-        dfp.drop(
-            dfp.select_dtypes(["object"]), axis=1, inplace=True
-        )  # get rid of all non-numeric columns (metadata)
-        if "amount" in dfp.columns:
-            dfp.drop(["amount"], axis=1, inplace=True)  # Drop the 'amount' col
-        if "Score" in dfp.index:
-            dfp.drop("Score", inplace=True)
-
-        # avoid figures getting too large horizontally
-        dfp.index = [wrap_text(i, max_length=40) for i in dfp.index]
-        dfp.columns = [wrap_text(i, max_length=20) for i in dfp.columns]
+        dfp = prepare_lca_results_plot_dataframe(df)
         prop = dfp.divide(dfp.abs().max(axis=0)).multiply(100)
         dfp.replace(np.nan, 0, inplace=True)
         if invert_plot:
@@ -179,23 +306,15 @@ class ContributionPlot(Plot):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.plot_name = "Contributions"
+        self.plot_name = _("Contributions")
         self.parent = parent
 
-    def plot(self, df: pd.DataFrame, unit: str = None):
+    def plot(
+        self, df: pd.DataFrame, unit: str = None, translate_unit: bool = False
+    ):
         """Plot a horizontal stacked bar chart of contributions,
         add 'total' marker if both positive and negative results are present."""
-        dfp = df.copy()
-        dfp = dfp.iloc[:, ::-1]  # reverse column names so they align with calculation setup and rest of results
-
-        dfp.index = dfp["index"]
-        dfp.drop(
-            dfp.select_dtypes(["object"]), axis=1, inplace=True
-        )  # get rid of all non-numeric columns (metadata)
-        if "Score" in dfp.index:
-            dfp.drop("Score", inplace=True)
-        # drop rows if all values are 0
-        dfp = dfp.loc[~(dfp == 0).all(axis=1)]
+        dfp, fixed_rest_positions = prepare_contribution_plot_dataframe(df)
 
         self.ax.clear()
         canvas_width_inches, canvas_height_inches = self.get_canvas_size_in_inches()
@@ -203,21 +322,16 @@ class ContributionPlot(Plot):
         # print('Optimal Contribution plot height:', optimal_height_inches)
         self.figure.set_size_inches(canvas_width_inches, optimal_height_inches)
 
-        # avoid figures getting too large horizontally
-        dfp.index = pd.Index([wrap_text(str(i), max_length=40) for i in dfp.index])
-        dfp.columns = pd.Index([wrap_text(i, max_length=40) for i in dfp.columns])
-        # Strip invalid characters from the ends of row/column headers
-        dfp.index = dfp.index.str.strip("_ \n\t")
-        dfp.columns = dfp.columns.str.strip("_ \n\t")
-
         # set colormap to use
         items = dfp.shape[0]  # how many contribution items
         # skip grey and black at start/end of cmap
-        cmap = plt.cm.nipy_spectral_r(np.linspace(0, 1, items + 2))[1:-1]
-        colors = {item: color for item, color in zip(dfp.index, cmap)}
-        # overwrite rest values to grey
-        colors["Rest (+)"] = [0.8, 0.8, 0.8, 1.]
-        colors["Rest (-)"] = [0.8, 0.8, 0.8, 1.]
+        colors = list(
+            plt.cm.nipy_spectral_r(np.linspace(0, 1, items + 2))[1:-1]
+        )
+        # Colour only the two program-defined rest rows grey. A scientific row
+        # with the same text keeps its independently assigned colour.
+        for position in fixed_rest_positions:
+            colors[position] = [0.8, 0.8, 0.8, 1.0]
 
         dfp.T.plot.barh(
             stacked=True,
@@ -227,7 +341,7 @@ class ContributionPlot(Plot):
         )
         self.ax.tick_params(labelsize=8)
         if unit:
-            self.ax.set_xlabel(unit)
+            self.ax.set_xlabel(_(unit) if translate_unit else unit)
 
         # show legend if not too many items
         if not dfp.shape[0] >= self.MAX_LEGEND:
@@ -339,7 +453,7 @@ class MonteCarloPlot(Plot):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.plot_name = "Monte Carlo"
+        self.plot_name = _("Monte Carlo")
 
     def plot(self, df: pd.DataFrame, method: tuple):
         self.ax.clear()
@@ -358,7 +472,7 @@ class MonteCarloPlot(Plot):
             self.ax.axvline(df[col].mean(), color=color)
 
         self.ax.set_xlabel(methods[method]["unit"])
-        self.ax.set_ylabel("Probability")
+        self.ax.set_ylabel(_("Probability"))
         self.ax.legend(
             loc="upper center",
             bbox_to_anchor=(0.5, -0.07),
@@ -370,7 +484,7 @@ class MonteCarloPlot(Plot):
 
 
 class SimpleDistributionPlot(Plot):
-    def plot(self, data: np.ndarray, mean: float, label: str = "Value"):
+    def plot(self, data: np.ndarray, mean: float, label: str = None):
         self.reset_plot()
         try:
             sns.histplot(data.T, kde=True, stat="density", ax=self.ax, edgecolor="none")
@@ -379,11 +493,11 @@ class SimpleDistributionPlot(Plot):
             sns.histplot(
                 data.T, kde=False, stat="density", ax=self.ax, edgecolor="none"
             )
-        self.ax.set_xlabel(label)
-        self.ax.set_ylabel("Probability density")
+        self.ax.set_xlabel(label or _("Value"))
+        self.ax.set_ylabel(_("Probability density"))
         # Add vertical line at given mean of x-axis
-        self.ax.axvline(mean, label="Mean / amount", c="r", ymax=0.98)
+        self.ax.axvline(mean, label=_("Mean / amount"), c="r", ymax=0.98)
         self.ax.legend(loc="upper right")
-        _, height = self.canvas.get_width_height()
+        _width, height = self.canvas.get_width_height()
         self.setMinimumHeight(height / 2)
         self.canvas.draw()

@@ -2,6 +2,7 @@ from PySide2 import QtWidgets
 
 from activity_browser import application, project_settings, signals
 from activity_browser.actions.base import ABAction, exception_dialogs
+from activity_browser.i18n import _
 from activity_browser.mod import bw2data as bd
 from activity_browser.ui.icons import qicons
 
@@ -22,8 +23,8 @@ class DatabaseNew(ABAction):
     def run():
         name, ok = QtWidgets.QInputDialog.getText(
             application.main_window,
-            "Create new database",
-            "Name of new database:" + " " * 25,
+            _("Create new database"),
+            _("Name of new database:") + " " * 25,
         )
 
         if not ok or not name:
@@ -32,8 +33,8 @@ class DatabaseNew(ABAction):
         if name in bd.databases:
             QtWidgets.QMessageBox.information(
                 application.main_window,
-                "Not possible",
-                "A database with this name already exists.",
+                _("Not possible"),
+                _("A database with this name already exists."),
             )
             return
 

@@ -1,6 +1,7 @@
 from PySide2 import QtCore, QtGui, QtWidgets
 
 from activity_browser import application
+from activity_browser.i18n import _
 
 
 class ABAction:
@@ -21,8 +22,9 @@ class ABAction:
 
     @classmethod
     def get_QAction(cls, *args, **kwargs) -> QtWidgets.QAction:
-        action = QtWidgets.QAction(cls.icon, cls.text, None)
-        action.setToolTip(cls.tooltip)
+        action = QtWidgets.QAction(cls.icon, _(cls.text) if cls.text else "", None)
+        tooltip = cls.tooltip or getattr(cls, "tool_tip", None)
+        action.setToolTip(_(tooltip) if tooltip else "")
 
         action.triggered.connect(lambda: cls.triggered(*args, **kwargs))
 
@@ -33,7 +35,7 @@ class ABAction:
         """Convenience function to return a button that has this ABAction as default action."""
         button = QtWidgets.QPushButton(
             cls.icon,
-            cls.text
+            _(cls.text) if cls.text else "",
         )
         button.clicked.connect(lambda x: cls.triggered(*args, **kwargs))
         return button
@@ -46,8 +48,14 @@ def exception_dialogs(func):
         except Exception as e:
             QtWidgets.QMessageBox.critical(
                 application.main_window,
-                f"An error occurred: {type(e).__name__}",
-                f"An error occurred, check the logs for more information \n\n {str(e)}",
+                _(
+                    "An error occurred: {error_type}",
+                    error_type=type(e).__name__,
+                ),
+                _(
+                    "An error occurred, check the logs for more information\n\n{error}",
+                    error=str(e),
+                ),
                 QtWidgets.QMessageBox.Ok,
             )
             raise e

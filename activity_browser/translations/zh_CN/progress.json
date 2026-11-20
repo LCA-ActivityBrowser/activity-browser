@@ -1,0 +1,22 @@
+{
+  "Applying biosphere patch: {patch}": "正在应用生物圈补丁：{patch}",
+  "Applying strategies": "正在应用处理策略",
+  "Creating migration: {migration}": "正在创建迁移：{migration}",
+  "Creating migrations": "正在创建迁移",
+  "Downloading from ecoinvent": "正在从 ecoinvent 下载",
+  "Extracting biosphere data": "正在提取生物圈数据",
+  "Extracting LCIA methods": "正在提取 LCIA 方法",
+  "Fixing versions in master data": "正在修正主数据中的版本",
+  "Fixing versions in unit process data": "正在修正单元过程数据中的版本",
+  "Fixing versions in unit process datasets": "正在修正单元过程数据集中的版本",
+  "Gathering LCIA methods": "正在收集 LCIA 方法",
+  "Importing ecoinvent": "正在导入 ecoinvent",
+  "Installing biosphere version {version}": "正在安装生物圈数据库版本 {version}",
+  "Installing legacy biosphere version {version}": "正在安装旧版生物圈数据库 {version}",
+  "Mapping LCIA methods": "正在映射 LCIA 方法",
+  "Unzipping download": "正在解压下载文件",
+  "Using close match {match} for predicted filename {filename}": "预测文件名 {filename} 不存在，改用最接近的 {match}",
+  "Writing biosphere database": "正在写入生物圈数据库",
+  "Writing ecoinvent database": "正在写入 ecoinvent 数据库",
+  "Writing LCIA methods": "正在写入 LCIA 方法"
+}

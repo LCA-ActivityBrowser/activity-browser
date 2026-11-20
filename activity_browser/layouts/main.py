@@ -4,6 +4,7 @@ from PySide2 import QtCore, QtWidgets
 import activity_browser.mod.bw2data as bd
 
 from ..signals import signals
+from ..i18n import _
 from ..ui.icons import qicons
 from ..ui.menu_bar import MenuBar
 from ..ui.statusbar import Statusbar
@@ -12,7 +13,7 @@ from .panels import LeftPanel, RightPanel
 
 
 class MainWindow(QtWidgets.QMainWindow):
-    DEFAULT_NO_METHOD = "No method selected yet"
+    DEFAULT_NO_METHOD = _("No method selected yet")
 
     def __init__(self, parent):
         super(MainWindow, self).__init__(None)
@@ -55,7 +56,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.main_window = QtWidgets.QWidget()
         self.main_window.setLayout(self.main_horizontal_box)
         self.main_window.icon = qicons.main_window
-        self.main_window.name = "&Main Window"
+        self.main_window.name = _("&Main Window")
 
         self.setCentralWidget(self.main_window)
 
@@ -95,7 +96,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def info(self, label):
         QtWidgets.QMessageBox.information(
             self,
-            "Information",
+            _("Information"),
             label,
             QtWidgets.QMessageBox.Ok,
         )
@@ -106,7 +107,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def confirm(self, label):
         response = QtWidgets.QMessageBox.question(
             self,
-            "Confirm Action",
+            _("Confirm action"),
             label,
             QtWidgets.QMessageBox.Yes,
             QtWidgets.QMessageBox.No,

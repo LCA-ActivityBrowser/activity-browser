@@ -8,7 +8,13 @@ from .mod import bw2data
 from .application import application
 from .signals import signals
 from .settings import ab_settings, project_settings
+from .i18n import translation_manager
 from .info import __version__ as version
+
+# Install the selected interface language before importing or constructing UI
+# classes.  The setting itself changes only on restart in the first release.
+translation_manager.install(application, ab_settings.language)
+
 from .layouts.main import MainWindow
 from .plugin import Plugin
 from .controllers import *

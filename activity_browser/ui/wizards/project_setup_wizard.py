@@ -7,6 +7,7 @@ from activity_browser.mod.bw2io import ab_bw2setup
 from activity_browser.mod.bw2io.ecoinvent import ab_import_ecoinvent_release
 from activity_browser.utils import sort_semantic_versions
 from activity_browser.info import __ei_versions__
+from activity_browser.i18n import _
 
 
 class ProjectSetupWizard(QtWidgets.QWizard):
@@ -26,7 +27,7 @@ class ProjectSetupWizard(QtWidgets.QWizard):
         self.setOption(self.NoCancelButton, False)
 
         # setting window options
-        self.setWindowTitle("Project Setup")
+        self.setWindowTitle(_("Project Setup"))
         self.setWindowModality(QtCore.Qt.ApplicationModal)
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
         self.setWindowFlags(QtCore.Qt.Sheet)
@@ -48,12 +49,12 @@ class ChooseSetupPage(QtWidgets.QWizardPage):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        self.setTitle("Setup type")
-        self.setSubTitle("Choose how you want to set up you project")
+        self.setTitle(_("Setup type"))
+        self.setSubTitle(_("Choose how you want to set up you project"))
 
         # radio buttons for the setup mode
         radio_1 = QtWidgets.QRadioButton("Biosphere3")
-        radio_2 = QtWidgets.QRadioButton("ecoinvent and Biosphere3")
+        radio_2 = QtWidgets.QRadioButton(_("ecoinvent and Biosphere3"))
         radio_1.setChecked(True)
 
         # join the buttons in a buttongroup, id of the button is the id of the next page for that choice
@@ -84,8 +85,8 @@ class DefaultVersionPage(QtWidgets.QWizardPage):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        self.setTitle("Choose version")
-        self.setSubTitle("Choose biosphere version")
+        self.setTitle(_("Choose version"))
+        self.setSubTitle(_("Choose biosphere version"))
 
         # set combobox for version selection
         self.versions = QtWidgets.QComboBox(self)
@@ -107,17 +108,19 @@ class EcoInventLoginPage(QtWidgets.QWizardPage):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        self.setTitle("Login")
-        self.setSubTitle("Login with your ecoinvent credentials to authorize the download")
+        self.setTitle(_("Login"))
+        self.setSubTitle(
+            _("Login with your ecoinvent credentials to authorize the download")
+        )
 
         # create username field
         self.username = QtWidgets.QLineEdit()
-        self.username.setPlaceholderText('ecoinvent username')
+        self.username.setPlaceholderText(_("ecoinvent username"))
         self.registerField("username*", self.username)
 
         # create password field and set hidden
         self.password = QtWidgets.QLineEdit()
-        self.password.setPlaceholderText('ecoinvent password'),
+        self.password.setPlaceholderText(_("ecoinvent password"))
         self.password.setEchoMode(QtWidgets.QLineEdit.Password)
         self.registerField("password*", self.password)
 
@@ -153,16 +156,22 @@ class EcoInventLoginPage(QtWidgets.QWizardPage):
 
             # in case of 401: Unauthorized, we prompt for a retry of logon
             if e.response.status_code == 401:
-                self.message.setText("Invalid username and/or password, please try again.")
+                self.message.setText(
+                    _("Invalid username and/or password, please try again.")
+                )
                 return False
             # else, other HTTPError, try again later maybe? Raise exception for logging
             else:
-                self.message.setText("Unknown connection error, try again later.")
+                self.message.setText(
+                    _("Unknown connection error, try again later.")
+                )
                 raise e
 
         except requests.exceptions.ConnectionError:
             QtWidgets.QApplication.restoreOverrideCursor()
-            self.message.setText("Cannot connect to the internet, please try again later.")
+            self.message.setText(
+                _("Cannot connect to the internet, please try again later.")
+            )
             return False
 
         except Exception as e:
@@ -184,8 +193,8 @@ class EcoInventVersionPage(QtWidgets.QWizardPage):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        self.setTitle("Choose version")
-        self.setSubTitle("Choose ecoinvent version and system model")
+        self.setTitle(_("Choose version"))
+        self.setSubTitle(_("Choose ecoinvent version and system model"))
 
         # set comboboxes for version and model selections
         self.versions = QtWidgets.QComboBox(self)
@@ -231,8 +240,8 @@ class InstallPage(QtWidgets.QWizardPage):
 
         self.install_thread = None  # will be ei or default install thread
 
-        self.setTitle("Setting up")
-        self.setSubTitle("Setting up your project")
+        self.setTitle(_("Setting up"))
+        self.setSubTitle(_("Setting up your project"))
 
         # setup progressbar
         self.progress = QtWidgets.QProgressBar()
@@ -259,7 +268,7 @@ class InstallPage(QtWidgets.QWizardPage):
 
         self.install_thread.status.connect(self.status_update)
         self.install_thread.finished.connect(self.completeChanged.emit)
-        self.install_thread.finished.connect(lambda: self.status_update(100, "Done"))
+        self.install_thread.finished.connect(lambda: self.status_update(100, _("Done")))
         self.install_thread.start()
 
     def isComplete(self):
@@ -284,4 +293,3 @@ class EcoinventInstallThread(ABThread):
 
     def run_safely(self):
         ab_import_ecoinvent_release(self.parent().field("version"), self.parent().field("model"))
-

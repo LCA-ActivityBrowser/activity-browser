@@ -11,6 +11,7 @@ from PySide2.QtCore import Slot
 from PySide2.QtWidgets import QComboBox
 
 from activity_browser import signals
+from activity_browser.i18n import _
 from activity_browser.mod import bw2data as bd
 from activity_browser.mod.bw2data.backends import ActivityDataset
 
@@ -44,16 +45,16 @@ log = getLogger(__name__)
 
 
 class SankeyNavigatorWidget(BaseNavigatorWidget):
-    HELP_TEXT = """
-    LCA Sankey:
-
-    Red flows: Impacts
-    Green flows: Avoided impacts
-
-    """
+    HELP_TEXT = (
+        "LCA Sankey:",
+        "",
+        "Red flows: Impacts",
+        "Green flows: Avoided impacts",
+    )
     HTML_FILE = os.path.join(
         os.path.abspath(os.path.dirname(__file__)), "../../static/sankey_navigator.html"
     )
+    PAGE_TITLE = "Graph LCA"
 
     def __init__(self, cs_name, parent=None):
         super().__init__(parent, css_file="sankey_navigator.css")
@@ -70,13 +71,13 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
         self.graph = Graph()
 
         # Additional Qt objects
-        self.scenario_label = QtWidgets.QLabel("Scenario: ")
+        self.scenario_label = QtWidgets.QLabel(_("Scenario: "))
         self.func_unit_cb = QtWidgets.QComboBox()
         self.method_cb = QtWidgets.QComboBox()
         self.scenario_cb = QtWidgets.QComboBox()
         self.cutoff_sb = QtWidgets.QDoubleSpinBox()
         self.max_calc_sb = QtWidgets.QDoubleSpinBox()
-        self.button_calculate = QtWidgets.QPushButton("Calculate")
+        self.button_calculate = QtWidgets.QPushButton(_("Calculate"))
         self.layout = QtWidgets.QVBoxLayout()
 
         # graph
@@ -105,10 +106,10 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
 
         # Layout Reference Flows and Impact Categories
         grid_lay = QtWidgets.QGridLayout()
-        grid_lay.addWidget(QtWidgets.QLabel("Reference flow: "), 0, 0)
+        grid_lay.addWidget(QtWidgets.QLabel(_("Reference flow: ")), 0, 0)
 
         grid_lay.addWidget(self.scenario_label, 1, 0)
-        grid_lay.addWidget(QtWidgets.QLabel("Impact indicator: "), 2, 0)
+        grid_lay.addWidget(QtWidgets.QLabel(_("Impact indicator: ")), 2, 0)
 
         self.update_calculation_setup()
 
@@ -117,7 +118,7 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
         grid_lay.addWidget(self.method_cb, 2, 1)
 
         # cut-off
-        grid_lay.addWidget(QtWidgets.QLabel("cutoff: "), 2, 2)
+        grid_lay.addWidget(QtWidgets.QLabel(_("Cutoff: ")), 2, 2)
         self.cutoff_sb.setRange(0.0, 1.0)
         self.cutoff_sb.setSingleStep(0.001)
         self.cutoff_sb.setDecimals(4)
@@ -126,7 +127,7 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
         grid_lay.addWidget(self.cutoff_sb, 2, 3)
 
         # max-iterations of graph traversal
-        grid_lay.addWidget(QtWidgets.QLabel("Calculation depth: "), 2, 4)
+        grid_lay.addWidget(QtWidgets.QLabel(_("Calculation depth: ")), 2, 4)
         self.max_calc_sb.setRange(1, 2000)
         self.max_calc_sb.setSingleStep(50)
         self.max_calc_sb.setDecimals(0)
@@ -284,7 +285,7 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
             del data["lca"]
 
         except (ValueError, ZeroDivisionError) as e:
-            QtWidgets.QMessageBox.information(None, "Not possible.", str(e))
+            QtWidgets.QMessageBox.information(None, _("Not possible."), str(e))
         log.debug(
             f"Completed graph traversal ({round(time.time() - start, 2)} seconds, {data['counter']} iterations)"
         )
@@ -310,7 +311,7 @@ class SankeyNavigatorWidget(BaseNavigatorWidget):
             self.update_sankey(demand, method)
         else:
             QtWidgets.QMessageBox.information(
-                None, "Not possible.", "Please load a database first."
+                None, _("Not possible."), _("Please load a database first.")
             )
 
 
@@ -363,17 +364,18 @@ class Graph(BaseGraph):
         act, amount = demand[0], demand[1]
         if type(act) is tuple or type(act) is int:
             act = bd.get_activity(act)
-        format_str = (
-            "Reference flow: {:.2g} {} {} | {} | {} <br>" "Total impact: {:.2g} {}"
+        format_str = _(
+            "Reference flow: {amount:.2g} {unit} {product} | {activity} | "
+            "{location} <br>Total impact: {impact:.2g} {impact_unit}"
         )
         return format_str.format(
-            amount,
-            act.get("unit"),
-            act.get("reference product") or act.get("name"),
-            act.get("name"),
-            act.get("location"),
-            lca_score,
-            lcia_unit,
+            amount=amount,
+            unit=act.get("unit"),
+            product=act.get("reference product") or act.get("name"),
+            activity=act.get("name"),
+            location=act.get("location"),
+            impact=lca_score,
+            impact_unit=lcia_unit,
         )
 
     @staticmethod

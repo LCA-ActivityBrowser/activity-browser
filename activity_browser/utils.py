@@ -6,6 +6,7 @@ import requests
 from PySide2 import QtWidgets
 
 from activity_browser.mod import bw2data as bd
+from activity_browser.i18n import _
 
 from .settings import ab_settings
 
@@ -30,11 +31,11 @@ def savefilepath(
 ):
     """A central function to get a safe file path."""
     safe_name = bd.utils.safe_filename(default_file_name, add_hash=False)
-    filepath, _ = QtWidgets.QFileDialog.getSaveFileName(
+    filepath, _selected_filter = QtWidgets.QFileDialog.getSaveFileName(
         parent=None,
-        caption="Choose location for saving",
+        caption=_("Choose where to save"),
         dir=os.path.join(ab_settings.data_dir, safe_name),
-        filter=file_filter,
+        filter=_(file_filter),
     )
     return filepath
 

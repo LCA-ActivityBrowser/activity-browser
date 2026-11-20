@@ -4,6 +4,8 @@ from typing import List
 
 from PySide2 import QtCore, QtGui, QtWidgets
 
+from activity_browser.i18n import _
+
 
 class OrderedListInputDialog(QtWidgets.QDialog):
     """Mostly cobbled together from: https://stackoverflow.com/a/41310284
@@ -12,7 +14,7 @@ class OrderedListInputDialog(QtWidgets.QDialog):
 
     def __init__(self, parent=None, flags=QtCore.Qt.Window):
         super().__init__(parent=parent, f=flags)
-        self.setWindowTitle("Select and order items")
+        self.setWindowTitle(_("Select and order items"))
 
         form = QtWidgets.QFormLayout(self)
         self.list_view = QtWidgets.QListView(self)

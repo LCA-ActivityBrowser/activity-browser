@@ -6,6 +6,7 @@ from PySide2 import QtCore, QtGui, QtWidgets
 from PySide2.QtCore import Signal, Slot
 
 from activity_browser import actions, signals
+from activity_browser.i18n import _
 
 
 class CalculatorButtons(QtWidgets.QWidget):
@@ -19,26 +20,23 @@ class CalculatorButtons(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        self.explain_text = """
-In addition to the other buttons on this calculator, the parameter formula
-can make use of a large number of Python and Numpy functions, with Numpy
-overriding Python where the function names are the same.
-
-For a more complete list see the `math` module in the Python documentation
-or `ufuncs` in de Numpy documentation.
-
-Keep in mind that the result of a formula must be a scalar value!
-"""
+        self.explain_text = _(
+            "In addition to the buttons on this calculator, parameter formulas can "
+            "use many Python and NumPy functions. NumPy takes precedence where "
+            "function names are the same.\n\nFor a more complete list, see the "
+            "Python documentation for the math module or NumPy ufuncs.\n\nThe "
+            "result of a formula must be a scalar value."
+        )
         rows = [
             [
-                ("+", "Add", lambda: self.button_press.emit(" + ")),
-                ("-", "Subtract", lambda: self.button_press.emit(" - ")),
-                ("*", "Multiply", lambda: self.button_press.emit(" * ")),
+                ("+", _("Add"), lambda: self.button_press.emit(" + ")),
+                ("-", _("Subtract"), lambda: self.button_press.emit(" - ")),
+                ("*", _("Multiply"), lambda: self.button_press.emit(" * ")),
             ],
             [
-                ("/", "Divide", lambda: self.button_press.emit(" / ")),
-                ("x²", "X to the power of 2", lambda: self.button_press.emit(" ** 2 ")),
-                ("More...", "Additional functions", self.explanation),
+                ("/", _("Divide"), lambda: self.button_press.emit(" / ")),
+                ("x²", _("X to the power of 2"), lambda: self.button_press.emit(" ** 2 ")),
+                (_("More..."), _("Additional functions"), self.explanation),
             ],
         ]
         # Construct the layout from the list of lists above.
@@ -61,7 +59,7 @@ Keep in mind that the result of a formula must be a scalar value!
     def explanation(self):
         return QtWidgets.QMessageBox.question(
             self,
-            "More...",
+            _("More..."),
             self.explain_text,
             QtWidgets.QMessageBox.Ok,
             QtWidgets.QMessageBox.Ok,
@@ -71,7 +69,7 @@ Keep in mind that the result of a formula must be a scalar value!
 class FormulaDialog(QtWidgets.QDialog):
     def __init__(self, parent=None, flags=QtCore.Qt.Window):
         super().__init__(parent=parent, f=flags)
-        self.setWindowTitle("Build a formula")
+        self.setWindowTitle(_("Build a formula"))
         self.setWindowModality(QtCore.Qt.ApplicationModal)
         self.interpreter = None
         self.key = ("", "")
@@ -121,7 +119,7 @@ class FormulaDialog(QtWidgets.QDialog):
         """
         model = self.parameters.model()
         model.clear()
-        model.setHorizontalHeaderLabels(["Name", "Amount", "Type"])
+        model.setHorizontalHeaderLabels([_("Name"), _("Amount"), _("Type")])
         for x, item in enumerate(items):
             for y, value in enumerate(item):
                 model_item = QtGui.QStandardItem(str(value))

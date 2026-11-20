@@ -5,6 +5,7 @@ from PySide2 import QtWidgets
 
 from activity_browser import application
 from activity_browser.actions.base import ABAction, exception_dialogs
+from activity_browser.i18n import _
 from activity_browser.mod import bw2data as bd
 from activity_browser.mod.bw2data.parameters import ActivityParameter
 from activity_browser.ui.icons import qicons
@@ -27,10 +28,15 @@ class ParameterNewAutomatic(ABAction):
         for key in activity_keys:
             act = bd.get_activity(key)
             if act.get("type", "process") != "process":
-                issue = f"Activity must be 'process' type, '{act.get('name')}' is type '{act.get('type')}'."
+                issue = _(
+                    "Activity must be of type 'process'; '{activity}' is of type "
+                    "'{activity_type}'.",
+                    activity=act.get("name"),
+                    activity_type=act.get("type"),
+                )
                 QtWidgets.QMessageBox.warning(
                     application.main_window,
-                    "Not allowed",
+                    _("Not allowed"),
                     issue,
                     QtWidgets.QMessageBox.Ok,
                     QtWidgets.QMessageBox.Ok,

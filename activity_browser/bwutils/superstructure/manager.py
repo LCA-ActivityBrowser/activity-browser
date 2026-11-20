@@ -10,6 +10,7 @@ from PySide2.QtCore import Qt
 from PySide2.QtWidgets import QApplication, QPushButton
 
 from activity_browser.mod import bw2data as bd
+from activity_browser.i18n import _
 
 from ..errors import (CriticalScenarioExtensionError, ImportCanceledError,
                       ScenarioExchangeDataNonNumericError,
@@ -125,21 +126,28 @@ class SuperstructureManager(object):
                     )
                 )
         if cols.empty:
-            msg = "While attempting to combine the scenario files an error was detected. No scenario columns were found in common between the files. For combining scenarios by extension at least one scenario needs to be found in common."
+            msg = _(
+                "The scenario files could not be combined because they have no "
+                "scenario columns in common. Extending scenarios requires at least "
+                "one scenario shared by all files."
+            )
             critical = ABPopup.abCritical(
-                "Combining scenario files.", msg, QPushButton("Cancel")
+                _("Combining scenario files"), msg, QPushButton(_("Cancel"))
             )
             critical.exec_()
             raise CriticalScenarioExtensionError
         elif len(absent) > 0:
-            msg = (
+            msg = _(
                 "<p>While importing the scenario difference files one, or more, of the scenarios could not be found "
                 "between the files.</p> In these circumstances the Activity-Browser will only retain those "
                 "scenarios found in common between these files. If some desired scenarios are not included, then "
                 "please inspect your scenario files for the relevant columns."
             )
             warning = ABPopup.abWarning(
-                "Scenarios being dropped", msg, QPushButton("Ok"), QPushButton("Cancel")
+                _("Scenarios being dropped"),
+                msg,
+                QPushButton(_("OK")),
+                QPushButton(_("Cancel")),
             )
             warning.dataframe(pd.DataFrame({"Scenarios": list(absent)}), ["Scenarios"])
             response = warning.exec_()
@@ -394,14 +402,17 @@ class SuperstructureManager(object):
         -------
         A QDialog with a critical Error
         """
-        msg = (
+        msg = _(
             "<p>One, or several, exchanges (rows) in the scenario file could not be found in the database (meaning:"
             " a part or all of the exchange information, i.e. input or output product/activity/unit/geography, or the"
             " key, have no match in the project databases).</p> <p>It is not possible to proceed at this point."
             " you may save the scenario file with an additional column indicating the problematic exchanges.</p>"
         )
         pop = ABPopup.abCritical(
-            "Exchange(s) not found", msg, QPushButton("Save"), QPushButton("Cancel")
+            _("Exchanges not found"),
+            msg,
+            QPushButton(_("Save")),
+            QPushButton(_("Cancel")),
         )
         pop.save_options()
         return pop
@@ -497,14 +508,19 @@ class SuperstructureManager(object):
         nas = _df.loc[:, cols].isna()
         if nas.all(axis=0).all():
             msg = (
-                "<p>No exchange values could be observed in the last loaded scenario file. "
-                + "Exchange values must be recorded in a labelled scenario column with a name distinguishable from the"
-                + " default (required) columns, which are:</p>"
+                _(
+                    "<p>No exchange values were found in the last loaded scenario "
+                    "file. Exchange values must be recorded in a named scenario "
+                    "column distinct from the required default columns shown below:</p>"
+                )
                 + SuperstructureManager.edit_superstructure_for_string()
-                + "<p>Please check the file contents for the scenario columns and the exchange amounts before loading again.</p>"
+                + _(
+                    "<p>Check the scenario columns and exchange values in the file "
+                    "before loading it again.</p>"
+                )
             )
             critical = ABPopup.abCritical(
-                "No scenario exchange data", msg, QPushButton("Cancel")
+                _("No scenario exchange data"), msg, QPushButton(_("Cancel"))
             )
             critical.exec_()
             raise ScenarioExchangeDataNotFoundError
@@ -520,16 +536,16 @@ class SuperstructureManager(object):
             bad_entries = pd.DataFrame(index=_df.index)
             for col in cols:
                 bad_entries[col] = pd.to_numeric(df.loc[:, col], errors="coerce")
-            msg = (
+            msg = _(
                 "<p>Non-numeric data is present in the scenario exchange columns.</p><p> The Activity-Browser can "
                 "only deal with numeric data for the calculations. To resolve this corrections will need to be made "
                 "to these values in the scenario file.</p>"
             )
             critical = ABPopup.abCritical(
-                "Bad (non-numeric) input data",
+                _("Non-numeric input data"),
                 msg,
-                QPushButton("Save"),
-                QPushButton("Cancel"),
+                QPushButton(_("Save")),
+                QPushButton(_("Cancel")),
             )
             QApplication.restoreOverrideCursor()
             critical.dataframe(df[bad_entries.isna().any(axis=1)], SUPERSTRUCTURE)
@@ -580,16 +596,16 @@ class SuperstructureManager(object):
                     duplicated[count] = duplicates
 
             if duplicated:
-                msg = (
+                msg = _(
                     "<p>Duplicates have been found, meaning that there are several rows in the scenario file describing "
                     "scenarios for the same flow. The AB can deal with this by discarding all but the last row for this "
                     "exchange.</p> <p>Press 'Ok' to proceed, press 'Cancel' to abort.</p>"
                 )
                 warning = ABPopup.abWarning(
-                    "Duplicate flow exchanges",
+                    _("Duplicate flow exchanges"),
                     msg,
-                    QPushButton("Ok"),
-                    QPushButton("Cancel"),
+                    QPushButton(_("OK")),
+                    QPushButton(_("Cancel")),
                 )
                 warning.dataframe(
                     pd.concat([file for file in duplicated.values()]),
@@ -635,16 +651,16 @@ class SuperstructureManager(object):
         df.index = pd.Index([str(i) for i in range(df.shape[0])])
         duplicates = df.duplicated(index, keep=False)
         if duplicates.any():
-            msg = (
+            msg = _(
                 "<p>Duplicates have been found, meaning that there are several rows in the scenario file describing "
                 "scenarios for the same flow. The AB can deal with this by discarding all but the last row for this "
                 "exchange.</p> <p>Press 'Ok' to proceed, press 'Cancel' to abort.</p>"
             )
             warning = ABPopup.abWarning(
-                "Duplicate flow exchanges",
+                _("Duplicate flow exchanges"),
                 msg,
-                QPushButton("Ok"),
-                QPushButton("Cancel"),
+                QPushButton(_("OK")),
+                QPushButton(_("Cancel")),
             )
             warning.dataframe(df.loc[duplicates], SUPERSTRUCTURE)
             QApplication.restoreOverrideCursor()

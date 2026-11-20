@@ -7,6 +7,7 @@ from PySide2.QtCore import Qt, Signal, Slot
 
 from activity_browser import project_settings, signals
 from activity_browser.bwutils.superstructure import get_sheet_names
+from activity_browser.i18n import _
 from activity_browser.mod import bw2data as bd
 
 from ...bwutils.ecoinvent_biosphere_versions.ecospold2biosphereimporter import \
@@ -17,6 +18,13 @@ from ...ui.widgets import BiosphereUpdater
 from ...utils import sort_semantic_versions
 from ..style import style_group_box, vertical_line
 from ..threading import ABThread
+
+
+# These are stable data values shared with the table model.  They deliberately
+# remain untranslated; only the adjacent widget labels are localized.
+FILTER_MODE_AND = "AND"
+FILTER_MODE_OR = "OR"
+FILTER_OPERATOR_BETWEEN = "<= x <="
 
 
 class ForceInputDialog(QtWidgets.QDialog):
@@ -69,7 +77,7 @@ class ForceInputDialog(QtWidgets.QDialog):
 class TupleNameDialog(QtWidgets.QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.name_label = QtWidgets.QLabel("New name")
+        self.name_label = QtWidgets.QLabel(_("New name"))
         self.view_name = QtWidgets.QLabel()
 
         self.input_fields = []
@@ -170,16 +178,18 @@ class ExcelReadDialog(QtWidgets.QDialog):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Select file to read")
+        self.setWindowTitle(_("Select file to read"))
 
         self.path_layout = QtWidgets.QGridLayout()
         self.path = None
         self.path_line = QtWidgets.QLineEdit()
         self.path_line.setReadOnly(True)
         self.path_line.textChanged.connect(self.changed)
-        self.path_btn = QtWidgets.QPushButton("Browse")
+        self.path_btn = QtWidgets.QPushButton(_("Browse"))
         self.path_btn.clicked.connect(self.browse)
-        self.path_layout.addWidget(QtWidgets.QLabel("Path to file*"), 0, 0, 1, 1)
+        self.path_layout.addWidget(
+            QtWidgets.QLabel(_("Path to file*")), 0, 0, 1, 1
+        )
         self.path_layout.addWidget(self.path_line, 0, 1, 1, 2)
         self.path_layout.addWidget(self.path_btn, 0, 3, 1, 1)
         self.path = QtWidgets.QWidget()
@@ -190,7 +200,7 @@ class ExcelReadDialog(QtWidgets.QDialog):
         self.import_sheet.addItems(["-----"])
         self.import_sheet.setEnabled(True)
         self.excel_option.addWidget(
-            QtWidgets.QLabel("Excel sheet name")
+            QtWidgets.QLabel(_("Excel sheet name"))
         )  # , 0, 0, 1, 1)
         self.excel_option.addWidget(self.import_sheet)  # , 0, 1, 2, 1)
         self.excel_sheet = QtWidgets.QWidget()
@@ -199,11 +209,11 @@ class ExcelReadDialog(QtWidgets.QDialog):
 
         self.csv_option = QtWidgets.QHBoxLayout()
         self.field_separator = QtWidgets.QComboBox()
-        for l, s in {";": ";", ",": ",", "tab": "\t"}.items():
-            self.field_separator.addItem(l, s)
+        for label, separator in ((";", ";"), (",", ","), (_("tab"), "\t")):
+            self.field_separator.addItem(label, separator)
         self.field_separator.setEnabled(True)
         self.csv_option.addWidget(
-            QtWidgets.QLabel("Separator for csv")
+            QtWidgets.QLabel(_("Separator for csv"))
         )  # , 0, 0, 1, 1)
         self.csv_option.addWidget(self.field_separator)  # , 0, 1, 2, 1)
         self.csv_separator = QtWidgets.QWidget()
@@ -234,11 +244,15 @@ class ExcelReadDialog(QtWidgets.QDialog):
 
     @Slot(name="browseFile")
     def browse(self) -> None:
-        path, _ = QtWidgets.QFileDialog.getOpenFileName(
+        all_files_filter = _("All Files (*.*)")
+        path, _selected_filter = QtWidgets.QFileDialog.getOpenFileName(
             parent=self,
-            caption="Select scenario template file",
-            filter="Excel (*.xlsx);; feather (*.feather);; CSV and Archived (*.csv *.zip *.tar *.bz2 *.gz *.xz);; All Files (*.*)",
-            selectedFilter="All Files (*.*)",
+            caption=_("Select scenario template file"),
+            filter=_(
+                "Excel (*.xlsx);; feather (*.feather);; CSV and Archived "
+                "(*.csv *.zip *.tar *.bz2 *.gz *.xz);; All Files (*.*)"
+            ),
+            selectedFilter=all_files_filter,
         )
         if path:
             self.path_line.setText(path)
@@ -284,11 +298,11 @@ class DatabaseLinkingDialog(QtWidgets.QDialog):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Database linking")
+        self.setWindowTitle(_("Database linking"))
 
         self.db_label = QtWidgets.QLabel()
         self.label_choices = []
-        self.grid_box = QtWidgets.QGroupBox("Database links:")
+        self.grid_box = QtWidgets.QGroupBox(_("Database links:"))
         self.grid = QtWidgets.QGridLayout()
         self.grid_box.setLayout(self.grid)
 
@@ -351,14 +365,14 @@ class DatabaseLinkingDialog(QtWidgets.QDialog):
     def relink_sqlite(
         cls, db: str, options: List[Tuple[str, List[str]]], parent=None
     ) -> "DatabaseLinkingDialog":
-        label = "Relinking exchanges from database '{}'.".format(db)
+        label = _("Relinking exchanges from database '{database}'.", database=db)
         return cls.construct_dialog(label, options, parent)
 
     @classmethod
     def relink_bw2package(
         cls, options: List[Tuple[str, List[str]]], parent=None
     ) -> "DatabaseLinkingDialog":
-        label = (
+        label = _(
             "Some database(s) could not be found in the current project,"
             " attempt to relink the exchanges to a different database?"
         )
@@ -368,7 +382,9 @@ class DatabaseLinkingDialog(QtWidgets.QDialog):
     def relink_excel(
         cls, options: List[Tuple[str, List[str]]], parent=None
     ) -> "DatabaseLinkingDialog":
-        label = "Customize database links for exchanges in the imported database."
+        label = _(
+            "Customize database links for exchanges in the imported database."
+        )
         return cls.construct_dialog(label, options, parent)
 
 
@@ -383,7 +399,7 @@ class DatabaseLinkingResultsDialog(QtWidgets.QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        self.setWindowTitle("Relinking database results")
+        self.setWindowTitle(_("Relinking database results"))
 
         button = QtWidgets.QDialogButtonBox.Ok
         self.buttonBox = QtWidgets.QDialogButtonBox(button)
@@ -410,14 +426,26 @@ class DatabaseLinkingResultsDialog(QtWidgets.QDialog):
         obj = cls(parent)
         for k, results in link_results.items():
             obj.databases_relinked.addWidget(
-                QtWidgets.QLabel(f"{k} = {results[1]} successfully linked")
+                QtWidgets.QLabel(
+                    _(
+                        "{database} = {count} successfully linked",
+                        database=k,
+                        count=results[1],
+                    )
+                )
             )
             obj.databases_relinked.addWidget(
-                QtWidgets.QLabel(f"{k} = {results[0]} flows failed to link")
+                QtWidgets.QLabel(
+                    _(
+                        "{database} = {count} flows failed to link",
+                        database=k,
+                        count=results[0],
+                    )
+                )
             )
 
         obj.exchangesUnlinked.addWidget(
-            QtWidgets.QLabel("Up to 5 unlinked exchanges (click to open)")
+            QtWidgets.QLabel(_("Up to 5 unlinked exchanges (click to open)"))
         )
         for act, key in unlinked_exchanges.items():
             button = QtWidgets.QPushButton(act.as_dict()["name"])
@@ -454,11 +482,11 @@ class ActivityLinkingDialog(QtWidgets.QDialog):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Activity linking")
+        self.setWindowTitle(_("Activity linking"))
 
         self.db_label = QtWidgets.QLabel()
         self.label_choices = []
-        self.grid_box = QtWidgets.QGroupBox("Database links:")
+        self.grid_box = QtWidgets.QGroupBox(_("Database links:"))
         self.grid = QtWidgets.QGridLayout()
         self.grid_box.setLayout(self.grid)
 
@@ -521,7 +549,7 @@ class ActivityLinkingDialog(QtWidgets.QDialog):
     def relink_sqlite(
         cls, act: str, options: List[Tuple[str, List[str]]], parent=None
     ) -> "ActivityLinkingDialog":
-        label = "Relinking exchanges from activity '{}'.".format(act)
+        label = _("Relinking exchanges from activity '{activity}'.", activity=act)
         return cls.construct_dialog(label, options, parent)
 
 
@@ -535,7 +563,7 @@ class ActivityLinkingResultsDialog(QtWidgets.QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        self.setWindowTitle("Relinking database results")
+        self.setWindowTitle(_("Relinking database results"))
 
         button = QtWidgets.QDialogButtonBox.Ok
         self.buttonBox = QtWidgets.QDialogButtonBox(button)
@@ -562,14 +590,26 @@ class ActivityLinkingResultsDialog(QtWidgets.QDialog):
         obj = cls(parent)
         for k, results in link_results.items():
             obj.databases_relinked.addWidget(
-                QtWidgets.QLabel(f"{k} = {results[1]} successfully linked")
+                QtWidgets.QLabel(
+                    _(
+                        "{database} = {count} successfully linked",
+                        database=k,
+                        count=results[1],
+                    )
+                )
             )
             obj.databases_relinked.addWidget(
-                QtWidgets.QLabel(f"{k} = {results[0]} flows failed to link")
+                QtWidgets.QLabel(
+                    _(
+                        "{database} = {count} flows failed to link",
+                        database=k,
+                        count=results[0],
+                    )
+                )
             )
 
         obj.exchangesUnlinked.addWidget(
-            QtWidgets.QLabel("Up to 5 unlinked exchanges (click to open)")
+            QtWidgets.QLabel(_("Up to 5 unlinked exchanges (click to open)"))
         )
         for act, key in unlinked_exchanges.items():
             button = QtWidgets.QPushButton(act.as_dict()["name"])
@@ -602,7 +642,7 @@ class ActivityLinkingResultsDialog(QtWidgets.QDialog):
 class DefaultBiosphereDialog(QtWidgets.QProgressDialog):
     def __init__(self, version, parent=None):
         super().__init__(parent=parent)
-        self.setWindowTitle("Biosphere and impact categories")
+        self.setWindowTitle(_("Biosphere and impact categories"))
         self.setRange(0, 3)
         self.setModal(Qt.ApplicationModal)
 
@@ -645,16 +685,34 @@ class DefaultBiosphereThread(ABThread):
         self.version = version
 
     def run_safely(self):
-        project = f"<b>{bd.projects.current}</b>"
+        project = bd.projects.current
         if "biosphere3" not in bd.databases:
-            self.update.emit(0, "Creating default biosphere for {}".format(project))
+            self.update.emit(
+                0,
+                _(
+                    "Creating default biosphere for <b>{project}</b>",
+                    project=project,
+                ),
+            )
             create_default_biosphere3(self.version)
             project_settings.add_db("biosphere3")
         if not len(bd.methods):
-            self.update.emit(1, "Creating default LCIA methods for {}".format(project))
+            self.update.emit(
+                1,
+                _(
+                    "Creating default LCIA methods for <b>{project}</b>",
+                    project=project,
+                ),
+            )
             bi.create_default_lcia_methods()
         if not len(bi.migrations):
-            self.update.emit(2, "Creating core data migrations for {}".format(project))
+            self.update.emit(
+                2,
+                _(
+                    "Creating core data migrations for <b>{project}</b>",
+                    project=project,
+                ),
+            )
             bi.create_core_migrations()
 
 
@@ -696,11 +754,12 @@ class FilterManagerDialog(QtWidgets.QDialog):
         filters: dict = None,
         selected_column: int = 0,
         column_types: dict = {},
+        column_labels: dict = None,
         parent=None,
     ):
         super().__init__(parent)
         self.setWindowIcon(qicons.filter)
-        self.setWindowTitle("Manage table filters")
+        self.setWindowTitle(_("Manage table filters"))
 
         # set given filters, if any
         if isinstance(filters, dict):
@@ -724,10 +783,11 @@ class FilterManagerDialog(QtWidgets.QDialog):
                 filter_types=filter_types,
             )
             self.tabs.append(tab)
-            self.tab_widget.addTab(tab, col_name)
+            display_name = (column_labels or {}).get(col_id, col_name)
+            self.tab_widget.addTab(tab, str(display_name))
 
         # add AND/OR choice button.
-        self.and_or_buttons = AndOrRadioButtons(label_text="Combine columns:")
+        self.and_or_buttons = AndOrRadioButtons(label_text=_("Combine columns:"))
         # in the extremely unlikely event there is only 1 column, hide the AND/OR option.
         if len(column_names) == 1:
             self.and_or_buttons.hide()
@@ -747,8 +807,9 @@ class FilterManagerDialog(QtWidgets.QDialog):
         self.setLayout(layout)
 
         # set the column that launched the dialog as the open tab
-        self.tab_widget.setCurrentIndex(self.col_id_2_tab_id[selected_column])
-        self.tabs[selected_column].filter_rows[-1].filter_query_line.setFocus()
+        tab_id = self.col_id_2_tab_id[selected_column]
+        self.tab_widget.setCurrentIndex(tab_id)
+        self.tabs[tab_id].filter_rows[-1].filter_query_line.setFocus()
 
     @property
     def get_filters(self) -> dict:
@@ -776,14 +837,20 @@ class SimpleFilterDialog(QtWidgets.QDialog):
         filter_types: dict,
         column_type: str = "str",
         preset_type: str = None,
+        column_label: str = None,
         parent=None,
     ):
         super().__init__(parent)
         self.setWindowIcon(qicons.filter)
-        self.setWindowTitle("Add filter")
+        self.setWindowTitle(_("Add filter"))
 
         # Create filter label and buttons
-        label = QtWidgets.QLabel("Define a filter for column '{}'".format(column_name))
+        label = QtWidgets.QLabel(
+            _(
+                "Define a filter for column '{column_name}'",
+                column_name=column_label if column_label is not None else column_name,
+            )
+        )
 
         if column_type == "num":
             self.filter_row = NumFilterRow(
@@ -849,14 +916,14 @@ class ColumnFilterTab(QtWidgets.QWidget):
 
         self.add = QtWidgets.QToolButton()
         self.add.setIcon(qicons.add)
-        self.add.setToolTip("Add a new filter for this column")
+        self.add.setToolTip(_("Add a new filter for this column"))
         self.add.clicked.connect(self.add_row)
 
         self.and_or_buttons = AndOrRadioButtons(
-            label_text="Combine filters within column:"
+            label_text=_("Combine filters within column:")
         )
         if self.col_type == "str":
-            self.and_or_buttons.set_state("OR")
+            self.and_or_buttons.set_state(FILTER_MODE_OR)
 
         self.filter_rows = []
         self.filter_widget_layout = QtWidgets.QVBoxLayout()
@@ -973,16 +1040,20 @@ class FilterRow(QtWidgets.QWidget):
         self.idx = idx
         self.filter_types = filter_types
         self.filter_type = self.filter_types[self.column_type]
+        self.filter_ids = self.filter_types.get(
+            self.column_type + "_ids", self.filter_type
+        )
         self.parent = parent
 
         self.row_layout = QtWidgets.QHBoxLayout()
 
         # create a 'filter type' combobox
         self.filter_type_box = QtWidgets.QComboBox()
-        self.filter_type_box.addItems(self.filter_type)
+        for filter_id, label in zip(self.filter_ids, self.filter_type):
+            self.filter_type_box.addItem(label, filter_id)
         # set a preset type if given
         if isinstance(preset_type, str):
-            self.filter_type_box.setCurrentIndex(self.filter_type.index(preset_type))
+            self.filter_type_box.setCurrentIndex(self.filter_ids.index(preset_type))
         # add tooltip for every type option
         for i, tt in enumerate(self.filter_types[self.column_type + "_tt"]):
             self.filter_type_box.setItemData(i, tt, Qt.ToolTipRole)
@@ -995,7 +1066,7 @@ class FilterRow(QtWidgets.QWidget):
             # add buttons to remove the row
             self.remove = QtWidgets.QToolButton()
             self.remove.setIcon(qicons.delete)
-            self.remove.setToolTip("Remove this filter")
+            self.remove.setToolTip(_("Remove this filter"))
             self.remove.clicked.connect(self.self_destruct)
 
     @property
@@ -1030,7 +1101,7 @@ class StrFilterRow(FilterRow):
         super().__init__(idx, filter_types, remove_option, preset_type, parent)
 
         # create case-sensitive box
-        self.case_sensitive_text = QtWidgets.QLabel("Case Sensitive:")
+        self.case_sensitive_text = QtWidgets.QLabel(_("Case Sensitive:"))
         self.filter_case_sensitive_check = QtWidgets.QCheckBox()
 
         # assemble the layout
@@ -1064,14 +1135,14 @@ class StrFilterRow(FilterRow):
         if query_line == "":
             return None
 
-        selected_type = self.filter_type_box.currentText()
+        selected_type = self.filter_type_box.currentData()
         selected_query = self.filter_query_line.text()
         case_sensitive = self.filter_case_sensitive_check.isChecked()
         return selected_type, selected_query, case_sensitive
 
     def set_state(self, state: tuple) -> None:
         selected_type, selected_query, case_sensitive = state
-        self.filter_type_box.setCurrentIndex(self.filter_type.index(selected_type))
+        self.filter_type_box.setCurrentIndex(self.filter_ids.index(selected_type))
         self.filter_query_line.setText(selected_query)
         self.filter_case_sensitive_check.setChecked(case_sensitive)
 
@@ -1137,9 +1208,9 @@ class NumFilterRow(FilterRow):
         if query_line == "":
             return None
 
-        selected_type = self.filter_type_box.currentText()
+        selected_type = self.filter_type_box.currentData()
         selected_query = self.filter_query_line.text()
-        if self.filter_type_box.currentText() == "<= x <=":
+        if selected_type == FILTER_OPERATOR_BETWEEN:
             selected_query = (
                 self.filter_query_line0.text(),
                 self.filter_query_line.text(),
@@ -1149,8 +1220,8 @@ class NumFilterRow(FilterRow):
     def set_state(self, state: tuple) -> None:
         selected_type, selected_query = state
         self.set_input_changes()
-        self.filter_type_box.setCurrentIndex(self.filter_type.index(selected_type))
-        if selected_type == "<= x <=":
+        self.filter_type_box.setCurrentIndex(self.filter_ids.index(selected_type))
+        if selected_type == FILTER_OPERATOR_BETWEEN:
             self.filter_query_line0.setText(selected_query[0])
             self.filter_query_line.setText(selected_query[1])
         else:
@@ -1158,7 +1229,7 @@ class NumFilterRow(FilterRow):
 
     def set_input_changes(self) -> None:
         # enable whether the extra input line is visible
-        if self.filter_type_box.currentText() == "<= x <=":
+        if self.filter_type_box.currentData() == FILTER_OPERATOR_BETWEEN:
             self.filter_query_line0.show()
         else:
             self.filter_query_line0.hide()
@@ -1191,8 +1262,10 @@ class AndOrRadioButtons(QtWidgets.QWidget):
         # create an AND/OR widget
         layout = QtWidgets.QHBoxLayout()
         self.btn_group = QtWidgets.QButtonGroup()
-        self.AND = QtWidgets.QRadioButton("AND")
-        self.OR = QtWidgets.QRadioButton("OR")
+        self.AND = QtWidgets.QRadioButton(_("AND"))
+        self.OR = QtWidgets.QRadioButton(_("OR"))
+        self.AND.setProperty("filter_mode", FILTER_MODE_AND)
+        self.OR.setProperty("filter_mode", FILTER_MODE_OR)
         self.btn_group.addButton(self.AND)
         self.btn_group.addButton(self.OR)
         layout.addStretch()
@@ -1201,23 +1274,25 @@ class AndOrRadioButtons(QtWidgets.QWidget):
         layout.addWidget(self.OR)
         self.setLayout(layout)
         self.setToolTip(
-            "Choose how filters combine with each other.\n"
-            "AND must satisfy all filters, OR must satisfy at least one filter."
+            _(
+                "Choose how filters combine with each other.\n"
+                "AND must satisfy all filters, OR must satisfy at least one filter."
+            )
         )
 
         # set the state if one was given, otherwise, assume AND
         if isinstance(state, str):
             self.set_state(state)
         else:
-            self.set_state("AND")
+            self.set_state(FILTER_MODE_AND)
 
     @property
     def get_state(self) -> str:
-        return self.btn_group.checkedButton().text()
+        return self.btn_group.checkedButton().property("filter_mode")
 
     def set_state(self, state: str) -> None:
         x = True
-        if state == "OR":
+        if state == FILTER_MODE_OR:
             x = False
         self.AND.setChecked(x)
         self.OR.setChecked(not x)
@@ -1227,10 +1302,12 @@ class ProjectDeletionDialog(QtWidgets.QDialog):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.title = "Confirm project deletion"
+        self.title = _("Confirm project deletion")
         self.label = QtWidgets.QLabel(
-            "Final confirmation to remove data from the hard disk.\n"
-            + "Warning: Non reversible process!"
+            _(
+                "Final confirmation to remove data from the hard disk.\n"
+                "Warning: Non reversible process!"
+            )
         )
         self.check = QtWidgets.QVBoxLayout()
         self.bttn = QtWidgets.QCheckBox()
@@ -1253,9 +1330,11 @@ class ProjectDeletionDialog(QtWidgets.QDialog):
         cls, parent: QtWidgets.QWidget = None, prjctName: str = None
     ) -> "ProjectDeletionDialog":
         obj = cls(parent)
-        obj.title = f"Confirm deletion of {prjctName}"
+        obj.title = _("Confirm deletion of {project}", project=prjctName)
         obj.setWindowTitle(obj.title)
-        obj.bttn = QtWidgets.QCheckBox(f"Remove {prjctName} from the hard disk")
+        obj.bttn = QtWidgets.QCheckBox(
+            _("Remove {project} from the hard disk", project=prjctName)
+        )
         obj.bttn.setChecked(False)
         obj.check.addWidget(obj.bttn)
         obj.updateGeometry()
@@ -1272,16 +1351,19 @@ class ScenarioDatabaseDialog(QtWidgets.QDialog):
 
     def __init__(self, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
-        self.setWindowTitle("Linking scenario databases")
+        self.setWindowTitle(_("Linking scenario databases"))
 
         self.label = QtWidgets.QLabel(
-            "The following database(s) in the scenario file cannot be found in your project.\n\n"
-            "Please indicate the corresponding database(s), or cancel the import if this is not"
-            " possible. (Warning: this process may take a few minutes for large scenario files)"
+            _(
+                "The following database(s) in the scenario file cannot be found in "
+                "your project.\n\nPlease indicate the corresponding database(s), or "
+                "cancel the import if this is not possible. (Warning: this process "
+                "may take a few minutes for large scenario files)"
+            )
         )
 
         self.label_choices = []
-        self.grid_box = QtWidgets.QGroupBox("Databases:")
+        self.grid_box = QtWidgets.QGroupBox(_("Databases:"))
         self.grid = QtWidgets.QGridLayout()
         self.grid_box.setLayout(self.grid)
 
@@ -1336,20 +1418,22 @@ class LocationLinkingDialog(QtWidgets.QDialog):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Activity Location linking")
+        self.setWindowTitle(_("Activity Location linking"))
 
         self.loc_label = QtWidgets.QLabel()
         self.label_choices = []
-        self.grid_box = QtWidgets.QGroupBox("Location link:")
+        self.grid_box = QtWidgets.QGroupBox(_("Location link:"))
         self.grid = QtWidgets.QGridLayout()
         self.grid_box.setLayout(self.grid)
 
         self.use_alternatives_label = QtWidgets.QLabel(
-            "Use generic alternatives as fallback:"
+            _("Use generic alternatives as fallback:")
         )
         self.use_alternatives_label.setToolTip(
-            "If the chosen location is not found, try matching the selected "
-            "locations below too"
+            _(
+                "If the chosen location is not found, try matching the selected "
+                "locations below too"
+            )
         )
         self.use_row = QtWidgets.QCheckBox("RoW")
         self.use_row.setChecked(True)
@@ -1413,8 +1497,9 @@ class LocationLinkingDialog(QtWidgets.QDialog):
     def relink_location(
         cls, act_name: str, options: List[Tuple[str, List[str]]], parent=None
     ) -> "LocationLinkingDialog":
-        label = "Relinking exchanges from activity '{}' to a new location.".format(
-            act_name
+        label = _(
+            "Relinking exchanges from activity '{activity}' to a new location.",
+            activity=act_name,
         )
         return cls.construct_dialog(label, options, parent)
 
@@ -1423,7 +1508,7 @@ class EcoinventVersionDialog(QtWidgets.QDialog):
     def __init__(self, parent=None):
         super(EcoinventVersionDialog, self).__init__(parent)
 
-        self.setWindowTitle("Choose a biosphere version")
+        self.setWindowTitle(_("Choose a biosphere version"))
 
         self.buttons = QtWidgets.QDialogButtonBox(
             QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel,
@@ -1433,7 +1518,7 @@ class EcoinventVersionDialog(QtWidgets.QDialog):
 
         self.layout = QtWidgets.QVBoxLayout()
         self.label = QtWidgets.QLabel(
-            "Choose which biosphere version\n" "you would like to use"
+            _("Choose which biosphere version\nyou would like to use")
         )
         self.options = QtWidgets.QComboBox()
 

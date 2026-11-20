@@ -11,9 +11,35 @@ from PySide2.QtCore import (QAbstractItemModel, QAbstractTableModel,
 from PySide2.QtGui import QBrush
 
 from activity_browser.bwutils import commontasks as bc
+from activity_browser.i18n import _, current_language
 from activity_browser.ui.style import style_item
 
 log = getLogger(__name__)
+
+
+class FilterOperator:
+    """Stable filter identifiers shared by views, dialogs, and models."""
+
+    EQUALS = "equals"
+    NOT_EQUALS = "does not equal"
+    CONTAINS = "contains"
+    NOT_CONTAINS = "does not contain"
+    STARTS_WITH = "starts with"
+    NOT_STARTS_WITH = "does not start with"
+    ENDS_WITH = "ends with"
+    NOT_ENDS_WITH = "does not end with"
+    NUM_EQUALS = "="
+    NUM_NOT_EQUALS = "!="
+    GREATER_THAN_OR_EQUAL = ">="
+    LESS_THAN_OR_EQUAL = "<="
+    BETWEEN = "<= x <="
+
+
+class FilterMode:
+    """Stable identifiers for combining filter masks."""
+
+    AND = "AND"
+    OR = "OR"
 
 
 class PandasModel(QAbstractTableModel):
@@ -26,6 +52,8 @@ class PandasModel(QAbstractTableModel):
     """
 
     HEADERS = []
+    TRANSLATABLE_HEADERS = ()
+    TRANSLATABLE_VALUES = ()
     updated = Signal()
 
     def __init__(self, df: pd.DataFrame = None, parent=None):
@@ -75,7 +103,18 @@ class PandasModel(QAbstractTableModel):
                     )
                     tt_date_flag = True
                 elif role == Qt.DisplayRole:
-                    value = arrow.get(value).shift(seconds=time_shift).humanize()
+                    value = (
+                        arrow.get(value)
+                        .shift(seconds=time_shift)
+                        .humanize(locale=current_language().replace("_", "-").lower())
+                    )
+
+            if (
+                role in (Qt.DisplayRole, Qt.ToolTipRole)
+                and isinstance(value, str)
+                and self.should_translate_value(index, value)
+            ):
+                value = _(value)
 
         # immediately return value in case of DisplayRole or sorting
         if role == Qt.DisplayRole or role == "sorting":
@@ -109,12 +148,39 @@ class PandasModel(QAbstractTableModel):
 
         return None
 
+    def should_translate_value(self, index: QModelIndex, value: str) -> bool:
+        """Return whether a fixed value is interface text at this cell.
+
+        Subclasses can narrow this check by row or column.  This matters when
+        user data happens to have the same spelling as a built-in result label.
+        """
+
+        return value in self.TRANSLATABLE_VALUES
+
+    def should_translate_header(self, section: int, value) -> bool:
+        """Return whether a table header is fixed interface text.
+
+        Result tables override this hook because they mix program-defined
+        metadata columns with scientific result columns named by user data.
+        """
+
+        declared = set(self.TRANSLATABLE_HEADERS)
+        declared.update(getattr(self, "HEADERS", ()))
+        declared.update(getattr(self, "COLUMNS", ()))
+        declared.update(getattr(self, "UNCERTAINTY", ()))
+        return value in declared
+
     def flags(self, index):
         return Qt.ItemIsSelectable | Qt.ItemIsEnabled
 
     def headerData(self, section, orientation, role=Qt.DisplayRole):
         if orientation == Qt.Horizontal and role == Qt.DisplayRole:
-            return self._dataframe.columns[section]
+            value = self._dataframe.columns[section]
+            return (
+                _(str(value))
+                if self.should_translate_header(section, value)
+                else value
+            )
         elif orientation == Qt.Vertical and role == Qt.DisplayRole:
             return self._dataframe.index[section]
         return None
@@ -153,31 +219,31 @@ class PandasModel(QAbstractTableModel):
         self, test_type: str, col_data: pd.Series, query
     ) -> pd.Series:
         """Compare query and col_data on test_type, return array with boolean test results."""
-        if test_type == "equals":
+        if test_type == FilterOperator.EQUALS:
             return col_data == query
-        elif test_type == "does not equal":
+        elif test_type == FilterOperator.NOT_EQUALS:
             return col_data != query
-        elif test_type == "contains":
+        elif test_type == FilterOperator.CONTAINS:
             return col_data.str.contains(query, regex=False)
-        elif test_type == "does not contain":
+        elif test_type == FilterOperator.NOT_CONTAINS:
             return ~col_data.str.contains(query, regex=False)
-        elif test_type == "starts with":
+        elif test_type == FilterOperator.STARTS_WITH:
             return col_data.str.startswith(query)
-        elif test_type == "does not start with":
+        elif test_type == FilterOperator.NOT_STARTS_WITH:
             return ~col_data.str.startswith(query)
-        elif test_type == "ends with":
+        elif test_type == FilterOperator.ENDS_WITH:
             return col_data.str.endswith(query)
-        elif test_type == "does not end with":
+        elif test_type == FilterOperator.NOT_ENDS_WITH:
             return ~col_data.str.endswith(query)
-        elif test_type == "=":
+        elif test_type == FilterOperator.NUM_EQUALS:
             return col_data.astype(float) == float(query)
-        elif test_type == "!=":
+        elif test_type == FilterOperator.NUM_NOT_EQUALS:
             return col_data.astype(float) != float(query)
-        elif test_type == ">=":
+        elif test_type == FilterOperator.GREATER_THAN_OR_EQUAL:
             return col_data.astype(float) >= float(query)
-        elif test_type == "<=":
+        elif test_type == FilterOperator.LESS_THAN_OR_EQUAL:
             return col_data.astype(float) <= float(query)
-        elif test_type == "<= x <=":
+        elif test_type == FilterOperator.BETWEEN:
             return (float(query[0]) <= col_data.astype(float)) & (
                 col_data.astype(float) <= float(query[1])
             )
@@ -229,17 +295,17 @@ class PandasModel(QAbstractTableModel):
                     )
 
                 # create or combine new mask within column
-                if isinstance(col_mask, pd.Series) and col_mode == "AND":
+                if isinstance(col_mask, pd.Series) and col_mode == FilterMode.AND:
                     col_mask = col_mask & new_mask
-                elif isinstance(col_mask, pd.Series) and col_mode == "OR":
+                elif isinstance(col_mask, pd.Series) and col_mode == FilterMode.OR:
                     col_mask = col_mask + new_mask
                 else:
                     col_mask = new_mask
 
             # create or combine new mask on columns
-            if isinstance(all_mask, pd.Series) and all_mode == "AND":
+            if isinstance(all_mask, pd.Series) and all_mode == FilterMode.AND:
                 all_mask = all_mask & col_mask
-            elif isinstance(all_mask, pd.Series) and all_mode == "OR":
+            elif isinstance(all_mask, pd.Series) and all_mode == FilterMode.OR:
                 all_mask = all_mask + col_mask
             else:
                 all_mask = col_mask
@@ -328,6 +394,7 @@ class BaseTreeModel(QAbstractItemModel):
     """Base Model used to present data for QTreeView."""
 
     HEADERS = []
+    TRANSLATABLE_VALUES = ()
     updated = Signal()
 
     def __init__(self, parent=None, *args, **kwargs):
@@ -342,9 +409,12 @@ class BaseTreeModel(QAbstractItemModel):
         if not index.isValid():
             return None
 
-        if role == Qt.DisplayRole:
+        if role in (Qt.DisplayRole, Qt.UserRole):
             item = index.internalPointer()
-            return str(item.data(index.column()))
+            value = str(item.data(index.column()))
+            if role == Qt.DisplayRole:
+                return _(value) if self.should_translate_value(index, value) else value
+            return value
 
         if role == Qt.ForegroundRole:
             col_name = self.HEADERS[index.column()]
@@ -352,10 +422,15 @@ class BaseTreeModel(QAbstractItemModel):
                 style_item.brushes.get(col_name, style_item.brushes.get("default"))
             )
 
+    def should_translate_value(self, index: QModelIndex, value: str) -> bool:
+        """Return whether a tree cell contains fixed interface text."""
+
+        return value in self.TRANSLATABLE_VALUES
+
     def headerData(self, column, orientation, role: int = Qt.DisplayRole):
         if orientation == Qt.Horizontal and role == Qt.DisplayRole:
             try:
-                return self.HEADERS[column]
+                return _(str(self.HEADERS[column]))
             except IndexError:
                 pass
         return None

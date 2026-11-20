@@ -4,6 +4,7 @@ from PySide2 import QtWidgets
 
 from activity_browser import application
 from activity_browser.actions.base import ABAction, exception_dialogs
+from activity_browser.i18n import _
 from activity_browser.mod.bw2data import Database
 from activity_browser.ui.icons import qicons
 
@@ -25,8 +26,8 @@ class ActivityNew(ABAction):
         # ask the user to provide a name for the new activity
         name, ok = QtWidgets.QInputDialog.getText(
             application.main_window,
-            "Create new technosphere activity",
-            "Please specify an activity name:" + " " * 10,
+            _("Create new technosphere activity"),
+            _("Please specify an activity name:") + " " * 10,
             QtWidgets.QLineEdit.Normal,
         )
 

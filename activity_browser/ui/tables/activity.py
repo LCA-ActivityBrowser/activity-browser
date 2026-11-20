@@ -5,6 +5,7 @@ from PySide2 import QtWidgets
 from PySide2.QtCore import Slot
 
 from activity_browser import actions
+from activity_browser.i18n import _
 
 from ..icons import qicons
 from .delegates import *
@@ -118,7 +119,7 @@ class ProductExchangeTable(BaseExchangeTable):
         menu.addAction(self.remove_formula_action)
         # Submenu copy to clipboard
         submenu_copy = QtWidgets.QMenu(menu)
-        submenu_copy.setTitle("Copy to clipboard")
+        submenu_copy.setTitle(_("Copy to clipboard"))
         submenu_copy.setIcon(qicons.copy_to_clipboard)
         submenu_copy.addAction(self.copy_exchanges_for_SDF_action)
         menu.addMenu(submenu_copy)
@@ -166,7 +167,7 @@ class TechnosphereExchangeTable(BaseExchangeTable):
         if self.indexAt(event.pos()).row() == -1:
             return
         menu = QtWidgets.QMenu()
-        menu.addAction(qicons.right, "Open activities", self.open_activities)
+        menu.addAction(qicons.right, _("Open activities"), self.open_activities)
         menu.addAction(self.modify_uncertainty_action)
         menu.addSeparator()
         menu.addAction(self.delete_exchange_action)
@@ -174,7 +175,7 @@ class TechnosphereExchangeTable(BaseExchangeTable):
         menu.addAction(self.remove_uncertainty_action)
         # Submenu copy to clipboard
         submenu_copy = QtWidgets.QMenu(menu)
-        submenu_copy.setTitle("Copy to clipboard")
+        submenu_copy.setTitle(_("Copy to clipboard"))
         submenu_copy.setIcon(qicons.copy_to_clipboard)
         submenu_copy.addAction(self.copy_exchanges_for_SDF_action)
         menu.addMenu(submenu_copy)
@@ -230,7 +231,7 @@ class BiosphereExchangeTable(BaseExchangeTable):
 
         # Submenu copy to clipboard
         submenu_copy = QtWidgets.QMenu(menu)
-        submenu_copy.setTitle("Copy to clipboard")
+        submenu_copy.setTitle(_("Copy to clipboard"))
         submenu_copy.setIcon(qicons.copy_to_clipboard)
         submenu_copy.addAction(self.copy_exchanges_for_SDF_action)
         menu.addMenu(submenu_copy)
@@ -260,5 +261,5 @@ class DownstreamExchangeTable(BaseExchangeTable):
         if self.indexAt(event.pos()).row() == -1:
             return
         menu = QtWidgets.QMenu()
-        menu.addAction(qicons.right, "Open activities", self.open_activities)
+        menu.addAction(qicons.right, _("Open activities"), self.open_activities)
         menu.exec_(event.globalPos())

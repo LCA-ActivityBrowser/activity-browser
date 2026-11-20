@@ -3,6 +3,7 @@ from logging import getLogger
 
 from activity_browser import application
 from activity_browser.actions.base import ABAction, exception_dialogs
+from activity_browser.i18n import _
 from activity_browser.mod import bw2data as bd
 from activity_browser.ui.icons import qicons
 from activity_browser.ui.widgets import TupleNameDialog
@@ -37,8 +38,8 @@ class MethodDuplicate(ABAction):
         # retrieve the new name(s) from the user and return if canceled
         dialog = TupleNameDialog.get_combined_name(
             application.main_window,
-            "Impact category name",
-            "Combined name:",
+            _("Impact category name"),
+            _("Combined name:"),
             selected_method,
             " - Copy",
         )

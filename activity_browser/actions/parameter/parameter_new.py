@@ -5,6 +5,7 @@ from PySide2 import QtCore, QtGui, QtWidgets
 from activity_browser import actions, application
 from activity_browser.actions.base import ABAction, exception_dialogs
 from activity_browser.bwutils import commontasks as bc
+from activity_browser.i18n import _
 from activity_browser.mod import bw2data as bd
 from activity_browser.mod.bw2data.parameters import ActivityParameter
 from activity_browser.ui.icons import qicons
@@ -50,7 +51,10 @@ class ParameterNew(ABAction):
         if name[0] in ("0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "-", "#"):
             error = QtWidgets.QErrorMessage()
             error.showMessage(
-                "<p>Parameter names must not start with a digit, hyphen, or hash character</p>"
+                _(
+                    "<p>Parameter names must not start with a digit, hyphen, "
+                    "or hash character.</p>"
+                )
             )
             error.exec_()
             return
@@ -107,12 +111,12 @@ class ParameterWizard(QtWidgets.QWizard):
 class SelectParameterTypePage(QtWidgets.QWizardPage):
     def __init__(self, parent):
         super().__init__(parent)
-        self.setTitle("Select the type of parameter to create.")
+        self.setTitle(_("Select the type of parameter to create."))
 
         self.key = parent.key
 
         layout = QtWidgets.QVBoxLayout()
-        box = QtWidgets.QGroupBox("Types:")
+        box = QtWidgets.QGroupBox(_("Types:"))
         # Explicitly set the stylesheet to avoid parent classes overriding
         box.setStyleSheet(
             "QGroupBox {border: 1px solid gray; border-radius: 5px; margin-top: 7px; margin-bottom: 7px; padding: 0px}"
@@ -122,7 +126,7 @@ class SelectParameterTypePage(QtWidgets.QWizardPage):
         self.button_group = QtWidgets.QButtonGroup()
         self.button_group.setExclusive(True)
         for i, s in enumerate(PARAMETER_STRINGS):
-            button = QtWidgets.QRadioButton(s)
+            button = QtWidgets.QRadioButton(_(s))
             self.button_group.addButton(button, i)
             box_layout.addWidget(button)
         # If we have a complete key, pre-select the activity parameter btn.
@@ -148,12 +152,12 @@ class SelectParameterTypePage(QtWidgets.QWizardPage):
 class CompleteParameterPage(QtWidgets.QWizardPage):
     def __init__(self, parent):
         super().__init__(parent)
-        self.setTitle("Fill out required values for the parameter")
+        self.setTitle(_("Fill out required values for the parameter"))
         self.parent = parent
 
         layout = QtWidgets.QVBoxLayout()
         self.setLayout(layout)
-        box = QtWidgets.QGroupBox("Data:")
+        box = QtWidgets.QGroupBox(_("Data:"))
         box.setStyleSheet(
             "QGroupBox {border: 1px solid gray; border-radius: 5px; margin-top: 7px; margin-bottom: 7px; padding: 0px}"
             "QGroupBox::title {top:-7 ex;left: 10px; subcontrol-origin: border}"
@@ -164,11 +168,11 @@ class CompleteParameterPage(QtWidgets.QWizardPage):
 
         self.key = parent.key
 
-        self.name_label = QtWidgets.QLabel("Name:")
+        self.name_label = QtWidgets.QLabel(_("Name:"))
         self.name = QtWidgets.QLineEdit()
         grid.addWidget(self.name_label, 0, 0)
         grid.addWidget(self.name, 0, 1)
-        self.amount_label = QtWidgets.QLabel("Amount:")
+        self.amount_label = QtWidgets.QLabel(_("Amount:"))
         self.amount = QtWidgets.QLineEdit()
         locale = QtCore.QLocale(QtCore.QLocale.English)
         locale.setNumberOptions(QtCore.QLocale.RejectGroupSeparator)
@@ -177,7 +181,7 @@ class CompleteParameterPage(QtWidgets.QWizardPage):
         self.amount.setValidator(validator)
         grid.addWidget(self.amount_label, 1, 0)
         grid.addWidget(self.amount, 1, 1)
-        self.database_label = QtWidgets.QLabel("Database:")
+        self.database_label = QtWidgets.QLabel(_("Database:"))
         self.database = QtWidgets.QComboBox()
         grid.addWidget(self.database_label, 2, 0)
         grid.addWidget(self.database, 2, 1)

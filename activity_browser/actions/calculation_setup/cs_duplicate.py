@@ -4,6 +4,7 @@ from PySide2 import QtWidgets
 
 from activity_browser import application, signals
 from activity_browser.actions.base import ABAction, exception_dialogs
+from activity_browser.i18n import _
 from activity_browser.mod import bw2data as bd
 from activity_browser.ui.icons import qicons
 
@@ -26,8 +27,8 @@ class CSDuplicate(ABAction):
         # prompt the user to give a name for the new calculation setup
         new_name, ok = QtWidgets.QInputDialog.getText(
             application.main_window,
-            f"Duplicate '{cs_name}'",
-            "Name of the duplicated calculation setup:" + " " * 10,
+            _("Duplicate '{name}'", name=cs_name),
+            _("Name of the duplicated calculation setup:") + " " * 10,
         )
 
         # return if the user cancels or gives no name
@@ -38,8 +39,8 @@ class CSDuplicate(ABAction):
         if new_name in bd.calculation_setups:
             QtWidgets.QMessageBox.warning(
                 application.main_window,
-                "Not possible",
-                "A calculation setup with this name already exists.",
+                _("Not possible"),
+                _("A calculation setup with this name already exists."),
             )
             return
 

@@ -1,6 +1,7 @@
 from PySide2 import QtCore, QtWidgets
 
 from activity_browser import actions, signals
+from activity_browser.i18n import _
 from activity_browser.mod import bw2data as bd
 from activity_browser.layouts.panels import ABTab
 
@@ -70,7 +71,7 @@ class ProjectsWidget(QtWidgets.QWidget):
         h_widget = QtWidgets.QWidget()
         h_layout = QtWidgets.QHBoxLayout()
         h_layout.setAlignment(QtCore.Qt.AlignLeft)
-        h_layout.addWidget(header("Project:"))
+        h_layout.addWidget(header(_("Project:")))
         h_layout.addWidget(self.projects_list)
         h_layout.addWidget(self.new_project_button)
         h_layout.addWidget(self.copy_project_button)
@@ -94,12 +95,14 @@ class DatabaseWidget(QtWidgets.QWidget):
     def __init__(self, parent):
         super().__init__(parent)
         self.table = DatabasesTable()
-        self.table.setToolTip("To select a database, double-click on an entry")
+        self.table.setToolTip(_("Double-click an entry to select a database."))
 
         # Temporary inclusion to explain things before checkbox is back
         self.label_change_readonly = QtWidgets.QLabel(
-            "To change a database from read-only to editable and back,"
-            + " click on the checkbox in the table."
+            _(
+                "Use the checkbox in the table to switch a database between "
+                "read-only and editable."
+            )
         )
 
         # Buttons
@@ -119,7 +122,7 @@ class DatabaseWidget(QtWidgets.QWidget):
         header_widget = QtWidgets.QWidget()
         header_layout = QtWidgets.QHBoxLayout()
         header_layout.setAlignment(QtCore.Qt.AlignLeft)
-        header_layout.addWidget(header("Databases:"))
+        header_layout.addWidget(header(_("Databases:")))
         header_layout.addWidget(self.add_default_data_button)
         header_layout.addWidget(self.new_database_button)
         header_layout.addWidget(self.import_database_button)
@@ -203,12 +206,12 @@ class ActivityBiosphereWidget(QtWidgets.QWidget):
         self.setup_search()
         self.search_active = False
 
-        self.mode_radio_list = QtWidgets.QRadioButton("List view")
+        self.mode_radio_list = QtWidgets.QRadioButton(_("List view"))
         self.mode_radio_list.setChecked(True)
-        self.mode_radio_list.setToolTip("List view of the database")
+        self.mode_radio_list.setToolTip(_("List view of the database"))
         self.mode_radio_list.hide()
-        self.mode_radio_tree = QtWidgets.QRadioButton("Tree view")
-        self.mode_radio_tree.setToolTip("Tree view of the database")
+        self.mode_radio_tree = QtWidgets.QRadioButton(_("Tree view"))
+        self.mode_radio_tree.setToolTip(_("Tree view of the database"))
         self.mode_radio_tree.hide()
         self.mode_radio_tree.toggled.connect(self.update_view)
 
@@ -246,20 +249,20 @@ class ActivityBiosphereWidget(QtWidgets.QWidget):
     def setup_search(self):
         # 1st search box
         self.search_box = QtWidgets.QLineEdit()
-        self.search_box.setPlaceholderText("Search")
+        self.search_box.setPlaceholderText(_("Search"))
         self.search_box.textChanged.connect(self.debounce_search.start)
         self.search_box.returnPressed.connect(self.set_search_term)
 
         # search
         self.search_button = QtWidgets.QToolButton()
         self.search_button.setIcon(qicons.search)
-        self.search_button.setToolTip("Filter activities")
+        self.search_button.setToolTip(_("Filter activities"))
         self.search_button.clicked.connect(self.set_search_term)
 
         # reset search
         self.reset_search_button = QtWidgets.QToolButton()
         self.reset_search_button.setIcon(qicons.delete)
-        self.reset_search_button.setToolTip("Clear the search")
+        self.reset_search_button.setToolTip(_("Clear the search"))
         self.reset_search_button.clicked.connect(self.table.reset_search)
         self.reset_search_button.clicked.connect(self.search_box.clear)
 

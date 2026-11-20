@@ -1,3 +1,4 @@
+import html
 import json
 import os
 from abc import abstractmethod
@@ -9,6 +10,7 @@ from PySide2 import QtWebChannel, QtWebEngineWidgets, QtWidgets
 from PySide2.QtCore import QObject, Qt, QUrl, Signal, Slot
 
 from activity_browser import ab_settings, signals
+from activity_browser.i18n import _, current_language
 from activity_browser.mod import bw2data as bd
 
 from ... import utils
@@ -19,10 +21,9 @@ log = getLogger(__name__)
 
 
 class BaseNavigatorWidget(QtWidgets.QWidget):
-    HELP_TEXT = """
-    This is the text shown when the user presses 'help'.
-    """
+    HELP_TEXT = ("This help text describes how to use the graph.",)
     HTML_FILE = ""
+    PAGE_TITLE = "Graph"
 
     def __init__(self, parent=None, css_file: str = "", *args, **kwargs):
         super().__init__(parent)
@@ -39,15 +40,25 @@ class BaseNavigatorWidget(QtWidgets.QWidget):
         self.view.setContextMenuPolicy(Qt.PreventContextMenu)
         self.view.page().setWebChannel(self.channel)
         self.url = QUrl.fromLocalFile(self.HTML_FILE)
+        self.html_base_url = QUrl.fromLocalFile(
+            os.path.dirname(self.HTML_FILE) + os.path.sep
+        )
         self.css_file = css_file
 
         # Various Qt objects
-        self.label_help = QtWidgets.QLabel(self.HELP_TEXT)
-        self.button_toggle_help = QtWidgets.QPushButton("Help")
+        help_text = (
+            _(self.HELP_TEXT)
+            if isinstance(self.HELP_TEXT, str)
+            else "\n".join(_(line) for line in self.HELP_TEXT)
+        )
+        self.label_help = QtWidgets.QLabel(help_text)
+        self.button_toggle_help = QtWidgets.QPushButton(_("Help"))
         self.button_back = QtWidgets.QPushButton(qicons.backward, "")
+        self.button_back.setToolTip(_("Back"))
         self.button_forward = QtWidgets.QPushButton(qicons.forward, "")
-        self.button_refresh = QtWidgets.QPushButton("Refresh HTML")
-        self.button_random_activity = QtWidgets.QPushButton("Random Activity")
+        self.button_forward.setToolTip(_("Forward"))
+        self.button_refresh = QtWidgets.QPushButton(_("Refresh HTML"))
+        self.button_random_activity = QtWidgets.QPushButton(_("Random Activity"))
 
     def load_finished_handler(self, *args, **kwargs) -> None:
         """Executed when webpage has been loaded for the first time or refreshed.
@@ -74,17 +85,17 @@ class BaseNavigatorWidget(QtWidgets.QWidget):
 
     def go_forward(self) -> None:
         if self.graph.forward():
-            signals.new_statusbar_message.emit("Going forward.")
+            signals.new_statusbar_message.emit(_("Going forward."))
             self.send_json()
         else:
-            signals.new_statusbar_message.emit("No data to go forward to.")
+            signals.new_statusbar_message.emit(_("No data to go forward to."))
 
     def go_back(self) -> None:
         if self.graph.back():
-            signals.new_statusbar_message.emit("Going back.")
+            signals.new_statusbar_message.emit(_("Going back."))
             self.send_json()
         else:
-            signals.new_statusbar_message.emit("No data to go back to.")
+            signals.new_statusbar_message.emit(_("No data to go back to."))
 
     def send_json(self) -> None:
         self.bridge.graph_ready.emit(self.graph.json_data)
@@ -94,7 +105,29 @@ class BaseNavigatorWidget(QtWidgets.QWidget):
         self.bridge.style.emit(style_element)
 
     def draw_graph(self) -> None:
-        self.view.load(self.url)
+        self.view.setHtml(self.render_html(), self.html_base_url)
+
+    def render_html(self) -> str:
+        """Render the graph page with fixed UI text in the active language."""
+
+        source = utils.read_file_text(self.HTML_FILE)
+        translations = {
+            "individual_impact": _("Individual impact"),
+            "cumulative_impact": _("Cumulative impact"),
+        }
+        replacements = {
+            "LANGUAGE": current_language().replace("_", "-"),
+            "PAGE_TITLE": _(self.PAGE_TITLE),
+            "RESET_ZOOM": _("Reset Zoom"),
+            "DOWNLOAD_SVG": _("Download SVG"),
+        }
+        for name, value in replacements.items():
+            source = source.replace(f"{{{{{name}}}}}", html.escape(value))
+
+        translations_json = json.dumps(translations, ensure_ascii=False).replace(
+            "</", "<\\/"
+        )
+        return source.replace("{{TRANSLATIONS_JSON}}", translations_json)
 
     @abstractmethod
     def random_graph(self) -> None:
@@ -104,14 +137,14 @@ class BaseNavigatorWidget(QtWidgets.QWidget):
 ALL_FILTER = "All Files (*.*)"
 
 
-def savefilepath(default_file_name: str, file_filter: str = ALL_FILTER):
-    default = default_file_name or "Graph SVG Export"
+def savefilepath(default_file_name: str, file_filter: str = None):
+    default = default_file_name or _("Graph SVG Export")
     safe_name = bd.utils.safe_filename(default, add_hash=False)
-    filepath, _ = QtWidgets.QFileDialog.getSaveFileName(
-        caption="Choose location to save svg",
+    filepath = QtWidgets.QFileDialog.getSaveFileName(
+        caption=_("Choose location to save SVG"),
         dir=os.path.join(ab_settings.data_dir, safe_name),
-        filter=file_filter,
-    )
+        filter=file_filter or _("All Files (*.*)"),
+    )[0]
     return filepath
 
 
