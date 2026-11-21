@@ -1,6 +1,12 @@
+---
+title: Impact category import and export
+parent: Advanced topics
+---
 # Impact category import and export
+{: .fs-9 }
 
 Activity Browser supports three spreadsheet interchange styles for **impact categories** (Brightway LCIA methods).
+{: .fs-6 .fw-300 }
 
 ## Formats
 

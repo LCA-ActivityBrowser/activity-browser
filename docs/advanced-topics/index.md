@@ -1,6 +1,7 @@
 ---
 title: Advanced topics
 nav_order: 4
+has_children: true
 ---
 
 # Advanced topics
