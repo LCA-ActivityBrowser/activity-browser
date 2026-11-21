@@ -83,11 +83,11 @@ Agents should not assume Linux-only or a single Python version. Details live in 
 - **Branches:** feature work → PR into `dev`; land on stable via `dev` → `main`; public versions via semver tags. See `CONTRIBUTING.md` and ADR-0017.
 - **Dev deps / extras:** `pyproject.toml` (`[project.optional-dependencies]`).
 
-## Product documentation (`docs/`)
+## AB docs (`docs/`)
 
 - **Audience / voice:** `docs/` is the GitHub Pages site for **AB users (LCA practitioners)**, not for agents or programmers (ADR-0018).
-- **Read** `docs/` when product or UI behavior matters.
-- After behavior-changing work, **check** whether `docs/` needs updating; if yes, edit and **edit-then-flag** (list the `docs/` changes and ask the user to confirm). Ask first only for large rewrites or undecided product behavior.
+- **Read** `docs/` when AB or UI behavior matters.
+- After behavior-changing work, **check** whether `docs/` needs updating; if yes, edit and **edit-then-flag** (list the `docs/` changes and ask the user to confirm). Ask first only for large rewrites or undecided AB behavior.
 - Put implementation / agent detail in `adr/`, `.agents/`, module READMEs, or this file — not in practitioner-facing pages.
 
 ## Safety for AI edits
@@ -103,7 +103,7 @@ Agents should not assume Linux-only or a single Python version. Details live in 
 - Domain glossary: `CONTEXT.md`
 - Agent docs map: `.agents/README.md`
 - ADRs: `adr/`
-- Product docs (LCA practitioners): `docs/`
+- AB docs (LCA practitioners): `docs/`
 - Contributing / branching: `CONTRIBUTING.md`
 - Module notes: `activity_browser/app/README.md`, `ui/README.md`, `bwutils/README.md`, `mod/README.md`
 - Tests: `tests/README.md`, `tests/conftest.py`

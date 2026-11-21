@@ -1,6 +1,6 @@
 # docs
 
-Product documentation for Activity Browser users (LCA practitioners).
+AB docs for Activity Browser users (LCA practitioners).
 
 ## Overview
 
