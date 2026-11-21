@@ -23,8 +23,6 @@ Engineering decision records live in [`adr/`](../adr/). Agent workflow and skill
 - **`_sass/`** - SASS/CSS stylesheets
   - `custom/` - Custom styling overrides
 
-- **`ab3.md`** - Activity Browser 3 overview
-
 - **`getting-started/`** - Getting started guides
   - `installation.md` - Installation instructions
   - `project-setup.md` - Setting up your first project
@@ -41,6 +39,7 @@ Engineering decision records live in [`adr/`](../adr/). Agent workflow and skill
   - `project-structure.md` - Understanding project structure
   - `scenario-calculations.md` - Scenario analysis
   - `parameter-scenario-files.md` - Parameter scenario table format and import
+  - `impact-category-interchange.md` - Impact category import and export
   - `brightway-legacy.md` - Working with Brightway legacy versions
   - `multifunctional-databases/` - Multi-functionality documentation
   - `index.md` - Advanced topics overview
