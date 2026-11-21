@@ -43,7 +43,10 @@ dependencies = [
     "bw_processing>=1.0",
     "bw_simapro_csv >=0.2.6",
     "ecoinvent_interface",
-    "matrix_utils>=0.5",
+    # Cap below 1.0: AB's Monte Carlo ResourceGroup patch still imports
+    # matrix_utils.aggregation (removed in 1.0) and needs a rewrite before
+    # adopting bw_processing 2 / stats_arrays 5 that 1.0 requires.
+    "matrix_utils>=0.5,<1",
     "bw-functional>=0.1.1",
     "networkx",
     "numpy>=1.26",

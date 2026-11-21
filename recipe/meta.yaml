@@ -35,7 +35,9 @@ requirements:
     - lca::multifunctional >=1.1.2
     - bw_functional >=0.1.1
     - ecoinvent_interface
-    - matrix_utils >=0.5
+    # Cap below 1.0: AB Monte Carlo patch still needs matrix_utils.aggregation
+    # (removed in 1.0); rewrite before adopting bw_processing 2 / stats_arrays 5.
+    - matrix_utils >=0.5,<1
     - numpy >=1.26
     - py7zr >=1.0
     - pyperclip
