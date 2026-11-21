@@ -6,10 +6,11 @@ alwaysApply: true
 # Activity Browser — core invariants
 
 - Read `AGENTS.md` and use vocabulary from `CONTEXT.md`.
-- Prefer `app.metadata` (MetaDataStore) for activity metadata reads; do not hit SQLite / `bd.get_node` for labels the store already has (`docs/adr/0005-metadata-from-metadatastore.md`).
+- Prefer `app.metadata` (MetaDataStore) for activity metadata reads; do not hit SQLite / `bd.get_node` for labels the store already has (`adr/0005-metadata-from-metadatastore.md`).
 - Placement: Brightway-only → `bwutils/`; app-agnostic widgets → `ui/`; app-aware pages/panes/actions → `app/`.
-- Domain updates: user → action → Brightway/bwutils → bw signals → `app.signals` → UI (see `docs/adr/0003-signals-event-bus.md`). UI listens; do not emit domain signals from UI to refresh other UI.
+- Domain updates: user → action → Brightway/bwutils → bw signals → `app.signals` → UI (see `adr/0003-signals-event-bus.md`). UI listens; do not emit domain signals from UI to refresh other UI.
 - Preserve deferred-import patterns on hot paths (`ADR-0002`).
 - Do not invent or harden a plugin API (placeholder in `AGENTS.md` until redesigned).
 - Prefer small, localized diffs; add/update tests for stateful behavior.
+- **Product docs (`docs/`):** for LCA practitioners (GitHub Pages). Read when useful; after behavior changes, check whether `docs/` needs updating; edit-then-flag and ask the user to confirm. Not agent/programmer voice — see ADR-0018 and `AGENTS.md`.
 - **Never create a git commit unless the user explicitly asks to commit in that message.** Skills that say “commit when done” (e.g. `/implement`) do **not** override this — finish the work, leave changes uncommitted, and wait for an explicit commit request. Do not stage-and-commit “to finish the task,” “because the skill says so,” or “so code-review has a SHA.”

@@ -149,7 +149,7 @@ If you want to contribute code, we suggest the following setup:
 
 ### Branching and git workflow
 
-Activity Browser uses three long-lived branches (see [ADR-0017](docs/adr/0017-ab3-release-channels-and-branches.md)):
+Activity Browser uses three long-lived branches (see [ADR-0017](adr/0017-ab3-release-channels-and-branches.md)):
 
 | Branch | Role |
 |--------|------|
@@ -369,7 +369,7 @@ If any installation problems occur or warnings happen in the pull-requests tests
 
 Activity Browser versions and related information live on the
 [__releases__](https://github.com/LCA-ActivityBrowser/activity-browser/releases)
-page. Release policy is recorded in [ADR-0017](docs/adr/0017-ab3-release-channels-and-branches.md).
+page. Release policy is recorded in [ADR-0017](adr/0017-ab3-release-channels-and-branches.md).
 
 The AB follows the `major.minor.patch` versioning [schema](https://semver.org/) closely, but not entirely.
 Where `major` releases are reserved for completely backwards-incompatible
@@ -402,7 +402,7 @@ while that is true.
 6. Actions create a GitHub Release (auto changelog) and publish **PyPI** + **`lca` conda** at version `x.y.z`
 7. **Edit the Release** and prepend the curated preamble
 8. For a full cut that includes stand-alone: Actions → Build Executable (`ab_version=x.y.z`, run from **`dev`**) →
-   Release Stand-alone → tag `x.y.z-stand-alone` (see [ADR-0015](docs/adr/0015-stand-alone-update-discovery.md))
+   Release Stand-alone → tag `x.y.z-stand-alone` (see [ADR-0015](adr/0015-stand-alone-update-discovery.md))
 9. Close the milestone (issue-comment bot) and announce on the
    [updates mailing list](https://brightway.groups.io/g/AB-updates/topics) as appropriate
 

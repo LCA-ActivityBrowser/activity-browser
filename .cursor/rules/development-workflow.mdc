@@ -17,8 +17,8 @@ Before implementing non-trivial work, classify the change. **If unsure, ask the 
 
 ## Skill invocation
 
-Skills such as `/grill-with-docs`, `/to-spec`, `/to-tickets`, `/implement`, and `/code-review` are often `disable-model-invocation` — **do not improvise their full procedures**. Pause and ask the user to invoke the next skill. Local tickets/specs: see `docs/agents/issue-tracker.md`.
+Skills such as `/grill-with-docs`, `/to-spec`, `/to-tickets`, `/implement`, and `/code-review` are often `disable-model-invocation` — **do not improvise their full procedures**. Pause and ask the user to invoke the next skill. Local tickets/specs: see `.agents/issue-tracker.md`.
 
 ## Agent docs map maintenance
 
-If you change how agent documentation is organized (`.cursor/rules`, `CONTEXT.md`, `docs/adr`, `docs/agents`, issue tracker choice, or this S/M/L workflow), **update `docs/agents/README.md` in the same change**.
+If you change how agent documentation is organized (`.cursor/rules`, `CONTEXT.md`, `adr`, `.agents`, issue tracker choice, or this S/M/L workflow), **update `.agents/README.md` in the same change**.

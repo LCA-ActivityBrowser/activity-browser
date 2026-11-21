@@ -2,7 +2,7 @@
 
 Canonical glossary and domain language for developers and AI agents. Prefer these terms over synonyms. Grow this file via `/grill-with-docs` / `/domain-modeling` when new terms stabilize.
 
-Architecture decisions live in `docs/adr/`. Agent workflow and doc layout: `docs/agents/README.md`.
+Architecture decisions live in `adr/`. Agent workflow and doc layout: `.agents/README.md`.
 
 ## Glossary
 
@@ -133,7 +133,7 @@ _Avoid_: fetching display metadata from SQLite when the MetaDataStore is availab
 
 ### Signals (event bus)
 
-`app.signals` (`ABSignals`) — primarily a bridge from Brightway/bw2data (blinker) events to Qt UI updates. Preferred path: action → Brightway/bwutils → bw signals → UI. See `docs/adr/0003-signals-event-bus.md`.
+`app.signals` (`ABSignals`) — primarily a bridge from Brightway/bw2data (blinker) events to Qt UI updates. Preferred path: action → Brightway/bwutils → bw signals → UI. See `adr/0003-signals-event-bus.md`.
 
 ### Action
 
