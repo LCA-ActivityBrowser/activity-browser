@@ -8,6 +8,10 @@ on:
     branches:
       - main
       - dev
+  schedule:
+    # Daily dependency-drift check on default branch tip (main); staggered after install canary (07:00)
+    - cron: "0 8 * * *"
+  workflow_dispatch:
 
 jobs:
   tests:

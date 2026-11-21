@@ -6,8 +6,8 @@ This document describes the GitHub Actions workflows used in the Activity Browse
 
 The Activity Browser project uses several GitHub Actions workflows to automate testing, deployment, and project management tasks:
 
-1. **Automated Testing** - Runs tests on every push and PR
-2. **Canary Installation** - Daily installation checks to catch dependency issues
+1. **Automated Testing** - Runs tests on every push/PR, plus a daily schedule for dependency-drift detection
+2. **Canary Installation** - Daily PyPI install checks (separate from the test suite)
 3. **Semver Publish** - Publishes tagged releases to PyPI and Anaconda (`lca`)
 4. **Build Executable** - Builds distributable app binaries
 5. **GitHub Release** - Creates GitHub Releases (changelog) and updates the wiki
@@ -45,16 +45,19 @@ maintainer guide (fork workflow, local merges, and release steps).
 
 ### CI and deployment
 
-- Automated testing runs on pushes and pull requests to **`main`** and **`dev`**.
+- Automated testing runs on pushes and pull requests to **`main`** and **`dev`**, and daily on the default-branch tip (`main`) for dependency-drift detection.
 - Semver tags (excluding `*-stand-alone`) publish PyPI + `lca` and create a GitHub Release.
 
 ---
 
 ## 1. Automated Testing (`testing.yaml`)
 
-**Trigger:** Push or pull request to the `main` and `dev` branches
+**Triggers:**
+- Push or pull request to the `main` and `dev` branches
+- Scheduled daily at **08:00 UTC** (`cron: 0 8 * * *`) — dependency-drift canary on the **default branch** tip (`main`)
+- `workflow_dispatch` — manual run from the Actions UI (branch picker selects which ref is tested)
 
-**Purpose:** Ensures code quality by running the test suite across multiple operating systems and Python versions.
+**Purpose:** Ensures code quality by running the test suite across multiple operating systems and Python versions. The daily schedule catches quiet-day **dependency drift**: tip of `main` plus a fresh PyPI resolve of open version ranges still passes pytest. This is separate from the PyPI install canary (below); it does not build executables.
 
 ### Matrix Strategy
 - **Operating Systems:** Ubuntu (latest), Windows (latest), macOS 15, macOS (latest)
@@ -73,13 +76,17 @@ maintainer guide (fork workflow, local merges, and release steps).
 - Sets `QT_QPA_PLATFORM=offscreen` for headless GUI testing
 - Uses `fail-fast: false` to run all combinations even if some fail
 
+### Schedule vs manual dispatch
+- **Schedule** always uses the workflow file on the default branch and checks out that tip (`main`).
+- **`workflow_dispatch`** can target any branch you select in the Actions UI (useful for ad-hoc runs; not limited to `main`).
+
 ---
 
 ## 2. Canary Installation (`install-canary.yaml`)
 
-**Trigger:** Scheduled daily at 7:00 AM UTC (cron: `0 7 * * *`)
+**Trigger:** Scheduled daily at **07:00 UTC** (cron: `0 7 * * *`) — one hour before the Automated Testing schedule
 
-**Purpose:** Proactively detects dependency issues by performing fresh installations of Activity Browser from PyPI daily.
+**Purpose:** Proactively detects dependency issues by performing fresh installations of Activity Browser from **PyPI** daily (install-only; does not run the test suite).
 
 ### Matrix Strategy
 - **Operating Systems:** Ubuntu (latest), Windows (latest), macOS 15, macOS (latest)
@@ -95,8 +102,9 @@ maintainer guide (fork workflow, local merges, and release steps).
 
 ### Notes
 - Uses `bash -e {0}` shell to exit on error
-- Helps catch breaking changes in dependencies before users encounter them
+- Helps catch breaking changes that prevent the published package from installing
 - Artifacts show exact dependency versions that successfully installed
+- Pair with the daily Automated Testing schedule for “installs” vs “source + fresh deps still pass tests”
 
 ---
 
@@ -308,7 +316,7 @@ When modifying the test matrix (OS or Python versions):
 4. **conda-forge:** remains AB2 until forge deps allow AB3; defer bot upgrades (ADR-0017)
 
 ### Monitoring
-- Check daily canary runs to catch dependency issues
+- Check daily **canary installation** (07:00 UTC) and scheduled **Automated Testing** (08:00 UTC) for dependency issues; rely on GitHub workflow-failure notifications
 - Review failed test runs in PR checks before merging
 - Monitor PyPI and Anaconda Cloud for successful uploads
 
