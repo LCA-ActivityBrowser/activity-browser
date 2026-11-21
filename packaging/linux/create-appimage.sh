@@ -55,6 +55,9 @@ fi
 if [[ -f "${ROOT}/LICENSE.txt" ]]; then
   cp "${ROOT}/LICENSE.txt" "${APPDIR}/usr/lib/activity-browser/LICENSE.txt"
 fi
+if [[ -f "${ROOT}/COPYRIGHT.txt" ]]; then
+  cp "${ROOT}/COPYRIGHT.txt" "${APPDIR}/usr/lib/activity-browser/COPYRIGHT.txt"
+fi
 
 # AppImages are run by other users; world-readable/executable dirs are required.
 chmod -R a+rX "$APPDIR"
