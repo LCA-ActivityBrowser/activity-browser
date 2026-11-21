@@ -40,7 +40,7 @@ The **Activity Browser (AB)** is an open-source GUI for Life Cycle Assessment on
 > It is far ahead of the [AB2](#ab-2-legacy-version) (legacy) version.
 > It comes with a refreshed UI, runs on Brightway 2.5, and adds multifunctionality via [bw_functional](https://github.com/LCA-ActivityBrowser/bw-functional).
 >
-> [Learn more](https://lca-activitybrowser.github.io/activity-browser/beta.html) about AB3.
+> [Learn more](https://lca-activitybrowser.github.io/activity-browser/ab3.html) about AB3.
 
 # Installation
 

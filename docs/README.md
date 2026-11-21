@@ -1,10 +1,12 @@
 # docs
 
-Documentation for Activity Browser.
+AB docs for Activity Browser users (LCA practitioners).
 
 ## Overview
 
-This directory contains the source files for Activity Browser's documentation website, which is built using Jekyll and hosted on GitHub Pages.
+This directory is the **only** source tree for the public documentation website (Jekyll + GitHub Pages). Write for AB users, not for agents or programmers.
+
+Engineering decision records live in [`adr/`](../adr/). Agent workflow and skill config live in [`.agents/`](../.agents/) (see [ADR-0018](../adr/0018-docs-audiences-and-agent-docs-policy.md)). This `README.md` is excluded from the Jekyll build (`_config.yml`).
 
 ## Structure
 
@@ -20,6 +22,8 @@ This directory contains the source files for Activity Browser's documentation we
 
 - **`_sass/`** - SASS/CSS stylesheets
   - `custom/` - Custom styling overrides
+
+- **`ab3.md`** - Activity Browser 3 overview
 
 - **`getting-started/`** - Getting started guides
   - `installation.md` - Installation instructions
@@ -42,8 +46,6 @@ This directory contains the source files for Activity Browser's documentation we
   - `index.md` - Advanced topics overview
 
 - **`assets/`** - Images, screenshots, and other assets
-
-- **`beta.md`** - Beta version information
 
 ## Building Documentation
 

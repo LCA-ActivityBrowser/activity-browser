@@ -6,7 +6,7 @@ still prepare demand independently.
 
 Future: this mapping belongs in a shared place, preferably **bw_functional**,
 not a new Activity Browser layering ADR. See
-``docs/adr/0001-ui-app-bwutils-layering.md``.
+``adr/0001-ui-app-bwutils-layering.md``.
 """
 
 from __future__ import annotations

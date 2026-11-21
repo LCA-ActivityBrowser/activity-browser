@@ -37,4 +37,4 @@ Pin `lca::activity-browser`. An unpinned install with `-c conda-forge` first res
 
 Bugs and feature requests belong as [GitHub issues](https://github.com/LCA-ActivityBrowser/activity-browser/issues/new?template=ab3_report.yml). Include the version (About / `pip show`), install channel (pip, conda, or stand-alone), and OS when reporting a bug.
 
-Release channels and branching are recorded in [ADR-0017](https://github.com/LCA-ActivityBrowser/activity-browser/blob/main/docs/adr/0017-ab3-release-channels-and-branches.md).
+Release channels and branching are recorded in [ADR-0017](https://github.com/LCA-ActivityBrowser/activity-browser/blob/main/adr/0017-ab3-release-channels-and-branches.md).

@@ -21,7 +21,7 @@ The Activity Browser project uses several GitHub Actions workflows to automate t
 
 - **`main`**: AB3 stable (default). Public versions are cut with semver tags.
 - **`dev`**: AB3 integration for ongoing development and testing.
-- **`AB2_legacy`**: AB2 line (critical fixes only). See [ADR-0017](../../docs/adr/0017-ab3-release-channels-and-branches.md).
+- **`AB2_legacy`**: AB2 line (critical fixes only). See [ADR-0017](../../adr/0017-ab3-release-channels-and-branches.md).
 
 ### General developer workflow
 

@@ -2,7 +2,7 @@
 
 This repository is a Qt (PySide6/qtpy) desktop GUI for Life Cycle Assessment on Brightway2.
 
-**Start here for how agent docs are organized:** [`docs/agents/README.md`](docs/agents/README.md).
+**Start here for how agent docs are organized:** [`.agents/README.md`](.agents/README.md).
 
 Be concise and actionable. Prefer small, localized changes. Large refactors need human review.
 
@@ -10,15 +10,15 @@ Be concise and actionable. Prefer small, localized changes. Large refactors need
 
 ### Issue tracker
 
-Local markdown under `.scratch/` (gitignored). See `docs/agents/issue-tracker.md`.
+Local markdown under `.scratch/` (gitignored). See `.agents/issue-tracker.md`.
 
 ### Triage labels
 
-Default Matt Pocock triage roles. See `docs/agents/triage-labels.md`.
+Default Matt Pocock triage roles. See `.agents/triage-labels.md`.
 
 ### Domain docs
 
-Single-context: root `CONTEXT.md` + `docs/adr/`. See `docs/agents/domain.md`.
+Single-context: root `CONTEXT.md` + `adr/`. See `.agents/domain.md`.
 
 ### Development workflow
 
@@ -29,9 +29,9 @@ New work is sized **S / M / L**. See `.cursor/rules/development-workflow.mdc`. I
 - **Entry point:** console script `activity-browser` → `activity_browser:run_activity_browser`; also `python -m activity_browser` / `run-activity-browser.py`.
 - **UI toolkit:** Qt via `qtpy` / PySide6. Application class: `activity_browser.ui.core.application.ABApplication`.
 - **App singletons:** `from activity_browser import app` then `app.application`, `app.signals`, `app.settings`, `app.metadata`, `app.main_window`.
-- **Signals:** `app.signals` (`ABSignals`) mainly bridges bw2data blinker events to Qt. Preferred path: action → Brightway/bwutils → bw signals → UI. See `docs/adr/0003-signals-event-bus.md`.
+- **Signals:** `app.signals` (`ABSignals`) mainly bridges bw2data blinker events to Qt. Preferred path: action → Brightway/bwutils → bw signals → UI. See `adr/0003-signals-event-bus.md`.
 - **Settings:** `app.settings` (`activity_browser.bwutils.settings.Settings`); prefer this over ad-hoc config files.
-- **Metadata:** Prefer `app.metadata` (MetaDataStore) for activity/process labels and tabular lookups. Do not query SQLite (`ActivityDataset`) or `bd.get_node` for display metadata the store already has. Index is `(database, code)`; the `id` column is the Brightway datapackage id. Fallback to Brightway only for writes, missing rows, fields the store does not keep, or a live activity proxy. `bwutils/` helpers should take a dataframe (or lookup callback), not import `app`. See `activity_browser/bwutils/metadata/README.md` and `docs/adr/0005-metadata-from-metadatastore.md`.
+- **Metadata:** Prefer `app.metadata` (MetaDataStore) for activity/process labels and tabular lookups. Do not query SQLite (`ActivityDataset`) or `bd.get_node` for display metadata the store already has. Index is `(database, code)`; the `id` column is the Brightway datapackage id. Fallback to Brightway only for writes, missing rows, fields the store does not keep, or a live activity proxy. `bwutils/` helpers should take a dataframe (or lookup callback), not import `app`. See `activity_browser/bwutils/metadata/README.md` and `adr/0005-metadata-from-metadatastore.md`.
 - **Brightway:** heavy use of `bw2data`, `bw2calc`, `bw2analyzer`, `bw2io`, etc. Data mutations go through Brightway APIs and must keep signal expectations intact.
 
 ## Architecture and placement
@@ -50,11 +50,11 @@ New work is sized **S / M / L**. See `.cursor/rules/development-workflow.mdc`. I
 - If a widget does not depend on the application being initialized → `ui/`
 - Otherwise (needs `app.signals` / settings / metadata / main window) → `app/`
 
-See also ADRs under `docs/adr/` and module READMEs under each package directory.
+See also ADRs under `adr/` and module READMEs under each package directory.
 
 ## Domain language
 
-Use terms from [`CONTEXT.md`](CONTEXT.md). Read relevant ADRs in `docs/adr/` before changing architecture-sensitive areas.
+Use terms from [`CONTEXT.md`](CONTEXT.md). Read relevant ADRs in `adr/` before changing architecture-sensitive areas.
 
 ## Plugins (placeholder)
 
@@ -83,6 +83,13 @@ Agents should not assume Linux-only or a single Python version. Details live in 
 - **Branches:** feature work → PR into `dev`; land on stable via `dev` → `main`; public versions via semver tags. See `CONTRIBUTING.md` and ADR-0017.
 - **Dev deps / extras:** `pyproject.toml` (`[project.optional-dependencies]`).
 
+## AB docs (`docs/`)
+
+- **Audience / voice:** `docs/` is the GitHub Pages site for **AB users (LCA practitioners)**, not for agents or programmers (ADR-0018).
+- **Read** `docs/` when AB or UI behavior matters.
+- After behavior-changing work, **check** whether `docs/` needs updating; if yes, edit and **edit-then-flag** (list the `docs/` changes and ask the user to confirm). Ask first only for large rewrites or undecided AB behavior.
+- Put implementation / agent detail in `adr/`, `.agents/`, module READMEs, or this file — not in practitioner-facing pages.
+
 ## Safety for AI edits
 
 - Small, localized changes preferred.
@@ -94,8 +101,9 @@ Agents should not assume Linux-only or a single Python version. Details live in 
 ## Useful references
 
 - Domain glossary: `CONTEXT.md`
-- Agent docs map: `docs/agents/README.md`
-- ADRs: `docs/adr/`
+- Agent docs map: `.agents/README.md`
+- ADRs: `adr/`
+- AB docs (LCA practitioners): `docs/`
 - Contributing / branching: `CONTRIBUTING.md`
 - Module notes: `activity_browser/app/README.md`, `ui/README.md`, `bwutils/README.md`, `mod/README.md`
 - Tests: `tests/README.md`, `tests/conftest.py`

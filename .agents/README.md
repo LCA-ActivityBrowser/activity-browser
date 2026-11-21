@@ -4,9 +4,11 @@ Human-oriented overview of how Activity Browser stores context, rules, and archi
 
 If you forget how this was set up, **start here**.
 
+This tree is **not** part of the public GitHub Pages site. AB docs for LCA practitioners live only under `docs/` (see ADR-0018).
+
 ## Maintenance
 
-When you change how agent documentation is organized — new or removed `.cursor/rules`, move `CONTEXT.md` / `docs/adr` / `docs/agents`, switch issue tracker, or change the S/M/L workflow — **update this README in the same change**. The same requirement is encoded in `.cursor/rules/development-workflow.mdc`.
+When you change how agent documentation is organized — new or removed `.cursor/rules`, move `CONTEXT.md` / `adr` / `.agents`, switch issue tracker, or change the S/M/L workflow — **update this README in the same change**. The same requirement is encoded in `.cursor/rules/development-workflow.mdc`.
 
 ## What is committed vs local-only
 
@@ -14,13 +16,29 @@ When you change how agent documentation is organized — new or removed `.cursor
 |---|---|---|
 | `AGENTS.md` | Yes | Primary entry point for agents (architecture, placement, testing, CI pointers) |
 | `CONTEXT.md` | Yes | Domain glossary (agents + developers; not a public docs-site glossary) |
-| `docs/adr/` | Yes | Architecture Decision Records |
-| `docs/agents/` | Yes | This map + Matt Pocock skill config (tracker, domain, triage) |
+| `adr/` | Yes | Architecture Decision Records (engineering audience; not published on Pages) |
+| `.agents/` | Yes | This map + Matt Pocock skill config (tracker, domain, triage) |
+| `docs/` | Yes | AB docs site for AB users (LCA practitioners) |
 | `.cursor/rules/` | Yes | Cursor rules (workflow + per-module conventions) |
 | `.github/copilot-instructions.md` | Yes | Thin pointer to `AGENTS.md` for GitHub Copilot |
 | `.scratch/` | **No** (gitignored) | Local specs and tickets while trying the workflow |
 
-Skills themselves (e.g. `/grill-with-docs`, `/to-spec`) live in the developer’s agent skills install (e.g. `~/.agents/skills/`), not in this repo. This repo only records **how** those skills should behave here via `docs/agents/*.md`.
+Skills themselves (e.g. `/grill-with-docs`, `/to-spec`) live in the developer’s agent skills install (e.g. `~/.agents/skills/`), not in this repo. This repo only records **how** those skills should behave here via `.agents/*.md`.
+
+## Three audiences
+
+| Audience | Home | Voice / use |
+|---|---|---|
+| **AB docs** | `docs/` | AB users (LCA practitioners); GitHub Pages |
+| **Engineering** | `adr/` (+ `CONTRIBUTING.md`, module READMEs) | Human contributors and agents; decision records |
+| **Agent steering** | `.agents/`, root `AGENTS.md` / `CONTEXT.md`, `.cursor/rules/` | Agents and maintainers of agent workflow |
+
+## AB docs (`docs/`) — agent policy
+
+- **Read** `docs/` when AB/UI behavior matters; it often has useful practitioner-facing context.
+- After behavior-changing work, **check** whether `docs/` needs updating for LCA practitioners.
+- If yes, **edit** those pages (default: edit-then-flag — list the `docs/` changes and ask the user to confirm). Ask first only for large rewrites or undecided AB behavior.
+- Keep `docs/` language oriented at **AB users (LCA practitioners)**, not agents or programmers. Implementation detail belongs in `adr/`, `.agents/`, module READMEs, or `AGENTS.md` / `CONTEXT.md`.
 
 ## How the pieces relate
 
@@ -28,8 +46,9 @@ Skills themselves (e.g. `/grill-with-docs`, `/to-spec`) live in the developer’
 AGENTS.md          ← agents read this first
     │
     ├── CONTEXT.md              domain vocabulary
-    ├── docs/adr/               hard-to-reverse decisions
-    ├── docs/agents/            this map + skill config
+    ├── adr/                    hard-to-reverse decisions
+    ├── .agents/                this map + skill config
+    ├── docs/                   AB docs (read; edit with check + user confirm)
     ├── .cursor/rules/          always-on + path-scoped conventions
     └── .github/copilot-…       points back to AGENTS.md
 
@@ -44,7 +63,7 @@ Git commits         ← `.cursor/rules/always.mdc` (never commit unless the user
 
 Slash skills with `disable-model-invocation` are **not** auto-run. The workflow rule classifies work and **asks the human** to invoke the next `/skill`. The rule is the traffic light; the skills are the workstations.
 
-## Files in `docs/agents/`
+## Files in `.agents/`
 
 | File | Role |
 |---|---|
@@ -52,6 +71,7 @@ Slash skills with `disable-model-invocation` are **not** auto-run. The workflow 
 | `issue-tracker.md` | Where specs/tickets live (currently **local** `.scratch/`) |
 | `domain.md` | How skills should consume `CONTEXT.md` and ADRs |
 | `triage-labels.md` | Mapping for triage role labels |
+| `impact-category-interchange.md` | Agent notes pointing at canonical AB docs |
 
 ## Module READMEs (code-adjacent)
 
