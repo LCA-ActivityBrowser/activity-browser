@@ -357,8 +357,9 @@ Once it has been decided that an issue will be worked on, it is useful to provid
   ([e.g. like this](https://github.com/LCA-ActivityBrowser/activity-browser/issues/632))
 
 #### Regular checks for dependency problems
-AB has a [canary install](https://github.com/LCA-ActivityBrowser/activity-browser/actions/workflows/install-canary.yaml) 
-that runs the installation of AB every 24 hours, it will report any problems with installing AB.
+AB has a [canary install](https://github.com/LCA-ActivityBrowser/activity-browser/actions/workflows/install-canary.yaml)
+that daily checks whether the published **pip** (PyPI) and **conda** (`lca`) packages still install.
+Scheduled Automated Testing (once on `main`) separately checks whether the tip of `main` still passes pytest with a fresh dependency resolve.
 
 In addition, the tests that run when a pull-request is opened can pass, while still having `warnings`, these may be 
 `DeprecationWarning` or other things that are not a problem now, but will become a problem in the future.

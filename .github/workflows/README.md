@@ -7,7 +7,7 @@ This document describes the GitHub Actions workflows used in the Activity Browse
 The Activity Browser project uses several GitHub Actions workflows to automate testing, deployment, and project management tasks:
 
 1. **Automated Testing** - Runs tests on every push/PR, plus a daily schedule for dependency-drift detection
-2. **Canary Installation** - Daily PyPI install checks (separate from the test suite)
+2. **Canary Installation** - Daily published **pip** + **conda** install-channel checks (separate from the test suite)
 3. **Semver Publish** - Publishes tagged releases to PyPI and Anaconda (`lca`)
 4. **Build Executable** - Builds distributable app binaries
 5. **GitHub Release** - Creates GitHub Releases (changelog) and updates the wiki
@@ -57,7 +57,7 @@ maintainer guide (fork workflow, local merges, and release steps).
 - Scheduled daily at **08:00 UTC** (`cron: 0 8 * * *`) — dependency-drift canary on the **default branch** tip (`main`)
 - `workflow_dispatch` — manual run from the Actions UI (branch picker selects which ref is tested)
 
-**Purpose:** Ensures code quality by running the test suite across multiple operating systems and Python versions. The daily schedule catches quiet-day **dependency drift**: tip of `main` plus a fresh PyPI resolve of open version ranges still passes pytest. This is separate from the PyPI install canary (below); it does not build executables.
+**Purpose:** Ensures code quality by running the test suite across multiple operating systems and Python versions. The daily schedule catches quiet-day **dependency drift**: tip of `main` plus a fresh PyPI resolve of open version ranges still passes pytest. This is separate from the pip/conda install canary (below); it does not build executables.
 
 ### Matrix Strategy
 - **Operating Systems:** Ubuntu (latest), Windows (latest), macOS 15, macOS (latest)
@@ -84,27 +84,35 @@ maintainer guide (fork workflow, local merges, and release steps).
 
 ## 2. Canary Installation (`install-canary.yaml`)
 
-**Trigger:** Scheduled daily at **07:00 UTC** (cron: `0 7 * * *`) — one hour before the Automated Testing schedule
+**Triggers:**
+- Scheduled daily at **07:00 UTC** (`cron: 0 7 * * *`) — one hour before the Automated Testing schedule
+- `workflow_dispatch` — manual run from the Actions UI
 
-**Purpose:** Proactively detects dependency issues by performing fresh installations of Activity Browser from **PyPI** daily (install-only; does not run the test suite).
+**Purpose:** Checks whether the **published** packages for the **pip** and **conda** install channels still install today (install-only; does not run the test suite; does not install from the git tree). This is separate from scheduled Automated Testing, which checks out `main` and runs `pip install .[testing]` + pytest.
 
-### Matrix Strategy
-- **Operating Systems:** Ubuntu (latest), Windows (latest), macOS 15, macOS (latest)
-- **Python Versions:** 3.11, 3.12, 3.13, 3.14
-- **Timeout:** 12 minutes per job
+### Matrix Strategy (sparse 4+4 per installer)
+- **Ubuntu (latest):** Python 3.11, 3.12, 3.13, 3.14
+- **Windows (latest):** Python 3.11, 3.14
+- **macOS (latest, ARM):** Python 3.11, 3.14
+- **Timeouts:** 12 minutes (pip), 30 minutes (conda)
+- **Total:** 8 pip jobs + 8 conda jobs
 
-### Steps
-1. Checkout code
-2. Set up Python
-3. Install activity-browser from PyPI (not from source)
-4. Generate environment info with `pip freeze`
-5. Upload frozen requirements as artifact for each OS/Python combination
+The canary matrix is intentionally **not** identical to `testing.yaml` (full OS × Python). Sparse corners keep most install/drift signal at lower cost.
+
+### Pip job (`canary-installs-pip`)
+1. Set up Python for the matrix version (no checkout)
+2. `pip install activity-browser` from PyPI
+3. `pip freeze` → artifact `requirements-<os>-<python>`
+
+### Conda job (`canary-installs-conda`)
+1. Set up **micromamba** (CI solver; user docs still show `conda create …`)
+2. Create env with channels `conda-forge`, `lca`, `cmutel`, flexible priority, `lca::activity-browser`, and pinned `python=` matching the matrix
+3. `micromamba list --export` → artifact `conda-env-<os>-<python>`
 
 ### Notes
-- Uses `bash -e {0}` shell to exit on error
-- Helps catch breaking changes that prevent the published package from installing
-- Artifacts show exact dependency versions that successfully installed
-- Pair with the daily Automated Testing schedule for “installs” vs “source + fresh deps still pass tests”
+- No `actions/checkout` — the run SHA identifies the workflow file, not the installed AB source
+- Artifacts record the resolved environment for debugging
+- Pair with the daily Automated Testing schedule for “published install channels” vs “source tip + fresh deps still pass tests”
 
 ---
 
@@ -304,9 +312,9 @@ pytest -s --no-header --no-summary -q
 ```
 
 ### Testing Matrix Changes
-When modifying the test matrix (OS or Python versions):
-- Update both `testing.yaml` and `install-canary.yaml` to keep them in sync
-- Consider the maintenance burden of additional combinations
+When modifying OS or Python support:
+- Update `testing.yaml` for the full pytest matrix
+- Update `install-canary.yaml` only if the supported install-channel set changes; its sparse 4+4 matrix need not match testing cell-for-cell
 - Current support: Python 3.11-3.14, Ubuntu/Windows/macOS
 
 ### Release Process
