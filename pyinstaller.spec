@@ -13,6 +13,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 # SPECPATH is injected by PyInstaller when this file is executed.
 spec_root = Path(SPECPATH).resolve()
 license_file = spec_root / "LICENSE.txt"
+copyright_file = spec_root / "COPYRIGHT.txt"
 icon_ico = spec_root / "activity_browser" / "static" / "icons" / "main" / "activitybrowser.ico"
 icon_png = spec_root / "activity_browser" / "static" / "icons" / "main" / "activitybrowser.png"
 
@@ -151,6 +152,8 @@ ab_datas += extra_datas
 
 if license_file.exists():
     ab_datas.append((str(license_file), "."))
+if copyright_file.exists():
+    ab_datas.append((str(copyright_file), "."))
 
 hiddenimports = sorted(
     set(

@@ -149,7 +149,7 @@ If you want to contribute code, we suggest the following setup:
 
 ### Branching and git workflow
 
-Activity Browser uses three long-lived branches (see [ADR-0017](docs/adr/0017-ab3-release-channels-and-branches.md)):
+Activity Browser uses three long-lived branches (see [ADR-0017](adr/0017-ab3-release-channels-and-branches.md)):
 
 | Branch | Role |
 |--------|------|
@@ -357,8 +357,9 @@ Once it has been decided that an issue will be worked on, it is useful to provid
   ([e.g. like this](https://github.com/LCA-ActivityBrowser/activity-browser/issues/632))
 
 #### Regular checks for dependency problems
-AB has a [canary install](https://github.com/LCA-ActivityBrowser/activity-browser/actions/workflows/install-canary.yaml) 
-that runs the installation of AB every 24 hours, it will report any problems with installing AB.
+AB has a [canary install](https://github.com/LCA-ActivityBrowser/activity-browser/actions/workflows/install-canary.yaml)
+that daily checks whether the published **pip** (PyPI) and **conda** (`lca`) packages still install.
+Scheduled Automated Testing (once on `main`) separately checks whether the tip of `main` still passes pytest with a fresh dependency resolve.
 
 In addition, the tests that run when a pull-request is opened can pass, while still having `warnings`, these may be 
 `DeprecationWarning` or other things that are not a problem now, but will become a problem in the future.
@@ -369,7 +370,7 @@ If any installation problems occur or warnings happen in the pull-requests tests
 
 Activity Browser versions and related information live on the
 [__releases__](https://github.com/LCA-ActivityBrowser/activity-browser/releases)
-page. Release policy is recorded in [ADR-0017](docs/adr/0017-ab3-release-channels-and-branches.md).
+page. Release policy is recorded in [ADR-0017](adr/0017-ab3-release-channels-and-branches.md).
 
 The AB follows the `major.minor.patch` versioning [schema](https://semver.org/) closely, but not entirely.
 Where `major` releases are reserved for completely backwards-incompatible
@@ -402,7 +403,7 @@ while that is true.
 6. Actions create a GitHub Release (auto changelog) and publish **PyPI** + **`lca` conda** at version `x.y.z`
 7. **Edit the Release** and prepend the curated preamble
 8. For a full cut that includes stand-alone: Actions → Build Executable (`ab_version=x.y.z`, run from **`dev`**) →
-   Release Stand-alone → tag `x.y.z-stand-alone` (see [ADR-0015](docs/adr/0015-stand-alone-update-discovery.md))
+   Release Stand-alone → tag `x.y.z-stand-alone` (see [ADR-0015](adr/0015-stand-alone-update-discovery.md))
 9. Close the milestone (issue-comment bot) and announce on the
    [updates mailing list](https://brightway.groups.io/g/AB-updates/topics) as appropriate
 

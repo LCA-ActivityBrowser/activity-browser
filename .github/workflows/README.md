@@ -1,19 +1,20 @@
 # GitHub Actions Workflows
 
-This document describes the GitHub Actions workflows used in the Activity Browser project.
+This document describes every workflow under `.github/workflows/` (plus docs Pages, which has no repo workflow file).
 
-## Overview
+## Inventory
 
-The Activity Browser project uses several GitHub Actions workflows to automate testing, deployment, and project management tasks:
-
-1. **Automated Testing** - Runs tests on every push and PR
-2. **Canary Installation** - Daily installation checks to catch dependency issues
-3. **Semver Publish** - Publishes tagged releases to PyPI and Anaconda (`lca`)
-4. **Build Executable** - Builds distributable app binaries
-5. **GitHub Release** - Creates GitHub Releases (changelog) and updates the wiki
-6. **Milestone Comments** - Automatically notifies users when issues are resolved in releases
-7. **Documentation Deployment** - No workflow, done via GitHub settings
-8. **Traffic Archive** - Daily github-repo-stats snapshots and HTML/PDF reports on branch `github-repo-stats`
+| File | Actions UI name | Role |
+|---|---|---|
+| `testing.yaml` | Automated Testing | Pytest on push/PR + daily source dependency-drift |
+| `install-canary.yaml` | canary installation | Daily published **pip** + **conda** install checks |
+| `python-package-deploy.yml` | Publish release to PyPI and Anaconda | Semver tag → PyPI + `lca` |
+| `build-executable.yml` | Build Executable | Stand-alone installers (artifacts) |
+| `release-standalone.yml` | Release Stand-alone | Promote build artifacts → `{ver}-stand-alone` GitHub Release |
+| `release.yaml` | stable release | Semver tag → GitHub Release + wiki |
+| `comment-milestoned-issues.yaml` | comment when milestone is closed | Comment on issues when a milestone closes |
+| `traffic-archive.yaml` | Archive GitHub traffic | Daily traffic/stats snapshots on `github-repo-stats` |
+| *(none)* | pages build and deployment | Docs via GitHub Pages “Deploy from a branch” |
 
 ---
 
@@ -21,7 +22,7 @@ The Activity Browser project uses several GitHub Actions workflows to automate t
 
 - **`main`**: AB3 stable (default). Public versions are cut with semver tags.
 - **`dev`**: AB3 integration for ongoing development and testing.
-- **`AB2_legacy`**: AB2 line (critical fixes only). See [ADR-0017](../../docs/adr/0017-ab3-release-channels-and-branches.md).
+- **`AB2_legacy`**: AB2 line (critical fixes only). See [ADR-0017](../../adr/0017-ab3-release-channels-and-branches.md).
 
 ### General developer workflow
 
@@ -45,16 +46,22 @@ maintainer guide (fork workflow, local merges, and release steps).
 
 ### CI and deployment
 
-- Automated testing runs on pushes and pull requests to **`main`** and **`dev`**.
+- Automated testing runs on pushes and pull requests to **`main`** and **`dev`**, and daily on the default-branch tip (`main`) for dependency-drift detection. **`schedule` only fires from the default-branch workflow file** — the cron in `testing.yaml` must be on `main` to run.
 - Semver tags (excluding `*-stand-alone`) publish PyPI + `lca` and create a GitHub Release.
+- Stand-alone builds/releases are manual or `dev`-triggered; they use `*-stand-alone` tags and never go through Semver Publish / stable release.
 
 ---
 
 ## 1. Automated Testing (`testing.yaml`)
 
-**Trigger:** Push or pull request to the `main` and `dev` branches
+**Actions name:** Automated Testing
 
-**Purpose:** Ensures code quality by running the test suite across multiple operating systems and Python versions.
+**Triggers:**
+- Push or pull request to the `main` and `dev` branches
+- Scheduled daily at **08:00 UTC** (`cron: 0 8 * * *`) — dependency-drift check on the **default branch** tip (`main`)
+- `workflow_dispatch` — manual run from the Actions UI (branch picker selects which ref is tested)
+
+**Purpose:** Ensures code quality by running the test suite across multiple operating systems and Python versions. The daily schedule catches quiet-day **dependency drift**: tip of `main` plus a fresh PyPI resolve of open version ranges still passes pytest. This is separate from the pip/conda install canary (below); it does not build executables.
 
 ### Matrix Strategy
 - **Operating Systems:** Ubuntu (latest), Windows (latest), macOS 15, macOS (latest)
@@ -62,45 +69,62 @@ maintainer guide (fork workflow, local merges, and release steps).
 - **Total combinations:** 16 test runs per trigger, plus one Ubuntu / Python 3.12 job pinned to pandas 2.3.x (`tests-pandas2`) so pandas 2.3 and 3 both stay green.
 
 ### Steps
-1. Checkout code
-2. Set up Python for the specified version
-3. Install Qt libraries (Linux only)
-4. Update pip, setuptools, and wheel
+1. Checkout code (`actions/checkout@v4`)
+2. Set up Python for the specified version (`actions/setup-python@v5`)
+3. Install Qt libraries on Linux (`tlambert03/setup-qt-libs@v1`)
+4. Upgrade pip, setuptools, and wheel
 5. Install package with testing dependencies: `pip install .[testing]`
-6. Run pytest with minimal output: `pytest -s --no-header --no-summary -q`
+6. Run pytest: `pytest -q --no-cov -o log_cli=false --durations=25`
 
 ### Environment
 - Sets `QT_QPA_PLATFORM=offscreen` for headless GUI testing
 - Uses `fail-fast: false` to run all combinations even if some fail
 
+### Schedule vs manual dispatch
+- **Schedule** always uses the workflow file on the default branch and checks out that tip (`main`).
+- **`workflow_dispatch`** can target any branch you select in the Actions UI (useful for ad-hoc runs; not limited to `main`).
+
 ---
 
 ## 2. Canary Installation (`install-canary.yaml`)
 
-**Trigger:** Scheduled daily at 7:00 AM UTC (cron: `0 7 * * *`)
+**Actions name:** canary installation
 
-**Purpose:** Proactively detects dependency issues by performing fresh installations of Activity Browser from PyPI daily.
+**Triggers:**
+- Scheduled daily at **07:00 UTC** (`cron: 0 7 * * *`) — one hour before the Automated Testing schedule
+- `workflow_dispatch` — manual run from the Actions UI
 
-### Matrix Strategy
-- **Operating Systems:** Ubuntu (latest), Windows (latest), macOS 15, macOS (latest)
-- **Python Versions:** 3.11, 3.12, 3.13, 3.14
-- **Timeout:** 12 minutes per job
+**Purpose:** Checks whether the **published** packages for the **pip** and **conda** install channels still install today (install-only; does not run the test suite; does not install from the git tree). This is separate from scheduled Automated Testing, which checks out `main` and runs `pip install .[testing]` + pytest.
 
-### Steps
-1. Checkout code
-2. Set up Python
-3. Install activity-browser from PyPI (not from source)
-4. Generate environment info with `pip freeze`
-5. Upload frozen requirements as artifact for each OS/Python combination
+### Matrix Strategy (sparse 4+4 per installer)
+- **Ubuntu (latest):** Python 3.11, 3.12, 3.13, 3.14
+- **Windows (latest):** Python 3.11, 3.14
+- **macOS (latest, ARM):** Python 3.11, 3.14
+- **Timeouts:** 12 minutes (pip), 30 minutes (conda)
+- **Total:** 8 pip jobs + 8 conda jobs
+
+The canary matrix is intentionally **not** identical to `testing.yaml` (full OS × Python). Sparse corners keep most install/drift signal at lower cost.
+
+### Pip job (`canary-installs-pip`)
+1. Set up Python for the matrix version (no checkout)
+2. `pip install activity-browser` from PyPI
+3. `pip freeze` → artifact `requirements-<os>-<python>`
+
+### Conda job (`canary-installs-conda`)
+1. Set up **micromamba** (CI solver; user docs still show `conda create …`)
+2. Create env with channels `conda-forge`, `lca`, `cmutel`, flexible priority, `lca::activity-browser`, and pinned `python=` matching the matrix
+3. `micromamba list --export` → artifact `conda-env-<os>-<python>`
 
 ### Notes
-- Uses `bash -e {0}` shell to exit on error
-- Helps catch breaking changes in dependencies before users encounter them
-- Artifacts show exact dependency versions that successfully installed
+- No `actions/checkout` — the run SHA identifies the workflow file, not the installed AB source
+- Artifacts use `actions/upload-artifact@v4`
+- Pair with the daily Automated Testing schedule for “published install channels” vs “source tip + fresh deps still pass tests”
 
 ---
 
 ## 3. Semver Publish (`python-package-deploy.yml`)
+
+**Actions name:** Publish release to PyPI and Anaconda
 
 **Trigger:** Push of a git tag (job skipped when the tag ends in `-stand-alone`)
 
@@ -130,48 +154,60 @@ maintainer guide (fork workflow, local merges, and release steps).
 
 ## 4. Build Executable (`build-executable.yml`)
 
-**Trigger (on `dev` / feature branches):**
+**Actions name:** Build Executable
+
+**Triggers:**
 - `pull_request` → `dev`
 - `push` → `dev`
-- `workflow_dispatch` (optional manual rebuild)
+- `workflow_dispatch` with optional input `ab_version` (empty = latest `activity-browser` on PyPI)
 
 **Purpose:** Builds stand-alone Activity Browser packages with PyInstaller (onedir) plus
 platform installers; uploads workflow artifacts. Version stamp defaults to
-`{latest PyPI activity-browser}-stand-alone`. See [`packaging/README.md`](../../packaging/README.md).
+`{latest PyPI activity-browser}-stand-alone`. See [`packaging/README.md`](../../packaging/README.md)
+and ADR-0016 (Mac micromamba / umfpack).
 
-**Default branch (`main`):** keep a **minimal stub** with the same workflow `name` and
-`on: workflow_dispatch` only (PR #1791 pattern). That unlocks **Run workflow** in the
-Actions UI; choose **`dev`** in the branch dropdown so the full job matrix runs.
+**Branch note:** The full job matrix lives on `dev` (and feature branches). Prefer **Run workflow**
+with branch **`dev`** (or a PR branch that has this file). Merges do not publish a stand-alone release.
 
 ### Matrix Strategy
-- **Windows** → Inno Setup installer
-- **Linux** → AppImage
-- **macOS** (Apple Silicon) → unsigned DMG
+- **Windows** (`windows-latest`) → Inno Setup installer (`windows-x64`)
+- **Linux** (`ubuntu-latest`) → AppImage (`linux-x86_64`)
+- **macOS** (`macos-latest`, Apple Silicon) → unsigned DMG (`macos-arm64`)
 
-After packaging, each OS job smoke-launches the stand-alone under offscreen Qt
-(`packaging/smoke-standalone.sh`) and fails if the process dies during startup.
+Win/Linux freeze via **uv**; macOS freeze via **micromamba**. After packaging, each OS job
+smoke-launches the stand-alone under offscreen Qt (`packaging/smoke-standalone.sh`) and fails
+if the process dies during startup. Artifacts use `actions/upload-artifact@v4`.
 
 ### Publishing
 Use **Release Stand-alone** (below).
 
 ---
 
-## 4b. Release Stand-alone (`release-standalone.yml`)
+## 5. Release Stand-alone (`release-standalone.yml`)
 
-**Trigger:** `workflow_dispatch` only (full file on `dev`; stub on `main` for the UI).
+**Actions name:** Release Stand-alone
+
+**Trigger:** `workflow_dispatch` only
 
 **Purpose:** Downloads artifacts from a Build Executable run and creates an immutable
 GitHub Release tagged `{AB}-stand-alone` with versioned installer assets. Docs and the
 in-app updater use the Releases page / API filter on `*-stand-alone` tags (ADR-0015).
 
+Prefer **Run workflow** with branch **`dev`** so GitHub uses the full workflow file.
+
 ### Dispatch inputs
 - `build_run_id` — optional; empty = latest successful Build Executable on `source_branch`
-- `source_branch` — default `dev`
+- `source_branch` — default `dev` (required input)
 - `ab_version` — optional; empty = PyPI latest
+
+### Permissions
+- `contents: write`, `actions: read`
 
 ---
 
-## 5. GitHub Release (`release.yaml`)
+## 6. GitHub Release / stable release (`release.yaml`)
+
+**Actions name:** stable release
 
 **Trigger:** Push of a git tag (job skipped when the tag ends in `-stand-alone`)
 
@@ -179,9 +215,9 @@ in-app updater use the Releases page / API filter on `*-stand-alone` tags (ADR-0
 PyPI / `lca` uploads are handled by [Semver Publish](#3-semver-publish-python-package-deployyml).
 
 ### Steps
-1. Checkout code
-2. **Generate Changelog** from PR labels (`.github/changelog-configuration.json`)
-3. **Create GitHub Release** on the tagged commit (`commit: main`)
+1. Checkout code (`actions/checkout@v4`)
+2. **Generate Changelog** from PR labels (`mikepenz/release-changelog-builder-action@v4`, `.github/changelog-configuration.json`)
+3. **Create GitHub Release** on the tagged commit (`ncipollo/release-action@v1`, `commit: main`)
 4. **Update Wiki** via `.github/scripts/update_wiki.sh`
 
 ### Notes
@@ -190,9 +226,11 @@ PyPI / `lca` uploads are handled by [Semver Publish](#3-semver-publish-python-pa
 
 ---
 
-## 6. Milestone Comments (`comment-milestoned-issues.yaml`)
+## 7. Milestone Comments (`comment-milestoned-issues.yaml`)
 
-**Trigger:** When a milestone is closed
+**Actions name:** comment when milestone is closed
+
+**Trigger:** When a milestone is closed (`milestone` types: `closed`)
 
 **Purpose:** Automatically notifies users on closed issues when their issue has been implemented in a release.
 
@@ -202,7 +240,7 @@ PyPI / `lca` uploads are handled by [Semver Publish](#3-semver-publish-python-pa
 3. Lists all issues associated with the milestone
 4. For each closed issue (not PRs):
    - Posts a comment with:
-     - Link to the new release
+     - Link to the new release (`releases/tag/{milestone_title}`)
      - Instructions to update Activity Browser
      - Link to subscribe to the updates mailing list
      - Bot disclaimer
@@ -216,7 +254,7 @@ The bot posts a formatted note:
 
 ---
 
-## 7. Documentation deployment
+## 8. Documentation deployment
 
 Documentation is currently deployed by **GitHub Pages "Deploy from a branch"** (not by a repository workflow file).
 
@@ -225,15 +263,17 @@ Documentation is currently deployed by **GitHub Pages "Deploy from a branch"** (
 
 ---
 
-## 8. Traffic Archive (`traffic-archive.yaml`)
+## 9. Traffic Archive (`traffic-archive.yaml`)
+
+**Actions name:** Archive GitHub traffic
 
 **Trigger:** Daily at 23:00 UTC (`cron: 0 23 * * *`), or manual `workflow_dispatch`
 
-**Purpose:** GitHub only retains repository traffic insights for about 14 days. This workflow uses [`jgehrcke/github-repo-stats`](https://github.com/marketplace/actions/github-repo-stats) to snapshot traffic (views/clones, referrers, paths), plus stars/forks evolution, then commits data and HTML/PDF reports to the `github-repo-stats` branch.
+**Purpose:** GitHub only retains repository traffic insights for about 14 days. This workflow uses [`jgehrcke/github-repo-stats`](https://github.com/marketplace/actions/github-repo-stats) (`v1.4.2`) to snapshot traffic (views/clones, referrers, paths), plus stars/forks evolution, then commits data and HTML/PDF reports to the `github-repo-stats` branch.
 
 ### Steps
 1. Skip with a notice if `GHRS_GITHUB_API_TOKEN` is not configured
-2. Run github-repo-stats (reads Traffic API, aggregates history, commits to `databranch`)
+2. Run github-repo-stats (reads Traffic API, aggregates history, commits to `databranch: github-repo-stats`)
 
 ### One-time setup
 1. Create a classic PAT with **`repo`** scope (needed for Traffic API + pushing to the data branch). Store it as repository secret `GHRS_GITHUB_API_TOKEN`.
@@ -275,7 +315,7 @@ The first report is sparse; charts improve as daily snapshots accumulate.
 ### Secrets Required
 - `GITHUB_TOKEN` - Automatically provided by GitHub Actions
 - `CONDA_LCA` - Anaconda upload token for AB3 releases (`lca` channel)
-- `GHRS_GITHUB_API_TOKEN` - PAT (`repo` scope) for Traffic API + pushing reports to `github-repo-stats` (see [Traffic Archive](#8-traffic-archive-traffic-archiveyaml))
+- `GHRS_GITHUB_API_TOKEN` - PAT (`repo` scope) for Traffic API + pushing reports to `github-repo-stats` (see [Traffic Archive](#9-traffic-archive-traffic-archiveyaml))
 
 ### Configuration Files
 - `.github/conda-envs/build.yml` - Conda environment for building packages
@@ -283,6 +323,7 @@ The first report is sparse; charts improve as daily snapshots accumulate.
 - `.github/scripts/update_wiki.sh` - Wiki update script
 - `recipe/meta.yaml` - Conda package recipe
 - `pyproject.toml` - Python package configuration
+- `packaging/` - Stand-alone build scripts and smoke test
 
 ---
 
@@ -292,13 +333,13 @@ The first report is sparse; charts improve as daily snapshots accumulate.
 To run the same tests that CI runs:
 ```bash
 pip install .[testing]
-pytest -s --no-header --no-summary -q
+pytest -q --no-cov -o log_cli=false --durations=25
 ```
 
 ### Testing Matrix Changes
-When modifying the test matrix (OS or Python versions):
-- Update both `testing.yaml` and `install-canary.yaml` to keep them in sync
-- Consider the maintenance burden of additional combinations
+When modifying OS or Python support:
+- Update `testing.yaml` for the full pytest matrix
+- Update `install-canary.yaml` only if the supported install-channel set changes; its sparse 4+4 matrix need not match testing cell-for-cell
 - Current support: Python 3.11-3.14, Ubuntu/Windows/macOS
 
 ### Release Process
@@ -308,7 +349,7 @@ When modifying the test matrix (OS or Python versions):
 4. **conda-forge:** remains AB2 until forge deps allow AB3; defer bot upgrades (ADR-0017)
 
 ### Monitoring
-- Check daily canary runs to catch dependency issues
+- Check daily **canary installation** (07:00 UTC) and scheduled **Automated Testing** (08:00 UTC) for dependency issues; rely on GitHub workflow-failure notifications
+- Remember: schedules only run from the default-branch (`main`) copy of the workflow file
 - Review failed test runs in PR checks before merging
 - Monitor PyPI and Anaconda Cloud for successful uploads
-

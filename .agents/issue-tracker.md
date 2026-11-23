@@ -2,7 +2,7 @@
 
 Issues and specs (you may know a spec as a PRD) for this repo live as markdown files in `.scratch/`.
 
-**Note:** Local tracking is intentional while the agent workflow is being proven. `.scratch/` is gitignored. Shared product work for collaborators still uses GitHub Issues/PRs as today. A future switch to GitHub Issues for agent tickets is welcome — update this file and `docs/agents/README.md` together.
+**Note:** Local tracking is intentional while the agent workflow is being proven. `.scratch/` is gitignored. Shared product work for collaborators still uses GitHub Issues/PRs as today. A future switch to GitHub Issues for agent tickets is welcome — update this file and `.agents/README.md` together.
 
 ## Conventions
 

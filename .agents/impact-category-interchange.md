@@ -1,6 +1,6 @@
 # Impact-category interchange (agent notes)
 
-Canonical user docs: [`docs/advanced-topics/impact-category-interchange.md`](../advanced-topics/impact-category-interchange.md).
+Canonical user docs: [`docs/advanced-topics/impact-category-interchange.md`](../docs/advanced-topics/impact-category-interchange.md).
 
 Glossary in root `CONTEXT.md`: **AB impact-category file**, **bw2io impact-category file**. Prefer “impact category” / “LCIA method”; avoid “Indicators” for AB metadata and avoid “one-shot” / “bw2io native”.
 

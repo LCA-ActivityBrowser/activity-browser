@@ -35,7 +35,9 @@ requirements:
     - lca::multifunctional >=1.1.2
     - bw_functional >=0.1.1
     - ecoinvent_interface
-    - matrix_utils >=0.5
+    # Cap below 1.0: AB Monte Carlo patch still needs matrix_utils.aggregation
+    # (removed in 1.0); rewrite before adopting bw_processing 2 / stats_arrays 5.
+    - matrix_utils >=0.5,<1
     - numpy >=1.26
     - py7zr >=1.0
     - pyperclip
@@ -56,7 +58,9 @@ about:
   home: https://github.com/LCA-ActivityBrowser/activity-browser
   license: LGPL3+
   license_family: LGPL
-  license_file: LICENSE.txt
+  license_file:
+    - LICENSE.txt
+    - COPYRIGHT.txt
   summary: GUI for brightway2
   description: |
     The Activity Browser is a graphical user interface for the [brightway2](https://brightway.dev/)

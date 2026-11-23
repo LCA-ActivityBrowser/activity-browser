@@ -54,7 +54,11 @@ callouts:
 # Excluded items can be processed by explicitly listing the directories or
 # their entries' file path in the `include:` list.
 #
-# exclude:
+# Site authoring guide (this folder's README) is for contributors, not the
+# public AB docs nav. Engineering/agent material lives outside docs/
+# (see adr/ and .agents/, ADR-0018).
+exclude:
+  - README.md
 #   - .sass-cache/
 #   - .jekyll-cache/
 #   - gemfiles/
