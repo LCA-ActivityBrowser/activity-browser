@@ -7,24 +7,49 @@ on:
   push:
     tags:
       - "*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to publish (must match an existing tag, e.g. 3.0.1)"
+        required: true
+        type: string
+      targets:
+        description: "Publish targets"
+        required: true
+        type: choice
+        options:
+          - both
+          - pypi
+          - conda
+        default: conda
 
 jobs:
-  build-n-publish:
-    name: Publish release to PyPI and Anaconda
+  publish-pypi:
+    name: Publish to PyPI
     # Stand-alone promotes use tags ending in -stand-alone; do not publish those here.
-    if: ${{ !endsWith(github.ref_name, '-stand-alone') }}
+    if: >-
+      ${{
+        !endsWith(
+          github.event_name == 'workflow_dispatch' && inputs.version || github.ref_name,
+          '-stand-alone'
+        ) && (
+          github.event_name == 'push' ||
+          inputs.targets == 'both' ||
+          inputs.targets == 'pypi'
+        )
+      }}
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        shell: bash -l {0}
     permissions:
       id-token: write
     steps:
     - uses: actions/checkout@v4
       with:
         fetch-depth: "0"
-    - name: Set version from tag
-      run: echo "VERSION=${GITHUB_REF_NAME}" >> "$GITHUB_ENV"
+        ref: ${{ github.event_name == 'workflow_dispatch' && format('refs/tags/{0}', inputs.version) || github.ref }}
+    - name: Set version
+      run: echo "VERSION=${VERSION}" >> "$GITHUB_ENV"
+      env:
+        VERSION: ${{ github.event_name == 'workflow_dispatch' && inputs.version || github.ref_name }}
     - name: Set up Python 3.11
       uses: actions/setup-python@v5
       with:
@@ -50,6 +75,36 @@ jobs:
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
         attestations: false
+        # Safe for job re-runs / manual dispatch after a partial success
+        skip-existing: true
+
+  publish-conda:
+    name: Publish to Anaconda (lca)
+    # Stand-alone promotes use tags ending in -stand-alone; do not publish those here.
+    if: >-
+      ${{
+        !endsWith(
+          github.event_name == 'workflow_dispatch' && inputs.version || github.ref_name,
+          '-stand-alone'
+        ) && (
+          github.event_name == 'push' ||
+          inputs.targets == 'both' ||
+          inputs.targets == 'conda'
+        )
+      }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -l {0}
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: "0"
+        ref: ${{ github.event_name == 'workflow_dispatch' && format('refs/tags/{0}', inputs.version) || github.ref }}
+    - name: Set version
+      run: echo "VERSION=${VERSION}" >> "$GITHUB_ENV"
+      env:
+        VERSION: ${{ github.event_name == 'workflow_dispatch' && inputs.version || github.ref_name }}
     - name: Set up Conda 3.11
       uses: conda-incubator/setup-miniconda@v3
       with:

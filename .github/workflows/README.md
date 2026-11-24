@@ -8,7 +8,7 @@ This document describes every workflow under `.github/workflows/` (plus docs Pag
 |---|---|---|
 | `testing.yaml` | Automated Testing | Pytest on PR + daily source dependency-drift |
 | `install-canary.yaml` | canary installation | Daily published **pip** + **conda** install checks |
-| `python-package-deploy.yml` | Publish release to PyPI and Anaconda | Semver tag → PyPI + `lca` |
+| `python-package-deploy.yml` | Publish release to PyPI and Anaconda | Semver tag (or manual) → PyPI and/or `lca` |
 | `build-executable.yml` | Build Executable | Stand-alone installers (artifacts) |
 | `release-standalone.yml` | Release Stand-alone | Promote build artifacts → `{ver}-stand-alone` GitHub Release |
 | `release.yaml` | stable release | Semver tag → GitHub Release + wiki |
@@ -47,7 +47,7 @@ maintainer guide (fork workflow, local merges, and release steps).
 ### CI and deployment
 
 - Automated testing runs on pull requests targeting **`main`** or **`dev`** (including each new commit on the PR), and daily on the default-branch tip (`main`) for dependency-drift detection. **`schedule` only fires from the default-branch workflow file** — the cron in `testing.yaml` must be on `main` to run.
-- Semver tags (excluding `*-stand-alone`) publish PyPI + `lca` and create a GitHub Release.
+- Semver tags (excluding `*-stand-alone`) publish PyPI + `lca` and create a GitHub Release; Semver Publish can also be re-run manually (`workflow_dispatch`) for one or both channels.
 - Stand-alone builds run automatically on PRs into **`main`**, or manually via **Run workflow** (prefer branch **`dev`**); they use `*-stand-alone` tags and never go through Semver Publish / stable release.
 
 ---
@@ -126,29 +126,38 @@ The canary matrix is intentionally **not** identical to `testing.yaml` (full OS 
 
 **Actions name:** Publish release to PyPI and Anaconda
 
-**Trigger:** Push of a git tag (job skipped when the tag ends in `-stand-alone`)
+**Triggers:**
+- Push of a git tag (both jobs; skipped when the tag ends in `-stand-alone`)
+- `workflow_dispatch` — manual publish of an existing tag, with selectable targets
 
-**Purpose:** Publishes the tagged version to PyPI (test and production) and Anaconda Cloud (`lca`).
+**Purpose:** Publishes the tagged version to PyPI (test and production) and/or Anaconda Cloud (`lca`) as **independent jobs**, so a failed conda upload can be re-run without re-publishing to PyPI (and vice versa).
 
 ### Version Scheme
-- `VERSION` = tag name (e.g. `3.0.0`)
+- Tag push: `VERSION` = tag name (e.g. `3.0.1`)
+- Manual: `VERSION` = `version` input (must match an existing tag); checkout uses `refs/tags/{version}`
 
-### Steps
-1. Checkout with full git history (`fetch-depth: "0"`)
-2. Set `VERSION` from the tag
-3. Set up Python 3.11
-4. Install `build` package
-5. Build wheel and source distribution
-6. **PyPI Publishing:**
-   - Publish to Test PyPI (with `skip-existing: true`)
-   - Publish to production PyPI
-7. **Conda Publishing:**
-   - Set up Conda environment from `.github/conda-envs/build.yml`
-   - Build Conda package: `conda build -c conda-forge -c cmutel -c lca ./recipe/`
-   - Upload to Anaconda Cloud using `CONDA_LCA`
+### Jobs
+
+| Job | Actions UI name | What it does |
+|---|---|---|
+| `publish-pypi` | Publish to PyPI | Build wheel/sdist → Test PyPI → PyPI (both `skip-existing`) |
+| `publish-conda` | Publish to Anaconda (lca) | Conda setup → `conda build` → upload with `CONDA_LCA` |
+
+### Manual run (`workflow_dispatch`)
+1. Actions → **Publish release to PyPI and Anaconda** → **Run workflow**
+2. Pick a branch that has this workflow file (usually `main` or `dev`)
+3. Set **version** to the existing tag (e.g. `3.0.1`)
+4. Set **targets** to `conda`, `pypi`, or `both` (default: `conda`)
+
+Prefer **Re-run failed jobs** on the original tag-push run when the workflow on that commit already has the split jobs. Use manual dispatch for retries after the fact (e.g. after rotating `CONDA_LCA`).
+
+**Notes**
+- `version` must be an existing tag; the job checks out `refs/tags/{version}`.
+- PyPI uses trusted publishing (OIDC) keyed to this workflow file + repo — **not** to the tag vs branch that triggered the run. Manual `pypi` / `both` should authenticate the same way as a tag push with the current job (no GitHub Environment). If you later bind the job to an Environment that only allows tags, branch dispatch would fail until that rule is relaxed.
+- Production and Test PyPI both use `skip-existing`, so re-dispatch after a successful upload is a no-op rather than an error. Conda upload has no equivalent skip and will fail if that version is already on `lca` unless you force/overwrite outside this workflow.
 
 ### Permissions
-- Requires `id-token: write` for PyPI trusted publishing
+- PyPI job requires `id-token: write` for trusted publishing
 
 ---
 
@@ -342,7 +351,7 @@ When modifying OS or Python support:
 - Current support: Python 3.11-3.14, Ubuntu/Windows/macOS
 
 ### Release Process
-1. **Stable release:** Push annotated semver tag on `main` → GitHub Release + PyPI + `lca` (then Edit release for curated preamble; see CONTRIBUTING)
+1. **Stable release:** Push annotated semver tag on `main` → GitHub Release + PyPI + `lca` (then Edit release for curated preamble; see CONTRIBUTING). Retry a single channel via **Re-run failed jobs** or Semver Publish **`workflow_dispatch`**.
 2. **Stand-alone:** Build Executable (PR into `main`, or manual from `dev`) → Release Stand-alone → `{ver}-stand-alone` tag
 3. **Close milestone:** Users get release comments automatically
 4. **conda-forge:** remains AB2 until forge deps allow AB3; defer bot upgrades (ADR-0017)
