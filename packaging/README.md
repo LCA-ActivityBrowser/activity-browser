@@ -8,19 +8,19 @@ to produce downloadable Activity Browser builds for Windows, macOS, and Linux.
 Normal development path is unchanged:
 
 ```text
-feature branch  →  PR into dev  →  (later) dev → main
-                         │
-                         ▼
-              Build Executable (CI artifacts)
-                         │
-                         ▼
-         Actions → "Release Stand-alone" (manual)
-                         │
-                         ▼
-         GitHub Release tag `{AB}-stand-alone` (immutable)
+feature → PR into dev → (later) PR: dev → main
+                                      │
+                                      ▼
+                           Build Executable (CI artifacts)
+                                      │
+                                      ▼
+                      Actions → "Release Stand-alone" (manual)
+                                      │
+                                      ▼
+                      GitHub Release tag `{AB}-stand-alone` (immutable)
 ```
 
-1. Open a PR into **`dev`** (or merge to `dev`). **Build Executable** runs automatically.
+1. **Build Executable** runs automatically on PRs into **`main`**. For an ad-hoc build (e.g. before a stand-alone cut), Actions → **Build Executable** → **Run workflow** and pick branch **`dev`**.
 2. When you want public downloads: Actions → **Release Stand-alone** → **Run workflow**.
    - Branch dropdown: choose **`dev`** (not `main`) so GitHub uses the full workflow.
    - Optional: paste a Build Executable run ID; otherwise uses the latest success on `dev`.

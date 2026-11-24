@@ -6,7 +6,7 @@ This document describes every workflow under `.github/workflows/` (plus docs Pag
 
 | File | Actions UI name | Role |
 |---|---|---|
-| `testing.yaml` | Automated Testing | Pytest on push/PR + daily source dependency-drift |
+| `testing.yaml` | Automated Testing | Pytest on PR + daily source dependency-drift |
 | `install-canary.yaml` | canary installation | Daily published **pip** + **conda** install checks |
 | `python-package-deploy.yml` | Publish release to PyPI and Anaconda | Semver tag → PyPI + `lca` |
 | `build-executable.yml` | Build Executable | Stand-alone installers (artifacts) |
@@ -46,9 +46,9 @@ maintainer guide (fork workflow, local merges, and release steps).
 
 ### CI and deployment
 
-- Automated testing runs on pushes and pull requests to **`main`** and **`dev`**, and daily on the default-branch tip (`main`) for dependency-drift detection. **`schedule` only fires from the default-branch workflow file** — the cron in `testing.yaml` must be on `main` to run.
+- Automated testing runs on pull requests targeting **`main`** or **`dev`** (including each new commit on the PR), and daily on the default-branch tip (`main`) for dependency-drift detection. **`schedule` only fires from the default-branch workflow file** — the cron in `testing.yaml` must be on `main` to run.
 - Semver tags (excluding `*-stand-alone`) publish PyPI + `lca` and create a GitHub Release.
-- Stand-alone builds/releases are manual or `dev`-triggered; they use `*-stand-alone` tags and never go through Semver Publish / stable release.
+- Stand-alone builds run automatically on PRs into **`main`**, or manually via **Run workflow** (prefer branch **`dev`**); they use `*-stand-alone` tags and never go through Semver Publish / stable release.
 
 ---
 
@@ -57,7 +57,7 @@ maintainer guide (fork workflow, local merges, and release steps).
 **Actions name:** Automated Testing
 
 **Triggers:**
-- Push or pull request to the `main` and `dev` branches
+- Pull request targeting `main` or `dev` (re-runs when the PR branch is updated with new commits)
 - Scheduled daily at **08:00 UTC** (`cron: 0 8 * * *`) — dependency-drift check on the **default branch** tip (`main`)
 - `workflow_dispatch` — manual run from the Actions UI (branch picker selects which ref is tested)
 
@@ -157,8 +157,7 @@ The canary matrix is intentionally **not** identical to `testing.yaml` (full OS 
 **Actions name:** Build Executable
 
 **Triggers:**
-- `pull_request` → `dev`
-- `push` → `dev`
+- `pull_request` → `main`
 - `workflow_dispatch` with optional input `ab_version` (empty = latest `activity-browser` on PyPI)
 
 **Purpose:** Builds stand-alone Activity Browser packages with PyInstaller (onedir) plus
@@ -166,8 +165,8 @@ platform installers; uploads workflow artifacts. Version stamp defaults to
 `{latest PyPI activity-browser}-stand-alone`. See [`packaging/README.md`](../../packaging/README.md)
 and ADR-0016 (Mac micromamba / umfpack).
 
-**Branch note:** The full job matrix lives on `dev` (and feature branches). Prefer **Run workflow**
-with branch **`dev`** (or a PR branch that has this file). Merges do not publish a stand-alone release.
+**Branch note:** Auto-runs on PRs into **`main`**. For ad-hoc / stand-alone cuts, prefer **Run workflow**
+with branch **`dev`**. Merges do not publish a stand-alone release.
 
 ### Matrix Strategy
 - **Windows** (`windows-latest`) → Inno Setup installer (`windows-x64`)
@@ -344,7 +343,7 @@ When modifying OS or Python support:
 
 ### Release Process
 1. **Stable release:** Push annotated semver tag on `main` → GitHub Release + PyPI + `lca` (then Edit release for curated preamble; see CONTRIBUTING)
-2. **Stand-alone:** Build Executable on `dev` → Release Stand-alone → `{ver}-stand-alone` tag
+2. **Stand-alone:** Build Executable (PR into `main`, or manual from `dev`) → Release Stand-alone → `{ver}-stand-alone` tag
 3. **Close milestone:** Users get release comments automatically
 4. **conda-forge:** remains AB2 until forge deps allow AB3; defer bot upgrades (ADR-0017)
 
