@@ -84,8 +84,9 @@ jobs:
       - name: Set up micromamba
         uses: mamba-org/setup-micromamba@v2
         with:
+          # init-shell only: the env is created in the next step. generate-run-shell
+          # requires environment-name/environment-file and fails the job otherwise.
           init-shell: bash
-          generate-run-shell: true
           condarc: |
             channels:
               - conda-forge
