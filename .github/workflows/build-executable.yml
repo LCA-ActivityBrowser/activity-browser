@@ -1,9 +1,8 @@
 name: Build Executable
 
-# Full installer build (lives on dev / feature branches).
-# A minimal workflow_dispatch stub with the same name must exist on main
-# so Actions shows "Run workflow"; pick this branch (or dev) in the dropdown.
-# See packaging/README.md and PR #1791 pattern.
+# Auto-builds on PRs into main. For ad-hoc builds (e.g. stand-alone cut),
+# use Actions → Run workflow and pick branch `dev` (or another ref that has
+# this file). See packaging/README.md.
 on:
   workflow_dispatch:
     inputs:
@@ -12,9 +11,7 @@ on:
         required: false
         type: string
   pull_request:
-    branches: [dev]
-  push:
-    branches: [dev]
+    branches: [main]
 
 jobs:
   build:
