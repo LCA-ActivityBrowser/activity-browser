@@ -1,3 +1,17 @@
+# Packaging
+
+In-repo build inputs for shipping Activity Browser. Install channels (**pip**, **conda**, **stand-alone**) are defined in `CONTEXT.md`; this tree holds the conda and stand-alone build material. Freeze entrypoints (`pyinstaller.spec`, `run-activity-browser.py`) and the legacy `setup.py` shim stay at the repository root.
+
+| Path | Role |
+|---|---|
+| [`conda/`](conda/) | Conda-build recipe (`meta.yaml`) used by deploy CI / `lca` channel builds |
+| `windows/`, `macos/`, `linux/` | Stand-alone installer / DMG / AppImage scripts |
+| `smoke-standalone.sh`, `export-dependencies.sh` | Stand-alone CI helpers |
+
+The public **conda-forge** recipe remains in the [activity-browser-feedstock](https://github.com/conda-forge/activity-browser-feedstock). There is no root `recipe/` stub — use `packaging/conda/`.
+
+---
+
 # Stand-alone packaging
 
 Scripts and metadata used by [`.github/workflows/build-executable.yml`](../.github/workflows/build-executable.yml)

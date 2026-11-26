@@ -20,11 +20,11 @@ When you change how agent documentation is organized — new or removed `.cursor
 | `.agents/` | Yes | This map + Matt Pocock skill config (tracker, domain) |
 | `docs/` | Yes | AB docs site for AB users (LCA practitioners) |
 | `.cursor/rules/` | Yes | Cursor rules (workflow + per-module conventions) |
-| `.cursor/skills/` | Yes | Project Agent Skills (e.g. `/PR`) |
+| `.cursor/skills/` | Yes | AB-specific project skills (e.g. `/PR`) — shared team conventions |
 | `.github/copilot-instructions.md` | Yes | Thin pointer to `AGENTS.md` for GitHub Copilot |
 | `.scratch/` | **No** (gitignored) | Local specs and tickets while trying the workflow |
 
-Shared workflow skills (e.g. `/grill-with-docs`, `/to-spec`) live in the developer’s agent skills install (e.g. `~/.agents/skills/`). AB-specific skills live under `.cursor/skills/`. This repo also records skill behaviour via `.agents/*.md`.
+**Public repo vs local:** commit durable AB invariants and project skills that encode repo process. Keep generic workflow skills (`/grill-with-docs`, `/to-spec`, `/implement`, `/code-review`, …) in the developer’s personal install (e.g. `~/.agents/skills/`). Keep ephemeral tickets/specs in `.scratch/`. This repo records how shared skills should behave here via `.agents/*.md`.
 
 ## Three audiences
 
@@ -51,6 +51,7 @@ AGENTS.md          ← agents read this first
     ├── .agents/                this map + skill config
     ├── docs/                   AB docs (read; edit with check + user confirm)
     ├── .cursor/rules/          always-on + path-scoped conventions
+    ├── .cursor/skills/         AB-specific project skills (e.g. /PR)
     └── .github/copilot-…       points back to AGENTS.md
 
 S/M/L workflow     ← .cursor/rules/development-workflow.mdc

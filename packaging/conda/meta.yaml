@@ -4,7 +4,7 @@ package:
   version: {{ ab_version }}
 
 source:
-  path: ..
+  path: ../..
 
 build:
   noarch: python
