@@ -1,23 +1,18 @@
-import os
 import sys
 
-# Prefer PySide6 when multiple Qt bindings are installed (conda/pip mixes).
-os.environ.setdefault("QT_API", "pyside6")
+# Upstream process-start workarounds (must run before qtpy / PySide6).
+from . import patches as _patches  # noqa: F401
 
 try:
     import PySide6  # noqa: F401
 except ImportError:
     import qtpy  # noqa: F401
-else:
-    # Must run after PySide6 so shiboken's feature hook is registered.
-    from .shiboken_compat import patch_shiboken_feature_hook
-
-    patch_shiboken_feature_hook()
 
 
 def setup_logging():
     """Configure loguru sinks for console and file logging."""
     from loguru import logger
+    import os
     import platformdirs
 
     for name, no, color in (
