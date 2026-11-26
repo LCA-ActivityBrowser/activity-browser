@@ -328,9 +328,9 @@ The first report is sparse; charts improve as daily snapshots accumulate.
 - `.github/conda-envs/build.yml` - Conda environment for building packages
 - `.github/release.yml` - GitHub native release-notes categories (PR labels)
 - `.github/scripts/update_wiki.sh` - Wiki update script
-- `recipe/meta.yaml` - Conda package recipe
+- `packaging/conda/meta.yaml` - Conda package recipe (in-repo / `lca` channel builds)
 - `pyproject.toml` - Python package configuration
-- `packaging/` - Stand-alone build scripts and smoke test
+- `packaging/` - Conda recipe plus stand-alone build scripts and smoke test
 
 ---
 

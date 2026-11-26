@@ -22,7 +22,7 @@ requirements:
   build:
     - python
     - setuptools
-  run:  # dependencies are added via github action from stable at recipe/meta.yaml
+  run:  # dependencies are added via github action from stable at packaging/conda/meta.yaml
 
 about:
   home: https://github.com/LCA-ActivityBrowser/activity-browser

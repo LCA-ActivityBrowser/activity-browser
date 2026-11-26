@@ -117,7 +117,7 @@ jobs:
         VERSION: ${{ env.VERSION }}
       run: |
         echo "Building conda package with VERSION=${VERSION}"
-        conda build -c conda-forge -c cmutel -c lca ./recipe/
+        conda build -c conda-forge -c cmutel -c lca ./packaging/conda/
     - name: Publish to Anaconda (lca)
       run: |
         anaconda -t ${{ secrets.CONDA_LCA }} upload \

@@ -75,6 +75,7 @@ Agents should not assume Linux-only or a single Python version. Details live in 
 
 - **Tests:** `.github/workflows/testing.yaml` — pytest on Ubuntu / Windows / macOS × Python 3.11–3.14; `QT_QPA_PLATFORM=offscreen`; install via `pip install .[testing]`.
 - **Stand-alone executables:** `.github/workflows/build-executable.yml` on PR into `main`, or manual dispatch (prefer `dev`). Windows Inno Setup, macOS unsigned DMG, Linux AppImage. Promote via Release Stand-alone — see `packaging/README.md` and ADR-0015.
+- **Conda recipe (in-repo):** `packaging/conda/` (not a root `recipe/`). Freeze entrypoints stay at repo root; see `packaging/README.md`.
 - **Workflow overview:** `.github/workflows/README.md` (testing, canary, deploy, executables, releases).
 - **Branches:** feature work → PR into `dev`; land on stable via `dev` → `main`; public versions via semver tags. See `CONTRIBUTING.md` and ADR-0017.
 - **Opening a PR:** invoke `/PR` (`.cursor/skills/pr`) — branch check, PR body, exactly one changelog label plus optional area labels.
