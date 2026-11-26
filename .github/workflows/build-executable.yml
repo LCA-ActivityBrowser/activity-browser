@@ -21,7 +21,10 @@ jobs:
         include:
           - os: windows-latest
             platform: windows-x64
-          - os: ubuntu-latest
+          # Pin Ubuntu 22.04 (glibc 2.35): ubuntu-latest can ship host libs
+          # (e.g. libglib) that need newer glibc, so the AppImage fails on
+          # common desktops with qtpy.QtBindingsNotFoundError (#1818).
+          - os: ubuntu-22.04
             platform: linux-x86_64
           - os: macos-latest
             platform: macos-arm64
@@ -235,6 +238,14 @@ jobs:
         run: |
           chmod +x packaging/linux/create-appimage.sh
           packaging/linux/create-appimage.sh "$AB_VERSION"
+
+      - name: Guard Linux AppImage glibc baseline
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          chmod +x packaging/linux/check-appimage-glibc.sh
+          packaging/linux/check-appimage-glibc.sh \
+            "dist/installers/ActivityBrowser-${AB_VERSION}-linux-x86_64.AppImage"
 
       - name: Smoke-test stand-alone launch
         shell: bash
