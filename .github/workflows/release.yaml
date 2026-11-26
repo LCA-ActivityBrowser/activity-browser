@@ -14,17 +14,11 @@ jobs:
         shell: bash -l {0}
     steps:
       - uses: actions/checkout@v4
-      - name: Build changelog from PRs with labels
-        id: build_changelog
-        uses: mikepenz/release-changelog-builder-action@v4
-        with:
-          configuration: ".github/changelog-configuration.json"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Create github release
         uses: ncipollo/release-action@v1
         with:
-          body: ${{steps.build_changelog.outputs.changelog}}
+          # Uses GitHub native notes categorized by .github/release.yml (on the default branch)
+          generateReleaseNotes: true
           commit: main
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Update wiki

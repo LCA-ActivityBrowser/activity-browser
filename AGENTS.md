@@ -12,10 +12,6 @@ Be concise and actionable. Prefer small, localized changes. Large refactors need
 
 Local markdown under `.scratch/` (gitignored). See `.agents/issue-tracker.md`.
 
-### Triage labels
-
-Default Matt Pocock triage roles. See `.agents/triage-labels.md`.
-
 ### Domain docs
 
 Single-context: root `CONTEXT.md` + `adr/`. See `.agents/domain.md`.
@@ -81,6 +77,7 @@ Agents should not assume Linux-only or a single Python version. Details live in 
 - **Stand-alone executables:** `.github/workflows/build-executable.yml` on PR into `main`, or manual dispatch (prefer `dev`). Windows Inno Setup, macOS unsigned DMG, Linux AppImage. Promote via Release Stand-alone — see `packaging/README.md` and ADR-0015.
 - **Workflow overview:** `.github/workflows/README.md` (testing, canary, deploy, executables, releases).
 - **Branches:** feature work → PR into `dev`; land on stable via `dev` → `main`; public versions via semver tags. See `CONTRIBUTING.md` and ADR-0017.
+- **Opening a PR:** invoke `/PR` (`.cursor/skills/pr`) — branch check, PR body, exactly one changelog label plus optional area labels.
 - **Dev deps / extras:** `pyproject.toml` (`[project.optional-dependencies]`).
 
 ## AB docs (`docs/`)

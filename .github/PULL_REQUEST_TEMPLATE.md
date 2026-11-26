@@ -23,9 +23,9 @@ For completed items, change [ ] to [x] or you can click the checkboxes once your
 - [ ] Link this PR to related issues by using [closing keywords](https://docs.github.com/en/issues/tracking-your-work-with-issues/linking-a-pull-request-to-an-issue).
 
 #### If you have write access (otherwise a maintainer will do this for you):
-- [ ] Categorize the PR by setting a good title and adding one of the labels:
-      `bug`, `feature`, `ui`, `change`, `documentation`, `breaking`, `ci`
-      as they show up in the changelog.
+- [ ] Categorize the PR by setting a good title and adding exactly one changelog label:
+      `breaking`, `feature`, `ui`, `change`, `bug`, `documentation`, `ci`, `dependencies`
+      (these drive GitHub Release notes via `.github/release.yml`).
 - [ ] Add a milestone to the PR (and related issues, if any) for the intended release.
 - [ ] Request a review from another developer.
 
