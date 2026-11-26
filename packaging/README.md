@@ -87,8 +87,7 @@ CI checks they are present.
 
 Build on **`ubuntu-22.04`** (glibc **2.35**) so the AppImage runs on current
 LTS desktops. `ubuntu-latest` can bundle host libs that need a newer glibc and
-fail elsewhere as `QtBindingsNotFoundError` (#1818). CI enforces the floor with
-[`linux/check-appimage-glibc.sh`](linux/check-appimage-glibc.sh).
+fail elsewhere as `QtBindingsNotFoundError` (#1818).
 
 ## Smoke launch (CI)
 

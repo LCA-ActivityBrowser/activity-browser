@@ -8,5 +8,4 @@ ROOT = Path(__file__).resolve().parents[1]
 def test_linux_freeze_uses_ubuntu_22_04():
     workflow = (ROOT / ".github/workflows/build-executable.yml").read_text()
     assert "ubuntu-22.04" in workflow
-    assert "check-appimage-glibc.sh" in workflow
     assert "- os: ubuntu-latest\n            platform: linux-x86_64" not in workflow

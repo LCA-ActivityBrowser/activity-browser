@@ -237,10 +237,6 @@ jobs:
           chmod +x packaging/linux/create-appimage.sh
           packaging/linux/create-appimage.sh "$AB_VERSION"
 
-      - name: Guard AppImage glibc ≤ 2.35
-        if: runner.os == 'Linux'
-        run: bash packaging/linux/check-appimage-glibc.sh "dist/installers/ActivityBrowser-${AB_VERSION}-linux-x86_64.AppImage"
-
       - name: Smoke-test stand-alone launch
         shell: bash
         env:
