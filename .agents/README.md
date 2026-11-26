@@ -17,13 +17,14 @@ When you change how agent documentation is organized — new or removed `.cursor
 | `AGENTS.md` | Yes | Primary entry point for agents (architecture, placement, testing, CI pointers) |
 | `CONTEXT.md` | Yes | Domain glossary (agents + developers; not a public docs-site glossary) |
 | `adr/` | Yes | Architecture Decision Records (engineering audience; not published on Pages) |
-| `.agents/` | Yes | This map + Matt Pocock skill config (tracker, domain, triage) |
+| `.agents/` | Yes | This map + Matt Pocock skill config (tracker, domain) |
 | `docs/` | Yes | AB docs site for AB users (LCA practitioners) |
 | `.cursor/rules/` | Yes | Cursor rules (workflow + per-module conventions) |
+| `.cursor/skills/` | Yes | AB-specific project skills (e.g. `/PR`) — shared team conventions |
 | `.github/copilot-instructions.md` | Yes | Thin pointer to `AGENTS.md` for GitHub Copilot |
 | `.scratch/` | **No** (gitignored) | Local specs and tickets while trying the workflow |
 
-Skills themselves (e.g. `/grill-with-docs`, `/to-spec`) live in the developer’s agent skills install (e.g. `~/.agents/skills/`), not in this repo. This repo only records **how** those skills should behave here via `.agents/*.md`.
+**Public repo vs local:** commit durable AB invariants and project skills that encode repo process. Keep generic workflow skills (`/grill-with-docs`, `/to-spec`, `/implement`, `/code-review`, …) in the developer’s personal install (e.g. `~/.agents/skills/`). Keep ephemeral tickets/specs in `.scratch/`. This repo records how shared skills should behave here via `.agents/*.md`.
 
 ## Three audiences
 
@@ -50,6 +51,7 @@ AGENTS.md          ← agents read this first
     ├── .agents/                this map + skill config
     ├── docs/                   AB docs (read; edit with check + user confirm)
     ├── .cursor/rules/          always-on + path-scoped conventions
+    ├── .cursor/skills/         AB-specific project skills (e.g. /PR)
     └── .github/copilot-…       points back to AGENTS.md
 
 S/M/L workflow     ← .cursor/rules/development-workflow.mdc
@@ -70,7 +72,6 @@ Slash skills with `disable-model-invocation` are **not** auto-run. The workflow 
 | `README.md` | This map |
 | `issue-tracker.md` | Where specs/tickets live (currently **local** `.scratch/`) |
 | `domain.md` | How skills should consume `CONTEXT.md` and ADRs |
-| `triage-labels.md` | Mapping for triage role labels |
 | `impact-category-interchange.md` | Agent notes pointing at canonical AB docs |
 
 ## Module READMEs (code-adjacent)

@@ -179,7 +179,7 @@ with branch **`dev`**. Merges do not publish a stand-alone release.
 
 ### Matrix Strategy
 - **Windows** (`windows-latest`) → Inno Setup installer (`windows-x64`)
-- **Linux** (`ubuntu-latest`) → AppImage (`linux-x86_64`)
+- **Linux** (`ubuntu-22.04`, glibc 2.35 baseline) → AppImage (`linux-x86_64`)
 - **macOS** (`macos-latest`, Apple Silicon) → unsigned DMG (`macos-arm64`)
 
 Win/Linux freeze via **uv**; macOS freeze via **micromamba**. After packaging, each OS job
@@ -219,14 +219,13 @@ Prefer **Run workflow** with branch **`dev`** so GitHub uses the full workflow f
 
 **Trigger:** Push of a git tag (job skipped when the tag ends in `-stand-alone`)
 
-**Purpose:** Creates a GitHub Release with an auto-generated PR-label changelog and updates the wiki.
+**Purpose:** Creates a GitHub Release with GitHub native auto-generated release notes (PR labels) and updates the wiki.
 PyPI / `lca` uploads are handled by [Semver Publish](#3-semver-publish-python-package-deployyml).
 
 ### Steps
 1. Checkout code (`actions/checkout@v4`)
-2. **Generate Changelog** from PR labels (`mikepenz/release-changelog-builder-action@v4`, `.github/changelog-configuration.json`)
-3. **Create GitHub Release** on the tagged commit (`ncipollo/release-action@v1`, `commit: main`)
-4. **Update Wiki** via `.github/scripts/update_wiki.sh`
+2. **Create GitHub Release** on the tagged commit (`ncipollo/release-action@v1`, `generateReleaseNotes: true`, `commit: main`) — categories from [`.github/release.yml`](../release.yml)
+3. **Update Wiki** via `.github/scripts/update_wiki.sh`
 
 ### Notes
 - After the Release is created, maintainers **Edit release** to prepend a curated preamble (CONTRIBUTING)
@@ -327,11 +326,11 @@ The first report is sparse; charts improve as daily snapshots accumulate.
 
 ### Configuration Files
 - `.github/conda-envs/build.yml` - Conda environment for building packages
-- `.github/changelog-configuration.json` - Changelog generation configuration
+- `.github/release.yml` - GitHub native release-notes categories (PR labels)
 - `.github/scripts/update_wiki.sh` - Wiki update script
-- `recipe/meta.yaml` - Conda package recipe
+- `packaging/conda/meta.yaml` - Conda package recipe (in-repo / `lca` channel builds)
 - `pyproject.toml` - Python package configuration
-- `packaging/` - Stand-alone build scripts and smoke test
+- `packaging/` - Conda recipe plus stand-alone build scripts and smoke test
 
 ---
 

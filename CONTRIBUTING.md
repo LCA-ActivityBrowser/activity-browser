@@ -74,10 +74,9 @@ just [contact the developers](https://github.com/LCA-ActivityBrowser/activity-br
 
 
 ## Developing the Activity Browser
-If you want to contribute your time to make the activity browser better, great! 
-If you don’t know where to start you can either have a look at the issues with a 
-[`good first issue` label](https://github.com/LCA-ActivityBrowser/activity-browser/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) 
-or by [contacting the developers](https://github.com/LCA-ActivityBrowser/activity-browser#developers).
+If you want to contribute your time to make the activity browser better, great!
+Browse [open issues](https://github.com/LCA-ActivityBrowser/activity-browser/issues) or
+[contact the developers](https://github.com/LCA-ActivityBrowser/activity-browser#developers).
 
 For more in-depth information about contributing to the project, please read on.
 
@@ -385,10 +384,11 @@ while that is true.
 
 #### Changelog (automatic + curated)
 
-- **Automatic:** on tag push, Actions builds a categorized changelog from merged PRs
-  using labels in [`.github/changelog-configuration.json`](.github/changelog-configuration.json)
-  (`breaking`, `feature`/`enhancement`, `ui`, `change`, `bug`, `documentation`, `ci`).
-  Label PRs before merge so the list is useful.
+- **Automatic:** on tag push, Actions creates a GitHub Release with
+  [automatically generated release notes](https://docs.github.com/en/repositories/releasing-projects-on-github/automatically-generated-release-notes),
+  categorized by PR labels in [`.github/release.yml`](.github/release.yml)
+  (`breaking`, `feature`, `ui`, `change`, `bug`, `documentation`, `ci`, `dependencies`).
+  Apply exactly one of those labels before merge so the list is useful.
 - **Curated preamble:** after the tag creates the GitHub Release, open that Release →
   **Edit release** → prepend human notes (upgrade caveats, install channels, highlights)
   above the generated list → save. That Release body is the published changelog.
