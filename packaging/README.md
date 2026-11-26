@@ -85,13 +85,10 @@ CI checks they are present.
 
 ## Linux AppImage glibc baseline
 
-Linux stand-alone builds run on **Ubuntu 22.04** runners (`ubuntu-22.04`), not
-`ubuntu-latest`. PyInstaller may bundle host libraries such as `libglib`; those
-must not require a newer glibc than the baseline desktop (22.04 → glibc 2.35).
-Building on a newer image produced AppImages that failed on common Linux
-desktops with `qtpy.QtBindingsNotFoundError` because `libglib` needed
-`GLIBC_2.43` (#1818). CI runs [`linux/check-appimage-glibc.sh`](linux/check-appimage-glibc.sh)
-after AppImage creation to reject libs above that baseline.
+Build on **`ubuntu-22.04`** (glibc **2.35**) so the AppImage runs on current
+LTS desktops. `ubuntu-latest` can bundle host libs that need a newer glibc and
+fail elsewhere as `QtBindingsNotFoundError` (#1818). CI enforces the floor with
+[`linux/check-appimage-glibc.sh`](linux/check-appimage-glibc.sh).
 
 ## Smoke launch (CI)
 
@@ -102,9 +99,7 @@ AppImage), start under `QT_QPA_PLATFORM=offscreen` with
 the first ~90s or if the console line `Activity Browser version:` does not
 exactly match `AB_VERSION` (the `{PyPI}-stand-alone` stamp). This catches
 splash-then-crash failures and wrong version stamps; it does not cover
-Gatekeeper / SmartScreen Finder UX. The Linux glibc guard above is separate:
-smoke on the build runner can pass while the AppImage is still unusable on
-older hosts.
+Gatekeeper / SmartScreen Finder UX.
 
 ## Fast sparse solver
 

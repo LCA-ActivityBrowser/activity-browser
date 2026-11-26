@@ -21,7 +21,7 @@ Builds are **unsigned**, so browser/SmartScreen warnings on Windows and Gatekeep
 - **Windows:** run the installer; Microsoft blocks unknown apps with a "Windows protected your PC" prompt; you can bypass this by clicking More info and then Run anyway
 - **macOS (ARM):** open the DMG; drag to Applications; After attempting to launch the app and dismissing the Gatekeeper warning, go to System Settings > Privacy & Security, scroll down, and click Open Anyway. The Apple Silicon DMG includes the fast sparse solver (`scikit-umfpack`).
 - **macOS (Intel):** not supported yet
-- **Linux:** mark the file as executable via `chmod +x` filename or by right-clicking the file, opening Properties > Permissions, and checking Allow executing file as program
+- **Linux:** mark the AppImage executable (`chmod +x` …, or Properties → Permissions). Needs **glibc 2.35+** (Ubuntu 22.04 or newer).
 
 ## Installing from PyPI
 
