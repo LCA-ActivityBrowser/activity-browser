@@ -18,4 +18,4 @@ accepted
 - Docs must pin `lca::activity-browser` and warn that unpinned conda-forge still resolves AB2
 - `AB2_legacy` may receive critical fix tags; no AB2 feature development
 - First complete stable cut (`3.0.0`) includes pip, `lca`, and stand-alone; later tags may omit stand-alone when package-only
-- Release notes: auto PR-label changelog on the GitHub Release, plus curated preamble via Edit release after the tag
+- Release notes: GitHub native auto-generated notes (`.github/release.yml` PR labels) on the GitHub Release, plus curated preamble via Edit release after the tag

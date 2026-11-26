@@ -17,13 +17,14 @@ When you change how agent documentation is organized — new or removed `.cursor
 | `AGENTS.md` | Yes | Primary entry point for agents (architecture, placement, testing, CI pointers) |
 | `CONTEXT.md` | Yes | Domain glossary (agents + developers; not a public docs-site glossary) |
 | `adr/` | Yes | Architecture Decision Records (engineering audience; not published on Pages) |
-| `.agents/` | Yes | This map + Matt Pocock skill config (tracker, domain, triage) |
+| `.agents/` | Yes | This map + Matt Pocock skill config (tracker, domain) |
 | `docs/` | Yes | AB docs site for AB users (LCA practitioners) |
 | `.cursor/rules/` | Yes | Cursor rules (workflow + per-module conventions) |
+| `.cursor/skills/` | Yes | Project Agent Skills (e.g. `/PR`) |
 | `.github/copilot-instructions.md` | Yes | Thin pointer to `AGENTS.md` for GitHub Copilot |
 | `.scratch/` | **No** (gitignored) | Local specs and tickets while trying the workflow |
 
-Skills themselves (e.g. `/grill-with-docs`, `/to-spec`) live in the developer’s agent skills install (e.g. `~/.agents/skills/`), not in this repo. This repo only records **how** those skills should behave here via `.agents/*.md`.
+Shared workflow skills (e.g. `/grill-with-docs`, `/to-spec`) live in the developer’s agent skills install (e.g. `~/.agents/skills/`). AB-specific skills live under `.cursor/skills/`. This repo also records skill behaviour via `.agents/*.md`.
 
 ## Three audiences
 
@@ -70,7 +71,6 @@ Slash skills with `disable-model-invocation` are **not** auto-run. The workflow 
 | `README.md` | This map |
 | `issue-tracker.md` | Where specs/tickets live (currently **local** `.scratch/`) |
 | `domain.md` | How skills should consume `CONTEXT.md` and ADRs |
-| `triage-labels.md` | Mapping for triage role labels |
 | `impact-category-interchange.md` | Agent notes pointing at canonical AB docs |
 
 ## Module READMEs (code-adjacent)
