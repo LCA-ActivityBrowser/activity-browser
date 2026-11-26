@@ -1,9 +1,13 @@
 import sys
 
+# Upstream process-start workarounds (must run before qtpy / PySide6).
+from . import patches as _patches  # noqa: F401
+
 try:
     import PySide6
 except ImportError:
     import qtpy
+
 
 def setup_logging():
     """Configure loguru sinks for console and file logging."""

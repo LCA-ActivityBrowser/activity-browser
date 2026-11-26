@@ -6,6 +6,8 @@ Monkey-patches and modifications to third-party libraries used by Activity Brows
 
 This module contains patches and modifications to external libraries to fix bugs, add features, or adapt functionality for Activity Browser's specific needs. These modifications are applied at import time.
 
+**Process-start workarounds** that must run before Qt / Brightway (e.g. qtpy binding pin, `six`×PySide6) live in [`activity_browser/patches/`](../patches/__init__.py), not here — importing `mod` pulls Brightway-related patches and is too late/heavy for that path.
+
 ## Directory Structure
 
 - **`bw2data/`** - Patches for brightway2-data (e.g. `signaled_save_compat` / `serialized_save_compat` for unsourced 4.8 save signals)
