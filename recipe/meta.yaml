@@ -26,7 +26,8 @@ requirements:
     - bw2data >=4.1
     - bw2parameters >=1.1
     - bw2io >=0.9.3
-    - bw_graph_tools >=0.5
+    # 0.7+: np.in1d → np.isin (NumPy 2.4 removed in1d; breaks Tree/Sankey)
+    - bw_graph_tools >=0.7
     - bw_processing >=1.0
     - bw_simapro_csv >=0.2.6
     # Pin from lca: cmutel still only has 1.1.1; pip already gets 1.1.2 from PyPI
