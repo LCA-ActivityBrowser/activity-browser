@@ -1,14 +1,23 @@
+import os
 import sys
 
+# Prefer PySide6 when multiple Qt bindings are installed (conda/pip mixes).
+os.environ.setdefault("QT_API", "pyside6")
+
 try:
-    import PySide6
+    import PySide6  # noqa: F401
 except ImportError:
-    import qtpy
+    import qtpy  # noqa: F401
+else:
+    # Must run after PySide6 so shiboken's feature hook is registered.
+    from .shiboken_compat import patch_shiboken_feature_hook
+
+    patch_shiboken_feature_hook()
+
 
 def setup_logging():
     """Configure loguru sinks for console and file logging."""
     from loguru import logger
-    import os
     import platformdirs
 
     for name, no, color in (
@@ -36,6 +45,7 @@ def setup_logging():
     os.makedirs(log_dir, exist_ok=True)
     log_file = os.path.join(log_dir, "activity_browser.log")
     logger.add(log_file, level="DEBUG", rotation="5 MB", retention=5)
+
 
 def run_activity_browser():
     # Windows frozen builds (PyInstaller): Pool/Process workers re-enter the
