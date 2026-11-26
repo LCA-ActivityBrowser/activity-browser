@@ -179,7 +179,7 @@ with branch **`dev`**. Merges do not publish a stand-alone release.
 
 ### Matrix Strategy
 - **Windows** (`windows-latest`) → Inno Setup installer (`windows-x64`)
-- **Linux** (`ubuntu-latest`) → AppImage (`linux-x86_64`)
+- **Linux** (`ubuntu-22.04`, glibc 2.35 baseline) → AppImage (`linux-x86_64`)
 - **macOS** (`macos-latest`, Apple Silicon) → unsigned DMG (`macos-arm64`)
 
 Win/Linux freeze via **uv**; macOS freeze via **micromamba**. After packaging, each OS job

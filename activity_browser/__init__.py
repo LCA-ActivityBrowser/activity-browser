@@ -1,9 +1,13 @@
 import sys
 
+# Upstream process-start workarounds (must run before qtpy / PySide6).
+from . import patches as _patches  # noqa: F401
+
 try:
-    import PySide6
+    import PySide6  # noqa: F401
 except ImportError:
-    import qtpy
+    import qtpy  # noqa: F401
+
 
 def setup_logging():
     """Configure loguru sinks for console and file logging."""
@@ -36,6 +40,7 @@ def setup_logging():
     os.makedirs(log_dir, exist_ok=True)
     log_file = os.path.join(log_dir, "activity_browser.log")
     logger.add(log_file, level="DEBUG", rotation="5 MB", retention=5)
+
 
 def run_activity_browser():
     # Windows frozen builds (PyInstaller): Pool/Process workers re-enter the

@@ -83,6 +83,12 @@ Creating a `QWebEnginePage` aborts if `Helpers` (QtWebEngineProcess) or
 `QtWebEngineCore.framework`. The spec copies both into the `.app` after BUNDLE;
 CI checks they are present.
 
+## Linux AppImage glibc baseline
+
+Build on **`ubuntu-22.04`** (glibc **2.35**) so the AppImage runs on current
+LTS desktops. `ubuntu-latest` can bundle host libs that need a newer glibc and
+fail elsewhere as `QtBindingsNotFoundError` (#1818).
+
 ## Smoke launch (CI)
 
 After packaging, Build Executable runs [`smoke-standalone.sh`](smoke-standalone.sh):

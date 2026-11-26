@@ -21,7 +21,8 @@ jobs:
         include:
           - os: windows-latest
             platform: windows-x64
-          - os: ubuntu-latest
+          # Ubuntu 22.04 → glibc 2.35 baseline for a portable AppImage (#1818).
+          - os: ubuntu-22.04
             platform: linux-x86_64
           - os: macos-latest
             platform: macos-arm64
